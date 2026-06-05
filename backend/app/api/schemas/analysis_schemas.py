@@ -2,6 +2,8 @@ from pydantic import BaseModel
 
 from app.core.domain.analysis import (
     AnalysisFinding,
+    GitHubActionsAnalysisResult,
+    GitHubActionsWorkflow,
     GitLabCIAnalysisResult,
     GitLabCIJob,
     TerraformAnalysisResult,
@@ -63,6 +65,26 @@ class GitLabCIAnalysisResponse(BaseModel):
     variables_count: int
     jobs_count: int
     jobs: list[GitLabCIJobResponse]
+    findings: list[AnalysisFindingResponse]
+
+
+class GitHubActionsWorkflowResponse(BaseModel):
+    path: str
+    name: str | None
+    triggers: list[str]
+    jobs_count: int
+    uses_reusable_workflows: bool
+    uses_matrix: bool
+    uses_permissions: bool
+    has_secrets_reference: bool
+
+
+class GitHubActionsAnalysisResponse(BaseModel):
+    workspace_id: str
+    project_path: str
+    workflow_files_count: int
+    workflows: list[GitHubActionsWorkflowResponse]
+    total_jobs_count: int
     findings: list[AnalysisFindingResponse]
 
 
@@ -141,6 +163,39 @@ def to_gitlab_ci_analysis_response(
         variables_count=result.variables_count,
         jobs_count=result.jobs_count,
         jobs=[to_gitlab_ci_job_response(job) for job in result.jobs],
+        findings=[
+            to_analysis_finding_response(finding) for finding in result.findings
+        ],
+    )
+
+
+def to_github_actions_workflow_response(
+    workflow: GitHubActionsWorkflow,
+) -> GitHubActionsWorkflowResponse:
+    return GitHubActionsWorkflowResponse(
+        path=workflow.path,
+        name=workflow.name,
+        triggers=workflow.triggers,
+        jobs_count=workflow.jobs_count,
+        uses_reusable_workflows=workflow.uses_reusable_workflows,
+        uses_matrix=workflow.uses_matrix,
+        uses_permissions=workflow.uses_permissions,
+        has_secrets_reference=workflow.has_secrets_reference,
+    )
+
+
+def to_github_actions_analysis_response(
+    result: GitHubActionsAnalysisResult,
+) -> GitHubActionsAnalysisResponse:
+    return GitHubActionsAnalysisResponse(
+        workspace_id=result.workspace_id,
+        project_path=result.project_path,
+        workflow_files_count=result.workflow_files_count,
+        workflows=[
+            to_github_actions_workflow_response(workflow)
+            for workflow in result.workflows
+        ],
+        total_jobs_count=result.total_jobs_count,
         findings=[
             to_analysis_finding_response(finding) for finding in result.findings
         ],
