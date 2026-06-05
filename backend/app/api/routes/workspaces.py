@@ -11,6 +11,10 @@ from app.adapters.memory.in_memory_workspace_repository import InMemoryWorkspace
 from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScanRepository
 from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
 from app.api.project_scan_schemas import ProjectScanResponse, to_project_scan_response
+from app.api.schemas.workspace_summary_schemas import (
+    WorkspaceSummaryResponse,
+    to_workspace_summary_response,
+)
 from app.config.settings import get_settings
 from app.core.domain.workspace import Workspace
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
@@ -24,6 +28,11 @@ from app.core.use_cases.get_workspace_latest_scan import (
     GetWorkspaceLatestScanUseCase,
 )
 from app.core.use_cases.get_workspace import GetWorkspaceUseCase
+from app.core.use_cases.get_workspace_summary import (
+    GetWorkspaceSummaryInput,
+    GetWorkspaceSummaryUseCase,
+    WorkspaceSummaryNotFoundError,
+)
 from app.core.use_cases.list_workspaces import ListWorkspacesUseCase
 from app.core.use_cases.scan_project import ProjectScanError
 from app.core.use_cases.scan_workspace_project import (
@@ -157,3 +166,21 @@ def get_workspace_latest_scan(workspace_id: str) -> ProjectScanResponse:
         )
 
     return to_project_scan_response(result)
+
+
+@router.get("/{workspace_id}/summary", response_model=WorkspaceSummaryResponse)
+def get_workspace_summary(workspace_id: str) -> WorkspaceSummaryResponse:
+    use_case = GetWorkspaceSummaryUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+    )
+
+    try:
+        summary = use_case.execute(GetWorkspaceSummaryInput(workspace_id=workspace_id))
+    except WorkspaceSummaryNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return to_workspace_summary_response(summary)
