@@ -83,3 +83,31 @@ class GitHubActionsAnalysisResult:
     workflows: list[GitHubActionsWorkflow]
     total_jobs_count: int
     findings: list[AnalysisFinding]
+
+
+@dataclass(frozen=True)
+class AnalyzerStatus:
+    name: str
+    status: str
+    reason: str | None
+    findings_count: int
+
+
+@dataclass(frozen=True)
+class SeverityCounts:
+    info: int
+    low: int
+    medium: int
+    high: int
+
+
+@dataclass(frozen=True)
+class AnalysisSummaryResult:
+    workspace_id: str
+    project_path: str
+    has_scan: bool
+    analyzers: list[AnalyzerStatus]
+    severity_counts: SeverityCounts
+    total_findings: int
+    top_findings: list[AnalysisFinding]
+    recommended_next_steps: list[str]

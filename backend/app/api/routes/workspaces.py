@@ -12,10 +12,12 @@ from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScan
 from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
 from app.api.project_scan_schemas import ProjectScanResponse, to_project_scan_response
 from app.api.schemas.analysis_schemas import (
+    AnalysisSummaryResponse,
     GitHubActionsAnalysisResponse,
     GitLabCIAnalysisResponse,
     TerraformAnalysisResponse,
     TerragruntAnalysisResponse,
+    to_analysis_summary_response,
     to_github_actions_analysis_response,
     to_gitlab_ci_analysis_response,
     to_terraform_analysis_response,
@@ -60,6 +62,11 @@ from app.core.use_cases.create_workspace import (
 from app.core.use_cases.get_workspace_latest_scan import (
     GetWorkspaceLatestScanInput,
     GetWorkspaceLatestScanUseCase,
+)
+from app.core.use_cases.get_analysis_summary import (
+    AnalysisSummaryWorkspaceNotFoundError,
+    GetAnalysisSummaryInput,
+    GetAnalysisSummaryUseCase,
 )
 from app.core.use_cases.get_workspace import GetWorkspaceUseCase
 from app.core.use_cases.get_workspace_summary import (
@@ -328,3 +335,25 @@ def analyze_workspace_github_actions(
         ) from exc
 
     return to_github_actions_analysis_response(result)
+
+
+@router.get(
+    "/{workspace_id}/analysis/summary",
+    response_model=AnalysisSummaryResponse,
+)
+def get_workspace_analysis_summary(workspace_id: str) -> AnalysisSummaryResponse:
+    use_case = GetAnalysisSummaryUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+        file_system=file_system,
+    )
+
+    try:
+        result = use_case.execute(GetAnalysisSummaryInput(workspace_id=workspace_id))
+    except AnalysisSummaryWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return to_analysis_summary_response(result)
