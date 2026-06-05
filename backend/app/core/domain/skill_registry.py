@@ -105,6 +105,12 @@ DEFAULT_SKILL_DEFINITIONS = [
         file_types=["terraform"],
     ),
     SkillDefinition(
+        name="Terragrunt",
+        category=SkillCategory.DEVOPS.value,
+        description="Terragrunt configuration for Terraform orchestration.",
+        file_types=["terragrunt"],
+    ),
+    SkillDefinition(
         name="Python",
         category=SkillCategory.DEVELOPER.value,
         description="Python application or scripting code.",

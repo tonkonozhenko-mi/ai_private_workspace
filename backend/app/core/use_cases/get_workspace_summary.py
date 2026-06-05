@@ -99,6 +99,17 @@ class GetWorkspaceSummaryUseCase:
                 )
             )
 
+        if "Terragrunt" in skill_names:
+            actions.append(
+                SuggestedAction(
+                    id="analyze_terragrunt",
+                    title="Analyze Terragrunt",
+                    description="Review Terragrunt configuration and environment structure.",
+                    category="devops",
+                    priority="high",
+                )
+            )
+
         if "GitLab CI" in skill_names or "GitHub Actions" in skill_names:
             actions.append(
                 SuggestedAction(

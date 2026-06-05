@@ -5,6 +5,7 @@ from app.core.domain.analysis import (
     GitLabCIAnalysisResult,
     GitLabCIJob,
     TerraformAnalysisResult,
+    TerragruntAnalysisResult,
 )
 
 
@@ -26,6 +27,19 @@ class TerraformAnalysisResponse(BaseModel):
     has_variables: bool
     has_outputs: bool
     has_modules: bool
+    findings: list[AnalysisFindingResponse]
+
+
+class TerragruntAnalysisResponse(BaseModel):
+    workspace_id: str
+    project_path: str
+    total_terragrunt_files: int
+    files: list[str]
+    has_remote_state: bool
+    has_include_blocks: bool
+    has_dependencies: bool
+    has_inputs: bool
+    has_terraform_source: bool
     findings: list[AnalysisFindingResponse]
 
 
@@ -77,6 +91,25 @@ def to_terraform_analysis_response(
         has_variables=result.has_variables,
         has_outputs=result.has_outputs,
         has_modules=result.has_modules,
+        findings=[
+            to_analysis_finding_response(finding) for finding in result.findings
+        ],
+    )
+
+
+def to_terragrunt_analysis_response(
+    result: TerragruntAnalysisResult,
+) -> TerragruntAnalysisResponse:
+    return TerragruntAnalysisResponse(
+        workspace_id=result.workspace_id,
+        project_path=result.project_path,
+        total_terragrunt_files=result.total_terragrunt_files,
+        files=result.files,
+        has_remote_state=result.has_remote_state,
+        has_include_blocks=result.has_include_blocks,
+        has_dependencies=result.has_dependencies,
+        has_inputs=result.has_inputs,
+        has_terraform_source=result.has_terraform_source,
         findings=[
             to_analysis_finding_response(finding) for finding in result.findings
         ],
