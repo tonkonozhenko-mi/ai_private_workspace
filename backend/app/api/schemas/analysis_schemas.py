@@ -2,8 +2,11 @@ from pydantic import BaseModel
 
 from app.core.domain.analysis import (
     AnalysisFinding,
+    AnalysisSummaryResult,
+    AnalyzerStatus,
     GitHubActionsAnalysisResult,
     GitHubActionsWorkflow,
+    SeverityCounts,
     GitLabCIAnalysisResult,
     GitLabCIJob,
     TerraformAnalysisResult,
@@ -17,6 +20,20 @@ class AnalysisFindingResponse(BaseModel):
     description: str
     severity: str
     evidence: list[str]
+
+
+class AnalyzerStatusResponse(BaseModel):
+    name: str
+    status: str
+    reason: str | None
+    findings_count: int
+
+
+class SeverityCountsResponse(BaseModel):
+    info: int
+    low: int
+    medium: int
+    high: int
 
 
 class TerraformAnalysisResponse(BaseModel):
@@ -88,6 +105,17 @@ class GitHubActionsAnalysisResponse(BaseModel):
     findings: list[AnalysisFindingResponse]
 
 
+class AnalysisSummaryResponse(BaseModel):
+    workspace_id: str
+    project_path: str
+    has_scan: bool
+    analyzers: list[AnalyzerStatusResponse]
+    severity_counts: SeverityCountsResponse
+    total_findings: int
+    top_findings: list[AnalysisFindingResponse]
+    recommended_next_steps: list[str]
+
+
 def to_analysis_finding_response(
     finding: AnalysisFinding,
 ) -> AnalysisFindingResponse:
@@ -97,6 +125,26 @@ def to_analysis_finding_response(
         description=finding.description,
         severity=finding.severity,
         evidence=finding.evidence,
+    )
+
+
+def to_analyzer_status_response(status: AnalyzerStatus) -> AnalyzerStatusResponse:
+    return AnalyzerStatusResponse(
+        name=status.name,
+        status=status.status,
+        reason=status.reason,
+        findings_count=status.findings_count,
+    )
+
+
+def to_severity_counts_response(
+    severity_counts: SeverityCounts,
+) -> SeverityCountsResponse:
+    return SeverityCountsResponse(
+        info=severity_counts.info,
+        low=severity_counts.low,
+        medium=severity_counts.medium,
+        high=severity_counts.high,
     )
 
 
@@ -199,4 +247,23 @@ def to_github_actions_analysis_response(
         findings=[
             to_analysis_finding_response(finding) for finding in result.findings
         ],
+    )
+
+
+def to_analysis_summary_response(
+    result: AnalysisSummaryResult,
+) -> AnalysisSummaryResponse:
+    return AnalysisSummaryResponse(
+        workspace_id=result.workspace_id,
+        project_path=result.project_path,
+        has_scan=result.has_scan,
+        analyzers=[
+            to_analyzer_status_response(status) for status in result.analyzers
+        ],
+        severity_counts=to_severity_counts_response(result.severity_counts),
+        total_findings=result.total_findings,
+        top_findings=[
+            to_analysis_finding_response(finding) for finding in result.top_findings
+        ],
+        recommended_next_steps=result.recommended_next_steps,
     )
