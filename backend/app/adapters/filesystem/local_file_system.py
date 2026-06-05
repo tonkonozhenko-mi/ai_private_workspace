@@ -62,6 +62,25 @@ class LocalFileSystem:
     def is_directory(self, path: str) -> bool:
         return Path(path).is_dir()
 
+    def read_text_file(self, root_path: str, relative_path: str) -> str:
+        root = Path(root_path).resolve()
+        target_path = (root / relative_path).resolve()
+
+        try:
+            target_path.relative_to(root)
+        except ValueError:
+            return ""
+
+        if not target_path.is_file():
+            return ""
+
+        try:
+            if target_path.stat().st_size > MAX_FILE_SIZE_BYTES:
+                return ""
+            return target_path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            return ""
+
     def _collect_candidates(self, root: Path) -> list[tuple[Path, Path, int]]:
         candidates: list[tuple[Path, Path, int]] = []
 
