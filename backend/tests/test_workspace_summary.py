@@ -28,6 +28,17 @@ def test_workspace_without_scan_returns_scan_project_action(tmp_path) -> None:
             "priority": "high",
         }
     ]
+    assert summary["command_activity"] == {
+        "total_commands": 0,
+        "pending_commands": 0,
+        "approved_commands": 0,
+        "rejected_commands": 0,
+        "executed_commands": 0,
+        "failed_commands": 0,
+        "last_command_id": None,
+        "last_command_status": None,
+        "last_command": None,
+    }
 
 
 def test_workspace_with_scan_returns_skill_based_actions(tmp_path) -> None:
@@ -77,6 +88,39 @@ def test_workspace_summary_suggested_actions_are_limited(tmp_path) -> None:
     assert len(response.json()["suggested_actions"]) == 6
 
 
+def test_workspace_summary_includes_command_activity(tmp_path) -> None:
+    workspace = _create_workspace(tmp_path)
+    executed_command = _propose_command(workspace["id"], tmp_path, "git status")
+    rejected_command = _propose_command(workspace["id"], tmp_path, "git diff")
+    approved_command = _propose_command(workspace["id"], tmp_path, "git log")
+    pending_command = _propose_command(workspace["id"], tmp_path, "git branch")
+
+    approve_response = client.post(f"/commands/{executed_command['id']}/approve")
+    assert approve_response.status_code == 200
+    execute_response = client.post(f"/commands/{executed_command['id']}/execute")
+    assert execute_response.status_code == 200
+
+    reject_response = client.post(f"/commands/{rejected_command['id']}/reject")
+    assert reject_response.status_code == 200
+
+    approve_only_response = client.post(f"/commands/{approved_command['id']}/approve")
+    assert approve_only_response.status_code == 200
+
+    response = client.get(f"/workspaces/{workspace['id']}/summary")
+
+    assert response.status_code == 200
+    activity = response.json()["command_activity"]
+    assert activity["total_commands"] == 4
+    assert activity["pending_commands"] == 1
+    assert activity["approved_commands"] == 1
+    assert activity["rejected_commands"] == 1
+    assert activity["executed_commands"] == 1
+    assert activity["failed_commands"] == 0
+    assert activity["last_command_id"] == pending_command["id"]
+    assert activity["last_command_status"] == "pending"
+    assert activity["last_command"] == "git branch"
+
+
 def test_workspace_summary_unknown_workspace_returns_404() -> None:
     response = client.get("/workspaces/missing-workspace/summary")
 
@@ -92,6 +136,20 @@ def _create_workspace(project_path: Path) -> dict:
             "project_path": str(project_path),
             "assistant_mode": "local",
             "privacy_mode": "private",
+        },
+    )
+
+    assert response.status_code == 201
+    return response.json()
+
+
+def _propose_command(workspace_id: str, cwd: Path, command: str) -> dict:
+    response = client.post(
+        f"/workspaces/{workspace_id}/commands",
+        json={
+            "command": command,
+            "cwd": str(cwd),
+            "reason": "Check command activity",
         },
     )
 

@@ -3,7 +3,12 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
-from app.api.dependencies import file_system, project_scan_repository, workspace_repository
+from app.api.dependencies import (
+    command_repository,
+    file_system,
+    project_scan_repository,
+    workspace_repository,
+)
 from app.api.project_scan_schemas import ProjectScanResponse, to_project_scan_response
 from app.api.schemas.analysis_schemas import (
     AnalysisSummaryResponse,
@@ -176,6 +181,7 @@ def get_workspace_summary(workspace_id: str) -> WorkspaceSummaryResponse:
     use_case = GetWorkspaceSummaryUseCase(
         workspace_repository=workspace_repository,
         project_scan_repository=project_scan_repository,
+        command_repository=command_repository,
     )
 
     try:
