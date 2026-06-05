@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from app.core.domain.workspace import Workspace
-from app.core.ports.workspace_repository import WorkspaceRepository
+from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 
 
 @dataclass(frozen=True)
@@ -15,7 +15,7 @@ class CreateWorkspaceInput:
 
 
 class CreateWorkspaceUseCase:
-    def __init__(self, workspace_repository: WorkspaceRepository) -> None:
+    def __init__(self, workspace_repository: WorkspaceRepositoryPort) -> None:
         self.workspace_repository = workspace_repository
 
     def execute(self, request: CreateWorkspaceInput) -> Workspace:
@@ -27,4 +27,4 @@ class CreateWorkspaceUseCase:
             privacy_mode=request.privacy_mode,
             created_at=datetime.now(UTC),
         )
-        return self.workspace_repository.save(workspace)
+        return self.workspace_repository.create(workspace)
