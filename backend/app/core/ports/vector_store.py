@@ -1,18 +1,27 @@
-from dataclasses import dataclass, field
 from typing import Protocol
 
-
-@dataclass(frozen=True)
-class VectorDocument:
-    id: str
-    text: str
-    embedding: list[float]
-    metadata: dict[str, str] = field(default_factory=dict)
+from app.core.domain.indexing import ContextSearchResult, TextChunk
 
 
-class VectorStore(Protocol):
-    def upsert(self, workspace_id: str, documents: list[VectorDocument]) -> None:
-        """Store embedded documents for a workspace."""
+class VectorStorePort(Protocol):
+    def upsert_chunks(
+        self,
+        workspace_id: str,
+        chunks: list[TextChunk],
+        embeddings: list[list[float]],
+    ) -> None:
+        """Store embedded text chunks for a workspace."""
 
-    def list_documents(self, workspace_id: str) -> list[VectorDocument]:
-        """Return stored documents for a workspace."""
+    def search(
+        self,
+        workspace_id: str,
+        query_embedding: list[float],
+        limit: int,
+    ) -> list[ContextSearchResult]:
+        """Return the most similar chunks for a workspace."""
+
+    def clear_workspace(self, workspace_id: str) -> None:
+        """Remove all stored chunks for a workspace."""
+
+
+VectorStore = VectorStorePort

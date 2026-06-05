@@ -5,8 +5,10 @@ from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
     command_repository,
+    embedding_provider,
     file_system,
     project_scan_repository,
+    vector_store,
     workspace_repository,
 )
 from app.api.project_scan_schemas import ProjectScanResponse, to_project_scan_response
@@ -21,6 +23,12 @@ from app.api.schemas.analysis_schemas import (
     to_gitlab_ci_analysis_response,
     to_terraform_analysis_response,
     to_terragrunt_analysis_response,
+)
+from app.api.schemas.indexing_schemas import (
+    ContextSearchResultResponse,
+    WorkspaceIndexResponse,
+    to_context_search_result_response,
+    to_workspace_index_response,
 )
 from app.api.schemas.report_schemas import (
     ProjectOverviewReportResponse,
@@ -63,6 +71,12 @@ from app.core.use_cases.get_workspace_latest_scan import (
     GetWorkspaceLatestScanInput,
     GetWorkspaceLatestScanUseCase,
 )
+from app.core.use_cases.index_workspace import (
+    IndexWorkspaceInput,
+    IndexWorkspaceNotFoundError,
+    IndexWorkspaceScanRequiredError,
+    IndexWorkspaceUseCase,
+)
 from app.core.use_cases.get_analysis_summary import (
     AnalysisSummaryWorkspaceNotFoundError,
     GetAnalysisSummaryInput,
@@ -86,6 +100,11 @@ from app.core.use_cases.scan_workspace_project import (
     ScanWorkspaceProjectInput,
     ScanWorkspaceProjectUseCase,
     WorkspaceNotFoundError,
+)
+from app.core.use_cases.search_workspace_context import (
+    SearchWorkspaceContextInput,
+    SearchWorkspaceContextNotFoundError,
+    SearchWorkspaceContextUseCase,
 )
 
 
@@ -184,6 +203,64 @@ def get_workspace_latest_scan(workspace_id: str) -> ProjectScanResponse:
         )
 
     return to_project_scan_response(result)
+
+
+@router.post("/{workspace_id}/index", response_model=WorkspaceIndexResponse)
+def index_workspace(workspace_id: str) -> WorkspaceIndexResponse:
+    use_case = IndexWorkspaceUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+        file_system=file_system,
+        embedding_provider=embedding_provider,
+        vector_store=vector_store,
+    )
+
+    try:
+        result = use_case.execute(IndexWorkspaceInput(workspace_id=workspace_id))
+    except IndexWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except IndexWorkspaceScanRequiredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return to_workspace_index_response(result)
+
+
+@router.get(
+    "/{workspace_id}/context/search",
+    response_model=list[ContextSearchResultResponse],
+)
+def search_workspace_context(
+    workspace_id: str,
+    query: str,
+    limit: int = 5,
+) -> list[ContextSearchResultResponse]:
+    use_case = SearchWorkspaceContextUseCase(
+        workspace_repository=workspace_repository,
+        embedding_provider=embedding_provider,
+        vector_store=vector_store,
+    )
+
+    try:
+        results = use_case.execute(
+            SearchWorkspaceContextInput(
+                workspace_id=workspace_id,
+                query=query,
+                limit=limit,
+            )
+        )
+    except SearchWorkspaceContextNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return [to_context_search_result_response(result) for result in results]
 
 
 @router.get("/{workspace_id}/summary", response_model=WorkspaceSummaryResponse)
