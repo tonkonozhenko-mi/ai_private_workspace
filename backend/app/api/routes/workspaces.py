@@ -3,13 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
-from app.adapters.filesystem.local_file_system import LocalFileSystem
-from app.adapters.memory.in_memory_project_scan_repository import (
-    InMemoryProjectScanRepository,
-)
-from app.adapters.memory.in_memory_workspace_repository import InMemoryWorkspaceRepository
-from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScanRepository
-from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
+from app.api.dependencies import file_system, project_scan_repository, workspace_repository
 from app.api.project_scan_schemas import ProjectScanResponse, to_project_scan_response
 from app.api.schemas.analysis_schemas import (
     AnalysisSummaryResponse,
@@ -27,10 +21,7 @@ from app.api.schemas.workspace_summary_schemas import (
     WorkspaceSummaryResponse,
     to_workspace_summary_response,
 )
-from app.config.settings import get_settings
 from app.core.domain.workspace import Workspace
-from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
-from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.use_cases.analyze_github_actions import (
     AnalyzeGitHubActionsInput,
     AnalyzeGitHubActionsUseCase,
@@ -84,35 +75,6 @@ from app.core.use_cases.scan_workspace_project import (
 
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
-
-
-def build_workspace_repository() -> WorkspaceRepositoryPort:
-    settings = get_settings()
-    repository_type = settings.workspace_repository.lower()
-
-    if repository_type == "memory":
-        return InMemoryWorkspaceRepository()
-    if repository_type == "sqlite":
-        return SQLiteWorkspaceRepository(settings.workspace_db_path)
-
-    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
-
-
-def build_project_scan_repository() -> ProjectScanRepositoryPort:
-    settings = get_settings()
-    repository_type = settings.workspace_repository.lower()
-
-    if repository_type == "memory":
-        return InMemoryProjectScanRepository()
-    if repository_type == "sqlite":
-        return SQLiteProjectScanRepository(settings.workspace_db_path)
-
-    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
-
-
-workspace_repository = build_workspace_repository()
-project_scan_repository = build_project_scan_repository()
-file_system = LocalFileSystem()
 
 
 class CreateWorkspaceRequest(BaseModel):
