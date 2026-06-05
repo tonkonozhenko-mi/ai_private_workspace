@@ -23,6 +23,9 @@ def test_propose_command_creates_pending_command(tmp_path) -> None:
     assert proposal["reason"] == "Check repository state"
     assert proposal["risk"] == "readonly"
     assert proposal["status"] == "pending"
+    assert proposal["policy_allowed"] is True
+    assert proposal["policy_mode"] == "auto_executable"
+    assert proposal["policy_reason"] == "Command is read-only and allowed by policy."
     assert proposal["created_at"]
     assert proposal["approved_at"] is None
     assert proposal["rejected_at"] is None
@@ -83,6 +86,43 @@ def test_execute_approved_command_uses_fake_runner(tmp_path) -> None:
     assert proposal["stdout"] == "fake execution: git status"
     assert proposal["stderr"] == ""
     assert proposal["exit_code"] == 0
+
+
+def test_execute_approved_policy_blocked_command_fails(tmp_path) -> None:
+    workspace = _create_workspace(tmp_path)
+    command = _propose_command(workspace["id"], tmp_path, "terraform apply").json()
+    assert command["risk"] == "destructive"
+    assert command["policy_allowed"] is False
+    assert command["policy_mode"] == "blocked"
+    approve_response = client.post(f"/commands/{command['id']}/approve")
+    assert approve_response.status_code == 200
+
+    response = client.post(f"/commands/{command['id']}/execute")
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Destructive commands are blocked by policy."
+
+
+def test_execute_approved_manual_only_command_fails(tmp_path) -> None:
+    workspace = _create_workspace(tmp_path)
+    command = _propose_command(
+        workspace["id"],
+        tmp_path,
+        "python scripts/check.py",
+    ).json()
+    assert command["risk"] == "unknown"
+    assert command["policy_allowed"] is False
+    assert command["policy_mode"] == "manual_only"
+    approve_response = client.post(f"/commands/{command['id']}/approve")
+    assert approve_response.status_code == 200
+
+    response = client.post(f"/commands/{command['id']}/execute")
+
+    assert response.status_code == 400
+    assert (
+        response.json()["detail"]
+        == "Unknown-risk commands require manual execution outside the assistant."
+    )
 
 
 def test_cannot_execute_pending_command(tmp_path) -> None:

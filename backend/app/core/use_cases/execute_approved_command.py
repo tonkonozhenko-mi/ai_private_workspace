@@ -27,6 +27,11 @@ class ExecuteApprovedCommandUseCase:
             raise CommandNotFoundError("Command not found")
         if proposal.status != CommandStatus.APPROVED.value:
             raise CommandInvalidStatusError("Only approved commands can be executed")
+        if proposal.policy_allowed is not True or proposal.policy_mode != "auto_executable":
+            raise CommandInvalidStatusError(
+                proposal.policy_reason
+                or "Command is not allowed for automatic execution by policy"
+            )
 
         result = self.command_runner.run(command=proposal.command, cwd=proposal.cwd)
         executed_proposal = replace(

@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from app.core.domain.command import CommandProposal, CommandStatus
+from app.core.domain.command_policy import evaluate_command_policy
 from app.core.domain.command_risk import classify_command_risk
 from app.core.ports.command_repository import CommandRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -31,13 +32,15 @@ class ProposeCommandUseCase:
         if workspace is None:
             raise CommandWorkspaceNotFoundError("Workspace not found")
 
+        risk = classify_command_risk(request.command)
+        policy_decision = evaluate_command_policy(request.command, risk)
         proposal = CommandProposal(
             id=str(uuid4()),
             workspace_id=request.workspace_id,
             command=request.command,
             cwd=request.cwd,
             reason=request.reason,
-            risk=classify_command_risk(request.command),
+            risk=risk,
             status=CommandStatus.PENDING.value,
             created_at=datetime.now(UTC).isoformat(),
             approved_at=None,
@@ -46,5 +49,8 @@ class ProposeCommandUseCase:
             stdout=None,
             stderr=None,
             exit_code=None,
+            policy_allowed=policy_decision.allowed,
+            policy_mode=policy_decision.mode,
+            policy_reason=policy_decision.reason,
         )
         return self.command_repository.create(proposal)
