@@ -22,6 +22,10 @@ from app.api.schemas.analysis_schemas import (
     to_terraform_analysis_response,
     to_terragrunt_analysis_response,
 )
+from app.api.schemas.report_schemas import (
+    ProjectOverviewReportResponse,
+    to_project_overview_report_response,
+)
 from app.api.schemas.workspace_summary_schemas import (
     WorkspaceSummaryResponse,
     to_workspace_summary_response,
@@ -63,6 +67,12 @@ from app.core.use_cases.get_analysis_summary import (
     AnalysisSummaryWorkspaceNotFoundError,
     GetAnalysisSummaryInput,
     GetAnalysisSummaryUseCase,
+)
+from app.core.use_cases.generate_project_overview_report import (
+    GenerateProjectOverviewReportInput,
+    GenerateProjectOverviewReportUseCase,
+    ProjectOverviewReportScanRequiredError,
+    ProjectOverviewReportWorkspaceNotFoundError,
 )
 from app.core.use_cases.get_workspace import GetWorkspaceUseCase
 from app.core.use_cases.get_workspace_summary import (
@@ -193,6 +203,37 @@ def get_workspace_summary(workspace_id: str) -> WorkspaceSummaryResponse:
         ) from exc
 
     return to_workspace_summary_response(summary)
+
+
+@router.get(
+    "/{workspace_id}/reports/project-overview",
+    response_model=ProjectOverviewReportResponse,
+)
+def generate_project_overview_report(
+    workspace_id: str,
+) -> ProjectOverviewReportResponse:
+    use_case = GenerateProjectOverviewReportUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+        file_system=file_system,
+    )
+
+    try:
+        report = use_case.execute(
+            GenerateProjectOverviewReportInput(workspace_id=workspace_id)
+        )
+    except ProjectOverviewReportWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except ProjectOverviewReportScanRequiredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return to_project_overview_report_response(report)
 
 
 @router.get(
