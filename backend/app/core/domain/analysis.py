@@ -61,3 +61,25 @@ class GitLabCIAnalysisResult:
     jobs_count: int
     jobs: list[GitLabCIJob]
     findings: list[AnalysisFinding]
+
+
+@dataclass(frozen=True)
+class GitHubActionsWorkflow:
+    path: str
+    name: str | None
+    triggers: list[str]
+    jobs_count: int
+    uses_reusable_workflows: bool
+    uses_matrix: bool
+    uses_permissions: bool
+    has_secrets_reference: bool
+
+
+@dataclass(frozen=True)
+class GitHubActionsAnalysisResult:
+    workspace_id: str
+    project_path: str
+    workflow_files_count: int
+    workflows: list[GitHubActionsWorkflow]
+    total_jobs_count: int
+    findings: list[AnalysisFinding]
