@@ -28,4 +28,24 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             )
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS workspace_commands (
+                id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL,
+                command TEXT NOT NULL,
+                cwd TEXT NOT NULL,
+                reason TEXT NOT NULL,
+                risk TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                approved_at TEXT NULL,
+                rejected_at TEXT NULL,
+                executed_at TEXT NULL,
+                stdout TEXT NULL,
+                stderr TEXT NULL,
+                exit_code INTEGER NULL
+            )
+            """
+        )
         connection.commit()
