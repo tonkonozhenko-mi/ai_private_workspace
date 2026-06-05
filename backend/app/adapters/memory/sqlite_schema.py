@@ -44,8 +44,42 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
                 executed_at TEXT NULL,
                 stdout TEXT NULL,
                 stderr TEXT NULL,
-                exit_code INTEGER NULL
+                exit_code INTEGER NULL,
+                policy_allowed INTEGER NULL,
+                policy_mode TEXT NULL,
+                policy_reason TEXT NULL
             )
             """
         )
+        _add_column_if_missing(
+            connection,
+            table_name="workspace_commands",
+            column_name="policy_allowed",
+            column_definition="policy_allowed INTEGER NULL",
+        )
+        _add_column_if_missing(
+            connection,
+            table_name="workspace_commands",
+            column_name="policy_mode",
+            column_definition="policy_mode TEXT NULL",
+        )
+        _add_column_if_missing(
+            connection,
+            table_name="workspace_commands",
+            column_name="policy_reason",
+            column_definition="policy_reason TEXT NULL",
+        )
         connection.commit()
+
+
+def _add_column_if_missing(
+    connection: sqlite3.Connection,
+    table_name: str,
+    column_name: str,
+    column_definition: str,
+) -> None:
+    existing_columns = {
+        row[1] for row in connection.execute(f"PRAGMA table_info({table_name})").fetchall()
+    }
+    if column_name not in existing_columns:
+        connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_definition}")

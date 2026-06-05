@@ -33,3 +33,6 @@ class CommandProposal:
     stdout: str | None
     stderr: str | None
     exit_code: int | None
+    policy_allowed: bool | None = None
+    policy_mode: str | None = None
+    policy_reason: str | None = None

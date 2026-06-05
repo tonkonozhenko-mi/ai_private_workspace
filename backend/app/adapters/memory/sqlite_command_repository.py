@@ -28,9 +28,12 @@ class SQLiteCommandRepository:
                     executed_at,
                     stdout,
                     stderr,
-                    exit_code
+                    exit_code,
+                    policy_allowed,
+                    policy_mode,
+                    policy_reason
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 self._to_row(proposal),
             )
@@ -55,7 +58,10 @@ class SQLiteCommandRepository:
                     executed_at,
                     stdout,
                     stderr,
-                    exit_code
+                    exit_code,
+                    policy_allowed,
+                    policy_mode,
+                    policy_reason
                 FROM workspace_commands
                 WHERE id = ?
                 """,
@@ -84,7 +90,10 @@ class SQLiteCommandRepository:
                     executed_at,
                     stdout,
                     stderr,
-                    exit_code
+                    exit_code,
+                    policy_allowed,
+                    policy_mode,
+                    policy_reason
                 FROM workspace_commands
                 WHERE workspace_id = ?
                 ORDER BY created_at ASC
@@ -112,7 +121,10 @@ class SQLiteCommandRepository:
                     executed_at = ?,
                     stdout = ?,
                     stderr = ?,
-                    exit_code = ?
+                    exit_code = ?,
+                    policy_allowed = ?,
+                    policy_mode = ?,
+                    policy_reason = ?
                 WHERE id = ?
                 """,
                 (
@@ -129,6 +141,9 @@ class SQLiteCommandRepository:
                     proposal.stdout,
                     proposal.stderr,
                     proposal.exit_code,
+                    _bool_to_int(proposal.policy_allowed),
+                    proposal.policy_mode,
+                    proposal.policy_reason,
                     proposal.id,
                 ),
             )
@@ -157,6 +172,9 @@ class SQLiteCommandRepository:
             proposal.stdout,
             proposal.stderr,
             proposal.exit_code,
+            _bool_to_int(proposal.policy_allowed),
+            proposal.policy_mode,
+            proposal.policy_reason,
         )
 
     @staticmethod
@@ -176,4 +194,19 @@ class SQLiteCommandRepository:
             stdout=row["stdout"],
             stderr=row["stderr"],
             exit_code=row["exit_code"],
+            policy_allowed=_int_to_bool(row["policy_allowed"]),
+            policy_mode=row["policy_mode"],
+            policy_reason=row["policy_reason"],
         )
+
+
+def _bool_to_int(value: bool | None) -> int | None:
+    if value is None:
+        return None
+    return 1 if value else 0
+
+
+def _int_to_bool(value: int | None) -> bool | None:
+    if value is None:
+        return None
+    return bool(value)

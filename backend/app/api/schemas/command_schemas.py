@@ -24,6 +24,9 @@ class CommandProposalResponse(BaseModel):
     stdout: str | None
     stderr: str | None
     exit_code: int | None
+    policy_allowed: bool | None
+    policy_mode: str | None
+    policy_reason: str | None
 
 
 def to_command_proposal_response(
@@ -44,4 +47,7 @@ def to_command_proposal_response(
         stdout=proposal.stdout,
         stderr=proposal.stderr,
         exit_code=proposal.exit_code,
+        policy_allowed=proposal.policy_allowed,
+        policy_mode=proposal.policy_mode,
+        policy_reason=proposal.policy_reason,
     )
