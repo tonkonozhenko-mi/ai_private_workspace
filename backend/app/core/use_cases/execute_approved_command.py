@@ -1,10 +1,16 @@
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
+from pathlib import Path
 
 from app.core.domain.command import CommandProposal, CommandStatus
 from app.core.ports.command_repository import CommandRepositoryPort
 from app.core.ports.command_runner import CommandRunnerPort
-from app.core.use_cases.command_errors import CommandInvalidStatusError, CommandNotFoundError
+from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.use_cases.command_errors import (
+    CommandInvalidStatusError,
+    CommandNotFoundError,
+    CommandWorkspaceNotFoundError,
+)
 
 
 @dataclass(frozen=True)
@@ -17,9 +23,11 @@ class ExecuteApprovedCommandUseCase:
         self,
         command_repository: CommandRepositoryPort,
         command_runner: CommandRunnerPort,
+        workspace_repository: WorkspaceRepositoryPort,
     ) -> None:
         self.command_repository = command_repository
         self.command_runner = command_runner
+        self.workspace_repository = workspace_repository
 
     def execute(self, request: ExecuteApprovedCommandInput) -> CommandProposal:
         proposal = self.command_repository.get(request.command_id)
@@ -33,7 +41,23 @@ class ExecuteApprovedCommandUseCase:
                 or "Command is not allowed for automatic execution by policy"
             )
 
-        result = self.command_runner.run(command=proposal.command, cwd=proposal.cwd)
+        workspace = self.workspace_repository.get(proposal.workspace_id)
+        if workspace is None:
+            raise CommandWorkspaceNotFoundError("Workspace not found")
+
+        if not self._is_inside_workspace(
+            cwd=proposal.cwd,
+            workspace_root=workspace.project_path,
+        ):
+            raise CommandInvalidStatusError(
+                "Command working directory must be inside the workspace project path"
+            )
+
+        result = self.command_runner.run(
+            command=proposal.command,
+            cwd=proposal.cwd,
+            allowed_root=workspace.project_path,
+        )
         executed_proposal = replace(
             proposal,
             status=(
@@ -47,3 +71,15 @@ class ExecuteApprovedCommandUseCase:
             exit_code=result.exit_code,
         )
         return self.command_repository.update(executed_proposal)
+
+    @staticmethod
+    def _is_inside_workspace(cwd: str, workspace_root: str) -> bool:
+        cwd_path = Path(cwd).resolve()
+        workspace_path = Path(workspace_root).resolve()
+
+        try:
+            cwd_path.relative_to(workspace_path)
+        except ValueError:
+            return False
+
+        return True
