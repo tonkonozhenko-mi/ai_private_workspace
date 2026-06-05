@@ -14,8 +14,10 @@ from app.api.project_scan_schemas import ProjectScanResponse, to_project_scan_re
 from app.api.schemas.analysis_schemas import (
     GitLabCIAnalysisResponse,
     TerraformAnalysisResponse,
+    TerragruntAnalysisResponse,
     to_gitlab_ci_analysis_response,
     to_terraform_analysis_response,
+    to_terragrunt_analysis_response,
 )
 from app.api.schemas.workspace_summary_schemas import (
     WorkspaceSummaryResponse,
@@ -36,6 +38,12 @@ from app.core.use_cases.analyze_terraform import (
     AnalyzeTerraformUseCase,
     TerraformAnalysisScanRequiredError,
     TerraformAnalysisWorkspaceNotFoundError,
+)
+from app.core.use_cases.analyze_terragrunt import (
+    AnalyzeTerragruntInput,
+    AnalyzeTerragruntUseCase,
+    TerragruntAnalysisScanRequiredError,
+    TerragruntAnalysisWorkspaceNotFoundError,
 )
 from app.core.use_cases.create_workspace import (
     CreateWorkspaceInput,
@@ -256,3 +264,30 @@ def analyze_workspace_gitlab_ci(workspace_id: str) -> GitLabCIAnalysisResponse:
         ) from exc
 
     return to_gitlab_ci_analysis_response(result)
+
+
+@router.get(
+    "/{workspace_id}/analysis/terragrunt",
+    response_model=TerragruntAnalysisResponse,
+)
+def analyze_workspace_terragrunt(workspace_id: str) -> TerragruntAnalysisResponse:
+    use_case = AnalyzeTerragruntUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+        file_system=file_system,
+    )
+
+    try:
+        result = use_case.execute(AnalyzeTerragruntInput(workspace_id=workspace_id))
+    except TerragruntAnalysisWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except TerragruntAnalysisScanRequiredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return to_terragrunt_analysis_response(result)

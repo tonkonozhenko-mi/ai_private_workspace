@@ -25,6 +25,20 @@ class TerraformAnalysisResult:
 
 
 @dataclass(frozen=True)
+class TerragruntAnalysisResult:
+    workspace_id: str
+    project_path: str
+    total_terragrunt_files: int
+    files: list[str]
+    has_remote_state: bool
+    has_include_blocks: bool
+    has_dependencies: bool
+    has_inputs: bool
+    has_terraform_source: bool
+    findings: list[AnalysisFinding]
+
+
+@dataclass(frozen=True)
 class GitLabCIJob:
     name: str
     stage: str | None

@@ -117,6 +117,10 @@ class LocalFileSystem:
             return "github_actions"
         if suffix in {".tf", ".tfvars"}:
             return "terraform"
+        if name_lower == "terragrunt.hcl" or (
+            suffix == ".hcl" and self._looks_like_terragrunt_file(full_path)
+        ):
+            return "terragrunt"
         if suffix == ".py":
             return "python"
         if name_lower == "dockerfile" or name_lower.endswith(".dockerfile"):
@@ -164,3 +168,21 @@ class LocalFileSystem:
             return False
 
         return "apiVersion:" in content and "kind:" in content
+
+    @staticmethod
+    def _looks_like_terragrunt_file(path: Path) -> bool:
+        try:
+            if path.stat().st_size > MAX_FILE_SIZE_BYTES:
+                return False
+            content = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            return False
+
+        terragrunt_signals = [
+            "terraform {",
+            "include {",
+            'dependency "',
+            "inputs =",
+            "remote_state {",
+        ]
+        return any(signal in content for signal in terragrunt_signals)
