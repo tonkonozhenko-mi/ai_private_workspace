@@ -1,6 +1,11 @@
 from pydantic import BaseModel
 
-from app.core.domain.analysis import AnalysisFinding, TerraformAnalysisResult
+from app.core.domain.analysis import (
+    AnalysisFinding,
+    GitLabCIAnalysisResult,
+    GitLabCIJob,
+    TerraformAnalysisResult,
+)
 
 
 class AnalysisFindingResponse(BaseModel):
@@ -21,6 +26,29 @@ class TerraformAnalysisResponse(BaseModel):
     has_variables: bool
     has_outputs: bool
     has_modules: bool
+    findings: list[AnalysisFindingResponse]
+
+
+class GitLabCIJobResponse(BaseModel):
+    name: str
+    stage: str | None
+    image: str | None
+    has_rules: bool
+    has_only_or_except: bool
+    has_artifacts: bool
+    has_cache: bool
+    has_needs: bool
+
+
+class GitLabCIAnalysisResponse(BaseModel):
+    workspace_id: str
+    project_path: str
+    file_path: str | None
+    stages: list[str]
+    includes_count: int
+    variables_count: int
+    jobs_count: int
+    jobs: list[GitLabCIJobResponse]
     findings: list[AnalysisFindingResponse]
 
 
@@ -49,6 +77,37 @@ def to_terraform_analysis_response(
         has_variables=result.has_variables,
         has_outputs=result.has_outputs,
         has_modules=result.has_modules,
+        findings=[
+            to_analysis_finding_response(finding) for finding in result.findings
+        ],
+    )
+
+
+def to_gitlab_ci_job_response(job: GitLabCIJob) -> GitLabCIJobResponse:
+    return GitLabCIJobResponse(
+        name=job.name,
+        stage=job.stage,
+        image=job.image,
+        has_rules=job.has_rules,
+        has_only_or_except=job.has_only_or_except,
+        has_artifacts=job.has_artifacts,
+        has_cache=job.has_cache,
+        has_needs=job.has_needs,
+    )
+
+
+def to_gitlab_ci_analysis_response(
+    result: GitLabCIAnalysisResult,
+) -> GitLabCIAnalysisResponse:
+    return GitLabCIAnalysisResponse(
+        workspace_id=result.workspace_id,
+        project_path=result.project_path,
+        file_path=result.file_path,
+        stages=result.stages,
+        includes_count=result.includes_count,
+        variables_count=result.variables_count,
+        jobs_count=result.jobs_count,
+        jobs=[to_gitlab_ci_job_response(job) for job in result.jobs],
         findings=[
             to_analysis_finding_response(finding) for finding in result.findings
         ],

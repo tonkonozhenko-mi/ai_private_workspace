@@ -22,3 +22,28 @@ class TerraformAnalysisResult:
     has_outputs: bool
     has_modules: bool
     findings: list[AnalysisFinding]
+
+
+@dataclass(frozen=True)
+class GitLabCIJob:
+    name: str
+    stage: str | None
+    image: str | None
+    has_rules: bool
+    has_only_or_except: bool
+    has_artifacts: bool
+    has_cache: bool
+    has_needs: bool
+
+
+@dataclass(frozen=True)
+class GitLabCIAnalysisResult:
+    workspace_id: str
+    project_path: str
+    file_path: str | None
+    stages: list[str]
+    includes_count: int
+    variables_count: int
+    jobs_count: int
+    jobs: list[GitLabCIJob]
+    findings: list[AnalysisFinding]

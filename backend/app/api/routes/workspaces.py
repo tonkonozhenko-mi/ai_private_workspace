@@ -12,7 +12,9 @@ from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScan
 from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
 from app.api.project_scan_schemas import ProjectScanResponse, to_project_scan_response
 from app.api.schemas.analysis_schemas import (
+    GitLabCIAnalysisResponse,
     TerraformAnalysisResponse,
+    to_gitlab_ci_analysis_response,
     to_terraform_analysis_response,
 )
 from app.api.schemas.workspace_summary_schemas import (
@@ -23,6 +25,12 @@ from app.config.settings import get_settings
 from app.core.domain.workspace import Workspace
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.use_cases.analyze_gitlab_ci import (
+    AnalyzeGitLabCIInput,
+    AnalyzeGitLabCIUseCase,
+    GitLabCIAnalysisScanRequiredError,
+    GitLabCIAnalysisWorkspaceNotFoundError,
+)
 from app.core.use_cases.analyze_terraform import (
     AnalyzeTerraformInput,
     AnalyzeTerraformUseCase,
@@ -221,3 +229,30 @@ def analyze_workspace_terraform(workspace_id: str) -> TerraformAnalysisResponse:
         ) from exc
 
     return to_terraform_analysis_response(result)
+
+
+@router.get(
+    "/{workspace_id}/analysis/gitlab-ci",
+    response_model=GitLabCIAnalysisResponse,
+)
+def analyze_workspace_gitlab_ci(workspace_id: str) -> GitLabCIAnalysisResponse:
+    use_case = AnalyzeGitLabCIUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+        file_system=file_system,
+    )
+
+    try:
+        result = use_case.execute(AnalyzeGitLabCIInput(workspace_id=workspace_id))
+    except GitLabCIAnalysisWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except GitLabCIAnalysisScanRequiredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return to_gitlab_ci_analysis_response(result)
