@@ -1,10 +1,19 @@
 from fastapi import APIRouter, HTTPException, status
 
-from app.api.dependencies import command_repository, command_runner, workspace_repository
+from app.api.dependencies import (
+    command_repository,
+    command_runner,
+    project_scan_repository,
+    workspace_repository,
+)
 from app.api.schemas.command_schemas import (
     CommandProposalResponse,
     ProposeCommandRequest,
     to_command_proposal_response,
+)
+from app.api.schemas.command_suggestion_schemas import (
+    CommandSuggestionResponse,
+    to_command_suggestion_response,
 )
 from app.core.use_cases.approve_command import ApproveCommandInput, ApproveCommandUseCase
 from app.core.use_cases.command_errors import (
@@ -22,6 +31,10 @@ from app.core.use_cases.list_workspace_commands import (
 )
 from app.core.use_cases.propose_command import ProposeCommandInput, ProposeCommandUseCase
 from app.core.use_cases.reject_command import RejectCommandInput, RejectCommandUseCase
+from app.core.use_cases.suggest_workspace_commands import (
+    SuggestWorkspaceCommandsInput,
+    SuggestWorkspaceCommandsUseCase,
+)
 
 
 router = APIRouter(tags=["commands"])
@@ -78,6 +91,29 @@ def list_workspace_commands(workspace_id: str) -> list[CommandProposalResponse]:
         ) from exc
 
     return [to_command_proposal_response(proposal) for proposal in proposals]
+
+
+@router.get(
+    "/workspaces/{workspace_id}/commands/suggestions",
+    response_model=list[CommandSuggestionResponse],
+)
+def suggest_workspace_commands(workspace_id: str) -> list[CommandSuggestionResponse]:
+    use_case = SuggestWorkspaceCommandsUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+    )
+
+    try:
+        suggestions = use_case.execute(
+            SuggestWorkspaceCommandsInput(workspace_id=workspace_id)
+        )
+    except CommandWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return [to_command_suggestion_response(suggestion) for suggestion in suggestions]
 
 
 @router.post(
