@@ -3,17 +3,34 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
+from app.adapters.filesystem.local_file_system import LocalFileSystem
+from app.adapters.memory.in_memory_project_scan_repository import (
+    InMemoryProjectScanRepository,
+)
 from app.adapters.memory.in_memory_workspace_repository import InMemoryWorkspaceRepository
+from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScanRepository
 from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
+from app.api.project_scan_schemas import ProjectScanResponse, to_project_scan_response
 from app.config.settings import get_settings
 from app.core.domain.workspace import Workspace
+from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.use_cases.create_workspace import (
     CreateWorkspaceInput,
     CreateWorkspaceUseCase,
 )
+from app.core.use_cases.get_workspace_latest_scan import (
+    GetWorkspaceLatestScanInput,
+    GetWorkspaceLatestScanUseCase,
+)
 from app.core.use_cases.get_workspace import GetWorkspaceUseCase
 from app.core.use_cases.list_workspaces import ListWorkspacesUseCase
+from app.core.use_cases.scan_project import ProjectScanError
+from app.core.use_cases.scan_workspace_project import (
+    ScanWorkspaceProjectInput,
+    ScanWorkspaceProjectUseCase,
+    WorkspaceNotFoundError,
+)
 
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
@@ -31,7 +48,21 @@ def build_workspace_repository() -> WorkspaceRepositoryPort:
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
 
+def build_project_scan_repository() -> ProjectScanRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryProjectScanRepository()
+    if repository_type == "sqlite":
+        return SQLiteProjectScanRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
 workspace_repository = build_workspace_repository()
+project_scan_repository = build_project_scan_repository()
+file_system = LocalFileSystem()
 
 
 class CreateWorkspaceRequest(BaseModel):
@@ -88,3 +119,41 @@ def get_workspace(workspace_id: str) -> WorkspaceResponse:
     if workspace is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
     return to_workspace_response(workspace)
+
+
+@router.post("/{workspace_id}/scan", response_model=ProjectScanResponse)
+def scan_workspace_project(workspace_id: str) -> ProjectScanResponse:
+    use_case = ScanWorkspaceProjectUseCase(
+        workspace_repository=workspace_repository,
+        file_system=file_system,
+        project_scan_repository=project_scan_repository,
+    )
+
+    try:
+        result = use_case.execute(ScanWorkspaceProjectInput(workspace_id=workspace_id))
+    except WorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except ProjectScanError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return to_project_scan_response(result)
+
+
+@router.get("/{workspace_id}/scan", response_model=ProjectScanResponse)
+def get_workspace_latest_scan(workspace_id: str) -> ProjectScanResponse:
+    use_case = GetWorkspaceLatestScanUseCase(project_scan_repository)
+    result = use_case.execute(GetWorkspaceLatestScanInput(workspace_id=workspace_id))
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace scan not found",
+        )
+
+    return to_project_scan_response(result)
