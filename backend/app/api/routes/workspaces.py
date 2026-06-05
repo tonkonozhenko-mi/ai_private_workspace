@@ -7,6 +7,7 @@ from app.api.dependencies import (
     command_repository,
     embedding_provider,
     file_system,
+    index_status_repository,
     project_scan_repository,
     vector_store,
     workspace_repository,
@@ -29,6 +30,10 @@ from app.api.schemas.indexing_schemas import (
     WorkspaceIndexResponse,
     to_context_search_result_response,
     to_workspace_index_response,
+)
+from app.api.schemas.index_status_schemas import (
+    WorkspaceIndexStatusResponse,
+    to_workspace_index_status_response,
 )
 from app.api.schemas.report_schemas import (
     ProjectOverviewReportResponse,
@@ -70,6 +75,11 @@ from app.core.use_cases.create_workspace import (
 from app.core.use_cases.get_workspace_latest_scan import (
     GetWorkspaceLatestScanInput,
     GetWorkspaceLatestScanUseCase,
+)
+from app.core.use_cases.get_workspace_index_status import (
+    GetWorkspaceIndexStatusInput,
+    GetWorkspaceIndexStatusUseCase,
+    WorkspaceIndexStatusNotFoundError,
 )
 from app.core.use_cases.index_workspace import (
     IndexWorkspaceInput,
@@ -213,6 +223,7 @@ def index_workspace(workspace_id: str) -> WorkspaceIndexResponse:
         file_system=file_system,
         embedding_provider=embedding_provider,
         vector_store=vector_store,
+        index_status_repository=index_status_repository,
     )
 
     try:
@@ -229,6 +240,24 @@ def index_workspace(workspace_id: str) -> WorkspaceIndexResponse:
         ) from exc
 
     return to_workspace_index_response(result)
+
+
+@router.get("/{workspace_id}/index/status", response_model=WorkspaceIndexStatusResponse)
+def get_workspace_index_status(workspace_id: str) -> WorkspaceIndexStatusResponse:
+    use_case = GetWorkspaceIndexStatusUseCase(
+        workspace_repository=workspace_repository,
+        index_status_repository=index_status_repository,
+    )
+
+    try:
+        result = use_case.execute(GetWorkspaceIndexStatusInput(workspace_id=workspace_id))
+    except WorkspaceIndexStatusNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return to_workspace_index_status_response(result)
 
 
 @router.get(
@@ -269,6 +298,7 @@ def get_workspace_summary(workspace_id: str) -> WorkspaceSummaryResponse:
         workspace_repository=workspace_repository,
         project_scan_repository=project_scan_repository,
         command_repository=command_repository,
+        index_status_repository=index_status_repository,
     )
 
     try:

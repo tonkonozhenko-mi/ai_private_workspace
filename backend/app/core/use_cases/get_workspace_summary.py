@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from app.core.domain.command import CommandProposal, CommandStatus
+from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.project_scan import ProjectScanResult
 from app.core.domain.workspace import Workspace
 from app.core.domain.workspace_summary import (
@@ -9,8 +10,13 @@ from app.core.domain.workspace_summary import (
     WorkspaceSummary,
 )
 from app.core.ports.command_repository import CommandRepositoryPort
+from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.use_cases.get_workspace_index_status import (
+    GetWorkspaceIndexStatusInput,
+    GetWorkspaceIndexStatusUseCase,
+)
 
 
 @dataclass(frozen=True)
@@ -28,10 +34,12 @@ class GetWorkspaceSummaryUseCase:
         workspace_repository: WorkspaceRepositoryPort,
         project_scan_repository: ProjectScanRepositoryPort,
         command_repository: CommandRepositoryPort,
+        index_status_repository: IndexStatusRepositoryPort,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.project_scan_repository = project_scan_repository
         self.command_repository = command_repository
+        self.index_status_repository = index_status_repository
 
     def execute(self, request: GetWorkspaceSummaryInput) -> WorkspaceSummary:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -42,15 +50,20 @@ class GetWorkspaceSummaryUseCase:
         command_activity = self._summarize_command_activity(
             self.command_repository.list_by_workspace(request.workspace_id)
         )
+        index_status = GetWorkspaceIndexStatusUseCase(
+            workspace_repository=self.workspace_repository,
+            index_status_repository=self.index_status_repository,
+        ).execute(GetWorkspaceIndexStatusInput(workspace_id=request.workspace_id))
         if latest_scan is None:
-            return self._without_scan(workspace, command_activity)
+            return self._without_scan(workspace, command_activity, index_status)
 
-        return self._with_scan(workspace, latest_scan, command_activity)
+        return self._with_scan(workspace, latest_scan, command_activity, index_status)
 
     def _without_scan(
         self,
         workspace: Workspace,
         command_activity: CommandActivitySummary,
+        index_status: WorkspaceIndexStatus,
     ) -> WorkspaceSummary:
         return WorkspaceSummary(
             workspace_id=workspace.id,
@@ -72,6 +85,7 @@ class GetWorkspaceSummaryUseCase:
                 )
             ],
             command_activity=command_activity,
+            index_status=index_status,
         )
 
     def _with_scan(
@@ -79,6 +93,7 @@ class GetWorkspaceSummaryUseCase:
         workspace: Workspace,
         latest_scan: ProjectScanResult,
         command_activity: CommandActivitySummary,
+        index_status: WorkspaceIndexStatus,
     ) -> WorkspaceSummary:
         return WorkspaceSummary(
             workspace_id=workspace.id,
@@ -92,6 +107,7 @@ class GetWorkspaceSummaryUseCase:
             detected_skills=latest_scan.detected_skills,
             suggested_actions=self._suggest_actions(latest_scan),
             command_activity=command_activity,
+            index_status=index_status,
         )
 
     def _summarize_command_activity(

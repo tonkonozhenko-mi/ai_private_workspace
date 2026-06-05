@@ -1,5 +1,9 @@
 from pydantic import BaseModel
 
+from app.api.schemas.index_status_schemas import (
+    WorkspaceIndexStatusResponse,
+    to_workspace_index_status_response,
+)
 from app.core.domain.skill import SkillMatch
 from app.core.domain.workspace_summary import (
     CommandActivitySummary,
@@ -47,6 +51,7 @@ class WorkspaceSummaryResponse(BaseModel):
     detected_skills: list[SkillMatchResponse]
     suggested_actions: list[SuggestedActionResponse]
     command_activity: CommandActivitySummaryResponse
+    index_status: WorkspaceIndexStatusResponse
 
 
 def to_skill_match_response(skill: SkillMatch) -> SkillMatchResponse:
@@ -106,4 +111,5 @@ def to_workspace_summary_response(
         command_activity=to_command_activity_summary_response(
             summary.command_activity
         ),
+        index_status=to_workspace_index_status_response(summary.index_status),
     )

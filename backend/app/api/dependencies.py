@@ -3,11 +3,15 @@ from app.adapters.commands.local_command_runner import LocalCommandRunner
 from app.adapters.embeddings.fake_embedding_provider import FakeEmbeddingProvider
 from app.adapters.filesystem.local_file_system import LocalFileSystem
 from app.adapters.memory.in_memory_command_repository import InMemoryCommandRepository
+from app.adapters.memory.in_memory_index_status_repository import (
+    InMemoryIndexStatusRepository,
+)
 from app.adapters.memory.in_memory_project_scan_repository import (
     InMemoryProjectScanRepository,
 )
 from app.adapters.memory.in_memory_workspace_repository import InMemoryWorkspaceRepository
 from app.adapters.memory.sqlite_command_repository import SQLiteCommandRepository
+from app.adapters.memory.sqlite_index_status_repository import SQLiteIndexStatusRepository
 from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScanRepository
 from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
 from app.adapters.vector_store.in_memory_vector_store import InMemoryVectorStore
@@ -15,6 +19,7 @@ from app.config.settings import get_settings
 from app.core.ports.command_repository import CommandRepositoryPort
 from app.core.ports.command_runner import CommandRunnerPort
 from app.core.ports.embedding_provider import EmbeddingProviderPort
+from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -56,6 +61,18 @@ def build_command_repository() -> CommandRepositoryPort:
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
 
+def build_index_status_repository() -> IndexStatusRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryIndexStatusRepository()
+    if repository_type == "sqlite":
+        return SQLiteIndexStatusRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
 def build_command_runner() -> CommandRunnerPort:
     settings = get_settings()
     runner_type = settings.command_runner.lower()
@@ -74,6 +91,7 @@ def build_command_runner() -> CommandRunnerPort:
 workspace_repository = build_workspace_repository()
 project_scan_repository = build_project_scan_repository()
 command_repository = build_command_repository()
+index_status_repository = build_index_status_repository()
 file_system = LocalFileSystem()
 command_runner = build_command_runner()
 embedding_provider: EmbeddingProviderPort = FakeEmbeddingProvider()
