@@ -2,7 +2,8 @@ from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, status
 
 from app.adapters.filesystem.local_file_system import LocalFileSystem
-from app.core.domain.project_scan import DetectedSkill, ProjectFile, ProjectScanResult
+from app.core.domain.project_scan import ProjectFile, ProjectScanResult
+from app.core.domain.skill import SkillMatch
 from app.core.use_cases.scan_project import (
     ProjectScanError,
     ScanProjectInput,
@@ -28,6 +29,7 @@ class ProjectFileResponse(BaseModel):
 
 class DetectedSkillResponse(BaseModel):
     name: str
+    category: str
     confidence: str
     evidence: list[str]
 
@@ -51,9 +53,10 @@ def to_project_file_response(project_file: ProjectFile) -> ProjectFileResponse:
     )
 
 
-def to_detected_skill_response(skill: DetectedSkill) -> DetectedSkillResponse:
+def to_detected_skill_response(skill: SkillMatch) -> DetectedSkillResponse:
     return DetectedSkillResponse(
         name=skill.name,
+        category=skill.category,
         confidence=skill.confidence,
         evidence=skill.evidence,
     )

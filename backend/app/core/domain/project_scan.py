@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from app.core.domain.skill import SkillMatch
+
 
 @dataclass(frozen=True)
 class ProjectFile:
@@ -9,11 +11,7 @@ class ProjectFile:
     detected_type: str
 
 
-@dataclass(frozen=True)
-class DetectedSkill:
-    name: str
-    confidence: str
-    evidence: list[str]
+DetectedSkill = SkillMatch
 
 
 @dataclass(frozen=True)
@@ -23,7 +21,7 @@ class ProjectScanResult:
     scanned_files: int
     skipped_files: int
     total_size_bytes: int
-    detected_skills: list[DetectedSkill]
+    detected_skills: list[SkillMatch]
     files: list[ProjectFile]
 
 
