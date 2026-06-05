@@ -51,6 +51,19 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             )
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS workspace_index_status (
+                workspace_id TEXT PRIMARY KEY,
+                status TEXT NOT NULL,
+                indexed_files_count INTEGER NOT NULL,
+                chunks_count INTEGER NOT NULL,
+                skipped_files_count INTEGER NOT NULL,
+                last_indexed_at TEXT NULL,
+                last_error TEXT NULL
+            )
+            """
+        )
         _add_column_if_missing(
             connection,
             table_name="workspace_commands",

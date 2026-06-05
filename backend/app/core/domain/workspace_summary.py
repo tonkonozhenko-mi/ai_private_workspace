@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.skill import SkillMatch
 
 
@@ -38,3 +39,4 @@ class WorkspaceSummary:
     detected_skills: list[SkillMatch]
     suggested_actions: list[SuggestedAction]
     command_activity: CommandActivitySummary
+    index_status: WorkspaceIndexStatus

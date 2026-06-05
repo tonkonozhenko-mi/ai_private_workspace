@@ -1,14 +1,17 @@
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from app.core.domain.chunking import chunk_text, estimate_tokens
+from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import (
     IndexedDocumentSummary,
     TextChunk,
     WorkspaceIndexResult,
 )
-from app.core.domain.project_scan import ProjectFile
+from app.core.domain.project_scan import ProjectFile, ProjectScanResult
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.file_system import FileSystemPort
+from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -51,12 +54,14 @@ class IndexWorkspaceUseCase:
         file_system: FileSystemPort,
         embedding_provider: EmbeddingProviderPort,
         vector_store: VectorStorePort,
+        index_status_repository: IndexStatusRepositoryPort,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.project_scan_repository = project_scan_repository
         self.file_system = file_system
         self.embedding_provider = embedding_provider
         self.vector_store = vector_store
+        self.index_status_repository = index_status_repository
 
     def execute(self, request: IndexWorkspaceInput) -> WorkspaceIndexResult:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -69,7 +74,46 @@ class IndexWorkspaceUseCase:
                 "Project scan required before indexing workspace"
             )
 
-        self.vector_store.clear_workspace(request.workspace_id)
+        try:
+            result = self._index_workspace(
+                workspace_id=request.workspace_id,
+                project_path=workspace.project_path,
+                latest_scan=latest_scan,
+            )
+        except Exception as exc:
+            self.index_status_repository.save(
+                WorkspaceIndexStatus(
+                    workspace_id=request.workspace_id,
+                    status="failed",
+                    indexed_files_count=0,
+                    chunks_count=0,
+                    skipped_files_count=0,
+                    last_indexed_at=datetime.now(UTC).isoformat(),
+                    last_error=str(exc),
+                )
+            )
+            raise
+
+        self.index_status_repository.save(
+            WorkspaceIndexStatus(
+                workspace_id=request.workspace_id,
+                status="indexed",
+                indexed_files_count=result.indexed_files_count,
+                chunks_count=result.chunks_count,
+                skipped_files_count=result.skipped_files_count,
+                last_indexed_at=datetime.now(UTC).isoformat(),
+                last_error=None,
+            )
+        )
+        return result
+
+    def _index_workspace(
+        self,
+        workspace_id: str,
+        project_path: str,
+        latest_scan: ProjectScanResult,
+    ) -> WorkspaceIndexResult:
+        self.vector_store.clear_workspace(workspace_id)
 
         documents: list[IndexedDocumentSummary] = []
         chunks: list[TextChunk] = []
@@ -81,8 +125,8 @@ class IndexWorkspaceUseCase:
                 continue
 
             file_chunks = self._chunks_for_file(
-                workspace_id=request.workspace_id,
-                project_path=workspace.project_path,
+                workspace_id=workspace_id,
+                project_path=project_path,
                 project_file=project_file,
             )
             if not file_chunks:
@@ -102,13 +146,13 @@ class IndexWorkspaceUseCase:
         ]
         if chunks:
             self.vector_store.upsert_chunks(
-                workspace_id=request.workspace_id,
+                workspace_id=workspace_id,
                 chunks=chunks,
                 embeddings=embeddings,
             )
 
         return WorkspaceIndexResult(
-            workspace_id=request.workspace_id,
+            workspace_id=workspace_id,
             indexed_files_count=len(documents),
             chunks_count=len(chunks),
             skipped_files_count=skipped_files_count,
