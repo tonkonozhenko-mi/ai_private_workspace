@@ -27,6 +27,7 @@ def test_scan_project_detects_expected_skills_and_files(tmp_path) -> None:
     assert response.status_code == 200
     result = response.json()
     detected_skill_names = {skill["name"] for skill in result["detected_skills"]}
+    skills_by_name = {skill["name"]: skill for skill in result["detected_skills"]}
     file_paths = {project_file["path"] for project_file in result["files"]}
 
     assert {
@@ -41,6 +42,10 @@ def test_scan_project_detects_expected_skills_and_files(tmp_path) -> None:
     assert "node_modules/ignored.py" not in file_paths
     assert "large.bin" not in file_paths
     assert result["skipped_files"] == 1
+    assert skills_by_name["Terraform"]["category"] == "devops"
+    assert skills_by_name["Python"]["category"] == "developer"
+    assert skills_by_name["Documentation"]["category"] == "documentation"
+    assert skills_by_name["YAML/Configuration"]["category"] == "general"
 
 
 def test_scan_project_invalid_path_returns_api_error(tmp_path) -> None:
