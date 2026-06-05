@@ -12,3 +12,6 @@ class FileSystemPort(Protocol):
 
     def is_directory(self, path: str) -> bool:
         """Return whether a path points to a directory."""
+
+    def read_text_file(self, root_path: str, relative_path: str) -> str:
+        """Read a text file under a root path."""

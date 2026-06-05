@@ -11,6 +11,10 @@ from app.adapters.memory.in_memory_workspace_repository import InMemoryWorkspace
 from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScanRepository
 from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
 from app.api.project_scan_schemas import ProjectScanResponse, to_project_scan_response
+from app.api.schemas.analysis_schemas import (
+    TerraformAnalysisResponse,
+    to_terraform_analysis_response,
+)
 from app.api.schemas.workspace_summary_schemas import (
     WorkspaceSummaryResponse,
     to_workspace_summary_response,
@@ -19,6 +23,12 @@ from app.config.settings import get_settings
 from app.core.domain.workspace import Workspace
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.use_cases.analyze_terraform import (
+    AnalyzeTerraformInput,
+    AnalyzeTerraformUseCase,
+    TerraformAnalysisScanRequiredError,
+    TerraformAnalysisWorkspaceNotFoundError,
+)
 from app.core.use_cases.create_workspace import (
     CreateWorkspaceInput,
     CreateWorkspaceUseCase,
@@ -184,3 +194,30 @@ def get_workspace_summary(workspace_id: str) -> WorkspaceSummaryResponse:
         ) from exc
 
     return to_workspace_summary_response(summary)
+
+
+@router.get(
+    "/{workspace_id}/analysis/terraform",
+    response_model=TerraformAnalysisResponse,
+)
+def analyze_workspace_terraform(workspace_id: str) -> TerraformAnalysisResponse:
+    use_case = AnalyzeTerraformUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+        file_system=file_system,
+    )
+
+    try:
+        result = use_case.execute(AnalyzeTerraformInput(workspace_id=workspace_id))
+    except TerraformAnalysisWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except TerraformAnalysisScanRequiredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return to_terraform_analysis_response(result)
