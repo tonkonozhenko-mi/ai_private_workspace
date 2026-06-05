@@ -1,7 +1,11 @@
 from pydantic import BaseModel
 
 from app.core.domain.skill import SkillMatch
-from app.core.domain.workspace_summary import SuggestedAction, WorkspaceSummary
+from app.core.domain.workspace_summary import (
+    CommandActivitySummary,
+    SuggestedAction,
+    WorkspaceSummary,
+)
 
 
 class SkillMatchResponse(BaseModel):
@@ -19,6 +23,18 @@ class SuggestedActionResponse(BaseModel):
     priority: str
 
 
+class CommandActivitySummaryResponse(BaseModel):
+    total_commands: int
+    pending_commands: int
+    approved_commands: int
+    rejected_commands: int
+    executed_commands: int
+    failed_commands: int
+    last_command_id: str | None
+    last_command_status: str | None
+    last_command: str | None
+
+
 class WorkspaceSummaryResponse(BaseModel):
     workspace_id: str
     name: str
@@ -30,6 +46,7 @@ class WorkspaceSummaryResponse(BaseModel):
     detected_skills_count: int
     detected_skills: list[SkillMatchResponse]
     suggested_actions: list[SuggestedActionResponse]
+    command_activity: CommandActivitySummaryResponse
 
 
 def to_skill_match_response(skill: SkillMatch) -> SkillMatchResponse:
@@ -48,6 +65,22 @@ def to_suggested_action_response(action: SuggestedAction) -> SuggestedActionResp
         description=action.description,
         category=action.category,
         priority=action.priority,
+    )
+
+
+def to_command_activity_summary_response(
+    activity: CommandActivitySummary,
+) -> CommandActivitySummaryResponse:
+    return CommandActivitySummaryResponse(
+        total_commands=activity.total_commands,
+        pending_commands=activity.pending_commands,
+        approved_commands=activity.approved_commands,
+        rejected_commands=activity.rejected_commands,
+        executed_commands=activity.executed_commands,
+        failed_commands=activity.failed_commands,
+        last_command_id=activity.last_command_id,
+        last_command_status=activity.last_command_status,
+        last_command=activity.last_command,
     )
 
 
@@ -70,4 +103,7 @@ def to_workspace_summary_response(
             to_suggested_action_response(action)
             for action in summary.suggested_actions
         ],
+        command_activity=to_command_activity_summary_response(
+            summary.command_activity
+        ),
     )
