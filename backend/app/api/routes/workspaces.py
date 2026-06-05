@@ -4,7 +4,10 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.adapters.memory.in_memory_workspace_repository import InMemoryWorkspaceRepository
+from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
+from app.config.settings import get_settings
 from app.core.domain.workspace import Workspace
+from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.use_cases.create_workspace import (
     CreateWorkspaceInput,
     CreateWorkspaceUseCase,
@@ -15,7 +18,20 @@ from app.core.use_cases.list_workspaces import ListWorkspacesUseCase
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 
-workspace_repository = InMemoryWorkspaceRepository()
+
+def build_workspace_repository() -> WorkspaceRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryWorkspaceRepository()
+    if repository_type == "sqlite":
+        return SQLiteWorkspaceRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+workspace_repository = build_workspace_repository()
 
 
 class CreateWorkspaceRequest(BaseModel):
