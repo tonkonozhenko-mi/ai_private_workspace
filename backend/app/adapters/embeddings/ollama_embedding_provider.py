@@ -6,6 +6,8 @@ class OllamaEmbeddingProviderError(RuntimeError):
 
 
 class OllamaEmbeddingProvider:
+    provider_name = "ollama"
+
     def __init__(
         self,
         base_url: str,
@@ -17,6 +19,15 @@ class OllamaEmbeddingProvider:
         self.model = model
         self.timeout_seconds = timeout_seconds
         self.client = client or httpx.Client()
+        self._embedding_dimension: int | None = None
+
+    @property
+    def model_name(self) -> str:
+        return self.model
+
+    @property
+    def embedding_dimension(self) -> int | None:
+        return self._embedding_dimension
 
     def embed_text(self, text: str) -> list[float]:
         try:
@@ -52,8 +63,11 @@ class OllamaEmbeddingProvider:
             )
 
         try:
-            return [float(value) for value in embedding]
+            vector = [float(value) for value in embedding]
         except (TypeError, ValueError) as exc:
             raise OllamaEmbeddingProviderError(
                 "Ollama embedding response contained invalid vector values"
             ) from exc
+
+        self._embedding_dimension = len(vector)
+        return vector

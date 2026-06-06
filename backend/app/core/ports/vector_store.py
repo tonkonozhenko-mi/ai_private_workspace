@@ -9,6 +9,9 @@ class VectorStorePort(Protocol):
         workspace_id: str,
         chunks: list[TextChunk],
         embeddings: list[list[float]],
+        embedding_provider: str | None = None,
+        embedding_model: str | None = None,
+        embedding_dimension: int | None = None,
     ) -> None:
         """Store embedded text chunks for a workspace."""
 
@@ -17,10 +20,19 @@ class VectorStorePort(Protocol):
         workspace_id: str,
         query_embedding: list[float],
         limit: int,
+        embedding_provider: str | None = None,
+        embedding_model: str | None = None,
+        embedding_dimension: int | None = None,
     ) -> list[ContextSearchResult]:
         """Return the most similar chunks for a workspace."""
 
-    def clear_workspace(self, workspace_id: str) -> None:
+    def clear_workspace(
+        self,
+        workspace_id: str,
+        embedding_provider: str | None = None,
+        embedding_model: str | None = None,
+        embedding_dimension: int | None = None,
+    ) -> None:
         """Remove all stored chunks for a workspace."""
 
 

@@ -113,8 +113,6 @@ class IndexWorkspaceUseCase:
         project_path: str,
         latest_scan: ProjectScanResult,
     ) -> WorkspaceIndexResult:
-        self.vector_store.clear_workspace(workspace_id)
-
         documents: list[IndexedDocumentSummary] = []
         chunks: list[TextChunk] = []
         skipped_files_count = latest_scan.skipped_files
@@ -144,11 +142,21 @@ class IndexWorkspaceUseCase:
         embeddings = [
             self.embedding_provider.embed_text(chunk.content) for chunk in chunks
         ]
+        embedding_dimension = self._embedding_dimension(embeddings)
+        self.vector_store.clear_workspace(
+            workspace_id=workspace_id,
+            embedding_provider=self.embedding_provider.provider_name,
+            embedding_model=self.embedding_provider.model_name,
+            embedding_dimension=embedding_dimension,
+        )
         if chunks:
             self.vector_store.upsert_chunks(
                 workspace_id=workspace_id,
                 chunks=chunks,
                 embeddings=embeddings,
+                embedding_provider=self.embedding_provider.provider_name,
+                embedding_model=self.embedding_provider.model_name,
+                embedding_dimension=embedding_dimension,
             )
 
         return WorkspaceIndexResult(
@@ -158,6 +166,17 @@ class IndexWorkspaceUseCase:
             skipped_files_count=skipped_files_count,
             documents=documents,
         )
+
+    def _embedding_dimension(self, embeddings: list[list[float]]) -> int | None:
+        if not embeddings:
+            return self.embedding_provider.embedding_dimension
+
+        embedding_dimension = len(embeddings[0])
+        if embedding_dimension == 0:
+            raise ValueError("Embedding provider returned an empty vector")
+        if any(len(embedding) != embedding_dimension for embedding in embeddings):
+            raise ValueError("Embedding provider returned inconsistent vector dimensions")
+        return embedding_dimension
 
     def _chunks_for_file(
         self,
