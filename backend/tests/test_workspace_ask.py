@@ -36,6 +36,7 @@ def test_ask_before_indexing_returns_workspace_not_indexed_diagnostic(tmp_path) 
     assert result["used_context_chunks"] == 0
     assert result["llm_provider"] == "fake"
     assert result["llm_model"] == "fake-llm"
+    assert result["quality_warnings"] == []
 
 
 def test_ask_with_index_metadata_but_empty_active_store_returns_diagnostic(
@@ -59,6 +60,7 @@ def test_ask_with_index_metadata_but_empty_active_store_returns_diagnostic(
     assert "verify VECTOR_STORE, EMBEDDING_PROVIDER" in result["diagnostic_message"]
     assert result["sources"] == []
     assert result["used_context_chunks"] == 0
+    assert result["quality_warnings"] == []
 
 
 def test_ask_after_indexing_returns_sources_and_fake_answer(tmp_path) -> None:
@@ -83,6 +85,10 @@ def test_ask_after_indexing_returns_sources_and_fake_answer(tmp_path) -> None:
     assert result["sources"]
     assert result["diagnostic_code"] is None
     assert result["diagnostic_message"] is None
+    assert any(
+        warning["code"] == "answer_missing_source_paths"
+        for warning in result["quality_warnings"]
+    )
     assert result["sources"][0]["source_path"] == "README.md"
     assert "raganswertoken" in result["sources"][0]["preview"]
 
