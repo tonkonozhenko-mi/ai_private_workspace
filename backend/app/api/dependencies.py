@@ -2,6 +2,7 @@ from app.adapters.commands.fake_command_runner import FakeCommandRunner
 from app.adapters.commands.local_command_runner import LocalCommandRunner
 from app.adapters.embeddings.fake_embedding_provider import FakeEmbeddingProvider
 from app.adapters.filesystem.local_file_system import LocalFileSystem
+from app.adapters.llm.fake_llm_provider import FakeLLMProvider
 from app.adapters.memory.in_memory_command_repository import InMemoryCommandRepository
 from app.adapters.memory.in_memory_index_status_repository import (
     InMemoryIndexStatusRepository,
@@ -20,6 +21,7 @@ from app.core.ports.command_repository import CommandRepositoryPort
 from app.core.ports.command_runner import CommandRunnerPort
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
+from app.core.ports.llm_provider import LLMProviderPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -125,6 +127,10 @@ def build_embedding_provider() -> EmbeddingProviderPort:
     raise ValueError(f"Unsupported embedding provider: {settings.embedding_provider}")
 
 
+def build_llm_provider() -> LLMProviderPort:
+    return FakeLLMProvider()
+
+
 workspace_repository = build_workspace_repository()
 project_scan_repository = build_project_scan_repository()
 command_repository = build_command_repository()
@@ -132,4 +138,5 @@ index_status_repository = build_index_status_repository()
 file_system = LocalFileSystem()
 command_runner = build_command_runner()
 embedding_provider = build_embedding_provider()
+llm_provider = build_llm_provider()
 vector_store = build_vector_store()
