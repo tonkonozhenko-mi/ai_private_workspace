@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.rag import RagSource, WorkspaceQuestionAnswer
+from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.rag_prompt import build_workspace_question_prompt
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
@@ -102,6 +103,12 @@ class AskWorkspaceQuestionUseCase:
             context_results=context_results,
         )
         answer = self.llm_provider.generate(prompt)
+        quality_warnings = evaluate_rag_answer(
+            question=request.question,
+            answer=answer,
+            sources=sources,
+            source_contents=[result.content for result in context_results],
+        )
 
         return WorkspaceQuestionAnswer(
             workspace_id=request.workspace_id,
@@ -113,6 +120,7 @@ class AskWorkspaceQuestionUseCase:
             llm_model=self.llm_provider.model_name,
             diagnostic_code=None,
             diagnostic_message=None,
+            quality_warnings=quality_warnings,
         )
 
     def _diagnostic_answer(
