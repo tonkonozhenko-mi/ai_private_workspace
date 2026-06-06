@@ -313,6 +313,7 @@ def ask_workspace_question(
         embedding_provider=embedding_provider,
         vector_store=vector_store,
         llm_provider=llm_provider,
+        index_status_repository=index_status_repository,
     )
 
     try:

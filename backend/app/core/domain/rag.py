@@ -18,3 +18,5 @@ class WorkspaceQuestionAnswer:
     used_context_chunks: int
     llm_provider: str
     llm_model: str | None
+    diagnostic_code: str | None = None
+    diagnostic_message: str | None = None
