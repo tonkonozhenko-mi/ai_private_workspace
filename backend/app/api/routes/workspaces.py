@@ -47,7 +47,9 @@ from app.api.schemas.rag_schemas import (
     to_workspace_question_answer_response,
 )
 from app.api.schemas.timeline_schemas import (
+    TimelineBackfillResponse,
     TimelineEventResponse,
+    to_timeline_backfill_response,
     to_timeline_event_response,
 )
 from app.api.schemas.workspace_summary_schemas import (
@@ -83,6 +85,11 @@ from app.core.use_cases.ask_workspace_question import (
     AskWorkspaceQuestionInput,
     AskWorkspaceQuestionNotFoundError,
     AskWorkspaceQuestionUseCase,
+)
+from app.core.use_cases.backfill_workspace_timeline import (
+    BackfillWorkspaceTimelineInput,
+    BackfillWorkspaceTimelineUseCase,
+    WorkspaceTimelineBackfillNotFoundError,
 )
 from app.core.use_cases.create_workspace import (
     CreateWorkspaceInput,
@@ -400,6 +407,32 @@ def generate_project_overview_report(
         ) from exc
 
     return to_project_overview_report_response(report)
+
+
+@router.post(
+    "/{workspace_id}/timeline/backfill",
+    response_model=TimelineBackfillResponse,
+)
+def backfill_workspace_timeline(workspace_id: str) -> TimelineBackfillResponse:
+    use_case = BackfillWorkspaceTimelineUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+        index_status_repository=index_status_repository,
+        command_repository=command_repository,
+        timeline_repository=timeline_repository,
+    )
+
+    try:
+        result = use_case.execute(
+            BackfillWorkspaceTimelineInput(workspace_id=workspace_id)
+        )
+    except WorkspaceTimelineBackfillNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return to_timeline_backfill_response(result)
 
 
 @router.get(
