@@ -30,6 +30,9 @@ def test_ollama_embedding_provider_returns_embedding() -> None:
     embedding = provider.embed_text("hello workspace")
 
     assert embedding == [0.1, 0.2, 0.3]
+    assert provider.provider_name == "ollama"
+    assert provider.model_name == "nomic-embed-text"
+    assert provider.embedding_dimension == 3
 
 
 def test_ollama_embedding_provider_missing_embedding_raises_clear_error() -> None:
@@ -77,6 +80,9 @@ def test_build_embedding_provider_uses_fake_by_default(monkeypatch) -> None:
     provider = build_embedding_provider()
 
     assert isinstance(provider, FakeEmbeddingProvider)
+    assert provider.provider_name == "fake"
+    assert provider.model_name == "fake-embedding"
+    assert provider.embedding_dimension == 128
     get_settings.cache_clear()
 
 

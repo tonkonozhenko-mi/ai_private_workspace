@@ -15,6 +15,9 @@ class InMemoryVectorStore:
         workspace_id: str,
         chunks: list[TextChunk],
         embeddings: list[list[float]],
+        embedding_provider: str | None = None,
+        embedding_model: str | None = None,
+        embedding_dimension: int | None = None,
     ) -> None:
         if len(chunks) != len(embeddings):
             raise ValueError("chunks and embeddings must have the same length")
@@ -35,6 +38,9 @@ class InMemoryVectorStore:
         workspace_id: str,
         query_embedding: list[float],
         limit: int,
+        embedding_provider: str | None = None,
+        embedding_model: str | None = None,
+        embedding_dimension: int | None = None,
     ) -> list[ContextSearchResult]:
         if limit <= 0:
             return []
@@ -59,7 +65,13 @@ class InMemoryVectorStore:
             for score, chunk in scored_chunks[:limit]
         ]
 
-    def clear_workspace(self, workspace_id: str) -> None:
+    def clear_workspace(
+        self,
+        workspace_id: str,
+        embedding_provider: str | None = None,
+        embedding_model: str | None = None,
+        embedding_dimension: int | None = None,
+    ) -> None:
         self._chunks.pop(workspace_id, None)
 
     @staticmethod

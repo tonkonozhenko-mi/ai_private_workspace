@@ -44,4 +44,7 @@ class SearchWorkspaceContextUseCase:
             workspace_id=request.workspace_id,
             query_embedding=query_embedding,
             limit=request.limit,
+            embedding_provider=self.embedding_provider.provider_name,
+            embedding_model=self.embedding_provider.model_name,
+            embedding_dimension=len(query_embedding),
         )
