@@ -16,6 +16,10 @@ class Settings(BaseModel):
     VECTOR_STORE: str = "memory"
     QDRANT_URL: str = "http://localhost:6333"
     QDRANT_COLLECTION: str = "ai_workbench_chunks"
+    EMBEDDING_PROVIDER: str = "fake"
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_EMBEDDING_MODEL: str = "nomic-embed-text"
+    OLLAMA_TIMEOUT_SECONDS: int = 30
 
     @property
     def app_data_dir(self) -> Path:
@@ -53,6 +57,22 @@ class Settings(BaseModel):
     def qdrant_collection(self) -> str:
         return self.QDRANT_COLLECTION
 
+    @property
+    def embedding_provider(self) -> str:
+        return self.EMBEDDING_PROVIDER
+
+    @property
+    def ollama_base_url(self) -> str:
+        return self.OLLAMA_BASE_URL
+
+    @property
+    def ollama_embedding_model(self) -> str:
+        return self.OLLAMA_EMBEDDING_MODEL
+
+    @property
+    def ollama_timeout_seconds(self) -> int:
+        return self.OLLAMA_TIMEOUT_SECONDS
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -71,6 +91,13 @@ def get_settings() -> Settings:
         VECTOR_STORE=os.getenv("VECTOR_STORE", "memory"),
         QDRANT_URL=os.getenv("QDRANT_URL", "http://localhost:6333"),
         QDRANT_COLLECTION=os.getenv("QDRANT_COLLECTION", "ai_workbench_chunks"),
+        EMBEDDING_PROVIDER=os.getenv("EMBEDDING_PROVIDER", "fake"),
+        OLLAMA_BASE_URL=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        OLLAMA_EMBEDDING_MODEL=os.getenv(
+            "OLLAMA_EMBEDDING_MODEL",
+            "nomic-embed-text",
+        ),
+        OLLAMA_TIMEOUT_SECONDS=int(os.getenv("OLLAMA_TIMEOUT_SECONDS", "30")),
     )
     settings.app_data_dir.mkdir(parents=True, exist_ok=True)
     settings.workspace_db_path.parent.mkdir(parents=True, exist_ok=True)

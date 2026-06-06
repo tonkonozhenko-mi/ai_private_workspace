@@ -105,11 +105,31 @@ def build_vector_store() -> VectorStorePort:
     raise ValueError(f"Unsupported vector store: {settings.vector_store}")
 
 
+def build_embedding_provider() -> EmbeddingProviderPort:
+    settings = get_settings()
+    provider_type = settings.embedding_provider.lower()
+
+    if provider_type == "fake":
+        return FakeEmbeddingProvider()
+    if provider_type == "ollama":
+        from app.adapters.embeddings.ollama_embedding_provider import (
+            OllamaEmbeddingProvider,
+        )
+
+        return OllamaEmbeddingProvider(
+            base_url=settings.ollama_base_url,
+            model=settings.ollama_embedding_model,
+            timeout_seconds=settings.ollama_timeout_seconds,
+        )
+
+    raise ValueError(f"Unsupported embedding provider: {settings.embedding_provider}")
+
+
 workspace_repository = build_workspace_repository()
 project_scan_repository = build_project_scan_repository()
 command_repository = build_command_repository()
 index_status_repository = build_index_status_repository()
 file_system = LocalFileSystem()
 command_runner = build_command_runner()
-embedding_provider: EmbeddingProviderPort = FakeEmbeddingProvider()
+embedding_provider = build_embedding_provider()
 vector_store = build_vector_store()
