@@ -3,7 +3,12 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from app.core.domain.workspace import Workspace
+from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.use_cases.add_timeline_event import (
+    AddTimelineEventInput,
+    AddTimelineEventUseCase,
+)
 
 
 @dataclass(frozen=True)
@@ -15,8 +20,13 @@ class CreateWorkspaceInput:
 
 
 class CreateWorkspaceUseCase:
-    def __init__(self, workspace_repository: WorkspaceRepositoryPort) -> None:
+    def __init__(
+        self,
+        workspace_repository: WorkspaceRepositoryPort,
+        timeline_repository: TimelineRepositoryPort | None = None,
+    ) -> None:
         self.workspace_repository = workspace_repository
+        self.timeline_repository = timeline_repository
 
     def execute(self, request: CreateWorkspaceInput) -> Workspace:
         workspace = Workspace(
@@ -27,4 +37,15 @@ class CreateWorkspaceUseCase:
             privacy_mode=request.privacy_mode,
             created_at=datetime.now(UTC),
         )
-        return self.workspace_repository.create(workspace)
+        created_workspace = self.workspace_repository.create(workspace)
+        if self.timeline_repository is not None:
+            AddTimelineEventUseCase(self.timeline_repository).execute(
+                AddTimelineEventInput(
+                    workspace_id=created_workspace.id,
+                    event_type="workspace_created",
+                    title="Workspace created",
+                    summary=f"Created workspace {created_workspace.name}.",
+                    metadata={"project_path": created_workspace.project_path},
+                )
+            )
+        return created_workspace

@@ -4,6 +4,10 @@ from app.api.schemas.index_status_schemas import (
     WorkspaceIndexStatusResponse,
     to_workspace_index_status_response,
 )
+from app.api.schemas.timeline_schemas import (
+    TimelineEventResponse,
+    to_timeline_event_response,
+)
 from app.core.domain.skill import SkillMatch
 from app.core.domain.workspace_summary import (
     CommandActivitySummary,
@@ -52,6 +56,7 @@ class WorkspaceSummaryResponse(BaseModel):
     suggested_actions: list[SuggestedActionResponse]
     command_activity: CommandActivitySummaryResponse
     index_status: WorkspaceIndexStatusResponse
+    recent_events: list[TimelineEventResponse]
 
 
 def to_skill_match_response(skill: SkillMatch) -> SkillMatchResponse:
@@ -112,4 +117,7 @@ def to_workspace_summary_response(
             summary.command_activity
         ),
         index_status=to_workspace_index_status_response(summary.index_status),
+        recent_events=[
+            to_timeline_event_response(event) for event in summary.recent_events
+        ],
     )

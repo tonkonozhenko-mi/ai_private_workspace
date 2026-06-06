@@ -1,7 +1,8 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.skill import SkillMatch
+from app.core.domain.timeline import TimelineEvent
 
 
 @dataclass(frozen=True)
@@ -40,3 +41,4 @@ class WorkspaceSummary:
     suggested_actions: list[SuggestedAction]
     command_activity: CommandActivitySummary
     index_status: WorkspaceIndexStatus
+    recent_events: list[TimelineEvent] = field(default_factory=list)
