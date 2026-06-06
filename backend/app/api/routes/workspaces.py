@@ -10,6 +10,7 @@ from app.api.dependencies import (
     index_status_repository,
     llm_provider,
     project_scan_repository,
+    timeline_repository,
     vector_store,
     workspace_repository,
 )
@@ -44,6 +45,10 @@ from app.api.schemas.rag_schemas import (
     AskWorkspaceQuestionRequest,
     WorkspaceQuestionAnswerResponse,
     to_workspace_question_answer_response,
+)
+from app.api.schemas.timeline_schemas import (
+    TimelineEventResponse,
+    to_timeline_event_response,
 )
 from app.api.schemas.workspace_summary_schemas import (
     WorkspaceSummaryResponse,
@@ -116,6 +121,11 @@ from app.core.use_cases.get_workspace_summary import (
     WorkspaceSummaryNotFoundError,
 )
 from app.core.use_cases.list_workspaces import ListWorkspacesUseCase
+from app.core.use_cases.list_workspace_timeline import (
+    ListWorkspaceTimelineInput,
+    ListWorkspaceTimelineUseCase,
+    WorkspaceTimelineNotFoundError,
+)
 from app.core.use_cases.scan_project import ProjectScanError
 from app.core.use_cases.scan_workspace_project import (
     ScanWorkspaceProjectInput,
@@ -161,7 +171,10 @@ def to_workspace_response(workspace: Workspace) -> WorkspaceResponse:
 
 @router.post("", response_model=WorkspaceResponse, status_code=status.HTTP_201_CREATED)
 def create_workspace(request: CreateWorkspaceRequest) -> WorkspaceResponse:
-    use_case = CreateWorkspaceUseCase(workspace_repository)
+    use_case = CreateWorkspaceUseCase(
+        workspace_repository=workspace_repository,
+        timeline_repository=timeline_repository,
+    )
     workspace = use_case.execute(
         CreateWorkspaceInput(
             name=request.name,
@@ -194,6 +207,7 @@ def scan_workspace_project(workspace_id: str) -> ProjectScanResponse:
         workspace_repository=workspace_repository,
         file_system=file_system,
         project_scan_repository=project_scan_repository,
+        timeline_repository=timeline_repository,
     )
 
     try:
@@ -235,6 +249,7 @@ def index_workspace(workspace_id: str) -> WorkspaceIndexResponse:
         embedding_provider=embedding_provider,
         vector_store=vector_store,
         index_status_repository=index_status_repository,
+        timeline_repository=timeline_repository,
     )
 
     try:
@@ -314,6 +329,7 @@ def ask_workspace_question(
         vector_store=vector_store,
         llm_provider=llm_provider,
         index_status_repository=index_status_repository,
+        timeline_repository=timeline_repository,
     )
 
     try:
@@ -340,6 +356,7 @@ def get_workspace_summary(workspace_id: str) -> WorkspaceSummaryResponse:
         project_scan_repository=project_scan_repository,
         command_repository=command_repository,
         index_status_repository=index_status_repository,
+        timeline_repository=timeline_repository,
     )
 
     try:
@@ -364,6 +381,7 @@ def generate_project_overview_report(
         workspace_repository=workspace_repository,
         project_scan_repository=project_scan_repository,
         file_system=file_system,
+        timeline_repository=timeline_repository,
     )
 
     try:
@@ -382,6 +400,35 @@ def generate_project_overview_report(
         ) from exc
 
     return to_project_overview_report_response(report)
+
+
+@router.get(
+    "/{workspace_id}/timeline",
+    response_model=list[TimelineEventResponse],
+)
+def get_workspace_timeline(
+    workspace_id: str,
+    limit: int = 50,
+) -> list[TimelineEventResponse]:
+    use_case = ListWorkspaceTimelineUseCase(
+        workspace_repository=workspace_repository,
+        timeline_repository=timeline_repository,
+    )
+
+    try:
+        events = use_case.execute(
+            ListWorkspaceTimelineInput(
+                workspace_id=workspace_id,
+                limit=limit,
+            )
+        )
+    except WorkspaceTimelineNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return [to_timeline_event_response(event) for event in events]
 
 
 @router.get(

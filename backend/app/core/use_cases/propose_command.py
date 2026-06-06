@@ -6,8 +6,13 @@ from app.core.domain.command import CommandProposal, CommandStatus
 from app.core.domain.command_policy import evaluate_command_policy
 from app.core.domain.command_risk import classify_command_risk
 from app.core.ports.command_repository import CommandRepositoryPort
+from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.use_cases.command_errors import CommandWorkspaceNotFoundError
+from app.core.use_cases.add_timeline_event import (
+    AddTimelineEventInput,
+    AddTimelineEventUseCase,
+)
 
 
 @dataclass(frozen=True)
@@ -23,9 +28,11 @@ class ProposeCommandUseCase:
         self,
         workspace_repository: WorkspaceRepositoryPort,
         command_repository: CommandRepositoryPort,
+        timeline_repository: TimelineRepositoryPort | None = None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.command_repository = command_repository
+        self.timeline_repository = timeline_repository
 
     def execute(self, request: ProposeCommandInput) -> CommandProposal:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -53,4 +60,19 @@ class ProposeCommandUseCase:
             policy_mode=policy_decision.mode,
             policy_reason=policy_decision.reason,
         )
-        return self.command_repository.create(proposal)
+        created_proposal = self.command_repository.create(proposal)
+        if self.timeline_repository is not None:
+            AddTimelineEventUseCase(self.timeline_repository).execute(
+                AddTimelineEventInput(
+                    workspace_id=created_proposal.workspace_id,
+                    event_type="command_proposed",
+                    title="Command proposed",
+                    summary=f"Proposed command: {created_proposal.command}",
+                    metadata={
+                        "command_id": created_proposal.id,
+                        "risk": created_proposal.risk,
+                        "policy_mode": created_proposal.policy_mode or "",
+                    },
+                )
+            )
+        return created_proposal

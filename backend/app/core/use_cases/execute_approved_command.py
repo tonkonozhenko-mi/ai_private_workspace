@@ -5,11 +5,16 @@ from pathlib import Path
 from app.core.domain.command import CommandProposal, CommandStatus
 from app.core.ports.command_repository import CommandRepositoryPort
 from app.core.ports.command_runner import CommandRunnerPort
+from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.use_cases.command_errors import (
     CommandInvalidStatusError,
     CommandNotFoundError,
     CommandWorkspaceNotFoundError,
+)
+from app.core.use_cases.add_timeline_event import (
+    AddTimelineEventInput,
+    AddTimelineEventUseCase,
 )
 
 
@@ -24,10 +29,12 @@ class ExecuteApprovedCommandUseCase:
         command_repository: CommandRepositoryPort,
         command_runner: CommandRunnerPort,
         workspace_repository: WorkspaceRepositoryPort,
+        timeline_repository: TimelineRepositoryPort | None = None,
     ) -> None:
         self.command_repository = command_repository
         self.command_runner = command_runner
         self.workspace_repository = workspace_repository
+        self.timeline_repository = timeline_repository
 
     def execute(self, request: ExecuteApprovedCommandInput) -> CommandProposal:
         proposal = self.command_repository.get(request.command_id)
@@ -70,7 +77,25 @@ class ExecuteApprovedCommandUseCase:
             stderr=result.stderr,
             exit_code=result.exit_code,
         )
-        return self.command_repository.update(executed_proposal)
+        updated_proposal = self.command_repository.update(executed_proposal)
+        if self.timeline_repository is not None:
+            AddTimelineEventUseCase(self.timeline_repository).execute(
+                AddTimelineEventInput(
+                    workspace_id=updated_proposal.workspace_id,
+                    event_type="command_executed",
+                    title="Command execution completed",
+                    summary=(
+                        f"Command finished with status {updated_proposal.status} "
+                        f"and exit code {updated_proposal.exit_code}."
+                    ),
+                    metadata={
+                        "command_id": updated_proposal.id,
+                        "exit_code": str(updated_proposal.exit_code),
+                        "status": updated_proposal.status,
+                    },
+                )
+            )
+        return updated_proposal
 
     @staticmethod
     def _is_inside_workspace(cwd: str, workspace_root: str) -> bool:

@@ -3,6 +3,11 @@ from datetime import UTC, datetime
 
 from app.core.domain.command import CommandProposal, CommandStatus
 from app.core.ports.command_repository import CommandRepositoryPort
+from app.core.ports.timeline_repository import TimelineRepositoryPort
+from app.core.use_cases.add_timeline_event import (
+    AddTimelineEventInput,
+    AddTimelineEventUseCase,
+)
 from app.core.use_cases.command_errors import CommandInvalidStatusError, CommandNotFoundError
 
 
@@ -12,8 +17,13 @@ class ApproveCommandInput:
 
 
 class ApproveCommandUseCase:
-    def __init__(self, command_repository: CommandRepositoryPort) -> None:
+    def __init__(
+        self,
+        command_repository: CommandRepositoryPort,
+        timeline_repository: TimelineRepositoryPort | None = None,
+    ) -> None:
         self.command_repository = command_repository
+        self.timeline_repository = timeline_repository
 
     def execute(self, request: ApproveCommandInput) -> CommandProposal:
         proposal = self.command_repository.get(request.command_id)
@@ -27,4 +37,15 @@ class ApproveCommandUseCase:
             status=CommandStatus.APPROVED.value,
             approved_at=datetime.now(UTC).isoformat(),
         )
-        return self.command_repository.update(approved_proposal)
+        updated_proposal = self.command_repository.update(approved_proposal)
+        if self.timeline_repository is not None:
+            AddTimelineEventUseCase(self.timeline_repository).execute(
+                AddTimelineEventInput(
+                    workspace_id=updated_proposal.workspace_id,
+                    event_type="command_approved",
+                    title="Command approved",
+                    summary=f"Approved command: {updated_proposal.command}",
+                    metadata={"command_id": updated_proposal.id},
+                )
+            )
+        return updated_proposal

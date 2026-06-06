@@ -13,8 +13,13 @@ from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.file_system import FileSystemPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
+from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.use_cases.add_timeline_event import (
+    AddTimelineEventInput,
+    AddTimelineEventUseCase,
+)
 
 
 INDEXABLE_FILE_TYPES = {
@@ -55,6 +60,7 @@ class IndexWorkspaceUseCase:
         embedding_provider: EmbeddingProviderPort,
         vector_store: VectorStorePort,
         index_status_repository: IndexStatusRepositoryPort,
+        timeline_repository: TimelineRepositoryPort | None = None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.project_scan_repository = project_scan_repository
@@ -62,6 +68,7 @@ class IndexWorkspaceUseCase:
         self.embedding_provider = embedding_provider
         self.vector_store = vector_store
         self.index_status_repository = index_status_repository
+        self.timeline_repository = timeline_repository
 
     def execute(self, request: IndexWorkspaceInput) -> WorkspaceIndexResult:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -105,6 +112,22 @@ class IndexWorkspaceUseCase:
                 last_error=None,
             )
         )
+        if self.timeline_repository is not None:
+            AddTimelineEventUseCase(self.timeline_repository).execute(
+                AddTimelineEventInput(
+                    workspace_id=request.workspace_id,
+                    event_type="workspace_indexed",
+                    title="Workspace indexed",
+                    summary=(
+                        f"Indexed {result.indexed_files_count} files into "
+                        f"{result.chunks_count} chunks."
+                    ),
+                    metadata={
+                        "chunks_count": str(result.chunks_count),
+                        "indexed_files_count": str(result.indexed_files_count),
+                    },
+                )
+            )
         return result
 
     def _index_workspace(

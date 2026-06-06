@@ -8,7 +8,12 @@ from app.core.domain.skill import SkillMatch
 from app.core.domain.workspace import Workspace
 from app.core.ports.file_system import FileSystemPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
+from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.use_cases.add_timeline_event import (
+    AddTimelineEventInput,
+    AddTimelineEventUseCase,
+)
 from app.core.use_cases.get_analysis_summary import (
     GetAnalysisSummaryInput,
     GetAnalysisSummaryUseCase,
@@ -38,10 +43,12 @@ class GenerateProjectOverviewReportUseCase:
         workspace_repository: WorkspaceRepositoryPort,
         project_scan_repository: ProjectScanRepositoryPort,
         file_system: FileSystemPort,
+        timeline_repository: TimelineRepositoryPort | None = None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.project_scan_repository = project_scan_repository
         self.file_system = file_system
+        self.timeline_repository = timeline_repository
 
     def execute(
         self,
@@ -79,7 +86,7 @@ class GenerateProjectOverviewReportUseCase:
             self._suggested_commands_section(command_suggestions),
         ]
 
-        return ProjectOverviewReport(
+        report = ProjectOverviewReport(
             workspace_id=workspace.id,
             title=f"Project overview: {workspace.name}",
             summary=self._summary(workspace, latest_scan, analysis_summary),
@@ -91,6 +98,17 @@ class GenerateProjectOverviewReportUseCase:
                 "deterministic_rules",
             ],
         )
+        if self.timeline_repository is not None:
+            AddTimelineEventUseCase(self.timeline_repository).execute(
+                AddTimelineEventInput(
+                    workspace_id=workspace.id,
+                    event_type="project_overview_generated",
+                    title="Project overview generated",
+                    summary="Generated a deterministic project overview report.",
+                    metadata={"sections_count": str(len(report.sections))},
+                )
+            )
+        return report
 
     @staticmethod
     def _summary(

@@ -4,6 +4,7 @@ from app.api.dependencies import (
     command_repository,
     command_runner,
     project_scan_repository,
+    timeline_repository,
     workspace_repository,
 )
 from app.api.schemas.command_schemas import (
@@ -52,6 +53,7 @@ def propose_command(
     use_case = ProposeCommandUseCase(
         workspace_repository=workspace_repository,
         command_repository=command_repository,
+        timeline_repository=timeline_repository,
     )
 
     try:
@@ -121,7 +123,10 @@ def suggest_workspace_commands(workspace_id: str) -> list[CommandSuggestionRespo
     response_model=CommandProposalResponse,
 )
 def approve_command(command_id: str) -> CommandProposalResponse:
-    use_case = ApproveCommandUseCase(command_repository)
+    use_case = ApproveCommandUseCase(
+        command_repository=command_repository,
+        timeline_repository=timeline_repository,
+    )
     proposal = _execute_command_mutation(
         lambda: use_case.execute(ApproveCommandInput(command_id=command_id))
     )
@@ -133,7 +138,10 @@ def approve_command(command_id: str) -> CommandProposalResponse:
     response_model=CommandProposalResponse,
 )
 def reject_command(command_id: str) -> CommandProposalResponse:
-    use_case = RejectCommandUseCase(command_repository)
+    use_case = RejectCommandUseCase(
+        command_repository=command_repository,
+        timeline_repository=timeline_repository,
+    )
     proposal = _execute_command_mutation(
         lambda: use_case.execute(RejectCommandInput(command_id=command_id))
     )
@@ -149,6 +157,7 @@ def execute_command(command_id: str) -> CommandProposalResponse:
         command_repository=command_repository,
         command_runner=command_runner,
         workspace_repository=workspace_repository,
+        timeline_repository=timeline_repository,
     )
     proposal = _execute_command_mutation(
         lambda: use_case.execute(ExecuteApprovedCommandInput(command_id=command_id))

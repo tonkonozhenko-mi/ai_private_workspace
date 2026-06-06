@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from app.core.domain.command import CommandProposal, CommandStatus
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.project_scan import ProjectScanResult
+from app.core.domain.timeline import TimelineEvent
 from app.core.domain.workspace import Workspace
 from app.core.domain.workspace_summary import (
     CommandActivitySummary,
@@ -12,6 +13,7 @@ from app.core.domain.workspace_summary import (
 from app.core.ports.command_repository import CommandRepositoryPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
+from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.use_cases.get_workspace_index_status import (
     GetWorkspaceIndexStatusInput,
@@ -35,11 +37,13 @@ class GetWorkspaceSummaryUseCase:
         project_scan_repository: ProjectScanRepositoryPort,
         command_repository: CommandRepositoryPort,
         index_status_repository: IndexStatusRepositoryPort,
+        timeline_repository: TimelineRepositoryPort | None = None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.project_scan_repository = project_scan_repository
         self.command_repository = command_repository
         self.index_status_repository = index_status_repository
+        self.timeline_repository = timeline_repository
 
     def execute(self, request: GetWorkspaceSummaryInput) -> WorkspaceSummary:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -54,16 +58,33 @@ class GetWorkspaceSummaryUseCase:
             workspace_repository=self.workspace_repository,
             index_status_repository=self.index_status_repository,
         ).execute(GetWorkspaceIndexStatusInput(workspace_id=request.workspace_id))
+        recent_events = (
+            self.timeline_repository.list_by_workspace(request.workspace_id, limit=5)
+            if self.timeline_repository is not None
+            else []
+        )
         if latest_scan is None:
-            return self._without_scan(workspace, command_activity, index_status)
+            return self._without_scan(
+                workspace,
+                command_activity,
+                index_status,
+                recent_events,
+            )
 
-        return self._with_scan(workspace, latest_scan, command_activity, index_status)
+        return self._with_scan(
+            workspace,
+            latest_scan,
+            command_activity,
+            index_status,
+            recent_events,
+        )
 
     def _without_scan(
         self,
         workspace: Workspace,
         command_activity: CommandActivitySummary,
         index_status: WorkspaceIndexStatus,
+        recent_events: list[TimelineEvent],
     ) -> WorkspaceSummary:
         return WorkspaceSummary(
             workspace_id=workspace.id,
@@ -86,6 +107,7 @@ class GetWorkspaceSummaryUseCase:
             ],
             command_activity=command_activity,
             index_status=index_status,
+            recent_events=recent_events,
         )
 
     def _with_scan(
@@ -94,6 +116,7 @@ class GetWorkspaceSummaryUseCase:
         latest_scan: ProjectScanResult,
         command_activity: CommandActivitySummary,
         index_status: WorkspaceIndexStatus,
+        recent_events: list[TimelineEvent],
     ) -> WorkspaceSummary:
         return WorkspaceSummary(
             workspace_id=workspace.id,
@@ -108,6 +131,7 @@ class GetWorkspaceSummaryUseCase:
             suggested_actions=self._suggest_actions(latest_scan),
             command_activity=command_activity,
             index_status=index_status,
+            recent_events=recent_events,
         )
 
     def _summarize_command_activity(

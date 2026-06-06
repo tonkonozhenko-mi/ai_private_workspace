@@ -64,6 +64,19 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             )
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS workspace_timeline_events (
+                id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                metadata_json TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
         _add_column_if_missing(
             connection,
             table_name="workspace_commands",

@@ -4,7 +4,12 @@ from app.core.domain.project_scan import ProjectScanResult
 from app.core.domain.skill_registry import SkillRegistry
 from app.core.ports.file_system import FileSystemPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
+from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.use_cases.add_timeline_event import (
+    AddTimelineEventInput,
+    AddTimelineEventUseCase,
+)
 from app.core.use_cases.scan_project import ScanProjectInput, ScanProjectUseCase
 
 
@@ -24,11 +29,13 @@ class ScanWorkspaceProjectUseCase:
         file_system: FileSystemPort,
         project_scan_repository: ProjectScanRepositoryPort,
         skill_registry: SkillRegistry | None = None,
+        timeline_repository: TimelineRepositoryPort | None = None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.file_system = file_system
         self.project_scan_repository = project_scan_repository
         self.skill_registry = skill_registry
+        self.timeline_repository = timeline_repository
 
     def execute(self, request: ScanWorkspaceProjectInput) -> ProjectScanResult:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -44,4 +51,22 @@ class ScanWorkspaceProjectUseCase:
             workspace_id=request.workspace_id,
             scan_result=scan_result,
         )
+        if self.timeline_repository is not None:
+            AddTimelineEventUseCase(self.timeline_repository).execute(
+                AddTimelineEventInput(
+                    workspace_id=request.workspace_id,
+                    event_type="project_scanned",
+                    title="Project scanned",
+                    summary=(
+                        f"Scanned {scan_result.scanned_files} files and detected "
+                        f"{len(scan_result.detected_skills)} skills."
+                    ),
+                    metadata={
+                        "total_files": str(scan_result.total_files),
+                        "detected_skills_count": str(
+                            len(scan_result.detected_skills)
+                        ),
+                    },
+                )
+            )
         return scan_result

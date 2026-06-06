@@ -7,8 +7,13 @@ from app.core.domain.rag_prompt import build_workspace_question_prompt
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.llm_provider import LLMProviderPort
+from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.use_cases.add_timeline_event import (
+    AddTimelineEventInput,
+    AddTimelineEventUseCase,
+)
 
 
 WORKSPACE_NOT_INDEXED_ANSWER = (
@@ -48,12 +53,14 @@ class AskWorkspaceQuestionUseCase:
         vector_store: VectorStorePort,
         llm_provider: LLMProviderPort,
         index_status_repository: IndexStatusRepositoryPort,
+        timeline_repository: TimelineRepositoryPort | None = None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.embedding_provider = embedding_provider
         self.vector_store = vector_store
         self.llm_provider = llm_provider
         self.index_status_repository = index_status_repository
+        self.timeline_repository = timeline_repository
 
     def execute(
         self,
@@ -65,11 +72,13 @@ class AskWorkspaceQuestionUseCase:
 
         index_status = self.index_status_repository.get(request.workspace_id)
         if index_status is None or index_status.status == "not_indexed":
-            return self._diagnostic_answer(
-                request=request,
-                answer=WORKSPACE_NOT_INDEXED_ANSWER,
-                diagnostic_code="workspace_not_indexed",
-                diagnostic_message=WORKSPACE_NOT_INDEXED_MESSAGE,
+            return self._record_question_event(
+                self._diagnostic_answer(
+                    request=request,
+                    answer=WORKSPACE_NOT_INDEXED_ANSWER,
+                    diagnostic_code="workspace_not_indexed",
+                    diagnostic_message=WORKSPACE_NOT_INDEXED_MESSAGE,
+                )
             )
 
         context_results = self._search_context(request)
@@ -85,17 +94,21 @@ class AskWorkspaceQuestionUseCase:
 
         if not context_results:
             if index_status.status == "indexed":
-                return self._diagnostic_answer(
-                    request=request,
-                    answer=INDEX_METADATA_WITHOUT_CHUNKS_ANSWER,
-                    diagnostic_code="index_metadata_exists_but_no_chunks_found",
-                    diagnostic_message=INDEX_METADATA_WITHOUT_CHUNKS_MESSAGE,
+                return self._record_question_event(
+                    self._diagnostic_answer(
+                        request=request,
+                        answer=INDEX_METADATA_WITHOUT_CHUNKS_ANSWER,
+                        diagnostic_code="index_metadata_exists_but_no_chunks_found",
+                        diagnostic_message=INDEX_METADATA_WITHOUT_CHUNKS_MESSAGE,
+                    )
                 )
-            return self._diagnostic_answer(
-                request=request,
-                answer=NO_RELEVANT_CONTEXT_ANSWER,
-                diagnostic_code="no_relevant_context_found",
-                diagnostic_message=NO_RELEVANT_CONTEXT_MESSAGE,
+            return self._record_question_event(
+                self._diagnostic_answer(
+                    request=request,
+                    answer=NO_RELEVANT_CONTEXT_ANSWER,
+                    diagnostic_code="no_relevant_context_found",
+                    diagnostic_message=NO_RELEVANT_CONTEXT_MESSAGE,
+                )
             )
 
         prompt = build_workspace_question_prompt(
@@ -110,17 +123,19 @@ class AskWorkspaceQuestionUseCase:
             source_contents=[result.content for result in context_results],
         )
 
-        return WorkspaceQuestionAnswer(
-            workspace_id=request.workspace_id,
-            question=request.question,
-            answer=answer,
-            sources=sources,
-            used_context_chunks=len(context_results),
-            llm_provider=self.llm_provider.provider_name,
-            llm_model=self.llm_provider.model_name,
-            diagnostic_code=None,
-            diagnostic_message=None,
-            quality_warnings=quality_warnings,
+        return self._record_question_event(
+            WorkspaceQuestionAnswer(
+                workspace_id=request.workspace_id,
+                question=request.question,
+                answer=answer,
+                sources=sources,
+                used_context_chunks=len(context_results),
+                llm_provider=self.llm_provider.provider_name,
+                llm_model=self.llm_provider.model_name,
+                diagnostic_code=None,
+                diagnostic_message=None,
+                quality_warnings=quality_warnings,
+            )
         )
 
     def _diagnostic_answer(
@@ -158,3 +173,24 @@ class AskWorkspaceQuestionUseCase:
             embedding_model=self.embedding_provider.model_name,
             embedding_dimension=len(query_embedding),
         )
+
+    def _record_question_event(
+        self,
+        answer: WorkspaceQuestionAnswer,
+    ) -> WorkspaceQuestionAnswer:
+        if self.timeline_repository is not None:
+            AddTimelineEventUseCase(self.timeline_repository).execute(
+                AddTimelineEventInput(
+                    workspace_id=answer.workspace_id,
+                    event_type="workspace_question_asked",
+                    title="Workspace question asked",
+                    summary=answer.question,
+                    metadata={
+                        "used_context_chunks": str(answer.used_context_chunks),
+                        "llm_provider": answer.llm_provider,
+                        "llm_model": answer.llm_model or "",
+                        "quality_warnings_count": str(len(answer.quality_warnings)),
+                    },
+                )
+            )
+        return answer
