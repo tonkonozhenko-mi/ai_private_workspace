@@ -20,6 +20,9 @@ class Settings(BaseModel):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_EMBEDDING_MODEL: str = "nomic-embed-text"
     OLLAMA_TIMEOUT_SECONDS: int = 30
+    LLM_PROVIDER: str = "fake"
+    OLLAMA_LLM_MODEL: str = "llama3.2"
+    OLLAMA_LLM_TIMEOUT_SECONDS: int = 120
 
     @property
     def app_data_dir(self) -> Path:
@@ -73,6 +76,18 @@ class Settings(BaseModel):
     def ollama_timeout_seconds(self) -> int:
         return self.OLLAMA_TIMEOUT_SECONDS
 
+    @property
+    def llm_provider(self) -> str:
+        return self.LLM_PROVIDER
+
+    @property
+    def ollama_llm_model(self) -> str:
+        return self.OLLAMA_LLM_MODEL
+
+    @property
+    def ollama_llm_timeout_seconds(self) -> int:
+        return self.OLLAMA_LLM_TIMEOUT_SECONDS
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -98,6 +113,11 @@ def get_settings() -> Settings:
             "nomic-embed-text",
         ),
         OLLAMA_TIMEOUT_SECONDS=int(os.getenv("OLLAMA_TIMEOUT_SECONDS", "30")),
+        LLM_PROVIDER=os.getenv("LLM_PROVIDER", "fake"),
+        OLLAMA_LLM_MODEL=os.getenv("OLLAMA_LLM_MODEL", "llama3.2"),
+        OLLAMA_LLM_TIMEOUT_SECONDS=int(
+            os.getenv("OLLAMA_LLM_TIMEOUT_SECONDS", "120")
+        ),
     )
     settings.app_data_dir.mkdir(parents=True, exist_ok=True)
     settings.workspace_db_path.parent.mkdir(parents=True, exist_ok=True)
