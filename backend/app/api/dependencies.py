@@ -128,7 +128,21 @@ def build_embedding_provider() -> EmbeddingProviderPort:
 
 
 def build_llm_provider() -> LLMProviderPort:
-    return FakeLLMProvider()
+    settings = get_settings()
+    provider_type = settings.llm_provider.lower()
+
+    if provider_type == "fake":
+        return FakeLLMProvider()
+    if provider_type == "ollama":
+        from app.adapters.llm.ollama_llm_provider import OllamaLLMProvider
+
+        return OllamaLLMProvider(
+            base_url=settings.ollama_base_url,
+            model=settings.ollama_llm_model,
+            timeout_seconds=settings.ollama_llm_timeout_seconds,
+        )
+
+    raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
 
 
 workspace_repository = build_workspace_repository()
