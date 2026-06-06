@@ -23,6 +23,8 @@ class WorkspaceQuestionAnswerResponse(BaseModel):
     used_context_chunks: int
     llm_provider: str
     llm_model: str | None
+    diagnostic_code: str | None
+    diagnostic_message: str | None
 
 
 def to_rag_source_response(source: RagSource) -> RagSourceResponse:
@@ -45,4 +47,6 @@ def to_workspace_question_answer_response(
         used_context_chunks=result.used_context_chunks,
         llm_provider=result.llm_provider,
         llm_model=result.llm_model,
+        diagnostic_code=result.diagnostic_code,
+        diagnostic_message=result.diagnostic_message,
     )

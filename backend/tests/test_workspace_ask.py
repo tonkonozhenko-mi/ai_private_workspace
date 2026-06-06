@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from app.api.dependencies import vector_store
 from app.main import app
 
 
@@ -18,18 +19,46 @@ def test_ask_unknown_workspace_returns_404() -> None:
     assert response.json()["detail"] == "Workspace not found"
 
 
-def test_ask_without_indexed_context_returns_no_context_answer(tmp_path) -> None:
+def test_ask_before_indexing_returns_workspace_not_indexed_diagnostic(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
 
     response = _ask(workspace["id"], "What is this project?")
 
     assert response.status_code == 200
     result = response.json()
-    assert result["answer"] == "No indexed context was found for this workspace."
+    assert (
+        result["answer"]
+        == "This workspace has not been indexed yet. Run workspace indexing first."
+    )
+    assert result["diagnostic_code"] == "workspace_not_indexed"
+    assert result["diagnostic_message"] == "No workspace index metadata was found."
     assert result["sources"] == []
     assert result["used_context_chunks"] == 0
     assert result["llm_provider"] == "fake"
     assert result["llm_model"] == "fake-llm"
+
+
+def test_ask_with_index_metadata_but_empty_active_store_returns_diagnostic(
+    tmp_path,
+) -> None:
+    _write_text(tmp_path / "README.md", "persisted metadata but transient chunks")
+    workspace = _create_workspace(tmp_path)
+    scan_response = client.post(f"/workspaces/{workspace['id']}/scan")
+    assert scan_response.status_code == 200
+    index_response = client.post(f"/workspaces/{workspace['id']}/index")
+    assert index_response.status_code == 200
+    vector_store.clear_workspace(workspace["id"])
+
+    response = _ask(workspace["id"], "What is this project?")
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["answer"] == "No context chunks were found in the active vector store."
+    assert result["diagnostic_code"] == "index_metadata_exists_but_no_chunks_found"
+    assert "reindex after API restart" in result["diagnostic_message"]
+    assert "verify VECTOR_STORE, EMBEDDING_PROVIDER" in result["diagnostic_message"]
+    assert result["sources"] == []
+    assert result["used_context_chunks"] == 0
 
 
 def test_ask_after_indexing_returns_sources_and_fake_answer(tmp_path) -> None:
@@ -52,6 +81,8 @@ def test_ask_after_indexing_returns_sources_and_fake_answer(tmp_path) -> None:
     assert result["llm_model"] == "fake-llm"
     assert result["used_context_chunks"] >= 1
     assert result["sources"]
+    assert result["diagnostic_code"] is None
+    assert result["diagnostic_message"] is None
     assert result["sources"][0]["source_path"] == "README.md"
     assert "raganswertoken" in result["sources"][0]["preview"]
 
