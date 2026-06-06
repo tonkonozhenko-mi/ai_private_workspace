@@ -10,6 +10,7 @@ from app.api.dependencies import (
     index_status_repository,
     llm_provider,
     project_scan_repository,
+    readiness_configuration,
     timeline_repository,
     vector_store,
     workspace_repository,
@@ -55,6 +56,10 @@ from app.api.schemas.timeline_schemas import (
 from app.api.schemas.workspace_summary_schemas import (
     WorkspaceSummaryResponse,
     to_workspace_summary_response,
+)
+from app.api.schemas.workspace_readiness_schemas import (
+    WorkspaceReadinessResponse,
+    to_workspace_readiness_response,
 )
 from app.core.domain.workspace import Workspace
 from app.core.use_cases.analyze_github_actions import (
@@ -126,6 +131,11 @@ from app.core.use_cases.get_workspace_summary import (
     GetWorkspaceSummaryInput,
     GetWorkspaceSummaryUseCase,
     WorkspaceSummaryNotFoundError,
+)
+from app.core.use_cases.get_workspace_readiness import (
+    GetWorkspaceReadinessInput,
+    GetWorkspaceReadinessUseCase,
+    WorkspaceReadinessNotFoundError,
 )
 from app.core.use_cases.list_workspaces import ListWorkspacesUseCase
 from app.core.use_cases.list_workspace_timeline import (
@@ -375,6 +385,32 @@ def get_workspace_summary(workspace_id: str) -> WorkspaceSummaryResponse:
         ) from exc
 
     return to_workspace_summary_response(summary)
+
+
+@router.get(
+    "/{workspace_id}/readiness",
+    response_model=WorkspaceReadinessResponse,
+)
+def get_workspace_readiness(workspace_id: str) -> WorkspaceReadinessResponse:
+    use_case = GetWorkspaceReadinessUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+        index_status_repository=index_status_repository,
+        command_repository=command_repository,
+        configuration=readiness_configuration,
+    )
+
+    try:
+        readiness = use_case.execute(
+            GetWorkspaceReadinessInput(workspace_id=workspace_id)
+        )
+    except WorkspaceReadinessNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return to_workspace_readiness_response(readiness)
 
 
 @router.get(
