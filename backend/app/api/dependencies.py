@@ -88,6 +88,23 @@ def build_command_runner() -> CommandRunnerPort:
     raise ValueError(f"Unsupported command runner: {settings.command_runner}")
 
 
+def build_vector_store() -> VectorStorePort:
+    settings = get_settings()
+    vector_store_type = settings.vector_store.lower()
+
+    if vector_store_type == "memory":
+        return InMemoryVectorStore()
+    if vector_store_type == "qdrant":
+        from app.adapters.vector_store.qdrant_vector_store import QdrantVectorStore
+
+        return QdrantVectorStore(
+            url=settings.qdrant_url,
+            collection_name=settings.qdrant_collection,
+        )
+
+    raise ValueError(f"Unsupported vector store: {settings.vector_store}")
+
+
 workspace_repository = build_workspace_repository()
 project_scan_repository = build_project_scan_repository()
 command_repository = build_command_repository()
@@ -95,4 +112,4 @@ index_status_repository = build_index_status_repository()
 file_system = LocalFileSystem()
 command_runner = build_command_runner()
 embedding_provider: EmbeddingProviderPort = FakeEmbeddingProvider()
-vector_store: VectorStorePort = InMemoryVectorStore()
+vector_store = build_vector_store()

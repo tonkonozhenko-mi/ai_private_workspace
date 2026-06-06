@@ -13,6 +13,9 @@ class Settings(BaseModel):
     COMMAND_RUNNER: str = "fake"
     COMMAND_TIMEOUT_SECONDS: int = 30
     COMMAND_OUTPUT_LIMIT_CHARS: int = 20000
+    VECTOR_STORE: str = "memory"
+    QDRANT_URL: str = "http://localhost:6333"
+    QDRANT_COLLECTION: str = "ai_workbench_chunks"
 
     @property
     def app_data_dir(self) -> Path:
@@ -38,6 +41,18 @@ class Settings(BaseModel):
     def command_output_limit_chars(self) -> int:
         return self.COMMAND_OUTPUT_LIMIT_CHARS
 
+    @property
+    def vector_store(self) -> str:
+        return self.VECTOR_STORE
+
+    @property
+    def qdrant_url(self) -> str:
+        return self.QDRANT_URL
+
+    @property
+    def qdrant_collection(self) -> str:
+        return self.QDRANT_COLLECTION
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -53,6 +68,9 @@ def get_settings() -> Settings:
         COMMAND_RUNNER=os.getenv("COMMAND_RUNNER", "fake"),
         COMMAND_TIMEOUT_SECONDS=int(os.getenv("COMMAND_TIMEOUT_SECONDS", "30")),
         COMMAND_OUTPUT_LIMIT_CHARS=int(os.getenv("COMMAND_OUTPUT_LIMIT_CHARS", "20000")),
+        VECTOR_STORE=os.getenv("VECTOR_STORE", "memory"),
+        QDRANT_URL=os.getenv("QDRANT_URL", "http://localhost:6333"),
+        QDRANT_COLLECTION=os.getenv("QDRANT_COLLECTION", "ai_workbench_chunks"),
     )
     settings.app_data_dir.mkdir(parents=True, exist_ok=True)
     settings.workspace_db_path.parent.mkdir(parents=True, exist_ok=True)
