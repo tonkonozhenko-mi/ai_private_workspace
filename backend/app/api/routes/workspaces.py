@@ -8,6 +8,7 @@ from app.api.dependencies import (
     embedding_provider,
     file_system,
     index_status_repository,
+    llm_provider,
     project_scan_repository,
     vector_store,
     workspace_repository,
@@ -39,6 +40,11 @@ from app.api.schemas.report_schemas import (
     ProjectOverviewReportResponse,
     to_project_overview_report_response,
 )
+from app.api.schemas.rag_schemas import (
+    AskWorkspaceQuestionRequest,
+    WorkspaceQuestionAnswerResponse,
+    to_workspace_question_answer_response,
+)
 from app.api.schemas.workspace_summary_schemas import (
     WorkspaceSummaryResponse,
     to_workspace_summary_response,
@@ -67,6 +73,11 @@ from app.core.use_cases.analyze_terragrunt import (
     AnalyzeTerragruntUseCase,
     TerragruntAnalysisScanRequiredError,
     TerragruntAnalysisWorkspaceNotFoundError,
+)
+from app.core.use_cases.ask_workspace_question import (
+    AskWorkspaceQuestionInput,
+    AskWorkspaceQuestionNotFoundError,
+    AskWorkspaceQuestionUseCase,
 )
 from app.core.use_cases.create_workspace import (
     CreateWorkspaceInput,
@@ -290,6 +301,35 @@ def search_workspace_context(
         ) from exc
 
     return [to_context_search_result_response(result) for result in results]
+
+
+@router.post("/{workspace_id}/ask", response_model=WorkspaceQuestionAnswerResponse)
+def ask_workspace_question(
+    workspace_id: str,
+    request: AskWorkspaceQuestionRequest,
+) -> WorkspaceQuestionAnswerResponse:
+    use_case = AskWorkspaceQuestionUseCase(
+        workspace_repository=workspace_repository,
+        embedding_provider=embedding_provider,
+        vector_store=vector_store,
+        llm_provider=llm_provider,
+    )
+
+    try:
+        result = use_case.execute(
+            AskWorkspaceQuestionInput(
+                workspace_id=workspace_id,
+                question=request.question,
+                limit=request.limit,
+            )
+        )
+    except AskWorkspaceQuestionNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return to_workspace_question_answer_response(result)
 
 
 @router.get("/{workspace_id}/summary", response_model=WorkspaceSummaryResponse)
