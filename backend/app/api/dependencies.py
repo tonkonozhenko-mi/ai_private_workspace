@@ -160,6 +160,19 @@ def build_llm_provider() -> LLMProviderPort:
     raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
 
 
+def build_readiness_configuration() -> dict[str, str]:
+    settings = get_settings()
+    return {
+        "VECTOR_STORE": settings.vector_store,
+        "EMBEDDING_PROVIDER": settings.embedding_provider,
+        "LLM_PROVIDER": settings.llm_provider,
+        "COMMAND_RUNNER": settings.command_runner,
+        "QDRANT_COLLECTION": settings.qdrant_collection,
+        "OLLAMA_EMBEDDING_MODEL": settings.ollama_embedding_model,
+        "OLLAMA_LLM_MODEL": settings.ollama_llm_model,
+    }
+
+
 workspace_repository = build_workspace_repository()
 project_scan_repository = build_project_scan_repository()
 command_repository = build_command_repository()
@@ -170,3 +183,4 @@ command_runner = build_command_runner()
 embedding_provider = build_embedding_provider()
 llm_provider = build_llm_provider()
 vector_store = build_vector_store()
+readiness_configuration = build_readiness_configuration()
