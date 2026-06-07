@@ -74,6 +74,7 @@ Reset local app data by stopping the API and deleting `.ai-workbench/`.
 - `GET /workspaces`
 - `GET /workspaces/overview`
 - `GET /workspaces/{workspace_id}`
+- `PATCH /workspaces/{workspace_id}`
 - `POST /workspaces/{workspace_id}/archive`
 - `POST /workspaces/{workspace_id}/restore`
 - `POST /workspaces/{workspace_id}/scan`
@@ -175,6 +176,24 @@ curl "http://127.0.0.1:8000/workspaces/overview?include_archived=true"
 ```
 
 Archive is reversible and never hard-deletes the workspace, scans, index-status metadata, commands, timeline events, or vector-store data. `GET /workspaces` keeps listing all workspaces for compatibility.
+
+## Update Workspace Metadata
+
+Rename a workspace or change its assistant and privacy modes without recreating it:
+
+```bash
+curl -X PATCH http://127.0.0.1:8000/workspaces/{workspace_id} \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "New workspace name",
+    "assistant_mode": "documentation",
+    "privacy_mode": "local_only"
+  }'
+```
+
+All fields are optional. Names are trimmed and cannot be empty. Assistant mode must match a registered assistant profile, and supported privacy modes are `private` and `local_only`.
+
+Metadata updates preserve the workspace ID, project path, creation timestamp, and archive state. They do not scan or index the project, execute commands, or modify existing scan, index, command, and timeline records. Actual changes add a `workspace_metadata_updated` timeline event listing the changed fields; empty or same-value updates are no-ops.
 
 ## Workspace Summary
 
