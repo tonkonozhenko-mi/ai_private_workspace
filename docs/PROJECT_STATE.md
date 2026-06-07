@@ -138,12 +138,13 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Model Switching Plan**
+**Model Experiment Plan**
 
-The backend can now deterministically explain the operational impact of
-switching an LLM or embedding model. Plans use current catalog metadata,
-optionally inspect persisted workspace index status, and explain restart,
-reindex, and vector-collection requirements without applying changes.
+The backend can now deterministically plan a future same-question LLM
+comparison. Plans enrich candidates from current catalog metadata, inspect
+persisted workspace index status, and explain catalog, adapter, installation,
+restart, and measurement considerations without calling models or mutating
+state.
 
 ## Recommended Next Task
 

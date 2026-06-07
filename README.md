@@ -112,6 +112,30 @@ LLM switches preserve existing indexes; embedding switches require a new
 dimension-aware collection and reindex. The endpoint only returns advice: it
 does not change settings, download models, restart services, or reindex data.
 
+## Model Experiment Plan
+
+Plan a future comparison of multiple LLM candidates against the same workspace
+question and indexed context:
+
+```bash
+curl -X POST http://127.0.0.1:8000/models/experiments/plan \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workspace_id": "WORKSPACE_ID",
+    "question": "How is Terraform backend configured?",
+    "experiment_type": "llm_comparison",
+    "candidates": [
+      {"provider": "ollama", "model": "llama3.2"},
+      {"provider": "ollama", "model": "qwen2.5-coder"}
+    ]
+  }'
+```
+
+The deterministic plan reports catalog knowledge, installation or adapter
+warnings, index readiness, and the current backend-restart limitation. It does
+not call LLMs, download models, reindex, change settings, or persist an
+experiment run.
+
 ## Requirements
 
 - Python 3.11+
