@@ -23,6 +23,7 @@ class Settings(BaseModel):
     LLM_PROVIDER: str = "fake"
     OLLAMA_LLM_MODEL: str = "llama3.2"
     OLLAMA_LLM_TIMEOUT_SECONDS: int = 120
+    RUNTIME_HEALTH_TIMEOUT_SECONDS: int = 3
 
     @property
     def app_data_dir(self) -> Path:
@@ -88,6 +89,10 @@ class Settings(BaseModel):
     def ollama_llm_timeout_seconds(self) -> int:
         return self.OLLAMA_LLM_TIMEOUT_SECONDS
 
+    @property
+    def runtime_health_timeout_seconds(self) -> int:
+        return self.RUNTIME_HEALTH_TIMEOUT_SECONDS
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -117,6 +122,9 @@ def get_settings() -> Settings:
         OLLAMA_LLM_MODEL=os.getenv("OLLAMA_LLM_MODEL", "llama3.2"),
         OLLAMA_LLM_TIMEOUT_SECONDS=int(
             os.getenv("OLLAMA_LLM_TIMEOUT_SECONDS", "120")
+        ),
+        RUNTIME_HEALTH_TIMEOUT_SECONDS=int(
+            os.getenv("RUNTIME_HEALTH_TIMEOUT_SECONDS", "3")
         ),
     )
     settings.app_data_dir.mkdir(parents=True, exist_ok=True)

@@ -17,6 +17,15 @@ from app.adapters.memory.sqlite_index_status_repository import SQLiteIndexStatus
 from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScanRepository
 from app.adapters.memory.sqlite_timeline_repository import SQLiteTimelineRepository
 from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
+from app.adapters.runtime_health.command_runner_health_checker import (
+    CommandRunnerHealthChecker,
+)
+from app.adapters.runtime_health.ollama_runtime_health_checker import (
+    OllamaRuntimeHealthChecker,
+)
+from app.adapters.runtime_health.qdrant_runtime_health_checker import (
+    QdrantRuntimeHealthChecker,
+)
 from app.adapters.vector_store.in_memory_vector_store import InMemoryVectorStore
 from app.config.settings import get_settings
 from app.core.ports.command_repository import CommandRepositoryPort
@@ -25,6 +34,7 @@ from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.llm_provider import LLMProviderPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
+from app.core.ports.runtime_health_checker import RuntimeHealthCheckerPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -173,6 +183,41 @@ def build_readiness_configuration() -> dict[str, str]:
     }
 
 
+def build_runtime_health_configuration() -> dict[str, str]:
+    settings = get_settings()
+    return {
+        "VECTOR_STORE": settings.vector_store,
+        "EMBEDDING_PROVIDER": settings.embedding_provider,
+        "LLM_PROVIDER": settings.llm_provider,
+        "COMMAND_RUNNER": settings.command_runner,
+        "QDRANT_URL": settings.qdrant_url,
+        "OLLAMA_BASE_URL": settings.ollama_base_url,
+        "OLLAMA_EMBEDDING_MODEL": settings.ollama_embedding_model,
+        "OLLAMA_LLM_MODEL": settings.ollama_llm_model,
+    }
+
+
+def build_runtime_health_checkers() -> list[RuntimeHealthCheckerPort]:
+    settings = get_settings()
+    timeout_seconds = settings.runtime_health_timeout_seconds
+    return [
+        QdrantRuntimeHealthChecker(
+            vector_store=settings.vector_store,
+            qdrant_url=settings.qdrant_url,
+            timeout_seconds=timeout_seconds,
+        ),
+        OllamaRuntimeHealthChecker(
+            embedding_provider=settings.embedding_provider,
+            llm_provider=settings.llm_provider,
+            base_url=settings.ollama_base_url,
+            embedding_model=settings.ollama_embedding_model,
+            llm_model=settings.ollama_llm_model,
+            timeout_seconds=timeout_seconds,
+        ),
+        CommandRunnerHealthChecker(command_runner=settings.command_runner),
+    ]
+
+
 workspace_repository = build_workspace_repository()
 project_scan_repository = build_project_scan_repository()
 command_repository = build_command_repository()
@@ -184,3 +229,5 @@ embedding_provider = build_embedding_provider()
 llm_provider = build_llm_provider()
 vector_store = build_vector_store()
 readiness_configuration = build_readiness_configuration()
+runtime_health_configuration = build_runtime_health_configuration()
+runtime_health_checkers = build_runtime_health_checkers()
