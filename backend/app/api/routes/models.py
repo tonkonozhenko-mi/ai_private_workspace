@@ -4,9 +4,11 @@ from app.api.dependencies import model_catalog_registry
 from app.api.schemas.model_catalog_schemas import (
     ModelCatalogDetailsResponse,
     LocalModelDefinitionResponse,
+    ModelCatalogReloadResponse,
     ModelRecommendationResultResponse,
     RecommendModelsRequest,
     to_model_catalog_details_response,
+    to_model_catalog_reload_response,
     to_local_model_definition_response,
     to_model_recommendation_result_response,
 )
@@ -19,6 +21,7 @@ from app.core.use_cases.recommend_models import (
     RecommendModelsInput,
     RecommendModelsUseCase,
 )
+from app.core.use_cases.reload_model_catalog import ReloadModelCatalogUseCase
 
 
 router = APIRouter(prefix="/models", tags=["models"])
@@ -54,6 +57,12 @@ def get_model_catalog_details(
         )
     )
     return to_model_catalog_details_response(result)
+
+
+@router.post("/catalog/reload", response_model=ModelCatalogReloadResponse)
+def reload_model_catalog() -> ModelCatalogReloadResponse:
+    result = ReloadModelCatalogUseCase(model_catalog_registry).execute()
+    return to_model_catalog_reload_response(result)
 
 
 @router.post("/recommend", response_model=ModelRecommendationResultResponse)

@@ -15,6 +15,7 @@ IMPORTANT_PATHS = {
     "/assistant-profiles",
     "/models/catalog",
     "/models/catalog/details",
+    "/models/catalog/reload",
     "/models/recommend",
     "/onboarding/plan",
     "/onboarding/bootstrap-workspace",

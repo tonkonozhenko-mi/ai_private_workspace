@@ -222,11 +222,11 @@ def build_runtime_health_checkers() -> list[RuntimeHealthCheckerPort]:
 
 def build_model_catalog_registry() -> ModelCatalogRegistry:
     settings = get_settings()
-    user_catalog = UserModelCatalogLoader(settings.user_model_catalog_path).load()
-    return ModelCatalogRegistry(
-        user_models=user_catalog.models,
-        warnings=user_catalog.warnings,
+    registry = ModelCatalogRegistry(
+        loader=UserModelCatalogLoader(settings.user_model_catalog_path),
     )
+    registry.reload()
+    return registry
 
 
 workspace_repository = build_workspace_repository()

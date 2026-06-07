@@ -1,8 +1,10 @@
 from app.core.domain.model_catalog import (
     LocalModelDefinition,
+    ModelCatalogReloadResult,
     ModelCatalogResult,
     ModelCatalogWarning,
 )
+from app.core.ports.model_catalog_loader import ModelCatalogLoaderPort
 
 
 class ModelCatalogRegistry:
@@ -11,14 +13,50 @@ class ModelCatalogRegistry:
         models: list[LocalModelDefinition] | None = None,
         user_models: list[LocalModelDefinition] | None = None,
         warnings: list[ModelCatalogWarning] | None = None,
+        loader: ModelCatalogLoaderPort | None = None,
     ) -> None:
-        self.models = list(DEFAULT_LOCAL_MODELS if models is None else models)
-        self.warnings = list(warnings or [])
-        known_ids = {model.id for model in self.models}
+        self.builtin_models = list(DEFAULT_LOCAL_MODELS if models is None else models)
+        self.user_models: list[LocalModelDefinition] = []
+        self.warnings: list[ModelCatalogWarning] = []
+        self.loader = loader
+        self._replace_user_catalog(
+            ModelCatalogResult(
+                models=list(user_models or []),
+                warnings=list(warnings or []),
+            )
+        )
 
-        for model in user_models or []:
+    def list_models(self) -> list[LocalModelDefinition]:
+        return [*self.builtin_models, *self.user_models]
+
+    def get_result(self) -> ModelCatalogResult:
+        return ModelCatalogResult(
+            models=self.list_models(),
+            warnings=list(self.warnings),
+        )
+
+    def reload(self) -> ModelCatalogReloadResult:
+        loaded = (
+            self.loader.load()
+            if self.loader is not None
+            else ModelCatalogResult(models=[], warnings=[])
+        )
+        self._replace_user_catalog(loaded)
+        return ModelCatalogReloadResult(
+            models_count=len(self.list_models()),
+            user_models_count=len(self.user_models),
+            warnings_count=len(self.warnings),
+            warnings=list(self.warnings),
+        )
+
+    def _replace_user_catalog(self, catalog: ModelCatalogResult) -> None:
+        user_models: list[LocalModelDefinition] = []
+        warnings = list(catalog.warnings)
+        known_ids = {model.id for model in self.builtin_models}
+
+        for model in catalog.models:
             if model.id in known_ids:
-                self.warnings.append(
+                warnings.append(
                     ModelCatalogWarning(
                         code="duplicate_model_id",
                         message=(
@@ -29,17 +67,11 @@ class ModelCatalogRegistry:
                     )
                 )
                 continue
-            self.models.append(model)
+            user_models.append(model)
             known_ids.add(model.id)
 
-    def list_models(self) -> list[LocalModelDefinition]:
-        return list(self.models)
-
-    def get_result(self) -> ModelCatalogResult:
-        return ModelCatalogResult(
-            models=self.list_models(),
-            warnings=list(self.warnings),
-        )
+        self.user_models = user_models
+        self.warnings = warnings
 
 
 ALL_ASSISTANT_PROFILES = [
