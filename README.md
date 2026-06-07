@@ -1,34 +1,64 @@
 # Private Project AI Workbench
 
-Initial FastAPI foundation for a local AI workbench application.
+Private Project AI Workbench is a local-first FastAPI backend MVP for inspecting
+and working with private project folders. It uses Ports and Adapters so
+filesystem scanning, SQLite persistence, vector storage, embeddings, LLMs, and
+command execution remain replaceable.
 
-This skeleton keeps the application core independent from FastAPI and concrete adapters. Real vector database, local LLM, embedding, memory, and command execution integrations are intentionally not implemented yet.
+There is no frontend yet. The backend currently provides deterministic project
+scanning and DevOps analysis, workspace read models, onboarding guidance,
+indexing and RAG foundations, persistent activity history, and a guarded command
+approval workflow.
+
+## Documentation
+
+- [API inventory](docs/API_INVENTORY.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Configuration](docs/CONFIGURATION.md)
+- Interactive API documentation after startup: `http://127.0.0.1:8000/docs`
+
+## Runtime Modes
+
+The default mode is dependency-light and safe for development:
+
+- SQLite workspace persistence
+- in-memory vector store
+- fake deterministic embeddings
+- fake deterministic LLM answers
+- fake command execution
+
+Optional real local mode supports Qdrant for persistent vectors and Ollama for
+embeddings and LLM generation. The local command runner is separately opt-in and
+still requires explicit proposal approval plus a policy-allowed command.
+
+No cloud APIs, LangChain, or LlamaIndex are used.
 
 ## Requirements
 
 - Python 3.11+
-- Docker, optional
+- Docker or Podman only when using optional local runtimes
 
 ## Local Setup
 
+From the repository root:
+
 ```bash
-cd backend
-python3.11 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cd ..
+python3.11 -m venv backend/.venv
+source backend/.venv/bin/activate
+pip install -r backend/requirements.txt
 ```
 
-Use any Python 3.11+ executable if your local command is not `python3.11`.
+Use any Python 3.11+ executable if `python3.11` is not available.
 
 ## Run Tests
-
-From the repository root:
 
 ```bash
 source backend/.venv/bin/activate
 pytest backend/tests
 ```
+
+Live Qdrant and Ollama integration tests are opt-in; the normal suite does not
+require either runtime.
 
 ## Start The API
 
@@ -39,403 +69,9 @@ source .venv/bin/activate
 uvicorn app.main:app --reload
 ```
 
-The API will be available at `http://127.0.0.1:8000`.
+The API is available at `http://127.0.0.1:8000`.
 
-## Docker
-
-From the repository root:
-
-```bash
-docker compose up --build
-```
-
-## Workspace Storage
-
-Workspace metadata is persisted in SQLite by default. The local database is stored at `.ai-workbench/workspaces.db` relative to the directory where the API process starts.
-
-Override the database path with an environment variable:
-
-```bash
-WORKSPACE_DB_PATH=/absolute/path/to/workspaces.db uvicorn app.main:app --reload
-```
-
-You can also switch the repository adapter:
-
-```bash
-WORKSPACE_REPOSITORY=memory uvicorn app.main:app --reload
-```
-
-Reset local app data by stopping the API and deleting `.ai-workbench/`.
-
-## Endpoints
-
-- `GET /health`
-- `POST /workspaces`
-- `GET /workspaces`
-- `GET /workspaces/overview`
-- `GET /workspaces/{workspace_id}`
-- `PATCH /workspaces/{workspace_id}`
-- `POST /workspaces/{workspace_id}/archive`
-- `POST /workspaces/{workspace_id}/restore`
-- `POST /workspaces/{workspace_id}/scan`
-- `GET /workspaces/{workspace_id}/scan`
-- `GET /workspaces/{workspace_id}/summary`
-- `GET /workspaces/{workspace_id}/quick-start`
-- `GET /workspaces/{workspace_id}/dashboard`
-- `GET /workspaces/{workspace_id}/analysis/terraform`
-- `GET /workspaces/{workspace_id}/analysis/gitlab-ci`
-- `GET /workspaces/{workspace_id}/analysis/github-actions`
-- `GET /workspaces/{workspace_id}/analysis/terragrunt`
-- `GET /workspaces/{workspace_id}/analysis/summary`
-- `POST /workspaces/{workspace_id}/commands`
-- `GET /workspaces/{workspace_id}/commands`
-- `GET /workspaces/{workspace_id}/commands/suggestions`
-- `POST /commands/{command_id}/approve`
-- `POST /commands/{command_id}/reject`
-- `POST /commands/{command_id}/execute`
-- `POST /projects/scan`
-- `GET /runtime/health`
-- `POST /runtime/setup-guide`
-- `POST /onboarding/plan`
-- `POST /onboarding/setup-commands`
-- `POST /onboarding/bootstrap-workspace`
-
-Example workspace payload:
-
-```json
-{
-  "name": "Example Workspace",
-  "project_path": "/path/to/local/project",
-  "assistant_mode": "local",
-  "privacy_mode": "private"
-}
-```
-
-## Project Scanning
-
-Scan a local project directory to detect deterministic signals such as Terraform, Python, Docker, Kubernetes, Helm, GitLab CI, GitHub Actions, Markdown documentation, YAML configuration, and shell scripts.
-
-```bash
-curl -X POST http://127.0.0.1:8000/projects/scan \
-  -H "Content-Type: application/json" \
-  -d '{"project_path": "/absolute/path/to/project"}'
-```
-
-The scanner walks the local filesystem, skips common generated/dependency directories, skips files larger than 2 MB, and uses filenames, extensions, and small content checks for detection. No AI, embeddings, vector database, Ollama, LangChain, or LlamaIndex is used yet.
-
-The scanner detects file signals first, then the core Skill Registry maps those signals to skill matches and categories such as `devops`, `developer`, `documentation`, and `general`. New skills can be added by extending registry definitions without changing the API route or scan use case.
-
-## Workspace Project Scans
-
-After creating a workspace, scan the project path saved on that workspace:
-
-```bash
-curl -X POST http://127.0.0.1:8000/workspaces/{workspace_id}/scan
-```
-
-Read the latest saved scan:
-
-```bash
-curl http://127.0.0.1:8000/workspaces/{workspace_id}/scan
-```
-
-The latest workspace scan is persisted as JSON in SQLite in the `workspace_project_scans` table. This keeps restart behavior simple for now while leaving room to normalize files and skills later.
-
-## Workspaces Overview
-
-Use the lightweight overview endpoint to power the future app home screen:
-
-```bash
-curl http://127.0.0.1:8000/workspaces/overview
-```
-
-The overview lists all workspaces with readiness and Quick Start status, the next recommended action, scan and index state, pending command count, detected skill count, and the latest timeline event. Items are sorted by latest activity, falling back to workspace creation time.
-
-The endpoint reads persisted repositories and configured provider names only. It does not load full dashboards, call Qdrant or Ollama, scan or index projects, execute commands, create command proposals, or mutate workspace data.
-
-## Workspace Archive And Restore
-
-Archive a workspace to hide it from the default app-home overview without deleting its data:
-
-```bash
-curl -X POST http://127.0.0.1:8000/workspaces/{workspace_id}/archive
-```
-
-Restore an archived workspace:
-
-```bash
-curl -X POST http://127.0.0.1:8000/workspaces/{workspace_id}/restore
-```
-
-Archiving sets the workspace `archived_at` timestamp and records a `workspace_archived` timeline event. Restoring clears `archived_at` and records `workspace_restored`. Both operations are idempotent.
-
-The default `GET /workspaces/overview` response excludes archived workspaces. Include them with:
-
-```bash
-curl "http://127.0.0.1:8000/workspaces/overview?include_archived=true"
-```
-
-Archive is reversible and never hard-deletes the workspace, scans, index-status metadata, commands, timeline events, or vector-store data. `GET /workspaces` keeps listing all workspaces for compatibility.
-
-## Update Workspace Metadata
-
-Rename a workspace or change its assistant and privacy modes without recreating it:
-
-```bash
-curl -X PATCH http://127.0.0.1:8000/workspaces/{workspace_id} \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "New workspace name",
-    "assistant_mode": "documentation",
-    "privacy_mode": "local_only"
-  }'
-```
-
-All fields are optional. Names are trimmed and cannot be empty. Assistant mode must match a registered assistant profile, and supported privacy modes are `private` and `local_only`.
-
-Metadata updates preserve the workspace ID, project path, creation timestamp, and archive state. They do not scan or index the project, execute commands, or modify existing scan, index, command, and timeline records. Actual changes add a `workspace_metadata_updated` timeline event listing the changed fields; empty or same-value updates are no-ops.
-
-## Workspace Summary
-
-Use the workspace summary endpoint to power a future welcome-back or continue-workspace dashboard:
-
-```bash
-curl http://127.0.0.1:8000/workspaces/{workspace_id}/summary
-```
-
-The summary returns lightweight workspace metadata, whether a latest scan exists, detected skills, deterministic suggested actions, and command activity counts. Command activity includes pending, approved, rejected, executed, and failed command totals plus the most recently proposed command. It only reads persisted command proposals and does not execute commands.
-
-## Project Overview Report
-
-After scanning a workspace project, generate a deterministic project overview report:
-
-```bash
-curl http://127.0.0.1:8000/workspaces/{workspace_id}/reports/project-overview
-```
-
-The report summarizes workspace metadata, detected technologies, infrastructure signals, CI/CD signals, application code, documentation, deterministic findings, recommended next steps, and read-only command suggestions. It uses the latest saved scan, the analysis summary, command suggestion templates, and deterministic rules. It does not use AI, embeddings, vector search, or command execution. Later, this report can become clean context for AI/RAG features.
-
-## Workspace Indexing
-
-After scanning a workspace project, build the first local context index:
-
-```bash
-curl -X POST http://127.0.0.1:8000/workspaces/{workspace_id}/index
-```
-
-Search indexed chunks:
-
-```bash
-curl "http://127.0.0.1:8000/workspaces/{workspace_id}/context/search?query=terraform&limit=5"
-```
-
-Indexing reads text-like files from the latest saved project scan, chunks file contents with deterministic character-based chunking, generates embeddings through the replaceable `EmbeddingProviderPort`, and stores chunks through the replaceable `VectorStorePort`. Fake embeddings and the in-memory vector store remain the defaults. Reindexing clears the previous index for that workspace before storing new chunks. Optional local Ollama embeddings and Qdrant storage are available, but no cloud APIs, LangChain, LlamaIndex, LLM chat generation, or command execution are involved.
-
-Check persistent index status metadata:
-
-```bash
-curl http://127.0.0.1:8000/workspaces/{workspace_id}/index/status
-```
-
-The vector chunks themselves are still in-memory for now, but lightweight index status metadata is persisted in SQLite in `workspace_index_status`. The status records whether the workspace is `not_indexed`, `indexed`, or `failed`, plus indexed file count, chunk count, skipped file count, last indexed timestamp, and the last error if indexing failed. Workspace summary responses include this same `index_status` object for the future welcome-back dashboard.
-
-## Ask Workspace Question
-
-After indexing a workspace, ask a question using retrieved workspace context:
-
-```bash
-curl -X POST http://127.0.0.1:8000/workspaces/{workspace_id}/ask \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "How is Terraform backend configured?",
-    "limit": 5
-  }'
-```
-
-The ask flow embeds the question, searches indexed context through `VectorStorePort`, builds a source-grounded context-only prompt, and calls `LLMProviderPort`. The prompt requires technical claims to mention source paths, asks the model to compare relevant configurations across files, and prevents it from claiming something is absent when any retrieved chunk contains it. `FakeLLMProvider` is the default and returns a deterministic fake answer; no cloud API is used.
-
-An LLM can still produce an incorrect answer despite these grounding instructions. The response includes deterministic `quality_warnings` for suspicious patterns such as an empty answer despite available sources, claims that no context exists, missing source-path citations, or possible absence claims that conflict with retrieved content. These warnings are guardrails, not proof that an answer is wrong. The response source list should be shown by the UI and used by the user to verify technical claims against the retrieved project files.
-
-Context retrieval follows the configured adapters, so development can use fake embeddings with the in-memory vector store, while optional Ollama embeddings and Qdrant storage can be enabled independently.
-
-When no context is found, the response includes `diagnostic_code` and `diagnostic_message` fields:
-
-- `workspace_not_indexed`: no persisted index metadata exists; run workspace indexing first.
-- `index_metadata_exists_but_no_chunks_found`: indexing metadata exists, but the active vector store returned no chunks.
-- `no_relevant_context_found`: the active index returned no context for the question.
-
-The in-memory vector store loses all chunks when the API process restarts, while SQLite index-status metadata survives. This can produce `index_metadata_exists_but_no_chunks_found`; reindex the workspace after restart. Qdrant persists vector chunks and is recommended when RAG context must survive API restarts. When using Qdrant, verify the configured vector store, embedding provider, embedding model, and generated collection if this diagnostic appears.
-
-## Workspace Timeline
-
-The persistent workspace timeline powers the future "Welcome back" and "Continue where you left off" experience. It records chronological events for workspace creation, project scans, indexing, project overview generation, command approval activity, command execution results, and workspace questions.
-
-Get the newest workspace events:
-
-```bash
-curl "http://127.0.0.1:8000/workspaces/{workspace_id}/timeline?limit=50"
-```
-
-Timeline events are stored in SQLite as lightweight records with string metadata and are returned newest first. Workspace summary responses also include the five newest events in `recent_events`.
-
-### Timeline Backfill
-
-Existing workspaces created before timeline support can initialize their activity history from already-persisted workspace, latest scan, index-status, and command records:
-
-```bash
-curl -X POST http://127.0.0.1:8000/workspaces/{workspace_id}/timeline/backfill
-```
-
-Backfilled events use original workspace, command, and indexing timestamps when available and include `"backfilled": "true"` metadata. Running the backfill repeatedly is safe: workspace/scan/index events are deduplicated by event type, while command events are deduplicated by event type plus `command_id`. Backfill does not execute commands or modify scan, index, or vector data.
-
-## Workspace Readiness
-
-The workspace readiness endpoint provides a lightweight dashboard decision model for what a workspace can do now and what the user should do next:
-
-```bash
-curl http://127.0.0.1:8000/workspaces/{workspace_id}/readiness
-```
-
-Readiness is derived only from persisted workspace, scan, index-status, and command records plus configured adapter settings. It reports `needs_setup` before scanning or indexing, `ready` after a successful index, and `degraded` after an indexing failure. It also lists capabilities, pending command-review recommendations, and the configured vector store, embedding provider, LLM provider, and command runner.
-
-The readiness endpoint does not call Ollama or Qdrant health endpoints and does not execute commands. Provider configuration indicates selected adapters, not confirmed external-service availability.
-
-## Workspace Quick Start
-
-Use Quick Start to power a future "Continue setup" or "Continue workspace" screen:
-
-```bash
-curl http://127.0.0.1:8000/workspaces/{workspace_id}/quick-start
-```
-
-Quick Start reads the persisted latest scan and index-status metadata plus the configured provider names. It returns the workspace setup stage (`new`, `scanned`, `indexed`, or `ready`), the next recommended action, and deterministic setup steps with action IDs and endpoints.
-
-A new workspace recommends project scanning. A scanned workspace recommends indexing. An indexed workspace recommends asking the first workspace question. Indexed workspaces using the fake LLM or in-memory vector store remain usable but are labeled `indexed`; `ready` is reserved for indexed workspaces configured with a non-fake LLM and persistent vector store.
-
-Quick Start does not scan, index, execute commands, create command proposals, or call Qdrant or Ollama. When the in-memory vector store or fake LLM is configured, the response includes notes explaining their limitations.
-
-## Workspace Dashboard
-
-Use the dashboard endpoint as the main read model for a future workspace screen:
-
-```bash
-curl http://127.0.0.1:8000/workspaces/{workspace_id}/dashboard
-```
-
-The dashboard aggregates the existing workspace summary, readiness, Quick Start progress, assistant recommendation, five most recent timeline events, and runtime health. Its top-level status comes from workspace readiness, while the primary next action comes from Quick Start.
-
-The endpoint reuses existing deterministic read use cases. It does not scan or index the workspace, execute commands, create command proposals, or mutate workspace data. Runtime health may perform the same lightweight configured-provider checks used by `GET /runtime/health`.
-
-## Runtime Health
-
-The runtime health endpoint checks whether configured local runtime dependencies are currently reachable:
-
-```bash
-curl http://127.0.0.1:8000/runtime/health
-```
-
-Qdrant is checked with a lightweight collections request only when `VECTOR_STORE=qdrant`. Ollama is checked with `/api/tags` only when the embedding or LLM provider is set to `ollama`, and configured Ollama models are verified against the returned model list. The command-runner check only reports the configured mode and never executes a command.
-
-Optional Qdrant or Ollama services report `not_configured` under the default memory/fake configuration. If a selected dependency is unreachable or returns an error, runtime health reports `degraded` without preventing the application from starting. Health checks use the short `RUNTIME_HEALTH_TIMEOUT_SECONDS` timeout, which defaults to `3`.
-
-## Assistant Profiles
-
-Assistant Profiles power the future onboarding wizard by describing role-oriented capabilities, actions, and recommended local runtime configuration:
-
-```bash
-curl http://127.0.0.1:8000/assistant-profiles
-```
-
-Available profiles are DevOps Assistant, Developer Assistant, Documentation Assistant, Support Incident Assistant, and Manager Summary Assistant.
-
-Get deterministic recommendations for a workspace's selected `assistant_mode`:
-
-```bash
-curl http://127.0.0.1:8000/workspaces/{workspace_id}/assistant-recommendation
-```
-
-Recommendations combine the selected profile with the latest detected skills and index status. Missing scans recommend `scan_project`; detected Terraform, Terragrunt, Python, or CI/CD skills enable their relevant profile actions; and missing indexing or default fake/in-memory providers are reported as missing capabilities. Legacy or unknown assistant modes use the Developer Assistant profile while preserving the workspace's stored mode. No AI calls or commands are executed.
-
-## Onboarding Plan
-
-The onboarding plan endpoint powers the future setup wizard by combining an assistant profile, laptop performance profile, and privacy preference into deterministic runtime recommendations and ordered setup steps:
-
-```bash
-curl -X POST http://127.0.0.1:8000/onboarding/plan \
-  -H "Content-Type: application/json" \
-  -d '{
-    "assistant_profile_id": "devops",
-    "laptop_profile_id": "balanced",
-    "privacy_mode": "local_only"
-  }'
-```
-
-`low_power` recommends memory and fake providers so real local AI can be enabled later. `balanced` recommends Qdrant, Ollama, `nomic-embed-text`, and `llama3.2`. `powerful` recommends the same local stack with `qwen2.5-coder` as the stronger coding-model placeholder. Local-only plans prefer local providers except when the low-power constraint intentionally selects lightweight defaults.
-
-The endpoint only returns a plan. It does not create a workspace, start Qdrant or Ollama, pull models, execute commands, or make AI calls.
-
-### Onboarding Setup Commands
-
-The onboarding wizard can request concrete setup instructions for either Podman or Docker:
-
-```bash
-curl -X POST http://127.0.0.1:8000/onboarding/setup-commands \
-  -H "Content-Type: application/json" \
-  -d '{
-    "assistant_profile_id": "devops",
-    "laptop_profile_id": "balanced",
-    "privacy_mode": "local_only",
-    "container_runtime": "podman"
-  }'
-```
-
-Use `"container_runtime": "docker"` to receive the Docker Compose Qdrant instruction instead. Plans that recommend Qdrant include its container setup command, plans that recommend Ollama include model-pull instructions, and every plan includes an example backend start command with the recommended provider settings.
-
-These commands are instructions only. They are classified with the deterministic command-risk classifier, always return `can_be_proposed: false`, are never executed, and are never automatically created as workspace command proposals.
-
-### Runtime Setup Guide
-
-The runtime setup guide combines the desired onboarding runtime with lightweight current runtime health, then marks each setup instruction as `done` or `needed`:
-
-```bash
-curl -X POST http://127.0.0.1:8000/runtime/setup-guide \
-  -H "Content-Type: application/json" \
-  -d '{
-    "assistant_profile_id": "devops",
-    "laptop_profile_id": "balanced",
-    "privacy_mode": "local_only",
-    "container_runtime": "podman"
-  }'
-```
-
-Use `"container_runtime": "docker"` for Docker-oriented Qdrant instructions. The guide marks Qdrant setup done when the selected Qdrant runtime is reachable, marks Ollama model pulls done only when the required models are reported as installed, and recommends a backend restart when the current provider settings differ from the onboarding plan.
-
-The overall status is `ready` when all required actions are done, `degraded` when a configured runtime dependency is unhealthy, and `needs_setup` otherwise. The endpoint performs only lightweight runtime health checks; it does not execute commands, create proposals, index workspaces, ask questions, or mutate workspace data.
-
-### Onboarding Bootstrap Workspace
-
-After the user selects their project and onboarding preferences, create the workspace and return its initial wizard state with one call:
-
-```bash
-curl -X POST http://127.0.0.1:8000/onboarding/bootstrap-workspace \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "My Project",
-    "project_path": "/absolute/path/to/project",
-    "assistant_profile_id": "devops",
-    "laptop_profile_id": "balanced",
-    "privacy_mode": "local_only",
-    "container_runtime": "podman"
-  }'
-```
-
-The response includes the persisted workspace, onboarding plan, setup-command instructions, runtime setup guide, initial workspace readiness, and ordered next steps. The selected assistant profile is stored as the workspace `assistant_mode`, and workspace creation is recorded in the persistent timeline.
-
-Bootstrap validates non-empty workspace fields and known assistant, laptop, and container-runtime selections. It does not validate that the project path exists yet. It also does not scan or index the project, create command proposals, execute commands, or perform additional provider checks beyond the runtime setup guide.
-
-## Qdrant Vector Store
-
-Qdrant is an optional `VectorStorePort` adapter. The default remains the in-memory vector store, so the API and normal test suite do not require Qdrant.
+## Optional Qdrant
 
 Start the optional Qdrant service:
 
@@ -443,258 +79,52 @@ Start the optional Qdrant service:
 docker compose --profile qdrant up -d qdrant
 ```
 
-Enable Qdrant when starting the API:
+Run the backend with persistent local RAG providers:
 
 ```bash
+cd backend
 VECTOR_STORE=qdrant \
+EMBEDDING_PROVIDER=ollama \
+LLM_PROVIDER=ollama \
 QDRANT_URL=http://localhost:6333 \
-QDRANT_COLLECTION=ai_workbench_chunks \
+OLLAMA_BASE_URL=http://localhost:11434 \
 uvicorn app.main:app --reload
 ```
 
-The adapter stores all workspaces using the same embedding configuration in one collection and filters searches and deletions by `workspace_id`. Qdrant persists vector chunks, but it remains optional and no LLM chat generation is included.
-
-Qdrant collection names are derived automatically from the configured base name, embedding provider, embedding model, and actual vector dimension. For example:
-
-```text
-ai_workbench_chunks_fake_fake_embedding_128
-ai_workbench_chunks_ollama_nomic_embed_text_768
-```
-
-This prevents a collection created with fake 128-dimension embeddings from being reused with Ollama 768-dimension embeddings. Switching embedding providers or models creates and uses a different compatible collection. Existing collections are never deleted automatically.
-
-Run the optional live Qdrant contract test:
-
-```bash
-RUN_QDRANT_TESTS=true QDRANT_URL=http://localhost:6333 pytest backend/tests/test_qdrant_vector_store_contract.py
-```
-
-## Ollama Embeddings
-
-Ollama is an optional local `EmbeddingProviderPort` adapter. Fake deterministic embeddings remain the default, so the API and normal test suite do not require Ollama.
-
-Install and run Ollama separately, then pull the default embedding model:
+Pull the default Ollama models separately before using that mode:
 
 ```bash
 ollama pull nomic-embed-text
-```
-
-Enable Ollama embeddings when starting the API:
-
-```bash
-EMBEDDING_PROVIDER=ollama \
-OLLAMA_BASE_URL=http://localhost:11434 \
-OLLAMA_EMBEDDING_MODEL=nomic-embed-text \
-OLLAMA_TIMEOUT_SECONDS=30 \
-uvicorn app.main:app --reload
-```
-
-Ollama embeddings can be combined with the optional Qdrant vector store:
-
-```bash
-VECTOR_STORE=qdrant \
-EMBEDDING_PROVIDER=ollama \
-QDRANT_URL=http://localhost:6333 \
-OLLAMA_BASE_URL=http://localhost:11434 \
-uvicorn app.main:app --reload
-```
-
-The Ollama embedding adapter calls only the local `/api/embeddings` endpoint. No cloud APIs, LangChain, or LlamaIndex integration is included.
-
-Run the optional live Ollama integration test:
-
-```bash
-RUN_OLLAMA_TESTS=true \
-OLLAMA_BASE_URL=http://localhost:11434 \
-OLLAMA_EMBEDDING_MODEL=nomic-embed-text \
-pytest backend/tests/test_ollama_embedding_provider.py
-```
-
-## Ollama LLM Provider
-
-Ollama is also available as an optional local `LLMProviderPort` adapter for workspace question answers. `FakeLLMProvider` remains the default, so normal development and tests do not require an Ollama generation model.
-
-Pull the default local generation model:
-
-```bash
 ollama pull llama3.2
 ```
 
-Enable Ollama generation for `/workspaces/{workspace_id}/ask`:
+## Local Data
 
-```bash
-LLM_PROVIDER=ollama \
-OLLAMA_BASE_URL=http://localhost:11434 \
-OLLAMA_LLM_MODEL=llama3.2 \
-OLLAMA_LLM_TIMEOUT_SECONDS=120 \
-uvicorn app.main:app --reload
-```
+SQLite workspace state is stored at `.ai-workbench/workspaces.db` relative to
+the API process working directory by default. When started from `backend`, that
+is `backend/.ai-workbench/workspaces.db`.
 
-Run the complete optional local RAG stack:
+Override the location with `APP_DATA_DIR` or `WORKSPACE_DB_PATH`. To reset local
+application state, stop the API and remove the relevant `.ai-workbench`
+directory. Vector chunks stored in the default in-memory vector store disappear
+on restart; Qdrant is recommended when RAG context must persist.
 
-```bash
-VECTOR_STORE=qdrant \
-EMBEDDING_PROVIDER=ollama \
-LLM_PROVIDER=ollama \
-QDRANT_URL=http://localhost:6333 \
-OLLAMA_BASE_URL=http://localhost:11434 \
-OLLAMA_EMBEDDING_MODEL=nomic-embed-text \
-OLLAMA_LLM_MODEL=llama3.2 \
-uvicorn app.main:app --reload
-```
+## Safety Notes
 
-The Ollama LLM adapter calls only the local `/api/generate` endpoint with streaming disabled. No cloud APIs, LangChain, or LlamaIndex integration is included.
-
-Run the optional live Ollama LLM integration test:
-
-```bash
-RUN_OLLAMA_TESTS=true \
-OLLAMA_BASE_URL=http://localhost:11434 \
-OLLAMA_LLM_MODEL=llama3.2 \
-pytest backend/tests/test_ollama_llm_provider.py
-```
-
-## Terraform Analysis
-
-After scanning a workspace project, run deterministic Terraform static analysis:
-
-```bash
-curl http://127.0.0.1:8000/workspaces/{workspace_id}/analysis/terraform
-```
-
-The Terraform analyzer reads Terraform files from the latest saved scan and checks for backend, provider, variable, output, and module blocks using simple text rules. It does not use AI and does not run the Terraform CLI yet.
-
-## GitLab CI Analysis
-
-After scanning a workspace project, run deterministic GitLab CI static analysis:
-
-```bash
-curl http://127.0.0.1:8000/workspaces/{workspace_id}/analysis/gitlab-ci
-```
-
-The GitLab CI analyzer reads `.gitlab-ci.yml` from the latest saved scan, parses YAML safely, and reports stages, includes, variables, jobs, job features, and deterministic findings. It does not use AI and does not execute GitLab pipelines.
-
-## GitHub Actions Analysis
-
-After scanning a workspace project, run deterministic GitHub Actions static analysis:
-
-```bash
-curl http://127.0.0.1:8000/workspaces/{workspace_id}/analysis/github-actions
-```
-
-The GitHub Actions analyzer reads `.github/workflows/*.yml` and `.github/workflows/*.yaml` files from the latest saved scan, parses YAML safely, and reports workflow names, triggers, job counts, matrix usage, permissions configuration, reusable workflows, and secrets references. It does not use AI, call the GitHub API, or execute workflows.
-
-## Analysis Summary
-
-After scanning a workspace project, aggregate deterministic analyzer output into a lightweight DevOps overview:
-
-```bash
-curl http://127.0.0.1:8000/workspaces/{workspace_id}/analysis/summary
-```
-
-The analysis summary runs relevant deterministic analyzers for detected Terraform, Terragrunt, GitLab CI, and GitHub Actions files. It returns analyzer status, severity counts, top findings, and recommended next steps. This endpoint is intended to feed future dashboards, project overview generation, manager summaries, documentation drafts, and LLM context preparation, but it does not use AI or execute external commands.
-
-## Command Approval
-
-The command approval workflow stores proposed terminal commands for review before execution. Commands are classified with a deterministic risk label, persisted for auditability, and can be approved or rejected.
-
-Propose a command:
-
-```bash
-curl -X POST http://127.0.0.1:8000/workspaces/{workspace_id}/commands \
-  -H "Content-Type: application/json" \
-  -d '{
-    "command": "git status",
-    "cwd": "/absolute/path/to/project",
-    "reason": "Check current repository state"
-  }'
-```
-
-Approve a proposed command:
-
-```bash
-curl -X POST http://127.0.0.1:8000/commands/{command_id}/approve
-```
-
-Execute an approved command:
-
-```bash
-curl -X POST http://127.0.0.1:8000/commands/{command_id}/execute
-```
-
-List workspace commands:
-
-```bash
-curl http://127.0.0.1:8000/workspaces/{workspace_id}/commands
-```
-
-For now execution uses a fake command runner only. No real shell commands are executed.
-
-## Command Execution Policy
-
-Approval alone is not enough for execution. A proposed command must also pass the deterministic execution policy before the assistant can send it to the command runner.
-
-The current policy is conservative:
-
-- Destructive commands are blocked.
-- Compound shell commands with operators like `;`, `&&`, `||`, pipes, backticks, or `$(` are blocked.
-- A small read-only allowlist can be fake-executed after approval.
-- Write and unknown-risk commands are marked manual-only and must be run outside the assistant.
-
-The runner is still fake, so even policy-allowed commands do not execute real shell commands yet.
-
-## Local Command Runner
-
-The real local command runner is available but disabled by default. Enable it explicitly:
-
-```bash
-COMMAND_RUNNER=local uvicorn app.main:app --reload
-```
-
-Optional settings:
-
-```bash
-COMMAND_TIMEOUT_SECONDS=30
-COMMAND_OUTPUT_LIMIT_CHARS=20000
-```
-
-Safety controls:
-
-- `FakeCommandRunner` remains the default.
-- Commands must be approved and policy-allowed before a runner is called.
-- Destructive, manual-only, and unknown-risk commands are not auto-executed.
-- The local runner uses `subprocess.run` with `shell=False`.
-- Commands are split with `shlex.split`.
-- `cwd` must exist, be a directory, and stay inside the workspace `project_path`.
-- Output is captured and truncated to the configured limit.
-
-## Command Suggestions
-
-Command suggestions are deterministic templates based on the latest workspace scan. They are not created as command proposals automatically, and they are never approved or executed automatically.
-
-```bash
-curl http://127.0.0.1:8000/workspaces/{workspace_id}/commands/suggestions
-```
-
-To run a suggestion through the approval workflow, the user must explicitly propose it with `POST /workspaces/{workspace_id}/commands`, then approve it, then execute it. Execution still uses the fake runner for now.
-
-## Terragrunt Analysis
-
-The scanner detects `terragrunt.hcl` directly and detects other `.hcl` files only when they contain Terragrunt-like blocks such as `terraform`, `include`, `dependency`, `inputs`, or `remote_state`.
-
-After scanning a workspace project, run deterministic Terragrunt static analysis:
-
-```bash
-curl http://127.0.0.1:8000/workspaces/{workspace_id}/analysis/terragrunt
-```
-
-The Terragrunt analyzer reads Terragrunt files from the latest saved scan and checks for remote state, include blocks, dependencies, inputs, and Terraform source configuration. It does not use AI and does not execute the Terragrunt or Terraform CLI.
+- Scanning and deterministic analyzers read local project files but execute no
+  project tooling.
+- Setup and command suggestions are instructions only.
+- Command proposals require explicit approval.
+- Approval alone is insufficient: destructive and compound-shell commands are
+  blocked, while write and unknown-risk commands are manual-only.
+- Real local execution is disabled unless `COMMAND_RUNNER=local`.
+- The local runner uses `shell=False` and restricts `cwd` to the workspace
+  project path.
 
 ## Current Limitations
 
-- Workspace metadata is stored in SQLite by default; the in-memory repository remains available for tests and local experiments.
-- Project scanning is deterministic and rule-based only.
-- The vector store defaults to an in-memory stub and embeddings default to a fake deterministic provider; optional Qdrant and Ollama adapters are available.
-- Workspace question answers use `FakeLLMProvider` by default; optional local Ollama generation is available.
-- Workspace project paths are not validated during workspace creation yet.
 - No frontend is included.
+- Project scanning and analyzers are deterministic and intentionally shallow.
+- Fake embeddings, fake LLM answers, and in-memory vectors remain the defaults.
+- RAG quality warnings are deterministic guardrails, not proof of correctness.
+- Workspace project paths are not validated during basic workspace creation.
