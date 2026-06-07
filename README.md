@@ -33,6 +33,32 @@ still requires explicit proposal approval plus a policy-allowed command.
 
 No cloud APIs, LangChain, or LlamaIndex are used.
 
+## Local Model Catalog
+
+List the current deterministic local model metadata:
+
+```bash
+curl "http://127.0.0.1:8000/models/catalog?model_type=llm&provider=ollama"
+```
+
+Request a deterministic recommendation:
+
+```bash
+curl -X POST http://127.0.0.1:8000/models/recommend \
+  -H "Content-Type: application/json" \
+  -d '{
+    "assistant_profile_id": "devops",
+    "laptop_profile_id": "balanced",
+    "task_type": "workspace_ask",
+    "model_type": "llm"
+  }'
+```
+
+The catalog is static local metadata only. It does not call Hugging Face or
+Ollama, download models, run benchmarks, or change active settings. Future
+versions can import user-defined model files, Hugging Face metadata, installed
+Ollama models, and benchmark or evaluation results.
+
 ## Requirements
 
 - Python 3.11+
