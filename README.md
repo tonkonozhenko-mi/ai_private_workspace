@@ -74,6 +74,8 @@ Reset local app data by stopping the API and deleting `.ai-workbench/`.
 - `GET /workspaces`
 - `GET /workspaces/overview`
 - `GET /workspaces/{workspace_id}`
+- `POST /workspaces/{workspace_id}/archive`
+- `POST /workspaces/{workspace_id}/restore`
 - `POST /workspaces/{workspace_id}/scan`
 - `GET /workspaces/{workspace_id}/scan`
 - `GET /workspaces/{workspace_id}/summary`
@@ -149,6 +151,30 @@ curl http://127.0.0.1:8000/workspaces/overview
 The overview lists all workspaces with readiness and Quick Start status, the next recommended action, scan and index state, pending command count, detected skill count, and the latest timeline event. Items are sorted by latest activity, falling back to workspace creation time.
 
 The endpoint reads persisted repositories and configured provider names only. It does not load full dashboards, call Qdrant or Ollama, scan or index projects, execute commands, create command proposals, or mutate workspace data.
+
+## Workspace Archive And Restore
+
+Archive a workspace to hide it from the default app-home overview without deleting its data:
+
+```bash
+curl -X POST http://127.0.0.1:8000/workspaces/{workspace_id}/archive
+```
+
+Restore an archived workspace:
+
+```bash
+curl -X POST http://127.0.0.1:8000/workspaces/{workspace_id}/restore
+```
+
+Archiving sets the workspace `archived_at` timestamp and records a `workspace_archived` timeline event. Restoring clears `archived_at` and records `workspace_restored`. Both operations are idempotent.
+
+The default `GET /workspaces/overview` response excludes archived workspaces. Include them with:
+
+```bash
+curl "http://127.0.0.1:8000/workspaces/overview?include_archived=true"
+```
+
+Archive is reversible and never hard-deletes the workspace, scans, index-status metadata, commands, timeline events, or vector-store data. `GET /workspaces` keeps listing all workspaces for compatibility.
 
 ## Workspace Summary
 

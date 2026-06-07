@@ -105,6 +105,11 @@ from app.core.use_cases.ask_workspace_question import (
     AskWorkspaceQuestionNotFoundError,
     AskWorkspaceQuestionUseCase,
 )
+from app.core.use_cases.archive_workspace import (
+    ArchiveWorkspaceInput,
+    ArchiveWorkspaceNotFoundError,
+    ArchiveWorkspaceUseCase,
+)
 from app.core.use_cases.backfill_workspace_timeline import (
     BackfillWorkspaceTimelineInput,
     BackfillWorkspaceTimelineUseCase,
@@ -183,6 +188,11 @@ from app.core.use_cases.search_workspace_context import (
     SearchWorkspaceContextNotFoundError,
     SearchWorkspaceContextUseCase,
 )
+from app.core.use_cases.restore_workspace import (
+    RestoreWorkspaceInput,
+    RestoreWorkspaceNotFoundError,
+    RestoreWorkspaceUseCase,
+)
 
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
@@ -202,6 +212,7 @@ class WorkspaceResponse(BaseModel):
     assistant_mode: str
     privacy_mode: str
     created_at: datetime
+    archived_at: str | None
 
 
 def to_workspace_response(workspace: Workspace) -> WorkspaceResponse:
@@ -212,6 +223,7 @@ def to_workspace_response(workspace: Workspace) -> WorkspaceResponse:
         assistant_mode=workspace.assistant_mode,
         privacy_mode=workspace.privacy_mode,
         created_at=workspace.created_at,
+        archived_at=workspace.archived_at,
     )
 
 
@@ -239,7 +251,9 @@ def list_workspaces() -> list[WorkspaceResponse]:
 
 
 @router.get("/overview", response_model=WorkspacesOverviewResponse)
-def list_workspaces_overview() -> WorkspacesOverviewResponse:
+def list_workspaces_overview(
+    include_archived: bool = False,
+) -> WorkspacesOverviewResponse:
     overview = ListWorkspacesOverviewUseCase(
         workspace_repository=workspace_repository,
         project_scan_repository=project_scan_repository,
@@ -247,7 +261,7 @@ def list_workspaces_overview() -> WorkspacesOverviewResponse:
         command_repository=command_repository,
         timeline_repository=timeline_repository,
         configuration=readiness_configuration,
-    ).execute()
+    ).execute(include_archived=include_archived)
     return to_workspaces_overview_response(overview)
 
 
@@ -257,6 +271,36 @@ def get_workspace(workspace_id: str) -> WorkspaceResponse:
     workspace = use_case.execute(workspace_id)
     if workspace is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+    return to_workspace_response(workspace)
+
+
+@router.post("/{workspace_id}/archive", response_model=WorkspaceResponse)
+def archive_workspace(workspace_id: str) -> WorkspaceResponse:
+    try:
+        workspace = ArchiveWorkspaceUseCase(
+            workspace_repository=workspace_repository,
+            timeline_repository=timeline_repository,
+        ).execute(ArchiveWorkspaceInput(workspace_id=workspace_id))
+    except ArchiveWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return to_workspace_response(workspace)
+
+
+@router.post("/{workspace_id}/restore", response_model=WorkspaceResponse)
+def restore_workspace(workspace_id: str) -> WorkspaceResponse:
+    try:
+        workspace = RestoreWorkspaceUseCase(
+            workspace_repository=workspace_repository,
+            timeline_repository=timeline_repository,
+        ).execute(RestoreWorkspaceInput(workspace_id=workspace_id))
+    except RestoreWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
     return to_workspace_response(workspace)
 
 

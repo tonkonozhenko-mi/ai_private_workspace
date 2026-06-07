@@ -13,5 +13,8 @@ class WorkspaceRepositoryPort(Protocol):
     def list(self) -> list[Workspace]:
         """Return all workspaces."""
 
+    def update(self, workspace: Workspace) -> Workspace:
+        """Persist changes to an existing workspace."""
+
 
 WorkspaceRepository = WorkspaceRepositoryPort
