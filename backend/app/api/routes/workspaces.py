@@ -71,6 +71,10 @@ from app.api.schemas.workspace_dashboard_schemas import (
     WorkspaceDashboardResponse,
     to_workspace_dashboard_response,
 )
+from app.api.schemas.workspaces_overview_schemas import (
+    WorkspacesOverviewResponse,
+    to_workspaces_overview_response,
+)
 from app.core.domain.workspace import Workspace
 from app.core.use_cases.analyze_github_actions import (
     AnalyzeGitHubActionsInput,
@@ -162,6 +166,7 @@ from app.core.use_cases.get_workspace_assistant_recommendation import (
 )
 from app.core.use_cases.get_runtime_health import GetRuntimeHealthUseCase
 from app.core.use_cases.list_workspaces import ListWorkspacesUseCase
+from app.core.use_cases.list_workspaces_overview import ListWorkspacesOverviewUseCase
 from app.core.use_cases.list_workspace_timeline import (
     ListWorkspaceTimelineInput,
     ListWorkspaceTimelineUseCase,
@@ -231,6 +236,19 @@ def create_workspace(request: CreateWorkspaceRequest) -> WorkspaceResponse:
 def list_workspaces() -> list[WorkspaceResponse]:
     use_case = ListWorkspacesUseCase(workspace_repository)
     return [to_workspace_response(workspace) for workspace in use_case.execute()]
+
+
+@router.get("/overview", response_model=WorkspacesOverviewResponse)
+def list_workspaces_overview() -> WorkspacesOverviewResponse:
+    overview = ListWorkspacesOverviewUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+        index_status_repository=index_status_repository,
+        command_repository=command_repository,
+        timeline_repository=timeline_repository,
+        configuration=readiness_configuration,
+    ).execute()
+    return to_workspaces_overview_response(overview)
 
 
 @router.get("/{workspace_id}", response_model=WorkspaceResponse)
