@@ -61,6 +61,10 @@ from app.api.schemas.workspace_readiness_schemas import (
     WorkspaceReadinessResponse,
     to_workspace_readiness_response,
 )
+from app.api.schemas.workspace_quick_start_schemas import (
+    WorkspaceQuickStartResponse,
+    to_workspace_quick_start_response,
+)
 from app.core.domain.workspace import Workspace
 from app.core.use_cases.analyze_github_actions import (
     AnalyzeGitHubActionsInput,
@@ -136,6 +140,11 @@ from app.core.use_cases.get_workspace_readiness import (
     GetWorkspaceReadinessInput,
     GetWorkspaceReadinessUseCase,
     WorkspaceReadinessNotFoundError,
+)
+from app.core.use_cases.get_workspace_quick_start import (
+    GetWorkspaceQuickStartInput,
+    GetWorkspaceQuickStartUseCase,
+    WorkspaceQuickStartNotFoundError,
 )
 from app.core.use_cases.list_workspaces import ListWorkspacesUseCase
 from app.core.use_cases.list_workspace_timeline import (
@@ -411,6 +420,31 @@ def get_workspace_readiness(workspace_id: str) -> WorkspaceReadinessResponse:
         ) from exc
 
     return to_workspace_readiness_response(readiness)
+
+
+@router.get(
+    "/{workspace_id}/quick-start",
+    response_model=WorkspaceQuickStartResponse,
+)
+def get_workspace_quick_start(workspace_id: str) -> WorkspaceQuickStartResponse:
+    use_case = GetWorkspaceQuickStartUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+        index_status_repository=index_status_repository,
+        configuration=readiness_configuration,
+    )
+
+    try:
+        quick_start = use_case.execute(
+            GetWorkspaceQuickStartInput(workspace_id=workspace_id)
+        )
+    except WorkspaceQuickStartNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return to_workspace_quick_start_response(quick_start)
 
 
 @router.get(

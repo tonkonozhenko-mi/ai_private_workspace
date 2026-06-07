@@ -76,6 +76,7 @@ Reset local app data by stopping the API and deleting `.ai-workbench/`.
 - `POST /workspaces/{workspace_id}/scan`
 - `GET /workspaces/{workspace_id}/scan`
 - `GET /workspaces/{workspace_id}/summary`
+- `GET /workspaces/{workspace_id}/quick-start`
 - `GET /workspaces/{workspace_id}/analysis/terraform`
 - `GET /workspaces/{workspace_id}/analysis/gitlab-ci`
 - `GET /workspaces/{workspace_id}/analysis/github-actions`
@@ -239,6 +240,20 @@ curl http://127.0.0.1:8000/workspaces/{workspace_id}/readiness
 Readiness is derived only from persisted workspace, scan, index-status, and command records plus configured adapter settings. It reports `needs_setup` before scanning or indexing, `ready` after a successful index, and `degraded` after an indexing failure. It also lists capabilities, pending command-review recommendations, and the configured vector store, embedding provider, LLM provider, and command runner.
 
 The readiness endpoint does not call Ollama or Qdrant health endpoints and does not execute commands. Provider configuration indicates selected adapters, not confirmed external-service availability.
+
+## Workspace Quick Start
+
+Use Quick Start to power a future "Continue setup" or "Continue workspace" screen:
+
+```bash
+curl http://127.0.0.1:8000/workspaces/{workspace_id}/quick-start
+```
+
+Quick Start reads the persisted latest scan and index-status metadata plus the configured provider names. It returns the workspace setup stage (`new`, `scanned`, `indexed`, or `ready`), the next recommended action, and deterministic setup steps with action IDs and endpoints.
+
+A new workspace recommends project scanning. A scanned workspace recommends indexing. An indexed workspace recommends asking the first workspace question. Indexed workspaces using the fake LLM or in-memory vector store remain usable but are labeled `indexed`; `ready` is reserved for indexed workspaces configured with a non-fake LLM and persistent vector store.
+
+Quick Start does not scan, index, execute commands, create command proposals, or call Qdrant or Ollama. When the in-memory vector store or fake LLM is configured, the response includes notes explaining their limitations.
 
 ## Runtime Health
 
