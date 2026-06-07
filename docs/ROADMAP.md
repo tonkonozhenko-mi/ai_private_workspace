@@ -59,6 +59,7 @@ Delivered foundations include:
 - User-defined JSON catalog loading and validation.
 - Reloadable user model catalog.
 - Deterministic model switching plans.
+- Deterministic model experiment plans.
 
 Next planned tasks:
 

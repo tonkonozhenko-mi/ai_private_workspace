@@ -1,6 +1,6 @@
 # Next Steps
 
-## Latest Completed Task: Model Switching Plan
+## Latest Completed Tasks
 
 The deterministic **Model Switching Plan** is implemented at
 `POST /models/switching-plan`. It explains what would happen if a user selected
@@ -10,17 +10,25 @@ changed.
 The plan is advisory only. It does not edit environment variables,
 restart services, download models, switch providers, or trigger indexing.
 
+The deterministic **Model Experiment Plan** is implemented at
+`POST /models/experiments/plan`. It validates a workspace, enriches LLM
+candidates from the current catalog, reports index readiness and the current
+restart limitation, and describes future comparison measurements without
+running or persisting an experiment.
+
 ## Immediate Next Task: Model Experiment Runs
 
 The next recommended backend task is persistent, user-created **Model Experiment
-Runs**. Experiments should record a workspace question or task, selected models,
-and later comparison results without changing the active workspace runtime.
+Runs**. Runs should accept an approved experiment plan, record selected models,
+execute comparisons only when explicitly requested, and preserve results without
+changing the active workspace runtime.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 
 - The catalog describes available candidates.
 - Recommendations rank candidates deterministically.
 - The switching plan explains operational consequences.
+- The experiment plan explains comparison readiness and candidate warnings.
 - Experiments can compare candidate behavior before a user chooses a model.
 
 ## Implemented Switching Rules

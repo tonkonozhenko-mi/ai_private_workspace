@@ -16,6 +16,11 @@ from app.api.schemas.model_catalog_schemas import (
     to_local_model_definition_response,
     to_model_recommendation_result_response,
 )
+from app.api.schemas.model_experiment_schemas import (
+    CreateModelExperimentPlanRequest,
+    ModelExperimentPlanResponse,
+    to_model_experiment_plan_response,
+)
 from app.api.schemas.model_switching_schemas import (
     CreateModelSwitchingPlanRequest,
     ModelSwitchingPlanResponse,
@@ -26,6 +31,13 @@ from app.core.use_cases.create_model_switching_plan import (
     CreateModelSwitchingPlanUseCase,
     ModelSwitchingPlanValidationError,
     ModelSwitchingPlanWorkspaceNotFoundError,
+)
+from app.core.use_cases.create_model_experiment_plan import (
+    CreateModelExperimentPlanInput,
+    CreateModelExperimentPlanUseCase,
+    ModelExperimentCandidateInput,
+    ModelExperimentPlanValidationError,
+    ModelExperimentPlanWorkspaceNotFoundError,
 )
 from app.core.use_cases.list_model_catalog import (
     ListModelCatalogInput,
@@ -135,3 +147,40 @@ def create_model_switching_plan(
         ) from exc
 
     return to_model_switching_plan_response(plan)
+
+
+@router.post("/experiments/plan", response_model=ModelExperimentPlanResponse)
+def create_model_experiment_plan(
+    request: CreateModelExperimentPlanRequest,
+) -> ModelExperimentPlanResponse:
+    try:
+        plan = CreateModelExperimentPlanUseCase(
+            workspace_repository=workspace_repository,
+            index_status_repository=index_status_repository,
+            model_catalog_registry=model_catalog_registry,
+        ).execute(
+            CreateModelExperimentPlanInput(
+                workspace_id=request.workspace_id,
+                question=request.question,
+                experiment_type=request.experiment_type,
+                candidates=[
+                    ModelExperimentCandidateInput(
+                        provider=candidate.provider,
+                        model=candidate.model,
+                    )
+                    for candidate in request.candidates
+                ],
+            )
+        )
+    except ModelExperimentPlanWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except ModelExperimentPlanValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return to_model_experiment_plan_response(plan)

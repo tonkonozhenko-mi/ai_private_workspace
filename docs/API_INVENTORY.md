@@ -31,6 +31,7 @@ filesystem, provider, or command-runner activity outside SQLite repositories.
 | `POST /models/catalog/reload` | Reload the configured user model file into the in-memory catalog. | In-memory catalog only | No | Local metadata file read | Model catalog settings |
 | `POST /models/recommend` | Rank catalog models for an assistant profile, laptop profile, task, and model type. | No | No | No | Model selection/setup wizard |
 | `POST /models/switching-plan` | Explain deterministic restart, reindex, and collection impact before switching a model. | No | No | No | Model selection/experiments |
+| `POST /models/experiments/plan` | Plan a shared-context LLM comparison and enrich candidates with catalog/runtime guidance. | No | No | No | Model experiments |
 
 The catalog is deterministic local metadata. An optional user JSON file is read
 at application startup or explicit reload, and valid unique-ID entries are
