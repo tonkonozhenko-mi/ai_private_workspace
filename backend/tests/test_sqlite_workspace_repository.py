@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+import sqlite3
 
 from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
 from app.core.domain.workspace import Workspace
@@ -69,3 +70,49 @@ def test_workspaces_survive_repository_recreation(tmp_path) -> None:
     restarted_repository = SQLiteWorkspaceRepository(db_path)
 
     assert restarted_repository.get(workspace.id) == workspace
+
+
+def test_existing_workspace_table_is_migrated_with_archived_at(tmp_path) -> None:
+    db_path = tmp_path / "legacy-workspaces.db"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE workspaces (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                project_path TEXT NOT NULL,
+                assistant_mode TEXT NOT NULL,
+                privacy_mode TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO workspaces (
+                id, name, project_path, assistant_mode, privacy_mode, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "legacy-workspace",
+                "Legacy Workspace",
+                "/tmp/legacy",
+                "local",
+                "private",
+                "2026-01-01T00:00:00+00:00",
+            ),
+        )
+        connection.commit()
+
+    repository = SQLiteWorkspaceRepository(db_path)
+    workspace = repository.get("legacy-workspace")
+
+    assert workspace is not None
+    assert workspace.archived_at is None
+    with sqlite3.connect(db_path) as connection:
+        columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(workspaces)").fetchall()
+        }
+    assert "archived_at" in columns

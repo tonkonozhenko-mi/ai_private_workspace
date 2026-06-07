@@ -10,6 +10,8 @@ class WorkspaceOverviewItemResponse(BaseModel):
     assistant_mode: str
     privacy_mode: str
     created_at: str
+    archived_at: str | None
+    is_archived: bool
     readiness_status: str
     quick_start_status: str
     next_action_id: str | None
@@ -38,6 +40,8 @@ def to_workspace_overview_item_response(
         assistant_mode=item.assistant_mode,
         privacy_mode=item.privacy_mode,
         created_at=item.created_at,
+        archived_at=item.archived_at,
+        is_archived=item.is_archived,
         readiness_status=item.readiness_status,
         quick_start_status=item.quick_start_status,
         next_action_id=item.next_action_id,

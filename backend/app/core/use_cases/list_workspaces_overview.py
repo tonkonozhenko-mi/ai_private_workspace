@@ -31,10 +31,11 @@ class ListWorkspacesOverviewUseCase:
         self.timeline_repository = timeline_repository
         self.configuration = configuration
 
-    def execute(self) -> WorkspacesOverview:
+    def execute(self, include_archived: bool = False) -> WorkspacesOverview:
         items = [
             self._overview_item(workspace)
             for workspace in self.workspace_repository.list()
+            if include_archived or workspace.archived_at is None
         ]
         items.sort(key=self._sort_timestamp, reverse=True)
         return WorkspacesOverview(total_workspaces=len(items), items=items)
@@ -68,6 +69,8 @@ class ListWorkspacesOverviewUseCase:
             assistant_mode=workspace.assistant_mode,
             privacy_mode=workspace.privacy_mode,
             created_at=workspace.created_at.isoformat(),
+            archived_at=workspace.archived_at,
+            is_archived=workspace.archived_at is not None,
             readiness_status=self._readiness_status(
                 has_scan=has_scan,
                 is_indexed=is_indexed,

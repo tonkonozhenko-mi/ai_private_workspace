@@ -9,6 +9,8 @@ class WorkspaceOverviewItem:
     assistant_mode: str
     privacy_mode: str
     created_at: str
+    archived_at: str | None
+    is_archived: bool
     readiness_status: str
     quick_start_status: str
     next_action_id: str | None

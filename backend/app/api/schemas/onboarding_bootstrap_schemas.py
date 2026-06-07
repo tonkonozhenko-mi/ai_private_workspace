@@ -38,6 +38,7 @@ class BootstrapWorkspaceResponse(BaseModel):
     assistant_mode: str
     privacy_mode: str
     created_at: datetime
+    archived_at: str | None
 
 
 class OnboardingBootstrapResponse(BaseModel):
@@ -57,6 +58,7 @@ def to_bootstrap_workspace_response(workspace: Workspace) -> BootstrapWorkspaceR
         assistant_mode=workspace.assistant_mode,
         privacy_mode=workspace.privacy_mode,
         created_at=workspace.created_at,
+        archived_at=workspace.archived_at,
     )
 
 

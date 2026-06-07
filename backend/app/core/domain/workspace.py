@@ -10,3 +10,4 @@ class Workspace:
     assistant_mode: str
     privacy_mode: str
     created_at: datetime
+    archived_at: str | None = None

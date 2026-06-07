@@ -21,9 +21,10 @@ class SQLiteWorkspaceRepository:
                     project_path,
                     assistant_mode,
                     privacy_mode,
-                    created_at
+                    created_at,
+                    archived_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     workspace.id,
@@ -32,6 +33,7 @@ class SQLiteWorkspaceRepository:
                     workspace.assistant_mode,
                     workspace.privacy_mode,
                     workspace.created_at.isoformat(),
+                    workspace.archived_at,
                 ),
             )
             connection.commit()
@@ -47,7 +49,8 @@ class SQLiteWorkspaceRepository:
                     project_path,
                     assistant_mode,
                     privacy_mode,
-                    created_at
+                    created_at,
+                    archived_at
                 FROM workspaces
                 WHERE id = ?
                 """,
@@ -68,13 +71,41 @@ class SQLiteWorkspaceRepository:
                     project_path,
                     assistant_mode,
                     privacy_mode,
-                    created_at
+                    created_at,
+                    archived_at
                 FROM workspaces
                 ORDER BY created_at ASC
                 """
             ).fetchall()
 
         return [self._to_workspace(row) for row in rows]
+
+    def update(self, workspace: Workspace) -> Workspace:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE workspaces
+                SET
+                    name = ?,
+                    project_path = ?,
+                    assistant_mode = ?,
+                    privacy_mode = ?,
+                    created_at = ?,
+                    archived_at = ?
+                WHERE id = ?
+                """,
+                (
+                    workspace.name,
+                    workspace.project_path,
+                    workspace.assistant_mode,
+                    workspace.privacy_mode,
+                    workspace.created_at.isoformat(),
+                    workspace.archived_at,
+                    workspace.id,
+                ),
+            )
+            connection.commit()
+        return workspace
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.db_path)
@@ -90,4 +121,5 @@ class SQLiteWorkspaceRepository:
             assistant_mode=row["assistant_mode"],
             privacy_mode=row["privacy_mode"],
             created_at=datetime.fromisoformat(row["created_at"]),
+            archived_at=row["archived_at"],
         )

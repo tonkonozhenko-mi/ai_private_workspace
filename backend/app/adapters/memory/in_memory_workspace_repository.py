@@ -21,8 +21,13 @@ class InMemoryWorkspaceRepository:
         with self._lock:
             return list(self._workspaces.values())
 
+    def update(self, workspace: Workspace) -> Workspace:
+        with self._lock:
+            self._workspaces[workspace.id] = workspace
+        return workspace
+
     def save(self, workspace: Workspace) -> Workspace:
-        return self.create(workspace)
+        return self.update(workspace)
 
     def get_by_id(self, workspace_id: str) -> Workspace | None:
         return self.get(workspace_id)
