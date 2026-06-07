@@ -138,19 +138,19 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Reloadable user model catalog**
+**Model Switching Plan**
 
-The configured user model JSON file can be edited and reloaded without
-restarting the backend. Reload replaces the previous user-model snapshot,
-preserves built-in models, exposes validation warnings, and immediately affects
-catalog listing and recommendations.
+The backend can now deterministically explain the operational impact of
+switching an LLM or embedding model. Plans use current catalog metadata,
+optionally inspect persisted workspace index status, and explain restart,
+reindex, and vector-collection requirements without applying changes.
 
 ## Recommended Next Task
 
-**Model Switching Plan**
+**Model Experiment Runs**
 
-The next backend capability should deterministically explain the consequences of
-changing the active LLM, embedding model, or vector-store configuration without
-applying any changes automatically.
+The next backend capability should record explicit model experiments so users
+can compare answers and behavior across candidate models without silently
+changing the active runtime.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.

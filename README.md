@@ -90,6 +90,28 @@ models, validate installed models, run benchmarks, or change active settings.
 Future versions can import Hugging Face metadata, installed Ollama models, and
 benchmark or evaluation results.
 
+## Model Switching Plan
+
+Preview the operational impact of changing an LLM or embedding model:
+
+```bash
+curl -X POST http://127.0.0.1:8000/models/switching-plan \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model_type": "embedding",
+    "current_provider": "fake",
+    "current_model": "fake-embedding",
+    "target_provider": "ollama",
+    "target_model": "nomic-embed-text",
+    "workspace_id": null
+  }'
+```
+
+The deterministic plan explains restart, reindex, and vector-collection impact.
+LLM switches preserve existing indexes; embedding switches require a new
+dimension-aware collection and reindex. The endpoint only returns advice: it
+does not change settings, download models, restart services, or reindex data.
+
 ## Requirements
 
 - Python 3.11+

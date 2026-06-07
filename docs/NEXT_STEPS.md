@@ -1,20 +1,29 @@
 # Next Steps
 
-## Immediate Next Task: Model Switching Plan
+## Latest Completed Task: Model Switching Plan
 
-The next recommended backend task is a deterministic **Model Switching Plan**.
-It should explain what would happen if a user selected another LLM, embedding
-model, or vector-store configuration before any settings, indexes, or runtimes
-are changed.
+The deterministic **Model Switching Plan** is implemented at
+`POST /models/switching-plan`. It explains what would happen if a user selected
+another LLM or embedding model before any settings, indexes, or runtimes are
+changed.
 
-The plan should be advisory only. It must not edit environment variables,
+The plan is advisory only. It does not edit environment variables,
 restart services, download models, switch providers, or trigger indexing.
 
-## Why This Comes Next
+## Immediate Next Task: Model Experiment Runs
 
-The model catalog can now describe, recommend, extend, and reload model
-metadata. The next missing piece is explaining the operational consequences of
-selecting a different model.
+The next recommended backend task is persistent, user-created **Model Experiment
+Runs**. Experiments should record a workspace question or task, selected models,
+and later comparison results without changing the active workspace runtime.
+
+This builds naturally on the catalog, recommendations, and switching plan:
+
+- The catalog describes available candidates.
+- Recommendations rank candidates deterministically.
+- The switching plan explains operational consequences.
+- Experiments can compare candidate behavior before a user chooses a model.
+
+## Implemented Switching Rules
 
 ### LLM Changes
 
@@ -36,8 +45,8 @@ Stored vectors were created in the previous model's vector space and cannot be
 safely searched using embeddings from another model.
 
 The current Qdrant adapter already uses embedding-provider, model, and dimension
-information when deriving collection names. A switching plan should explain
-which workspaces need reindexing and why.
+information when deriving collection names. The switching plan explains that a
+new collection and workspace reindex are required.
 
 ### Vector Database Changes
 
@@ -53,19 +62,9 @@ Examples:
 - Changing Qdrant URL or collection base name may point to an empty store and
   require reindexing.
 
+Vector-store switching itself remains a future planning capability.
+
 ## Expected Future Endpoints
-
-These endpoint names are proposed and are not implemented yet.
-
-### `POST /models/switching-plan`
-
-Expected purpose:
-
-- Compare current runtime model/vector configuration with a requested target.
-- Explain whether restart, model installation, or workspace reindexing would be
-  required.
-- Return deterministic warnings and ordered user-confirmation steps.
-- Apply no changes.
 
 ### `POST /models/experiments`
 
@@ -84,8 +83,6 @@ Expected purpose:
   decisions.
 
 ## Follow-On Tasks
-
-After the Model Switching Plan:
 
 1. Model Experiment Runs.
 2. Compare answers across models.
