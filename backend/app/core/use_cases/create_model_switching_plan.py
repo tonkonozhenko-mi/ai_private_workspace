@@ -15,6 +15,18 @@ ADVISORY_NOTE = (
 UNKNOWN_TARGET_NOTE = (
     "Target model is not in catalog; validate metadata before use."
 )
+SUPPORTED_LLM_PROVIDERS_NOTE = (
+    "The current runtime only supports fake and ollama LLM providers unless a "
+    "custom adapter is added."
+)
+SUPPORTED_EMBEDDING_PROVIDERS_NOTE = (
+    "The current runtime only supports fake and ollama embedding providers unless "
+    "a custom adapter is added."
+)
+FAKE_EMBEDDING_NOTE = (
+    "Fake embeddings are not semantically meaningful and are not recommended for "
+    "real RAG."
+)
 
 
 @dataclass(frozen=True)
@@ -150,6 +162,11 @@ class CreateModelSwitchingPlanUseCase:
             "LLM changes affect answer generation but do not invalidate existing "
             "embeddings or vector collections."
         )
+        recommended_actions, provider_notes = self._llm_provider_guidance(
+            target_provider=target_provider,
+            target_model_name=target_model_name,
+        )
+        notes.extend(provider_notes)
         self._append_workspace_note(notes, workspace_id, requires_reindex=False)
 
         return ModelSwitchingPlan(
@@ -163,14 +180,7 @@ class CreateModelSwitchingPlanUseCase:
             requires_new_vector_collection=False,
             can_switch_without_reindex=True,
             requires_backend_restart=True,
-            recommended_actions=[
-                "Pull target model manually if not installed.",
-                (
-                    "Restart backend with "
-                    f"OLLAMA_LLM_MODEL={target_model_name} if using Ollama."
-                ),
-                "Ask the same workspace question again to compare answers.",
-            ],
+            recommended_actions=recommended_actions,
             impacts=[
                 ModelSwitchImpact(
                     area="answer_generation",
@@ -223,6 +233,11 @@ class CreateModelSwitchingPlanUseCase:
                 f"Target embedding dimension is {target_model.embedding_dimension}; "
                 "Qdrant collection naming is embedding-provider/model/dimension aware."
             )
+        recommended_actions, provider_notes = self._embedding_provider_guidance(
+            target_provider=target_provider,
+            target_model_name=target_model_name,
+        )
+        notes.extend(provider_notes)
         self._append_workspace_note(notes, workspace_id, requires_reindex=True)
 
         return ModelSwitchingPlan(
@@ -236,15 +251,7 @@ class CreateModelSwitchingPlanUseCase:
             requires_new_vector_collection=True,
             can_switch_without_reindex=False,
             requires_backend_restart=True,
-            recommended_actions=[
-                "Pull target embedding model manually if not installed.",
-                (
-                    "Restart backend with "
-                    f"OLLAMA_EMBEDDING_MODEL={target_model_name}."
-                ),
-                "Reindex workspace context.",
-                "Existing Qdrant collections are not deleted automatically.",
-            ],
+            recommended_actions=recommended_actions,
             impacts=[
                 ModelSwitchImpact(
                     area="retrieval",
@@ -278,6 +285,81 @@ class CreateModelSwitchingPlanUseCase:
                 ),
             ],
             notes=notes,
+        )
+
+    @staticmethod
+    def _llm_provider_guidance(
+        target_provider: str,
+        target_model_name: str,
+    ) -> tuple[list[str], list[str]]:
+        if target_provider == "ollama":
+            return (
+                [
+                    "Pull target model manually if not installed.",
+                    (
+                        "Restart backend with "
+                        f"OLLAMA_LLM_MODEL={target_model_name} if using Ollama."
+                    ),
+                    "Ask the same workspace question again to compare answers.",
+                ],
+                [],
+            )
+        if target_provider == "fake":
+            return (
+                [
+                    "Use LLM_PROVIDER=fake for deterministic development/testing responses.",
+                    "Ask the same workspace question again to compare answers.",
+                ],
+                [],
+            )
+        return (
+            [
+                (
+                    "Configure a compatible LLM provider adapter before switching "
+                    f"to {target_provider}/{target_model_name}."
+                ),
+                "Ask the same workspace question again after the provider is configured.",
+            ],
+            [SUPPORTED_LLM_PROVIDERS_NOTE],
+        )
+
+    @staticmethod
+    def _embedding_provider_guidance(
+        target_provider: str,
+        target_model_name: str,
+    ) -> tuple[list[str], list[str]]:
+        if target_provider == "ollama":
+            return (
+                [
+                    "Pull target embedding model manually if not installed.",
+                    (
+                        "Restart backend with "
+                        f"OLLAMA_EMBEDDING_MODEL={target_model_name} if using Ollama."
+                    ),
+                    "Reindex workspace context.",
+                    "Existing Qdrant collections are not deleted automatically.",
+                ],
+                [],
+            )
+        if target_provider == "fake":
+            return (
+                [
+                    "Use EMBEDDING_PROVIDER=fake for deterministic development/testing vectors.",
+                    "Reindex workspace context.",
+                    "Existing Qdrant collections are not deleted automatically.",
+                ],
+                [FAKE_EMBEDDING_NOTE],
+            )
+        return (
+            [
+                (
+                    "Configure a compatible embedding provider adapter before "
+                    f"switching to {target_provider}/{target_model_name}."
+                ),
+                "After a compatible provider is configured, reindex workspace context.",
+                "Existing Qdrant collections are not deleted automatically.",
+            ],
+            [SUPPORTED_EMBEDDING_PROVIDERS_NOTE],
         )
 
     @staticmethod
