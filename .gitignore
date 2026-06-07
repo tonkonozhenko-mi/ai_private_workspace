@@ -1,0 +1,24 @@
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Environment
+.env
+.env.*
+.ai-workbench/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Editor
+.idea/
+.vscode/
