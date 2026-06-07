@@ -158,6 +158,38 @@ model actually selected. This foundation makes same-context model experiments
 possible later; it does not run multiple models, install models, or change the
 configured default.
 
+## Model Experiment Runs
+
+Run an explicit same-question comparison using one shared retrieved context:
+
+```bash
+curl -X POST http://127.0.0.1:8000/models/experiments/run \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workspace_id": "WORKSPACE_ID",
+    "question": "How is Terraform backend configured?",
+    "experiment_type": "llm_comparison",
+    "limit": 3,
+    "candidates": [
+      {"provider": "fake", "model": "fake-llm"},
+      {"provider": "fake", "model": "fake-llm-alt"}
+    ]
+  }'
+```
+
+Each candidate receives the exact same retrieved chunks and prompt. Results,
+latency, quality-warning counts, failures, and source counts are persisted in
+SQLite and can be read with:
+
+```bash
+curl http://127.0.0.1:8000/models/experiments/EXPERIMENT_ID
+curl http://127.0.0.1:8000/workspaces/WORKSPACE_ID/model-experiments
+```
+
+Experiments require an indexed workspace. They never reindex, download models,
+change runtime settings, or execute shell commands. Ollama is contacted only
+when an experiment explicitly includes an Ollama candidate.
+
 ## Requirements
 
 - Python 3.11+

@@ -19,6 +19,8 @@ IMPORTANT_PATHS = {
     "/models/recommend",
     "/models/switching-plan",
     "/models/experiments/plan",
+    "/models/experiments/run",
+    "/models/experiments/{experiment_id}",
     "/onboarding/plan",
     "/onboarding/bootstrap-workspace",
     "/projects/scan",
@@ -33,6 +35,7 @@ IMPORTANT_PATHS = {
     "/workspaces/{workspace_id}/commands",
     "/commands/{command_id}/execute",
     "/workspaces/{workspace_id}/timeline",
+    "/workspaces/{workspace_id}/model-experiments",
 }
 
 

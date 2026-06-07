@@ -9,6 +9,7 @@ from app.api.dependencies import (
     file_system,
     index_status_repository,
     llm_provider_factory,
+    model_experiment_repository,
     project_scan_repository,
     readiness_configuration,
     runtime_health_checkers,
@@ -39,6 +40,10 @@ from app.api.schemas.indexing_schemas import (
 from app.api.schemas.index_status_schemas import (
     WorkspaceIndexStatusResponse,
     to_workspace_index_status_response,
+)
+from app.api.schemas.model_experiment_run_schemas import (
+    ModelExperimentRunResponse,
+    to_model_experiment_run_response,
 )
 from app.api.schemas.report_schemas import (
     ProjectOverviewReportResponse,
@@ -177,6 +182,11 @@ from app.core.use_cases.list_workspace_timeline import (
     ListWorkspaceTimelineInput,
     ListWorkspaceTimelineUseCase,
     WorkspaceTimelineNotFoundError,
+)
+from app.core.use_cases.list_workspace_model_experiments import (
+    ListWorkspaceModelExperimentsInput,
+    ListWorkspaceModelExperimentsUseCase,
+    WorkspaceModelExperimentsNotFoundError,
 )
 from app.core.use_cases.scan_project import ProjectScanError
 from app.core.use_cases.scan_workspace_project import (
@@ -714,6 +724,33 @@ def get_workspace_timeline(
         ) from exc
 
     return [to_timeline_event_response(event) for event in events]
+
+
+@router.get(
+    "/{workspace_id}/model-experiments",
+    response_model=list[ModelExperimentRunResponse],
+)
+def list_workspace_model_experiments(
+    workspace_id: str,
+    limit: int = 20,
+) -> list[ModelExperimentRunResponse]:
+    try:
+        runs = ListWorkspaceModelExperimentsUseCase(
+            workspace_repository=workspace_repository,
+            model_experiment_repository=model_experiment_repository,
+        ).execute(
+            ListWorkspaceModelExperimentsInput(
+                workspace_id=workspace_id,
+                limit=limit,
+            )
+        )
+    except WorkspaceModelExperimentsNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return [to_model_experiment_run_response(run) for run in runs]
 
 
 @router.get(

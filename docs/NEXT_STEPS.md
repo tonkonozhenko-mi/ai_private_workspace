@@ -21,12 +21,17 @@ Per-request LLM override is implemented on
 providers. It allows one selected model to answer using the existing workspace
 context without changing active runtime settings or restarting the backend.
 
-## Immediate Next Task: Model Experiment Runs
+Persistent **Model Experiment Runs** are implemented at
+`POST /models/experiments/run`. Each run retrieves workspace context once,
+executes explicitly selected candidates against the same prompt, isolates
+candidate failures, persists results, and records timeline activity.
 
-The next recommended backend task is persistent, user-created **Model Experiment
-Runs**. Runs should accept an approved experiment plan, use per-request override
-to execute candidate comparisons only when explicitly requested, and preserve
-results without changing the active workspace runtime.
+## Immediate Next Task: Model Experiment Comparison Report And Scoring
+
+The next recommended backend task is a deterministic comparison report and
+scoring layer over persisted experiment runs. It should summarize answer
+quality signals, source grounding, warnings, latency, and failures without
+silently selecting or activating a winning model.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 
@@ -97,12 +102,11 @@ Expected purpose:
 
 ## Follow-On Tasks
 
-1. Model Experiment Runs.
-2. Compare answers across models.
-3. Runtime model validation against installed Ollama models.
-4. Hugging Face metadata importer.
-5. UI shell and model-management views.
-6. Desktop launcher and installer.
+1. Model experiment comparison report and scoring.
+2. Runtime model validation against installed Ollama models.
+3. Hugging Face metadata importer.
+4. UI shell and model-management views.
+5. Desktop launcher and installer.
 
 ## Safety Requirements
 

@@ -109,6 +109,7 @@ The SQLite schema stores:
 - command proposals, policy decisions, and execution results
 - index-status metadata
 - timeline events and metadata JSON
+- model experiment runs and per-candidate result JSON
 
 Schema initialization uses `CREATE TABLE IF NOT EXISTS` and small compatible
 column migrations. SQL does not appear in core or API routes.
@@ -169,6 +170,19 @@ already-persisted state without modifying scans, vectors, or commands.
 Summary, readiness, quick start, dashboard, and workspaces overview are
 deterministic read models built from the same repositories. They do not trigger
 scan, index, or command execution.
+
+## Model Experiments
+
+Model experiment planning is advisory. Experiment execution is explicit and
+requires an indexed workspace. `RunModelExperimentUseCase` embeds the question
+and searches the active vector store once, builds one shared prompt, then uses
+`LLMProviderFactoryPort` for each requested candidate. Candidate failures are
+isolated, and completed, partial, or failed runs are persisted through
+`ModelExperimentRepositoryPort` with a workspace timeline event.
+
+This keeps comparisons fair: candidates receive identical retrieved context,
+and no candidate triggers reindexing, model downloads, runtime-setting changes,
+or shell commands.
 
 ## Testing Boundaries
 
