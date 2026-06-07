@@ -1,6 +1,10 @@
 from fastapi import APIRouter, HTTPException, status
 
-from app.api.dependencies import model_catalog_registry
+from app.api.dependencies import (
+    index_status_repository,
+    model_catalog_registry,
+    workspace_repository,
+)
 from app.api.schemas.model_catalog_schemas import (
     ModelCatalogDetailsResponse,
     LocalModelDefinitionResponse,
@@ -11,6 +15,17 @@ from app.api.schemas.model_catalog_schemas import (
     to_model_catalog_reload_response,
     to_local_model_definition_response,
     to_model_recommendation_result_response,
+)
+from app.api.schemas.model_switching_schemas import (
+    CreateModelSwitchingPlanRequest,
+    ModelSwitchingPlanResponse,
+    to_model_switching_plan_response,
+)
+from app.core.use_cases.create_model_switching_plan import (
+    CreateModelSwitchingPlanInput,
+    CreateModelSwitchingPlanUseCase,
+    ModelSwitchingPlanValidationError,
+    ModelSwitchingPlanWorkspaceNotFoundError,
 )
 from app.core.use_cases.list_model_catalog import (
     ListModelCatalogInput,
@@ -87,3 +102,36 @@ def recommend_models(
         ) from exc
 
     return to_model_recommendation_result_response(result)
+
+
+@router.post("/switching-plan", response_model=ModelSwitchingPlanResponse)
+def create_model_switching_plan(
+    request: CreateModelSwitchingPlanRequest,
+) -> ModelSwitchingPlanResponse:
+    try:
+        plan = CreateModelSwitchingPlanUseCase(
+            model_catalog_registry=model_catalog_registry,
+            workspace_repository=workspace_repository,
+            index_status_repository=index_status_repository,
+        ).execute(
+            CreateModelSwitchingPlanInput(
+                model_type=request.model_type,
+                current_provider=request.current_provider,
+                current_model=request.current_model,
+                target_provider=request.target_provider,
+                target_model=request.target_model,
+                workspace_id=request.workspace_id,
+            )
+        )
+    except ModelSwitchingPlanWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except ModelSwitchingPlanValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return to_model_switching_plan_response(plan)

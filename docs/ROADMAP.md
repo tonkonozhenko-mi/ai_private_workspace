@@ -58,14 +58,14 @@ Delivered foundations include:
 - Deterministic model recommendations.
 - User-defined JSON catalog loading and validation.
 - Reloadable user model catalog.
+- Deterministic model switching plans.
 
 Next planned tasks:
 
-1. Model Switching Plan.
-2. Model Experiment Runs.
-3. Compare answers across models.
-4. Runtime model validation against installed Ollama models.
-5. Hugging Face metadata importer.
+1. Model Experiment Runs.
+2. Compare answers across models.
+3. Runtime model validation against installed Ollama models.
+4. Hugging Face metadata importer.
 
 This phase must keep model downloads, provider changes, reindexing, and runtime
 configuration changes explicit and user-controlled.

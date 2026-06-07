@@ -66,6 +66,13 @@ installed models, download artifacts, run benchmarks, or update runtime
 settings. Future adapters can enrich the catalog with installed model metadata
 or evaluation results without moving recommendation logic into API routes.
 
+The deterministic Model Switching Plan reads the same current catalog and can
+optionally validate a workspace and inspect its persisted index-status metadata.
+It explains whether a proposed LLM or embedding-model change requires a backend
+restart, reindex, or new dimension-aware vector collection. The use case is
+advisory only: it does not change settings, call providers, download models, or
+mutate workspace/index state.
+
 ## Use Cases And Ports
 
 Use cases are the application orchestration layer. They load domain state
