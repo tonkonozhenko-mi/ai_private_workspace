@@ -122,6 +122,100 @@ def test_known_embedding_dimension_adds_collection_note() -> None:
     assert any("dimension aware" in note for note in notes)
 
 
+def test_ollama_llm_target_includes_ollama_model_action() -> None:
+    plan = _switching_plan(
+        model_type="llm",
+        current_provider="fake",
+        current_model="fake-llm",
+        target_provider="ollama",
+        target_model="llama3.2",
+    ).json()
+
+    assert any(
+        "OLLAMA_LLM_MODEL=llama3.2" in action
+        for action in plan["recommended_actions"]
+    )
+
+
+def test_custom_llm_target_requires_adapter_without_ollama_action() -> None:
+    plan = _switching_plan(
+        model_type="llm",
+        current_provider="fake",
+        current_model="fake-llm",
+        target_provider="custom",
+        target_model="custom-local-llm",
+    ).json()
+
+    assert not any(
+        "OLLAMA_LLM_MODEL" in action for action in plan["recommended_actions"]
+    )
+    assert (
+        "Configure a compatible LLM provider adapter before switching to "
+        "custom/custom-local-llm."
+    ) in plan["recommended_actions"]
+    assert any(
+        "only supports fake and ollama LLM providers" in note
+        for note in plan["notes"]
+    )
+
+
+def test_ollama_embedding_target_includes_ollama_model_action() -> None:
+    plan = _switching_plan(
+        model_type="embedding",
+        current_provider="fake",
+        current_model="fake-embedding",
+        target_provider="ollama",
+        target_model="nomic-embed-text",
+    ).json()
+
+    assert any(
+        "OLLAMA_EMBEDDING_MODEL=nomic-embed-text" in action
+        for action in plan["recommended_actions"]
+    )
+
+
+def test_custom_embedding_target_requires_adapter_without_ollama_action() -> None:
+    plan = _switching_plan(
+        model_type="embedding",
+        current_provider="fake",
+        current_model="fake-embedding",
+        target_provider="custom",
+        target_model="custom-local-embedding",
+    ).json()
+
+    assert plan["requires_reindex"] is True
+    assert not any(
+        "OLLAMA_EMBEDDING_MODEL" in action for action in plan["recommended_actions"]
+    )
+    assert (
+        "Configure a compatible embedding provider adapter before switching to "
+        "custom/custom-local-embedding."
+    ) in plan["recommended_actions"]
+    assert any(
+        "only supports fake and ollama embedding providers" in note
+        for note in plan["notes"]
+    )
+
+
+def test_fake_embedding_target_warns_about_semantic_quality() -> None:
+    plan = _switching_plan(
+        model_type="embedding",
+        current_provider="ollama",
+        current_model="nomic-embed-text",
+        target_provider="fake",
+        target_model="fake-embedding",
+    ).json()
+
+    assert (
+        "Use EMBEDDING_PROVIDER=fake for deterministic development/testing vectors."
+        in plan["recommended_actions"]
+    )
+    assert (
+        "Fake embeddings are not semantically meaningful and are not recommended "
+        "for real RAG."
+    ) in plan["notes"]
+
+
 def _switching_plan(
     *,
     model_type: str,
