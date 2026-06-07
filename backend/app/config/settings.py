@@ -24,6 +24,7 @@ class Settings(BaseModel):
     OLLAMA_LLM_MODEL: str = "llama3.2"
     OLLAMA_LLM_TIMEOUT_SECONDS: int = 120
     RUNTIME_HEALTH_TIMEOUT_SECONDS: int = 3
+    USER_MODEL_CATALOG_PATH: str = ""
 
     @property
     def app_data_dir(self) -> Path:
@@ -93,6 +94,10 @@ class Settings(BaseModel):
     def runtime_health_timeout_seconds(self) -> int:
         return self.RUNTIME_HEALTH_TIMEOUT_SECONDS
 
+    @property
+    def user_model_catalog_path(self) -> str:
+        return self.USER_MODEL_CATALOG_PATH
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -126,6 +131,7 @@ def get_settings() -> Settings:
         RUNTIME_HEALTH_TIMEOUT_SECONDS=int(
             os.getenv("RUNTIME_HEALTH_TIMEOUT_SECONDS", "3")
         ),
+        USER_MODEL_CATALOG_PATH=os.getenv("USER_MODEL_CATALOG_PATH", ""),
     )
     settings.app_data_dir.mkdir(parents=True, exist_ok=True)
     settings.workspace_db_path.parent.mkdir(parents=True, exist_ok=True)

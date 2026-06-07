@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 
 from app.core.domain.model_catalog import (
     LocalModelDefinition,
+    ModelCatalogResult,
+    ModelCatalogWarning,
     ModelRecommendation,
     ModelRecommendationResult,
 )
@@ -31,6 +33,17 @@ class RecommendModelsRequest(BaseModel):
     laptop_profile_id: str = Field(..., min_length=1)
     task_type: str = Field(..., min_length=1)
     model_type: str = Field(..., min_length=1)
+
+
+class ModelCatalogWarningResponse(BaseModel):
+    code: str
+    message: str
+    source: str | None
+
+
+class ModelCatalogDetailsResponse(BaseModel):
+    models: list[LocalModelDefinitionResponse]
+    warnings: list[ModelCatalogWarningResponse]
 
 
 class ModelRecommendationResponse(BaseModel):
@@ -68,6 +81,27 @@ def to_local_model_definition_response(
         speed_tier=model.speed_tier,
         local_only=model.local_only,
         notes=model.notes,
+    )
+
+
+def to_model_catalog_warning_response(
+    warning: ModelCatalogWarning,
+) -> ModelCatalogWarningResponse:
+    return ModelCatalogWarningResponse(
+        code=warning.code,
+        message=warning.message,
+        source=warning.source,
+    )
+
+
+def to_model_catalog_details_response(
+    result: ModelCatalogResult,
+) -> ModelCatalogDetailsResponse:
+    return ModelCatalogDetailsResponse(
+        models=[to_local_model_definition_response(model) for model in result.models],
+        warnings=[
+            to_model_catalog_warning_response(warning) for warning in result.warnings
+        ],
     )
 
 

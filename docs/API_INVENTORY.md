@@ -26,12 +26,14 @@ filesystem, provider, or command-runner activity outside SQLite repositories.
 
 | Endpoint | Purpose | Writes | Executes commands | Runtime | Main UI surface |
 | --- | --- | --- | --- | --- | --- |
-| `GET /models/catalog` | List and filter static local model metadata. | No | No | No | Model selection |
+| `GET /models/catalog` | List and filter static plus valid user-defined model metadata. | No | No | No | Model selection |
+| `GET /models/catalog/details` | List filtered models plus user-catalog loading and validation warnings. | No | No | No | Model catalog diagnostics |
 | `POST /models/recommend` | Rank catalog models for an assistant profile, laptop profile, task, and model type. | No | No | No | Model selection/setup wizard |
 
-The catalog is deterministic local metadata. These endpoints do not inspect
-installed Ollama models, call Hugging Face, download models, run benchmarks, or
-change active runtime configuration.
+The catalog is deterministic local metadata. An optional user JSON file is read
+at application startup and valid unique-ID entries are merged with the built-in
+catalog. These endpoints do not inspect installed Ollama models, call Hugging
+Face, download models, run benchmarks, or change active runtime configuration.
 
 ## Workspace Lifecycle And Home
 

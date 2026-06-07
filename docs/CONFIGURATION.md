@@ -45,6 +45,22 @@ is contacted only when selected or checked by configured runtime health.
 | `OLLAMA_LLM_MODEL` | `llama3.2` | Installed Ollama model name | Generation model used by `/ask` and reported in runtime health. | Use a different local model. |
 | `OLLAMA_LLM_TIMEOUT_SECONDS` | `120` | Integer seconds | Timeout for Ollama generation requests. | Generation needs more or less time. |
 
+## Local Model Catalog
+
+| Variable | Default | Allowed/format | Purpose | Change when |
+| --- | --- | --- | --- | --- |
+| `USER_MODEL_CATALOG_PATH` | empty | Path to a JSON file | Loads additional user-defined model metadata at application startup. | Add custom local, Ollama, Hugging Face, or other model metadata without changing code. |
+
+An empty value disables user catalog loading. Missing files, malformed JSON, and
+invalid individual models do not prevent the application from starting; they
+appear as warnings in `GET /models/catalog/details`. Valid user models are
+merged with the static catalog. User models with duplicate IDs are skipped and
+cannot override built-in definitions.
+
+The file is metadata only. Loading it does not call model providers, validate
+installed models, download artifacts, run benchmarks, or change active runtime
+settings. Restart the API after changing the configured path or file contents.
+
 ## Command Runner
 
 | Variable | Default | Allowed/format | Purpose | Change when |
