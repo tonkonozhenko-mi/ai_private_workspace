@@ -86,6 +86,8 @@ events. Provider ports cover:
 - `VectorStorePort`: workspace-scoped chunk upsert, search, and clear.
 - `EmbeddingProviderPort`: text-to-vector conversion plus provider metadata.
 - `LLMProviderPort`: prompt generation plus provider metadata.
+- `LLMProviderFactoryPort`: configured-default or supported per-request LLM
+  provider/model selection without changing runtime settings.
 - `CommandRunnerPort`: approved command execution.
 - `RuntimeHealthCheckerPort`: lightweight configured-component checks.
 
@@ -130,7 +132,9 @@ The default development path is fully local and dependency-light:
 Optional adapters provide Qdrant vector persistence and Ollama embeddings or
 generation. Qdrant collections are derived from collection base name, embedding
 provider/model, and vector dimension to avoid incompatible reuse. Core code
-knows only the provider ports.
+knows only the provider ports. The LLM provider factory creates the configured
+default provider or a supported `fake`/`ollama` per-request override; provider
+selection remains in adapters rather than RAG use cases or API routes.
 
 ### Runtime Health
 

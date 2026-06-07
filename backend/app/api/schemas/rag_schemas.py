@@ -6,6 +6,8 @@ from app.core.domain.rag import RagQualityWarning, RagSource, WorkspaceQuestionA
 class AskWorkspaceQuestionRequest(BaseModel):
     question: str = Field(..., min_length=1)
     limit: int = Field(default=5, ge=1, le=50)
+    llm_provider: str | None = None
+    llm_model: str | None = None
 
 
 class RagSourceResponse(BaseModel):

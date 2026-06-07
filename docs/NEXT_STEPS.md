@@ -12,16 +12,21 @@ restart services, download models, switch providers, or trigger indexing.
 
 The deterministic **Model Experiment Plan** is implemented at
 `POST /models/experiments/plan`. It validates a workspace, enriches LLM
-candidates from the current catalog, reports index readiness and the current
-restart limitation, and describes future comparison measurements without
-running or persisting an experiment.
+candidates from the current catalog, reports index readiness and per-request
+override support, and describes future comparison measurements without running
+or persisting an experiment.
+
+Per-request LLM override is implemented on
+`POST /workspaces/{workspace_id}/ask` for supported `fake` and `ollama`
+providers. It allows one selected model to answer using the existing workspace
+context without changing active runtime settings or restarting the backend.
 
 ## Immediate Next Task: Model Experiment Runs
 
 The next recommended backend task is persistent, user-created **Model Experiment
-Runs**. Runs should accept an approved experiment plan, record selected models,
-execute comparisons only when explicitly requested, and preserve results without
-changing the active workspace runtime.
+Runs**. Runs should accept an approved experiment plan, use per-request override
+to execute candidate comparisons only when explicitly requested, and preserve
+results without changing the active workspace runtime.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 

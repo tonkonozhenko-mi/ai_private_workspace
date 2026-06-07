@@ -8,7 +8,7 @@ from app.api.dependencies import (
     embedding_provider,
     file_system,
     index_status_repository,
-    llm_provider,
+    llm_provider_factory,
     project_scan_repository,
     readiness_configuration,
     runtime_health_checkers,
@@ -104,6 +104,7 @@ from app.core.use_cases.ask_workspace_question import (
     AskWorkspaceQuestionInput,
     AskWorkspaceQuestionNotFoundError,
     AskWorkspaceQuestionUseCase,
+    AskWorkspaceQuestionValidationError,
 )
 from app.core.use_cases.archive_workspace import (
     ArchiveWorkspaceInput,
@@ -472,7 +473,7 @@ def ask_workspace_question(
         workspace_repository=workspace_repository,
         embedding_provider=embedding_provider,
         vector_store=vector_store,
-        llm_provider=llm_provider,
+        llm_provider_factory=llm_provider_factory,
         index_status_repository=index_status_repository,
         timeline_repository=timeline_repository,
     )
@@ -483,11 +484,18 @@ def ask_workspace_question(
                 workspace_id=workspace_id,
                 question=request.question,
                 limit=request.limit,
+                llm_provider_override=request.llm_provider,
+                llm_model_override=request.llm_model,
             )
         )
     except AskWorkspaceQuestionNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except AskWorkspaceQuestionValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         ) from exc
 

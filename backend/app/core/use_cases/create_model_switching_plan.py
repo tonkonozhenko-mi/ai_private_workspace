@@ -162,6 +162,10 @@ class CreateModelSwitchingPlanUseCase:
             "LLM changes affect answer generation but do not invalidate existing "
             "embeddings or vector collections."
         )
+        notes.append(
+            "For one-off experiments, per-request LLM override can avoid backend "
+            "restart for supported LLM providers."
+        )
         recommended_actions, provider_notes = self._llm_provider_guidance(
             target_provider=target_provider,
             target_model_name=target_model_name,

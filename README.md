@@ -132,9 +132,31 @@ curl -X POST http://127.0.0.1:8000/models/experiments/plan \
 ```
 
 The deterministic plan reports catalog knowledge, installation or adapter
-warnings, index readiness, and the current backend-restart limitation. It does
-not call LLMs, download models, reindex, change settings, or persist an
-experiment run.
+warnings, index readiness, and whether a candidate supports per-request model
+override. It does not call LLMs, download models, reindex, change settings, or
+persist an experiment run.
+
+## Per-Request LLM Override
+
+Normal workspace questions still use the configured default LLM provider and
+model. A caller can optionally select a supported `fake` or `ollama` provider
+and model for one request without changing runtime settings:
+
+```bash
+curl -X POST http://127.0.0.1:8000/workspaces/WORKSPACE_ID/ask \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "How is Terraform backend configured?",
+    "limit": 5,
+    "llm_provider": "ollama",
+    "llm_model": "qwen2.5-coder"
+  }'
+```
+
+The response `llm_provider` and `llm_model` fields identify the provider and
+model actually selected. This foundation makes same-context model experiments
+possible later; it does not run multiple models, install models, or change the
+configured default.
 
 ## Requirements
 

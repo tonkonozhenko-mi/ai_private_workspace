@@ -60,6 +60,7 @@ Delivered foundations include:
 - Reloadable user model catalog.
 - Deterministic model switching plans.
 - Deterministic model experiment plans.
+- Per-request LLM provider/model override foundation.
 
 Next planned tasks:
 
