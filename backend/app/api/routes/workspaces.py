@@ -11,6 +11,8 @@ from app.api.dependencies import (
     llm_provider,
     project_scan_repository,
     readiness_configuration,
+    runtime_health_checkers,
+    runtime_health_configuration,
     timeline_repository,
     vector_store,
     workspace_repository,
@@ -64,6 +66,10 @@ from app.api.schemas.workspace_readiness_schemas import (
 from app.api.schemas.workspace_quick_start_schemas import (
     WorkspaceQuickStartResponse,
     to_workspace_quick_start_response,
+)
+from app.api.schemas.workspace_dashboard_schemas import (
+    WorkspaceDashboardResponse,
+    to_workspace_dashboard_response,
 )
 from app.core.domain.workspace import Workspace
 from app.core.use_cases.analyze_github_actions import (
@@ -146,6 +152,15 @@ from app.core.use_cases.get_workspace_quick_start import (
     GetWorkspaceQuickStartUseCase,
     WorkspaceQuickStartNotFoundError,
 )
+from app.core.use_cases.get_workspace_dashboard import (
+    GetWorkspaceDashboardInput,
+    GetWorkspaceDashboardUseCase,
+    WorkspaceDashboardNotFoundError,
+)
+from app.core.use_cases.get_workspace_assistant_recommendation import (
+    GetWorkspaceAssistantRecommendationUseCase,
+)
+from app.core.use_cases.get_runtime_health import GetRuntimeHealthUseCase
 from app.core.use_cases.list_workspaces import ListWorkspacesUseCase
 from app.core.use_cases.list_workspace_timeline import (
     ListWorkspaceTimelineInput,
@@ -445,6 +460,61 @@ def get_workspace_quick_start(workspace_id: str) -> WorkspaceQuickStartResponse:
         ) from exc
 
     return to_workspace_quick_start_response(quick_start)
+
+
+@router.get(
+    "/{workspace_id}/dashboard",
+    response_model=WorkspaceDashboardResponse,
+)
+def get_workspace_dashboard(workspace_id: str) -> WorkspaceDashboardResponse:
+    use_case = GetWorkspaceDashboardUseCase(
+        summary_use_case=GetWorkspaceSummaryUseCase(
+            workspace_repository=workspace_repository,
+            project_scan_repository=project_scan_repository,
+            command_repository=command_repository,
+            index_status_repository=index_status_repository,
+            timeline_repository=timeline_repository,
+        ),
+        readiness_use_case=GetWorkspaceReadinessUseCase(
+            workspace_repository=workspace_repository,
+            project_scan_repository=project_scan_repository,
+            index_status_repository=index_status_repository,
+            command_repository=command_repository,
+            configuration=readiness_configuration,
+        ),
+        quick_start_use_case=GetWorkspaceQuickStartUseCase(
+            workspace_repository=workspace_repository,
+            project_scan_repository=project_scan_repository,
+            index_status_repository=index_status_repository,
+            configuration=readiness_configuration,
+        ),
+        assistant_recommendation_use_case=GetWorkspaceAssistantRecommendationUseCase(
+            workspace_repository=workspace_repository,
+            project_scan_repository=project_scan_repository,
+            index_status_repository=index_status_repository,
+            configuration=readiness_configuration,
+        ),
+        timeline_use_case=ListWorkspaceTimelineUseCase(
+            workspace_repository=workspace_repository,
+            timeline_repository=timeline_repository,
+        ),
+        runtime_health_use_case=GetRuntimeHealthUseCase(
+            health_checkers=runtime_health_checkers,
+            configuration=runtime_health_configuration,
+        ),
+    )
+
+    try:
+        dashboard = use_case.execute(
+            GetWorkspaceDashboardInput(workspace_id=workspace_id)
+        )
+    except WorkspaceDashboardNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return to_workspace_dashboard_response(dashboard)
 
 
 @router.get(
