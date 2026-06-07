@@ -72,6 +72,7 @@ Reset local app data by stopping the API and deleting `.ai-workbench/`.
 - `GET /health`
 - `POST /workspaces`
 - `GET /workspaces`
+- `GET /workspaces/overview`
 - `GET /workspaces/{workspace_id}`
 - `POST /workspaces/{workspace_id}/scan`
 - `GET /workspaces/{workspace_id}/scan`
@@ -136,6 +137,18 @@ curl http://127.0.0.1:8000/workspaces/{workspace_id}/scan
 ```
 
 The latest workspace scan is persisted as JSON in SQLite in the `workspace_project_scans` table. This keeps restart behavior simple for now while leaving room to normalize files and skills later.
+
+## Workspaces Overview
+
+Use the lightweight overview endpoint to power the future app home screen:
+
+```bash
+curl http://127.0.0.1:8000/workspaces/overview
+```
+
+The overview lists all workspaces with readiness and Quick Start status, the next recommended action, scan and index state, pending command count, detected skill count, and the latest timeline event. Items are sorted by latest activity, falling back to workspace creation time.
+
+The endpoint reads persisted repositories and configured provider names only. It does not load full dashboards, call Qdrant or Ollama, scan or index projects, execute commands, create command proposals, or mutate workspace data.
 
 ## Workspace Summary
 
