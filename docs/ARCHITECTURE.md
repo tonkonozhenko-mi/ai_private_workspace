@@ -56,14 +56,15 @@ metadata and recommends them with deterministic scoring based on requested model
 type, assistant profile, laptop profile, local-only suitability, quality tier,
 and low-power speed.
 
-The optional user-catalog adapter parses and validates a configured JSON file at
-startup, returning valid domain models plus warning objects. The core registry
-merges valid user models, skips duplicate IDs, and exposes warnings separately
-from the backward-compatible catalog list. Catalog listing and recommendation
-do not call Ollama or Hugging Face, inspect installed models, download artifacts,
-run benchmarks, or update runtime settings. Future adapters can enrich the
-catalog with installed model metadata or evaluation results without moving
-recommendation logic into API routes.
+The optional user-catalog adapter implements a core loader port and parses and
+validates a configured JSON file, returning valid domain models plus warning
+objects. The shared in-memory core registry merges valid user models, skips
+duplicate IDs, exposes warnings separately from the backward-compatible catalog
+list, and can replace its user-model snapshot on explicit reload. Catalog
+listing, reload, and recommendation do not call Ollama or Hugging Face, inspect
+installed models, download artifacts, run benchmarks, or update runtime
+settings. Future adapters can enrich the catalog with installed model metadata
+or evaluation results without moving recommendation logic into API routes.
 
 ## Use Cases And Ports
 

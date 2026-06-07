@@ -72,10 +72,20 @@ the app. Inspect warnings with:
 curl http://127.0.0.1:8000/models/catalog/details
 ```
 
-Catalog files are read at application startup. This metadata-only feature does
-not call Hugging Face or Ollama, download models, validate installed models, run
-benchmarks, or change active settings. Future versions can import Hugging Face
-metadata, installed Ollama models, and benchmark or evaluation results.
+After editing the configured file, reload it without restarting the backend:
+
+```bash
+curl -X POST http://127.0.0.1:8000/models/catalog/reload
+```
+
+Reload replaces the previous user-model snapshot. Invalid metadata removes
+stale user models, keeps built-ins available, and returns warnings. Changing the
+configured file path still requires restarting the backend.
+
+This metadata-only feature does not call Hugging Face or Ollama, download
+models, validate installed models, run benchmarks, or change active settings.
+Future versions can import Hugging Face metadata, installed Ollama models, and
+benchmark or evaluation results.
 
 ## Requirements
 

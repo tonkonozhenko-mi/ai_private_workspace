@@ -35,6 +35,14 @@ class ModelCatalogResult:
 
 
 @dataclass(frozen=True)
+class ModelCatalogReloadResult:
+    models_count: int
+    user_models_count: int
+    warnings_count: int
+    warnings: list[ModelCatalogWarning]
+
+
+@dataclass(frozen=True)
 class ModelRecommendation:
     model: LocalModelDefinition
     score: int
