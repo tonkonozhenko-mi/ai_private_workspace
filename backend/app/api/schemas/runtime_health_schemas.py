@@ -9,6 +9,7 @@ class RuntimeComponentHealthResponse(BaseModel):
     healthy: bool
     status: str
     details: str | None
+    metadata: dict[str, str]
 
 
 class RuntimeHealthResponse(BaseModel):
@@ -26,6 +27,7 @@ def to_runtime_component_health_response(
         healthy=component.healthy,
         status=component.status,
         details=component.details,
+        metadata=component.metadata,
     )
 
 
