@@ -13,6 +13,18 @@ venv/
 .env
 .env.*
 .ai-workbench/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Local runtime data
+.qdrant/
+.ollama/
+qdrant_data/
+qdrant_storage/
+ollama_data/
 
 # Build artifacts
 dist/
