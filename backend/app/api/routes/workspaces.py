@@ -193,6 +193,12 @@ from app.core.use_cases.restore_workspace import (
     RestoreWorkspaceNotFoundError,
     RestoreWorkspaceUseCase,
 )
+from app.core.use_cases.update_workspace_metadata import (
+    UpdateWorkspaceMetadataInput,
+    UpdateWorkspaceMetadataNotFoundError,
+    UpdateWorkspaceMetadataUseCase,
+    UpdateWorkspaceMetadataValidationError,
+)
 
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
@@ -203,6 +209,12 @@ class CreateWorkspaceRequest(BaseModel):
     project_path: str = Field(..., min_length=1)
     assistant_mode: str = Field(default="local")
     privacy_mode: str = Field(default="private")
+
+
+class UpdateWorkspaceMetadataRequest(BaseModel):
+    name: str | None = None
+    assistant_mode: str | None = None
+    privacy_mode: str | None = None
 
 
 class WorkspaceResponse(BaseModel):
@@ -271,6 +283,36 @@ def get_workspace(workspace_id: str) -> WorkspaceResponse:
     workspace = use_case.execute(workspace_id)
     if workspace is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+    return to_workspace_response(workspace)
+
+
+@router.patch("/{workspace_id}", response_model=WorkspaceResponse)
+def update_workspace_metadata(
+    workspace_id: str,
+    request: UpdateWorkspaceMetadataRequest,
+) -> WorkspaceResponse:
+    try:
+        workspace = UpdateWorkspaceMetadataUseCase(
+            workspace_repository=workspace_repository,
+            timeline_repository=timeline_repository,
+        ).execute(
+            UpdateWorkspaceMetadataInput(
+                workspace_id=workspace_id,
+                name=request.name,
+                assistant_mode=request.assistant_mode,
+                privacy_mode=request.privacy_mode,
+            )
+        )
+    except UpdateWorkspaceMetadataNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except UpdateWorkspaceMetadataValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
     return to_workspace_response(workspace)
 
 
