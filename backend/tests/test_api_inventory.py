@@ -14,6 +14,7 @@ IMPORTANT_PATHS = {
     "/runtime/setup-guide",
     "/assistant-profiles",
     "/models/catalog",
+    "/models/catalog/details",
     "/models/recommend",
     "/onboarding/plan",
     "/onboarding/bootstrap-workspace",

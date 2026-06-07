@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from app.core.domain.model_catalog import LocalModelDefinition
+from app.core.domain.model_catalog import LocalModelDefinition, ModelCatalogResult
 from app.core.domain.model_catalog_registry import ModelCatalogRegistry
 
 
@@ -29,3 +29,9 @@ class ListModelCatalogUseCase:
                 or request.assistant_profile_id in model.recommended_for_profiles
             )
         ]
+
+    def execute_details(self, request: ListModelCatalogInput) -> ModelCatalogResult:
+        return ModelCatalogResult(
+            models=self.execute(request),
+            warnings=self.registry.get_result().warnings,
+        )

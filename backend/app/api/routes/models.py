@@ -1,9 +1,12 @@
 from fastapi import APIRouter, HTTPException, status
 
+from app.api.dependencies import model_catalog_registry
 from app.api.schemas.model_catalog_schemas import (
+    ModelCatalogDetailsResponse,
     LocalModelDefinitionResponse,
     ModelRecommendationResultResponse,
     RecommendModelsRequest,
+    to_model_catalog_details_response,
     to_local_model_definition_response,
     to_model_recommendation_result_response,
 )
@@ -27,7 +30,7 @@ def list_model_catalog(
     provider: str | None = None,
     assistant_profile_id: str | None = None,
 ) -> list[LocalModelDefinitionResponse]:
-    models = ListModelCatalogUseCase().execute(
+    models = ListModelCatalogUseCase(model_catalog_registry).execute(
         ListModelCatalogInput(
             model_type=model_type,
             provider=provider,
@@ -37,12 +40,30 @@ def list_model_catalog(
     return [to_local_model_definition_response(model) for model in models]
 
 
+@router.get("/catalog/details", response_model=ModelCatalogDetailsResponse)
+def get_model_catalog_details(
+    model_type: str | None = None,
+    provider: str | None = None,
+    assistant_profile_id: str | None = None,
+) -> ModelCatalogDetailsResponse:
+    result = ListModelCatalogUseCase(model_catalog_registry).execute_details(
+        ListModelCatalogInput(
+            model_type=model_type,
+            provider=provider,
+            assistant_profile_id=assistant_profile_id,
+        )
+    )
+    return to_model_catalog_details_response(result)
+
+
 @router.post("/recommend", response_model=ModelRecommendationResultResponse)
 def recommend_models(
     request: RecommendModelsRequest,
 ) -> ModelRecommendationResultResponse:
     try:
-        result = RecommendModelsUseCase().execute(
+        result = RecommendModelsUseCase(
+            model_catalog_registry=model_catalog_registry
+        ).execute(
             RecommendModelsInput(
                 assistant_profile_id=request.assistant_profile_id,
                 laptop_profile_id=request.laptop_profile_id,

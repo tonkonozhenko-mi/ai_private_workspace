@@ -22,6 +22,19 @@ class LocalModelDefinition:
 
 
 @dataclass(frozen=True)
+class ModelCatalogWarning:
+    code: str
+    message: str
+    source: str | None
+
+
+@dataclass(frozen=True)
+class ModelCatalogResult:
+    models: list[LocalModelDefinition]
+    warnings: list[ModelCatalogWarning]
+
+
+@dataclass(frozen=True)
 class ModelRecommendation:
     model: LocalModelDefinition
     score: int

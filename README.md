@@ -54,10 +54,28 @@ curl -X POST http://127.0.0.1:8000/models/recommend \
   }'
 ```
 
-The catalog is static local metadata only. It does not call Hugging Face or
-Ollama, download models, run benchmarks, or change active settings. Future
-versions can import user-defined model files, Hugging Face metadata, installed
-Ollama models, and benchmark or evaluation results.
+Add optional user-defined metadata by setting `USER_MODEL_CATALOG_PATH`:
+
+```bash
+cd backend
+USER_MODEL_CATALOG_PATH=../examples/user_model_catalog.example.json \
+uvicorn app.main:app --reload
+```
+
+The configured JSON file uses a top-level `models` list; see
+[`examples/user_model_catalog.example.json`](examples/user_model_catalog.example.json).
+Valid unique-ID models are merged with the built-in catalog and participate in
+recommendations. Invalid entries and duplicate IDs are skipped without crashing
+the app. Inspect warnings with:
+
+```bash
+curl http://127.0.0.1:8000/models/catalog/details
+```
+
+Catalog files are read at application startup. This metadata-only feature does
+not call Hugging Face or Ollama, download models, validate installed models, run
+benchmarks, or change active settings. Future versions can import Hugging Face
+metadata, installed Ollama models, and benchmark or evaluation results.
 
 ## Requirements
 

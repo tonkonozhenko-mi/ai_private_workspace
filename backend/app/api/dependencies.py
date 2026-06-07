@@ -17,6 +17,7 @@ from app.adapters.memory.sqlite_index_status_repository import SQLiteIndexStatus
 from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScanRepository
 from app.adapters.memory.sqlite_timeline_repository import SQLiteTimelineRepository
 from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
+from app.adapters.model_catalog.user_model_catalog_loader import UserModelCatalogLoader
 from app.adapters.runtime_health.command_runner_health_checker import (
     CommandRunnerHealthChecker,
 )
@@ -38,6 +39,7 @@ from app.core.ports.runtime_health_checker import RuntimeHealthCheckerPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.domain.model_catalog_registry import ModelCatalogRegistry
 
 
 def build_workspace_repository() -> WorkspaceRepositoryPort:
@@ -218,6 +220,15 @@ def build_runtime_health_checkers() -> list[RuntimeHealthCheckerPort]:
     ]
 
 
+def build_model_catalog_registry() -> ModelCatalogRegistry:
+    settings = get_settings()
+    user_catalog = UserModelCatalogLoader(settings.user_model_catalog_path).load()
+    return ModelCatalogRegistry(
+        user_models=user_catalog.models,
+        warnings=user_catalog.warnings,
+    )
+
+
 workspace_repository = build_workspace_repository()
 project_scan_repository = build_project_scan_repository()
 command_repository = build_command_repository()
@@ -231,3 +242,4 @@ vector_store = build_vector_store()
 readiness_configuration = build_readiness_configuration()
 runtime_health_configuration = build_runtime_health_configuration()
 runtime_health_checkers = build_runtime_health_checkers()
+model_catalog_registry = build_model_catalog_registry()

@@ -1,0 +1,40 @@
+{
+  "models": [
+    {
+      "id": "ollama-codellama",
+      "provider": "ollama",
+      "model_name": "codellama",
+      "model_type": "llm",
+      "display_name": "Code Llama",
+      "description": "User-added local coding model.",
+      "capabilities": ["workspace_ask", "code_analysis"],
+      "recommended_for_profiles": ["developer", "devops"],
+      "recommended_laptop_profiles": ["powerful"],
+      "estimated_size": null,
+      "context_window": null,
+      "embedding_dimension": null,
+      "quality_tier": "experimental",
+      "speed_tier": "medium",
+      "local_only": true,
+      "notes": ["User-provided metadata."]
+    },
+    {
+      "id": "custom-local-embedding",
+      "provider": "custom",
+      "model_name": "custom-local-embedding",
+      "model_type": "embedding",
+      "display_name": "Custom Local Embedding",
+      "description": "User-added local embedding model metadata.",
+      "capabilities": ["workspace_indexing", "context_search"],
+      "recommended_for_profiles": ["developer", "documentation"],
+      "recommended_laptop_profiles": ["balanced", "powerful"],
+      "estimated_size": null,
+      "context_window": null,
+      "embedding_dimension": 384,
+      "quality_tier": "experimental",
+      "speed_tier": "fast",
+      "local_only": true,
+      "notes": ["Example metadata; validate against your local runtime before use."]
+    }
+  ]
+}

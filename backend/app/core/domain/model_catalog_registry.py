@@ -1,12 +1,45 @@
-from app.core.domain.model_catalog import LocalModelDefinition
+from app.core.domain.model_catalog import (
+    LocalModelDefinition,
+    ModelCatalogResult,
+    ModelCatalogWarning,
+)
 
 
 class ModelCatalogRegistry:
-    def __init__(self, models: list[LocalModelDefinition] | None = None) -> None:
-        self.models = models or DEFAULT_LOCAL_MODELS
+    def __init__(
+        self,
+        models: list[LocalModelDefinition] | None = None,
+        user_models: list[LocalModelDefinition] | None = None,
+        warnings: list[ModelCatalogWarning] | None = None,
+    ) -> None:
+        self.models = list(DEFAULT_LOCAL_MODELS if models is None else models)
+        self.warnings = list(warnings or [])
+        known_ids = {model.id for model in self.models}
+
+        for model in user_models or []:
+            if model.id in known_ids:
+                self.warnings.append(
+                    ModelCatalogWarning(
+                        code="duplicate_model_id",
+                        message=(
+                            f"User model '{model.id}' was skipped because its ID "
+                            "already exists in the catalog."
+                        ),
+                        source=model.id,
+                    )
+                )
+                continue
+            self.models.append(model)
+            known_ids.add(model.id)
 
     def list_models(self) -> list[LocalModelDefinition]:
         return list(self.models)
+
+    def get_result(self) -> ModelCatalogResult:
+        return ModelCatalogResult(
+            models=self.list_models(),
+            warnings=list(self.warnings),
+        )
 
 
 ALL_ASSISTANT_PROFILES = [
