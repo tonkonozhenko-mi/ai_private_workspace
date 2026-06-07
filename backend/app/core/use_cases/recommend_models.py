@@ -49,9 +49,9 @@ class RecommendModelsUseCase:
                 model=model,
                 assistant_profile_id=request.assistant_profile_id,
                 laptop_profile_id=request.laptop_profile_id,
-                requested_model_type=model_type,
             )
             for model in self.model_catalog_registry.list_models()
+            if model.model_type == model_type
         ]
         recommendations.sort(
             key=lambda recommendation: (
@@ -90,21 +90,10 @@ class RecommendModelsUseCase:
         model: LocalModelDefinition,
         assistant_profile_id: str,
         laptop_profile_id: str,
-        requested_model_type: str,
     ) -> ModelRecommendation:
-        score = 0
-        reasons: list[str] = []
+        score = 30
+        reasons = [f"Matches requested model type: {model.model_type}."]
         warnings = [STATIC_METADATA_WARNING]
-
-        if model.model_type == requested_model_type:
-            score += 30
-            reasons.append(f"Matches requested model type: {requested_model_type}.")
-        else:
-            score -= 30
-            warnings.append(
-                f"Model type {model.model_type} does not match requested type "
-                f"{requested_model_type}."
-            )
 
         if assistant_profile_id in model.recommended_for_profiles:
             score += 20
