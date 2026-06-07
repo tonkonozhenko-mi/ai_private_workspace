@@ -22,6 +22,17 @@ filesystem, provider, or command-runner activity outside SQLite repositories.
 | `POST /onboarding/setup-commands` | Return setup command instructions without proposing them. | No | No | No | Setup wizard |
 | `POST /onboarding/bootstrap-workspace` | Create a workspace and return initial onboarding state. | Workspace and timeline | No | Lightweight health checks through the setup guide | Setup wizard |
 
+## Local Model Catalog
+
+| Endpoint | Purpose | Writes | Executes commands | Runtime | Main UI surface |
+| --- | --- | --- | --- | --- | --- |
+| `GET /models/catalog` | List and filter static local model metadata. | No | No | No | Model selection |
+| `POST /models/recommend` | Rank catalog models for an assistant profile, laptop profile, task, and model type. | No | No | No | Model selection/setup wizard |
+
+The catalog is deterministic local metadata. These endpoints do not inspect
+installed Ollama models, call Hugging Face, download models, run benchmarks, or
+change active runtime configuration.
+
 ## Workspace Lifecycle And Home
 
 | Endpoint | Purpose | Writes | Executes commands | Runtime | Main UI surface |
@@ -89,4 +100,4 @@ filesystem, provider, or command-runner activity outside SQLite repositories.
 FastAPI exposes interactive documentation at `/docs`, alternative documentation
 at `/redoc`, and the OpenAPI contract at `/openapi.json`. Routers use coarse
 tags for health, runtime, onboarding, projects, workspaces, assistant profiles,
-and commands. This document provides the finer product-oriented grouping.
+models, and commands. This document provides the finer product-oriented grouping.

@@ -43,9 +43,24 @@ The domain is intentionally framework-neutral. Major areas include:
 - Index chunks, index status, RAG prompts, diagnostics, and answer warnings.
 - Command proposals, risk classification, execution policy, and suggestions.
 - Persistent timeline events and deterministic timeline backfill.
+- Static local model metadata and deterministic model recommendation scoring.
 
 Domain models are separate from API schemas so HTTP representation changes do
 not become core dependencies.
+
+### Local Model Catalog
+
+The local model catalog is a core-owned static registry. It describes a small
+initial set of fake and Ollama LLM/embedding models using honest, nullable
+metadata and recommends them with deterministic scoring based on requested model
+type, assistant profile, laptop profile, local-only suitability, quality tier,
+and low-power speed.
+
+Catalog listing and recommendation do not call Ollama or Hugging Face, inspect
+installed models, download artifacts, run benchmarks, or update runtime
+settings. Future adapters can enrich the catalog with user files, installed
+model metadata, or evaluation results without moving recommendation logic into
+API routes.
 
 ## Use Cases And Ports
 

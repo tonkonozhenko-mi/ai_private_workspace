@@ -13,6 +13,8 @@ IMPORTANT_PATHS = {
     "/runtime/health",
     "/runtime/setup-guide",
     "/assistant-profiles",
+    "/models/catalog",
+    "/models/recommend",
     "/onboarding/plan",
     "/onboarding/bootstrap-workspace",
     "/projects/scan",
