@@ -24,6 +24,11 @@ class OllamaRuntimeHealthChecker:
 
     def check(self) -> RuntimeComponentHealth:
         required_models = self._required_models()
+        required_models_metadata = self._models_metadata(
+            required_models,
+            set(),
+            reachable=False,
+        )
         if not required_models:
             return RuntimeComponentHealth(
                 name="ollama",
@@ -31,6 +36,7 @@ class OllamaRuntimeHealthChecker:
                 healthy=True,
                 status="not_configured",
                 details="Ollama is not selected for embeddings or LLM generation.",
+                metadata=required_models_metadata,
             )
 
         try:
@@ -46,6 +52,7 @@ class OllamaRuntimeHealthChecker:
                 healthy=False,
                 status="unreachable",
                 details=f"Ollama is unreachable at {self.base_url}: {exc}",
+                metadata=required_models_metadata,
             )
         except httpx.HTTPError as exc:
             return RuntimeComponentHealth(
@@ -54,6 +61,7 @@ class OllamaRuntimeHealthChecker:
                 healthy=False,
                 status="error",
                 details=f"Ollama health request failed at {self.base_url}: {exc}",
+                metadata=required_models_metadata,
             )
 
         try:
@@ -66,6 +74,11 @@ class OllamaRuntimeHealthChecker:
                 healthy=False,
                 status="error",
                 details=f"Ollama returned an invalid model list: {exc}",
+                metadata=self._models_metadata(
+                    required_models,
+                    set(),
+                    reachable=True,
+                ),
             )
 
         missing_models = [
@@ -80,6 +93,12 @@ class OllamaRuntimeHealthChecker:
                 healthy=False,
                 status="error",
                 details=f"Configured Ollama models are missing: {', '.join(missing_models)}.",
+                metadata=self._models_metadata(
+                    required_models,
+                    installed_models,
+                    missing_models,
+                    reachable=True,
+                ),
             )
 
         return RuntimeComponentHealth(
@@ -90,6 +109,11 @@ class OllamaRuntimeHealthChecker:
             details=(
                 f"Ollama is reachable and configured models are available: "
                 f"{', '.join(required_models)}."
+            ),
+            metadata=self._models_metadata(
+                required_models,
+                installed_models,
+                reachable=True,
             ),
         )
 
@@ -124,3 +148,17 @@ class OllamaRuntimeHealthChecker:
             or required_model.removesuffix(":latest") == installed_model
             for installed_model in installed_models
         )
+
+    @staticmethod
+    def _models_metadata(
+        required_models: list[str],
+        installed_models: set[str],
+        missing_models: list[str] | None = None,
+        reachable: bool = False,
+    ) -> dict[str, str]:
+        return {
+            "required_models": ",".join(required_models),
+            "installed_models": ",".join(sorted(installed_models)),
+            "missing_models": ",".join(missing_models or []),
+            "reachable": str(reachable).lower(),
+        }

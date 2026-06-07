@@ -102,6 +102,10 @@ def test_ollama_health_verifies_configured_models() -> None:
     assert component.status == "ok"
     assert "nomic-embed-text" in component.details
     assert "llama3.2" in component.details
+    assert component.metadata["reachable"] == "true"
+    assert component.metadata["installed_models"] == (
+        "llama3.2:latest,nomic-embed-text:latest"
+    )
 
 
 def test_command_runner_fake_reports_ok_without_execution() -> None:

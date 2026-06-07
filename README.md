@@ -88,6 +88,10 @@ Reset local app data by stopping the API and deleting `.ai-workbench/`.
 - `POST /commands/{command_id}/reject`
 - `POST /commands/{command_id}/execute`
 - `POST /projects/scan`
+- `GET /runtime/health`
+- `POST /runtime/setup-guide`
+- `POST /onboarding/plan`
+- `POST /onboarding/setup-commands`
 
 Example workspace payload:
 
@@ -301,6 +305,25 @@ curl -X POST http://127.0.0.1:8000/onboarding/setup-commands \
 Use `"container_runtime": "docker"` to receive the Docker Compose Qdrant instruction instead. Plans that recommend Qdrant include its container setup command, plans that recommend Ollama include model-pull instructions, and every plan includes an example backend start command with the recommended provider settings.
 
 These commands are instructions only. They are classified with the deterministic command-risk classifier, always return `can_be_proposed: false`, are never executed, and are never automatically created as workspace command proposals.
+
+### Runtime Setup Guide
+
+The runtime setup guide combines the desired onboarding runtime with lightweight current runtime health, then marks each setup instruction as `done` or `needed`:
+
+```bash
+curl -X POST http://127.0.0.1:8000/runtime/setup-guide \
+  -H "Content-Type: application/json" \
+  -d '{
+    "assistant_profile_id": "devops",
+    "laptop_profile_id": "balanced",
+    "privacy_mode": "local_only",
+    "container_runtime": "podman"
+  }'
+```
+
+Use `"container_runtime": "docker"` for Docker-oriented Qdrant instructions. The guide marks Qdrant setup done when the selected Qdrant runtime is reachable, marks Ollama model pulls done only when the required models are reported as installed, and recommends a backend restart when the current provider settings differ from the onboarding plan.
+
+The overall status is `ready` when all required actions are done, `degraded` when a configured runtime dependency is unhealthy, and `needs_setup` otherwise. The endpoint performs only lightweight runtime health checks; it does not execute commands, create proposals, index workspaces, ask questions, or mutate workspace data.
 
 ## Qdrant Vector Store
 

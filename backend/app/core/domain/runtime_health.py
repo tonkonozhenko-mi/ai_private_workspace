@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -8,6 +8,7 @@ class RuntimeComponentHealth:
     healthy: bool
     status: str
     details: str | None
+    metadata: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
