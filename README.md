@@ -92,6 +92,7 @@ Reset local app data by stopping the API and deleting `.ai-workbench/`.
 - `POST /runtime/setup-guide`
 - `POST /onboarding/plan`
 - `POST /onboarding/setup-commands`
+- `POST /onboarding/bootstrap-workspace`
 
 Example workspace payload:
 
@@ -324,6 +325,27 @@ curl -X POST http://127.0.0.1:8000/runtime/setup-guide \
 Use `"container_runtime": "docker"` for Docker-oriented Qdrant instructions. The guide marks Qdrant setup done when the selected Qdrant runtime is reachable, marks Ollama model pulls done only when the required models are reported as installed, and recommends a backend restart when the current provider settings differ from the onboarding plan.
 
 The overall status is `ready` when all required actions are done, `degraded` when a configured runtime dependency is unhealthy, and `needs_setup` otherwise. The endpoint performs only lightweight runtime health checks; it does not execute commands, create proposals, index workspaces, ask questions, or mutate workspace data.
+
+### Onboarding Bootstrap Workspace
+
+After the user selects their project and onboarding preferences, create the workspace and return its initial wizard state with one call:
+
+```bash
+curl -X POST http://127.0.0.1:8000/onboarding/bootstrap-workspace \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Project",
+    "project_path": "/absolute/path/to/project",
+    "assistant_profile_id": "devops",
+    "laptop_profile_id": "balanced",
+    "privacy_mode": "local_only",
+    "container_runtime": "podman"
+  }'
+```
+
+The response includes the persisted workspace, onboarding plan, setup-command instructions, runtime setup guide, initial workspace readiness, and ordered next steps. The selected assistant profile is stored as the workspace `assistant_mode`, and workspace creation is recorded in the persistent timeline.
+
+Bootstrap validates non-empty workspace fields and known assistant, laptop, and container-runtime selections. It does not validate that the project path exists yet. It also does not scan or index the project, create command proposals, execute commands, or perform additional provider checks beyond the runtime setup guide.
 
 ## Qdrant Vector Store
 
