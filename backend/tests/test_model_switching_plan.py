@@ -26,6 +26,7 @@ def test_llm_switch_does_not_require_reindex() -> None:
         "retrieval",
         "vector_index",
     }
+    assert any("per-request LLM override" in note for note in plan["notes"])
 
 
 def test_embedding_switch_requires_reindex_and_new_collection() -> None:

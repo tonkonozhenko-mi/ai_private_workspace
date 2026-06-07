@@ -18,9 +18,9 @@ ADVISORY_NOTE = (
     "This plan is advisory and does not call models, download models, change "
     "runtime settings, reindex, or mutate workspace data."
 )
-RESTART_NOTE = (
-    "Current runtime may require restart until per-request model override is "
-    "implemented."
+OVERRIDE_NOTE = (
+    "Per-request LLM override supports fake and ollama candidates without changing "
+    "active runtime settings or restarting the backend."
 )
 MEASUREMENT_NOTE = (
     "A future experiment run should measure answer quality, source grounding, "
@@ -86,12 +86,12 @@ class CreateModelExperimentPlanUseCase:
         actions.extend(
             [
                 "Ensure candidate models are installed locally.",
-                "Run experiment after runtime model override support is available.",
+                "Use per-request LLM override to run supported candidates.",
                 "Compare answer quality, source grounding, warnings, and latency.",
             ]
         )
 
-        notes = [ADVISORY_NOTE, RESTART_NOTE, MEASUREMENT_NOTE]
+        notes = [ADVISORY_NOTE, OVERRIDE_NOTE, MEASUREMENT_NOTE]
         if is_indexed:
             notes.append(
                 "The saved workspace index can provide shared context to every "
@@ -152,6 +152,7 @@ class CreateModelExperimentPlanUseCase:
         provider = candidate.provider.strip().lower()
         model_name = candidate.model.strip()
         catalog_model = self._find_catalog_model(provider, model_name)
+        provider_supported = provider in {"fake", "ollama"}
         warnings: list[str] = []
 
         if catalog_model is None:
@@ -185,7 +186,7 @@ class CreateModelExperimentPlanUseCase:
             ),
             model_type="llm",
             requires_reindex=False,
-            requires_backend_restart=True,
+            requires_backend_restart=not provider_supported,
             warnings=warnings,
         )
 

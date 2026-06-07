@@ -25,7 +25,7 @@ def test_indexed_workspace_llm_comparison_requires_no_reindex(tmp_path) -> None:
         candidate["requires_reindex"] is False for candidate in plan["candidates"]
     )
     assert all(
-        candidate["requires_backend_restart"] is True
+        candidate["requires_backend_restart"] is False
         for candidate in plan["candidates"]
     )
 
@@ -81,6 +81,7 @@ def test_unknown_candidate_produces_warnings(tmp_path) -> None:
         "Provider custom requires a compatible LLM provider adapter."
         in candidate["warnings"]
     )
+    assert candidate["requires_backend_restart"] is True
 
 
 def test_empty_question_returns_clear_error(tmp_path) -> None:

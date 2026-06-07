@@ -7,6 +7,10 @@ from app.core.domain.rag_prompt import build_workspace_question_prompt
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.llm_provider import LLMProviderPort
+from app.core.ports.llm_provider_factory import (
+    LLMProviderFactoryError,
+    LLMProviderFactoryPort,
+)
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -39,9 +43,15 @@ class AskWorkspaceQuestionInput:
     workspace_id: str
     question: str
     limit: int = 5
+    llm_provider_override: str | None = None
+    llm_model_override: str | None = None
 
 
 class AskWorkspaceQuestionNotFoundError(ValueError):
+    pass
+
+
+class AskWorkspaceQuestionValidationError(ValueError):
     pass
 
 
@@ -51,14 +61,14 @@ class AskWorkspaceQuestionUseCase:
         workspace_repository: WorkspaceRepositoryPort,
         embedding_provider: EmbeddingProviderPort,
         vector_store: VectorStorePort,
-        llm_provider: LLMProviderPort,
+        llm_provider_factory: LLMProviderFactoryPort,
         index_status_repository: IndexStatusRepositoryPort,
         timeline_repository: TimelineRepositoryPort | None = None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.embedding_provider = embedding_provider
         self.vector_store = vector_store
-        self.llm_provider = llm_provider
+        self.llm_provider_factory = llm_provider_factory
         self.index_status_repository = index_status_repository
         self.timeline_repository = timeline_repository
 
@@ -70,11 +80,13 @@ class AskWorkspaceQuestionUseCase:
         if workspace is None:
             raise AskWorkspaceQuestionNotFoundError("Workspace not found")
 
+        llm_provider = self._create_llm_provider(request)
         index_status = self.index_status_repository.get(request.workspace_id)
         if index_status is None or index_status.status == "not_indexed":
             return self._record_question_event(
                 self._diagnostic_answer(
                     request=request,
+                    llm_provider=llm_provider,
                     answer=WORKSPACE_NOT_INDEXED_ANSWER,
                     diagnostic_code="workspace_not_indexed",
                     diagnostic_message=WORKSPACE_NOT_INDEXED_MESSAGE,
@@ -97,6 +109,7 @@ class AskWorkspaceQuestionUseCase:
                 return self._record_question_event(
                     self._diagnostic_answer(
                         request=request,
+                        llm_provider=llm_provider,
                         answer=INDEX_METADATA_WITHOUT_CHUNKS_ANSWER,
                         diagnostic_code="index_metadata_exists_but_no_chunks_found",
                         diagnostic_message=INDEX_METADATA_WITHOUT_CHUNKS_MESSAGE,
@@ -105,6 +118,7 @@ class AskWorkspaceQuestionUseCase:
             return self._record_question_event(
                 self._diagnostic_answer(
                     request=request,
+                    llm_provider=llm_provider,
                     answer=NO_RELEVANT_CONTEXT_ANSWER,
                     diagnostic_code="no_relevant_context_found",
                     diagnostic_message=NO_RELEVANT_CONTEXT_MESSAGE,
@@ -115,7 +129,7 @@ class AskWorkspaceQuestionUseCase:
             question=request.question,
             context_results=context_results,
         )
-        answer = self.llm_provider.generate(prompt)
+        answer = llm_provider.generate(prompt)
         quality_warnings = evaluate_rag_answer(
             question=request.question,
             answer=answer,
@@ -130,8 +144,8 @@ class AskWorkspaceQuestionUseCase:
                 answer=answer,
                 sources=sources,
                 used_context_chunks=len(context_results),
-                llm_provider=self.llm_provider.provider_name,
-                llm_model=self.llm_provider.model_name,
+                llm_provider=llm_provider.provider_name,
+                llm_model=llm_provider.model_name,
                 diagnostic_code=None,
                 diagnostic_message=None,
                 quality_warnings=quality_warnings,
@@ -141,6 +155,7 @@ class AskWorkspaceQuestionUseCase:
     def _diagnostic_answer(
         self,
         request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort,
         answer: str,
         diagnostic_code: str,
         diagnostic_message: str,
@@ -151,11 +166,23 @@ class AskWorkspaceQuestionUseCase:
             answer=answer,
             sources=[],
             used_context_chunks=0,
-            llm_provider=self.llm_provider.provider_name,
-            llm_model=self.llm_provider.model_name,
+            llm_provider=llm_provider.provider_name,
+            llm_model=llm_provider.model_name,
             diagnostic_code=diagnostic_code,
             diagnostic_message=diagnostic_message,
         )
+
+    def _create_llm_provider(
+        self,
+        request: AskWorkspaceQuestionInput,
+    ) -> LLMProviderPort:
+        try:
+            return self.llm_provider_factory.create(
+                provider=request.llm_provider_override,
+                model=request.llm_model_override,
+            )
+        except LLMProviderFactoryError as exc:
+            raise AskWorkspaceQuestionValidationError(str(exc)) from exc
 
     def _search_context(
         self,

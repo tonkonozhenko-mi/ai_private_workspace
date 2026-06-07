@@ -3,6 +3,7 @@ from app.adapters.commands.local_command_runner import LocalCommandRunner
 from app.adapters.embeddings.fake_embedding_provider import FakeEmbeddingProvider
 from app.adapters.filesystem.local_file_system import LocalFileSystem
 from app.adapters.llm.fake_llm_provider import FakeLLMProvider
+from app.adapters.llm.llm_provider_factory import LLMProviderFactory
 from app.adapters.memory.in_memory_command_repository import InMemoryCommandRepository
 from app.adapters.memory.in_memory_index_status_repository import (
     InMemoryIndexStatusRepository,
@@ -34,6 +35,7 @@ from app.core.ports.command_runner import CommandRunnerPort
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.llm_provider import LLMProviderPort
+from app.core.ports.llm_provider_factory import LLMProviderFactoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.runtime_health_checker import RuntimeHealthCheckerPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
@@ -172,6 +174,16 @@ def build_llm_provider() -> LLMProviderPort:
     raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
 
 
+def build_llm_provider_factory() -> LLMProviderFactoryPort:
+    settings = get_settings()
+    return LLMProviderFactory(
+        default_provider=settings.llm_provider,
+        ollama_base_url=settings.ollama_base_url,
+        ollama_default_model=settings.ollama_llm_model,
+        ollama_timeout_seconds=settings.ollama_llm_timeout_seconds,
+    )
+
+
 def build_readiness_configuration() -> dict[str, str]:
     settings = get_settings()
     return {
@@ -237,7 +249,7 @@ timeline_repository = build_timeline_repository()
 file_system = LocalFileSystem()
 command_runner = build_command_runner()
 embedding_provider = build_embedding_provider()
-llm_provider = build_llm_provider()
+llm_provider_factory = build_llm_provider_factory()
 vector_store = build_vector_store()
 readiness_configuration = build_readiness_configuration()
 runtime_health_configuration = build_runtime_health_configuration()

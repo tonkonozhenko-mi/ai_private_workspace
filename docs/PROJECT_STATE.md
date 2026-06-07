@@ -138,13 +138,12 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Model Experiment Plan**
+**Per-request LLM override foundation**
 
-The backend can now deterministically plan a future same-question LLM
-comparison. Plans enrich candidates from current catalog metadata, inspect
-persisted workspace index status, and explain catalog, adapter, installation,
-restart, and measurement considerations without calling models or mutating
-state.
+The workspace ask flow can now select a supported fake or Ollama provider/model
+for one request without changing active runtime settings. Normal ask behavior
+remains configured-default compatible, and experiment plans now recognize that
+supported candidates do not require a backend restart.
 
 ## Recommended Next Task
 

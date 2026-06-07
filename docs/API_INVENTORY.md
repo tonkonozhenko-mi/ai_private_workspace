@@ -71,7 +71,7 @@ models, run benchmarks, or change active runtime configuration.
 | `POST /workspaces/{workspace_id}/index` | Chunk scanned files, embed them, and update the active vector store. | Index status, vector store, timeline | No | Filesystem plus configured embedding/vector providers | Workspace setup |
 | `GET /workspaces/{workspace_id}/index/status` | Get persistent index-status metadata. | No | No | No | Workspace setup |
 | `GET /workspaces/{workspace_id}/context/search` | Search active indexed context. | No | No | Configured embedding/vector providers | Context inspector |
-| `POST /workspaces/{workspace_id}/ask` | Retrieve context, generate an answer, and return diagnostics and quality warnings. | Timeline | No | Configured embedding/vector/LLM providers | Ask workspace |
+| `POST /workspaces/{workspace_id}/ask` | Retrieve context, generate an answer, and return diagnostics and quality warnings; optional `llm_provider`/`llm_model` select a supported provider for this request only. | Timeline | No | Configured embedding/vector providers and selected/default LLM provider | Ask workspace |
 
 ## Reports And Deterministic Analysis
 
