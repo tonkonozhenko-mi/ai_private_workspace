@@ -1,8 +1,13 @@
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.dependencies import (
+    embedding_provider,
     index_status_repository,
+    llm_provider_factory,
     model_catalog_registry,
+    model_experiment_repository,
+    timeline_repository,
+    vector_store,
     workspace_repository,
 )
 from app.api.schemas.model_catalog_schemas import (
@@ -20,6 +25,11 @@ from app.api.schemas.model_experiment_schemas import (
     CreateModelExperimentPlanRequest,
     ModelExperimentPlanResponse,
     to_model_experiment_plan_response,
+)
+from app.api.schemas.model_experiment_run_schemas import (
+    ModelExperimentRunResponse,
+    RunModelExperimentRequest,
+    to_model_experiment_run_response,
 )
 from app.api.schemas.model_switching_schemas import (
     CreateModelSwitchingPlanRequest,
@@ -39,6 +49,10 @@ from app.core.use_cases.create_model_experiment_plan import (
     ModelExperimentPlanValidationError,
     ModelExperimentPlanWorkspaceNotFoundError,
 )
+from app.core.use_cases.get_model_experiment_run import (
+    GetModelExperimentRunUseCase,
+    ModelExperimentRunNotFoundError,
+)
 from app.core.use_cases.list_model_catalog import (
     ListModelCatalogInput,
     ListModelCatalogUseCase,
@@ -49,6 +63,14 @@ from app.core.use_cases.recommend_models import (
     RecommendModelsUseCase,
 )
 from app.core.use_cases.reload_model_catalog import ReloadModelCatalogUseCase
+from app.core.use_cases.run_model_experiment import (
+    RunModelExperimentIndexRequiredError,
+    RunModelExperimentInput,
+    RunModelExperimentUseCase,
+    RunModelExperimentValidationError,
+    RunModelExperimentWorkspaceNotFoundError,
+)
+from app.core.domain.model_experiment_run import ModelExperimentCandidateRequest
 
 
 router = APIRouter(prefix="/models", tags=["models"])
@@ -184,3 +206,66 @@ def create_model_experiment_plan(
         ) from exc
 
     return to_model_experiment_plan_response(plan)
+
+
+@router.post("/experiments/run", response_model=ModelExperimentRunResponse)
+def run_model_experiment(
+    request: RunModelExperimentRequest,
+) -> ModelExperimentRunResponse:
+    try:
+        run = RunModelExperimentUseCase(
+            workspace_repository=workspace_repository,
+            index_status_repository=index_status_repository,
+            vector_store=vector_store,
+            embedding_provider=embedding_provider,
+            llm_provider_factory=llm_provider_factory,
+            model_experiment_repository=model_experiment_repository,
+            timeline_repository=timeline_repository,
+        ).execute(
+            RunModelExperimentInput(
+                workspace_id=request.workspace_id,
+                question=request.question,
+                experiment_type=request.experiment_type,
+                limit=request.limit,
+                candidates=[
+                    ModelExperimentCandidateRequest(
+                        provider=candidate.provider,
+                        model=candidate.model,
+                    )
+                    for candidate in request.candidates
+                ],
+            )
+        )
+    except RunModelExperimentWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except (
+        RunModelExperimentValidationError,
+        RunModelExperimentIndexRequiredError,
+    ) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return to_model_experiment_run_response(run)
+
+
+@router.get(
+    "/experiments/{experiment_id}",
+    response_model=ModelExperimentRunResponse,
+)
+def get_model_experiment(experiment_id: str) -> ModelExperimentRunResponse:
+    try:
+        run = GetModelExperimentRunUseCase(model_experiment_repository).execute(
+            experiment_id
+        )
+    except ModelExperimentRunNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return to_model_experiment_run_response(run)

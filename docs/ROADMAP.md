@@ -61,13 +61,13 @@ Delivered foundations include:
 - Deterministic model switching plans.
 - Deterministic model experiment plans.
 - Per-request LLM provider/model override foundation.
+- Persistent shared-context model experiment runs.
 
 Next planned tasks:
 
-1. Model Experiment Runs.
-2. Compare answers across models.
-3. Runtime model validation against installed Ollama models.
-4. Hugging Face metadata importer.
+1. Model experiment comparison report and scoring.
+2. Runtime model validation against installed Ollama models.
+3. Hugging Face metadata importer.
 
 This phase must keep model downloads, provider changes, reindexing, and runtime
 configuration changes explicit and user-controlled.

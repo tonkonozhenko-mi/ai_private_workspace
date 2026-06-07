@@ -32,6 +32,8 @@ filesystem, provider, or command-runner activity outside SQLite repositories.
 | `POST /models/recommend` | Rank catalog models for an assistant profile, laptop profile, task, and model type. | No | No | No | Model selection/setup wizard |
 | `POST /models/switching-plan` | Explain deterministic restart, reindex, and collection impact before switching a model. | No | No | No | Model selection/experiments |
 | `POST /models/experiments/plan` | Plan a shared-context LLM comparison and enrich candidates with catalog/runtime guidance. | No | No | No | Model experiments |
+| `POST /models/experiments/run` | Retrieve workspace context once, run explicitly requested LLM candidates, and persist comparison results. | Experiment and timeline | No | Configured embedding/vector providers plus explicitly selected LLM providers | Model experiments |
+| `GET /models/experiments/{experiment_id}` | Get a persisted model experiment run and candidate results. | No | No | No | Model experiments |
 
 The catalog is deterministic local metadata. An optional user JSON file is read
 at application startup or explicit reload, and valid unique-ID entries are
@@ -72,6 +74,7 @@ models, run benchmarks, or change active runtime configuration.
 | `GET /workspaces/{workspace_id}/index/status` | Get persistent index-status metadata. | No | No | No | Workspace setup |
 | `GET /workspaces/{workspace_id}/context/search` | Search active indexed context. | No | No | Configured embedding/vector providers | Context inspector |
 | `POST /workspaces/{workspace_id}/ask` | Retrieve context, generate an answer, and return diagnostics and quality warnings; optional `llm_provider`/`llm_model` select a supported provider for this request only. | Timeline | No | Configured embedding/vector providers and selected/default LLM provider | Ask workspace |
+| `GET /workspaces/{workspace_id}/model-experiments` | List newest persisted model experiment runs for a workspace. | No | No | No | Model experiments |
 
 ## Reports And Deterministic Analysis
 

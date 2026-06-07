@@ -138,16 +138,16 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Per-request LLM override foundation**
+**Model Experiment Run skeleton**
 
-The workspace ask flow can now select a supported fake or Ollama provider/model
-for one request without changing active runtime settings. Normal ask behavior
-remains configured-default compatible, and experiment plans now recognize that
-supported candidates do not require a backend restart.
+The backend can now execute explicit same-question model comparisons using one
+shared retrieved context and prompt. Per-candidate answers, failures, latency,
+source counts, and quality-warning counts are persisted, and each run creates a
+workspace timeline event.
 
 ## Recommended Next Task
 
-**Model Experiment Runs**
+**Model Experiment Comparison Report And Scoring**
 
 The next backend capability should record explicit model experiments so users
 can compare answers and behavior across candidate models without silently
