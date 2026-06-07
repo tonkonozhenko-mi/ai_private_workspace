@@ -1,5 +1,10 @@
 from fastapi.testclient import TestClient
 
+from app.core.domain.model_catalog_registry import ModelCatalogRegistry
+from app.core.use_cases.recommend_models import (
+    RecommendModelsInput,
+    RecommendModelsUseCase,
+)
 from app.main import app
 
 
@@ -61,8 +66,14 @@ def test_recommend_llm_for_balanced_devops_prefers_code_oriented_models() -> Non
         "ollama-qwen2.5-coder",
         "ollama-llama3.2",
     ]
-    assert recommendation_ids.index("ollama-qwen2.5-coder") < recommendation_ids.index(
-        "ollama-nomic-embed-text"
+    assert {
+        recommendation["model"]["model_type"]
+        for recommendation in result["recommendations"]
+    } == {"llm"}
+    assert not any(
+        "does not match requested type" in warning
+        for recommendation in result["recommendations"]
+        for warning in recommendation["warnings"]
     )
     assert result["recommendations"][0]["score"] == 90
 
@@ -74,6 +85,31 @@ def test_recommend_embedding_for_balanced_profile_includes_nomic_first() -> None
     recommendations = response.json()["recommendations"]
     assert recommendations[0]["model"]["id"] == "ollama-nomic-embed-text"
     assert recommendations[0]["model"]["embedding_dimension"] == 768
+    assert {
+        recommendation["model"]["model_type"] for recommendation in recommendations
+    } == {"embedding"}
+
+
+def test_recommendation_returns_empty_when_catalog_has_no_matching_model_type() -> None:
+    llm_models = [
+        model
+        for model in ModelCatalogRegistry().list_models()
+        if model.model_type == "llm"
+    ]
+    use_case = RecommendModelsUseCase(
+        model_catalog_registry=ModelCatalogRegistry(models=llm_models)
+    )
+
+    result = use_case.execute(
+        RecommendModelsInput(
+            assistant_profile_id="devops",
+            laptop_profile_id="balanced",
+            task_type="context_search",
+            model_type="embedding",
+        )
+    )
+
+    assert result.recommendations == []
 
 
 def test_low_power_recommendation_prefers_fake_model_and_includes_warnings() -> None:
