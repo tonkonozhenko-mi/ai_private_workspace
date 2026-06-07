@@ -15,6 +15,9 @@ approval workflow.
 - [API inventory](docs/API_INVENTORY.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Configuration](docs/CONFIGURATION.md)
+- [Project state and handoff](docs/PROJECT_STATE.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Next steps](docs/NEXT_STEPS.md)
 - Interactive API documentation after startup: `http://127.0.0.1:8000/docs`
 
 ## Runtime Modes
