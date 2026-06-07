@@ -77,6 +77,7 @@ Reset local app data by stopping the API and deleting `.ai-workbench/`.
 - `GET /workspaces/{workspace_id}/scan`
 - `GET /workspaces/{workspace_id}/summary`
 - `GET /workspaces/{workspace_id}/quick-start`
+- `GET /workspaces/{workspace_id}/dashboard`
 - `GET /workspaces/{workspace_id}/analysis/terraform`
 - `GET /workspaces/{workspace_id}/analysis/gitlab-ci`
 - `GET /workspaces/{workspace_id}/analysis/github-actions`
@@ -254,6 +255,18 @@ Quick Start reads the persisted latest scan and index-status metadata plus the c
 A new workspace recommends project scanning. A scanned workspace recommends indexing. An indexed workspace recommends asking the first workspace question. Indexed workspaces using the fake LLM or in-memory vector store remain usable but are labeled `indexed`; `ready` is reserved for indexed workspaces configured with a non-fake LLM and persistent vector store.
 
 Quick Start does not scan, index, execute commands, create command proposals, or call Qdrant or Ollama. When the in-memory vector store or fake LLM is configured, the response includes notes explaining their limitations.
+
+## Workspace Dashboard
+
+Use the dashboard endpoint as the main read model for a future workspace screen:
+
+```bash
+curl http://127.0.0.1:8000/workspaces/{workspace_id}/dashboard
+```
+
+The dashboard aggregates the existing workspace summary, readiness, Quick Start progress, assistant recommendation, five most recent timeline events, and runtime health. Its top-level status comes from workspace readiness, while the primary next action comes from Quick Start.
+
+The endpoint reuses existing deterministic read use cases. It does not scan or index the workspace, execute commands, create command proposals, or mutate workspace data. Runtime health may perform the same lightweight configured-provider checks used by `GET /runtime/health`.
 
 ## Runtime Health
 
