@@ -6,7 +6,7 @@ Workbench.
 The frontend currently reads:
 
 - workspace overview
-- selected workspace dashboard with Overview, Models, Actions, and Activity tabs
+- selected workspace dashboard with Overview, Ask, Models, Actions, and Activity tabs
 - workspace UI action catalog
 - workspace Models dashboard summary
 - detailed workspace Models dashboard and local AI activation guide
@@ -19,6 +19,11 @@ they are never executed by the frontend. The Actions tab is inspection-only:
 actions can be selected to review their endpoint, status, and safety details,
 but no action is invoked. The Activity tab presents the persisted backend
 timeline as a read-only event history with compact metadata previews.
+
+The Ask tab sends a question only after the user presses **Ask**, using
+`POST /workspaces/{workspace_id}/ask-selected`. Asking may create a persisted
+timeline event, but it does not execute commands, reindex automatically, or
+change runtime settings.
 
 ## Run
 
