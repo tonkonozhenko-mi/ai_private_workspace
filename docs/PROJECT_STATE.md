@@ -43,7 +43,8 @@ Core code must remain independent from FastAPI, SQLite, concrete adapters,
 Qdrant clients, Ollama clients, and subprocess execution.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [API_INVENTORY.md](API_INVENTORY.md),
-and [CONFIGURATION.md](CONFIGURATION.md) for detailed references.
+[FRONTEND_API_MAP.md](FRONTEND_API_MAP.md), and
+[CONFIGURATION.md](CONFIGURATION.md) for detailed references.
 
 ## Current Major Capabilities
 
@@ -138,18 +139,17 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Workspace UI Action Catalog**
+**Frontend API Mapping**
 
-The backend can now return stable frontend action metadata for a workspace,
-including HTTP method, endpoint, status, recommendation state, mutation flag,
-and deterministic primary action. It reads Quick Start, readiness, and compact
-model status without executing actions or probing providers.
+The repository now documents how backend aggregates, actions, provider
+boundaries, mutation behavior, and timeline effects map to the future app home,
+workspace tabs, and setup screens.
 
 ## Recommended Next Task
 
-**Frontend API Mapping / First UI Prototype**
+**First UI Prototype**
 
-The next capability should map stable backend aggregates and the UI Action
-Catalog into the first frontend screens and explicit user-triggered actions.
+The next capability should use the documented API map and UI Action Catalog to
+build the first frontend shell and workspace navigation.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.
