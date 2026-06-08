@@ -25,6 +25,9 @@ The Ask tab sends a question only after the user presses **Ask**, using
 timeline event, but it does not execute commands, reindex automatically, or
 change runtime settings. Recent Ask responses are kept as session history only
 inside the current browser tab; the frontend does not persist that history.
+The composer offers project-question examples and non-blocking guidance for
+likely general-chat questions, while still allowing every question to be
+submitted explicitly.
 
 ## Run
 

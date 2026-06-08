@@ -23,6 +23,42 @@ interface AskHistoryItem {
   response: WorkspaceQuestionAnswer;
 }
 
+const PROJECT_QUESTION_KEYWORDS = new Set([
+  "terraform",
+  "terragrunt",
+  "docker",
+  "kubernetes",
+  "helm",
+  "gitlab",
+  "github",
+  "pipeline",
+  "ci",
+  "cd",
+  "backend",
+  "frontend",
+  "code",
+  "file",
+  "project",
+  "config",
+  "configuration",
+  "deployment",
+  "dependency",
+  "module",
+  "state",
+  "workspace",
+  "error",
+  "issue",
+  "test",
+]);
+
+const EXAMPLE_QUESTIONS = [
+  "How is Terraform backend configured?",
+  "Which CI/CD systems are detected?",
+  "What should I review first in this project?",
+  "Are there any model/runtime setup issues?",
+  "What files are related to Kubernetes or Helm?",
+];
+
 export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
   const [question, setQuestion] = useState("");
   const [limit, setLimit] = useState(5);
@@ -34,6 +70,8 @@ export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
   const [loading, setLoading] = useState(false);
   const selectedHistoryItem =
     history.find((item) => item.id === selectedHistoryId) ?? history[0] ?? null;
+  const showGeneralQuestionHint =
+    question.trim().length > 0 && !isLikelyProjectQuestion(question);
 
   async function submitQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -96,6 +134,32 @@ export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
             />
+
+            {showGeneralQuestionHint ? (
+              <p className="ask-question-hint">
+                This looks like a general chat question. Workspace Ask works
+                best with project, code, infrastructure, CI/CD, or
+                configuration questions.
+              </p>
+            ) : null}
+
+            <div className="ask-examples">
+              <span>Example questions</span>
+              <div>
+                {EXAMPLE_QUESTIONS.map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    onClick={() => {
+                      setQuestion(example);
+                      setError(null);
+                    }}
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div className="ask-controls">
               <label>
@@ -221,6 +285,9 @@ function SessionHistory({
 
 function AnswerResult({ answer }: { answer: WorkspaceQuestionAnswer }) {
   const warnings = answer.quality_warnings ?? [];
+  const isMissingSourcePaths = warnings.some(
+    (warning) => warning.code === "answer_missing_source_paths",
+  );
 
   return (
     <section className="ask-results" aria-live="polite">
@@ -256,6 +323,13 @@ function AnswerResult({ answer }: { answer: WorkspaceQuestionAnswer }) {
       ) : null}
 
       {warnings.length > 0 ? <QualityWarnings warnings={warnings} /> : null}
+
+      {isMissingSourcePaths ? (
+        <p className="ask-source-path-note">
+          The model answered without mentioning source paths. Check retrieved
+          sources below.
+        </p>
+      ) : null}
 
       <Sources sources={answer.sources} />
     </section>
@@ -356,4 +430,9 @@ function formatTime(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+export function isLikelyProjectQuestion(question: string): boolean {
+  const words = question.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  return words.some((word) => PROJECT_QUESTION_KEYWORDS.has(word));
 }
