@@ -13,6 +13,9 @@ class ModelExperimentCandidateComparison:
     score: int
     score_reasons: list[str]
     warnings: list[str]
+    user_ratings_count: int
+    average_user_rating: float | None
+    preferred_votes: int
 
 
 @dataclass(frozen=True)

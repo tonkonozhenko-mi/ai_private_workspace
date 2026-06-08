@@ -110,6 +110,7 @@ The SQLite schema stores:
 - index-status metadata
 - timeline events and metadata JSON
 - model experiment runs and per-candidate result JSON
+- append-only user ratings for model experiment candidates
 
 Schema initialization uses `CREATE TABLE IF NOT EXISTS` and small compatible
 column migrations. SQL does not appear in core or API routes.
@@ -194,6 +195,13 @@ count, answer length, and latency, then recommends the highest-scoring completed
 candidate. This is intentionally not a semantic quality evaluator; it gives the
 UI a concise, explainable comparison while leaving deeper AI-assisted
 evaluation as future work.
+
+Manual candidate ratings form a separate user-feedback loop. A rating use case
+validates the saved experiment and candidate, then appends a rating record with
+an optional preference, tags, and comment. Original experiment answers remain
+immutable. Comparison summaries expose rating counts, averages, and preferred
+votes, but user ratings do not yet alter deterministic comparison scores or
+model recommendations.
 
 ## Testing Boundaries
 

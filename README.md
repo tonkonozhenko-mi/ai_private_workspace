@@ -196,6 +196,28 @@ The summary scores completed candidates from observable signals such as source
 count, quality-warning count, answer length, and latency. It is not a semantic
 quality evaluator, and it does not call another LLM.
 
+Save manual feedback for an experiment candidate and list the experiment's
+ratings:
+
+```bash
+curl -X POST http://127.0.0.1:8000/models/experiments/EXPERIMENT_ID/ratings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "fake",
+    "model": "fake-llm",
+    "rating": 4,
+    "is_preferred": true,
+    "tags": ["useful", "fast"],
+    "comment": "Clear enough for this test."
+  }'
+
+curl http://127.0.0.1:8000/models/experiments/EXPERIMENT_ID/ratings
+```
+
+Ratings are append-only user feedback. They do not rerun experiments, change
+original answers, call an LLM, or change runtime settings. Comparison summaries
+include rating counts, average ratings, and preferred votes.
+
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only
 when an experiment explicitly includes an Ollama candidate.

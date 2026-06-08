@@ -138,19 +138,20 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Model Experiment Comparison Summary**
+**Manual Model Experiment Candidate Ratings**
 
-The backend can now summarize saved same-question model experiment runs with
-candidate status, answer length, latency, source count, quality-warning count,
-deterministic scores, warnings, and a recommended completed candidate.
+The backend can now persist append-only user ratings, preferences, tags, and
+comments for saved model experiment candidates. Comparison summaries expose
+rating counts, averages, and preferred votes without changing original answers
+or deterministic candidate scores.
 
 ## Recommended Next Task
 
-**AI-Assisted Experiment Evaluator Or Ollama-Backed Real Experiments**
+**Model Recommendations From Historical Ratings**
 
-The next backend capability should either add a clearly separated evaluator over
-saved experiment answers or continue hardening real local Ollama experiment
-runs. It should remain explicit, local-first, and avoid silently changing the
-active runtime.
+The next backend capability should use accumulated manual feedback as an
+explicit, explainable signal in model recommendations. It should define clear
+minimum-sample and project/profile scoping rules and must not silently change
+the active runtime.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.

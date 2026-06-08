@@ -32,13 +32,18 @@ returns candidate completion state, answer length, latency, source count,
 quality-warning count, deterministic scores, warnings, and a recommended
 candidate.
 
-## Immediate Next Task: AI-Assisted Experiment Evaluator Or Real Ollama Experiments
+Manual **Model Experiment Candidate Ratings** are implemented at
+`POST /models/experiments/{experiment_id}/ratings` and
+`GET /models/experiments/{experiment_id}/ratings`. Users can append ratings,
+preferences, tags, and comments without changing original experiment answers.
+Comparison summaries expose rating counts, averages, and preferred votes.
 
-The next recommended backend task is either an AI-assisted evaluator over saved
-experiment results or an Ollama-backed real experiment flow. The evaluator
-should remain explicit and read-only at first: it can analyze saved answers,
-source grounding, warnings, and latency without silently selecting or activating
-a winning model.
+## Immediate Next Task: Model Recommendations From Historical Ratings
+
+The next recommended backend task is to use accumulated manual ratings as an
+explicit, explainable input to model recommendations. Historical feedback
+should remain separate from static catalog metadata and deterministic experiment
+scores, with clear minimum-sample and project/profile scoping rules.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 
@@ -48,6 +53,7 @@ This builds naturally on the catalog, recommendations, and switching plan:
 - The experiment plan explains comparison readiness and candidate warnings.
 - Experiments can compare candidate behavior before a user chooses a model.
 - Comparison summaries give the UI an explainable deterministic baseline.
+- Manual ratings capture real user/project feedback for future recommendations.
 
 ## Implemented Switching Rules
 
@@ -110,11 +116,12 @@ Expected purpose:
 
 ## Follow-On Tasks
 
-1. AI-assisted experiment evaluator or Ollama-backed real experiment polish.
-2. Runtime model validation against installed Ollama models.
-3. Hugging Face metadata importer.
-4. UI shell and model-management views.
-5. Desktop launcher and installer.
+1. Model recommendations from historical ratings.
+2. AI-assisted experiment evaluator or Ollama-backed real experiment polish.
+3. Runtime model validation against installed Ollama models.
+4. Hugging Face metadata importer.
+5. UI shell and model-management views.
+6. Desktop launcher and installer.
 
 ## Safety Requirements
 

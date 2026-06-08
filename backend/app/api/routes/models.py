@@ -6,6 +6,7 @@ from app.api.dependencies import (
     llm_provider_factory,
     model_catalog_registry,
     model_experiment_repository,
+    model_experiment_rating_repository,
     timeline_repository,
     vector_store,
     workspace_repository,
@@ -35,6 +36,11 @@ from app.api.schemas.model_experiment_comparison_schemas import (
     ModelExperimentComparisonSummaryResponse,
     to_model_experiment_comparison_summary_response,
 )
+from app.api.schemas.model_experiment_rating_schemas import (
+    ModelExperimentCandidateRatingResponse,
+    RateModelExperimentCandidateRequest,
+    to_model_experiment_candidate_rating_response,
+)
 from app.api.schemas.model_switching_schemas import (
     CreateModelSwitchingPlanRequest,
     ModelSwitchingPlanResponse,
@@ -61,6 +67,10 @@ from app.core.use_cases.get_model_experiment_comparison import (
     GetModelExperimentComparisonUseCase,
     ModelExperimentComparisonNotFoundError,
 )
+from app.core.use_cases.list_model_experiment_ratings import (
+    ListModelExperimentRatingsUseCase,
+    ModelExperimentRatingsNotFoundError,
+)
 from app.core.use_cases.list_model_catalog import (
     ListModelCatalogInput,
     ListModelCatalogUseCase,
@@ -71,6 +81,12 @@ from app.core.use_cases.recommend_models import (
     RecommendModelsUseCase,
 )
 from app.core.use_cases.reload_model_catalog import ReloadModelCatalogUseCase
+from app.core.use_cases.rate_model_experiment_candidate import (
+    ModelExperimentRatingNotFoundError,
+    ModelExperimentRatingValidationError,
+    RateModelExperimentCandidateInput,
+    RateModelExperimentCandidateUseCase,
+)
 from app.core.use_cases.run_model_experiment import (
     RunModelExperimentIndexRequiredError,
     RunModelExperimentInput,
@@ -288,7 +304,8 @@ def get_model_experiment_comparison(
 ) -> ModelExperimentComparisonSummaryResponse:
     try:
         summary = GetModelExperimentComparisonUseCase(
-            model_experiment_repository
+            model_experiment_repository,
+            model_experiment_rating_repository,
         ).execute(experiment_id)
     except ModelExperimentComparisonNotFoundError as exc:
         raise HTTPException(
@@ -297,3 +314,66 @@ def get_model_experiment_comparison(
         ) from exc
 
     return to_model_experiment_comparison_summary_response(summary)
+
+
+@router.post(
+    "/experiments/{experiment_id}/ratings",
+    response_model=ModelExperimentCandidateRatingResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def rate_model_experiment_candidate(
+    experiment_id: str,
+    request: RateModelExperimentCandidateRequest,
+) -> ModelExperimentCandidateRatingResponse:
+    try:
+        rating = RateModelExperimentCandidateUseCase(
+            model_experiment_repository=model_experiment_repository,
+            rating_repository=model_experiment_rating_repository,
+            timeline_repository=timeline_repository,
+        ).execute(
+            RateModelExperimentCandidateInput(
+                experiment_id=experiment_id,
+                provider=request.provider,
+                model=request.model,
+                rating=request.rating,
+                is_preferred=request.is_preferred,
+                tags=request.tags,
+                comment=request.comment,
+            )
+        )
+    except ModelExperimentRatingNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except ModelExperimentRatingValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return to_model_experiment_candidate_rating_response(rating)
+
+
+@router.get(
+    "/experiments/{experiment_id}/ratings",
+    response_model=list[ModelExperimentCandidateRatingResponse],
+)
+def list_model_experiment_ratings(
+    experiment_id: str,
+) -> list[ModelExperimentCandidateRatingResponse]:
+    try:
+        ratings = ListModelExperimentRatingsUseCase(
+            model_experiment_repository=model_experiment_repository,
+            rating_repository=model_experiment_rating_repository,
+        ).execute(experiment_id)
+    except ModelExperimentRatingsNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return [
+        to_model_experiment_candidate_rating_response(rating)
+        for rating in ratings
+    ]
