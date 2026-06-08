@@ -12,12 +12,28 @@ interface AskWorkspaceProps {
   onAsked?: () => void | Promise<void>;
 }
 
+interface AskHistoryItem {
+  id: string;
+  question: string;
+  answer: string;
+  llmLabel: string;
+  sourcesCount: number;
+  warningsCount: number;
+  createdAt: string;
+  response: WorkspaceQuestionAnswer;
+}
+
 export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
   const [question, setQuestion] = useState("");
   const [limit, setLimit] = useState(5);
-  const [answer, setAnswer] = useState<WorkspaceQuestionAnswer | null>(null);
+  const [history, setHistory] = useState<AskHistoryItem[]>([]);
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const selectedHistoryItem =
+    history.find((item) => item.id === selectedHistoryId) ?? history[0] ?? null;
 
   async function submitQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,7 +51,9 @@ export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
         trimmedQuestion,
         limit,
       );
-      setAnswer(result);
+      const historyItem = createHistoryItem(result);
+      setHistory((current) => [historyItem, ...current].slice(0, 10));
+      setSelectedHistoryId(historyItem.id);
       await onAsked?.();
     } catch (requestError) {
       setError(
@@ -54,65 +72,150 @@ export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
 
   return (
     <div className="ask-workspace">
-      <section className="panel ask-composer">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Selected workspace LLM</p>
-            <h2>Ask about this project</h2>
+      <div className="ask-sidebar">
+        <section className="panel ask-composer">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Selected workspace LLM</p>
+              <h2>Ask about this project</h2>
+            </div>
+            <span className="status-badge status-available">manual submit</span>
           </div>
-          <span className="status-badge status-available">manual submit</span>
-        </div>
 
-        <p className="ask-safety-note">
-          Questions are sent only when you press Ask. This does not execute
-          commands or change runtime settings.
-        </p>
+          <p className="ask-safety-note">
+            Questions are sent only when you press Ask. This does not execute
+            commands or change runtime settings.
+          </p>
 
-        <form onSubmit={(event) => void submitQuestion(event)}>
-          <label htmlFor="workspace-question">Question</label>
-          <textarea
-            id="workspace-question"
-            placeholder="How is Terraform backend configured?"
-            rows={5}
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-          />
+          <form onSubmit={(event) => void submitQuestion(event)}>
+            <label htmlFor="workspace-question">Question</label>
+            <textarea
+              id="workspace-question"
+              placeholder="How is Terraform backend configured?"
+              rows={5}
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+            />
 
-          <div className="ask-controls">
-            <label>
-              Context chunks
-              <select
-                value={limit}
-                onChange={(event) => setLimit(Number(event.target.value))}
+            <div className="ask-controls">
+              <label>
+                Context chunks
+                <select
+                  value={limit}
+                  onChange={(event) => setLimit(Number(event.target.value))}
+                >
+                  <option value={3}>3</option>
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                </select>
+              </label>
+              <button
+                className="primary-button"
+                type="submit"
+                disabled={loading || question.trim().length === 0}
               >
-                <option value={3}>3</option>
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-              </select>
-            </label>
-            <button
-              className="primary-button"
-              type="submit"
-              disabled={loading || question.trim().length === 0}
-            >
-              {loading ? "Asking..." : "Ask"}
-            </button>
-          </div>
-        </form>
+                {loading ? "Asking..." : "Ask"}
+              </button>
+            </div>
+          </form>
 
-        {error ? (
-          <div className="ask-error" role="alert">
-            <strong>Could not ask workspace</strong>
-            <span>{error}</span>
-            {missingSelectedLLM ? (
-              <span>Select an LLM in the Models tab, then try again.</span>
-            ) : null}
-          </div>
-        ) : null}
-      </section>
+          {error ? (
+            <div className="ask-error" role="alert">
+              <strong>Could not ask workspace</strong>
+              <span>{error}</span>
+              {missingSelectedLLM ? (
+                <span>Select an LLM in the Models tab, then try again.</span>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
 
-      {answer ? <AnswerResult answer={answer} /> : <AskEmptyState />}
+        <SessionHistory
+          history={history}
+          selectedHistoryId={selectedHistoryItem?.id ?? null}
+          onSelect={setSelectedHistoryId}
+          onClear={() => {
+            setHistory([]);
+            setSelectedHistoryId(null);
+          }}
+        />
+      </div>
+
+      {selectedHistoryItem ? (
+        <AnswerResult answer={selectedHistoryItem.response} />
+      ) : (
+        <AskEmptyState />
+      )}
     </div>
+  );
+}
+
+function SessionHistory({
+  history,
+  selectedHistoryId,
+  onSelect,
+  onClear,
+}: {
+  history: AskHistoryItem[];
+  selectedHistoryId: string | null;
+  onSelect: (id: string) => void;
+  onClear: () => void;
+}) {
+  return (
+    <section className="panel ask-history-panel">
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">Current browser tab</p>
+          <h2>Session questions</h2>
+        </div>
+        <span className="panel-count">{history.length}</span>
+      </div>
+
+      <p className="ask-history-note">
+        Session history is stored only in this browser tab and is not persisted
+        by the frontend.
+      </p>
+
+      {history.length > 0 ? (
+        <>
+          <div className="ask-history-list">
+            {history.map((item) => (
+              <button
+                aria-pressed={selectedHistoryId === item.id}
+                className={`ask-history-item${
+                  selectedHistoryId === item.id ? " is-selected" : ""
+                }`}
+                key={item.id}
+                type="button"
+                onClick={() => onSelect(item.id)}
+              >
+                <strong>{item.question}</strong>
+                <p>{item.answer || "Empty answer"}</p>
+                <div>
+                  <span>{item.llmLabel}</span>
+                  <span>{item.sourcesCount} sources</span>
+                  <span>{item.warningsCount} warnings</span>
+                  <time dateTime={item.createdAt}>
+                    {formatTime(item.createdAt)}
+                  </time>
+                </div>
+              </button>
+            ))}
+          </div>
+          <button
+            className="session-clear-button"
+            type="button"
+            onClick={onClear}
+          >
+            Clear session history
+          </button>
+        </>
+      ) : (
+        <p className="empty-panel-state">
+          No questions asked in this session yet.
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -233,4 +336,24 @@ function AskEmptyState() {
 
 function formatLabel(value: string) {
   return value.replaceAll("_", " ");
+}
+
+function createHistoryItem(response: WorkspaceQuestionAnswer): AskHistoryItem {
+  return {
+    id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
+    question: response.question,
+    answer: response.answer,
+    llmLabel: `${response.llm_provider}/${response.llm_model ?? "default"}`,
+    sourcesCount: response.sources.length,
+    warningsCount: response.quality_warnings?.length ?? 0,
+    createdAt: new Date().toISOString(),
+    response,
+  };
+}
+
+function formatTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }

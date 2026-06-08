@@ -23,7 +23,8 @@ timeline as a read-only event history with compact metadata previews.
 The Ask tab sends a question only after the user presses **Ask**, using
 `POST /workspaces/{workspace_id}/ask-selected`. Asking may create a persisted
 timeline event, but it does not execute commands, reindex automatically, or
-change runtime settings.
+change runtime settings. Recent Ask responses are kept as session history only
+inside the current browser tab; the frontend does not persist that history.
 
 ## Run
 

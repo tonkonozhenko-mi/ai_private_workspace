@@ -610,7 +610,9 @@ code {
   align-items: start;
 }
 
-.ask-composer {
+.ask-sidebar {
+  display: grid;
+  gap: 12px;
   position: sticky;
   top: 20px;
 }
@@ -705,6 +707,108 @@ code {
 .ask-results {
   display: grid;
   gap: 12px;
+}
+
+.ask-history-note {
+  margin: 12px 0;
+  color: #718089;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.ask-history-list {
+  display: grid;
+  gap: 6px;
+  max-height: 430px;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.ask-history-item {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  color: inherit;
+  text-align: left;
+  background: #f8fafb;
+  border: 1px solid #e1e7ea;
+  border-radius: 5px;
+}
+
+.ask-history-item:hover {
+  background: #f1f6f3;
+  border-color: #c5dacf;
+}
+
+.ask-history-item.is-selected {
+  background: #edf5f1;
+  border-color: #98c0ad;
+  box-shadow: inset 3px 0 #4c9274;
+}
+
+.ask-history-item strong,
+.ask-history-item p {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ask-history-item strong {
+  color: #2d3d45;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.ask-history-item p {
+  display: -webkit-box;
+  margin: 0;
+  color: #6a7881;
+  font-size: 10px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ask-history-item > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 9px;
+  color: #87939b;
+  font-size: 8px;
+}
+
+.ask-history-item > div span:first-child {
+  overflow: hidden;
+  max-width: 100%;
+  color: #3f6856;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ask-history-item time {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.session-clear-button {
+  min-height: 30px;
+  margin-top: 10px;
+  padding: 6px 9px;
+  color: #6d5151;
+  background: transparent;
+  border: 1px solid #d7c6c6;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.session-clear-button:hover {
+  color: #823d3d;
+  background: #faeeee;
+  border-color: #dbaaaa;
 }
 
 .answer-model {
@@ -1818,7 +1922,7 @@ code {
     grid-template-columns: 1fr;
   }
 
-  .ask-composer {
+  .ask-sidebar {
     position: static;
   }
 

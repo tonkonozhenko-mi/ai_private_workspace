@@ -240,13 +240,13 @@ function App() {
                   modelsSummary={detail.modelsSummary}
                 />
               ) : null}
-              {activeTab === "ask" ? (
+              <div hidden={activeTab !== "ask"}>
                 <AskWorkspace
                   key={detail.dashboard.workspace_id}
                   workspaceId={detail.dashboard.workspace_id}
                   onAsked={() => refreshAfterAsk(detail.dashboard.workspace_id)}
                 />
-              ) : null}
+              </div>
               {activeTab === "models" ? (
                 <div className="models-tab">
                   <div className="information-band">
