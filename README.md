@@ -21,6 +21,38 @@ approval workflow.
 - [Next steps](docs/NEXT_STEPS.md)
 - Interactive API documentation after startup: `http://127.0.0.1:8000/docs`
 
+## Frontend Prototype
+
+The first read-only Vite, React, and TypeScript frontend shows the workspace
+list, selected workspace dashboard, compact Models summary, and Workspace UI
+Action Catalog.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend uses `http://127.0.0.1:8000` as the backend URL by default.
+Override it when needed:
+
+```bash
+VITE_API_BASE_URL=http://127.0.0.1:8000 npm run dev
+```
+
+The prototype only fetches read-only endpoints. It displays action-catalog
+routes but never invokes them. The backend permits `http://localhost:5173` and
+`http://127.0.0.1:5173` by default for local Vite development.
+
+If the frontend runs on another origin, restart the backend with an explicit
+comma-separated allowlist:
+
+```bash
+cd backend
+CORS_ALLOWED_ORIGINS=http://localhost:4173,http://127.0.0.1:4173 \
+uvicorn app.main:app --reload
+```
+
 ## Runtime Modes
 
 The default mode is dependency-light and safe for development:

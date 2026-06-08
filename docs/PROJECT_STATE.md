@@ -139,17 +139,18 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Frontend API Mapping**
+**First Frontend Skeleton**
 
-The repository now documents how backend aggregates, actions, provider
-boundaries, mutation behavior, and timeline effects map to the future app home,
-workspace tabs, and setup screens.
+The repository now includes a minimal Vite, React, and TypeScript frontend that
+loads the workspace overview, selected workspace dashboard, compact Models
+summary, and read-only UI Action Catalog.
 
 ## Recommended Next Task
 
-**First UI Prototype**
+**Frontend Navigation And Read-Only Detail Screens**
 
-The next capability should use the documented API map and UI Action Catalog to
-build the first frontend shell and workspace navigation.
+The next capability should extend the frontend shell into tabbed workspace
+navigation and additional read-only detail screens before enabling explicit
+mutating actions.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.
