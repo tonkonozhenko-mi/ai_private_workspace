@@ -26,12 +26,19 @@ Persistent **Model Experiment Runs** are implemented at
 executes explicitly selected candidates against the same prompt, isolates
 candidate failures, persists results, and records timeline activity.
 
-## Immediate Next Task: Model Experiment Comparison Report And Scoring
+The deterministic **Model Experiment Comparison Summary** is implemented at
+`GET /models/experiments/{experiment_id}/comparison`. It reads a saved run and
+returns candidate completion state, answer length, latency, source count,
+quality-warning count, deterministic scores, warnings, and a recommended
+candidate.
 
-The next recommended backend task is a deterministic comparison report and
-scoring layer over persisted experiment runs. It should summarize answer
-quality signals, source grounding, warnings, latency, and failures without
-silently selecting or activating a winning model.
+## Immediate Next Task: AI-Assisted Experiment Evaluator Or Real Ollama Experiments
+
+The next recommended backend task is either an AI-assisted evaluator over saved
+experiment results or an Ollama-backed real experiment flow. The evaluator
+should remain explicit and read-only at first: it can analyze saved answers,
+source grounding, warnings, and latency without silently selecting or activating
+a winning model.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 
@@ -40,6 +47,7 @@ This builds naturally on the catalog, recommendations, and switching plan:
 - The switching plan explains operational consequences.
 - The experiment plan explains comparison readiness and candidate warnings.
 - Experiments can compare candidate behavior before a user chooses a model.
+- Comparison summaries give the UI an explainable deterministic baseline.
 
 ## Implemented Switching Rules
 
@@ -102,7 +110,7 @@ Expected purpose:
 
 ## Follow-On Tasks
 
-1. Model experiment comparison report and scoring.
+1. AI-assisted experiment evaluator or Ollama-backed real experiment polish.
 2. Runtime model validation against installed Ollama models.
 3. Hugging Face metadata importer.
 4. UI shell and model-management views.

@@ -187,6 +187,14 @@ This keeps comparisons fair: candidates receive identical retrieved context,
 and no candidate triggers reindexing, model downloads, runtime-setting changes,
 or shell commands.
 
+Persisted experiment runs can also be summarized by a deterministic comparison
+read model. The comparison use case reads a saved run, scores each candidate
+from observable signals such as completion status, source count, quality-warning
+count, answer length, and latency, then recommends the highest-scoring completed
+candidate. This is intentionally not a semantic quality evaluator; it gives the
+UI a concise, explainable comparison while leaving deeper AI-assisted
+evaluation as future work.
+
 ## Testing Boundaries
 
 Normal tests use fake providers, in-memory vector storage, temporary SQLite

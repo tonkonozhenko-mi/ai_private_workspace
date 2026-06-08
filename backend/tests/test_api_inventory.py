@@ -21,6 +21,7 @@ IMPORTANT_PATHS = {
     "/models/experiments/plan",
     "/models/experiments/run",
     "/models/experiments/{experiment_id}",
+    "/models/experiments/{experiment_id}/comparison",
     "/onboarding/plan",
     "/onboarding/bootstrap-workspace",
     "/projects/scan",

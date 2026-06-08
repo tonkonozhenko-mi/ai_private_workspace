@@ -62,10 +62,11 @@ Delivered foundations include:
 - Deterministic model experiment plans.
 - Per-request LLM provider/model override foundation.
 - Persistent shared-context model experiment runs.
+- Deterministic model experiment comparison summaries.
 
 Next planned tasks:
 
-1. Model experiment comparison report and scoring.
+1. AI-assisted experiment evaluator or Ollama-backed real experiment polish.
 2. Runtime model validation against installed Ollama models.
 3. Hugging Face metadata importer.
 

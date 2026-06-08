@@ -31,6 +31,10 @@ from app.api.schemas.model_experiment_run_schemas import (
     RunModelExperimentRequest,
     to_model_experiment_run_response,
 )
+from app.api.schemas.model_experiment_comparison_schemas import (
+    ModelExperimentComparisonSummaryResponse,
+    to_model_experiment_comparison_summary_response,
+)
 from app.api.schemas.model_switching_schemas import (
     CreateModelSwitchingPlanRequest,
     ModelSwitchingPlanResponse,
@@ -52,6 +56,10 @@ from app.core.use_cases.create_model_experiment_plan import (
 from app.core.use_cases.get_model_experiment_run import (
     GetModelExperimentRunUseCase,
     ModelExperimentRunNotFoundError,
+)
+from app.core.use_cases.get_model_experiment_comparison import (
+    GetModelExperimentComparisonUseCase,
+    ModelExperimentComparisonNotFoundError,
 )
 from app.core.use_cases.list_model_catalog import (
     ListModelCatalogInput,
@@ -269,3 +277,23 @@ def get_model_experiment(experiment_id: str) -> ModelExperimentRunResponse:
         ) from exc
 
     return to_model_experiment_run_response(run)
+
+
+@router.get(
+    "/experiments/{experiment_id}/comparison",
+    response_model=ModelExperimentComparisonSummaryResponse,
+)
+def get_model_experiment_comparison(
+    experiment_id: str,
+) -> ModelExperimentComparisonSummaryResponse:
+    try:
+        summary = GetModelExperimentComparisonUseCase(
+            model_experiment_repository
+        ).execute(experiment_id)
+    except ModelExperimentComparisonNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return to_model_experiment_comparison_summary_response(summary)
