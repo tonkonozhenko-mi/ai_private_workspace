@@ -76,6 +76,147 @@ export interface WorkspaceModelsDashboardSummary {
   notes: string[];
 }
 
+export interface WorkspaceSelectedModel {
+  provider: string;
+  model: string;
+  model_type: string;
+  selected_at: string;
+  selected_reason: string | null;
+}
+
+export interface SelectedModelRuntimeStatus {
+  model_type: string;
+  selected_provider: string | null;
+  selected_model: string | null;
+  active_provider: string;
+  active_model: string;
+  matches_active_runtime: boolean;
+  requires_backend_restart: boolean;
+  requires_reindex: boolean;
+  status: string;
+  message: string;
+}
+
+export interface SelectedModelUsagePlan {
+  can_ask_with_selected_llm: boolean;
+  can_index_with_selected_embedding: boolean;
+  can_search_with_selected_embedding: boolean;
+  can_use_selected_models_fully: boolean;
+  active_llm_provider: string;
+  active_llm_model: string;
+  active_embedding_provider: string;
+  active_embedding_model: string;
+  index_status: string;
+  recommended_actions: string[];
+  notes: string[];
+}
+
+export interface LocalModelDefinition {
+  id: string;
+  provider: string;
+  model_name: string;
+  model_type: string;
+  display_name: string;
+  description: string;
+  capabilities: string[];
+  quality_tier: string;
+  speed_tier: string;
+  notes: string[];
+}
+
+export interface WorkspaceModelRecommendation {
+  model: LocalModelDefinition;
+  catalog_score: number;
+  performance_score: number | null;
+  final_score: number;
+  reasons: string[];
+  warnings: string[];
+  historical_signals: Record<string, string>;
+}
+
+export interface WorkspaceModelRecommendationResult {
+  recommendations: WorkspaceModelRecommendation[];
+  notes: string[];
+}
+
+export interface ModelPerformanceItem {
+  provider: string;
+  model: string;
+  experiments_count: number;
+  completed_runs_count: number;
+  failed_runs_count: number;
+  ratings_count: number;
+  average_rating: number | null;
+  preferred_votes: number;
+  average_latency_ms: number | null;
+  average_quality_warnings_count: number | null;
+  average_sources_count: number | null;
+  common_tags: string[];
+  score: number;
+  score_reasons: string[];
+}
+
+export interface ModelPerformanceSummary {
+  items: ModelPerformanceItem[];
+  notes: string[];
+}
+
+export interface WorkspaceModelsDashboard {
+  workspace_id: string;
+  selected_llm_provider: string | null;
+  selected_llm_model: string | null;
+  selected_embedding_provider: string | null;
+  selected_embedding_model: string | null;
+  overall_status: string;
+  primary_next_action_id: string | null;
+  primary_next_action_title: string | null;
+  selection: {
+    selected_llm: WorkspaceSelectedModel | null;
+    selected_embedding: WorkspaceSelectedModel | null;
+    notes: string[];
+  };
+  selection_status: {
+    llm_status: SelectedModelRuntimeStatus;
+    embedding_status: SelectedModelRuntimeStatus;
+    overall_status: string;
+    recommended_actions: string[];
+    notes: string[];
+  };
+  usage_plan: SelectedModelUsagePlan;
+  embedding_indexing_plan: {
+    plan_status: string;
+    warnings: string[];
+    notes: string[];
+  };
+  recommendations: WorkspaceModelRecommendationResult;
+  performance_summary: ModelPerformanceSummary;
+  notes: string[];
+}
+
+export interface LocalAIActivationStep {
+  id: string;
+  title: string;
+  description: string;
+  command: string | null;
+  commands: string[] | null;
+  status: string;
+  reason: string;
+  category: string;
+}
+
+export interface LocalAIActivationGuide {
+  workspace_id: string;
+  overall_status: string;
+  selected_llm: string | null;
+  selected_embedding: string | null;
+  active_llm: string;
+  active_embedding: string;
+  selected_vector_store: string | null;
+  active_vector_store: string;
+  steps: LocalAIActivationStep[];
+  notes: string[];
+}
+
 export interface WorkspaceDashboard {
   workspace_id: string;
   workspace_name: string;
@@ -118,4 +259,9 @@ export interface WorkspaceDetailBundle {
   dashboard: WorkspaceDashboard;
   actions: WorkspaceUIActionCatalog;
   modelsSummary: WorkspaceModelsDashboardSummary;
+}
+
+export interface WorkspaceModelsDetailBundle {
+  dashboard: WorkspaceModelsDashboard;
+  activationGuide: LocalAIActivationGuide;
 }
