@@ -757,6 +757,7 @@ code {
   display: grid;
   gap: 4px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .instruction-command-row > div > span {
@@ -770,8 +771,9 @@ code {
 
 .instruction-command-row code {
   display: block;
+  width: 100%;
+  min-width: 0;
   overflow-x: auto;
-  max-width: 100%;
   padding: 9px 10px;
   color: #d7e5dd;
   background: #25343d;
@@ -779,10 +781,34 @@ code {
   border-radius: 4px;
   font-size: 9px;
   line-height: 1.5;
+  scrollbar-color: #72868f #25343d;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
   white-space: pre;
 }
 
+.instruction-command-row code:focus {
+  outline: 2px solid #8fc4aa;
+  outline-offset: 2px;
+}
+
+.instruction-command-row code::-webkit-scrollbar {
+  height: 7px;
+}
+
+.instruction-command-row code::-webkit-scrollbar-track {
+  background: #25343d;
+}
+
+.instruction-command-row code::-webkit-scrollbar-thumb {
+  background: #72868f;
+  border: 2px solid #25343d;
+  border-radius: 999px;
+}
+
 .copy-button {
+  align-self: end;
+  flex-shrink: 0;
   min-width: 70px;
   min-height: 30px;
   padding: 6px 9px;
@@ -1303,6 +1329,7 @@ code {
   }
 
   .copy-button {
+    align-self: auto;
     justify-self: start;
   }
 

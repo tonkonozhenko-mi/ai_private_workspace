@@ -290,7 +290,9 @@ function CommandList({
             <span>
               {command === primaryCommand ? "Primary command" : "Alternative"}
             </span>
-            <code>{command}</code>
+            <code title={command} tabIndex={0}>
+              {command}
+            </code>
           </div>
           <CopyButton text={command} />
         </div>
