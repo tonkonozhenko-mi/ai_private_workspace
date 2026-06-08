@@ -736,7 +736,39 @@ code {
   text-transform: uppercase;
 }
 
-.instruction-commands code {
+.instruction-command-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  min-width: 0;
+  padding: 7px;
+  background: #edf1f3;
+  border: 1px solid #dbe3e7;
+  border-radius: 5px;
+}
+
+.instruction-command-row.is-primary {
+  background: #eaf3ef;
+  border-color: #bdd8ca;
+}
+
+.instruction-command-row > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.instruction-command-row > div > span {
+  color: #718087;
+  font-size: 8px;
+}
+
+.instruction-command-row.is-primary > div > span {
+  color: #367158;
+}
+
+.instruction-command-row code {
   display: block;
   overflow-x: auto;
   max-width: 100%;
@@ -748,6 +780,48 @@ code {
   font-size: 9px;
   line-height: 1.5;
   white-space: pre;
+}
+
+.copy-button {
+  min-width: 70px;
+  min-height: 30px;
+  padding: 6px 9px;
+  color: #40535c;
+  background: #ffffff;
+  border: 1px solid #bdc9cf;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.copy-button:hover {
+  color: #245b45;
+  background: #f2f7f4;
+  border-color: #86ad9a;
+}
+
+.copy-button.is-copied {
+  color: #2d684e;
+  background: #eaf5ef;
+  border-color: #9cc9af;
+}
+
+.copy-button.is-failed {
+  color: #8a3d3d;
+  background: #faeeee;
+  border-color: #dbaaaa;
+}
+
+.activation-safety-note {
+  margin: -7px 0 16px;
+  padding: 9px 11px;
+  color: #536b60;
+  background: #eef6f2;
+  border-left: 3px solid #4c9274;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .models-detail-notice,
@@ -1221,6 +1295,15 @@ code {
   .model-ranking-row,
   .models-detail-error {
     display: grid;
+  }
+
+  .instruction-command-row {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .copy-button {
+    justify-self: start;
   }
 
   .model-ranking-metrics {

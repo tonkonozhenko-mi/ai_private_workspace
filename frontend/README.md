@@ -14,7 +14,8 @@ The frontend currently reads:
 It does not execute action-catalog routes or call LLM providers directly. Tabs
 are local component state only. The Models tab displays selected and active
 runtime state, recommendations, performance history, and setup commands as
-read-only instructions; commands are never executed by the frontend.
+read-only instructions. Activation commands can be copied to the clipboard, but
+they are never executed by the frontend.
 
 ## Run
 
