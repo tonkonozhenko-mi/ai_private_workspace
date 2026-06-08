@@ -80,11 +80,17 @@ selected LLM, validates per-request provider support, and delegates to the
 existing RAG ask flow. It never changes the active runtime or embedding/index
 configuration.
 
-## Immediate Next Task: Selected Embedding Indexing Plan Or Real Ollama Experiment Run
+Read-only **Selected Embedding Indexing Plan** is implemented at
+`GET /workspaces/{workspace_id}/models/embedding-indexing-plan`. It explains
+whether the selected embedding matches the active runtime, whether indexing and
+search can proceed, and whether restart, a new vector collection, and reindexing
+are required. It performs none of those actions.
 
-The next recommended task is either an explicit selected-embedding indexing
-plan, which explains the required restart/reindex sequence without performing
-it, or further polishing of explicitly invoked real Ollama model experiments.
+## Immediate Next Task: Workspace Dashboard Model Section Or Selected-Model UI Aggregation
+
+The next recommended task is a lightweight aggregate read model for the future
+workspace UI that combines selection, status, usage, ask readiness, and
+embedding-indexing guidance without duplicating those deterministic rules.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 
@@ -158,7 +164,7 @@ Expected purpose:
 
 ## Follow-On Tasks
 
-1. Selected embedding indexing plan or real Ollama experiment run.
+1. Workspace dashboard model section or selected-model UI aggregation.
 2. Runtime selection validation against installed/available local models.
 3. Ollama-backed real experiment polish.
 4. AI-assisted experiment evaluator.

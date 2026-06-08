@@ -138,19 +138,18 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Ask With Selected LLM**
+**Selected Embedding Indexing Plan**
 
-The backend can now answer a workspace question using its persisted selected
-LLM through a supported per-request override. The endpoint reuses the existing
-RAG flow, records the selected model in timeline metadata, and warns when a
-separately selected embedding is not the active embedding/index configuration.
+The backend can now explain how a persisted selected embedding relates to the
+active embedding runtime and workspace index. The read-only plan reports whether
+index/search can proceed and whether restart, a new vector collection, and
+reindexing are required.
 
 ## Recommended Next Task
 
-**Selected Embedding Indexing Plan Or Real Ollama Experiment Run**
+**Workspace Dashboard Model Section Or Selected-Model UI Aggregation**
 
-The next capability should either explain the explicit selected-embedding
-restart/reindex workflow or further exercise explicitly invoked Ollama model
-experiments.
+The next capability should aggregate model selection and readiness guidance for
+the future workspace UI without duplicating existing planning rules.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.
