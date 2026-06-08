@@ -1,4 +1,5 @@
 import type { WorkspaceOverviewItem } from "../api/types";
+import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
 
 interface WorkspaceListProps {
@@ -14,10 +15,11 @@ export function WorkspaceList({
 }: WorkspaceListProps) {
   if (workspaces.length === 0) {
     return (
-      <div className="empty-sidebar-state">
-        <p>No active workspaces yet.</p>
-        <span>Create one through the backend onboarding flow.</span>
-      </div>
+      <EmptyState
+        title="No active workspaces yet"
+        message="Create one through the backend onboarding flow."
+        compact
+      />
     );
   }
 

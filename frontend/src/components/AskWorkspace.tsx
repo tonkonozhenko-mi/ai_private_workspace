@@ -6,6 +6,7 @@ import type {
   RagSource,
   WorkspaceQuestionAnswer,
 } from "../api/types";
+import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
 
 interface AskWorkspaceProps {
@@ -276,9 +277,7 @@ function SessionHistory({
           </button>
         </>
       ) : (
-        <p className="empty-panel-state">
-          No questions asked in this session yet.
-        </p>
+        <EmptyState title="No questions asked in this session yet" compact />
       )}
     </section>
   );
@@ -422,10 +421,11 @@ function Sources({ sources }: { sources: RagSource[] }) {
           </div>
         </>
       ) : (
-        <p className="empty-panel-state">
-          No sources returned. Try reindexing or asking a more project-specific
-          question.
-        </p>
+        <EmptyState
+          title="No sources returned"
+          message="Try reindexing or asking a more project-specific question."
+          compact
+        />
       )}
     </section>
   );
@@ -433,14 +433,10 @@ function Sources({ sources }: { sources: RagSource[] }) {
 
 function AskEmptyState() {
   return (
-    <section className="panel ask-empty-state">
-      <p className="eyebrow">No question submitted</p>
-      <h2>Answers and sources will appear here</h2>
-      <p>
-        The selected workspace LLM is used only after an explicit Ask submit.
-        Retrieved source previews make the answer easier to verify.
-      </p>
-    </section>
+    <EmptyState
+      title="Answers and sources will appear here"
+      message="The selected workspace LLM is used only after an explicit Ask submit. Retrieved source previews make the answer easier to verify."
+    />
   );
 }
 

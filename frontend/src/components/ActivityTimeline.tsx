@@ -1,4 +1,5 @@
 import type { TimelineEvent } from "../api/types";
+import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
 import type { StatusTone } from "./statusTone";
 
@@ -36,14 +37,11 @@ export function ActivityTimeline({ events }: ActivityTimelineProps) {
           ))}
         </ol>
       ) : (
-        <div className="activity-empty-state">
-          <p className="eyebrow">No activity yet</p>
-          <h2>Workspace events will appear here</h2>
-          <p>
-            Scans, indexing, questions, model selections, experiments, and
-            command decisions appear after the user explicitly invokes them.
-          </p>
-        </div>
+        <EmptyState
+          title="Workspace events will appear here"
+          message="Scans, indexing, questions, model selections, experiments, and command decisions appear after the user explicitly invokes them."
+          compact
+        />
       )}
     </section>
   );

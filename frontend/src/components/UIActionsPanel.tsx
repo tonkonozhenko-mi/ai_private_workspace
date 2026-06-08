@@ -5,6 +5,7 @@ import type {
   WorkspaceUIActionCatalog,
 } from "../api/types";
 import { CopyButton } from "./CopyButton";
+import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
 
 interface UIActionsPanelProps {
@@ -42,40 +43,48 @@ export function UIActionsPanel({ catalog }: UIActionsPanelProps) {
           frontend never invokes workspace actions.
         </p>
 
-        <div className="action-groups">
-          {groups.map(([category, actions]) => (
-            <section className="action-group" key={category}>
-              <h3>{formatLabel(category)}</h3>
-              <div className="action-list">
-                {actions.map((action) => (
-                  <button
-                    aria-pressed={selectedAction?.id === action.id}
-                    className={`action-row${
-                      action.is_primary ? " is-primary" : ""
-                    }${selectedAction?.id === action.id ? " is-selected" : ""}`}
-                    key={action.id}
-                    type="button"
-                    onClick={() => setSelectedActionId(action.id)}
-                  >
-                    <div className="action-row-main">
-                      <div className="action-title-line">
-                        <strong>{action.title}</strong>
-                        <StatusBadge label={action.status} />
-                        {action.mutates_data ? (
-                          <StatusBadge label="Writes Data" />
-                        ) : null}
+        {catalog.actions.length > 0 ? (
+          <div className="action-groups">
+            {groups.map(([category, actions]) => (
+              <section className="action-group" key={category}>
+                <h3>{formatLabel(category)}</h3>
+                <div className="action-list">
+                  {actions.map((action) => (
+                    <button
+                      aria-pressed={selectedAction?.id === action.id}
+                      className={`action-row${
+                        action.is_primary ? " is-primary" : ""
+                      }${selectedAction?.id === action.id ? " is-selected" : ""}`}
+                      key={action.id}
+                      type="button"
+                      onClick={() => setSelectedActionId(action.id)}
+                    >
+                      <div className="action-row-main">
+                        <div className="action-title-line">
+                          <strong>{action.title}</strong>
+                          <StatusBadge label={action.status} />
+                          {action.mutates_data ? (
+                            <StatusBadge label="Writes Data" />
+                          ) : null}
+                        </div>
+                        <p>{action.description}</p>
                       </div>
-                      <p>{action.description}</p>
-                    </div>
-                    <code>
-                      <span>{action.method}</span> {action.endpoint}
-                    </code>
-                  </button>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+                      <code>
+                        <span>{action.method}</span> {action.endpoint}
+                      </code>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No UI actions are available"
+            message="The backend did not return any actions for this workspace."
+            compact
+          />
+        )}
       </div>
 
       {selectedAction ? <ActionDetails action={selectedAction} /> : null}

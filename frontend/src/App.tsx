@@ -18,6 +18,9 @@ import { AskWorkspace } from "./components/AskWorkspace";
 import { ModelsDetail } from "./components/ModelsDetail";
 import { ModelsSummaryCard } from "./components/ModelsSummaryCard";
 import { ActivityTimeline } from "./components/ActivityTimeline";
+import { EmptyState } from "./components/EmptyState";
+import { ErrorState } from "./components/ErrorState";
+import { LoadingState } from "./components/LoadingState";
 import { UIActionsPanel } from "./components/UIActionsPanel";
 import { WorkspaceDashboard } from "./components/WorkspaceDashboard";
 import { WorkspaceList } from "./components/WorkspaceList";
@@ -175,9 +178,14 @@ function App() {
         </div>
 
         {workspacesLoading && workspaces.length === 0 ? (
-          <LoadingState label="Loading workspaces" compact />
+          <LoadingState title="Loading workspaces" compact />
         ) : workspacesError ? (
-          <ErrorState message={workspacesError} compact onRetry={loadWorkspaces} />
+          <ErrorState
+            title="Backend unavailable"
+            message={workspacesError}
+            compact
+            onRetry={loadWorkspaces}
+          />
         ) : (
           <WorkspaceList
             workspaces={workspaces}
@@ -194,7 +202,10 @@ function App() {
 
       <main className="main-content">
         {detailLoading ? (
-          <LoadingState label="Loading workspace dashboard" />
+          <LoadingState
+            title="Loading workspace dashboard"
+            message="Collecting the latest read-only workspace state."
+          />
         ) : detailError ? (
           <ErrorState
             message={detailError}
@@ -264,30 +275,25 @@ function App() {
                   </div>
                   {modelsDetailLoading ? (
                     <>
-                      <div className="models-detail-notice" aria-live="polite">
-                        Loading detailed model state. Summary remains available.
-                      </div>
+                      <LoadingState
+                        title="Loading detailed model state"
+                        message="The compact models summary remains available."
+                        compact
+                      />
                       <ModelsSummaryCard summary={detail.modelsSummary} spacious />
                     </>
                   ) : modelsDetailError ? (
                     <>
-                      <div className="models-detail-error" role="alert">
-                        <div>
-                          <strong>Detailed model data is unavailable</strong>
-                          <span>{modelsDetailError}</span>
-                        </div>
-                        <button
-                          className="text-button"
-                          type="button"
-                          onClick={() =>
-                            selectedWorkspaceId
-                              ? void loadModelsDetail(selectedWorkspaceId)
-                              : undefined
-                          }
-                        >
-                          Retry details
-                        </button>
-                      </div>
+                      <ErrorState
+                        title="Detailed model data is unavailable"
+                        message={modelsDetailError}
+                        compact
+                        onRetry={
+                          selectedWorkspaceId
+                            ? () => loadModelsDetail(selectedWorkspaceId)
+                            : undefined
+                        }
+                      />
                       <ModelsSummaryCard summary={detail.modelsSummary} spacious />
                     </>
                   ) : modelsDetail ? (
@@ -309,61 +315,12 @@ function App() {
             </section>
           </div>
         ) : (
-          <section className="welcome-state">
-            <div className="welcome-mark" aria-hidden="true">
-              PW
-            </div>
-            <p className="eyebrow">Private Project AI Workbench</p>
-            <h1>Select a workspace</h1>
-            <p>
-              Choose a local project from the sidebar to inspect its dashboard,
-              models status, and read-only action catalog.
-            </p>
-          </section>
+          <EmptyState
+            title="Select a workspace"
+            message="Choose a local project from the sidebar to inspect its dashboard, models status, and read-only action catalog."
+          />
         )}
       </main>
-    </div>
-  );
-}
-
-function LoadingState({
-  label,
-  compact = false,
-}: {
-  label: string;
-  compact?: boolean;
-}) {
-  return (
-    <div
-      className={`loading-state${compact ? " is-compact" : ""}`}
-      aria-live="polite"
-    >
-      <span className="loading-indicator" aria-hidden="true" />
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function ErrorState({
-  message,
-  compact = false,
-  onRetry,
-}: {
-  message: string;
-  compact?: boolean;
-  onRetry: () => void | Promise<void>;
-}) {
-  return (
-    <div className={`error-state${compact ? " is-compact" : ""}`} role="alert">
-      <strong>Could not load data</strong>
-      <span>{message}</span>
-      <button
-        className="primary-button"
-        type="button"
-        onClick={() => void onRetry()}
-      >
-        Retry
-      </button>
     </div>
   );
 }
