@@ -37,6 +37,7 @@ const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
 
 function App() {
   const [workspaces, setWorkspaces] = useState<WorkspaceOverviewItem[]>([]);
+  const [totalWorkspaces, setTotalWorkspaces] = useState(0);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
     null,
   );
@@ -106,6 +107,7 @@ function App() {
     try {
       const overview = await getWorkspacesOverview();
       setWorkspaces(overview.items);
+      setTotalWorkspaces(overview.total_workspaces);
       if (overview.items.length > 0) {
         const currentExists = overview.items.some(
           (workspace) =>
@@ -140,6 +142,7 @@ function App() {
           current ? { ...current, dashboard } : current,
         );
         setWorkspaces(overview.items);
+        setTotalWorkspaces(overview.total_workspaces);
       }
     } catch {
       // The submitted answer remains visible if the optional read-only refresh fails.
@@ -165,8 +168,11 @@ function App() {
 
         <div className="sidebar-heading">
           <div>
-            <p className="eyebrow">Local workspaces</p>
-            <h2>Projects</h2>
+            <div className="sidebar-title-line">
+              <h2>Workspaces</h2>
+              <span className="sidebar-workspace-count">{totalWorkspaces}</span>
+            </div>
+            <p className="sidebar-subtitle">Select a workspace to inspect</p>
           </div>
           <button
             className="text-button"
@@ -195,7 +201,7 @@ function App() {
         )}
 
         <footer className="sidebar-footer">
-          <span>Backend</span>
+          <span>Frontend is connected to local backend.</span>
           <code>{API_BASE_URL}</code>
         </footer>
       </aside>
