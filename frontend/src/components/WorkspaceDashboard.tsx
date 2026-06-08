@@ -75,56 +75,6 @@ export function WorkspaceDashboard({
   );
 }
 
-interface WorkspaceActivityProps {
-  dashboard: WorkspaceDashboardData;
-}
-
-export function WorkspaceActivity({ dashboard }: WorkspaceActivityProps) {
-  return (
-    <section className="panel activity-panel">
-      <div className="panel-heading">
-        <div>
-          <p className="eyebrow">Activity</p>
-          <h2>Recent events</h2>
-        </div>
-        <span className="panel-count">{dashboard.recent_events.length}</span>
-      </div>
-      {dashboard.recent_events.length ? (
-        <ol className="event-list">
-          {dashboard.recent_events.map((event) => (
-            <li key={event.id}>
-              <span className="event-marker" aria-hidden="true" />
-              <div>
-                <strong>{event.title}</strong>
-                <p>{event.summary}</p>
-              </div>
-              <time dateTime={event.created_at}>{formatDate(event.created_at)}</time>
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <div className="activity-empty-state">
-          <p className="eyebrow">No activity yet</p>
-          <h2>Workspace events will appear here</h2>
-          <p>
-            Scans, indexing, questions, model selections, and command decisions
-            create timeline events after the user explicitly invokes them.
-          </p>
-        </div>
-      )}
-    </section>
-  );
-}
-
 function formatLabel(value: string) {
   return value.replaceAll("_", " ");
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
 }

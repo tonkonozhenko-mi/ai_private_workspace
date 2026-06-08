@@ -16,11 +16,9 @@ import type {
 } from "./api/types";
 import { ModelsDetail } from "./components/ModelsDetail";
 import { ModelsSummaryCard } from "./components/ModelsSummaryCard";
+import { ActivityTimeline } from "./components/ActivityTimeline";
 import { UIActionsPanel } from "./components/UIActionsPanel";
-import {
-  WorkspaceActivity,
-  WorkspaceDashboard,
-} from "./components/WorkspaceDashboard";
+import { WorkspaceDashboard } from "./components/WorkspaceDashboard";
 import { WorkspaceList } from "./components/WorkspaceList";
 
 type WorkspaceTab = "overview" | "models" | "actions" | "activity";
@@ -279,7 +277,7 @@ function App() {
                 <UIActionsPanel catalog={detail.actions} />
               ) : null}
               {activeTab === "activity" ? (
-                <WorkspaceActivity dashboard={detail.dashboard} />
+                <ActivityTimeline events={detail.dashboard.recent_events} />
               ) : null}
             </section>
           </div>
