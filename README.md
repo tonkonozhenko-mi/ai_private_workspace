@@ -361,6 +361,17 @@ the primary next action, top recommendation, historical performance-model
 count, and a deterministic warning count. Use the detailed Models dashboard for
 full diagnostics. Both endpoints are read-only.
 
+The main workspace dashboard also includes this compact summary as
+`models_summary`:
+
+```bash
+curl http://127.0.0.1:8000/workspaces/WORKSPACE_ID/dashboard
+```
+
+This lets the main workspace UI render a small Models card without separately
+loading the full Models dashboard. The dedicated detailed and summary endpoints
+remain available and unchanged.
+
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only
 when an experiment explicitly includes an Ollama candidate.

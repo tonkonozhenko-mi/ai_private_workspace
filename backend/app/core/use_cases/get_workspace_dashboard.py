@@ -14,6 +14,10 @@ from app.core.use_cases.get_workspace_readiness import (
     GetWorkspaceReadinessInput,
     GetWorkspaceReadinessUseCase,
 )
+from app.core.use_cases.get_workspace_models_dashboard_summary import (
+    GetWorkspaceModelsDashboardSummaryInput,
+    GetWorkspaceModelsDashboardSummaryUseCase,
+)
 from app.core.use_cases.get_workspace_summary import (
     GetWorkspaceSummaryInput,
     GetWorkspaceSummaryUseCase,
@@ -43,6 +47,7 @@ class GetWorkspaceDashboardUseCase:
         assistant_recommendation_use_case: GetWorkspaceAssistantRecommendationUseCase,
         timeline_use_case: ListWorkspaceTimelineUseCase,
         runtime_health_use_case: GetRuntimeHealthUseCase,
+        models_summary_use_case: GetWorkspaceModelsDashboardSummaryUseCase,
     ) -> None:
         self.summary_use_case = summary_use_case
         self.readiness_use_case = readiness_use_case
@@ -50,6 +55,7 @@ class GetWorkspaceDashboardUseCase:
         self.assistant_recommendation_use_case = assistant_recommendation_use_case
         self.timeline_use_case = timeline_use_case
         self.runtime_health_use_case = runtime_health_use_case
+        self.models_summary_use_case = models_summary_use_case
 
     def execute(self, request: GetWorkspaceDashboardInput) -> WorkspaceDashboard:
         try:
@@ -72,6 +78,9 @@ class GetWorkspaceDashboardUseCase:
             ListWorkspaceTimelineInput(workspace_id=request.workspace_id, limit=5)
         )
         runtime_health = self.runtime_health_use_case.execute()
+        models_summary = self.models_summary_use_case.execute(
+            GetWorkspaceModelsDashboardSummaryInput(workspace_id=request.workspace_id)
+        )
 
         return WorkspaceDashboard(
             workspace_id=summary.workspace_id,
@@ -86,4 +95,5 @@ class GetWorkspaceDashboardUseCase:
             runtime_health=runtime_health,
             primary_next_action_id=quick_start.next_action_id,
             primary_next_action_title=quick_start.next_action_title,
+            models_summary=models_summary,
         )

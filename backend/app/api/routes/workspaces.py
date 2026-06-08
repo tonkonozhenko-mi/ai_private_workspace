@@ -771,6 +771,9 @@ def get_workspace_dashboard(workspace_id: str) -> WorkspaceDashboardResponse:
             health_checkers=runtime_health_checkers,
             configuration=runtime_health_configuration,
         ),
+        models_summary_use_case=GetWorkspaceModelsDashboardSummaryUseCase(
+            dashboard_use_case=_build_workspace_models_dashboard_use_case()
+        ),
     )
 
     try:

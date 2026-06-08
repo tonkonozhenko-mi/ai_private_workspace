@@ -284,6 +284,13 @@ models, and derives a warning total from recommendation warnings,
 embedding-indexing warnings, and non-ready usage capabilities. The detailed
 dashboard remains the source for full diagnostics and is unchanged.
 
+The main Workspace Dashboard includes this compact Models summary as a nested
+read model for its small Models card. It reuses
+`GetWorkspaceModelsDashboardSummaryUseCase`; model selection, recommendation,
+warning, and readiness logic are not duplicated in the main dashboard or API
+route. The dedicated detailed and compact Models dashboard endpoints remain
+unchanged.
+
 ## Testing Boundaries
 
 Normal tests use fake providers, in-memory vector storage, temporary SQLite
