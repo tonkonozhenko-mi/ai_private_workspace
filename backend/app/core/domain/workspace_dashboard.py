@@ -5,6 +5,9 @@ from app.core.domain.runtime_health import RuntimeHealth
 from app.core.domain.timeline import TimelineEvent
 from app.core.domain.workspace_quick_start import WorkspaceQuickStart
 from app.core.domain.workspace_readiness import WorkspaceReadiness
+from app.core.domain.workspace_models_dashboard_summary import (
+    WorkspaceModelsDashboardSummary,
+)
 from app.core.domain.workspace_summary import WorkspaceSummary
 
 
@@ -22,3 +25,4 @@ class WorkspaceDashboard:
     runtime_health: RuntimeHealth
     primary_next_action_id: str | None
     primary_next_action_title: str | None
+    models_summary: WorkspaceModelsDashboardSummary | None = None

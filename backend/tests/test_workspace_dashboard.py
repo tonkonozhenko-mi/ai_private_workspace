@@ -54,6 +54,12 @@ def test_dashboard_includes_all_workspace_main_screen_sections(tmp_path) -> None
     assert dashboard["assistant_recommendation"]["workspace_id"] == workspace["id"]
     assert dashboard["assistant_recommendation"]["profile"]["id"] == "devops"
     assert dashboard["runtime_health"]["status"] == "ok"
+    assert dashboard["models_summary"]["workspace_id"] == workspace["id"]
+    assert dashboard["models_summary"]["overall_status"] == "needs_model_selection"
+    assert dashboard["models_summary"]["primary_next_action_id"] == "select_llm_model"
+    assert dashboard["models_summary"]["selected_llm"] is None
+    assert dashboard["models_summary"]["selected_embedding"] is None
+    assert dashboard["models_summary"]["top_recommended_model"]
     assert dashboard["recent_events"]
     assert dashboard["recent_events"][0]["event_type"] == "workspace_created"
     assert len(dashboard["recent_events"]) <= 5
@@ -72,6 +78,20 @@ def test_dashboard_read_does_not_mutate_workspace_activity(tmp_path) -> None:
     assert client.get(f"/workspaces/{workspace_id}/index/status").json()["status"] == (
         "not_indexed"
     )
+
+
+def test_dashboard_models_summary_reflects_selected_models(tmp_path) -> None:
+    workspace = _create_workspace(tmp_path)
+    assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
+
+    response = client.get(f"/workspaces/{workspace['id']}/dashboard")
+
+    assert response.status_code == 200
+    models_summary = response.json()["models_summary"]
+    assert models_summary["selected_llm"] == "fake/fake-llm"
+    assert models_summary["selected_embedding"] is None
+    assert models_summary["can_ask_with_selected_llm"] is True
+    assert models_summary["primary_next_action_id"] == "select_embedding_model"
 
 
 def test_dashboard_unknown_workspace_returns_404() -> None:
@@ -93,6 +113,18 @@ def _create_workspace(project_path: Path) -> dict:
     )
     assert response.status_code == 201
     return response.json()
+
+
+def _select(workspace_id: str, provider: str, model: str, model_type: str):
+    return client.put(
+        f"/workspaces/{workspace_id}/models/selection",
+        json={
+            "provider": provider,
+            "model": model,
+            "model_type": model_type,
+            "selected_reason": "Main dashboard models summary test.",
+        },
+    )
 
 
 def _write_text(path: Path, content: str) -> None:

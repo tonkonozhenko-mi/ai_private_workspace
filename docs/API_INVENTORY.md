@@ -64,7 +64,7 @@ models, run benchmarks, or change active runtime configuration.
 | `GET /workspaces/{workspace_id}/summary` | Return workspace, scan, index, command, and recent activity summary. | No | No | No | Workspace overview |
 | `GET /workspaces/{workspace_id}/readiness` | Derive capabilities and setup readiness from persisted state and provider names. | No | No | No | Workspace overview |
 | `GET /workspaces/{workspace_id}/quick-start` | Return current setup stage and next action. | No | No | No | Continue setup |
-| `GET /workspaces/{workspace_id}/dashboard` | Aggregate summary, readiness, quick start, recommendation, activity, and runtime health. | No | No | Lightweight Qdrant/Ollama checks when configured | Main workspace |
+| `GET /workspaces/{workspace_id}/dashboard` | Aggregate summary, readiness, quick start, recommendation, activity, runtime health, and compact models summary. | No | No | Lightweight Qdrant/Ollama checks when configured | Main workspace |
 
 ## Scanning, Indexing, And RAG
 

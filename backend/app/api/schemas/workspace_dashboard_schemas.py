@@ -24,6 +24,10 @@ from app.api.schemas.workspace_summary_schemas import (
     WorkspaceSummaryResponse,
     to_workspace_summary_response,
 )
+from app.api.schemas.workspace_models_dashboard_summary_schemas import (
+    WorkspaceModelsDashboardSummaryResponse,
+    to_workspace_models_dashboard_summary_response,
+)
 from app.core.domain.workspace_dashboard import WorkspaceDashboard
 
 
@@ -40,6 +44,7 @@ class WorkspaceDashboardResponse(BaseModel):
     runtime_health: RuntimeHealthResponse
     primary_next_action_id: str | None
     primary_next_action_title: str | None
+    models_summary: WorkspaceModelsDashboardSummaryResponse | None
 
 
 def to_workspace_dashboard_response(
@@ -62,4 +67,9 @@ def to_workspace_dashboard_response(
         runtime_health=to_runtime_health_response(dashboard.runtime_health),
         primary_next_action_id=dashboard.primary_next_action_id,
         primary_next_action_title=dashboard.primary_next_action_title,
+        models_summary=(
+            to_workspace_models_dashboard_summary_response(dashboard.models_summary)
+            if dashboard.models_summary is not None
+            else None
+        ),
     )
