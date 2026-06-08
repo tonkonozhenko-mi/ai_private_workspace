@@ -138,12 +138,12 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Manual Model Experiment Candidate Ratings**
+**Workspace Model Performance Summary**
 
-The backend can now persist append-only user ratings, preferences, tags, and
-comments for saved model experiment candidates. Comparison summaries expose
-rating counts, averages, and preferred votes without changing original answers
-or deterministic candidate scores.
+The backend can now aggregate saved model experiment outcomes and append-only
+manual ratings by provider/model for a workspace. The read-only summary exposes
+completion/failure counts, rating and preference signals, common tags, latency,
+source and warning averages, and a deterministic explainable score.
 
 ## Recommended Next Task
 

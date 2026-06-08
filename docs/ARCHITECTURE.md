@@ -203,6 +203,14 @@ immutable. Comparison summaries expose rating counts, averages, and preferred
 votes, but user ratings do not yet alter deterministic comparison scores or
 model recommendations.
 
+The workspace-scoped Model Performance Summary is another read model over saved
+experiment runs and ratings. It aggregates completion and failure counts,
+latency, source and warning averages, rating averages, preferred votes, and
+common feedback tags by provider/model. Its deterministic score is transparent
+and advisory; reading performance never reruns experiments, calls providers, or
+mutates experiment/rating data. Future rating-aware recommendations can consume
+these signals through core use cases without moving aggregation into API routes.
+
 ## Testing Boundaries
 
 Normal tests use fake providers, in-memory vector storage, temporary SQLite

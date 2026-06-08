@@ -10,6 +10,7 @@ from app.api.dependencies import (
     index_status_repository,
     llm_provider_factory,
     model_experiment_repository,
+    model_experiment_rating_repository,
     project_scan_repository,
     readiness_configuration,
     runtime_health_checkers,
@@ -44,6 +45,10 @@ from app.api.schemas.index_status_schemas import (
 from app.api.schemas.model_experiment_run_schemas import (
     ModelExperimentRunResponse,
     to_model_experiment_run_response,
+)
+from app.api.schemas.model_performance_schemas import (
+    ModelPerformanceSummaryResponse,
+    to_model_performance_summary_response,
 )
 from app.api.schemas.report_schemas import (
     ProjectOverviewReportResponse,
@@ -187,6 +192,11 @@ from app.core.use_cases.list_workspace_model_experiments import (
     ListWorkspaceModelExperimentsInput,
     ListWorkspaceModelExperimentsUseCase,
     WorkspaceModelExperimentsNotFoundError,
+)
+from app.core.use_cases.get_model_performance_summary import (
+    GetModelPerformanceSummaryInput,
+    GetModelPerformanceSummaryUseCase,
+    ModelPerformanceWorkspaceNotFoundError,
 )
 from app.core.use_cases.scan_project import ProjectScanError
 from app.core.use_cases.scan_workspace_project import (
@@ -751,6 +761,34 @@ def list_workspace_model_experiments(
         ) from exc
 
     return [to_model_experiment_run_response(run) for run in runs]
+
+
+@router.get(
+    "/{workspace_id}/model-performance",
+    response_model=ModelPerformanceSummaryResponse,
+)
+def get_workspace_model_performance(
+    workspace_id: str,
+    limit: int = 20,
+) -> ModelPerformanceSummaryResponse:
+    try:
+        summary = GetModelPerformanceSummaryUseCase(
+            workspace_repository=workspace_repository,
+            model_experiment_repository=model_experiment_repository,
+            rating_repository=model_experiment_rating_repository,
+        ).execute(
+            GetModelPerformanceSummaryInput(
+                workspace_id=workspace_id,
+                limit=limit,
+            )
+        )
+    except ModelPerformanceWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return to_model_performance_summary_response(summary)
 
 
 @router.get(
