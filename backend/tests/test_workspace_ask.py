@@ -104,14 +104,14 @@ def test_ask_with_fake_override_works(tmp_path) -> None:
         workspace["id"],
         "Explain overridecontexttoken",
         llm_provider="fake",
-        llm_model="ignored-model",
+        llm_model="fake-llm-alt",
     )
 
     assert response.status_code == 200
     result = response.json()
     assert "Fake answer" in result["answer"]
     assert result["llm_provider"] == "fake"
-    assert result["llm_model"] == "fake-llm"
+    assert result["llm_model"] == "fake-llm-alt"
 
 
 def test_ask_override_reports_selected_ollama_model_without_generation(
