@@ -71,6 +71,15 @@ def test_factory_rejects_unsupported_provider() -> None:
         factory.create(provider="custom", model="private-model")
 
 
+def test_factory_reports_supported_override_providers_without_creating_them() -> None:
+    factory = _factory(default_provider="fake")
+
+    assert factory.supports("fake") is True
+    assert factory.supports(" OLLAMA ") is True
+    assert factory.supports("custom") is False
+    assert factory.ollama_client is None
+
+
 def _factory(default_provider: str) -> LLMProviderFactory:
     return LLMProviderFactory(
         default_provider=default_provider,

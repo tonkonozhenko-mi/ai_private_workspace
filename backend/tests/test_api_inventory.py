@@ -43,6 +43,7 @@ IMPORTANT_PATHS = {
     "/workspaces/{workspace_id}/models/explain",
     "/workspaces/{workspace_id}/models/selection",
     "/workspaces/{workspace_id}/models/selection/status",
+    "/workspaces/{workspace_id}/models/usage-plan",
 }
 
 

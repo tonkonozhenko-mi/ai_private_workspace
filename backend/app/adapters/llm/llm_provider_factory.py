@@ -21,6 +21,9 @@ class LLMProviderFactory:
         self.ollama_timeout_seconds = ollama_timeout_seconds
         self.ollama_client = ollama_client
 
+    def supports(self, provider: str) -> bool:
+        return provider.strip().lower() in {"fake", "ollama"}
+
     def create(
         self,
         provider: str | None = None,
