@@ -311,6 +311,23 @@ match the active embedding configuration and have an indexed matching vector
 space before search can use them. The plan only returns capabilities and ordered
 next actions; it never restarts the backend or reindexes.
 
+Ask using the persisted selected workspace LLM:
+
+```bash
+curl -X POST http://127.0.0.1:8000/workspaces/WORKSPACE_ID/ask-selected \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "How is Terraform backend configured?",
+    "limit": 3
+  }'
+```
+
+This delegates to the existing RAG ask flow with the selected LLM as a
+per-request override. Retrieval still uses the active embedding/index
+configuration. If a selected embedding differs from the active embedding, the
+response includes a deterministic quality warning. Ollama is contacted only
+when the user explicitly invokes this endpoint with an Ollama LLM selected.
+
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only
 when an experiment explicitly includes an Ollama candidate.

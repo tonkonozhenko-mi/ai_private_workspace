@@ -1,7 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from app.core.domain.indexing import ContextSearchResult
-from app.core.domain.rag import RagSource, WorkspaceQuestionAnswer
+from app.core.domain.rag import RagQualityWarning, RagSource, WorkspaceQuestionAnswer
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.rag_prompt import build_workspace_question_prompt
 from app.core.ports.embedding_provider import EmbeddingProviderPort
@@ -45,6 +45,8 @@ class AskWorkspaceQuestionInput:
     limit: int = 5
     llm_provider_override: str | None = None
     llm_model_override: str | None = None
+    additional_quality_warnings: list[RagQualityWarning] = field(default_factory=list)
+    timeline_metadata: dict[str, str] = field(default_factory=dict)
 
 
 class AskWorkspaceQuestionNotFoundError(ValueError):
@@ -90,7 +92,8 @@ class AskWorkspaceQuestionUseCase:
                     answer=WORKSPACE_NOT_INDEXED_ANSWER,
                     diagnostic_code="workspace_not_indexed",
                     diagnostic_message=WORKSPACE_NOT_INDEXED_MESSAGE,
-                )
+                ),
+                request,
             )
 
         context_results = self._search_context(request)
@@ -113,7 +116,8 @@ class AskWorkspaceQuestionUseCase:
                         answer=INDEX_METADATA_WITHOUT_CHUNKS_ANSWER,
                         diagnostic_code="index_metadata_exists_but_no_chunks_found",
                         diagnostic_message=INDEX_METADATA_WITHOUT_CHUNKS_MESSAGE,
-                    )
+                    ),
+                    request,
                 )
             return self._record_question_event(
                 self._diagnostic_answer(
@@ -122,7 +126,8 @@ class AskWorkspaceQuestionUseCase:
                     answer=NO_RELEVANT_CONTEXT_ANSWER,
                     diagnostic_code="no_relevant_context_found",
                     diagnostic_message=NO_RELEVANT_CONTEXT_MESSAGE,
-                )
+                ),
+                request,
             )
 
         prompt = build_workspace_question_prompt(
@@ -130,12 +135,15 @@ class AskWorkspaceQuestionUseCase:
             context_results=context_results,
         )
         answer = llm_provider.generate(prompt)
-        quality_warnings = evaluate_rag_answer(
-            question=request.question,
-            answer=answer,
-            sources=sources,
-            source_contents=[result.content for result in context_results],
-        )
+        quality_warnings = [
+            *evaluate_rag_answer(
+                question=request.question,
+                answer=answer,
+                sources=sources,
+                source_contents=[result.content for result in context_results],
+            ),
+            *request.additional_quality_warnings,
+        ]
 
         return self._record_question_event(
             WorkspaceQuestionAnswer(
@@ -149,7 +157,8 @@ class AskWorkspaceQuestionUseCase:
                 diagnostic_code=None,
                 diagnostic_message=None,
                 quality_warnings=quality_warnings,
-            )
+            ),
+            request,
         )
 
     def _diagnostic_answer(
@@ -170,6 +179,7 @@ class AskWorkspaceQuestionUseCase:
             llm_model=llm_provider.model_name,
             diagnostic_code=diagnostic_code,
             diagnostic_message=diagnostic_message,
+            quality_warnings=list(request.additional_quality_warnings),
         )
 
     def _create_llm_provider(
@@ -204,6 +214,7 @@ class AskWorkspaceQuestionUseCase:
     def _record_question_event(
         self,
         answer: WorkspaceQuestionAnswer,
+        request: AskWorkspaceQuestionInput,
     ) -> WorkspaceQuestionAnswer:
         if self.timeline_repository is not None:
             AddTimelineEventUseCase(self.timeline_repository).execute(
@@ -217,6 +228,7 @@ class AskWorkspaceQuestionUseCase:
                         "llm_provider": answer.llm_provider,
                         "llm_model": answer.llm_model or "",
                         "quality_warnings_count": str(len(answer.quality_warnings)),
+                        **request.timeline_metadata,
                     },
                 )
             )

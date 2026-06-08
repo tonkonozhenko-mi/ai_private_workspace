@@ -81,6 +81,7 @@ from app.api.schemas.report_schemas import (
 )
 from app.api.schemas.rag_schemas import (
     AskWorkspaceQuestionRequest,
+    AskWorkspaceQuestionWithSelectedLLMRequest,
     WorkspaceQuestionAnswerResponse,
     to_workspace_question_answer_response,
 )
@@ -140,6 +141,12 @@ from app.core.use_cases.ask_workspace_question import (
     AskWorkspaceQuestionNotFoundError,
     AskWorkspaceQuestionUseCase,
     AskWorkspaceQuestionValidationError,
+)
+from app.core.use_cases.ask_workspace_question_with_selected_llm import (
+    AskWorkspaceQuestionWithSelectedLLMInput,
+    AskWorkspaceQuestionWithSelectedLLMNotFoundError,
+    AskWorkspaceQuestionWithSelectedLLMUseCase,
+    AskWorkspaceQuestionWithSelectedLLMValidationError,
 )
 from app.core.use_cases.archive_workspace import (
     ArchiveWorkspaceInput,
@@ -571,6 +578,52 @@ def ask_workspace_question(
             detail=str(exc),
         ) from exc
     except AskWorkspaceQuestionValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return to_workspace_question_answer_response(result)
+
+
+@router.post(
+    "/{workspace_id}/ask-selected",
+    response_model=WorkspaceQuestionAnswerResponse,
+)
+def ask_workspace_question_with_selected_llm(
+    workspace_id: str,
+    request: AskWorkspaceQuestionWithSelectedLLMRequest,
+) -> WorkspaceQuestionAnswerResponse:
+    ask_use_case = AskWorkspaceQuestionUseCase(
+        workspace_repository=workspace_repository,
+        embedding_provider=embedding_provider,
+        vector_store=vector_store,
+        llm_provider_factory=llm_provider_factory,
+        index_status_repository=index_status_repository,
+        timeline_repository=timeline_repository,
+    )
+    use_case = AskWorkspaceQuestionWithSelectedLLMUseCase(
+        workspace_repository=workspace_repository,
+        selection_repository=workspace_model_selection_repository,
+        llm_provider_factory=llm_provider_factory,
+        ask_workspace_question=ask_use_case,
+        configuration=readiness_configuration,
+    )
+
+    try:
+        result = use_case.execute(
+            AskWorkspaceQuestionWithSelectedLLMInput(
+                workspace_id=workspace_id,
+                question=request.question,
+                limit=request.limit,
+            )
+        )
+    except AskWorkspaceQuestionWithSelectedLLMNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except AskWorkspaceQuestionWithSelectedLLMValidationError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),

@@ -74,11 +74,17 @@ selected embedding can safely index and search with the active vector space.
 It returns ordered setup, restart, reindex, and ask actions without performing
 any of them.
 
-## Immediate Next Task: Selected-Model-Aware Ask Helper Or UI Action Templates
+**Ask With Selected LLM** is implemented at
+`POST /workspaces/{workspace_id}/ask-selected`. It resolves the persisted
+selected LLM, validates per-request provider support, and delegates to the
+existing RAG ask flow. It never changes the active runtime or embedding/index
+configuration.
 
-The next recommended task is a deterministic helper or action-template layer
-that turns a ready selected LLM into the exact `/ask` request override the UI
-should send, while continuing to keep embedding/runtime changes explicit.
+## Immediate Next Task: Selected Embedding Indexing Plan Or Real Ollama Experiment Run
+
+The next recommended task is either an explicit selected-embedding indexing
+plan, which explains the required restart/reindex sequence without performing
+it, or further polishing of explicitly invoked real Ollama model experiments.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 
@@ -152,7 +158,7 @@ Expected purpose:
 
 ## Follow-On Tasks
 
-1. Selected-model-aware ask helper or UI action templates.
+1. Selected embedding indexing plan or real Ollama experiment run.
 2. Runtime selection validation against installed/available local models.
 3. Ollama-backed real experiment polish.
 4. AI-assisted experiment evaluator.

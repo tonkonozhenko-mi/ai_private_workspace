@@ -138,19 +138,19 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Selected Model Usage Plan**
+**Ask With Selected LLM**
 
-The backend can now explain whether selected workspace models are immediately
-usable for ask, index, and search. Supported LLM selections can be used through
-per-request `/ask` overrides, while embedding selections require an active
-runtime match and an indexed matching vector space.
+The backend can now answer a workspace question using its persisted selected
+LLM through a supported per-request override. The endpoint reuses the existing
+RAG flow, records the selected model in timeline metadata, and warns when a
+separately selected embedding is not the active embedding/index configuration.
 
 ## Recommended Next Task
 
-**Selected-Model-Aware Ask Helper Or UI Action Templates**
+**Selected Embedding Indexing Plan Or Real Ollama Experiment Run**
 
-The next capability should translate a ready selected model into deterministic
-UI action/request templates without silently changing settings or triggering
-reindexing.
+The next capability should either explain the explicit selected-embedding
+restart/reindex workflow or further exercise explicitly invoked Ollama model
+experiments.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.

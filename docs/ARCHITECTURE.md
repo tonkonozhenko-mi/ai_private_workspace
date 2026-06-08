@@ -252,6 +252,15 @@ indexing and search must use the same active embedding provider, model, and
 vector space. An embedding mismatch therefore requires an explicit runtime
 change followed by reindexing before selected-model search is available.
 
+Ask With Selected LLM is a thin orchestration use case over the existing
+workspace question-answering flow. It validates the persisted selected LLM and
+provider-factory support, then delegates retrieval, prompting, generation,
+diagnostics, quality checks, and timeline recording to
+`AskWorkspaceQuestionUseCase` with a per-request LLM override. Retrieval always
+uses the active embedding and vector-store configuration. When a separately
+selected embedding does not match that active configuration, the response adds
+a deterministic warning rather than changing embeddings or reindexing.
+
 ## Testing Boundaries
 
 Normal tests use fake providers, in-memory vector storage, temporary SQLite
