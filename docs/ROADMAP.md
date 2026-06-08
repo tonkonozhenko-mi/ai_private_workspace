@@ -64,6 +64,7 @@ Delivered foundations include:
 - Persistent shared-context model experiment runs.
 - Deterministic model experiment comparison summaries.
 - Append-only manual experiment candidate ratings and preference signals.
+- Workspace-scoped historical model performance summaries.
 
 Next planned tasks:
 

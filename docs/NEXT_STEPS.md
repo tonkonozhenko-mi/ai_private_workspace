@@ -38,6 +38,12 @@ Manual **Model Experiment Candidate Ratings** are implemented at
 preferences, tags, and comments without changing original experiment answers.
 Comparison summaries expose rating counts, averages, and preferred votes.
 
+The workspace-scoped **Model Performance Summary** is implemented at
+`GET /workspaces/{workspace_id}/model-performance`. It aggregates saved
+candidate outcomes and manual feedback into explainable historical statistics
+and deterministic performance scores without calling a provider or mutating
+history.
+
 ## Immediate Next Task: Model Recommendations From Historical Ratings
 
 The next recommended backend task is to use accumulated manual ratings as an

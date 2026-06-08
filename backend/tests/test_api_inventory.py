@@ -38,6 +38,7 @@ IMPORTANT_PATHS = {
     "/commands/{command_id}/execute",
     "/workspaces/{workspace_id}/timeline",
     "/workspaces/{workspace_id}/model-experiments",
+    "/workspaces/{workspace_id}/model-performance",
 }
 
 

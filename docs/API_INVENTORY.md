@@ -78,6 +78,7 @@ models, run benchmarks, or change active runtime configuration.
 | `GET /workspaces/{workspace_id}/context/search` | Search active indexed context. | No | No | Configured embedding/vector providers | Context inspector |
 | `POST /workspaces/{workspace_id}/ask` | Retrieve context, generate an answer, and return diagnostics and quality warnings; optional `llm_provider`/`llm_model` select a supported provider for this request only. | Timeline | No | Configured embedding/vector providers and selected/default LLM provider | Ask workspace |
 | `GET /workspaces/{workspace_id}/model-experiments` | List newest persisted model experiment runs for a workspace. | No | No | No | Model experiments |
+| `GET /workspaces/{workspace_id}/model-performance` | Aggregate saved experiment outcomes and manual ratings into deterministic model performance signals. | No | No | No | Model experiments/model selection |
 
 ## Reports And Deterministic Analysis
 

@@ -218,6 +218,17 @@ Ratings are append-only user feedback. They do not rerun experiments, change
 original answers, call an LLM, or change runtime settings. Comparison summaries
 include rating counts, average ratings, and preferred votes.
 
+Summarize historical candidate outcomes and ratings for a workspace:
+
+```bash
+curl "http://127.0.0.1:8000/workspaces/WORKSPACE_ID/model-performance?limit=20"
+```
+
+The read-only summary groups recent saved experiment candidates by
+provider/model and reports completion, failure, rating, preference, tag,
+latency, quality-warning, and source statistics. Its score is deterministic and
+advisory; it does not call models or change saved data.
+
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only
 when an experiment explicitly includes an Ollama candidate.
