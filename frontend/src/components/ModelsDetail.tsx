@@ -5,6 +5,7 @@ import type {
   WorkspaceModelsDashboard,
 } from "../api/types";
 import { CopyButton } from "./CopyButton";
+import { StatusBadge } from "./StatusBadge";
 
 interface ModelsDetailProps {
   dashboard: WorkspaceModelsDashboard;
@@ -146,7 +147,7 @@ export function ModelsDetail({
                   <span>{formatLabel(step.category)}</span>
                   <strong>{step.title}</strong>
                 </div>
-                <StatusBadge status={step.status} />
+                <StatusBadge label={step.status} />
               </div>
               <p>{step.description}</p>
               <small>{step.reason}</small>
@@ -177,7 +178,7 @@ function PanelHeading({
         <p className="eyebrow">{eyebrow}</p>
         <h2>{title}</h2>
       </div>
-      {status ? <StatusBadge status={status} /> : null}
+      {status ? <StatusBadge label={status} size="md" /> : null}
     </div>
   );
 }
@@ -197,7 +198,7 @@ function RuntimeModel({
     <article>
       <span>{label}</span>
       <strong>{provider && model ? `${provider}/${model}` : "Not selected"}</strong>
-      <StatusBadge status={status} />
+      <StatusBadge label={status} />
     </article>
   );
 }
@@ -206,7 +207,7 @@ function ReadinessRow({ label, ready }: { label: string; ready: boolean }) {
   return (
     <div>
       <span>{label}</span>
-      <StatusBadge status={ready ? "ready" : "blocked"} />
+      <StatusBadge label={ready ? "ready" : "blocked"} />
     </div>
   );
 }
@@ -298,14 +299,6 @@ function CommandList({
         </div>
       ))}
     </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  return (
-    <span className={`status-badge status-${status}`}>
-      {formatLabel(status)}
-    </span>
   );
 }
 

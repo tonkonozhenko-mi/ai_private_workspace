@@ -1,4 +1,5 @@
 import type { WorkspaceOverviewItem } from "../api/types";
+import { StatusBadge } from "./StatusBadge";
 
 interface WorkspaceListProps {
   workspaces: WorkspaceOverviewItem[];
@@ -34,9 +35,7 @@ export function WorkspaceList({
           >
             <span className="workspace-list-heading">
               <strong>{workspace.name}</strong>
-              <span className={`status-badge status-${workspace.readiness_status}`}>
-                {formatLabel(workspace.readiness_status)}
-              </span>
+              <StatusBadge label={workspace.readiness_status} />
             </span>
             <span className="workspace-path">{workspace.project_path}</span>
             <span className="workspace-list-meta">

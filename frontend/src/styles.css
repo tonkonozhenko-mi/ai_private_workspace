@@ -498,16 +498,8 @@ code {
   white-space: nowrap;
 }
 
-.event-type-badge {
+.timeline-item-header .status-badge {
   justify-self: start;
-  padding: 3px 6px;
-  color: #52636c;
-  background: #edf1f3;
-  border: 1px solid #d6dfe3;
-  border-radius: 4px;
-  font-size: 8px;
-  font-weight: 800;
-  text-transform: uppercase;
 }
 
 .timeline-workspace .timeline-rail span {
@@ -1931,73 +1923,63 @@ code {
   border-color: #4c9274;
 }
 
-.status-badge,
-.mutation-badge {
+.status-badge {
   display: inline-flex;
   align-items: center;
-  min-height: 20px;
-  padding: 3px 7px;
   border: 1px solid #d7dfe3;
   border-radius: 999px;
-  font-size: 9px;
   font-weight: 800;
   line-height: 1;
   text-transform: capitalize;
   white-space: nowrap;
 }
 
-.status-badge {
-  color: #50606a;
-  background: #f1f4f6;
+.status-badge--sm {
+  min-height: 20px;
+  padding: 3px 7px;
+  font-size: 9px;
 }
 
-.status-ready,
-.status-available,
-.status-indexed,
-.status-done {
+.status-badge--md {
+  min-height: 24px;
+  padding: 4px 9px;
+  font-size: 10px;
+}
+
+.status-badge--neutral {
+  color: #50606a;
+  background: #f1f4f6;
+  border-color: #d7dfe3;
+}
+
+.status-badge--success {
   color: #2d684e;
   background: #eaf5ef;
   border-color: #bddcca;
 }
 
-.status-recommended,
-.status-current,
-.status-next,
-.status-needs_setup,
-.status-needs_embedding_setup,
-.status-needs_attention,
-.status-requires_reindex,
-.status-medium {
+.status-badge--warning {
   color: #795b18;
   background: #fbf3dd;
   border-color: #e8d59b;
 }
 
-.status-blocked,
-.status-degraded,
-.status-failed,
-.status-runtime_mismatch,
-.status-high {
+.status-badge--danger {
   color: #8a3d3d;
   background: #faeeee;
   border-color: #e8c2c2;
 }
 
-.status-optional,
-.status-new,
-.status-scanned,
-.status-needs_model_selection,
-.status-low,
-.status-info {
+.status-badge--info {
   color: #3f6180;
   background: #ecf3f9;
   border-color: #c8d9e8;
 }
 
-.mutation-badge {
-  color: #7b4e26;
-  background: #f8eee5;
-  border-color: #e8cfb8;
+.status-badge--accent {
+  color: #65538a;
+  background: #f0edf7;
+  border-color: #d5cce7;
 }
 
 .welcome-state,
