@@ -5,6 +5,7 @@ import type {
   WorkspaceModelsDashboard,
 } from "../api/types";
 import { CopyButton } from "./CopyButton";
+import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
 
 interface ModelsDetailProps {
@@ -104,7 +105,10 @@ export function ModelsDetail({
               ))}
           </div>
         ) : (
-          <EmptyModelState text="No model recommendations are available yet." />
+          <EmptyState
+            title="No model recommendations are available yet"
+            compact
+          />
         )}
       </section>
 
@@ -122,7 +126,10 @@ export function ModelsDetail({
               ))}
           </div>
         ) : (
-          <EmptyModelState text="No experiment performance has been recorded yet." />
+          <EmptyState
+            title="No experiment performance has been recorded yet"
+            compact
+          />
         )}
       </section>
 
@@ -300,10 +307,6 @@ function CommandList({
       ))}
     </div>
   );
-}
-
-function EmptyModelState({ text }: { text: string }) {
-  return <p className="empty-panel-state">{text}</p>;
 }
 
 function formatLabel(value: string) {
