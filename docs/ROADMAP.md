@@ -72,10 +72,11 @@ Delivered foundations include:
 - Selected-model usage planning for ask, index, and search.
 - Ask using the persisted selected LLM through per-request override.
 - Selected-embedding indexing and vector-space transition planning.
+- Read-only Workspace Models Dashboard aggregation.
 
 Next planned tasks:
 
-1. Workspace dashboard model section or selected-model UI aggregation.
+1. Real Ollama experiment happy path or frontend API mapping.
 2. Runtime selection validation against installed/available local models.
 3. Ollama-backed real experiment polish.
 4. AI-assisted experiment evaluator.

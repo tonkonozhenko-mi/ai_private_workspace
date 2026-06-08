@@ -87,6 +87,7 @@ models, run benchmarks, or change active runtime configuration.
 | `GET /workspaces/{workspace_id}/models/selection/status` | Compare selected models with active configuration and index status, then return readiness and next actions. | No | No | No | Model selection/readiness |
 | `GET /workspaces/{workspace_id}/models/usage-plan` | Explain whether selected models can be used for ask, index, and search, plus ordered next actions. | No | No | No | Model selection/readiness |
 | `GET /workspaces/{workspace_id}/models/embedding-indexing-plan` | Explain active-runtime match, vector-collection impact, and indexing steps for the selected embedding. | No | No | No | Model selection/indexing |
+| `GET /workspaces/{workspace_id}/models/dashboard` | Aggregate workspace model selection, readiness, usage, embedding-indexing guidance, recommendations, performance, and primary next action. | No | No | No | Workspace models |
 
 ## Reports And Deterministic Analysis
 

@@ -138,18 +138,18 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Selected Embedding Indexing Plan**
+**Workspace Models Dashboard**
 
-The backend can now explain how a persisted selected embedding relates to the
-active embedding runtime and workspace index. The read-only plan reports whether
-index/search can proceed and whether restart, a new vector collection, and
-reindexing are required.
+The backend can now return one read-only aggregate for the future workspace
+Models section. It combines selection, status, usage and embedding-indexing
+plans, workspace-aware recommendations, performance history, and a deterministic
+primary next model action.
 
 ## Recommended Next Task
 
-**Workspace Dashboard Model Section Or Selected-Model UI Aggregation**
+**Real Ollama Experiment Happy Path Or Frontend API Mapping**
 
-The next capability should aggregate model selection and readiness guidance for
-the future workspace UI without duplicating existing planning rules.
+The next capability should either polish explicit local Ollama experiments or
+map stable backend aggregates and actions into the future frontend.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.
