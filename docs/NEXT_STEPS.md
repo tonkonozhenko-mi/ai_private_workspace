@@ -113,26 +113,54 @@ The **Frontend API Map** is documented in
 buttons, provider boundaries, mutations, and timeline effects to the current
 backend surface.
 
-The **First Frontend Skeleton** now exists in `frontend/`. It uses Vite, React,
-and TypeScript to render the workspace list, selected workspace dashboard,
-compact Models summary, and UI Action Catalog without executing any actions.
+The **Frontend Workbench MVP** now exists in `frontend/`. It uses Vite, React,
+and TypeScript to render a polished local workbench with a dark workspace
+sidebar plus Overview, Ask, Models, Actions, and Activity tabs. The frontend
+uses the stable API map, keeps setup commands copy-only, and never executes
+workspace actions.
 
-## Immediate Next Task: Frontend Navigation And Read-Only Detail Screens
+The **Real Local AI Happy Path** has been manually verified end to end:
 
-The next recommended task is tabbed workspace navigation and additional
-read-only screens built from the stable API map. Mutating actions should remain
-disabled until their confirmation and refresh behavior is designed.
+- Runtime health shows `VECTOR_STORE=qdrant`, `EMBEDDING_PROVIDER=ollama`, and
+  `LLM_PROVIDER=ollama`.
+- Qdrant and Ollama are configured and healthy.
+- `nomic-embed-text` is used for embeddings.
+- `llama3.2` is used for local generation.
+- Workspace reindex into Qdrant succeeds.
+- Workspace selected LLM and embedding status becomes `ready`.
+- `ask-selected` returns a real Ollama answer with relevant `terragrunt.hcl` and
+  `main.tf` sources.
+- Frontend Overview shows Local AI status `Ready`, Ask shows `ollama/llama3.2`,
+  and Activity records Ollama-backed question events.
 
-This builds naturally on the catalog, recommendations, and switching plan:
+## Immediate Next Task: Frontend Model Selection Editing Flow
+
+The next recommended product task is a safe frontend flow for editing workspace
+model selection. Users should not need to manually call
+`PUT /workspaces/{workspace_id}/models/selection` from the terminal to switch
+between `fake`, `llama3.2`, `qwen2.5-coder`, or another catalog model.
+
+The flow must remain advisory and explicit:
+
+- Show current selected and active LLM/embedding.
+- Let the user select a catalog LLM or embedding preference.
+- Save the selection only after explicit confirmation.
+- Explain whether the change requires backend restart or reindexing.
+- Do not restart the backend.
+- Do not download models.
+- Do not reindex automatically.
+- Do not execute setup commands.
+- Prefer copy-only guidance for any required runtime or reindex command.
+
+This builds naturally on the existing model-management surface:
 
 - The catalog describes available candidates.
 - Recommendations rank candidates deterministically.
 - The switching plan explains operational consequences.
-- The experiment plan explains comparison readiness and candidate warnings.
-- Experiments can compare candidate behavior before a user chooses a model.
-- Comparison summaries give the UI an explainable deterministic baseline.
-- Manual ratings capture real user/project feedback for future recommendations.
-- Workspace-aware recommendations merge catalog fit with that feedback.
+- Selection status explains whether selected and active runtime match.
+- Usage and embedding-indexing plans explain whether ask/search/indexing can
+  proceed.
+- The Local AI Activation Guide provides copy-only setup instructions.
 
 ## Implemented Switching Rules
 
@@ -195,14 +223,18 @@ Expected purpose:
 
 ## Follow-On Tasks
 
-1. Frontend API mapping or real Ollama experiment happy path.
-2. Runtime selection validation against installed/available local models.
-3. Ollama-backed real experiment polish.
-4. AI-assisted experiment evaluator.
-3. Runtime model validation against installed Ollama models.
-4. Hugging Face metadata importer.
-5. UI shell and model-management views.
-6. Desktop launcher and installer.
+1. Frontend model selection editing flow with explicit confirmation and
+   copy-only restart/reindex guidance.
+2. Frontend reindex guidance that copies the correct curl command but does not
+   execute it automatically.
+3. Better source-ranking diagnostics for Ask results, including low-score and
+   irrelevant-source explanations.
+4. Optional `qwen2.5-coder` comparison experiment against `llama3.2` using the
+   existing experiment endpoints.
+5. Runtime model validation against installed Ollama models.
+6. Ollama-backed real experiment polish and AI-assisted experiment evaluator.
+7. Hugging Face metadata importer.
+8. Desktop launcher and installer.
 
 ## Safety Requirements
 
