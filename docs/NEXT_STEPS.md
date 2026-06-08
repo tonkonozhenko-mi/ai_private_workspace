@@ -108,11 +108,15 @@ Read-only **Workspace UI Action Catalog** is implemented at
 button/card metadata, action status, target HTTP method and endpoint, mutation
 flags, and one deterministic primary action without executing any action.
 
-## Immediate Next Task: Frontend API Mapping / First UI Prototype
+The **Frontend API Map** is documented in
+[FRONTEND_API_MAP.md](FRONTEND_API_MAP.md). It maps app screens, cards, action
+buttons, provider boundaries, mutations, and timeline effects to the current
+backend surface.
 
-The next recommended task is a frontend API mapping document or first UI
-prototype that turns stable aggregate/read endpoints and the UI Action Catalog
-into screens, cards, and explicit user-triggered actions.
+## Immediate Next Task: First UI Prototype
+
+The next recommended task is the first frontend shell and workspace navigation
+built from the stable aggregate/read endpoints and Workspace UI Action Catalog.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 

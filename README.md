@@ -13,6 +13,7 @@ approval workflow.
 ## Documentation
 
 - [API inventory](docs/API_INVENTORY.md)
+- [Frontend API map](docs/FRONTEND_API_MAP.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Configuration](docs/CONFIGURATION.md)
 - [Project state and handoff](docs/PROJECT_STATE.md)
