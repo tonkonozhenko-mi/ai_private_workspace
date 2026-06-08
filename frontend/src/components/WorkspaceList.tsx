@@ -16,8 +16,8 @@ export function WorkspaceList({
   if (workspaces.length === 0) {
     return (
       <EmptyState
-        title="No active workspaces yet"
-        message="Create one through the backend onboarding flow."
+        title="No workspaces yet"
+        message="Create one from onboarding or backend API."
         compact
       />
     );
@@ -39,14 +39,23 @@ export function WorkspaceList({
               <strong>{workspace.name}</strong>
               <StatusBadge label={workspace.readiness_status} />
             </span>
-            <span className="workspace-path">{workspace.project_path}</span>
-            <span className="workspace-list-meta">
+            <span className="workspace-path" title={workspace.project_path}>
+              {workspace.project_path}
+            </span>
+            <span className="workspace-list-labels">
+              <span>{formatLabel(workspace.assistant_mode)} assistant</span>
               <span>{formatLabel(workspace.quick_start_status)}</span>
+            </span>
+            <span className="workspace-list-signals">
               <span>{workspace.detected_skills_count} skills</span>
+              <span>Index: {formatLabel(workspace.index_status)}</span>
             </span>
-            <span className="workspace-next-action">
-              {workspace.next_action_title ?? "Open workspace"}
-            </span>
+            {workspace.next_action_title ? (
+              <span className="workspace-next-action">
+                <span>Next</span>
+                <strong>{workspace.next_action_title}</strong>
+              </span>
+            ) : null}
           </button>
         );
       })}
