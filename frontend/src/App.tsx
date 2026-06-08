@@ -238,6 +238,7 @@ function App() {
                 <WorkspaceDashboard
                   dashboard={detail.dashboard}
                   modelsSummary={detail.modelsSummary}
+                  onOpenModels={() => setActiveTab("models")}
                 />
               ) : null}
               <div hidden={activeTab !== "ask"}>

@@ -711,6 +711,34 @@ code {
   text-align: right;
 }
 
+.local-ai-setup-navigation {
+  display: grid;
+  justify-items: end;
+  gap: 7px;
+}
+
+.local-ai-models-button {
+  min-height: 30px;
+  padding: 6px 9px;
+  color: #655326;
+  background: #fffdf7;
+  border: 1px solid #cdbb85;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.local-ai-models-button:hover {
+  color: #493a17;
+  background: #f5ead0;
+  border-color: #bda25e;
+}
+
+.local-ai-models-button:focus-visible {
+  outline: 2px solid #bda25e;
+  outline-offset: 2px;
+}
+
 .overview-next-action {
   display: flex;
   align-items: flex-start;
@@ -2216,6 +2244,10 @@ code {
 
   .local-ai-setup-next p {
     text-align: left;
+  }
+
+  .local-ai-setup-navigation {
+    justify-items: start;
   }
 
   .timeline-item-header {

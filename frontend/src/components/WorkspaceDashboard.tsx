@@ -7,11 +7,13 @@ import { ModelsSummaryCard } from "./ModelsSummaryCard";
 interface WorkspaceDashboardProps {
   dashboard: WorkspaceDashboardData;
   modelsSummary: WorkspaceModelsDashboardSummary;
+  onOpenModels: () => void;
 }
 
 export function WorkspaceDashboard({
   dashboard,
   modelsSummary,
+  onOpenModels,
 }: WorkspaceDashboardProps) {
   const summary = dashboard.summary;
   const indexStatus = summary.index_status;
@@ -33,7 +35,10 @@ export function WorkspaceDashboard({
       </header>
 
       {modelsSummary.overall_status !== "ready" ? (
-        <LocalAISetupWarning summary={modelsSummary} />
+        <LocalAISetupWarning
+          summary={modelsSummary}
+          onOpenModels={onOpenModels}
+        />
       ) : null}
 
       <section className="metric-grid" aria-label="Workspace status">
@@ -81,8 +86,10 @@ export function WorkspaceDashboard({
 
 function LocalAISetupWarning({
   summary,
+  onOpenModels,
 }: {
   summary: WorkspaceModelsDashboardSummary;
+  onOpenModels: () => void;
 }) {
   return (
     <section className="panel local-ai-setup-warning">
@@ -129,7 +136,16 @@ function LocalAISetupWarning({
             {summary.primary_next_action_title ?? "Review local AI setup"}
           </strong>
         </div>
-        <p>Open the Models tab to review activation steps.</p>
+        <div className="local-ai-setup-navigation">
+          <p>Open the Models tab to review activation steps.</p>
+          <button
+            className="local-ai-models-button"
+            type="button"
+            onClick={onOpenModels}
+          >
+            Open Models tab
+          </button>
+        </div>
       </div>
     </section>
   );
