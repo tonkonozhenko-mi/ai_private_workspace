@@ -221,6 +221,13 @@ above similarly scored real local models. The resulting ranking is advisory and
 read-only; it does not activate a model, change runtime settings, call
 providers, or mutate feedback.
 
+The Model Recommendation Explanation is a deterministic read model over those
+same sources. It presents catalog fit, workspace history, switching impact,
+risks, and suggested actions for both known and unknown models. Availability and
+installation remain explicitly unverified because the explanation does not call
+Ollama, Hugging Face, or any provider. LLM explanations state that reindexing is
+not required; embedding explanations state that reindexing is required.
+
 ## Testing Boundaries
 
 Normal tests use fake providers, in-memory vector storage, temporary SQLite

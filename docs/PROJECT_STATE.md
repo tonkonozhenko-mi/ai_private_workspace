@@ -138,18 +138,19 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Workspace-Aware, Rating-Aware Model Recommendations**
+**Model Recommendation Explanation**
 
-The backend can now rank catalog models for a workspace using both static
-catalog fit and persisted experiment/rating history. Catalog score, historical
-performance score, final score, reasons, warnings, and historical signals
-remain explicit and read-only.
+The backend can now explain a model recommendation using catalog fit, workspace
+history, deterministic switching impact, risks, warnings, and suggested next
+actions. Known and unknown models receive read-only explanations without
+provider calls or installation checks.
 
 ## Recommended Next Task
 
-**Recommendation Explanation And UI Model Selection State**
+**UI Model Selection State Or Real Ollama Experiment Run**
 
-The next capability should make recommendation decisions and active model state
-easy for the future UI to inspect without silently changing runtime settings.
+The next capability should either expose selected/active/installed model state
+for the future UI or further harden explicitly requested real Ollama experiment
+runs without silently changing runtime settings.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.

@@ -249,6 +249,25 @@ a warning. Fake/testing providers remain visible but receive a workspace-use
 penalty so close real local models rank above them. Recommendations are
 read-only and never activate a model.
 
+Explain a model recommendation before selecting or installing anything:
+
+```bash
+curl -X POST http://127.0.0.1:8000/workspaces/WORKSPACE_ID/models/explain \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "ollama",
+    "model": "qwen2.5-coder",
+    "model_type": "llm",
+    "assistant_profile_id": null,
+    "laptop_profile_id": "balanced",
+    "task_type": "workspace_ask"
+  }'
+```
+
+The deterministic explanation includes catalog fit, workspace history,
+switching impact, risks, installation guidance, and suggested next actions.
+Installed-model availability is not verified, and no providers are called.
+
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only
 when an experiment explicitly includes an Ollama candidate.

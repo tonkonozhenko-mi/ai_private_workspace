@@ -80,6 +80,7 @@ models, run benchmarks, or change active runtime configuration.
 | `GET /workspaces/{workspace_id}/model-experiments` | List newest persisted model experiment runs for a workspace. | No | No | No | Model experiments |
 | `GET /workspaces/{workspace_id}/model-performance` | Aggregate saved experiment outcomes and manual ratings into deterministic model performance signals. | No | No | No | Model experiments/model selection |
 | `POST /workspaces/{workspace_id}/models/recommend` | Rank catalog models using static metadata plus historical workspace experiment and rating signals. | No | No | No | Model selection |
+| `POST /workspaces/{workspace_id}/models/explain` | Explain catalog fit, workspace history, switching impact, risks, and next actions for a model. | No | No | No | Model selection |
 
 ## Reports And Deterministic Analysis
 
