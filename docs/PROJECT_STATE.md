@@ -90,17 +90,38 @@ See [ARCHITECTURE.md](ARCHITECTURE.md), [API_INVENTORY.md](API_INVENTORY.md),
 - Timeline backfill for workspaces created before timeline support.
 - Recent activity included in workspace read models.
 
-### Model Management Foundation
+### Model Management And Experiments
 
-- Static local model catalog.
+- Static local model catalog and optional reloadable user JSON catalog through
+  `USER_MODEL_CATALOG_PATH` and `POST /models/catalog/reload`.
 - Deterministic model recommendations by assistant profile, laptop profile,
-  task, and model type.
-- Optional user-defined JSON model catalog through
-  `USER_MODEL_CATALOG_PATH`.
-- Validation warnings for malformed, invalid, missing, or duplicate user model
-  metadata.
-- Reloadable in-memory user model catalog through
-  `POST /models/catalog/reload`.
+  task, model type, and workspace performance history.
+- Workspace-aware recommendation explanations and switching plans.
+- Persistent model experiment runs, comparison summaries, and manual candidate
+  ratings.
+- Workspace model selection state for LLM and embedding preferences.
+- Read-only selection status, usage plan, embedding indexing plan, models
+  dashboard, and dashboard summary.
+- `POST /workspaces/{workspace_id}/ask-selected` for asking with the persisted
+  selected LLM without changing runtime configuration.
+
+### Frontend Workbench
+
+- Vite, React, and TypeScript frontend in `frontend/`.
+- Dark workspace sidebar with workspace status, assistant mode, index state,
+  skill count, and next action.
+- Overview, Ask, Models, Actions, and Activity tabs.
+- Overview cards for project status, index status, quick start, activity, local
+  model status, and primary next action.
+- Ask tab with manual submit, example questions, non-blocking project-question
+  guidance, local session history, answer diagnostics, quality warnings, and
+  source inspection.
+- Models tab with selected/active runtime, readiness, recommendations,
+  performance history, and copy-only local activation guide.
+- Actions tab with read-only UI action catalog and endpoint inspection.
+- Activity tab backed by persistent timeline data.
+- Unified status badges, loading/error/empty states, polished layout, safe text
+  wrapping, and responsive behavior.
 
 ## Current Runtime Modes
 
@@ -119,10 +140,26 @@ This mode is self-contained and used by the normal test suite.
 - Qdrant for persistent vector context.
 - Ollama for local embeddings.
 - Ollama for local LLM generation.
-- Optional guarded local command runner.
+- Fake command runner remains the safe default.
+
+The verified runtime target is:
+
+- `VECTOR_STORE=qdrant`
+- `EMBEDDING_PROVIDER=ollama`
+- `OLLAMA_EMBEDDING_MODEL=nomic-embed-text`
+- `LLM_PROVIDER=ollama`
+- `OLLAMA_LLM_MODEL=llama3.2`
+
+This real local AI happy path has been manually verified end to end: runtime
+health reported Qdrant and Ollama as configured and healthy, the workspace was
+reindexed into Qdrant, model selection status became `ready`, `ask-selected`
+returned an Ollama answer with relevant sources, the frontend Overview showed
+Local AI status `Ready`, Ask showed `ollama/llama3.2`, and Activity recorded
+Ollama-backed workspace question events.
 
 Qdrant and Ollama remain optional. No cloud API is required for the current
-backend MVP.
+backend MVP. See [CONFIGURATION.md](CONFIGURATION.md#real-local-ai-runtime)
+for exact startup, verification, and troubleshooting commands.
 
 ## Safety Principles
 
@@ -139,18 +176,27 @@ backend MVP.
 
 ## Latest Completed Task
 
-**First Frontend Skeleton**
+**Frontend Polish And Real Local AI Happy Path**
 
-The repository now includes a minimal Vite, React, and TypeScript frontend that
-loads the workspace overview, selected workspace dashboard, compact Models
-summary, and read-only UI Action Catalog.
+The frontend MVP has been expanded and polished into a usable local workbench:
+workspace sidebar, Overview, Ask, Models, Actions, and Activity tabs are in
+place with consistent badges, shared state components, safe copy-only setup
+instructions, local Ask session history, source inspection, and responsive
+visual cleanup.
+
+The real local AI happy path has also been verified with Qdrant, Ollama
+embeddings, Ollama LLM generation, workspace reindexing, selected model
+readiness, real `ask-selected` answers, source-grounded responses, and frontend
+confirmation.
 
 ## Recommended Next Task
 
-**Frontend Navigation And Read-Only Detail Screens**
+**Documented Runtime And Model Selection UX**
 
-The next capability should extend the frontend shell into tabbed workspace
-navigation and additional read-only detail screens before enabling explicit
-mutating actions.
+The immediate follow-up is to keep the verified real local runtime documented
+and then improve the frontend model-selection editing flow. Future UI work
+should continue to be explicit and safe: copy commands or explain actions, but
+do not start runtimes, download models, reindex, or execute commands without a
+separate deliberate design.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.

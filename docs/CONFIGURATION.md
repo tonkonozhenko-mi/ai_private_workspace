@@ -80,6 +80,220 @@ Reload replaces the current in-memory user-model snapshot. If the file becomes
 invalid or unavailable, previous user models are removed, built-in models remain
 available, and the reload response plus catalog details expose warnings.
 
+
+## Real Local AI Runtime
+
+The verified real local AI path uses Qdrant for persistent vector search,
+Ollama for embeddings, and Ollama for answer generation. It keeps command
+execution safe by leaving `COMMAND_RUNNER=fake` unless local command execution
+is enabled separately and intentionally.
+
+### Required local services
+
+- Ollama listening on `http://localhost:11434`.
+- Qdrant listening on `http://localhost:6333`.
+
+Start or create Qdrant with Podman:
+
+```bash
+podman start qdrant
+```
+
+If the container does not exist yet:
+
+```bash
+podman run -d \
+  --name qdrant \
+  -p 6333:6333 \
+  -v qdrant_data:/qdrant/storage \
+  docker.io/qdrant/qdrant:latest
+```
+
+Verify services:
+
+```bash
+ollama list
+curl http://127.0.0.1:11434/api/tags
+curl http://127.0.0.1:6333/healthz
+```
+
+### Required models
+
+The verified baseline is:
+
+- `nomic-embed-text` for embeddings.
+- `llama3.2` for generation.
+
+`qwen2.5-coder` is a useful optional model for later comparison experiments.
+Install missing models explicitly:
+
+```bash
+ollama pull nomic-embed-text
+ollama pull llama3.2
+ollama pull qwen2.5-coder
+```
+
+### Runtime environment
+
+Use these settings for the verified local AI runtime:
+
+| Variable | Verified value | Purpose |
+| --- | --- | --- |
+| `VECTOR_STORE` | `qdrant` | Store and search workspace vectors in Qdrant. |
+| `EMBEDDING_PROVIDER` | `ollama` | Generate real local embeddings through Ollama. |
+| `OLLAMA_EMBEDDING_MODEL` | `nomic-embed-text` | Embedding model used for indexing and search. |
+| `LLM_PROVIDER` | `ollama` | Generate real local answers through Ollama. |
+| `OLLAMA_LLM_MODEL` | `llama3.2` | Default local generation model. |
+| `QDRANT_URL` | `http://localhost:6333` | Qdrant HTTP endpoint. |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama HTTP endpoint. |
+
+Preferred zsh-friendly startup method:
+
+```bash
+cd backend
+
+export VECTOR_STORE=qdrant
+export EMBEDDING_PROVIDER=ollama
+export OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+export LLM_PROVIDER=ollama
+export OLLAMA_LLM_MODEL=llama3.2
+
+uvicorn app.main:app --reload
+```
+
+Single-line alternative:
+
+```bash
+VECTOR_STORE=qdrant EMBEDDING_PROVIDER=ollama OLLAMA_EMBEDDING_MODEL=nomic-embed-text LLM_PROVIDER=ollama OLLAMA_LLM_MODEL=llama3.2 uvicorn app.main:app --reload
+```
+
+Avoid copied multi-line environment commands with blank lines in zsh. If the
+variables are not exported correctly, Python will see `None` and the backend
+will fall back to `memory` / `fake` / `fake` defaults. Check the shell first:
+
+```bash
+python -c 'import os; print(os.getenv("VECTOR_STORE"), os.getenv("EMBEDDING_PROVIDER"), os.getenv("LLM_PROVIDER"))'
+```
+
+Expected output after export:
+
+```text
+qdrant ollama ollama
+```
+
+### Verification flow
+
+Use the real workspace ID in place of `{workspace_id}`.
+
+Check runtime health:
+
+```bash
+curl http://127.0.0.1:8000/runtime/health
+```
+
+Successful runtime health should show:
+
+- `VECTOR_STORE` as `qdrant`.
+- `EMBEDDING_PROVIDER` as `ollama`.
+- `LLM_PROVIDER` as `ollama`.
+- Qdrant `configured: true` and `status: ok`.
+- Ollama `configured: true` and `status: ok`.
+
+Reindex after changing embedding provider, embedding model, or vector store:
+
+```bash
+curl -X POST http://127.0.0.1:8000/workspaces/{workspace_id}/index
+curl http://127.0.0.1:8000/workspaces/{workspace_id}/index/status
+```
+
+Select the active Ollama LLM for `ask-selected`:
+
+```bash
+curl -X PUT http://127.0.0.1:8000/workspaces/{workspace_id}/models/selection \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "ollama",
+    "model": "llama3.2",
+    "model_type": "llm",
+    "selected_reason": "Use active local Ollama LLM."
+  }'
+```
+
+Check model readiness:
+
+```bash
+curl http://127.0.0.1:8000/workspaces/{workspace_id}/models/selection/status
+```
+
+Expected success signals:
+
+- `llm_status.status` is `ready`.
+- `embedding_status.status` is `ready`.
+- `overall_status` is `ready`.
+- Workspace index status is `indexed`.
+
+Ask a real local question:
+
+```bash
+curl -X POST http://127.0.0.1:8000/workspaces/{workspace_id}/ask-selected \
+  -H "Content-Type: application/json" \
+  -d '{"question":"How is Terraform backend configured?","limit":5}'
+```
+
+Expected success signals:
+
+- Response has `llm_provider: ollama`.
+- Response has `llm_model: llama3.2`.
+- Answer is not the deterministic fake-answer text.
+- Sources include relevant project files such as `terragrunt.hcl` and `main.tf`.
+- `quality_warnings` is empty, or any warnings are explainable from the
+  retrieved context.
+
+Frontend verification:
+
+- Overview shows Local AI status `Ready`.
+- Models shows selected and active LLM/embedding as matching.
+- Ask response badge shows `ollama/llama3.2`.
+- Sources show relevant top files.
+- Activity includes `Workspace Question Asked` events with `llm_provider=ollama`.
+
+### Troubleshooting real local AI mode
+
+Runtime still shows `memory` / `fake` / `fake`:
+
+- An old backend process is still running on port 8000.
+- Environment variables were not exported in the shell that started Uvicorn.
+- Check the port with `lsof -nP -iTCP:8000 -sTCP:LISTEN`.
+- Check Python environment visibility with `python -c 'import os; ...'` before
+  starting Uvicorn.
+
+`ask-selected` still uses `fake`:
+
+- Workspace selected LLM is still a fake model.
+- Update it with `PUT /workspaces/{workspace_id}/models/selection` using the
+  `provider`, `model`, and `model_type` payload shown above.
+- Check `/models/selection/status` before asking again.
+
+Index or sources still look old:
+
+- Reindex after changing embedding model or vector store.
+- Qdrant collections are embedding-provider, model, and dimension aware; a new
+  vector space needs a new index.
+
+Ollama is missing a model:
+
+```bash
+ollama pull nomic-embed-text
+ollama pull llama3.2
+```
+
+Qdrant is not reachable:
+
+```bash
+podman start qdrant
+curl http://127.0.0.1:6333/healthz
+```
+
 ## Command Runner
 
 | Variable | Default | Allowed/format | Purpose | Change when |
