@@ -56,12 +56,19 @@ Deterministic **Model Recommendation Explanations** are implemented at
 fit, workspace history, switching impact, risks, and suggested next actions
 without checking providers or changing model selection.
 
-## Immediate Next Task: UI Model Selection State Or Real Ollama Experiment Run
+Persistent **Workspace Model Selection State** is implemented at
+`GET /workspaces/{workspace_id}/models/selection` and
+`PUT /workspaces/{workspace_id}/models/selection`. It stores selected LLM and
+embedding preferences separately, reports configuration-match notes, and warns
+when an embedding preference change may require reindexing.
 
-The next recommended task is either a read-only model selection state for the
-future UI or further hardening of explicitly requested Ollama-backed experiment
-runs. Both paths should preserve the distinction between recommended, selected,
-installed, and active models without automatically changing runtime settings.
+## Immediate Next Task: Runtime Selection Validation
+
+The next recommended task is to compare selected workspace preferences with
+actual installed/available local models and active runtime capabilities. It must
+preserve the distinction between recommended, selected, configured, installed,
+and active models without automatically changing settings or downloading
+models.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 
@@ -135,8 +142,9 @@ Expected purpose:
 
 ## Follow-On Tasks
 
-1. UI model selection state or Ollama-backed real experiment polish.
-2. AI-assisted experiment evaluator.
+1. Runtime selection validation against installed/available local models.
+2. Ollama-backed real experiment polish.
+3. AI-assisted experiment evaluator.
 3. Runtime model validation against installed Ollama models.
 4. Hugging Face metadata importer.
 5. UI shell and model-management views.

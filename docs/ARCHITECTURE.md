@@ -111,6 +111,7 @@ The SQLite schema stores:
 - timeline events and metadata JSON
 - model experiment runs and per-candidate result JSON
 - append-only user ratings for model experiment candidates
+- workspace-selected LLM and embedding-model preference metadata
 
 Schema initialization uses `CREATE TABLE IF NOT EXISTS` and small compatible
 column migrations. SQL does not appear in core or API routes.
@@ -227,6 +228,14 @@ risks, and suggested actions for both known and unknown models. Availability and
 installation remain explicitly unverified because the explanation does not call
 Ollama, Hugging Face, or any provider. LLM explanations state that reindexing is
 not required; embedding explanations state that reindexing is required.
+
+Workspace Model Selection is a separate persisted preference layer. Selecting an
+LLM or embedding model preserves the other selection, records timeline activity,
+and reports whether the preference matches active provider/model configuration.
+Unknown catalog models remain selectable with a validation note. Replacing an
+embedding preference adds a reindex warning, but selection never changes active
+settings, restarts services, downloads models, calls providers, or triggers
+reindexing.
 
 ## Testing Boundaries
 
