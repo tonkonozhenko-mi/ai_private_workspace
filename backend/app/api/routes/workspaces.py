@@ -111,6 +111,10 @@ from app.api.schemas.workspace_summary_schemas import (
     WorkspaceSummaryResponse,
     to_workspace_summary_response,
 )
+from app.api.schemas.workspace_ui_actions_schemas import (
+    WorkspaceUIActionCatalogResponse,
+    to_workspace_ui_action_catalog_response,
+)
 from app.api.schemas.workspace_readiness_schemas import (
     WorkspaceReadinessResponse,
     to_workspace_readiness_response,
@@ -229,6 +233,11 @@ from app.core.use_cases.get_workspace_dashboard import (
     GetWorkspaceDashboardInput,
     GetWorkspaceDashboardUseCase,
     WorkspaceDashboardNotFoundError,
+)
+from app.core.use_cases.get_workspace_ui_actions import (
+    GetWorkspaceUIActionsInput,
+    GetWorkspaceUIActionsUseCase,
+    WorkspaceUIActionsNotFoundError,
 )
 from app.core.use_cases.get_workspace_assistant_recommendation import (
     GetWorkspaceAssistantRecommendationUseCase,
@@ -796,6 +805,49 @@ def get_workspace_dashboard(workspace_id: str) -> WorkspaceDashboardResponse:
         ) from exc
 
     return to_workspace_dashboard_response(dashboard)
+
+
+@router.get(
+    "/{workspace_id}/ui-actions",
+    response_model=WorkspaceUIActionCatalogResponse,
+)
+def get_workspace_ui_actions(
+    workspace_id: str,
+) -> WorkspaceUIActionCatalogResponse:
+    use_case = GetWorkspaceUIActionsUseCase(
+        workspace_repository=workspace_repository,
+        quick_start_use_case=GetWorkspaceQuickStartUseCase(
+            workspace_repository=workspace_repository,
+            project_scan_repository=project_scan_repository,
+            index_status_repository=index_status_repository,
+            configuration=readiness_configuration,
+        ),
+        readiness_use_case=GetWorkspaceReadinessUseCase(
+            workspace_repository=workspace_repository,
+            project_scan_repository=project_scan_repository,
+            index_status_repository=index_status_repository,
+            command_repository=command_repository,
+            configuration=readiness_configuration,
+        ),
+        models_summary_use_case=GetWorkspaceModelsDashboardSummaryUseCase(
+            dashboard_use_case=_build_workspace_models_dashboard_use_case()
+        ),
+    )
+    try:
+        catalog = use_case.execute(
+            GetWorkspaceUIActionsInput(workspace_id=workspace_id)
+        )
+    except WorkspaceUIActionsNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except ModelRecommendationValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    return to_workspace_ui_action_catalog_response(catalog)
 
 
 @router.get(

@@ -138,18 +138,18 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Local AI Activation Guide**
+**Workspace UI Action Catalog**
 
-The backend can now turn selected workspace models, active runtime
-configuration, and index metadata into a deterministic sequence of local AI
-activation instructions. It returns Qdrant, Ollama, backend restart, reindex,
-and ask-selected commands without executing or verifying them.
+The backend can now return stable frontend action metadata for a workspace,
+including HTTP method, endpoint, status, recommendation state, mutation flag,
+and deterministic primary action. It reads Quick Start, readiness, and compact
+model status without executing actions or probing providers.
 
 ## Recommended Next Task
 
-**Frontend API Mapping Or Real Ollama Experiment Happy Path**
+**Frontend API Mapping / First UI Prototype**
 
-The next capability should map stable backend aggregates and actions into the
-future frontend or polish explicit local Ollama experiments.
+The next capability should map stable backend aggregates and the UI Action
+Catalog into the first frontend screens and explicit user-triggered actions.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.

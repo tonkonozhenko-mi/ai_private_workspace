@@ -299,6 +299,14 @@ warning, and readiness logic are not duplicated in the main dashboard or API
 route. The dedicated detailed and compact Models dashboard endpoints remain
 unchanged.
 
+Workspace UI Action Catalog is a read-only frontend navigation projection over
+Quick Start, readiness, and the compact Models summary. It returns stable action
+IDs, HTTP methods, endpoint paths, availability, recommendation state, and
+whether each target endpoint mutates data. Its primary action follows Quick
+Start unless selected embedding setup must take precedence over a generic ask
+action. The catalog itself never executes an action, writes workspace state,
+checks runtime health, or calls providers.
+
 ## Testing Boundaries
 
 Normal tests use fake providers, in-memory vector storage, temporary SQLite
