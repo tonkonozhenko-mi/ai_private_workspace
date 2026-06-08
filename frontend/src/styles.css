@@ -969,15 +969,21 @@ code {
 
 .source-list article {
   display: grid;
-  gap: 7px;
+  gap: 9px;
   min-width: 0;
-  padding: 11px 12px;
+  padding: 12px;
   background: #f8fafb;
   border: 1px solid #e1e7ea;
   border-radius: 5px;
 }
 
-.source-list article > div {
+.source-list article.is-top-source {
+  background: #f3f8f5;
+  border-color: #a9caba;
+  box-shadow: inset 3px 0 #4c9274;
+}
+
+.source-card-heading {
   display: flex;
   align-items: start;
   justify-content: space-between;
@@ -985,31 +991,84 @@ code {
   min-width: 0;
 }
 
-.source-list strong {
+.source-card-heading > div {
+  display: grid;
+  gap: 5px;
   min-width: 0;
-  overflow: hidden;
-  color: #2d5545;
-  font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 10px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.source-list span {
+.source-card-heading strong {
+  min-width: 0;
+  color: #2d5545;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.source-score,
+.source-count-summary {
   flex: 0 0 auto;
   color: #849099;
   font-size: 9px;
 }
 
-.source-list p {
-  display: -webkit-box;
-  overflow: hidden;
+.source-count-summary {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.top-source-badge {
+  width: max-content;
+  padding: 3px 5px;
+  color: #245b45;
+  background: #e4f0ea;
+  border: 1px solid #bfd9cc;
+  border-radius: 3px;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.source-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.source-metadata span {
+  padding: 3px 5px;
+  color: #596b75;
+  background: #edf1f3;
+  border-radius: 3px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 8px;
+}
+
+.source-preview {
+  max-width: 100%;
   margin: 0;
-  color: #65747d;
+  padding: 9px 10px;
+  overflow-x: auto;
+  color: #53636c;
+  background: #fff;
+  border: 1px solid #e4e9eb;
+  border-radius: 4px;
+  font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 10px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.source-quality-hint {
+  margin: 13px 0 0;
+  padding: 9px 10px;
+  color: #765322;
+  background: #fbf5e7;
+  border-left: 3px solid #d8b75d;
+  border-radius: 4px;
+  font-size: 9px;
   line-height: 1.5;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
 }
 
 .ask-empty-state {

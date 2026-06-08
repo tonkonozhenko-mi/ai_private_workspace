@@ -40,6 +40,7 @@ export interface RagSource {
   source_path: string;
   score: number;
   preview: string;
+  metadata?: Record<string, string>;
 }
 
 export interface RagQualityWarning {

@@ -364,6 +364,8 @@ function QualityWarnings({ warnings }: { warnings: RagQualityWarning[] }) {
 }
 
 function Sources({ sources }: { sources: RagSource[] }) {
+  const topSourceScoreIsLow = sources.length > 0 && sources[0].score < 0.25;
+
   return (
     <section className="panel source-panel">
       <div className="panel-heading">
@@ -371,24 +373,59 @@ function Sources({ sources }: { sources: RagSource[] }) {
           <p className="eyebrow">Retrieved context</p>
           <h2>Sources</h2>
         </div>
-        <span className="panel-count">{sources.length}</span>
+        <span className="source-count-summary">
+          {sources.length} retrieved{" "}
+          {sources.length === 1 ? "source" : "sources"}
+        </span>
       </div>
       {sources.length > 0 ? (
-        <div className="source-list">
-          {sources.map((source) => (
-            <article key={source.chunk_id}>
-              <div>
-                <strong>{source.source_path}</strong>
-                <span>{source.score.toFixed(3)} score</span>
-              </div>
-              <p>{source.preview}</p>
-            </article>
-          ))}
-        </div>
+        <>
+          {topSourceScoreIsLow ? (
+            <p className="source-quality-hint">
+              Top source score is low; answer may be weakly grounded.
+            </p>
+          ) : null}
+          <div className="source-list">
+            {sources.map((source, index) => {
+              const detectedType = source.metadata?.detected_type;
+              const extension = source.metadata?.extension;
+
+              return (
+                <article
+                  className={index === 0 ? "is-top-source" : undefined}
+                  key={source.chunk_id}
+                >
+                  <div className="source-card-heading">
+                    <div>
+                      {index === 0 ? (
+                        <span className="top-source-badge">Top source</span>
+                      ) : null}
+                      <strong title={source.source_path}>
+                        {source.source_path}
+                      </strong>
+                    </div>
+                    <span className="source-score">
+                      {formatSourceScore(source.score)} match
+                    </span>
+                  </div>
+                  {detectedType || extension ? (
+                    <div className="source-metadata">
+                      {detectedType ? (
+                        <span>{formatLabel(detectedType)}</span>
+                      ) : null}
+                      {extension ? <span>{extension}</span> : null}
+                    </div>
+                  ) : null}
+                  <pre className="source-preview">{source.preview}</pre>
+                </article>
+              );
+            })}
+          </div>
+        </>
       ) : (
         <p className="empty-panel-state">
-          No context sources were returned. Review the diagnostic message or
-          index status before asking again.
+          No sources returned. Try reindexing or asking a more project-specific
+          question.
         </p>
       )}
     </section>
@@ -435,4 +472,11 @@ function formatTime(value: string) {
 export function isLikelyProjectQuestion(question: string): boolean {
   const words = question.toLowerCase().match(/[a-z0-9]+/g) ?? [];
   return words.some((word) => PROJECT_QUESTION_KEYWORDS.has(word));
+}
+
+function formatSourceScore(score: number): string {
+  if (score >= 0 && score <= 1) {
+    return `${(score * 100).toFixed(1)}%`;
+  }
+  return score.toFixed(3);
 }
