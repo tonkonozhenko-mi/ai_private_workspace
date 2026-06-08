@@ -35,6 +35,10 @@ def test_run_fake_comparison_on_indexed_workspace_creates_completed_run(
         candidate["used_context_chunks"] == run["shared_context_sources_count"]
         for candidate in run["candidates"]
     )
+    assert [candidate["llm_model"] for candidate in run["candidates"]] == [
+        "fake-llm",
+        "fake-llm-alt",
+    ]
 
 
 def test_experiment_retrieves_shared_context_once(tmp_path, monkeypatch) -> None:

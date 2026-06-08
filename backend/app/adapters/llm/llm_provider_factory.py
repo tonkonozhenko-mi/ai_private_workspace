@@ -30,7 +30,7 @@ class LLMProviderFactory:
         model_name = model.strip() if model and model.strip() else None
 
         if provider_name == "fake":
-            return FakeLLMProvider()
+            return FakeLLMProvider(model_name=model_name or "fake-llm")
         if provider_name == "ollama":
             if self.ollama_client is None:
                 self.ollama_client = httpx.Client()

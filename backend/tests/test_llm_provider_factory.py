@@ -16,14 +16,14 @@ def test_factory_default_returns_configured_fake_provider() -> None:
     assert provider.model_name == "fake-llm"
 
 
-def test_factory_creates_fake_provider() -> None:
+def test_factory_creates_fake_provider_with_model_override() -> None:
     factory = _factory(default_provider="ollama")
 
-    provider = factory.create(provider="fake", model="ignored-model")
+    provider = factory.create(provider="fake", model="fake-llm-alt")
 
     assert isinstance(provider, FakeLLMProvider)
     assert provider.provider_name == "fake"
-    assert provider.model_name == "fake-llm"
+    assert provider.model_name == "fake-llm-alt"
 
 
 def test_factory_creates_ollama_provider_with_model_override_without_calling() -> None:

@@ -136,6 +136,9 @@ provider/model, and vector dimension to avoid incompatible reuse. Core code
 knows only the provider ports. The LLM provider factory creates the configured
 default provider or a supported `fake`/`ollama` per-request override; provider
 selection remains in adapters rather than RAG use cases or API routes.
+Fake-provider model overrides preserve the requested model label for deterministic
+testing and experiment comparisons while keeping generated fake-answer behavior
+unchanged.
 
 ### Runtime Health
 

@@ -1,6 +1,8 @@
 class FakeLLMProvider:
     provider_name = "fake"
-    model_name = "fake-llm"
+
+    def __init__(self, model_name: str = "fake-llm") -> None:
+        self.model_name = model_name
 
     def generate(self, prompt: str) -> str:
         return (
