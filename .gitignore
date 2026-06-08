@@ -29,6 +29,7 @@ ollama_data/
 # Build artifacts
 dist/
 build/
+node_modules/
 *.egg-info/
 
 # Editor

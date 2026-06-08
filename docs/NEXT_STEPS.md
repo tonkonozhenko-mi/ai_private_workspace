@@ -113,10 +113,15 @@ The **Frontend API Map** is documented in
 buttons, provider boundaries, mutations, and timeline effects to the current
 backend surface.
 
-## Immediate Next Task: First UI Prototype
+The **First Frontend Skeleton** now exists in `frontend/`. It uses Vite, React,
+and TypeScript to render the workspace list, selected workspace dashboard,
+compact Models summary, and UI Action Catalog without executing any actions.
 
-The next recommended task is the first frontend shell and workspace navigation
-built from the stable aggregate/read endpoints and Workspace UI Action Catalog.
+## Immediate Next Task: Frontend Navigation And Read-Only Detail Screens
+
+The next recommended task is tabbed workspace navigation and additional
+read-only screens built from the stable API map. Mutating actions should remain
+disabled until their confirmation and refresh behavior is designed.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 

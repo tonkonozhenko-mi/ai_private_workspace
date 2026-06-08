@@ -7,6 +7,10 @@ from pydantic import BaseModel
 
 class Settings(BaseModel):
     app_name: str = "Private Project AI Workbench"
+    CORS_ALLOWED_ORIGINS: list[str] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
     APP_DATA_DIR: Path = Path(".ai-workbench")
     WORKSPACE_DB_PATH: Path = Path(".ai-workbench/workspaces.db")
     WORKSPACE_REPOSITORY: str = "sqlite"
@@ -29,6 +33,10 @@ class Settings(BaseModel):
     @property
     def app_data_dir(self) -> Path:
         return self.APP_DATA_DIR
+
+    @property
+    def cors_allowed_origins(self) -> list[str]:
+        return self.CORS_ALLOWED_ORIGINS
 
     @property
     def workspace_db_path(self) -> Path:
@@ -105,8 +113,17 @@ def get_settings() -> Settings:
     workspace_db_path = Path(
         os.getenv("WORKSPACE_DB_PATH", str(app_data_dir / "workspaces.db"))
     )
+    cors_allowed_origins = [
+        origin.strip()
+        for origin in os.getenv(
+            "CORS_ALLOWED_ORIGINS",
+            "http://localhost:5173,http://127.0.0.1:5173",
+        ).split(",")
+        if origin.strip()
+    ]
 
     settings = Settings(
+        CORS_ALLOWED_ORIGINS=cors_allowed_origins,
         APP_DATA_DIR=app_data_dir,
         WORKSPACE_DB_PATH=workspace_db_path,
         WORKSPACE_REPOSITORY=os.getenv("WORKSPACE_REPOSITORY", "sqlite"),

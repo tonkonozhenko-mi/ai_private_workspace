@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.assistant_profiles import router as assistant_profiles_router
 from app.api.routes.commands import router as commands_router
@@ -14,6 +15,14 @@ from app.config.settings import get_settings
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(health_router)
 app.include_router(runtime_health_router)

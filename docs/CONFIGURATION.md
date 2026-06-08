@@ -9,6 +9,16 @@ Unsupported repository/provider/runner names fail during application
 composition. Qdrant and Ollama are optional and are not contacted under the
 default configuration.
 
+## Application And Frontend Development
+
+| Variable | Default | Allowed/format | Purpose | Change when |
+| --- | --- | --- | --- | --- |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated origin URLs | Allows the local Vite frontend to call the FastAPI backend during development. | The frontend runs on another host or port. |
+
+Origins are trimmed and loaded once at backend startup. Restart the API after
+changing `CORS_ALLOWED_ORIGINS`. Keep the list explicit; the backend does not
+use a wildcard origin.
+
 ## Persistence
 
 | Variable | Default | Allowed/format | Purpose | Change when |
