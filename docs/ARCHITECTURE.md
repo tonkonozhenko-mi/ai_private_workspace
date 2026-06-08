@@ -215,9 +215,11 @@ Workspace-aware model recommendations now compose the existing static catalog
 recommendation use case with the workspace performance read model. Catalog
 scores remain visible, performance scores and explicit historical adjustments
 are added separately, and models without workspace history retain their catalog
-score with a warning. The resulting ranking is advisory and read-only; it does
-not activate a model, change runtime settings, call providers, or mutate
-feedback.
+score with a warning. Fake/testing providers remain visible but receive an
+explicit workspace-use penalty so historical test feedback cannot promote them
+above similarly scored real local models. The resulting ranking is advisory and
+read-only; it does not activate a model, change runtime settings, call
+providers, or mutate feedback.
 
 ## Testing Boundaries
 

@@ -23,6 +23,9 @@ from app.core.use_cases.recommend_models import (
 
 
 NO_HISTORY_WARNING = "No workspace performance history for this model yet."
+FAKE_PROVIDER_PENALTY_REASON = (
+    "-30: Fake/testing provider is not recommended for real workspace usage."
+)
 RECOMMENDATION_NOTES = [
     "Recommendations combine static catalog scoring with workspace performance history.",
     "Historical scores are deterministic signals, not a semantic quality evaluation.",
@@ -130,6 +133,10 @@ class RecommendWorkspaceModelsUseCase:
         reasons = list(catalog_reasons)
         warnings = list(catalog_warnings)
         final_score = catalog_score
+
+        if model.provider == "fake":
+            final_score -= 30
+            reasons.append(FAKE_PROVIDER_PENALTY_REASON)
 
         if performance is None:
             warnings.append(NO_HISTORY_WARNING)
