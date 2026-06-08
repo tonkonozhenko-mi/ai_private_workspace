@@ -17,7 +17,8 @@ runtime state, recommendations, performance history, and setup commands as
 read-only instructions. Activation commands can be copied to the clipboard, but
 they are never executed by the frontend. The Actions tab is inspection-only:
 actions can be selected to review their endpoint, status, and safety details,
-but no action is invoked.
+but no action is invoked. The Activity tab presents the persisted backend
+timeline as a read-only event history with compact metadata previews.
 
 ## Run
 
