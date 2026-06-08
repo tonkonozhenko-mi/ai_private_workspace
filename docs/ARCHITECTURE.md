@@ -269,6 +269,14 @@ backend restart, a new vector collection, and reindexing as required actions.
 The plan does not call providers, create collections, change configuration, or
 run indexing.
 
+Local AI Activation Guide turns persisted workspace model selections, active
+configuration names, and index metadata into ordered setup instructions. It can
+recommend starting Qdrant, starting or pulling Ollama models, restarting the
+backend with selected provider/model environment variables, reindexing, and
+asking with the selected LLM. These are command strings for the user only: the
+guide performs no health checks, provider calls, downloads, configuration
+changes, process restarts, or indexing.
+
 Workspace Models Dashboard is a read-only aggregate over the existing model
 selection, selection status, selected-model usage plan, selected-embedding
 indexing plan, workspace-aware recommendations, and performance summary use

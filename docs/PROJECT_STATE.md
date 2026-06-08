@@ -138,12 +138,12 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Workspace Models Dashboard Summary**
+**Local AI Activation Guide**
 
-The backend can now return a compact read-only projection for a workspace model
-status card. It derives selected and active models, top recommendation, warning
-count, readiness, performance-model count, and the primary next action from the
-unchanged detailed Models dashboard.
+The backend can now turn selected workspace models, active runtime
+configuration, and index metadata into a deterministic sequence of local AI
+activation instructions. It returns Qdrant, Ollama, backend restart, reindex,
+and ask-selected commands without executing or verifying them.
 
 ## Recommended Next Task
 

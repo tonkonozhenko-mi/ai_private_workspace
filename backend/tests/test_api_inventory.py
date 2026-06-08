@@ -30,6 +30,7 @@ IMPORTANT_PATHS = {
     "/workspaces/overview",
     "/workspaces/{workspace_id}",
     "/workspaces/{workspace_id}/dashboard",
+    "/workspaces/{workspace_id}/local-ai/activation-guide",
     "/workspaces/{workspace_id}/scan",
     "/workspaces/{workspace_id}/index",
     "/workspaces/{workspace_id}/ask",

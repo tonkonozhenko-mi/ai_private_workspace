@@ -372,6 +372,19 @@ This lets the main workspace UI render a small Models card without separately
 loading the full Models dashboard. The dedicated detailed and summary endpoints
 remain available and unchanged.
 
+Generate explicit instructions for activating the workspace's selected local AI
+models:
+
+```bash
+curl http://127.0.0.1:8000/workspaces/WORKSPACE_ID/local-ai/activation-guide
+```
+
+The guide compares persisted model selections with active configuration and
+index metadata, then returns ordered Qdrant, Ollama, backend-restart, reindex,
+and ask-selected steps. Commands are instructions only: this endpoint does not
+call providers, download models, restart the backend, change settings, or
+reindex the workspace.
+
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only
 when an experiment explicitly includes an Ollama candidate.
