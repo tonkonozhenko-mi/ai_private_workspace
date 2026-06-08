@@ -4,9 +4,10 @@ type CopyState = "idle" | "copied" | "failed";
 
 interface CopyButtonProps {
   text: string;
+  label?: string;
 }
 
-export function CopyButton({ text }: CopyButtonProps) {
+export function CopyButton({ text, label = "command" }: CopyButtonProps) {
   const [copyState, setCopyState] = useState<CopyState>("idle");
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export function CopyButton({ text }: CopyButtonProps) {
     }
   }
 
-  const label =
+  const feedbackLabel =
     copyState === "copied"
       ? "Copied"
       : copyState === "failed"
@@ -38,11 +39,11 @@ export function CopyButton({ text }: CopyButtonProps) {
     <button
       className={`copy-button is-${copyState}`}
       type="button"
-      title="Copy command text"
+      title={`Copy ${label} text`}
       onClick={() => void copyText()}
       aria-live="polite"
     >
-      {label}
+      {feedbackLabel}
     </button>
   );
 }
