@@ -138,18 +138,18 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Workspace Models Dashboard**
+**Workspace Models Dashboard Summary**
 
-The backend can now return one read-only aggregate for the future workspace
-Models section. It combines selection, status, usage and embedding-indexing
-plans, workspace-aware recommendations, performance history, and a deterministic
-primary next model action.
+The backend can now return a compact read-only projection for a workspace model
+status card. It derives selected and active models, top recommendation, warning
+count, readiness, performance-model count, and the primary next action from the
+unchanged detailed Models dashboard.
 
 ## Recommended Next Task
 
-**Real Ollama Experiment Happy Path Or Frontend API Mapping**
+**Frontend API Mapping Or Real Ollama Experiment Happy Path**
 
-The next capability should either polish explicit local Ollama experiments or
-map stable backend aggregates and actions into the future frontend.
+The next capability should map stable backend aggregates and actions into the
+future frontend or polish explicit local Ollama experiments.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.

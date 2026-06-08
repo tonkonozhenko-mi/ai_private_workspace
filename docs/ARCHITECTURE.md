@@ -277,6 +277,13 @@ action. Provider calls, indexing, selection changes, recommendations, and
 performance scoring remain owned by their existing boundaries rather than being
 reimplemented in the API route or dashboard.
 
+Workspace Models Dashboard Summary is a compact projection built from the
+detailed dashboard use case. It formats selected and active model identities,
+exposes the top recommendation and primary next action, counts performance
+models, and derives a warning total from recommendation warnings,
+embedding-indexing warnings, and non-ready usage capabilities. The detailed
+dashboard remains the source for full diagnostics and is unchanged.
+
 ## Testing Boundaries
 
 Normal tests use fake providers, in-memory vector storage, temporary SQLite

@@ -73,10 +73,11 @@ Delivered foundations include:
 - Ask using the persisted selected LLM through per-request override.
 - Selected-embedding indexing and vector-space transition planning.
 - Read-only Workspace Models Dashboard aggregation.
+- Compact Workspace Models Dashboard Summary projection.
 
 Next planned tasks:
 
-1. Real Ollama experiment happy path or frontend API mapping.
+1. Frontend API mapping or real Ollama experiment happy path.
 2. Runtime selection validation against installed/available local models.
 3. Ollama-backed real experiment polish.
 4. AI-assisted experiment evaluator.
