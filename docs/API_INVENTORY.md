@@ -83,6 +83,7 @@ models, run benchmarks, or change active runtime configuration.
 | `POST /workspaces/{workspace_id}/models/explain` | Explain catalog fit, workspace history, switching impact, risks, and next actions for a model. | No | No | No | Model selection |
 | `GET /workspaces/{workspace_id}/models/selection` | Get persisted workspace LLM and embedding-model preference state plus runtime-configuration match notes. | No | No | No | Model selection |
 | `PUT /workspaces/{workspace_id}/models/selection` | Persist one workspace model preference while preserving the other model type. | Selection and timeline | No | No | Model selection |
+| `GET /workspaces/{workspace_id}/models/selection/status` | Compare selected models with active configuration and index status, then return readiness and next actions. | No | No | No | Model selection/readiness |
 
 ## Reports And Deterministic Analysis
 

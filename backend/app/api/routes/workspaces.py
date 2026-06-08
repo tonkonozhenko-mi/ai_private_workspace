@@ -67,6 +67,10 @@ from app.api.schemas.workspace_model_selection_schemas import (
     WorkspaceModelSelectionResponse,
     to_workspace_model_selection_response,
 )
+from app.api.schemas.workspace_model_selection_status_schemas import (
+    WorkspaceModelSelectionStatusResponse,
+    to_workspace_model_selection_status_response,
+)
 from app.api.schemas.report_schemas import (
     ProjectOverviewReportResponse,
     to_project_overview_report_response,
@@ -236,6 +240,11 @@ from app.core.use_cases.update_workspace_model_selection import (
     UpdateWorkspaceModelSelectionNotFoundError,
     UpdateWorkspaceModelSelectionUseCase,
     UpdateWorkspaceModelSelectionValidationError,
+)
+from app.core.use_cases.get_workspace_model_selection_status import (
+    GetWorkspaceModelSelectionStatusInput,
+    GetWorkspaceModelSelectionStatusUseCase,
+    WorkspaceModelSelectionStatusNotFoundError,
 )
 from app.core.use_cases.scan_project import ProjectScanError
 from app.core.use_cases.scan_workspace_project import (
@@ -962,6 +971,28 @@ def update_workspace_model_selection(
             detail=str(exc),
         ) from exc
     return to_workspace_model_selection_response(selection)
+
+
+@router.get(
+    "/{workspace_id}/models/selection/status",
+    response_model=WorkspaceModelSelectionStatusResponse,
+)
+def get_workspace_model_selection_status(
+    workspace_id: str,
+) -> WorkspaceModelSelectionStatusResponse:
+    try:
+        selection_status = GetWorkspaceModelSelectionStatusUseCase(
+            workspace_repository=workspace_repository,
+            selection_repository=workspace_model_selection_repository,
+            index_status_repository=index_status_repository,
+            configuration=readiness_configuration,
+        ).execute(GetWorkspaceModelSelectionStatusInput(workspace_id=workspace_id))
+    except WorkspaceModelSelectionStatusNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return to_workspace_model_selection_status_response(selection_status)
 
 
 @router.get(

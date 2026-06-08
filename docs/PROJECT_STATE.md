@@ -138,19 +138,19 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Workspace Model Selection State**
+**Workspace Model Selection Status**
 
-The backend can now persist selected LLM and embedding-model preferences per
-workspace while preserving the other model type. Selection responses report
-active-configuration match notes and embedding-change reindex guidance without
-changing runtime settings or triggering work.
+The backend can now compare persisted workspace LLM and embedding selections
+with active configured provider/model names and index metadata. The read-only
+status reports restart needs, embedding reindex needs, overall readiness, and
+deterministic next actions.
 
 ## Recommended Next Task
 
-**Runtime Selection Validation**
+**Selected-Model-Aware Ask And Index Plan**
 
-The next capability should validate selected preferences against installed and
-available local runtime models without silently changing settings, downloading
-models, or triggering reindexing.
+The next capability should explain how selected workspace models would affect a
+future ask or index operation without silently changing settings or triggering
+reindexing.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.
