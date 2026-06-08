@@ -261,6 +261,14 @@ uses the active embedding and vector-store configuration. When a separately
 selected embedding does not match that active configuration, the response adds
 a deterministic warning rather than changing embeddings or reindexing.
 
+Selected Embedding Indexing Plan is a read-only projection over the persisted
+embedding selection, active embedding provider/model identity, and workspace
+index status. A matching active embedding can index immediately and can search
+once indexed. A mismatch represents a different vector space, so the plan marks
+backend restart, a new vector collection, and reindexing as required actions.
+The plan does not call providers, create collections, change configuration, or
+run indexing.
+
 ## Testing Boundaries
 
 Normal tests use fake providers, in-memory vector storage, temporary SQLite

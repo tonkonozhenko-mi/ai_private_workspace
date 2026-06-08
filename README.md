@@ -328,6 +328,17 @@ configuration. If a selected embedding differs from the active embedding, the
 response includes a deterministic quality warning. Ollama is contacted only
 when the user explicitly invokes this endpoint with an Ollama LLM selected.
 
+Inspect the indexing impact of the selected embedding:
+
+```bash
+curl http://127.0.0.1:8000/workspaces/WORKSPACE_ID/models/embedding-indexing-plan
+```
+
+The plan reports whether the selected embedding matches the active runtime,
+whether indexing and search can proceed now, and whether restart, reindexing,
+or a new vector collection is required. It is advisory only: no providers are
+called, no collection is created, and no indexing or runtime change occurs.
+
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only
 when an experiment explicitly includes an Ollama candidate.

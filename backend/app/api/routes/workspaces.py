@@ -75,6 +75,10 @@ from app.api.schemas.selected_model_usage_plan_schemas import (
     SelectedModelUsagePlanResponse,
     to_selected_model_usage_plan_response,
 )
+from app.api.schemas.selected_embedding_indexing_plan_schemas import (
+    SelectedEmbeddingIndexingPlanResponse,
+    to_selected_embedding_indexing_plan_response,
+)
 from app.api.schemas.report_schemas import (
     ProjectOverviewReportResponse,
     to_project_overview_report_response,
@@ -261,6 +265,11 @@ from app.core.use_cases.get_selected_model_usage_plan import (
     GetSelectedModelUsagePlanInput,
     GetSelectedModelUsagePlanUseCase,
     SelectedModelUsagePlanNotFoundError,
+)
+from app.core.use_cases.get_selected_embedding_indexing_plan import (
+    GetSelectedEmbeddingIndexingPlanInput,
+    GetSelectedEmbeddingIndexingPlanUseCase,
+    SelectedEmbeddingIndexingPlanNotFoundError,
 )
 from app.core.use_cases.scan_project import ProjectScanError
 from app.core.use_cases.scan_workspace_project import (
@@ -1078,6 +1087,28 @@ def get_selected_model_usage_plan(
             detail=str(exc),
         ) from exc
     return to_selected_model_usage_plan_response(plan)
+
+
+@router.get(
+    "/{workspace_id}/models/embedding-indexing-plan",
+    response_model=SelectedEmbeddingIndexingPlanResponse,
+)
+def get_selected_embedding_indexing_plan(
+    workspace_id: str,
+) -> SelectedEmbeddingIndexingPlanResponse:
+    try:
+        plan = GetSelectedEmbeddingIndexingPlanUseCase(
+            workspace_repository=workspace_repository,
+            selection_repository=workspace_model_selection_repository,
+            index_status_repository=index_status_repository,
+            configuration=readiness_configuration,
+        ).execute(GetSelectedEmbeddingIndexingPlanInput(workspace_id=workspace_id))
+    except SelectedEmbeddingIndexingPlanNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return to_selected_embedding_indexing_plan_response(plan)
 
 
 @router.get(
