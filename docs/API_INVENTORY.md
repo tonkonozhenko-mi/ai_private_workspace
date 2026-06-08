@@ -65,6 +65,7 @@ models, run benchmarks, or change active runtime configuration.
 | `GET /workspaces/{workspace_id}/readiness` | Derive capabilities and setup readiness from persisted state and provider names. | No | No | No | Workspace overview |
 | `GET /workspaces/{workspace_id}/quick-start` | Return current setup stage and next action. | No | No | No | Continue setup |
 | `GET /workspaces/{workspace_id}/dashboard` | Aggregate summary, readiness, quick start, recommendation, activity, runtime health, and compact models summary. | No | No | Lightweight Qdrant/Ollama checks when configured | Main workspace |
+| `GET /workspaces/{workspace_id}/local-ai/activation-guide` | Return deterministic commands and ordered guidance for activating the workspace's selected local AI models. | No | No | No | Local AI setup |
 
 ## Scanning, Indexing, And RAG
 

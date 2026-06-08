@@ -44,6 +44,10 @@ from app.api.schemas.index_status_schemas import (
     WorkspaceIndexStatusResponse,
     to_workspace_index_status_response,
 )
+from app.api.schemas.local_ai_activation_guide_schemas import (
+    LocalAIActivationGuideResponse,
+    to_local_ai_activation_guide_response,
+)
 from app.api.schemas.model_experiment_run_schemas import (
     ModelExperimentRunResponse,
     to_model_experiment_run_response,
@@ -188,6 +192,11 @@ from app.core.use_cases.index_workspace import (
     IndexWorkspaceNotFoundError,
     IndexWorkspaceScanRequiredError,
     IndexWorkspaceUseCase,
+)
+from app.core.use_cases.get_local_ai_activation_guide import (
+    GetLocalAIActivationGuideInput,
+    GetLocalAIActivationGuideUseCase,
+    LocalAIActivationGuideNotFoundError,
 )
 from app.core.use_cases.get_analysis_summary import (
     AnalysisSummaryWorkspaceNotFoundError,
@@ -787,6 +796,28 @@ def get_workspace_dashboard(workspace_id: str) -> WorkspaceDashboardResponse:
         ) from exc
 
     return to_workspace_dashboard_response(dashboard)
+
+
+@router.get(
+    "/{workspace_id}/local-ai/activation-guide",
+    response_model=LocalAIActivationGuideResponse,
+)
+def get_local_ai_activation_guide(
+    workspace_id: str,
+) -> LocalAIActivationGuideResponse:
+    try:
+        guide = GetLocalAIActivationGuideUseCase(
+            workspace_repository=workspace_repository,
+            selection_repository=workspace_model_selection_repository,
+            index_status_repository=index_status_repository,
+            configuration=runtime_health_configuration,
+        ).execute(GetLocalAIActivationGuideInput(workspace_id=workspace_id))
+    except LocalAIActivationGuideNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return to_local_ai_activation_guide_response(guide)
 
 
 @router.get(

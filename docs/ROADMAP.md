@@ -74,6 +74,7 @@ Delivered foundations include:
 - Selected-embedding indexing and vector-space transition planning.
 - Read-only Workspace Models Dashboard aggregation.
 - Compact Workspace Models Dashboard Summary projection.
+- Read-only Local AI Activation Guide with explicit setup commands.
 
 Next planned tasks:
 

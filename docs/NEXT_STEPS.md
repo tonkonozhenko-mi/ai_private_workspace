@@ -97,6 +97,12 @@ Compact **Workspace Models Dashboard Summary** is implemented at
 detailed dashboard into a lightweight model status card with selected/active
 models, top recommendation, warning count, readiness, and next action.
 
+Read-only **Local AI Activation Guide** is implemented at
+`GET /workspaces/{workspace_id}/local-ai/activation-guide`. It turns selected
+workspace models, active configuration, and index metadata into explicit
+Qdrant, Ollama, backend-restart, reindex, and ask-selected instructions without
+executing or verifying any of them.
+
 ## Immediate Next Task: Frontend API Mapping Or Real Ollama Experiment Happy Path
 
 The next recommended task is a frontend API mapping document that turns stable
