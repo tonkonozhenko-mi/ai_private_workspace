@@ -3,6 +3,7 @@ import type {
   WorkspaceDashboard,
   WorkspaceModelsDashboard,
   WorkspaceModelsDashboardSummary,
+  WorkspaceQuestionAnswer,
   WorkspaceUIActionCatalog,
   WorkspacesOverview,
 } from "./types";
@@ -11,17 +12,22 @@ export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  return requestJson<T>(path, {
     headers: {
       Accept: "application/json",
     },
   });
+}
 
+async function requestJson<T>(path: string, init: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, init);
   if (!response.ok) {
     let detail = `${response.status} ${response.statusText}`;
     try {
-      const body = (await response.json()) as { detail?: string };
-      detail = body.detail ?? detail;
+      const body = (await response.json()) as { detail?: unknown };
+      if (typeof body.detail === "string") {
+        detail = body.detail;
+      }
     } catch {
       // Preserve the HTTP status when the backend did not return JSON.
     }
@@ -70,5 +76,23 @@ export function getLocalAIActivationGuide(
 ): Promise<LocalAIActivationGuide> {
   return getJson<LocalAIActivationGuide>(
     `/workspaces/${workspaceId}/local-ai/activation-guide`,
+  );
+}
+
+export function askSelectedWorkspace(
+  workspaceId: string,
+  question: string,
+  limit: number,
+): Promise<WorkspaceQuestionAnswer> {
+  return requestJson<WorkspaceQuestionAnswer>(
+    `/workspaces/${workspaceId}/ask-selected`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ question, limit }),
+    },
   );
 }

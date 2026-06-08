@@ -14,6 +14,7 @@ import type {
   WorkspaceModelsDetailBundle,
   WorkspaceOverviewItem,
 } from "./api/types";
+import { AskWorkspace } from "./components/AskWorkspace";
 import { ModelsDetail } from "./components/ModelsDetail";
 import { ModelsSummaryCard } from "./components/ModelsSummaryCard";
 import { ActivityTimeline } from "./components/ActivityTimeline";
@@ -21,10 +22,11 @@ import { UIActionsPanel } from "./components/UIActionsPanel";
 import { WorkspaceDashboard } from "./components/WorkspaceDashboard";
 import { WorkspaceList } from "./components/WorkspaceList";
 
-type WorkspaceTab = "overview" | "models" | "actions" | "activity";
+type WorkspaceTab = "overview" | "ask" | "models" | "actions" | "activity";
 
 const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
   { id: "overview", label: "Overview" },
+  { id: "ask", label: "Ask" },
   { id: "models", label: "Models" },
   { id: "actions", label: "Actions" },
   { id: "activity", label: "Activity" },
@@ -124,6 +126,23 @@ function App() {
     }
   }, [loadWorkspaceDetail]);
 
+  const refreshAfterAsk = useCallback(async (workspaceId: string) => {
+    try {
+      const [dashboard, overview] = await Promise.all([
+        getWorkspaceDashboard(workspaceId),
+        getWorkspacesOverview(),
+      ]);
+      if (selectedWorkspaceIdRef.current === workspaceId) {
+        setDetail((current) =>
+          current ? { ...current, dashboard } : current,
+        );
+        setWorkspaces(overview.items);
+      }
+    } catch {
+      // The submitted answer remains visible if the optional read-only refresh fails.
+    }
+  }, []);
+
   useEffect(() => {
     void loadWorkspaces();
   }, [loadWorkspaces]);
@@ -207,7 +226,7 @@ function App() {
                   </button>
                 ))}
               </div>
-              <p>Read-only workspace views</p>
+              <p>Workspace views</p>
             </nav>
 
             <section
@@ -219,6 +238,13 @@ function App() {
                 <WorkspaceDashboard
                   dashboard={detail.dashboard}
                   modelsSummary={detail.modelsSummary}
+                />
+              ) : null}
+              {activeTab === "ask" ? (
+                <AskWorkspace
+                  key={detail.dashboard.workspace_id}
+                  workspaceId={detail.dashboard.workspace_id}
+                  onAsked={() => refreshAfterAsk(detail.dashboard.workspace_id)}
                 />
               ) : null}
               {activeTab === "models" ? (

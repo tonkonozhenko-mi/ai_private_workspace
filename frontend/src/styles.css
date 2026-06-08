@@ -603,6 +603,275 @@ code {
   line-height: 1.55;
 }
 
+.ask-workspace {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.7fr) minmax(0, 1.3fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.ask-composer {
+  position: sticky;
+  top: 20px;
+}
+
+.ask-safety-note {
+  margin: 14px 0;
+  padding: 10px 11px;
+  color: #3f6856;
+  background: #eef6f2;
+  border-left: 3px solid #4c9274;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.ask-composer form {
+  display: grid;
+  gap: 8px;
+}
+
+.ask-composer form > label,
+.ask-controls label {
+  color: #66757e;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ask-composer textarea,
+.ask-composer select {
+  width: 100%;
+  color: #26363e;
+  background: #fbfcfc;
+  border: 1px solid #cfd9de;
+  border-radius: 5px;
+  outline: none;
+}
+
+.ask-composer textarea {
+  min-height: 132px;
+  padding: 11px;
+  resize: vertical;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.ask-composer select {
+  min-width: 84px;
+  min-height: 34px;
+  padding: 6px 8px;
+  font-size: 11px;
+}
+
+.ask-composer textarea:focus,
+.ask-composer select:focus {
+  border-color: #4c9274;
+  box-shadow: 0 0 0 2px rgb(76 146 116 / 15%);
+}
+
+.ask-controls {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.ask-controls label {
+  display: grid;
+  gap: 5px;
+}
+
+.primary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ask-error {
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 10px 11px;
+  color: #7a3c3c;
+  background: #faeeee;
+  border-left: 3px solid #b76565;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.ask-results {
+  display: grid;
+  gap: 12px;
+}
+
+.answer-model {
+  padding: 4px 7px;
+  color: #3f6856;
+  background: #eef6f2;
+  border: 1px solid #c6ded2;
+  border-radius: 4px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.answer-question {
+  margin: 14px 0 0;
+  color: #718089;
+  font-size: 10px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.answer-content {
+  margin-top: 10px;
+  padding: 14px;
+  color: #293840;
+  background: #f7f9fa;
+  border: 1px solid #e0e6e9;
+  border-radius: 5px;
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.answer-stats {
+  display: flex;
+  gap: 18px;
+  margin-top: 12px;
+  color: #718089;
+  font-size: 10px;
+}
+
+.answer-stats strong {
+  color: #245b45;
+}
+
+.ask-diagnostic {
+  padding: 12px 13px;
+  color: #765322;
+  background: #fbf3dd;
+  border-left: 3px solid #d8b75d;
+  border-radius: 5px;
+}
+
+.ask-diagnostic span {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ask-diagnostic p {
+  margin: 5px 0 0;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.quality-warning-list,
+.source-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.quality-warning-list article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  padding: 10px 0;
+  border-top: 1px solid #e8edef;
+}
+
+.quality-warning-list article:first-child {
+  border-top: 0;
+}
+
+.quality-warning-list strong {
+  color: #34454e;
+  font-size: 10px;
+  text-transform: capitalize;
+}
+
+.quality-warning-list p {
+  margin: 3px 0 0;
+  color: #697780;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.source-list article {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 11px 12px;
+  background: #f8fafb;
+  border: 1px solid #e1e7ea;
+  border-radius: 5px;
+}
+
+.source-list article > div {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.source-list strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #2d5545;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-list span {
+  flex: 0 0 auto;
+  color: #849099;
+  font-size: 9px;
+}
+
+.source-list p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: #65747d;
+  font-size: 10px;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.ask-empty-state {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-height: 350px;
+  text-align: center;
+}
+
+.ask-empty-state h2 {
+  margin: 7px 0;
+  color: #34454f;
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.ask-empty-state p:last-child {
+  max-width: 500px;
+  margin: 0;
+  color: #73818a;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
 .models-panel.is-compact .model-summary-list div {
   padding: 8px 0;
 }
@@ -1316,7 +1585,8 @@ code {
 .status-needs_setup,
 .status-needs_embedding_setup,
 .status-needs_attention,
-.status-requires_reindex {
+.status-requires_reindex,
+.status-medium {
   color: #795b18;
   background: #fbf3dd;
   border-color: #e8d59b;
@@ -1325,7 +1595,8 @@ code {
 .status-blocked,
 .status-degraded,
 .status-failed,
-.status-runtime_mismatch {
+.status-runtime_mismatch,
+.status-high {
   color: #8a3d3d;
   background: #faeeee;
   border-color: #e8c2c2;
@@ -1334,7 +1605,9 @@ code {
 .status-optional,
 .status-new,
 .status-scanned,
-.status-needs_model_selection {
+.status-needs_model_selection,
+.status-low,
+.status-info {
   color: #3f6180;
   background: #ecf3f9;
   border-color: #c8d9e8;
@@ -1473,6 +1746,10 @@ code {
   .action-catalog {
     grid-template-columns: minmax(0, 1fr) minmax(280px, 0.75fr);
   }
+
+  .ask-workspace {
+    grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
+  }
 }
 
 @media (max-width: 840px) {
@@ -1534,6 +1811,14 @@ code {
   }
 
   .action-details-panel {
+    position: static;
+  }
+
+  .ask-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .ask-composer {
     position: static;
   }
 
@@ -1601,6 +1886,16 @@ code {
 
   .action-endpoint > div {
     grid-template-columns: 1fr;
+  }
+
+  .ask-controls,
+  .source-list article > div {
+    display: grid;
+  }
+
+  .answer-stats {
+    display: grid;
+    gap: 5px;
   }
 
   .action-endpoint .copy-button {

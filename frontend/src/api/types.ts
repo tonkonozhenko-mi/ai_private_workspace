@@ -35,6 +35,33 @@ export interface TimelineEvent {
   created_at: string;
 }
 
+export interface RagSource {
+  chunk_id: string;
+  source_path: string;
+  score: number;
+  preview: string;
+}
+
+export interface RagQualityWarning {
+  code: string;
+  message: string;
+  severity: string;
+  evidence: string[];
+}
+
+export interface WorkspaceQuestionAnswer {
+  workspace_id: string;
+  question: string;
+  answer: string;
+  sources: RagSource[];
+  used_context_chunks: number;
+  llm_provider: string;
+  llm_model: string | null;
+  diagnostic_code?: string | null;
+  diagnostic_message?: string | null;
+  quality_warnings?: RagQualityWarning[];
+}
+
 export interface WorkspaceIndexStatus {
   workspace_id: string;
   status: string;
