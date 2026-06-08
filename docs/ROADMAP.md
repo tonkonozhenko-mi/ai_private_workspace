@@ -68,12 +68,14 @@ Delivered foundations include:
 - Workspace-aware model recommendations using catalog and historical feedback.
 - Deterministic model recommendation explanations.
 - Persisted workspace LLM and embedding-model selection preferences.
+- Workspace model selection readiness/status projection.
 
 Next planned tasks:
 
-1. Runtime selection validation against installed/available local models.
-2. Ollama-backed real experiment polish.
-3. AI-assisted experiment evaluator.
+1. Selected-model-aware ask and index plan.
+2. Runtime selection validation against installed/available local models.
+3. Ollama-backed real experiment polish.
+4. AI-assisted experiment evaluator.
 3. Runtime model validation against installed Ollama models.
 4. Hugging Face metadata importer.
 

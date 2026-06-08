@@ -237,6 +237,13 @@ embedding preference adds a reindex warning, but selection never changes active
 settings, restarts services, downloads models, calls providers, or triggers
 reindexing.
 
+Workspace Model Selection Status is a read-only readiness projection over
+persisted selections, active configured provider/model names, and persisted
+index status. It distinguishes missing selections, runtime mismatches, embedding
+reindex requirements, and fully ready state, then returns deterministic next
+actions. It does not inspect installed models, restart the backend, change
+configuration, or trigger indexing.
+
 ## Testing Boundaries
 
 Normal tests use fake providers, in-memory vector storage, temporary SQLite

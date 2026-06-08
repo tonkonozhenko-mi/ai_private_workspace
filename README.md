@@ -288,6 +288,17 @@ the other. Responses note whether selections match active runtime configuration,
 and replacing an embedding preference warns that reindexing may be needed. No
 runtime settings are changed and no reindex is triggered.
 
+Inspect selection readiness against active configuration and index status:
+
+```bash
+curl http://127.0.0.1:8000/workspaces/WORKSPACE_ID/models/selection/status
+```
+
+The status reports per-model runtime matches, backend restart requirements,
+embedding reindex requirements, overall readiness, and deterministic next
+actions. It reads configuration and persisted metadata only; no runtime changes
+or indexing occur.
+
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only
 when an experiment explicitly includes an Ollama candidate.

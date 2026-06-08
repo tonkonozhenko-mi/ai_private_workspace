@@ -62,13 +62,17 @@ Persistent **Workspace Model Selection State** is implemented at
 embedding preferences separately, reports configuration-match notes, and warns
 when an embedding preference change may require reindexing.
 
-## Immediate Next Task: Runtime Selection Validation
+Read-only **Workspace Model Selection Status** is implemented at
+`GET /workspaces/{workspace_id}/models/selection/status`. It compares selections
+with active configured provider/model names and workspace index metadata, then
+reports restart, reindex, readiness, and next-action guidance.
 
-The next recommended task is to compare selected workspace preferences with
-actual installed/available local models and active runtime capabilities. It must
-preserve the distinction between recommended, selected, configured, installed,
-and active models without automatically changing settings or downloading
-models.
+## Immediate Next Task: Selected-Model-Aware Ask And Index Plan
+
+The next recommended task is an advisory plan that explains how selected
+workspace models would affect a future ask or index operation. It must preserve
+the distinction between selected and active models and require explicit user
+action before restart, provider changes, or reindexing.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 
@@ -142,9 +146,10 @@ Expected purpose:
 
 ## Follow-On Tasks
 
-1. Runtime selection validation against installed/available local models.
-2. Ollama-backed real experiment polish.
-3. AI-assisted experiment evaluator.
+1. Selected-model-aware ask and index plan.
+2. Runtime selection validation against installed/available local models.
+3. Ollama-backed real experiment polish.
+4. AI-assisted experiment evaluator.
 3. Runtime model validation against installed Ollama models.
 4. Hugging Face metadata importer.
 5. UI shell and model-management views.
