@@ -8,6 +8,9 @@ class LLMProviderFactoryError(ValueError):
 
 
 class LLMProviderFactoryPort(Protocol):
+    def supports(self, provider: str) -> bool:
+        """Return whether a provider can be selected per request."""
+
     def create(
         self,
         provider: str | None = None,

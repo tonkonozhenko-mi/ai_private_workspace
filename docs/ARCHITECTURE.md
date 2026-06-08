@@ -244,6 +244,14 @@ reindex requirements, and fully ready state, then returns deterministic next
 actions. It does not inspect installed models, restart the backend, change
 configuration, or trigger indexing.
 
+Selected Model Usage Plan builds on that state while preserving an important
+runtime distinction. Supported LLM selections can be passed to `/ask` as a
+per-request provider/model override without changing the active backend
+configuration. Embedding selections cannot be applied per request because
+indexing and search must use the same active embedding provider, model, and
+vector space. An embedding mismatch therefore requires an explicit runtime
+change followed by reindexing before selected-model search is available.
+
 ## Testing Boundaries
 
 Normal tests use fake providers, in-memory vector storage, temporary SQLite

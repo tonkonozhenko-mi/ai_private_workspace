@@ -299,6 +299,18 @@ embedding reindex requirements, overall readiness, and deterministic next
 actions. It reads configuration and persisted metadata only; no runtime changes
 or indexing occur.
 
+Get a deterministic plan for using the selected models:
+
+```bash
+curl http://127.0.0.1:8000/workspaces/WORKSPACE_ID/models/usage-plan
+```
+
+Supported selected LLMs can be passed to `/ask` through per-request override,
+even when they differ from the active default LLM. Selected embeddings must
+match the active embedding configuration and have an indexed matching vector
+space before search can use them. The plan only returns capabilities and ordered
+next actions; it never restarts the backend or reindexes.
+
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only
 when an experiment explicitly includes an Ollama candidate.

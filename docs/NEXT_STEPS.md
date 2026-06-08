@@ -67,12 +67,18 @@ Read-only **Workspace Model Selection Status** is implemented at
 with active configured provider/model names and workspace index metadata, then
 reports restart, reindex, readiness, and next-action guidance.
 
-## Immediate Next Task: Selected-Model-Aware Ask And Index Plan
+Read-only **Selected Model Usage Plan** is implemented at
+`GET /workspaces/{workspace_id}/models/usage-plan`. It explains whether the
+selected LLM can be used through `/ask` per-request override and whether the
+selected embedding can safely index and search with the active vector space.
+It returns ordered setup, restart, reindex, and ask actions without performing
+any of them.
 
-The next recommended task is an advisory plan that explains how selected
-workspace models would affect a future ask or index operation. It must preserve
-the distinction between selected and active models and require explicit user
-action before restart, provider changes, or reindexing.
+## Immediate Next Task: Selected-Model-Aware Ask Helper Or UI Action Templates
+
+The next recommended task is a deterministic helper or action-template layer
+that turns a ready selected LLM into the exact `/ask` request override the UI
+should send, while continuing to keep embedding/runtime changes explicit.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 
@@ -146,7 +152,7 @@ Expected purpose:
 
 ## Follow-On Tasks
 
-1. Selected-model-aware ask and index plan.
+1. Selected-model-aware ask helper or UI action templates.
 2. Runtime selection validation against installed/available local models.
 3. Ollama-backed real experiment polish.
 4. AI-assisted experiment evaluator.

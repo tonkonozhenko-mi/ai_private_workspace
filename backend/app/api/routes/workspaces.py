@@ -71,6 +71,10 @@ from app.api.schemas.workspace_model_selection_status_schemas import (
     WorkspaceModelSelectionStatusResponse,
     to_workspace_model_selection_status_response,
 )
+from app.api.schemas.selected_model_usage_plan_schemas import (
+    SelectedModelUsagePlanResponse,
+    to_selected_model_usage_plan_response,
+)
 from app.api.schemas.report_schemas import (
     ProjectOverviewReportResponse,
     to_project_overview_report_response,
@@ -245,6 +249,11 @@ from app.core.use_cases.get_workspace_model_selection_status import (
     GetWorkspaceModelSelectionStatusInput,
     GetWorkspaceModelSelectionStatusUseCase,
     WorkspaceModelSelectionStatusNotFoundError,
+)
+from app.core.use_cases.get_selected_model_usage_plan import (
+    GetSelectedModelUsagePlanInput,
+    GetSelectedModelUsagePlanUseCase,
+    SelectedModelUsagePlanNotFoundError,
 )
 from app.core.use_cases.scan_project import ProjectScanError
 from app.core.use_cases.scan_workspace_project import (
@@ -993,6 +1002,29 @@ def get_workspace_model_selection_status(
             detail=str(exc),
         ) from exc
     return to_workspace_model_selection_status_response(selection_status)
+
+
+@router.get(
+    "/{workspace_id}/models/usage-plan",
+    response_model=SelectedModelUsagePlanResponse,
+)
+def get_selected_model_usage_plan(
+    workspace_id: str,
+) -> SelectedModelUsagePlanResponse:
+    try:
+        plan = GetSelectedModelUsagePlanUseCase(
+            workspace_repository=workspace_repository,
+            selection_repository=workspace_model_selection_repository,
+            index_status_repository=index_status_repository,
+            llm_provider_factory=llm_provider_factory,
+            configuration=readiness_configuration,
+        ).execute(GetSelectedModelUsagePlanInput(workspace_id=workspace_id))
+    except SelectedModelUsagePlanNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return to_selected_model_usage_plan_response(plan)
 
 
 @router.get(

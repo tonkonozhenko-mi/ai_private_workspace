@@ -138,19 +138,19 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Workspace Model Selection Status**
+**Selected Model Usage Plan**
 
-The backend can now compare persisted workspace LLM and embedding selections
-with active configured provider/model names and index metadata. The read-only
-status reports restart needs, embedding reindex needs, overall readiness, and
-deterministic next actions.
+The backend can now explain whether selected workspace models are immediately
+usable for ask, index, and search. Supported LLM selections can be used through
+per-request `/ask` overrides, while embedding selections require an active
+runtime match and an indexed matching vector space.
 
 ## Recommended Next Task
 
-**Selected-Model-Aware Ask And Index Plan**
+**Selected-Model-Aware Ask Helper Or UI Action Templates**
 
-The next capability should explain how selected workspace models would affect a
-future ask or index operation without silently changing settings or triggering
+The next capability should translate a ready selected model into deterministic
+UI action/request templates without silently changing settings or triggering
 reindexing.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.

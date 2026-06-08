@@ -84,6 +84,7 @@ models, run benchmarks, or change active runtime configuration.
 | `GET /workspaces/{workspace_id}/models/selection` | Get persisted workspace LLM and embedding-model preference state plus runtime-configuration match notes. | No | No | No | Model selection |
 | `PUT /workspaces/{workspace_id}/models/selection` | Persist one workspace model preference while preserving the other model type. | Selection and timeline | No | No | Model selection |
 | `GET /workspaces/{workspace_id}/models/selection/status` | Compare selected models with active configuration and index status, then return readiness and next actions. | No | No | No | Model selection/readiness |
+| `GET /workspaces/{workspace_id}/models/usage-plan` | Explain whether selected models can be used for ask, index, and search, plus ordered next actions. | No | No | No | Model selection/readiness |
 
 ## Reports And Deterministic Analysis
 
