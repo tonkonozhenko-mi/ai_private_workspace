@@ -92,11 +92,16 @@ models, readiness/status, usage guidance, embedding-indexing guidance,
 workspace-aware recommendations, performance history, and the primary next
 model action for the future workspace Models UI.
 
-## Immediate Next Task: Real Ollama Experiment Happy Path Or Frontend API Mapping
+Compact **Workspace Models Dashboard Summary** is implemented at
+`GET /workspaces/{workspace_id}/models/dashboard/summary`. It projects the
+detailed dashboard into a lightweight model status card with selected/active
+models, top recommendation, warning count, readiness, and next action.
 
-The next recommended task is either end-to-end polish for explicitly invoked
-Ollama experiments or a frontend API mapping document that turns the stable
-aggregate/read endpoints into UI screens and actions.
+## Immediate Next Task: Frontend API Mapping Or Real Ollama Experiment Happy Path
+
+The next recommended task is a frontend API mapping document that turns stable
+aggregate/read endpoints into UI screens and actions, or end-to-end polish for
+explicitly invoked Ollama experiments.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 
@@ -170,7 +175,7 @@ Expected purpose:
 
 ## Follow-On Tasks
 
-1. Real Ollama experiment happy path or frontend API mapping.
+1. Frontend API mapping or real Ollama experiment happy path.
 2. Runtime selection validation against installed/available local models.
 3. Ollama-backed real experiment polish.
 4. AI-assisted experiment evaluator.

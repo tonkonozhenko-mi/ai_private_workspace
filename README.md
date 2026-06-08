@@ -350,6 +350,17 @@ usage, embedding-indexing guidance, workspace-aware recommendations, historical
 performance, and the primary next model action. It does not call providers,
 select models, change runtime settings, or trigger indexing.
 
+Load the compact Models status-card summary:
+
+```bash
+curl http://127.0.0.1:8000/workspaces/WORKSPACE_ID/models/dashboard/summary
+```
+
+The compact summary includes selected and active model identities, readiness,
+the primary next action, top recommendation, historical performance-model
+count, and a deterministic warning count. Use the detailed Models dashboard for
+full diagnostics. Both endpoints are read-only.
+
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only
 when an experiment explicitly includes an Ollama candidate.

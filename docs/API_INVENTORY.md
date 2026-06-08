@@ -88,6 +88,7 @@ models, run benchmarks, or change active runtime configuration.
 | `GET /workspaces/{workspace_id}/models/usage-plan` | Explain whether selected models can be used for ask, index, and search, plus ordered next actions. | No | No | No | Model selection/readiness |
 | `GET /workspaces/{workspace_id}/models/embedding-indexing-plan` | Explain active-runtime match, vector-collection impact, and indexing steps for the selected embedding. | No | No | No | Model selection/indexing |
 | `GET /workspaces/{workspace_id}/models/dashboard` | Aggregate workspace model selection, readiness, usage, embedding-indexing guidance, recommendations, performance, and primary next action. | No | No | No | Workspace models |
+| `GET /workspaces/{workspace_id}/models/dashboard/summary` | Return compact workspace model status, selected/active identities, top recommendation, warning count, and next action. | No | No | No | Workspace models status card |
 
 ## Reports And Deterministic Analysis
 

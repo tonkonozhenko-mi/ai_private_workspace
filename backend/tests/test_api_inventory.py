@@ -47,6 +47,7 @@ IMPORTANT_PATHS = {
     "/workspaces/{workspace_id}/models/usage-plan",
     "/workspaces/{workspace_id}/models/embedding-indexing-plan",
     "/workspaces/{workspace_id}/models/dashboard",
+    "/workspaces/{workspace_id}/models/dashboard/summary",
 }
 
 

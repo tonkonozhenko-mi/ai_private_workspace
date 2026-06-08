@@ -83,6 +83,10 @@ from app.api.schemas.workspace_models_dashboard_schemas import (
     WorkspaceModelsDashboardResponse,
     to_workspace_models_dashboard_response,
 )
+from app.api.schemas.workspace_models_dashboard_summary_schemas import (
+    WorkspaceModelsDashboardSummaryResponse,
+    to_workspace_models_dashboard_summary_response,
+)
 from app.api.schemas.report_schemas import (
     ProjectOverviewReportResponse,
     to_project_overview_report_response,
@@ -279,6 +283,11 @@ from app.core.use_cases.get_workspace_models_dashboard import (
     GetWorkspaceModelsDashboardInput,
     GetWorkspaceModelsDashboardUseCase,
     WorkspaceModelsDashboardNotFoundError,
+)
+from app.core.use_cases.get_workspace_models_dashboard_summary import (
+    GetWorkspaceModelsDashboardSummaryInput,
+    GetWorkspaceModelsDashboardSummaryUseCase,
+    WorkspaceModelsDashboardSummaryNotFoundError,
 )
 from app.core.use_cases.scan_project import ProjectScanError
 from app.core.use_cases.scan_workspace_project import (
@@ -1120,14 +1129,8 @@ def get_selected_embedding_indexing_plan(
     return to_selected_embedding_indexing_plan_response(plan)
 
 
-@router.get(
-    "/{workspace_id}/models/dashboard",
-    response_model=WorkspaceModelsDashboardResponse,
-)
-def get_workspace_models_dashboard(
-    workspace_id: str,
-) -> WorkspaceModelsDashboardResponse:
-    use_case = GetWorkspaceModelsDashboardUseCase(
+def _build_workspace_models_dashboard_use_case() -> GetWorkspaceModelsDashboardUseCase:
+    return GetWorkspaceModelsDashboardUseCase(
         workspace_repository=workspace_repository,
         selection_use_case=GetWorkspaceModelSelectionUseCase(
             workspace_repository=workspace_repository,
@@ -1165,6 +1168,42 @@ def get_workspace_models_dashboard(
             rating_repository=model_experiment_rating_repository,
         ),
     )
+
+
+@router.get(
+    "/{workspace_id}/models/dashboard/summary",
+    response_model=WorkspaceModelsDashboardSummaryResponse,
+)
+def get_workspace_models_dashboard_summary(
+    workspace_id: str,
+) -> WorkspaceModelsDashboardSummaryResponse:
+    try:
+        summary = GetWorkspaceModelsDashboardSummaryUseCase(
+            dashboard_use_case=_build_workspace_models_dashboard_use_case()
+        ).execute(
+            GetWorkspaceModelsDashboardSummaryInput(workspace_id=workspace_id)
+        )
+    except WorkspaceModelsDashboardSummaryNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except ModelRecommendationValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    return to_workspace_models_dashboard_summary_response(summary)
+
+
+@router.get(
+    "/{workspace_id}/models/dashboard",
+    response_model=WorkspaceModelsDashboardResponse,
+)
+def get_workspace_models_dashboard(
+    workspace_id: str,
+) -> WorkspaceModelsDashboardResponse:
+    use_case = _build_workspace_models_dashboard_use_case()
     try:
         dashboard = use_case.execute(
             GetWorkspaceModelsDashboardInput(workspace_id=workspace_id)
