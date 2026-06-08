@@ -3,6 +3,10 @@ from app.core.domain.model_experiment_comparison import (
     ModelExperimentComparisonSummary,
 )
 from app.core.domain.model_experiment_run import ModelExperimentCandidateResult
+from app.core.domain.model_experiment_rating import ModelExperimentCandidateRating
+from app.core.ports.model_experiment_rating_repository import (
+    ModelExperimentRatingRepositoryPort,
+)
 from app.core.ports.model_experiment_repository import ModelExperimentRepositoryPort
 
 
@@ -18,8 +22,13 @@ class ModelExperimentComparisonNotFoundError(ValueError):
 
 
 class GetModelExperimentComparisonUseCase:
-    def __init__(self, repository: ModelExperimentRepositoryPort) -> None:
+    def __init__(
+        self,
+        repository: ModelExperimentRepositoryPort,
+        rating_repository: ModelExperimentRatingRepositoryPort | None = None,
+    ) -> None:
         self.repository = repository
+        self.rating_repository = rating_repository
 
     def execute(self, experiment_id: str) -> ModelExperimentComparisonSummary:
         run = self.repository.get(experiment_id)
@@ -28,7 +37,15 @@ class GetModelExperimentComparisonUseCase:
                 "Model experiment not found"
             )
 
-        comparisons = [self._compare(candidate) for candidate in run.candidates]
+        ratings = (
+            self.rating_repository.list_by_experiment(run.id)
+            if self.rating_repository is not None
+            else []
+        )
+        comparisons = [
+            self._compare(candidate, self._candidate_ratings(candidate, ratings))
+            for candidate in run.candidates
+        ]
         completed_count = sum(
             comparison.status == "completed" for comparison in comparisons
         )
@@ -48,6 +65,7 @@ class GetModelExperimentComparisonUseCase:
     @staticmethod
     def _compare(
         candidate: ModelExperimentCandidateResult,
+        ratings: list[ModelExperimentCandidateRating],
     ) -> ModelExperimentCandidateComparison:
         answer_length = len(candidate.answer or "")
         score = 0
@@ -108,7 +126,25 @@ class GetModelExperimentComparisonUseCase:
             score=score,
             score_reasons=score_reasons,
             warnings=warnings,
+            user_ratings_count=len(ratings),
+            average_user_rating=(
+                sum(rating.rating for rating in ratings) / len(ratings)
+                if ratings
+                else None
+            ),
+            preferred_votes=sum(rating.is_preferred for rating in ratings),
         )
+
+    @staticmethod
+    def _candidate_ratings(
+        candidate: ModelExperimentCandidateResult,
+        ratings: list[ModelExperimentCandidateRating],
+    ) -> list[ModelExperimentCandidateRating]:
+        return [
+            rating
+            for rating in ratings
+            if rating.provider == candidate.provider and rating.model == candidate.model
+        ]
 
     @staticmethod
     def _recommended_candidate(

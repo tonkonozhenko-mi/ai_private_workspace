@@ -63,12 +63,14 @@ Delivered foundations include:
 - Per-request LLM provider/model override foundation.
 - Persistent shared-context model experiment runs.
 - Deterministic model experiment comparison summaries.
+- Append-only manual experiment candidate ratings and preference signals.
 
 Next planned tasks:
 
-1. AI-assisted experiment evaluator or Ollama-backed real experiment polish.
-2. Runtime model validation against installed Ollama models.
-3. Hugging Face metadata importer.
+1. Model recommendations from historical ratings.
+2. AI-assisted experiment evaluator or Ollama-backed real experiment polish.
+3. Runtime model validation against installed Ollama models.
+4. Hugging Face metadata importer.
 
 This phase must keep model downloads, provider changes, reindexing, and runtime
 configuration changes explicit and user-controlled.

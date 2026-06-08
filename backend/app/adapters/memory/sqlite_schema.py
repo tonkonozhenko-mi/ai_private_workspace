@@ -88,6 +88,21 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             )
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS workspace_model_experiment_ratings (
+                id TEXT PRIMARY KEY,
+                experiment_id TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                model TEXT NOT NULL,
+                rating INTEGER NOT NULL,
+                is_preferred INTEGER NOT NULL,
+                tags_json TEXT NOT NULL,
+                comment TEXT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
         _add_column_if_missing(
             connection,
             table_name="workspaces",

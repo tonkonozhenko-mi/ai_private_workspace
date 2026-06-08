@@ -17,6 +17,9 @@ class ModelExperimentCandidateComparisonResponse(BaseModel):
     score: int
     score_reasons: list[str]
     warnings: list[str]
+    user_ratings_count: int
+    average_user_rating: float | None
+    preferred_votes: int
 
 
 class ModelExperimentComparisonSummaryResponse(BaseModel):
@@ -46,6 +49,9 @@ def to_model_experiment_candidate_comparison_response(
         score=comparison.score,
         score_reasons=comparison.score_reasons,
         warnings=comparison.warnings,
+        user_ratings_count=comparison.user_ratings_count,
+        average_user_rating=comparison.average_user_rating,
+        preferred_votes=comparison.preferred_votes,
     )
 
 

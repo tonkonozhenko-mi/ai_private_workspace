@@ -11,6 +11,9 @@ from app.adapters.memory.in_memory_index_status_repository import (
 from app.adapters.memory.in_memory_model_experiment_repository import (
     InMemoryModelExperimentRepository,
 )
+from app.adapters.memory.in_memory_model_experiment_rating_repository import (
+    InMemoryModelExperimentRatingRepository,
+)
 from app.adapters.memory.in_memory_project_scan_repository import (
     InMemoryProjectScanRepository,
 )
@@ -20,6 +23,9 @@ from app.adapters.memory.sqlite_command_repository import SQLiteCommandRepositor
 from app.adapters.memory.sqlite_index_status_repository import SQLiteIndexStatusRepository
 from app.adapters.memory.sqlite_model_experiment_repository import (
     SQLiteModelExperimentRepository,
+)
+from app.adapters.memory.sqlite_model_experiment_rating_repository import (
+    SQLiteModelExperimentRatingRepository,
 )
 from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScanRepository
 from app.adapters.memory.sqlite_timeline_repository import SQLiteTimelineRepository
@@ -43,6 +49,9 @@ from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.llm_provider import LLMProviderPort
 from app.core.ports.llm_provider_factory import LLMProviderFactoryPort
 from app.core.ports.model_experiment_repository import ModelExperimentRepositoryPort
+from app.core.ports.model_experiment_rating_repository import (
+    ModelExperimentRatingRepositoryPort,
+)
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.runtime_health_checker import RuntimeHealthCheckerPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
@@ -119,6 +128,18 @@ def build_model_experiment_repository() -> ModelExperimentRepositoryPort:
         return InMemoryModelExperimentRepository()
     if repository_type == "sqlite":
         return SQLiteModelExperimentRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_model_experiment_rating_repository() -> ModelExperimentRatingRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryModelExperimentRatingRepository()
+    if repository_type == "sqlite":
+        return SQLiteModelExperimentRatingRepository(settings.workspace_db_path)
 
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
@@ -266,6 +287,7 @@ command_repository = build_command_repository()
 index_status_repository = build_index_status_repository()
 timeline_repository = build_timeline_repository()
 model_experiment_repository = build_model_experiment_repository()
+model_experiment_rating_repository = build_model_experiment_rating_repository()
 file_system = LocalFileSystem()
 command_runner = build_command_runner()
 embedding_provider = build_embedding_provider()
