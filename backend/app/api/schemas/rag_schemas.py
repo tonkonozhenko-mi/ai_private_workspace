@@ -10,6 +10,11 @@ class AskWorkspaceQuestionRequest(BaseModel):
     llm_model: str | None = None
 
 
+class AskWorkspaceQuestionWithSelectedLLMRequest(BaseModel):
+    question: str = Field(..., min_length=1)
+    limit: int = Field(default=5, ge=1, le=50)
+
+
 class RagSourceResponse(BaseModel):
     chunk_id: str
     source_path: str

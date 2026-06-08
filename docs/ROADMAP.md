@@ -70,10 +70,11 @@ Delivered foundations include:
 - Persisted workspace LLM and embedding-model selection preferences.
 - Workspace model selection readiness/status projection.
 - Selected-model usage planning for ask, index, and search.
+- Ask using the persisted selected LLM through per-request override.
 
 Next planned tasks:
 
-1. Selected-model-aware ask helper or UI action templates.
+1. Selected embedding indexing plan or real Ollama experiment run.
 2. Runtime selection validation against installed/available local models.
 3. Ollama-backed real experiment polish.
 4. AI-assisted experiment evaluator.
