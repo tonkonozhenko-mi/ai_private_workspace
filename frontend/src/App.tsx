@@ -2,15 +2,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   API_BASE_URL,
+  getLocalAIActivationGuide,
   getModelsDashboardSummary,
   getWorkspaceDashboard,
+  getWorkspaceModelsDashboard,
   getWorkspacesOverview,
   getWorkspaceUIActions,
 } from "./api/client";
 import type {
   WorkspaceDetailBundle,
+  WorkspaceModelsDetailBundle,
   WorkspaceOverviewItem,
 } from "./api/types";
+import { ModelsDetail } from "./components/ModelsDetail";
 import { ModelsSummaryCard } from "./components/ModelsSummaryCard";
 import { UIActionsPanel } from "./components/UIActionsPanel";
 import {
@@ -37,9 +41,36 @@ function App() {
   const [detail, setDetail] = useState<WorkspaceDetailBundle | null>(null);
   const [workspacesLoading, setWorkspacesLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [modelsDetail, setModelsDetail] =
+    useState<WorkspaceModelsDetailBundle | null>(null);
+  const [modelsDetailLoading, setModelsDetailLoading] = useState(false);
+  const [modelsDetailError, setModelsDetailError] = useState<string | null>(null);
   const [workspacesError, setWorkspacesError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
+
+  const loadModelsDetail = useCallback(async (workspaceId: string) => {
+    setModelsDetail(null);
+    setModelsDetailLoading(true);
+    setModelsDetailError(null);
+    try {
+      const [dashboard, activationGuide] = await Promise.all([
+        getWorkspaceModelsDashboard(workspaceId),
+        getLocalAIActivationGuide(workspaceId),
+      ]);
+      if (selectedWorkspaceIdRef.current === workspaceId) {
+        setModelsDetail({ dashboard, activationGuide });
+      }
+    } catch (error) {
+      if (selectedWorkspaceIdRef.current === workspaceId) {
+        setModelsDetailError(errorMessage(error));
+      }
+    } finally {
+      if (selectedWorkspaceIdRef.current === workspaceId) {
+        setModelsDetailLoading(false);
+      }
+    }
+  }, []);
 
   const loadWorkspaceDetail = useCallback(async (workspaceId: string) => {
     if (selectedWorkspaceIdRef.current !== workspaceId) {
@@ -56,13 +87,15 @@ function App() {
         getModelsDashboardSummary(workspaceId),
       ]);
       setDetail({ dashboard, actions, modelsSummary });
+      void loadModelsDetail(workspaceId);
     } catch (error) {
       setDetail(null);
+      setModelsDetail(null);
       setDetailError(errorMessage(error));
     } finally {
       setDetailLoading(false);
     }
-  }, []);
+  }, [loadModelsDetail]);
 
   const loadWorkspaces = useCallback(async () => {
     setWorkspacesLoading(true);
@@ -165,6 +198,7 @@ function App() {
                     role="tab"
                     aria-selected={activeTab === tab.id}
                     aria-controls="workspace-tab-content"
+                    data-tab-id={tab.id}
                     className={activeTab === tab.id ? "is-selected" : ""}
                     onClick={() => setActiveTab(tab.id)}
                   >
@@ -191,17 +225,6 @@ function App() {
               ) : null}
               {activeTab === "models" ? (
                 <div className="models-tab">
-                  <header className="tab-section-heading">
-                    <div>
-                      <p className="eyebrow">Workspace models</p>
-                      <h1>Selected and active models</h1>
-                    </div>
-                    <span
-                      className={`status-badge status-${detail.modelsSummary.overall_status}`}
-                    >
-                      {formatLabel(detail.modelsSummary.overall_status)}
-                    </span>
-                  </header>
                   <div className="information-band">
                     <p>
                       <strong>Selected LLM:</strong> supported selections can be
@@ -214,7 +237,42 @@ function App() {
                       reindexing when the embedding space changes.
                     </p>
                   </div>
-                  <ModelsSummaryCard summary={detail.modelsSummary} spacious />
+                  {modelsDetailLoading ? (
+                    <>
+                      <div className="models-detail-notice" aria-live="polite">
+                        Loading detailed model state. Summary remains available.
+                      </div>
+                      <ModelsSummaryCard summary={detail.modelsSummary} spacious />
+                    </>
+                  ) : modelsDetailError ? (
+                    <>
+                      <div className="models-detail-error" role="alert">
+                        <div>
+                          <strong>Detailed model data is unavailable</strong>
+                          <span>{modelsDetailError}</span>
+                        </div>
+                        <button
+                          className="text-button"
+                          type="button"
+                          onClick={() =>
+                            selectedWorkspaceId
+                              ? void loadModelsDetail(selectedWorkspaceId)
+                              : undefined
+                          }
+                        >
+                          Retry details
+                        </button>
+                      </div>
+                      <ModelsSummaryCard summary={detail.modelsSummary} spacious />
+                    </>
+                  ) : modelsDetail ? (
+                    <ModelsDetail
+                      dashboard={modelsDetail.dashboard}
+                      activationGuide={modelsDetail.activationGuide}
+                    />
+                  ) : (
+                    <ModelsSummaryCard summary={detail.modelsSummary} spacious />
+                  )}
                 </div>
               ) : null}
               {activeTab === "actions" ? (
@@ -287,10 +345,6 @@ function ErrorState({
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unexpected request error";
-}
-
-function formatLabel(value: string) {
-  return value.replaceAll("_", " ");
 }
 
 export default App;

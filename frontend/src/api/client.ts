@@ -1,5 +1,7 @@
 import type {
+  LocalAIActivationGuide,
   WorkspaceDashboard,
+  WorkspaceModelsDashboard,
   WorkspaceModelsDashboardSummary,
   WorkspaceUIActionCatalog,
   WorkspacesOverview,
@@ -52,5 +54,21 @@ export function getModelsDashboardSummary(
 ): Promise<WorkspaceModelsDashboardSummary> {
   return getJson<WorkspaceModelsDashboardSummary>(
     `/workspaces/${workspaceId}/models/dashboard/summary`,
+  );
+}
+
+export function getWorkspaceModelsDashboard(
+  workspaceId: string,
+): Promise<WorkspaceModelsDashboard> {
+  return getJson<WorkspaceModelsDashboard>(
+    `/workspaces/${workspaceId}/models/dashboard`,
+  );
+}
+
+export function getLocalAIActivationGuide(
+  workspaceId: string,
+): Promise<LocalAIActivationGuide> {
+  return getJson<LocalAIActivationGuide>(
+    `/workspaces/${workspaceId}/local-ai/activation-guide`,
   );
 }

@@ -9,9 +9,12 @@ The frontend currently reads:
 - selected workspace dashboard with Overview, Models, Actions, and Activity tabs
 - workspace UI action catalog
 - workspace Models dashboard summary
+- detailed workspace Models dashboard and local AI activation guide
 
 It does not execute action-catalog routes or call LLM providers directly. Tabs
-are local component state only and do not trigger additional API requests.
+are local component state only. The Models tab displays selected and active
+runtime state, recommendations, performance history, and setup commands as
+read-only instructions; commands are never executed by the frontend.
 
 ## Run
 
