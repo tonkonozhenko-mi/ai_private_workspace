@@ -387,6 +387,17 @@ reindex the workspace. For Qdrant, the primary command starts an existing
 Podman container, while the step's `commands` list also includes the separate
 create-container command to use only when the container does not exist yet.
 
+Load deterministic frontend action metadata for a workspace:
+
+```bash
+curl http://127.0.0.1:8000/workspaces/WORKSPACE_ID/ui-actions
+```
+
+The catalog returns stable action IDs, labels, HTTP methods, endpoints,
+availability, recommendation state, and mutation flags for workspace buttons
+and cards. It reads Quick Start, readiness, and compact model status only; it
+does not execute actions, mutate data, check runtime health, or call providers.
+
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only
 when an experiment explicitly includes an Ollama candidate.

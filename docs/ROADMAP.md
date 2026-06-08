@@ -75,6 +75,7 @@ Delivered foundations include:
 - Read-only Workspace Models Dashboard aggregation.
 - Compact Workspace Models Dashboard Summary projection.
 - Read-only Local AI Activation Guide with explicit setup commands.
+- Read-only Workspace UI Action Catalog for frontend buttons and cards.
 
 Next planned tasks:
 

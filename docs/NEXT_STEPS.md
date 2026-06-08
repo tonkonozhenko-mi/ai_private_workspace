@@ -103,11 +103,16 @@ workspace models, active configuration, and index metadata into explicit
 Qdrant, Ollama, backend-restart, reindex, and ask-selected instructions without
 executing or verifying any of them.
 
-## Immediate Next Task: Frontend API Mapping Or Real Ollama Experiment Happy Path
+Read-only **Workspace UI Action Catalog** is implemented at
+`GET /workspaces/{workspace_id}/ui-actions`. It gives the future frontend stable
+button/card metadata, action status, target HTTP method and endpoint, mutation
+flags, and one deterministic primary action without executing any action.
 
-The next recommended task is a frontend API mapping document that turns stable
-aggregate/read endpoints into UI screens and actions, or end-to-end polish for
-explicitly invoked Ollama experiments.
+## Immediate Next Task: Frontend API Mapping / First UI Prototype
+
+The next recommended task is a frontend API mapping document or first UI
+prototype that turns stable aggregate/read endpoints and the UI Action Catalog
+into screens, cards, and explicit user-triggered actions.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 
