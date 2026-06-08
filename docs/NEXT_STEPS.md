@@ -48,6 +48,8 @@ Workspace-aware, rating-aware **Model Recommendations** are implemented at
 `POST /workspaces/{workspace_id}/models/recommend`. The endpoint combines
 current catalog scoring with workspace performance history while keeping every
 historical adjustment visible and leaving models without history eligible.
+Fake/testing models remain visible but receive an explicit workspace-use
+penalty so they are not promoted above similarly scored real local models.
 
 ## Immediate Next Task: Recommendation Explanation And UI Model Selection State
 

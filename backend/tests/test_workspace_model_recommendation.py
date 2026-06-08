@@ -29,6 +29,12 @@ def test_uses_workspace_assistant_mode_and_returns_catalog_without_history(
         in recommendation["warnings"]
         for recommendation in result["recommendations"]
     )
+    fake = _recommendation(result["recommendations"], "fake-llm")
+    assert fake["final_score"] == fake["catalog_score"] - 30
+    assert (
+        "-30: Fake/testing provider is not recommended for real workspace usage."
+        in fake["reasons"]
+    )
 
 
 def test_workspace_history_improves_rated_preferred_model(tmp_path) -> None:
@@ -55,6 +61,14 @@ def test_workspace_history_improves_rated_preferred_model(tmp_path) -> None:
     qwen = _recommendation(recommendations, "ollama-qwen2.5-coder")
     assert fake["performance_score"] is not None
     assert fake["final_score"] > fake["catalog_score"]
+    assert (
+        "-30: Fake/testing provider is not recommended for real workspace usage."
+        in fake["reasons"]
+    )
+    assert any(
+        "Fake model is intended for development/testing only." == warning
+        for warning in fake["warnings"]
+    )
     assert fake["historical_signals"]["experiments_count"] == "1"
     assert fake["historical_signals"]["ratings_count"] == "3"
     assert fake["historical_signals"]["preferred_votes"] == "3"
@@ -63,7 +77,8 @@ def test_workspace_history_improves_rated_preferred_model(tmp_path) -> None:
     assert "No workspace performance history for this model yet." not in fake["warnings"]
     assert qwen["performance_score"] is None
     assert "No workspace performance history for this model yet." in qwen["warnings"]
-    assert recommendations[0]["model"]["id"] == "fake-llm"
+    assert recommendations[0]["model"]["id"] == "ollama-qwen2.5-coder"
+    assert qwen["final_score"] > fake["final_score"]
 
 
 def test_unknown_workspace_and_invalid_model_type_are_rejected(tmp_path) -> None:
