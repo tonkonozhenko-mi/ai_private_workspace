@@ -1,4 +1,6 @@
 import type { TimelineEvent } from "../api/types";
+import { StatusBadge } from "./StatusBadge";
+import type { StatusTone } from "./statusTone";
 
 interface ActivityTimelineProps {
   events: TimelineEvent[];
@@ -59,7 +61,10 @@ function TimelineItem({ event }: { event: TimelineEvent }) {
       <article>
         <header className="timeline-item-header">
           <div>
-            <span className="event-type-badge">{formatLabel(event.event_type)}</span>
+            <StatusBadge
+              label={event.event_type}
+              tone={getEventTone(category)}
+            />
             <h3>{event.title}</h3>
           </div>
           <time dateTime={event.created_at}>{formatDate(event.created_at)}</time>
@@ -109,6 +114,25 @@ function getEventCategory(eventType: string): EventCategory {
     return "workspace";
   }
   return "general";
+}
+
+function getEventTone(category: EventCategory): StatusTone {
+  if (category === "project") {
+    return "success";
+  }
+  if (category === "ask") {
+    return "accent";
+  }
+  if (category === "command") {
+    return "warning";
+  }
+  if (category === "experiment") {
+    return "accent";
+  }
+  if (category === "workspace") {
+    return "info";
+  }
+  return "neutral";
 }
 
 function formatLabel(value: string) {

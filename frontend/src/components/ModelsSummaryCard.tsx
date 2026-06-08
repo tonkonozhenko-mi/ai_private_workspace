@@ -1,4 +1,5 @@
 import type { WorkspaceModelsDashboardSummary } from "../api/types";
+import { StatusBadge } from "./StatusBadge";
 
 interface ModelsSummaryCardProps {
   summary: WorkspaceModelsDashboardSummary;
@@ -22,9 +23,7 @@ export function ModelsSummaryCard({
           <p className="eyebrow">Models</p>
           <h2>Local AI status</h2>
         </div>
-        <span className={`status-badge status-${summary.overall_status}`}>
-          {formatLabel(summary.overall_status)}
-        </span>
+        <StatusBadge label={summary.overall_status} size="md" />
       </div>
 
       <dl className="model-summary-list">
@@ -66,8 +65,4 @@ function ModelRow({ label, value }: { label: string; value: string | null }) {
       <dd>{value ?? "Not selected"}</dd>
     </div>
   );
-}
-
-function formatLabel(value: string) {
-  return value.replaceAll("_", " ");
 }

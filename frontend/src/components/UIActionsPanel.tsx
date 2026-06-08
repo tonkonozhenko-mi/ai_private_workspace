@@ -5,6 +5,7 @@ import type {
   WorkspaceUIActionCatalog,
 } from "../api/types";
 import { CopyButton } from "./CopyButton";
+import { StatusBadge } from "./StatusBadge";
 
 interface UIActionsPanelProps {
   catalog: WorkspaceUIActionCatalog;
@@ -59,9 +60,9 @@ export function UIActionsPanel({ catalog }: UIActionsPanelProps) {
                     <div className="action-row-main">
                       <div className="action-title-line">
                         <strong>{action.title}</strong>
-                        <StatusBadge status={action.status} />
+                        <StatusBadge label={action.status} />
                         {action.mutates_data ? (
-                          <span className="mutation-badge">writes data</span>
+                          <StatusBadge label="Writes Data" />
                         ) : null}
                       </div>
                       <p>{action.description}</p>
@@ -90,7 +91,7 @@ function ActionDetails({ action }: { action: WorkspaceUIAction }) {
           <p className="eyebrow">Action details</p>
           <h2>{action.title}</h2>
         </div>
-        <StatusBadge status={action.status} />
+        <StatusBadge label={action.status} size="md" />
       </div>
 
       <p className="action-details-description">{action.description}</p>
@@ -144,14 +145,6 @@ function DetailRow({
       <dt>{label}</dt>
       <dd className={mono ? "is-mono" : ""}>{value}</dd>
     </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  return (
-    <span className={`status-badge status-${status}`}>
-      {formatLabel(status)}
-    </span>
   );
 }
 

@@ -3,6 +3,7 @@ import type {
   WorkspaceModelsDashboardSummary,
 } from "../api/types";
 import { ModelsSummaryCard } from "./ModelsSummaryCard";
+import { StatusBadge } from "./StatusBadge";
 
 interface WorkspaceDashboardProps {
   dashboard: WorkspaceDashboardData;
@@ -27,9 +28,7 @@ export function WorkspaceDashboard({
           <p className="workspace-header-path">{summary.project_path}</p>
         </div>
         <div className="workspace-header-status">
-          <span className={`status-badge status-${dashboard.status}`}>
-            {formatLabel(dashboard.status)}
-          </span>
+          <StatusBadge label={dashboard.status} size="md" />
           <span>{formatLabel(dashboard.assistant_mode)} assistant</span>
         </div>
       </header>
@@ -77,7 +76,7 @@ export function WorkspaceDashboard({
               read-only until action execution is designed.
             </p>
           </div>
-          <span className="status-badge status-recommended">recommended</span>
+          <StatusBadge label="recommended" size="md" />
         </section>
       </div>
     </>
@@ -98,9 +97,7 @@ function LocalAISetupWarning({
           <p className="eyebrow">Models and runtime</p>
           <h2>Local AI setup needs attention</h2>
         </div>
-        <span className={`status-badge status-${summary.overall_status}`}>
-          {formatLabel(summary.overall_status)}
-        </span>
+        <StatusBadge label={summary.overall_status} size="md" />
       </div>
 
       <div className="local-ai-runtime-comparison">

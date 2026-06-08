@@ -6,6 +6,7 @@ import type {
   RagSource,
   WorkspaceQuestionAnswer,
 } from "../api/types";
+import { StatusBadge } from "./StatusBadge";
 
 interface AskWorkspaceProps {
   workspaceId: string;
@@ -117,7 +118,7 @@ export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
               <p className="eyebrow">Selected workspace LLM</p>
               <h2>Ask about this project</h2>
             </div>
-            <span className="status-badge status-available">manual submit</span>
+            <StatusBadge label="Manual Submit" />
           </div>
 
           <p className="ask-safety-note">
@@ -349,9 +350,7 @@ function QualityWarnings({ warnings }: { warnings: RagQualityWarning[] }) {
       <div className="quality-warning-list">
         {warnings.map((warning, index) => (
           <article key={`${warning.code}-${index}`}>
-            <span className={`status-badge status-${warning.severity}`}>
-              {formatLabel(warning.severity)}
-            </span>
+            <StatusBadge label={warning.severity} />
             <div>
               <strong>{formatLabel(warning.code)}</strong>
               <p>{warning.message}</p>
