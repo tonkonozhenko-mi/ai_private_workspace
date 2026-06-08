@@ -4,6 +4,7 @@ import type {
   WorkspaceModelRecommendation,
   WorkspaceModelsDashboard,
 } from "../api/types";
+import { CopyButton } from "./CopyButton";
 
 interface ModelsDetailProps {
   dashboard: WorkspaceModelsDashboard;
@@ -134,6 +135,9 @@ export function ModelsDetail({
           These commands are displayed as setup instructions. The frontend does
           not execute them or create command proposals.
         </p>
+        <p className="activation-safety-note">
+          Commands are copied only. The frontend never executes them.
+        </p>
         <div className="activation-step-list">
           {activationGuide.steps.map((step) => (
             <article className="activation-step" key={step.id}>
@@ -147,13 +151,8 @@ export function ModelsDetail({
               <p>{step.description}</p>
               <small>{step.reason}</small>
               <CommandList
-                commands={
-                  step.commands?.length
-                    ? step.commands
-                    : step.command
-                      ? [step.command]
-                      : []
-                }
+                primaryCommand={step.command}
+                commands={step.commands ?? []}
               />
             </article>
           ))}
@@ -262,16 +261,39 @@ function PerformanceRow({ item }: { item: ModelPerformanceItem }) {
   );
 }
 
-function CommandList({ commands }: { commands: string[] }) {
-  if (commands.length === 0) {
+function CommandList({
+  primaryCommand,
+  commands,
+}: {
+  primaryCommand: string | null;
+  commands: string[];
+}) {
+  const orderedCommands = Array.from(
+    new Set([...(primaryCommand ? [primaryCommand] : []), ...commands]),
+  );
+
+  if (orderedCommands.length === 0) {
     return null;
   }
 
   return (
     <div className="instruction-commands">
       <span>Command instructions</span>
-      {commands.map((command, index) => (
-        <code key={`${index}-${command}`}>{command}</code>
+      {orderedCommands.map((command, index) => (
+        <div
+          className={`instruction-command-row${
+            command === primaryCommand ? " is-primary" : ""
+          }`}
+          key={`${index}-${command}`}
+        >
+          <div>
+            <span>
+              {command === primaryCommand ? "Primary command" : "Alternative"}
+            </span>
+            <code>{command}</code>
+          </div>
+          <CopyButton text={command} />
+        </div>
       ))}
     </div>
   );
