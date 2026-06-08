@@ -156,21 +156,44 @@ class GetLocalAIActivationGuideUseCase:
             steps.append(self._pull_model_step("embedding", selected_embedding.model))
 
         if selected_vector_store == "qdrant":
+            qdrant_commands = [
+                "podman start qdrant",
+                (
+                    "podman run -d --name qdrant -p 6333:6333 "
+                    "-v qdrant_data:/qdrant/storage "
+                    "docker.io/qdrant/qdrant:latest"
+                ),
+            ]
+            steps.append(
+                LocalAIActivationStep(
+                    id="start_podman_machine",
+                    title="Start Podman machine",
+                    description=(
+                        "Start the Podman machine if the container runtime is not "
+                        "already running."
+                    ),
+                    command="podman machine start",
+                    status="optional",
+                    reason=(
+                        "Podman machine may need to be running before starting Qdrant."
+                    ),
+                    category="container_runtime",
+                )
+            )
             steps.append(
                 LocalAIActivationStep(
                     id="start_qdrant",
                     title="Start Qdrant",
-                    description="Start a persistent local Qdrant vector store.",
-                    command=(
-                        "podman run -d --name qdrant -p 6333:6333 "
-                        "-v qdrant_data:/qdrant/storage "
-                        "docker.io/qdrant/qdrant:latest"
+                    description=(
+                        "Use the first command if the container already exists. "
+                        "Use the second command only if it does not exist yet."
                     ),
-                    status="done" if active_vector_store == "qdrant" else "needed",
+                    command=qdrant_commands[0],
+                    commands=qdrant_commands,
+                    status="optional" if active_vector_store == "qdrant" else "needed",
                     reason=(
-                        "Qdrant is the active configured vector store."
-                        if active_vector_store == "qdrant"
-                        else "Qdrant is recommended for persistent Ollama embeddings."
+                        "Start existing Qdrant container, or create it if it does "
+                        "not exist."
                     ),
                     category="qdrant",
                 )

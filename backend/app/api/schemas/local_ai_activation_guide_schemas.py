@@ -14,6 +14,7 @@ class LocalAIActivationStepResponse(BaseModel):
     status: str
     reason: str
     category: str
+    commands: list[str] | None = None
 
 
 class LocalAIActivationGuideResponse(BaseModel):
@@ -40,6 +41,7 @@ def to_local_ai_activation_step_response(
         status=step.status,
         reason=step.reason,
         category=step.category,
+        commands=step.commands,
     )
 
 
