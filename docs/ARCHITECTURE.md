@@ -269,6 +269,14 @@ backend restart, a new vector collection, and reindexing as required actions.
 The plan does not call providers, create collections, change configuration, or
 run indexing.
 
+Workspace Models Dashboard is a read-only aggregate over the existing model
+selection, selection status, selected-model usage plan, selected-embedding
+indexing plan, workspace-aware recommendations, and performance summary use
+cases. It adds only a deterministic overall status and primary next model
+action. Provider calls, indexing, selection changes, recommendations, and
+performance scoring remain owned by their existing boundaries rather than being
+reimplemented in the API route or dashboard.
+
 ## Testing Boundaries
 
 Normal tests use fake providers, in-memory vector storage, temporary SQLite

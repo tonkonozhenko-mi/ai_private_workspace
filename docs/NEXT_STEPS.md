@@ -86,11 +86,17 @@ whether the selected embedding matches the active runtime, whether indexing and
 search can proceed, and whether restart, a new vector collection, and reindexing
 are required. It performs none of those actions.
 
-## Immediate Next Task: Workspace Dashboard Model Section Or Selected-Model UI Aggregation
+Read-only **Workspace Models Dashboard** is implemented at
+`GET /workspaces/{workspace_id}/models/dashboard`. It aggregates selected
+models, readiness/status, usage guidance, embedding-indexing guidance,
+workspace-aware recommendations, performance history, and the primary next
+model action for the future workspace Models UI.
 
-The next recommended task is a lightweight aggregate read model for the future
-workspace UI that combines selection, status, usage, ask readiness, and
-embedding-indexing guidance without duplicating those deterministic rules.
+## Immediate Next Task: Real Ollama Experiment Happy Path Or Frontend API Mapping
+
+The next recommended task is either end-to-end polish for explicitly invoked
+Ollama experiments or a frontend API mapping document that turns the stable
+aggregate/read endpoints into UI screens and actions.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 
@@ -164,7 +170,7 @@ Expected purpose:
 
 ## Follow-On Tasks
 
-1. Workspace dashboard model section or selected-model UI aggregation.
+1. Real Ollama experiment happy path or frontend API mapping.
 2. Runtime selection validation against installed/available local models.
 3. Ollama-backed real experiment polish.
 4. AI-assisted experiment evaluator.

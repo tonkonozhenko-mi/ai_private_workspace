@@ -339,6 +339,17 @@ whether indexing and search can proceed now, and whether restart, reindexing,
 or a new vector collection is required. It is advisory only: no providers are
 called, no collection is created, and no indexing or runtime change occurs.
 
+Load the complete read-only workspace Models dashboard:
+
+```bash
+curl http://127.0.0.1:8000/workspaces/WORKSPACE_ID/models/dashboard
+```
+
+The dashboard aggregates selected models, selection status, selected-model
+usage, embedding-indexing guidance, workspace-aware recommendations, historical
+performance, and the primary next model action. It does not call providers,
+select models, change runtime settings, or trigger indexing.
+
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only
 when an experiment explicitly includes an Ollama candidate.

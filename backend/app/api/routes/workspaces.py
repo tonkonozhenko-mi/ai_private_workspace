@@ -79,6 +79,10 @@ from app.api.schemas.selected_embedding_indexing_plan_schemas import (
     SelectedEmbeddingIndexingPlanResponse,
     to_selected_embedding_indexing_plan_response,
 )
+from app.api.schemas.workspace_models_dashboard_schemas import (
+    WorkspaceModelsDashboardResponse,
+    to_workspace_models_dashboard_response,
+)
 from app.api.schemas.report_schemas import (
     ProjectOverviewReportResponse,
     to_project_overview_report_response,
@@ -270,6 +274,11 @@ from app.core.use_cases.get_selected_embedding_indexing_plan import (
     GetSelectedEmbeddingIndexingPlanInput,
     GetSelectedEmbeddingIndexingPlanUseCase,
     SelectedEmbeddingIndexingPlanNotFoundError,
+)
+from app.core.use_cases.get_workspace_models_dashboard import (
+    GetWorkspaceModelsDashboardInput,
+    GetWorkspaceModelsDashboardUseCase,
+    WorkspaceModelsDashboardNotFoundError,
 )
 from app.core.use_cases.scan_project import ProjectScanError
 from app.core.use_cases.scan_workspace_project import (
@@ -1109,6 +1118,68 @@ def get_selected_embedding_indexing_plan(
             detail=str(exc),
         ) from exc
     return to_selected_embedding_indexing_plan_response(plan)
+
+
+@router.get(
+    "/{workspace_id}/models/dashboard",
+    response_model=WorkspaceModelsDashboardResponse,
+)
+def get_workspace_models_dashboard(
+    workspace_id: str,
+) -> WorkspaceModelsDashboardResponse:
+    use_case = GetWorkspaceModelsDashboardUseCase(
+        workspace_repository=workspace_repository,
+        selection_use_case=GetWorkspaceModelSelectionUseCase(
+            workspace_repository=workspace_repository,
+            selection_repository=workspace_model_selection_repository,
+            configuration=readiness_configuration,
+        ),
+        selection_status_use_case=GetWorkspaceModelSelectionStatusUseCase(
+            workspace_repository=workspace_repository,
+            selection_repository=workspace_model_selection_repository,
+            index_status_repository=index_status_repository,
+            configuration=readiness_configuration,
+        ),
+        usage_plan_use_case=GetSelectedModelUsagePlanUseCase(
+            workspace_repository=workspace_repository,
+            selection_repository=workspace_model_selection_repository,
+            index_status_repository=index_status_repository,
+            llm_provider_factory=llm_provider_factory,
+            configuration=readiness_configuration,
+        ),
+        embedding_indexing_plan_use_case=GetSelectedEmbeddingIndexingPlanUseCase(
+            workspace_repository=workspace_repository,
+            selection_repository=workspace_model_selection_repository,
+            index_status_repository=index_status_repository,
+            configuration=readiness_configuration,
+        ),
+        recommendation_use_case=RecommendWorkspaceModelsUseCase(
+            workspace_repository=workspace_repository,
+            model_experiment_repository=model_experiment_repository,
+            rating_repository=model_experiment_rating_repository,
+            model_catalog_registry=model_catalog_registry,
+        ),
+        performance_summary_use_case=GetModelPerformanceSummaryUseCase(
+            workspace_repository=workspace_repository,
+            model_experiment_repository=model_experiment_repository,
+            rating_repository=model_experiment_rating_repository,
+        ),
+    )
+    try:
+        dashboard = use_case.execute(
+            GetWorkspaceModelsDashboardInput(workspace_id=workspace_id)
+        )
+    except WorkspaceModelsDashboardNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except ModelRecommendationValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    return to_workspace_models_dashboard_response(dashboard)
 
 
 @router.get(
