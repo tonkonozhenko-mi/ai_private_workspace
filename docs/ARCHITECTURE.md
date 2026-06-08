@@ -211,6 +211,14 @@ and advisory; reading performance never reruns experiments, calls providers, or
 mutates experiment/rating data. Future rating-aware recommendations can consume
 these signals through core use cases without moving aggregation into API routes.
 
+Workspace-aware model recommendations now compose the existing static catalog
+recommendation use case with the workspace performance read model. Catalog
+scores remain visible, performance scores and explicit historical adjustments
+are added separately, and models without workspace history retain their catalog
+score with a warning. The resulting ranking is advisory and read-only; it does
+not activate a model, change runtime settings, call providers, or mutate
+feedback.
+
 ## Testing Boundaries
 
 Normal tests use fake providers, in-memory vector storage, temporary SQLite

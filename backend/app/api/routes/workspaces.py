@@ -9,6 +9,7 @@ from app.api.dependencies import (
     file_system,
     index_status_repository,
     llm_provider_factory,
+    model_catalog_registry,
     model_experiment_repository,
     model_experiment_rating_repository,
     project_scan_repository,
@@ -49,6 +50,11 @@ from app.api.schemas.model_experiment_run_schemas import (
 from app.api.schemas.model_performance_schemas import (
     ModelPerformanceSummaryResponse,
     to_model_performance_summary_response,
+)
+from app.api.schemas.workspace_model_recommendation_schemas import (
+    RecommendWorkspaceModelsRequest,
+    WorkspaceModelRecommendationResultResponse,
+    to_workspace_model_recommendation_result_response,
 )
 from app.api.schemas.report_schemas import (
     ProjectOverviewReportResponse,
@@ -197,6 +203,12 @@ from app.core.use_cases.get_model_performance_summary import (
     GetModelPerformanceSummaryInput,
     GetModelPerformanceSummaryUseCase,
     ModelPerformanceWorkspaceNotFoundError,
+)
+from app.core.use_cases.recommend_models import ModelRecommendationValidationError
+from app.core.use_cases.recommend_workspace_models import (
+    RecommendWorkspaceModelsInput,
+    RecommendWorkspaceModelsUseCase,
+    WorkspaceModelRecommendationNotFoundError,
 )
 from app.core.use_cases.scan_project import ProjectScanError
 from app.core.use_cases.scan_workspace_project import (
@@ -789,6 +801,43 @@ def get_workspace_model_performance(
         ) from exc
 
     return to_model_performance_summary_response(summary)
+
+
+@router.post(
+    "/{workspace_id}/models/recommend",
+    response_model=WorkspaceModelRecommendationResultResponse,
+)
+def recommend_workspace_models(
+    workspace_id: str,
+    request: RecommendWorkspaceModelsRequest,
+) -> WorkspaceModelRecommendationResultResponse:
+    try:
+        result = RecommendWorkspaceModelsUseCase(
+            workspace_repository=workspace_repository,
+            model_experiment_repository=model_experiment_repository,
+            rating_repository=model_experiment_rating_repository,
+            model_catalog_registry=model_catalog_registry,
+        ).execute(
+            RecommendWorkspaceModelsInput(
+                workspace_id=workspace_id,
+                assistant_profile_id=request.assistant_profile_id,
+                laptop_profile_id=request.laptop_profile_id,
+                task_type=request.task_type,
+                model_type=request.model_type,
+            )
+        )
+    except WorkspaceModelRecommendationNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except ModelRecommendationValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return to_workspace_model_recommendation_result_response(result)
 
 
 @router.get(

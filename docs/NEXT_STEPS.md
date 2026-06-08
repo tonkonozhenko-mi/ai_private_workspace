@@ -44,12 +44,17 @@ candidate outcomes and manual feedback into explainable historical statistics
 and deterministic performance scores without calling a provider or mutating
 history.
 
-## Immediate Next Task: Model Recommendations From Historical Ratings
+Workspace-aware, rating-aware **Model Recommendations** are implemented at
+`POST /workspaces/{workspace_id}/models/recommend`. The endpoint combines
+current catalog scoring with workspace performance history while keeping every
+historical adjustment visible and leaving models without history eligible.
 
-The next recommended backend task is to use accumulated manual ratings as an
-explicit, explainable input to model recommendations. Historical feedback
-should remain separate from static catalog metadata and deterministic experiment
-scores, with clear minimum-sample and project/profile scoping rules.
+## Immediate Next Task: Recommendation Explanation And UI Model Selection State
+
+The next recommended task is to make recommendation decisions easy to inspect
+and act on in a future UI. This should preserve the distinction between catalog
+fit, workspace history, operational switching impact, and the currently active
+model without automatically changing runtime settings.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 
@@ -60,6 +65,7 @@ This builds naturally on the catalog, recommendations, and switching plan:
 - Experiments can compare candidate behavior before a user chooses a model.
 - Comparison summaries give the UI an explainable deterministic baseline.
 - Manual ratings capture real user/project feedback for future recommendations.
+- Workspace-aware recommendations merge catalog fit with that feedback.
 
 ## Implemented Switching Rules
 
@@ -122,7 +128,7 @@ Expected purpose:
 
 ## Follow-On Tasks
 
-1. Model recommendations from historical ratings.
+1. Recommendation explanation and UI model selection state.
 2. AI-assisted experiment evaluator or Ollama-backed real experiment polish.
 3. Runtime model validation against installed Ollama models.
 4. Hugging Face metadata importer.
