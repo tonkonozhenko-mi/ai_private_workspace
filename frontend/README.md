@@ -19,6 +19,9 @@ they are never executed by the frontend. The Actions tab is inspection-only:
 actions can be selected to review their endpoint, status, and safety details,
 but no action is invoked. The Activity tab presents the persisted backend
 timeline as a read-only event history with compact metadata previews.
+The Overview tab highlights incomplete local AI setup using the already-loaded
+models summary, including selected-versus-active model state and the next model
+activation step.
 
 The Ask tab sends a question only after the user presses **Ask**, using
 `POST /workspaces/{workspace_id}/ask-selected`. Asking may create a persisted

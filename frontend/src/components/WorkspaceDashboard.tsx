@@ -32,6 +32,10 @@ export function WorkspaceDashboard({
         </div>
       </header>
 
+      {modelsSummary.overall_status !== "ready" ? (
+        <LocalAISetupWarning summary={modelsSummary} />
+      ) : null}
+
       <section className="metric-grid" aria-label="Workspace status">
         <article className="metric-card">
           <span className="metric-label">Detected skills</span>
@@ -72,6 +76,88 @@ export function WorkspaceDashboard({
         </section>
       </div>
     </>
+  );
+}
+
+function LocalAISetupWarning({
+  summary,
+}: {
+  summary: WorkspaceModelsDashboardSummary;
+}) {
+  return (
+    <section className="panel local-ai-setup-warning">
+      <div className="local-ai-setup-warning-heading">
+        <div>
+          <p className="eyebrow">Models and runtime</p>
+          <h2>Local AI setup needs attention</h2>
+        </div>
+        <span className={`status-badge status-${summary.overall_status}`}>
+          {formatLabel(summary.overall_status)}
+        </span>
+      </div>
+
+      <div className="local-ai-runtime-comparison">
+        <ModelComparisonRow
+          label="LLM"
+          selected={summary.selected_llm}
+          active={summary.active_llm}
+        />
+        <ModelComparisonRow
+          label="Embedding"
+          selected={summary.selected_embedding}
+          active={summary.active_embedding}
+        />
+      </div>
+
+      <div className="local-ai-setup-messages">
+        {summary.can_ask_with_selected_llm ? (
+          <p className="is-available">
+            Selected LLM can already be used for Ask.
+          </p>
+        ) : null}
+        {!summary.can_search_with_selected_embedding ? (
+          <p className="is-warning">
+            Selected embedding is not active for search yet.
+          </p>
+        ) : null}
+      </div>
+
+      <div className="local-ai-setup-next">
+        <div>
+          <span>Primary model action</span>
+          <strong>
+            {summary.primary_next_action_title ?? "Review local AI setup"}
+          </strong>
+        </div>
+        <p>Open the Models tab to review activation steps.</p>
+      </div>
+    </section>
+  );
+}
+
+function ModelComparisonRow({
+  label,
+  selected,
+  active,
+}: {
+  label: string;
+  selected: string | null;
+  active: string;
+}) {
+  return (
+    <div>
+      <strong>{label}</strong>
+      <dl>
+        <div>
+          <dt>Selected</dt>
+          <dd>{selected ?? "Not selected"}</dd>
+        </div>
+        <div>
+          <dt>Active</dt>
+          <dd>{active}</dd>
+        </div>
+      </dl>
+    </div>
   );
 }
 
