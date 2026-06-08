@@ -66,11 +66,12 @@ Delivered foundations include:
 - Append-only manual experiment candidate ratings and preference signals.
 - Workspace-scoped historical model performance summaries.
 - Workspace-aware model recommendations using catalog and historical feedback.
+- Deterministic model recommendation explanations.
 
 Next planned tasks:
 
-1. Recommendation explanation and UI model selection state.
-2. AI-assisted experiment evaluator or Ollama-backed real experiment polish.
+1. UI model selection state or Ollama-backed real experiment polish.
+2. AI-assisted experiment evaluator.
 3. Runtime model validation against installed Ollama models.
 4. Hugging Face metadata importer.
 

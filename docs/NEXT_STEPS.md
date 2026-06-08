@@ -51,12 +51,17 @@ historical adjustment visible and leaving models without history eligible.
 Fake/testing models remain visible but receive an explicit workspace-use
 penalty so they are not promoted above similarly scored real local models.
 
-## Immediate Next Task: Recommendation Explanation And UI Model Selection State
+Deterministic **Model Recommendation Explanations** are implemented at
+`POST /workspaces/{workspace_id}/models/explain`. Explanations combine catalog
+fit, workspace history, switching impact, risks, and suggested next actions
+without checking providers or changing model selection.
 
-The next recommended task is to make recommendation decisions easy to inspect
-and act on in a future UI. This should preserve the distinction between catalog
-fit, workspace history, operational switching impact, and the currently active
-model without automatically changing runtime settings.
+## Immediate Next Task: UI Model Selection State Or Real Ollama Experiment Run
+
+The next recommended task is either a read-only model selection state for the
+future UI or further hardening of explicitly requested Ollama-backed experiment
+runs. Both paths should preserve the distinction between recommended, selected,
+installed, and active models without automatically changing runtime settings.
 
 This builds naturally on the catalog, recommendations, and switching plan:
 
@@ -130,8 +135,8 @@ Expected purpose:
 
 ## Follow-On Tasks
 
-1. Recommendation explanation and UI model selection state.
-2. AI-assisted experiment evaluator or Ollama-backed real experiment polish.
+1. UI model selection state or Ollama-backed real experiment polish.
+2. AI-assisted experiment evaluator.
 3. Runtime model validation against installed Ollama models.
 4. Hugging Face metadata importer.
 5. UI shell and model-management views.

@@ -40,6 +40,7 @@ IMPORTANT_PATHS = {
     "/workspaces/{workspace_id}/model-experiments",
     "/workspaces/{workspace_id}/model-performance",
     "/workspaces/{workspace_id}/models/recommend",
+    "/workspaces/{workspace_id}/models/explain",
 }
 
 

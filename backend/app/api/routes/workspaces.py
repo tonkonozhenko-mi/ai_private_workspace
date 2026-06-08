@@ -51,6 +51,11 @@ from app.api.schemas.model_performance_schemas import (
     ModelPerformanceSummaryResponse,
     to_model_performance_summary_response,
 )
+from app.api.schemas.model_recommendation_explanation_schemas import (
+    ExplainWorkspaceModelRecommendationRequest,
+    ModelRecommendationExplanationResponse,
+    to_model_recommendation_explanation_response,
+)
 from app.api.schemas.workspace_model_recommendation_schemas import (
     RecommendWorkspaceModelsRequest,
     WorkspaceModelRecommendationResultResponse,
@@ -203,6 +208,11 @@ from app.core.use_cases.get_model_performance_summary import (
     GetModelPerformanceSummaryInput,
     GetModelPerformanceSummaryUseCase,
     ModelPerformanceWorkspaceNotFoundError,
+)
+from app.core.use_cases.explain_workspace_model_recommendation import (
+    ExplainWorkspaceModelRecommendationInput,
+    ExplainWorkspaceModelRecommendationUseCase,
+    ModelRecommendationExplanationNotFoundError,
 )
 from app.core.use_cases.recommend_models import ModelRecommendationValidationError
 from app.core.use_cases.recommend_workspace_models import (
@@ -838,6 +848,45 @@ def recommend_workspace_models(
         ) from exc
 
     return to_workspace_model_recommendation_result_response(result)
+
+
+@router.post(
+    "/{workspace_id}/models/explain",
+    response_model=ModelRecommendationExplanationResponse,
+)
+def explain_workspace_model_recommendation(
+    workspace_id: str,
+    request: ExplainWorkspaceModelRecommendationRequest,
+) -> ModelRecommendationExplanationResponse:
+    try:
+        explanation = ExplainWorkspaceModelRecommendationUseCase(
+            workspace_repository=workspace_repository,
+            model_experiment_repository=model_experiment_repository,
+            rating_repository=model_experiment_rating_repository,
+            model_catalog_registry=model_catalog_registry,
+        ).execute(
+            ExplainWorkspaceModelRecommendationInput(
+                workspace_id=workspace_id,
+                provider=request.provider,
+                model=request.model,
+                model_type=request.model_type,
+                assistant_profile_id=request.assistant_profile_id,
+                laptop_profile_id=request.laptop_profile_id,
+                task_type=request.task_type,
+            )
+        )
+    except ModelRecommendationExplanationNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except ModelRecommendationValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return to_model_recommendation_explanation_response(explanation)
 
 
 @router.get(
