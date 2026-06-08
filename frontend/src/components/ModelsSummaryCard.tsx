@@ -2,11 +2,21 @@ import type { WorkspaceModelsDashboardSummary } from "../api/types";
 
 interface ModelsSummaryCardProps {
   summary: WorkspaceModelsDashboardSummary;
+  compact?: boolean;
+  spacious?: boolean;
 }
 
-export function ModelsSummaryCard({ summary }: ModelsSummaryCardProps) {
+export function ModelsSummaryCard({
+  summary,
+  compact = false,
+  spacious = false,
+}: ModelsSummaryCardProps) {
   return (
-    <section className="panel models-panel">
+    <section
+      className={`panel models-panel${compact ? " is-compact" : ""}${
+        spacious ? " is-spacious" : ""
+      }`}
+    >
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Models</p>
@@ -20,9 +30,16 @@ export function ModelsSummaryCard({ summary }: ModelsSummaryCardProps) {
       <dl className="model-summary-list">
         <ModelRow label="Selected LLM" value={summary.selected_llm} />
         <ModelRow label="Selected embedding" value={summary.selected_embedding} />
-        <ModelRow label="Active LLM" value={summary.active_llm} />
-        <ModelRow label="Active embedding" value={summary.active_embedding} />
-        <ModelRow label="Top recommendation" value={summary.top_recommended_model} />
+        {!compact ? (
+          <ModelRow label="Active LLM" value={summary.active_llm} />
+        ) : null}
+        {!compact ? (
+          <ModelRow label="Active embedding" value={summary.active_embedding} />
+        ) : null}
+        <ModelRow
+          label="Top recommendation"
+          value={summary.top_recommended_model}
+        />
       </dl>
 
       <div className="model-summary-footer">

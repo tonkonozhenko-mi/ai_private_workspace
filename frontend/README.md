@@ -6,11 +6,12 @@ Workbench.
 The frontend currently reads:
 
 - workspace overview
-- selected workspace dashboard
+- selected workspace dashboard with Overview, Models, Actions, and Activity tabs
 - workspace UI action catalog
 - workspace Models dashboard summary
 
-It does not execute action-catalog routes or call LLM providers directly.
+It does not execute action-catalog routes or call LLM providers directly. Tabs
+are local component state only and do not trigger additional API requests.
 
 ## Run
 

@@ -13,8 +13,20 @@ import type {
 } from "./api/types";
 import { ModelsSummaryCard } from "./components/ModelsSummaryCard";
 import { UIActionsPanel } from "./components/UIActionsPanel";
-import { WorkspaceDashboard } from "./components/WorkspaceDashboard";
+import {
+  WorkspaceActivity,
+  WorkspaceDashboard,
+} from "./components/WorkspaceDashboard";
 import { WorkspaceList } from "./components/WorkspaceList";
+
+type WorkspaceTab = "overview" | "models" | "actions" | "activity";
+
+const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
+  { id: "overview", label: "Overview" },
+  { id: "models", label: "Models" },
+  { id: "actions", label: "Actions" },
+  { id: "activity", label: "Activity" },
+];
 
 function App() {
   const [workspaces, setWorkspaces] = useState<WorkspaceOverviewItem[]>([]);
@@ -27,8 +39,12 @@ function App() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [workspacesError, setWorkspacesError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
 
   const loadWorkspaceDetail = useCallback(async (workspaceId: string) => {
+    if (selectedWorkspaceIdRef.current !== workspaceId) {
+      setActiveTab("overview");
+    }
     selectedWorkspaceIdRef.current = workspaceId;
     setSelectedWorkspaceId(workspaceId);
     setDetailLoading(true);
@@ -140,11 +156,74 @@ function App() {
           />
         ) : detail ? (
           <div className="dashboard-layout">
-            <WorkspaceDashboard dashboard={detail.dashboard} />
-            <div className="dashboard-columns">
-              <ModelsSummaryCard summary={detail.modelsSummary} />
-              <UIActionsPanel catalog={detail.actions} />
-            </div>
+            <nav className="workspace-tabs" aria-label="Workspace sections">
+              <div role="tablist" aria-label="Workspace views">
+                {workspaceTabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === tab.id}
+                    aria-controls="workspace-tab-content"
+                    className={activeTab === tab.id ? "is-selected" : ""}
+                    onClick={() => setActiveTab(tab.id)}
+                  >
+                    {tab.label}
+                    {tab.id === "activity" ? (
+                      <span>{detail.dashboard.recent_events.length}</span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+              <p>Read-only workspace views</p>
+            </nav>
+
+            <section
+              id="workspace-tab-content"
+              className="workspace-tab-content"
+              role="tabpanel"
+            >
+              {activeTab === "overview" ? (
+                <WorkspaceDashboard
+                  dashboard={detail.dashboard}
+                  modelsSummary={detail.modelsSummary}
+                />
+              ) : null}
+              {activeTab === "models" ? (
+                <div className="models-tab">
+                  <header className="tab-section-heading">
+                    <div>
+                      <p className="eyebrow">Workspace models</p>
+                      <h1>Selected and active models</h1>
+                    </div>
+                    <span
+                      className={`status-badge status-${detail.modelsSummary.overall_status}`}
+                    >
+                      {formatLabel(detail.modelsSummary.overall_status)}
+                    </span>
+                  </header>
+                  <div className="information-band">
+                    <p>
+                      <strong>Selected LLM:</strong> supported selections can be
+                      used per request without changing the active backend
+                      runtime.
+                    </p>
+                    <p>
+                      <strong>Selected embedding:</strong> indexing and search
+                      require the active embedding runtime to match, followed by
+                      reindexing when the embedding space changes.
+                    </p>
+                  </div>
+                  <ModelsSummaryCard summary={detail.modelsSummary} spacious />
+                </div>
+              ) : null}
+              {activeTab === "actions" ? (
+                <UIActionsPanel catalog={detail.actions} />
+              ) : null}
+              {activeTab === "activity" ? (
+                <WorkspaceActivity dashboard={detail.dashboard} />
+              ) : null}
+            </section>
           </div>
         ) : (
           <section className="welcome-state">
@@ -208,6 +287,10 @@ function ErrorState({
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unexpected request error";
+}
+
+function formatLabel(value: string) {
+  return value.replaceAll("_", " ");
 }
 
 export default App;

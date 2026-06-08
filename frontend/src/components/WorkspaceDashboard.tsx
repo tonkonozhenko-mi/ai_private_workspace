@@ -1,10 +1,18 @@
-import type { WorkspaceDashboard as WorkspaceDashboardData } from "../api/types";
+import type {
+  WorkspaceDashboard as WorkspaceDashboardData,
+  WorkspaceModelsDashboardSummary,
+} from "../api/types";
+import { ModelsSummaryCard } from "./ModelsSummaryCard";
 
 interface WorkspaceDashboardProps {
   dashboard: WorkspaceDashboardData;
+  modelsSummary: WorkspaceModelsDashboardSummary;
 }
 
-export function WorkspaceDashboard({ dashboard }: WorkspaceDashboardProps) {
+export function WorkspaceDashboard({
+  dashboard,
+  modelsSummary,
+}: WorkspaceDashboardProps) {
   const summary = dashboard.summary;
   const indexStatus = summary.index_status;
 
@@ -49,32 +57,62 @@ export function WorkspaceDashboard({ dashboard }: WorkspaceDashboardProps) {
         </article>
       </section>
 
-      <section className="panel activity-panel">
-        <div className="panel-heading">
+      <div className="overview-grid">
+        <ModelsSummaryCard summary={modelsSummary} compact />
+        <section className="panel overview-next-action">
           <div>
-            <p className="eyebrow">Activity</p>
-            <h2>Recent events</h2>
+            <p className="eyebrow">Primary next action</p>
+            <h2>{dashboard.primary_next_action_title ?? "Review workspace"}</h2>
+            <p>
+              The UI Action Catalog keeps this recommendation deterministic and
+              read-only until action execution is designed.
+            </p>
           </div>
-          <span className="panel-count">{dashboard.recent_events.length}</span>
-        </div>
-        {dashboard.recent_events.length ? (
-          <ol className="event-list">
-            {dashboard.recent_events.map((event) => (
-              <li key={event.id}>
-                <span className="event-marker" aria-hidden="true" />
-                <div>
-                  <strong>{event.title}</strong>
-                  <p>{event.summary}</p>
-                </div>
-                <time dateTime={event.created_at}>{formatDate(event.created_at)}</time>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p className="empty-panel-state">No recent workspace activity.</p>
-        )}
-      </section>
+          <span className="status-badge status-recommended">recommended</span>
+        </section>
+      </div>
     </>
+  );
+}
+
+interface WorkspaceActivityProps {
+  dashboard: WorkspaceDashboardData;
+}
+
+export function WorkspaceActivity({ dashboard }: WorkspaceActivityProps) {
+  return (
+    <section className="panel activity-panel">
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">Activity</p>
+          <h2>Recent events</h2>
+        </div>
+        <span className="panel-count">{dashboard.recent_events.length}</span>
+      </div>
+      {dashboard.recent_events.length ? (
+        <ol className="event-list">
+          {dashboard.recent_events.map((event) => (
+            <li key={event.id}>
+              <span className="event-marker" aria-hidden="true" />
+              <div>
+                <strong>{event.title}</strong>
+                <p>{event.summary}</p>
+              </div>
+              <time dateTime={event.created_at}>{formatDate(event.created_at)}</time>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <div className="activity-empty-state">
+          <p className="eyebrow">No activity yet</p>
+          <h2>Workspace events will appear here</h2>
+          <p>
+            Scans, indexing, questions, model selections, and command decisions
+            create timeline events after the user explicitly invokes them.
+          </p>
+        </div>
+      )}
+    </section>
   );
 }
 
