@@ -29,6 +29,17 @@ button {
   cursor: pointer;
 }
 
+button,
+select,
+textarea,
+code[tabindex] {
+  transition:
+    color 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
 code {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
@@ -154,6 +165,7 @@ code {
   min-height: 32px;
   padding: 7px 11px;
   border-radius: 6px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -168,10 +180,25 @@ code {
   border-color: #6e838e;
 }
 
+.text-button:focus-visible {
+  outline: 2px solid #a9d5c0;
+  outline-offset: 2px;
+}
+
 .primary-button {
   color: #ffffff;
   background: #286b52;
   border: 1px solid #286b52;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: #225f49;
+  border-color: #225f49;
+}
+
+.primary-button:focus-visible {
+  outline: 2px solid #8fc4aa;
+  outline-offset: 2px;
 }
 
 .workspace-list {
@@ -299,12 +326,12 @@ code {
 
 .main-content {
   min-width: 0;
-  padding: 28px 32px 48px;
+  padding: 28px 32px 52px;
   background: #eef1f4;
 }
 
 .dashboard-layout {
-  width: min(1480px, 100%);
+  width: min(1320px, 100%);
   margin: 0 auto;
 }
 
@@ -346,6 +373,11 @@ code {
   background: #e6ece9;
 }
 
+.workspace-tabs button:focus-visible {
+  outline: 2px solid #8fc4aa;
+  outline-offset: -2px;
+}
+
 .workspace-tabs button.is-selected {
   color: #245b45;
   border-bottom-color: #3e8869;
@@ -376,7 +408,7 @@ code {
 
 .workspace-header {
   align-items: flex-start;
-  margin-bottom: 22px;
+  margin-bottom: 24px;
 }
 
 .workspace-header h1 {
@@ -388,11 +420,12 @@ code {
 }
 
 .workspace-header-path {
+  max-width: 760px;
   margin: 0;
   color: #62717b;
   font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 12px;
-  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .workspace-header-status {
@@ -407,8 +440,8 @@ code {
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
 .metric-card,
@@ -416,7 +449,9 @@ code {
   background: #ffffff;
   border: 1px solid #d9e0e4;
   border-radius: 8px;
-  box-shadow: 0 1px 2px rgb(26 42 53 / 4%);
+  box-shadow:
+    0 1px 2px rgb(26 42 53 / 4%),
+    0 6px 18px rgb(26 42 53 / 2%);
 }
 
 .metric-card {
@@ -461,7 +496,24 @@ code {
 
 .activity-timeline-panel {
   min-height: 340px;
-  max-width: 1080px;
+}
+
+.panel-heading {
+  align-items: flex-start;
+}
+
+.panel-heading > div {
+  min-width: 0;
+}
+
+.panel-heading > .status-badge {
+  justify-self: start;
+}
+
+.panel-heading h2 {
+  color: #26363e;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .panel-count {
@@ -637,17 +689,19 @@ code {
 .overview-grid {
   display: grid;
   grid-template-columns: minmax(300px, 0.9fr) minmax(320px, 1.1fr);
-  gap: 12px;
+  gap: 14px;
   align-items: start;
 }
 
 .local-ai-setup-warning {
   display: grid;
   gap: 13px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   background: #fbf8ee;
   border-color: #dfd2ab;
-  box-shadow: inset 3px 0 #c09a3e;
+  box-shadow:
+    inset 3px 0 #c09a3e,
+    0 4px 14px rgb(91 70 22 / 4%);
 }
 
 .local-ai-setup-warning-heading {
@@ -779,13 +833,13 @@ code {
 }
 
 .local-ai-models-button {
-  min-height: 30px;
-  padding: 6px 9px;
+  min-height: 32px;
+  padding: 7px 10px;
   color: #655326;
   background: #fffdf7;
   border: 1px solid #cdbb85;
-  border-radius: 5px;
-  font-size: 9px;
+  border-radius: 6px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -826,13 +880,13 @@ code {
 .ask-workspace {
   display: grid;
   grid-template-columns: minmax(300px, 0.7fr) minmax(0, 1.3fr);
-  gap: 12px;
+  gap: 14px;
   align-items: start;
 }
 
 .ask-sidebar {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   position: sticky;
   top: 20px;
 }
@@ -941,6 +995,11 @@ code {
   border-color: #a9caba;
 }
 
+.ask-examples button:focus-visible {
+  outline: 2px solid #8fc4aa;
+  outline-offset: 1px;
+}
+
 .ask-controls {
   display: flex;
   align-items: end;
@@ -974,7 +1033,7 @@ code {
 
 .ask-results {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .ask-history-note {
@@ -1014,6 +1073,11 @@ code {
   background: #edf5f1;
   border-color: #98c0ad;
   box-shadow: inset 3px 0 #4c9274;
+}
+
+.ask-history-item:focus-visible {
+  outline: 2px solid #8fc4aa;
+  outline-offset: 1px;
 }
 
 .ask-history-item strong,
@@ -1062,14 +1126,14 @@ code {
 }
 
 .session-clear-button {
-  min-height: 30px;
+  min-height: 32px;
   margin-top: 10px;
-  padding: 6px 9px;
+  padding: 7px 10px;
   color: #6d5151;
   background: transparent;
   border: 1px solid #d7c6c6;
-  border-radius: 5px;
-  font-size: 9px;
+  border-radius: 6px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -1077,6 +1141,11 @@ code {
   color: #823d3d;
   background: #faeeee;
   border-color: #dbaaaa;
+}
+
+.session-clear-button:focus-visible {
+  outline: 2px solid #dbaaaa;
+  outline-offset: 2px;
 }
 
 .answer-model {
@@ -1102,6 +1171,7 @@ code {
 .answer-content {
   margin-top: 10px;
   padding: 14px;
+  overflow-wrap: anywhere;
   color: #293840;
   background: #f7f9fa;
   border: 1px solid #e0e6e9;
@@ -1301,8 +1371,7 @@ code {
 
 .models-tab {
   display: grid;
-  gap: 16px;
-  max-width: 1180px;
+  gap: 14px;
 }
 
 .tab-section-heading {
@@ -1358,7 +1427,7 @@ code {
 .models-detail {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .models-state-panel,
@@ -1478,7 +1547,7 @@ code {
 .activation-step-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .activation-step {
@@ -1616,13 +1685,13 @@ code {
   align-self: end;
   flex-shrink: 0;
   min-width: 70px;
-  min-height: 30px;
-  padding: 6px 9px;
+  min-height: 32px;
+  padding: 7px 10px;
   color: #40535c;
   background: #ffffff;
   border: 1px solid #bdc9cf;
-  border-radius: 5px;
-  font-size: 9px;
+  border-radius: 6px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -1630,6 +1699,11 @@ code {
   color: #245b45;
   background: #f2f7f4;
   border-color: #86ad9a;
+}
+
+.copy-button:focus-visible {
+  outline: 2px solid #8fc4aa;
+  outline-offset: 2px;
 }
 
 .copy-button.is-copied {
@@ -1727,7 +1801,7 @@ code {
 .action-catalog {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
-  gap: 12px;
+  gap: 14px;
   align-items: start;
 }
 
@@ -1783,6 +1857,11 @@ code {
 
 .action-row.is-primary.is-selected {
   border-left-color: transparent;
+}
+
+.action-row:focus-visible {
+  outline: 2px solid #8fc4aa;
+  outline-offset: -2px;
 }
 
 .action-row-main {
@@ -2052,14 +2131,14 @@ code {
 }
 
 .state-action {
-  min-height: 30px;
+  min-height: 32px;
   margin-top: 3px;
-  padding: 6px 10px;
+  padding: 7px 11px;
   color: #ffffff;
   background: #286b52;
   border: 1px solid #286b52;
-  border-radius: 5px;
-  font-size: 9px;
+  border-radius: 6px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -2142,12 +2221,14 @@ code {
   }
 
   .main-content {
-    padding: 22px 16px 36px;
+    padding: 20px 16px 36px;
   }
 
   .workspace-tabs {
     display: block;
     overflow-x: auto;
+    scrollbar-color: #aab8c1 transparent;
+    scrollbar-width: thin;
   }
 
   .workspace-tabs > div {
@@ -2156,6 +2237,15 @@ code {
 
   .workspace-tabs p {
     display: none;
+  }
+
+  .workspace-tabs::-webkit-scrollbar {
+    height: 5px;
+  }
+
+  .workspace-tabs::-webkit-scrollbar-thumb {
+    background: #aab8c1;
+    border-radius: 999px;
   }
 
   .workspace-header {
@@ -2211,8 +2301,23 @@ code {
 }
 
 @media (max-width: 520px) {
+  .main-content {
+    padding: 16px 12px 28px;
+  }
+
   .workspace-header h1 {
     font-size: 28px;
+  }
+
+  .workspace-header {
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .panel,
+  .metric-card,
+  .models-panel.is-spacious {
+    padding: 14px;
   }
 
   .metric-grid {
@@ -2221,6 +2326,7 @@ code {
 
   .workspace-tabs button {
     min-width: 82px;
+    min-height: 40px;
     padding: 0 10px;
   }
 
@@ -2229,7 +2335,8 @@ code {
   }
 
   .local-ai-setup-warning-heading,
-  .local-ai-setup-next {
+  .local-ai-setup-next,
+  .panel-heading {
     display: grid;
   }
 
@@ -2277,7 +2384,7 @@ code {
   }
 
   .ask-controls,
-  .source-list article > div {
+  .source-card-heading {
     display: grid;
   }
 
@@ -2293,6 +2400,15 @@ code {
   .copy-button {
     align-self: auto;
     justify-self: start;
+  }
+
+  .instruction-command-row .copy-button,
+  .action-endpoint .copy-button {
+    width: 100%;
+  }
+
+  .source-count-summary {
+    white-space: normal;
   }
 
   .model-ranking-metrics {
