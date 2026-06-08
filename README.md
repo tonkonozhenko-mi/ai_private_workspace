@@ -229,6 +229,24 @@ provider/model and reports completion, failure, rating, preference, tag,
 latency, quality-warning, and source statistics. Its score is deterministic and
 advisory; it does not call models or change saved data.
 
+Request workspace-aware model recommendations:
+
+```bash
+curl -X POST http://127.0.0.1:8000/workspaces/WORKSPACE_ID/models/recommend \
+  -H "Content-Type: application/json" \
+  -d '{
+    "assistant_profile_id": null,
+    "laptop_profile_id": "balanced",
+    "task_type": "workspace_ask",
+    "model_type": "llm"
+  }'
+```
+
+The endpoint starts with catalog recommendation scores, then adds matching
+workspace performance scores and explicit rating, preference, and failure
+adjustments. Models without history remain eligible with their catalog score and
+a warning. Recommendations are read-only and never activate a model.
+
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only
 when an experiment explicitly includes an Ollama candidate.

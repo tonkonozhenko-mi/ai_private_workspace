@@ -138,20 +138,18 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Workspace Model Performance Summary**
+**Workspace-Aware, Rating-Aware Model Recommendations**
 
-The backend can now aggregate saved model experiment outcomes and append-only
-manual ratings by provider/model for a workspace. The read-only summary exposes
-completion/failure counts, rating and preference signals, common tags, latency,
-source and warning averages, and a deterministic explainable score.
+The backend can now rank catalog models for a workspace using both static
+catalog fit and persisted experiment/rating history. Catalog score, historical
+performance score, final score, reasons, warnings, and historical signals
+remain explicit and read-only.
 
 ## Recommended Next Task
 
-**Model Recommendations From Historical Ratings**
+**Recommendation Explanation And UI Model Selection State**
 
-The next backend capability should use accumulated manual feedback as an
-explicit, explainable signal in model recommendations. It should define clear
-minimum-sample and project/profile scoping rules and must not silently change
-the active runtime.
+The next capability should make recommendation decisions and active model state
+easy for the future UI to inspect without silently changing runtime settings.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.
