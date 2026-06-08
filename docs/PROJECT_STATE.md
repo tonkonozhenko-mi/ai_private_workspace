@@ -138,19 +138,19 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Model Experiment Run skeleton**
+**Model Experiment Comparison Summary**
 
-The backend can now execute explicit same-question model comparisons using one
-shared retrieved context and prompt. Per-candidate answers, failures, latency,
-source counts, and quality-warning counts are persisted, and each run creates a
-workspace timeline event.
+The backend can now summarize saved same-question model experiment runs with
+candidate status, answer length, latency, source count, quality-warning count,
+deterministic scores, warnings, and a recommended completed candidate.
 
 ## Recommended Next Task
 
-**Model Experiment Comparison Report And Scoring**
+**AI-Assisted Experiment Evaluator Or Ollama-Backed Real Experiments**
 
-The next backend capability should record explicit model experiments so users
-can compare answers and behavior across candidate models without silently
-changing the active runtime.
+The next backend capability should either add a clearly separated evaluator over
+saved experiment answers or continue hardening real local Ollama experiment
+runs. It should remain explicit, local-first, and avoid silently changing the
+active runtime.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.

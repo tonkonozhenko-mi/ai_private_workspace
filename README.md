@@ -186,6 +186,16 @@ curl http://127.0.0.1:8000/models/experiments/EXPERIMENT_ID
 curl http://127.0.0.1:8000/workspaces/WORKSPACE_ID/model-experiments
 ```
 
+Get a concise deterministic comparison summary for a saved run:
+
+```bash
+curl http://127.0.0.1:8000/models/experiments/EXPERIMENT_ID/comparison
+```
+
+The summary scores completed candidates from observable signals such as source
+count, quality-warning count, answer length, and latency. It is not a semantic
+quality evaluator, and it does not call another LLM.
+
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only
 when an experiment explicitly includes an Ollama candidate.

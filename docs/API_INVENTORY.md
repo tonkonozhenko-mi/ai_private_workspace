@@ -34,6 +34,7 @@ filesystem, provider, or command-runner activity outside SQLite repositories.
 | `POST /models/experiments/plan` | Plan a shared-context LLM comparison and enrich candidates with catalog/runtime guidance. | No | No | No | Model experiments |
 | `POST /models/experiments/run` | Retrieve workspace context once, run explicitly requested LLM candidates, and persist comparison results. | Experiment and timeline | No | Configured embedding/vector providers plus explicitly selected LLM providers | Model experiments |
 | `GET /models/experiments/{experiment_id}` | Get a persisted model experiment run and candidate results. | No | No | No | Model experiments |
+| `GET /models/experiments/{experiment_id}/comparison` | Summarize a saved experiment run with deterministic candidate scores, warnings, and a recommended winner. | No | No | No | Model experiments |
 
 The catalog is deterministic local metadata. An optional user JSON file is read
 at application startup or explicit reload, and valid unique-ID entries are
