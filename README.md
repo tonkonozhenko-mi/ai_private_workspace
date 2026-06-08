@@ -268,6 +268,26 @@ The deterministic explanation includes catalog fit, workspace history,
 switching impact, risks, installation guidance, and suggested next actions.
 Installed-model availability is not verified, and no providers are called.
 
+Persist and read workspace model preferences:
+
+```bash
+curl -X PUT http://127.0.0.1:8000/workspaces/WORKSPACE_ID/models/selection \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "ollama",
+    "model": "qwen2.5-coder",
+    "model_type": "llm",
+    "selected_reason": "Recommended for DevOps workspace questions."
+  }'
+
+curl http://127.0.0.1:8000/workspaces/WORKSPACE_ID/models/selection
+```
+
+LLM and embedding preferences are stored independently. Selecting one preserves
+the other. Responses note whether selections match active runtime configuration,
+and replacing an embedding preference warns that reindexing may be needed. No
+runtime settings are changed and no reindex is triggered.
+
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only
 when an experiment explicitly includes an Ollama candidate.

@@ -138,19 +138,19 @@ backend MVP.
 
 ## Latest Completed Task
 
-**Model Recommendation Explanation**
+**Workspace Model Selection State**
 
-The backend can now explain a model recommendation using catalog fit, workspace
-history, deterministic switching impact, risks, warnings, and suggested next
-actions. Known and unknown models receive read-only explanations without
-provider calls or installation checks.
+The backend can now persist selected LLM and embedding-model preferences per
+workspace while preserving the other model type. Selection responses report
+active-configuration match notes and embedding-change reindex guidance without
+changing runtime settings or triggering work.
 
 ## Recommended Next Task
 
-**UI Model Selection State Or Real Ollama Experiment Run**
+**Runtime Selection Validation**
 
-The next capability should either expose selected/active/installed model state
-for the future UI or further harden explicitly requested real Ollama experiment
-runs without silently changing runtime settings.
+The next capability should validate selected preferences against installed and
+available local runtime models without silently changing settings, downloading
+models, or triggering reindexing.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.

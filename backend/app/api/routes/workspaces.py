@@ -18,6 +18,7 @@ from app.api.dependencies import (
     runtime_health_configuration,
     timeline_repository,
     vector_store,
+    workspace_model_selection_repository,
     workspace_repository,
 )
 from app.api.project_scan_schemas import ProjectScanResponse, to_project_scan_response
@@ -60,6 +61,11 @@ from app.api.schemas.workspace_model_recommendation_schemas import (
     RecommendWorkspaceModelsRequest,
     WorkspaceModelRecommendationResultResponse,
     to_workspace_model_recommendation_result_response,
+)
+from app.api.schemas.workspace_model_selection_schemas import (
+    UpdateWorkspaceModelSelectionRequest,
+    WorkspaceModelSelectionResponse,
+    to_workspace_model_selection_response,
 )
 from app.api.schemas.report_schemas import (
     ProjectOverviewReportResponse,
@@ -219,6 +225,17 @@ from app.core.use_cases.recommend_workspace_models import (
     RecommendWorkspaceModelsInput,
     RecommendWorkspaceModelsUseCase,
     WorkspaceModelRecommendationNotFoundError,
+)
+from app.core.use_cases.get_workspace_model_selection import (
+    GetWorkspaceModelSelectionInput,
+    GetWorkspaceModelSelectionUseCase,
+    WorkspaceModelSelectionNotFoundError,
+)
+from app.core.use_cases.update_workspace_model_selection import (
+    UpdateWorkspaceModelSelectionInput,
+    UpdateWorkspaceModelSelectionNotFoundError,
+    UpdateWorkspaceModelSelectionUseCase,
+    UpdateWorkspaceModelSelectionValidationError,
 )
 from app.core.use_cases.scan_project import ProjectScanError
 from app.core.use_cases.scan_workspace_project import (
@@ -887,6 +904,64 @@ def explain_workspace_model_recommendation(
         ) from exc
 
     return to_model_recommendation_explanation_response(explanation)
+
+
+@router.get(
+    "/{workspace_id}/models/selection",
+    response_model=WorkspaceModelSelectionResponse,
+)
+def get_workspace_model_selection(
+    workspace_id: str,
+) -> WorkspaceModelSelectionResponse:
+    try:
+        selection = GetWorkspaceModelSelectionUseCase(
+            workspace_repository=workspace_repository,
+            selection_repository=workspace_model_selection_repository,
+            configuration=readiness_configuration,
+        ).execute(GetWorkspaceModelSelectionInput(workspace_id=workspace_id))
+    except WorkspaceModelSelectionNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return to_workspace_model_selection_response(selection)
+
+
+@router.put(
+    "/{workspace_id}/models/selection",
+    response_model=WorkspaceModelSelectionResponse,
+)
+def update_workspace_model_selection(
+    workspace_id: str,
+    request: UpdateWorkspaceModelSelectionRequest,
+) -> WorkspaceModelSelectionResponse:
+    try:
+        selection = UpdateWorkspaceModelSelectionUseCase(
+            workspace_repository=workspace_repository,
+            selection_repository=workspace_model_selection_repository,
+            model_catalog_registry=model_catalog_registry,
+            timeline_repository=timeline_repository,
+            configuration=readiness_configuration,
+        ).execute(
+            UpdateWorkspaceModelSelectionInput(
+                workspace_id=workspace_id,
+                provider=request.provider,
+                model=request.model,
+                model_type=request.model_type,
+                selected_reason=request.selected_reason,
+            )
+        )
+    except UpdateWorkspaceModelSelectionNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except UpdateWorkspaceModelSelectionValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    return to_workspace_model_selection_response(selection)
 
 
 @router.get(

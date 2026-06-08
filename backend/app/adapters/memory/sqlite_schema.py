@@ -103,6 +103,15 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             )
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS workspace_model_selections (
+                workspace_id TEXT PRIMARY KEY,
+                selection_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
         _add_column_if_missing(
             connection,
             table_name="workspaces",

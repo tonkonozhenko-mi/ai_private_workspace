@@ -19,6 +19,9 @@ from app.adapters.memory.in_memory_project_scan_repository import (
 )
 from app.adapters.memory.in_memory_timeline_repository import InMemoryTimelineRepository
 from app.adapters.memory.in_memory_workspace_repository import InMemoryWorkspaceRepository
+from app.adapters.memory.in_memory_workspace_model_selection_repository import (
+    InMemoryWorkspaceModelSelectionRepository,
+)
 from app.adapters.memory.sqlite_command_repository import SQLiteCommandRepository
 from app.adapters.memory.sqlite_index_status_repository import SQLiteIndexStatusRepository
 from app.adapters.memory.sqlite_model_experiment_repository import (
@@ -30,6 +33,9 @@ from app.adapters.memory.sqlite_model_experiment_rating_repository import (
 from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScanRepository
 from app.adapters.memory.sqlite_timeline_repository import SQLiteTimelineRepository
 from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
+from app.adapters.memory.sqlite_workspace_model_selection_repository import (
+    SQLiteWorkspaceModelSelectionRepository,
+)
 from app.adapters.model_catalog.user_model_catalog_loader import UserModelCatalogLoader
 from app.adapters.runtime_health.command_runner_health_checker import (
     CommandRunnerHealthChecker,
@@ -57,6 +63,9 @@ from app.core.ports.runtime_health_checker import RuntimeHealthCheckerPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.ports.workspace_model_selection_repository import (
+    WorkspaceModelSelectionRepositoryPort,
+)
 from app.core.domain.model_catalog_registry import ModelCatalogRegistry
 
 
@@ -140,6 +149,18 @@ def build_model_experiment_rating_repository() -> ModelExperimentRatingRepositor
         return InMemoryModelExperimentRatingRepository()
     if repository_type == "sqlite":
         return SQLiteModelExperimentRatingRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_workspace_model_selection_repository() -> WorkspaceModelSelectionRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryWorkspaceModelSelectionRepository()
+    if repository_type == "sqlite":
+        return SQLiteWorkspaceModelSelectionRepository(settings.workspace_db_path)
 
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
@@ -288,6 +309,7 @@ index_status_repository = build_index_status_repository()
 timeline_repository = build_timeline_repository()
 model_experiment_repository = build_model_experiment_repository()
 model_experiment_rating_repository = build_model_experiment_rating_repository()
+workspace_model_selection_repository = build_workspace_model_selection_repository()
 file_system = LocalFileSystem()
 command_runner = build_command_runner()
 embedding_provider = build_embedding_provider()
