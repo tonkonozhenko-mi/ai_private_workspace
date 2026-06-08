@@ -65,8 +65,22 @@ def test_selected_ollama_models_produce_pull_qdrant_and_restart_steps(
     assert steps["pull_ollama_embedding_model"]["command"] == (
         "ollama pull nomic-embed-text"
     )
+    assert steps["start_podman_machine"]["status"] == "optional"
+    assert steps["start_podman_machine"]["command"] == "podman machine start"
     assert steps["start_qdrant"]["status"] == "needed"
-    assert "podman run -d --name qdrant" in steps["start_qdrant"]["command"]
+    assert steps["start_qdrant"]["command"] == "podman start qdrant"
+    assert steps["start_qdrant"]["commands"] == [
+        "podman start qdrant",
+        (
+            "podman run -d --name qdrant -p 6333:6333 "
+            "-v qdrant_data:/qdrant/storage "
+            "docker.io/qdrant/qdrant:latest"
+        ),
+    ]
+    assert "already exists" in steps["start_qdrant"]["description"]
+    assert steps["start_qdrant"]["reason"] == (
+        "Start existing Qdrant container, or create it if it does not exist."
+    )
     restart = steps["restart_backend"]["command"]
     assert "VECTOR_STORE=qdrant" in restart
     assert "EMBEDDING_PROVIDER=ollama" in restart
@@ -99,6 +113,7 @@ def test_fake_llm_with_ollama_embedding_keeps_fake_llm_provider(tmp_path) -> Non
     assert "OLLAMA_LLM_MODEL=" not in restart
     assert "pull_ollama_llm_model" not in steps
     assert steps["pull_ollama_embedding_model"]["status"] == "optional"
+    assert steps["start_podman_machine"]["command"] == "podman machine start"
 
 
 def test_embedding_mismatch_requires_reindex_after_restart(tmp_path) -> None:

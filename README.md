@@ -383,7 +383,9 @@ The guide compares persisted model selections with active configuration and
 index metadata, then returns ordered Qdrant, Ollama, backend-restart, reindex,
 and ask-selected steps. Commands are instructions only: this endpoint does not
 call providers, download models, restart the backend, change settings, or
-reindex the workspace.
+reindex the workspace. For Qdrant, the primary command starts an existing
+Podman container, while the step's `commands` list also includes the separate
+create-container command to use only when the container does not exist yet.
 
 Experiments require an indexed workspace. They never reindex, download models,
 change runtime settings, or execute shell commands. Ollama is contacted only

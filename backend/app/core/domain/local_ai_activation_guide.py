@@ -10,6 +10,7 @@ class LocalAIActivationStep:
     status: str
     reason: str
     category: str
+    commands: list[str] | None = None
 
 
 @dataclass(frozen=True)
