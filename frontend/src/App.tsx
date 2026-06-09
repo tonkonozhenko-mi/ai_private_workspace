@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
-  API_BASE_URL,
+  DEFAULT_API_BASE_URL,
   getLocalAIActivationGuide,
   getModelsDashboardSummary,
   getWorkspaceDashboard,
   getWorkspaceModelsDashboard,
   getWorkspacesOverview,
   getWorkspaceUIActions,
+  setApiBaseUrl,
 } from "./api/client";
 import type {
   WorkspaceDetailBundle,
@@ -37,6 +38,7 @@ export interface WorkbenchPreferences {
   density: DensityPreference;
   defaultSourceSnippets: SourceSnippetPreference;
   landingTab: WorkspaceTab;
+  apiBaseUrl: string;
 }
 
 const PREFERENCES_STORAGE_KEY = "private-project-ai-workbench.preferences.v1";
@@ -45,6 +47,7 @@ const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   density: "comfortable",
   defaultSourceSnippets: 5,
   landingTab: "overview",
+  apiBaseUrl: DEFAULT_API_BASE_URL,
 };
 
 const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
@@ -206,6 +209,7 @@ function App() {
     );
     document.documentElement.dataset.theme = preferences.theme;
     document.documentElement.dataset.density = preferences.density;
+    setApiBaseUrl(preferences.apiBaseUrl);
   }, [preferences]);
 
   useEffect(() => {
@@ -261,7 +265,7 @@ function App() {
 
         <footer className="sidebar-footer">
           <span>Frontend is connected to local backend.</span>
-          <code>{API_BASE_URL}</code>
+          <code>{preferences.apiBaseUrl}</code>
         </footer>
       </aside>
 
@@ -430,6 +434,9 @@ function loadStoredPreferences(): WorkbenchPreferences {
       landingTab: isLandingTabPreference(parsed.landingTab)
         ? parsed.landingTab
         : DEFAULT_PREFERENCES.landingTab,
+      apiBaseUrl: isApiBaseUrlPreference(parsed.apiBaseUrl)
+        ? normalizeApiBaseUrl(parsed.apiBaseUrl)
+        : DEFAULT_PREFERENCES.apiBaseUrl,
     };
   } catch {
     return DEFAULT_PREFERENCES;
@@ -450,6 +457,22 @@ function isSourceSnippetPreference(value: unknown): value is SourceSnippetPrefer
 
 function isLandingTabPreference(value: unknown): value is WorkspaceTab {
   return workspaceTabs.some((tab) => tab.id === value);
+}
+
+function isApiBaseUrlPreference(value: unknown): value is string {
+  if (typeof value !== "string") {
+    return false;
+  }
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function normalizeApiBaseUrl(value: string): string {
+  return value.trim().replace(/\/+$/, "");
 }
 
 function errorMessage(error: unknown) {

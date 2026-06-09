@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
-import { API_BASE_URL } from "../api/client";
+import { DEFAULT_API_BASE_URL } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -30,6 +30,12 @@ export function SettingsPanel({
   const [savedMessage, setSavedMessage] = useState("Saved in this browser");
   const [importDraft, setImportDraft] = useState("");
   const [transferMessage, setTransferMessage] = useState("Preferences can be copied or imported as JSON.");
+  const [backendUrlDraft, setBackendUrlDraft] = useState(preferences.apiBaseUrl);
+  const [connectionMessage, setConnectionMessage] = useState("Saved in this browser. Use Refresh after changing the backend URL.");
+
+  useEffect(() => {
+    setBackendUrlDraft(preferences.apiBaseUrl);
+  }, [preferences.apiBaseUrl]);
 
   const preferencesJson = useMemo(
     () => JSON.stringify(preferences, null, 2),
@@ -60,6 +66,25 @@ export function SettingsPanel({
     } catch {
       setTransferMessage("Copy is unavailable. Select the JSON and copy it manually.");
     }
+  }
+
+  function handleSaveBackendUrl() {
+    setResetRequested(false);
+    const normalizedUrl = normalizeApiBaseUrl(backendUrlDraft);
+    if (!isValidHttpUrl(normalizedUrl)) {
+      setConnectionMessage("Enter a valid http:// or https:// URL.");
+      return;
+    }
+    updatePreference("apiBaseUrl", normalizedUrl);
+    setBackendUrlDraft(normalizedUrl);
+    setConnectionMessage("Backend URL saved. Refresh workspaces to use it.");
+  }
+
+  function handleResetBackendUrl() {
+    setResetRequested(false);
+    setBackendUrlDraft(DEFAULT_API_BASE_URL);
+    updatePreference("apiBaseUrl", DEFAULT_API_BASE_URL);
+    setConnectionMessage("Backend URL reset to the app default.");
   }
 
   function handleLoadCurrentPreferences() {
@@ -126,10 +151,44 @@ export function SettingsPanel({
         <SettingsSection
           eyebrow="Connection"
           title="Local backend"
-          description="The frontend talks to your local backend. This value is shown for clarity and stays read-only."
-          badge="Connected"
+          description="Choose which local API this browser should use. This only changes the frontend connection target."
+          badge="Browser-local"
         >
-          <SettingsRow label="Backend URL" value={API_BASE_URL} code />
+          <PreferenceGroup label="Backend URL">
+            <div className="settings-url-editor">
+              <input
+                type="url"
+                value={backendUrlDraft}
+                onChange={(event) => {
+                  setBackendUrlDraft(event.target.value);
+                  setConnectionMessage("Unsaved backend URL change.");
+                }}
+                placeholder="http://127.0.0.1:8000"
+                aria-label="Backend URL"
+              />
+              <div className="settings-url-actions">
+                <button
+                  type="button"
+                  className="primary-button"
+                  disabled={normalizeApiBaseUrl(backendUrlDraft) === preferences.apiBaseUrl}
+                  onClick={handleSaveBackendUrl}
+                >
+                  Save URL
+                </button>
+                <button
+                  type="button"
+                  className="ghost-button"
+                  disabled={preferences.apiBaseUrl === DEFAULT_API_BASE_URL && backendUrlDraft === DEFAULT_API_BASE_URL}
+                  onClick={handleResetBackendUrl}
+                >
+                  Reset default
+                </button>
+              </div>
+              <p>{connectionMessage}</p>
+            </div>
+          </PreferenceGroup>
+          <SettingsRow label="Current target" value={preferences.apiBaseUrl} code />
+          <SettingsRow label="Default target" value={DEFAULT_API_BASE_URL} code />
           <SettingsRow label="Scope" value="Local browser to local API" />
         </SettingsSection>
 
@@ -285,7 +344,8 @@ export function SettingsPanel({
   "theme": "system",
   "density": "comfortable",
   "defaultSourceSnippets": 5,
-  "landingTab": "overview"
+  "landingTab": "overview",
+  "apiBaseUrl": "http://127.0.0.1:8000"
 }`}
               aria-label="Import local preferences JSON"
             />
@@ -321,9 +381,9 @@ export function SettingsPanel({
           <p className="eyebrow">Local preferences</p>
           <h2>Reset browser settings</h2>
           <p>
-            Reset theme, density, startup tab, and source snippet defaults for
-            this browser only. Workspace data, models, and backend settings are
-            not changed.
+            Reset theme, density, startup tab, source snippet defaults, and
+            backend URL for this browser only. Workspace data, models, runtime,
+            and local files are not changed.
           </p>
         </div>
         <div className="settings-reset-actions">
@@ -500,6 +560,14 @@ function parseImportedPreferences(
       recognizedValueCount += 1;
     }
 
+    if (parsed.apiBaseUrl !== undefined) {
+      if (!isValidHttpUrl(parsed.apiBaseUrl)) {
+        return null;
+      }
+      nextPreferences.apiBaseUrl = normalizeApiBaseUrl(parsed.apiBaseUrl);
+      recognizedValueCount += 1;
+    }
+
     return recognizedValueCount > 0 ? nextPreferences : null;
   } catch {
     return null;
@@ -531,6 +599,22 @@ function isLandingTabPreference(
     value === "activity" ||
     value === "settings"
   );
+}
+
+function isValidHttpUrl(value: unknown): value is string {
+  if (typeof value !== "string") {
+    return false;
+  }
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function normalizeApiBaseUrl(value: string): string {
+  return value.trim().replace(/\/+$/, "");
 }
 
 function formatMode(value: string) {
