@@ -344,7 +344,11 @@ function AnswerResult({ answer }: { answer: WorkspaceQuestionAnswer }) {
         </p>
       ) : null}
 
-      <Sources workspaceId={answer.workspace_id} sources={answer.sources} />
+      <Sources
+        workspaceId={answer.workspace_id}
+        sources={answer.sources}
+        suppressReindexGuidance={reindexReason !== null}
+      />
     </section>
   );
 }
@@ -377,9 +381,11 @@ function QualityWarnings({ warnings }: { warnings: RagQualityWarning[] }) {
 function Sources({
   workspaceId,
   sources,
+  suppressReindexGuidance = false,
 }: {
   workspaceId: string;
   sources: RagSource[];
+  suppressReindexGuidance?: boolean;
 }) {
   const topSourceScoreIsLow = sources.length > 0 && sources[0].score < 0.25;
 
@@ -446,10 +452,12 @@ function Sources({
             message="Try reindexing or asking a more project-specific question."
             compact
           />
-          <ReindexGuidance
-            workspaceId={workspaceId}
-            reason="No sources were returned. If this workspace should have indexed context, rerun indexing manually."
-          />
+          {!suppressReindexGuidance ? (
+            <ReindexGuidance
+              workspaceId={workspaceId}
+              reason="No sources were returned. If this workspace should have indexed context, rerun indexing manually."
+            />
+          ) : null}
         </>
       )}
     </section>

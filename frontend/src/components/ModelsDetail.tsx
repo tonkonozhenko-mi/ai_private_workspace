@@ -506,18 +506,22 @@ function getModelReindexReason(
       : null;
   const activeEmbedding = `${dashboard.usage_plan.active_embedding_provider}/${dashboard.usage_plan.active_embedding_model}`;
 
-  if (embeddingStatus.requires_reindex) {
-    return selectedEmbedding
-      ? `Selected embedding ${selectedEmbedding} requires rebuilding the workspace index before search can use it reliably.`
-      : "Selected embedding requires rebuilding the workspace index before search can use it reliably.";
-  }
-
   if (
     selectedEmbedding &&
     embeddingStatus.matches_active_runtime &&
     dashboard.usage_plan.index_status !== "indexed"
   ) {
-    return `Selected embedding ${selectedEmbedding} matches the active runtime, but workspace index status is ${dashboard.usage_plan.index_status}. Reindex to build searchable context.`;
+    return `Workspace index required. Selected embedding ${selectedEmbedding} already matches the active runtime, but workspace index status is ${dashboard.usage_plan.index_status}. Reindex to build searchable context.`;
+  }
+
+  if (embeddingStatus.requires_reindex) {
+    if (selectedEmbedding && embeddingStatus.matches_active_runtime) {
+      return `Workspace index required. Selected embedding ${selectedEmbedding} matches the active runtime, but the workspace does not have a usable index for search yet.`;
+    }
+
+    return selectedEmbedding
+      ? `Selected embedding ${selectedEmbedding} differs from the active retrieval setup. Reindex after you intentionally switch the embedding runtime or vector store.`
+      : "Selected embedding requires rebuilding the workspace index before search can use it reliably.";
   }
 
   if (
