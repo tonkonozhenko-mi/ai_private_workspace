@@ -698,3 +698,9 @@ The Models tab also received a small polish pass: advanced model details are fra
 ## Task 123 note — final UX polish
 
 Task 123 is a UI-copy and style polish pass only. It keeps all existing frontend API usage unchanged. Navigation buttons still only switch tabs, disclosures still only reveal local UI sections, and copy-only setup guidance remains non-executing.
+
+## Task 124 note — Settings tab foundation
+
+The Settings tab is read-only in its first version. It reuses already loaded workspace dashboard and model summary data plus the existing frontend `API_BASE_URL` constant. It does not introduce new API calls or persistence behavior.
+
+Future tasks may add localStorage-backed UI preferences or backend settings endpoints after the desired settings model is agreed.

@@ -22,10 +22,11 @@ import { EmptyState } from "./components/EmptyState";
 import { ErrorState } from "./components/ErrorState";
 import { LoadingState } from "./components/LoadingState";
 import { UIActionsPanel } from "./components/UIActionsPanel";
+import { SettingsPanel } from "./components/SettingsPanel";
 import { WorkspaceDashboard } from "./components/WorkspaceDashboard";
 import { WorkspaceList } from "./components/WorkspaceList";
 
-type WorkspaceTab = "overview" | "ask" | "models" | "actions" | "activity";
+type WorkspaceTab = "overview" | "ask" | "models" | "actions" | "activity" | "settings";
 
 const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
   { id: "overview", label: "Overview" },
@@ -33,6 +34,7 @@ const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
   { id: "models", label: "Models" },
   { id: "actions", label: "Capabilities" },
   { id: "activity", label: "Activity" },
+  { id: "settings", label: "Settings" },
 ];
 
 function App() {
@@ -351,6 +353,12 @@ function App() {
               ) : null}
               {activeTab === "activity" ? (
                 <ActivityTimeline events={detail.dashboard.recent_events} />
+              ) : null}
+              {activeTab === "settings" ? (
+                <SettingsPanel
+                  dashboard={detail.dashboard}
+                  modelsSummary={detail.modelsSummary}
+                />
               ) : null}
             </section>
           </div>

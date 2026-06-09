@@ -354,3 +354,9 @@ The Models tab also received a small polish pass: advanced model details are fra
 Phase 9 received a final product polish pass focused on first-time comprehension and lower visual noise. Overview guided-path copy is shorter, setup safety is presented as a small note, Models uses a lighter product framing, repeated ready/status badges were reduced in technical disclosure areas, and remaining helper text was simplified.
 
 This is a frontend presentation-only change. It does not add API calls, run scan/index/rebuild, execute shell commands, call models automatically, change backend defaults, or mutate runtime settings.
+
+## Task 124 — Settings Page Foundation
+
+Phase 10 settings and personalization work has started with a read-only Settings tab. The first version introduces the product structure for future preferences without saving settings yet. It shows local backend connection details, appearance placeholders, Ask defaults, AI model defaults, and the local-only safety posture.
+
+This is a frontend presentation-only foundation. It does not add backend endpoints, persist settings, execute commands, rebuild search context, restart the backend, or change model/runtime behavior.
