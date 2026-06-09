@@ -16,6 +16,7 @@ const SUCCESS_LABELS = new Set([
   "no reindex",
   "no restart",
   "shared context",
+  "local llm calls",
 ]);
 
 const WARNING_LABELS = new Set([

@@ -272,6 +272,33 @@ export interface ModelExperimentPlan {
   notes: string[];
 }
 
+export interface ModelExperimentRunCandidate {
+  provider: string;
+  model: string;
+  status: string;
+  answer: string | null;
+  error: string | null;
+  llm_provider: string;
+  llm_model: string | null;
+  used_context_chunks: number;
+  sources_count: number;
+  quality_warnings_count: number;
+  latency_ms: number | null;
+}
+
+export interface ModelExperimentRun {
+  id: string;
+  workspace_id: string;
+  question: string;
+  experiment_type: string;
+  status: string;
+  created_at: string;
+  completed_at: string | null;
+  shared_context_sources_count: number;
+  candidates: ModelExperimentRunCandidate[];
+  notes: string[];
+}
+
 export interface LocalAIActivationStep {
   id: string;
   title: string;
