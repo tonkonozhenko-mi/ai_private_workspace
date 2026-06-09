@@ -861,3 +861,5 @@ No new API endpoints were added. Source-snippet count and browser-local skill co
 - Kept the composer at the bottom of the Ask flow with more bottom spacing for sources.
 - Collapsed retrieved sources by default behind a Show sources / Hide sources control.
 - Preserved explicit Ask-only behavior; no backend, shell, scan, index, or model runtime changes.
+
+- Task 145 — Ask sources consistency and final chat polish: fixed collapsed source panels so attached sources no longer show the empty-source fallback until the real source list is empty.

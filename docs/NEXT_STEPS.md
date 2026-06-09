@@ -842,7 +842,10 @@ Next recommended product tasks:
 4. Add frontend component tests for Ask composer, copy answer, edit question, and ask-again interactions once the frontend test setup is introduced.
 
 
-## Task 144 — Ask chat layout polish and compact sources
+## 
+- Task 145 — Ask sources consistency and final chat polish: fixed collapsed source panels so attached sources no longer show the empty-source fallback until the real source list is empty.
+
+Task 144 — Ask chat layout polish and compact sources
 
 - Compacted the Ask focus sidebar so the conversation stays centered.
 - Kept the composer at the bottom of the Ask flow with more bottom spacing for sources.
