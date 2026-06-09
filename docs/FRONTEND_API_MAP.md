@@ -669,3 +669,9 @@ The frontend now presents model status in two layers:
 
 This is a presentation-only change. The Models tab still uses the existing model
 selection, dashboard, recommendation, experiment, rating, and history APIs.
+
+## Task 119 Models Selection Editor UX Notes
+
+The model selection editor is now a progressive-disclosure section in the Models tab. It still uses the existing `PUT /workspaces/{workspace_id}/models/selection` flow through the existing frontend API client, but the UI presents it as optional model settings rather than a primary first-run task.
+
+The frontend still does not restart the backend, rebuild search context, execute shell commands, or automatically switch runtime models after saving a workspace preference.

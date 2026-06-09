@@ -319,3 +319,9 @@ explains the two concepts most users need first: the AI answer model and the
 search context model. Backend defaults, selected-vs-runtime details, and rebuild
 context diagnostics remain available under Advanced details for troubleshooting.
 No backend endpoints, payloads, or execution behavior changed.
+
+## Frontend Task 119 — Models Selection Editor Simplification
+
+Phase 9 beginner-friendly UX work continued by making the Models selection editor secondary. The main Models tab now leads with the simple AI answer model and search context model cards, while the manual model-changing controls are hidden behind an optional disclosure titled "Change workspace models".
+
+This reduces cognitive load for new users and keeps advanced controls available for users who intentionally want to change workspace model preferences. No backend endpoints, payloads, runtime settings, model calls, scan/index/rebuild behavior, or command execution changed.

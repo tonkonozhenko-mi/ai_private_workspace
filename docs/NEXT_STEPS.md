@@ -511,3 +511,23 @@ cd frontend
 npm run typecheck
 npm run build
 ```
+
+## Task 119 — Models Selection Editor Simplification
+
+Status: prepared.
+
+The Models tab should keep the simple model overview as the primary experience and move the model-changing controls into an optional disclosure. The selection editor is now framed as "Change workspace models" with a note that most users do not need to open it.
+
+This remains a manual-submit flow only:
+
+- saving an AI answer model only updates workspace preferences;
+- saving a search context model only updates workspace preferences;
+- no backend restart, search-context rebuild, command execution, or automatic model switch is performed by the frontend.
+
+Validation:
+
+```bash
+cd frontend
+npm run typecheck
+npm run build
+```
