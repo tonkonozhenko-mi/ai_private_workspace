@@ -565,3 +565,7 @@ Task 106 refined the application shell and navigation styling:
 
 No API calls were added or changed. The shell redesign is visual and keeps tab
 switching as local React state.
+
+## Task 107 frontend layout note
+
+The Models tab UX simplification does not add or change API calls. It only reorganizes existing data from the already-used models dashboard, activation guide, experiment plan/run, ratings, and history flows. Advanced local AI setup commands remain copy-only and are not executed by the frontend.

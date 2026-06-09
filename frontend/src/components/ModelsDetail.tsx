@@ -89,6 +89,30 @@ export function ModelsDetail({
 
   return (
     <div className="models-detail">
+      <section className="panel models-native-hero">
+        <div>
+          <p className="eyebrow">Model workspace</p>
+          <h2>Choose, compare, and learn from local models.</h2>
+          <p>
+            Keep runtime changes manual while using workspace preferences, shared
+            context, and experiment feedback to improve Ask quality.
+          </p>
+        </div>
+        <div className="models-native-hero-badges">
+          <StatusBadge label={dashboard.overall_status} size="md" />
+          <StatusBadge
+            label={usage.can_ask_with_selected_llm ? "Ask ready" : "Ask blocked"}
+          />
+          <StatusBadge
+            label={
+              usage.can_search_with_selected_embedding
+                ? "Search ready"
+                : "Search needs setup"
+            }
+          />
+        </div>
+      </section>
+
       <section className="panel models-state-panel">
         <PanelHeading
           eyebrow="Workspace models"
@@ -154,6 +178,12 @@ export function ModelsDetail({
         ) : null}
       </section>
 
+      <ModelsWorkflowSteps
+        canAsk={usage.can_ask_with_selected_llm}
+        canSearch={usage.can_search_with_selected_embedding}
+        modelStatus={dashboard.overall_status}
+      />
+
       <ModelSelectionEditor
         workspaceId={workspaceId}
         selectedLlmProvider={dashboard.selected_llm_provider}
@@ -177,84 +207,89 @@ export function ModelsDetail({
         onSelectionUpdated={onSelectionUpdated}
       />
 
-      <section className="panel model-readiness-panel">
-        <PanelHeading
-          eyebrow="Usage readiness"
-          title="What works now"
-          status={
-            dashboard.usage_plan.can_use_selected_models_fully
-              ? "ready"
-              : "needs_attention"
-          }
-        />
-        <div className="readiness-list">
-          <ReadinessRow
-            label="Ask with selected LLM"
-            ready={usage.can_ask_with_selected_llm}
+      <div className="models-secondary-grid">
+        <section className="panel model-readiness-panel">
+          <PanelHeading
+            eyebrow="Usage readiness"
+            title="What works now"
+            status={
+              dashboard.usage_plan.can_use_selected_models_fully
+                ? "ready"
+                : "needs_attention"
+            }
           />
-          <ReadinessRow
-            label="Search with selected embedding"
-            ready={usage.can_search_with_selected_embedding}
-          />
-          <ReadinessRow
-            label="Index with selected embedding"
-            ready={usage.can_index_with_selected_embedding}
-          />
-        </div>
-        <div className="next-action-strip">
-          <span>Primary next action</span>
-          <strong>
-            {dashboard.primary_next_action_title ?? "Review model selection"}
-          </strong>
-        </div>
-      </section>
+          <div className="readiness-list">
+            <ReadinessRow
+              label="Ask with selected LLM"
+              ready={usage.can_ask_with_selected_llm}
+            />
+            <ReadinessRow
+              label="Search with selected embedding"
+              ready={usage.can_search_with_selected_embedding}
+            />
+            <ReadinessRow
+              label="Index with selected embedding"
+              ready={usage.can_index_with_selected_embedding}
+            />
+          </div>
+          <div className="next-action-strip">
+            <span>Primary next action</span>
+            <strong>
+              {dashboard.primary_next_action_title ?? "Review model selection"}
+            </strong>
+          </div>
+        </section>
 
-      <section className="panel recommendations-panel">
-        <PanelHeading eyebrow="Recommendations" title="Top model options" />
-        {dashboard.recommendations.recommendations.length > 0 ? (
-          <div className="model-ranking-list">
-            {dashboard.recommendations.recommendations
-              .slice(0, 3)
-              .map((recommendation) => (
-                <RecommendationRow
-                  key={`${recommendation.model.provider}/${recommendation.model.model_name}`}
-                  recommendation={recommendation}
+        <section className="panel recommendations-panel">
+          <PanelHeading eyebrow="Recommendations" title="Top model options" />
+          {dashboard.recommendations.recommendations.length > 0 ? (
+            <div className="model-ranking-list">
+              {dashboard.recommendations.recommendations
+                .slice(0, 3)
+                .map((recommendation) => (
+                  <RecommendationRow
+                    key={`${recommendation.model.provider}/${recommendation.model.model_name}`}
+                    recommendation={recommendation}
+                  />
+                ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="No model recommendations are available yet"
+              compact
+            />
+          )}
+        </section>
+
+        <section className="panel performance-panel">
+          <PanelHeading eyebrow="Workspace history" title="Model performance" />
+          {dashboard.performance_summary.items.length > 0 ? (
+            <div className="model-ranking-list">
+              {dashboard.performance_summary.items.slice(0, 3).map((item) => (
+                <PerformanceRow
+                  key={`${item.provider}/${item.model}`}
+                  item={item}
                 />
               ))}
-          </div>
-        ) : (
-          <EmptyState
-            title="No model recommendations are available yet"
-            compact
-          />
-        )}
-      </section>
+            </div>
+          ) : (
+            <EmptyState
+              title="No experiment performance has been recorded yet"
+              compact
+            />
+          )}
+        </section>
+      </div>
 
-      <section className="panel performance-panel">
-        <PanelHeading eyebrow="Workspace history" title="Model performance" />
-        {dashboard.performance_summary.items.length > 0 ? (
-          <div className="model-ranking-list">
-            {dashboard.performance_summary.items.slice(0, 3).map((item) => (
-              <PerformanceRow
-                key={`${item.provider}/${item.model}`}
-                item={item}
-              />
-            ))}
+      <details className="panel activation-panel models-disclosure-panel">
+        <summary>
+          <div>
+            <p className="eyebrow">Instructions only</p>
+            <h2>Advanced local AI activation guide</h2>
+            <span>Copy-only setup commands for Ollama, Qdrant, and backend runtime.</span>
           </div>
-        ) : (
-          <EmptyState
-            title="No experiment performance has been recorded yet"
-            compact
-          />
-        )}
-      </section>
-
-      <section className="panel activation-panel">
-        <PanelHeading
-          eyebrow="Instructions only"
-          title="Local AI activation guide"
-          status={activationGuide.overall_status}
-        />
+          <StatusBadge label={activationGuide.overall_status} size="md" />
+        </summary>
         <p className="panel-intro">
           These commands are displayed as setup instructions. The frontend does
           not execute them or create command proposals.
@@ -281,11 +316,59 @@ export function ModelsDetail({
             </article>
           ))}
         </div>
-      </section>
+      </details>
     </div>
   );
 }
 
+
+function ModelsWorkflowSteps({
+  canAsk,
+  canSearch,
+  modelStatus,
+}: {
+  canAsk: boolean;
+  canSearch: boolean;
+  modelStatus: string;
+}) {
+  const steps = [
+    {
+      title: "Current setup",
+      description: "Check selected models against active local runtime.",
+      status: modelStatus,
+    },
+    {
+      title: "Preferences",
+      description: "Change workspace LLM or embedding metadata manually.",
+      status: canAsk ? "ask ready" : "needs attention",
+    },
+    {
+      title: "Experiments",
+      description: "Plan, run, rate, and review local LLM comparisons.",
+      status: "advisory",
+    },
+    {
+      title: "Advanced setup",
+      description: "Open copy-only activation commands only when needed.",
+      status: canSearch ? "ready" : "setup needed",
+    },
+  ];
+
+  return (
+    <section className="models-workflow-panel">
+      {steps.map((step, index) => (
+        <article key={step.title}>
+          <span>{index + 1}</span>
+          <div>
+            <strong>{step.title}</strong>
+            <p>{step.description}</p>
+          </div>
+          <StatusBadge label={step.status} />
+        </article>
+      ))}
+    </section>
+  );
+}
 
 function ModelExperimentPlanner({
   workspaceId,
