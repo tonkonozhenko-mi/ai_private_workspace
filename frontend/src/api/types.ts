@@ -1,3 +1,20 @@
+
+export interface CreateWorkspaceRequest {
+  name: string;
+  project_path: string;
+  assistant_mode: string;
+  privacy_mode: string;
+}
+
+export interface CreatedWorkspace {
+  workspace_id: string;
+  name: string;
+  project_path: string;
+  assistant_mode: string;
+  privacy_mode: string;
+  created_at: string;
+}
+
 export interface WorkspaceOverviewItem {
   workspace_id: string;
   name: string;

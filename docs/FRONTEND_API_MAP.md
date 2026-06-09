@@ -763,3 +763,9 @@ The Settings screen now includes a local navigation action from AI defaults to
 the existing Models tab. This is a frontend tab switch only; it does not call a
 backend endpoint, mutate model selection, run comparisons, rebuild search
 context, or execute commands.
+
+## Task 133 note — Workspace creation onboarding
+
+The frontend now uses the existing `POST /workspaces` endpoint from an explicit create-workspace form. The request is user-submitted and includes workspace name, local project path, assistant mode, and privacy mode.
+
+This onboarding flow does not add backend contracts beyond the existing workspace create endpoint. It does not trigger scan, index, rebuild search context, model calls, runtime changes, or shell command execution automatically. After creation, the frontend refreshes read-only workspace state and selects the new workspace.
