@@ -7,7 +7,13 @@ import type {
   WorkspaceModelsDashboardSummary,
 } from "../api/types";
 import { StatusBadge } from "./StatusBadge";
-import { DEFAULT_SKILL_PREFERENCES, SKILL_PRESETS, normalizeSkillPreferences } from "./skillLibrary";
+import {
+  DEFAULT_SKILL_PREFERENCES,
+  SKILL_PRESETS,
+  normalizeSkillPreferences,
+  type SkillPresetId,
+  type SkillPreferences,
+} from "./skillLibrary";
 
 interface SettingsPanelProps {
   dashboard: WorkspaceDashboardData;
@@ -32,14 +38,28 @@ export function SettingsPanel({
   const [resetRequested, setResetRequested] = useState(false);
   const [savedMessage, setSavedMessage] = useState("Saved in this browser");
   const [importDraft, setImportDraft] = useState("");
-  const [transferMessage, setTransferMessage] = useState("Backup tools are hidden until needed.");
+  const [transferMessage, setTransferMessage] = useState(
+    "Backup tools are hidden until needed.",
+  );
   const [backupToolsVisible, setBackupToolsVisible] = useState(false);
-  const [backendUrlDraft, setBackendUrlDraft] = useState(preferences.apiBaseUrl);
-  const [connectionMessage, setConnectionMessage] = useState("Saved in this browser. Use Refresh after changing the backend URL.");
+  const [backendUrlDraft, setBackendUrlDraft] = useState(
+    preferences.apiBaseUrl,
+  );
+  const [connectionMessage, setConnectionMessage] = useState(
+    "Saved in this browser. Use Refresh after changing the backend URL.",
+  );
+  const [instructionDrafts, setInstructionDrafts] = useState<
+    Record<SkillPresetId, string>
+  >(() => buildInstructionDrafts(preferences.skillPreferences));
+  const [savedSkillId, setSavedSkillId] = useState<SkillPresetId | null>(null);
 
   useEffect(() => {
     setBackendUrlDraft(preferences.apiBaseUrl);
   }, [preferences.apiBaseUrl]);
+
+  useEffect(() => {
+    setInstructionDrafts(buildInstructionDrafts(preferences.skillPreferences));
+  }, [preferences.skillPreferences]);
 
   const preferencesJson = useMemo(
     () => JSON.stringify(preferences, null, 2),
@@ -64,7 +84,9 @@ export function SettingsPanel({
 
   function updateSkillPreference(
     skillId: keyof WorkbenchPreferences["skillPreferences"],
-    patch: Partial<WorkbenchPreferences["skillPreferences"][keyof WorkbenchPreferences["skillPreferences"]]>,
+    patch: Partial<
+      WorkbenchPreferences["skillPreferences"][keyof WorkbenchPreferences["skillPreferences"]]
+    >,
   ) {
     setResetRequested(false);
     onPreferencesChange({
@@ -79,10 +101,34 @@ export function SettingsPanel({
     });
   }
 
-  function resetSkillInstruction(skillId: keyof WorkbenchPreferences["skillPreferences"]) {
+  function updateInstructionDraft(skillId: SkillPresetId, value: string) {
+    setSavedSkillId(null);
+    setInstructionDrafts((current) => ({
+      ...current,
+      [skillId]: value.slice(0, 1200),
+    }));
+  }
+
+  function saveSkillInstruction(skillId: SkillPresetId) {
     updateSkillPreference(skillId, {
-      customInstructions: DEFAULT_SKILL_PREFERENCES[skillId].customInstructions,
+      customInstructions: instructionDrafts[skillId] ?? "",
     });
+    setSavedSkillId(skillId);
+  }
+
+  function resetSkillInstruction(
+    skillId: keyof WorkbenchPreferences["skillPreferences"],
+  ) {
+    const defaultInstruction =
+      DEFAULT_SKILL_PREFERENCES[skillId].customInstructions;
+    setInstructionDrafts((current) => ({
+      ...current,
+      [skillId]: defaultInstruction,
+    }));
+    updateSkillPreference(skillId, {
+      customInstructions: defaultInstruction,
+    });
+    setSavedSkillId(skillId);
   }
 
   async function handleCopyPreferences() {
@@ -91,7 +137,9 @@ export function SettingsPanel({
       await navigator.clipboard.writeText(preferencesJson);
       setTransferMessage("Preferences JSON copied.");
     } catch {
-      setTransferMessage("Copy is unavailable. Select the JSON and copy it manually.");
+      setTransferMessage(
+        "Copy is unavailable. Select the JSON and copy it manually.",
+      );
     }
   }
 
@@ -104,14 +152,18 @@ export function SettingsPanel({
     }
     updatePreference("apiBaseUrl", normalizedUrl);
     setBackendUrlDraft(normalizedUrl);
-    setConnectionMessage("Connection saved. Use Refresh to reload workspaces from this address.");
+    setConnectionMessage(
+      "Connection saved. Use Refresh to reload workspaces from this address.",
+    );
   }
 
   function handleResetBackendUrl() {
     setResetRequested(false);
     setBackendUrlDraft(DEFAULT_API_BASE_URL);
     updatePreference("apiBaseUrl", DEFAULT_API_BASE_URL);
-    setConnectionMessage("Connection reset to the app default. Use Refresh to reload workspaces.");
+    setConnectionMessage(
+      "Connection reset to the app default. Use Refresh to reload workspaces.",
+    );
   }
 
   function handleLoadCurrentPreferences() {
@@ -122,7 +174,10 @@ export function SettingsPanel({
 
   function handleImportPreferences() {
     setResetRequested(false);
-    const parsedPreferences = parseImportedPreferences(importDraft, preferences);
+    const parsedPreferences = parseImportedPreferences(
+      importDraft,
+      preferences,
+    );
     if (!parsedPreferences) {
       setTransferMessage(
         "Import failed. Paste valid preferences JSON with supported values.",
@@ -152,8 +207,9 @@ export function SettingsPanel({
           <p className="eyebrow">Settings</p>
           <h1>AI Private Workspace settings</h1>
           <p>
-            Tune browser-local preferences for branding, display, workspace questions, and
-            startup behavior. Project setup and model runtime stay manual.
+            Tune browser-local preferences for branding, display, workspace
+            questions, and startup behavior. Project setup and model runtime
+            stay manual.
           </p>
         </div>
         <div className="settings-save-status">
@@ -197,7 +253,10 @@ export function SettingsPanel({
                 <button
                   type="button"
                   className="primary-button"
-                  disabled={normalizeApiBaseUrl(backendUrlDraft) === preferences.apiBaseUrl}
+                  disabled={
+                    normalizeApiBaseUrl(backendUrlDraft) ===
+                    preferences.apiBaseUrl
+                  }
                   onClick={handleSaveBackendUrl}
                 >
                   Save URL
@@ -205,7 +264,10 @@ export function SettingsPanel({
                 <button
                   type="button"
                   className="ghost-button"
-                  disabled={preferences.apiBaseUrl === DEFAULT_API_BASE_URL && backendUrlDraft === DEFAULT_API_BASE_URL}
+                  disabled={
+                    preferences.apiBaseUrl === DEFAULT_API_BASE_URL &&
+                    backendUrlDraft === DEFAULT_API_BASE_URL
+                  }
                   onClick={handleResetBackendUrl}
                 >
                   Reset default
@@ -214,11 +276,20 @@ export function SettingsPanel({
               <p>{connectionMessage}</p>
             </div>
           </PreferenceGroup>
-          <SettingsRow label="Current target" value={preferences.apiBaseUrl} code />
-          <SettingsRow label="Default target" value={DEFAULT_API_BASE_URL} code />
+          <SettingsRow
+            label="Current target"
+            value={preferences.apiBaseUrl}
+            code
+          />
+          <SettingsRow
+            label="Default target"
+            value={DEFAULT_API_BASE_URL}
+            code
+          />
           <SettingsRow label="Scope" value="Local browser to local API" />
           <p className="settings-helper-note">
-            After changing this address, use Refresh in the sidebar to load workspaces from the new backend.
+            After changing this address, use Refresh in the sidebar to load
+            workspaces from the new backend.
           </p>
         </SettingsSection>
 
@@ -261,7 +332,10 @@ export function SettingsPanel({
         >
           <PreferenceGroup label="Logo initials">
             <div className="settings-brand-editor">
-              <span className="brand-mark settings-brand-preview" aria-hidden="true">
+              <span
+                className="brand-mark settings-brand-preview"
+                aria-hidden="true"
+              >
                 {preferences.brandInitials}
               </span>
               <input
@@ -311,7 +385,9 @@ export function SettingsPanel({
               onChange={(value) =>
                 updatePreference(
                   "defaultSourceSnippets",
-                  Number(value) as WorkbenchPreferences["defaultSourceSnippets"],
+                  Number(
+                    value,
+                  ) as WorkbenchPreferences["defaultSourceSnippets"],
                 )
               }
             />
@@ -355,10 +431,17 @@ export function SettingsPanel({
             code
           />
           <div className="settings-inline-actions">
-            <button type="button" className="ghost-button" onClick={onOpenModels}>
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={onOpenModels}
+            >
               Open Models
             </button>
-            <span>Use Models when you want to review, compare, or change workspace model choices.</span>
+            <span>
+              Use Models when you want to review, compare, or change workspace
+              model choices.
+            </span>
           </div>
         </SettingsSection>
       </div>
@@ -370,7 +453,8 @@ export function SettingsPanel({
             <h2>Assistant skills</h2>
             <p>
               Start from safe presets, then tune instructions for this browser.
-              These preferences do not change backend runtime or rebuild context.
+              These preferences do not change backend runtime or rebuild
+              context.
             </p>
           </div>
           <StatusBadge
@@ -382,6 +466,10 @@ export function SettingsPanel({
         <div className="skill-library-settings-grid">
           {SKILL_PRESETS.map((preset) => {
             const preference = preferences.skillPreferences[preset.id];
+            const draft =
+              instructionDrafts[preset.id] ?? preference.customInstructions;
+            const hasUnsavedInstruction =
+              draft !== preference.customInstructions;
             return (
               <article
                 className={`skill-settings-card ${preference.enabled ? "is-enabled" : ""}`}
@@ -392,15 +480,28 @@ export function SettingsPanel({
                     <p className="eyebrow">{preset.shortName} skill</p>
                     <h3>{preset.name}</h3>
                   </div>
-                  <button
-                    type="button"
-                    className={preference.enabled ? "primary-button" : "ghost-button"}
-                    onClick={() =>
-                      updateSkillPreference(preset.id, { enabled: !preference.enabled })
-                    }
+                  <div
+                    className="skill-toggle-actions"
+                    aria-label={`${preset.name} skill state`}
                   >
-                    {preference.enabled ? "Enabled" : "Enable"}
-                  </button>
+                    <StatusBadge
+                      label={preference.enabled ? "Enabled" : "Disabled"}
+                      tone={preference.enabled ? "success" : "neutral"}
+                    />
+                    <button
+                      type="button"
+                      className={
+                        preference.enabled ? "ghost-button" : "primary-button"
+                      }
+                      onClick={() =>
+                        updateSkillPreference(preset.id, {
+                          enabled: !preference.enabled,
+                        })
+                      }
+                    >
+                      {preference.enabled ? "Disable" : "Enable"}
+                    </button>
+                  </div>
                 </div>
 
                 <p>{preset.purpose}</p>
@@ -420,24 +521,38 @@ export function SettingsPanel({
                 <label className="skill-instruction-editor">
                   <span>Custom instruction</span>
                   <textarea
-                    value={preference.customInstructions}
+                    value={draft}
                     onChange={(event) =>
-                      updateSkillPreference(preset.id, {
-                        customInstructions: event.target.value.slice(0, 1200),
-                      })
+                      updateInstructionDraft(preset.id, event.target.value)
                     }
                     rows={4}
                   />
                 </label>
                 <div className="skill-settings-actions">
-                  <button
-                    type="button"
-                    className="ghost-button"
-                    onClick={() => resetSkillInstruction(preset.id)}
-                  >
-                    Reset instruction
-                  </button>
-                  <span>{preference.customInstructions.length}/1200</span>
+                  <div className="skill-settings-action-buttons">
+                    <button
+                      type="button"
+                      className="primary-button"
+                      disabled={!hasUnsavedInstruction}
+                      onClick={() => saveSkillInstruction(preset.id)}
+                    >
+                      Save instruction
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      onClick={() => resetSkillInstruction(preset.id)}
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <span>
+                    {savedSkillId === preset.id && !hasUnsavedInstruction
+                      ? "Saved locally"
+                      : hasUnsavedInstruction
+                        ? "Unsaved"
+                        : `${draft.length}/1200`}
+                  </span>
                 </div>
               </article>
             );
@@ -451,8 +566,8 @@ export function SettingsPanel({
             <p className="eyebrow">Local backup</p>
             <h2>Backup local settings</h2>
             <p>
-              Export or import browser-local preferences as JSON. This is optional
-              and only changes this browser.
+              Export or import browser-local preferences as JSON. This is
+              optional and only changes this browser.
             </p>
           </div>
           <div className="settings-disclosure-actions">
@@ -574,7 +689,11 @@ export function SettingsPanel({
           <StatusBadge label="No backend changes" tone="neutral" />
           <button
             type="button"
-            className={resetRequested ? "danger-button is-confirming" : "danger-button is-secondary"}
+            className={
+              resetRequested
+                ? "danger-button is-confirming"
+                : "danger-button is-secondary"
+            }
             onClick={handleResetClick}
           >
             {resetRequested ? "Confirm reset" : "Reset"}
@@ -699,6 +818,20 @@ function SegmentedChoice<T extends string>({
   );
 }
 
+function buildInstructionDrafts(
+  skillPreferences: SkillPreferences,
+): Record<SkillPresetId, string> {
+  return SKILL_PRESETS.reduce(
+    (drafts, preset) => {
+      drafts[preset.id] =
+        skillPreferences[preset.id]?.customInstructions ??
+        preset.defaultInstructions;
+      return drafts;
+    },
+    {} as Record<SkillPresetId, string>,
+  );
+}
+
 function parseImportedPreferences(
   rawValue: string,
   currentPreferences: WorkbenchPreferences,
@@ -756,7 +889,9 @@ function parseImportedPreferences(
       if (!isBrandInitialsPreference(parsed.brandInitials)) {
         return null;
       }
-      nextPreferences.brandInitials = normalizeBrandInitials(parsed.brandInitials);
+      nextPreferences.brandInitials = normalizeBrandInitials(
+        parsed.brandInitials,
+      );
       recognizedValueCount += 1;
     }
 
@@ -769,7 +904,9 @@ function parseImportedPreferences(
     }
 
     if (parsed.skillPreferences !== undefined) {
-      nextPreferences.skillPreferences = normalizeSkillPreferences(parsed.skillPreferences);
+      nextPreferences.skillPreferences = normalizeSkillPreferences(
+        parsed.skillPreferences,
+      );
       recognizedValueCount += 1;
     }
 
@@ -779,11 +916,15 @@ function parseImportedPreferences(
   }
 }
 
-function isThemePreference(value: unknown): value is WorkbenchPreferences["theme"] {
+function isThemePreference(
+  value: unknown,
+): value is WorkbenchPreferences["theme"] {
   return value === "system" || value === "light" || value === "dark";
 }
 
-function isDensityPreference(value: unknown): value is WorkbenchPreferences["density"] {
+function isDensityPreference(
+  value: unknown,
+): value is WorkbenchPreferences["density"] {
   return value === "comfortable" || value === "compact";
 }
 
@@ -827,13 +968,24 @@ function isBrandInitialsPreference(value: unknown): value is string {
 }
 
 function normalizeBrandInitials(value: string): string {
-  return value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3) || "AI";
+  return (
+    value
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .slice(0, 3) || "AI"
+  );
 }
 
 function isAccentColorPreference(
   value: unknown,
 ): value is WorkbenchPreferences["accentColor"] {
-  return value === "green" || value === "blue" || value === "purple" || value === "orange";
+  return (
+    value === "green" ||
+    value === "blue" ||
+    value === "purple" ||
+    value === "orange"
+  );
 }
 
 function formatMode(value: string) {

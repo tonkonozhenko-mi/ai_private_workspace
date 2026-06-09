@@ -7873,3 +7873,97 @@ button:focus-visible {
     color: var(--color-text-secondary);
   }
 }
+
+/* Task 141: skills UX and button/typography consistency polish */
+.primary-button,
+.secondary-button,
+.ghost-button,
+.danger-button,
+.text-button,
+.model-selection-save-button,
+.overview-cta-button {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.skill-library-settings-panel .settings-transfer-heading h2,
+.skill-settings-card h3 {
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+
+.skill-library-settings-panel .settings-transfer-heading p,
+.skill-settings-card > p,
+.skill-settings-meta span,
+.skill-instruction-editor textarea {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.skill-settings-card-heading,
+.skill-settings-actions,
+.skill-settings-action-buttons,
+.skill-toggle-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.skill-settings-card-heading,
+.skill-settings-actions {
+  justify-content: space-between;
+}
+
+.skill-toggle-actions {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+.skill-settings-action-buttons {
+  flex-wrap: wrap;
+}
+
+.skill-settings-actions > span {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.skill-instruction-editor textarea {
+  min-height: 104px;
+  font-family: var(--font-sans);
+}
+
+.skill-settings-card .primary-button:disabled {
+  color: var(--color-text-muted);
+  background: var(--color-surface-soft);
+  border-color: var(--color-border-soft);
+  cursor: not-allowed;
+  opacity: 0.78;
+}
+
+@media (max-width: 780px) {
+  .skill-settings-card-heading,
+  .skill-settings-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .skill-toggle-actions,
+  .skill-settings-action-buttons {
+    justify-content: flex-start;
+  }
+}

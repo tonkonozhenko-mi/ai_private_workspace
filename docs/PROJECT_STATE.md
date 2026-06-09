@@ -497,3 +497,11 @@ Skill instructions are not treated as project evidence. The prompt explicitly ke
 Timeline metadata now records how many skill instructions were applied and which skill names were included. No shell execution, scan/index/rebuild, model/runtime switching, or automatic action behavior was added.
 
 Backend validation: `pytest` passed with 372 tests and 3 skipped in the task workspace.
+
+
+## Task 141 — Skills UX and UI consistency polish
+
+- Skill Enable buttons now switch to Disable when active.
+- Custom skill instructions use explicit Save instruction and Saved locally feedback instead of invisible auto-save.
+- Button sizing and skill-card typography were normalized for a cleaner Apple-style interface.
+- No backend changes, no new API calls, no prompt changes, and no automatic scan/index/model actions.
