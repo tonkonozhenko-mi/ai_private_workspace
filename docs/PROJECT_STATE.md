@@ -325,3 +325,11 @@ No backend endpoints, payloads, or execution behavior changed.
 Phase 9 beginner-friendly UX work continued by making the Models selection editor secondary. The main Models tab now leads with the simple AI answer model and search context model cards, while the manual model-changing controls are hidden behind an optional disclosure titled "Change workspace models".
 
 This reduces cognitive load for new users and keeps advanced controls available for users who intentionally want to change workspace model preferences. No backend endpoints, payloads, runtime settings, model calls, scan/index/rebuild behavior, or command execution changed.
+
+
+## Task 120 — Models experiments simplification
+
+- Simplified the Models experiment area into an optional model comparison disclosure.
+- Renamed experiment-oriented wording to user-facing comparison wording.
+- Replaced Candidate A/B with Model A/B and warnings with verification notes where visible.
+- Kept model comparison explicit and manual; no backend changes, no new API calls, no automatic model switch, and no automatic search-context rebuild.
