@@ -427,3 +427,26 @@ The frontend does not run these commands automatically.
 ## Task 99: LLM Runtime Mismatch Guidance
 
 Frontend Models now treats LLM selection mismatches as an informational per-request preference, while embedding runtime mismatches remain action-required because they affect search/index compatibility. Saving LLM or embedding preferences remains manual-submit only and does not restart runtime, reindex, or execute commands.
+
+## Task 100: Model Experiment Plan UI
+
+The Models tab includes a safe, advisory LLM comparison planner. It calls only:
+
+- `POST /models/experiments/plan`
+
+The request uses the backend payload shape:
+
+```json
+{
+  "workspace_id": "<workspace_id>",
+  "question": "How is Terraform backend configured?",
+  "candidates": [
+    { "provider": "ollama", "model": "llama3.2", "model_type": "llm" },
+    { "provider": "ollama", "model": "qwen2.5-coder", "model_type": "llm" }
+  ]
+}
+```
+
+The planner is read/advisory. It does not call candidate models, run experiments,
+change selected models, restart runtime, download Ollama models, scan, index, or
+mutate workspace data. Experiment execution remains a separate explicit flow.

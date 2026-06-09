@@ -2744,3 +2744,157 @@ code {
   margin: 0;
   color: #536b7a;
 }
+
+.model-experiment-planner-panel {
+  grid-column: 1 / -1;
+}
+
+.model-experiment-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.model-experiment-question,
+.model-experiment-candidates label {
+  display: grid;
+  gap: 6px;
+}
+
+.model-experiment-question span,
+.model-experiment-candidates label > span {
+  color: #687780;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.model-experiment-question textarea,
+.model-experiment-candidates select {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  color: #2d3b43;
+  background: #ffffff;
+  border: 1px solid #cbd5da;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.model-experiment-question textarea {
+  resize: vertical;
+}
+
+.model-experiment-question textarea:focus-visible,
+.model-experiment-candidates select:focus-visible {
+  outline: 2px solid #8fc4aa;
+  outline-offset: 2px;
+}
+
+.model-experiment-candidates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.model-experiment-plan-result {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px;
+  background: #f7f9fa;
+  border: 1px solid #e0e6e9;
+  border-radius: 8px;
+}
+
+.model-experiment-plan-result > p {
+  margin: 0;
+  color: #62717a;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.model-experiment-plan-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.model-experiment-plan-summary strong {
+  color: #2c3b43;
+  font-size: 12px;
+}
+
+.model-experiment-candidate-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.model-experiment-candidate-card {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid #e0e6e9;
+  border-radius: 7px;
+}
+
+.model-experiment-candidate-card > div:first-child {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.model-experiment-candidate-card strong {
+  color: #293840;
+  font-size: 12px;
+}
+
+.model-experiment-candidate-card code {
+  overflow-wrap: anywhere;
+  color: #60717a;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+}
+
+.model-experiment-candidate-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.model-experiment-candidate-card ul,
+.model-experiment-plan-list ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  color: #6a797f;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.model-experiment-plan-list {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.model-experiment-plan-list > strong {
+  color: #687780;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+@media (max-width: 800px) {
+  .model-experiment-candidates,
+  .model-experiment-candidate-list {
+    grid-template-columns: 1fr;
+  }
+}

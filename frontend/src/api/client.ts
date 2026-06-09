@@ -1,5 +1,7 @@
 import type {
   LocalAIActivationGuide,
+  ModelExperimentPlan,
+  ModelExperimentPlanRequest,
   WorkspaceDashboard,
   WorkspaceModelsDashboard,
   UpdateWorkspaceModelSelectionRequest,
@@ -115,4 +117,17 @@ export function updateWorkspaceModelSelection(
       body: JSON.stringify(selection),
     },
   );
+}
+
+export function planModelExperiment(
+  request: ModelExperimentPlanRequest,
+): Promise<ModelExperimentPlan> {
+  return requestJson<ModelExperimentPlan>("/models/experiments/plan", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
 }

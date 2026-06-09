@@ -236,6 +236,42 @@ export interface WorkspaceModelsDashboard {
   notes: string[];
 }
 
+
+export interface ModelExperimentCandidateRequest {
+  provider: string;
+  model: string;
+  model_type?: "llm";
+}
+
+export interface ModelExperimentPlanRequest {
+  workspace_id: string;
+  question: string;
+  candidates: ModelExperimentCandidateRequest[];
+}
+
+export interface ModelExperimentPlanCandidate {
+  provider: string;
+  model: string;
+  known_in_catalog: boolean;
+  display_name: string;
+  model_type: string;
+  requires_reindex: boolean;
+  requires_backend_restart: boolean;
+  warnings: string[];
+}
+
+export interface ModelExperimentPlan {
+  workspace_id: string;
+  question: string;
+  experiment_type: string;
+  candidates: ModelExperimentPlanCandidate[];
+  shared_context_strategy: string;
+  requires_reindex: boolean;
+  can_compare_without_reindex: boolean;
+  recommended_actions: string[];
+  notes: string[];
+}
+
 export interface LocalAIActivationStep {
   id: string;
   title: string;
