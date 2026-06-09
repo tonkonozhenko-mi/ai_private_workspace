@@ -114,18 +114,22 @@ export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
   return (
     <div className="ask-workspace">
       <div className="ask-sidebar">
-        <section className="panel ask-composer">
-          <div className="panel-heading">
+        <section className="panel ask-composer ask-composer-native">
+          <div className="panel-heading ask-composer-heading">
             <div>
               <p className="eyebrow">Selected workspace LLM</p>
-              <h2>Ask about this project</h2>
+              <h2>Ask this workspace</h2>
+              <p className="ask-composer-subtitle">
+                Ask about code, infrastructure, CI/CD, or setup. The answer uses
+                indexed project context and keeps sources visible.
+              </p>
             </div>
             <StatusBadge label="Manual Submit" />
           </div>
 
           <p className="ask-safety-note">
-            Questions are sent only when you press Ask. This does not execute
-            commands or change runtime settings.
+            Local workspace context only. Nothing is sent until you press Ask,
+            and this never executes commands or changes runtime settings.
           </p>
 
           <form onSubmit={(event) => void submitQuestion(event)}>
@@ -233,14 +237,14 @@ function SessionHistory({
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Current browser tab</p>
-          <h2>Session questions</h2>
+          <h2>Recent questions</h2>
         </div>
         <span className="panel-count">{history.length}</span>
       </div>
 
       <p className="ask-history-note">
-        Session history is stored only in this browser tab and is not persisted
-        by the frontend.
+        Local to this browser tab. Pick a previous question to review its answer
+        and sources.
       </p>
 
       {history.length > 0 ? (
@@ -294,17 +298,20 @@ function AnswerResult({ answer }: { answer: WorkspaceQuestionAnswer }) {
   return (
     <section className="ask-results" aria-live="polite">
       <article className="panel answer-panel">
-        <div className="panel-heading">
+        <div className="panel-heading answer-heading">
           <div>
-            <p className="eyebrow">Answer</p>
-            <h2>Workspace response</h2>
+            <p className="eyebrow">Workspace answer</p>
+            <h2>Answer from selected model</h2>
           </div>
           <span className="answer-model">
             {answer.llm_provider}/{answer.llm_model ?? "default"}
           </span>
         </div>
-        <p className="answer-question">{answer.question}</p>
-        <div className="answer-content">
+        <div className="answer-question-card">
+          <span>You asked</span>
+          <p>{answer.question}</p>
+        </div>
+        <div className="answer-content answer-bubble">
           {answer.answer ? (
             <MarkdownAnswer content={answer.answer} />
           ) : (
@@ -323,7 +330,7 @@ function AnswerResult({ answer }: { answer: WorkspaceQuestionAnswer }) {
 
       {answer.diagnostic_message ? (
         <article className="ask-diagnostic">
-          <span>{formatLabel(answer.diagnostic_code ?? "diagnostic")}</span>
+          <span>{formatLabel(answer.diagnostic_code ?? "workspace status")}</span>
           <p>{answer.diagnostic_message}</p>
         </article>
       ) : null}
@@ -358,8 +365,8 @@ function QualityWarnings({ warnings }: { warnings: RagQualityWarning[] }) {
     <section className="panel quality-warnings">
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">Deterministic guardrails</p>
-          <h2>Quality warnings</h2>
+          <p className="eyebrow">Answer verification</p>
+          <h2>Verification notes</h2>
         </div>
         <span className="panel-count">{warnings.length}</span>
       </div>
@@ -394,7 +401,7 @@ function Sources({
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Retrieved context</p>
-          <h2>Sources</h2>
+          <h2>Verify with sources</h2>
         </div>
         <span className="source-count-summary">
           {sources.length} retrieved{" "}
@@ -403,6 +410,10 @@ function Sources({
       </div>
       {sources.length > 0 ? (
         <>
+          <p className="source-panel-subtitle">
+            These are the retrieved files used to ground the answer. Open the
+            previews to verify important claims.
+          </p>
           {topSourceScoreIsLow ? (
             <p className="source-quality-hint">
               Top source score is low; answer may be weakly grounded.
@@ -691,8 +702,8 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
 function AskEmptyState() {
   return (
     <EmptyState
-      title="Answers and sources will appear here"
-      message="The selected workspace LLM is used only after an explicit Ask submit. Retrieved source previews make the answer easier to verify."
+      title="Start a workspace conversation"
+      message="Ask a project question to get a local answer with retrieved sources, diagnostics, and session history."
     />
   );
 }

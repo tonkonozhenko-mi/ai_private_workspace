@@ -383,3 +383,16 @@ Recommended next tasks:
 - Group readiness, recommendations, and performance into a secondary insight grid.
 - Move local AI activation commands into a collapsible Advanced activation guide.
 - Keep behavior unchanged: no new backend calls, no automatic scan/index/reindex, no runtime mutation.
+
+## Task 108 — Ask tab conversational redesign
+
+Planned/completed direction:
+
+- Reframe Ask as a conversation-first workspace instead of a form plus result page.
+- Keep the composer manual-submit only and local-first.
+- Present answers as a native-feeling conversation card with a user-question surface and answer bubble.
+- Make verification feel calmer: source previews become a source verification panel, and quality warnings become verification notes.
+- Keep scan/index/reindex guidance copy-only and never automatic.
+- Keep session history local to the browser tab.
+
+Safety remains unchanged: Ask still only calls `/workspaces/{workspace_id}/ask-selected` after explicit submit. The frontend does not execute commands, mutate runtime settings, or rebuild indexes automatically.
