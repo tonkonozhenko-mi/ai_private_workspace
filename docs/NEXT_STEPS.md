@@ -400,3 +400,14 @@ Safety remains unchanged: Ask still only calls `/workspaces/{workspace_id}/ask-s
 ### Task 109 — Ask source progressive disclosure
 
 Ask source previews now use progressive disclosure: the strongest two sources are shown first, each preview can be expanded or collapsed, and the remaining retrieved sources are available through a Show all sources control. This keeps the conversational Ask screen readable while preserving full verification context.
+
+## Task 110 — Actions Tab Native Simplification
+
+The Actions tab has been redesigned as a calmer read-only workspace control
+inspector. Actions are grouped by purpose, raw endpoint details are hidden under
+an explicit API details disclosure, and the inspector emphasizes safety posture
+before transport-level metadata.
+
+No backend behavior changed. The frontend still does not execute catalog actions,
+restart services, run scan/index automatically, or mutate workspace state from
+this screen.
