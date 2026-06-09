@@ -126,9 +126,9 @@ export function SettingsPanel({
       <section className="panel settings-hero-panel">
         <div>
           <p className="eyebrow">Settings</p>
-          <h1>Local workbench settings</h1>
+          <h1>AI Private Workspace settings</h1>
           <p>
-            Tune browser-local preferences for display, workspace questions, and
+            Tune browser-local preferences for branding, display, workspace questions, and
             startup behavior. Project setup and model runtime stay manual.
           </p>
         </div>
@@ -226,6 +226,46 @@ export function SettingsPanel({
               onChange={(value) => updatePreference("density", value)}
             />
           </PreferenceGroup>
+        </SettingsSection>
+
+        <SettingsSection
+          eyebrow="Branding"
+          title="Workspace identity"
+          description="Personalize the local UI for demos or company use. These choices stay in this browser."
+          badge="Local"
+          tone="info"
+        >
+          <PreferenceGroup label="Logo initials">
+            <div className="settings-brand-editor">
+              <span className="brand-mark settings-brand-preview" aria-hidden="true">
+                {preferences.brandInitials}
+              </span>
+              <input
+                value={preferences.brandInitials}
+                onChange={(event) =>
+                  updatePreference(
+                    "brandInitials",
+                    normalizeBrandInitials(event.target.value),
+                  )
+                }
+                maxLength={3}
+                aria-label="Logo initials"
+              />
+            </div>
+          </PreferenceGroup>
+          <PreferenceGroup label="Accent color">
+            <SegmentedChoice
+              value={preferences.accentColor}
+              options={[
+                { value: "green", label: "Green" },
+                { value: "blue", label: "Blue" },
+                { value: "purple", label: "Purple" },
+                { value: "orange", label: "Orange" },
+              ]}
+              onChange={(value) => updatePreference("accentColor", value)}
+            />
+          </PreferenceGroup>
+          <SettingsRow label="Product name" value="AI Private Workspace" />
         </SettingsSection>
 
         <SettingsSection
@@ -375,7 +415,9 @@ export function SettingsPanel({
   "density": "comfortable",
   "defaultSourceSnippets": 5,
   "landingTab": "overview",
-  "apiBaseUrl": "http://127.0.0.1:8000"
+  "apiBaseUrl": "http://127.0.0.1:8000",
+  "brandInitials": "AI",
+  "accentColor": "green"
 }`}
                   aria-label="Import local preferences JSON"
                 />
@@ -599,6 +641,22 @@ function parseImportedPreferences(
       recognizedValueCount += 1;
     }
 
+    if (parsed.brandInitials !== undefined) {
+      if (!isBrandInitialsPreference(parsed.brandInitials)) {
+        return null;
+      }
+      nextPreferences.brandInitials = normalizeBrandInitials(parsed.brandInitials);
+      recognizedValueCount += 1;
+    }
+
+    if (parsed.accentColor !== undefined) {
+      if (!isAccentColorPreference(parsed.accentColor)) {
+        return null;
+      }
+      nextPreferences.accentColor = parsed.accentColor;
+      recognizedValueCount += 1;
+    }
+
     return recognizedValueCount > 0 ? nextPreferences : null;
   } catch {
     return null;
@@ -646,6 +704,20 @@ function isValidHttpUrl(value: unknown): value is string {
 
 function normalizeApiBaseUrl(value: string): string {
   return value.trim().replace(/\/+$/, "");
+}
+
+function isBrandInitialsPreference(value: unknown): value is string {
+  return typeof value === "string" && normalizeBrandInitials(value).length > 0;
+}
+
+function normalizeBrandInitials(value: string): string {
+  return value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3) || "AI";
+}
+
+function isAccentColorPreference(
+  value: unknown,
+): value is WorkbenchPreferences["accentColor"] {
+  return value === "green" || value === "blue" || value === "purple" || value === "orange";
 }
 
 function formatMode(value: string) {

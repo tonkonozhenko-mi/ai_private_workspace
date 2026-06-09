@@ -1,6 +1,6 @@
 # Frontend API Map
 
-This document maps the current Private Project AI Workbench backend to the
+This document maps the current AI Private Workspace backend to the
 future frontend. It is a product-oriented companion to
 [API_INVENTORY.md](API_INVENTORY.md), which remains the complete endpoint
 inventory.
@@ -769,3 +769,11 @@ context, or execute commands.
 The frontend now uses the existing `POST /workspaces` endpoint from an explicit create-workspace form. The request is user-submitted and includes workspace name, local project path, assistant mode, and privacy mode.
 
 This onboarding flow does not add backend contracts beyond the existing workspace create endpoint. It does not trigger scan, index, rebuild search context, model calls, runtime changes, or shell command execution automatically. After creation, the frontend refreshes read-only workspace state and selects the new workspace.
+
+## Task 134 — Branding, assistant mode safety, and CI
+
+The frontend product name is now **AI Private Workspace**. Branding preferences are browser-local only and do not use backend APIs.
+
+The workspace creation form displays **Support mode** but submits the backend-supported assistant mode `support_incident`. This keeps UI copy friendly while matching the backend assistant profile registry.
+
+GitHub Actions CI now lives in `.github/workflows/ci.yml` and runs frontend `npm run typecheck`, frontend `npm run build`, and backend `pytest`.

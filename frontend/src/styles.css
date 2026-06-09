@@ -1,5 +1,5 @@
 /*
- * Private Project AI Workbench design system foundation.
+ * AI Private Workspace design system foundation.
  * The goal is a calm, native-feeling interface inspired by macOS/iPadOS:
  * soft surfaces, restrained contrast, rounded cards, clear focus rings, and
  * progressive disclosure instead of dense dashboard chrome.
@@ -7001,5 +7001,103 @@ button:focus-visible {
 
   .choice-card-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Browser-local branding accents */
+:root[data-accent="blue"] {
+  --color-accent: #2f6f9f;
+  --color-accent-strong: #24577d;
+  --color-accent-soft: #eef6fb;
+  --color-accent-border: #b7d3e7;
+  --sidebar-accent: #a8cfe7;
+}
+
+:root[data-accent="purple"] {
+  --color-accent: #7357a6;
+  --color-accent-strong: #5a4584;
+  --color-accent-soft: #f3effa;
+  --color-accent-border: #cfbde7;
+  --sidebar-accent: #cbbbe8;
+}
+
+:root[data-accent="orange"] {
+  --color-accent: #b36b2c;
+  --color-accent-strong: #8c5424;
+  --color-accent-soft: #fff4e8;
+  --color-accent-border: #e6c29f;
+  --sidebar-accent: #e3bc96;
+}
+
+.brand-mark,
+.settings-brand-preview {
+  background: var(--sidebar-accent);
+  border-color: color-mix(in srgb, var(--sidebar-accent) 75%, #ffffff 25%);
+}
+
+.settings-brand-editor {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.settings-brand-editor input {
+  max-width: 120px;
+  text-transform: uppercase;
+}
+
+.settings-brand-preview {
+  width: 34px;
+  height: 34px;
+}
+
+:root[data-theme="dark"][data-accent="blue"] {
+  --color-accent: #65a9dc;
+  --color-accent-strong: #8ec4ea;
+  --color-accent-soft: #1e3441;
+  --color-accent-border: #42647d;
+  --sidebar-accent: #8ec4ea;
+}
+
+:root[data-theme="dark"][data-accent="purple"] {
+  --color-accent: #b79ae6;
+  --color-accent-strong: #d3c0f1;
+  --color-accent-soft: #342942;
+  --color-accent-border: #72598f;
+  --sidebar-accent: #d3c0f1;
+}
+
+:root[data-theme="dark"][data-accent="orange"] {
+  --color-accent: #df9b5a;
+  --color-accent-strong: #f0bc84;
+  --color-accent-soft: #3d2d20;
+  --color-accent-border: #8d643c;
+  --sidebar-accent: #f0bc84;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"][data-accent="blue"] {
+    --color-accent: #65a9dc;
+    --color-accent-strong: #8ec4ea;
+    --color-accent-soft: #1e3441;
+    --color-accent-border: #42647d;
+    --sidebar-accent: #8ec4ea;
+  }
+
+  :root[data-theme="system"][data-accent="purple"] {
+    --color-accent: #b79ae6;
+    --color-accent-strong: #d3c0f1;
+    --color-accent-soft: #342942;
+    --color-accent-border: #72598f;
+    --sidebar-accent: #d3c0f1;
+  }
+
+  :root[data-theme="system"][data-accent="orange"] {
+    --color-accent: #df9b5a;
+    --color-accent-strong: #f0bc84;
+    --color-accent-soft: #3d2d20;
+    --color-accent-border: #8d643c;
+    --sidebar-accent: #f0bc84;
   }
 }
