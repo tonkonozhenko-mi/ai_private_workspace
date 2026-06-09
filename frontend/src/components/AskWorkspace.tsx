@@ -573,7 +573,8 @@ function Sources({
             </div>
           ) : null}
         </>
-      ) : (
+      ) : null}
+      {sources.length === 0 ? (
         <>
           <EmptyState
             title="No sources returned"
@@ -587,7 +588,7 @@ function Sources({
             />
           ) : null}
         </>
-      )}
+      ) : null}
     </section>
   );
 }
