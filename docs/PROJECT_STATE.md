@@ -389,3 +389,11 @@ Capabilities screen.
 
 No backend APIs, runtime behavior, scan/index/rebuild behavior, model selection,
 or shell execution behavior changed.
+
+
+## Task 128 — Settings reset and preference clarity
+
+- Added browser-local save feedback for Settings preferences.
+- Added a two-step reset flow for local UI preferences only.
+- Reset affects theme, density, landing tab, and default source snippets in localStorage.
+- No backend API, command execution, scan, index, rebuild, or model/runtime change is introduced.
