@@ -401,3 +401,15 @@ restart the backend, pull Ollama models, reindex the workspace, execute setup
 commands, or change runtime environment variables. After a successful save, the
 frontend reloads the read-only workspace/model dashboard state so readiness,
 activation guidance, and next actions reflect the new selection.
+
+## Reindex guidance UI
+
+The frontend may display copy-only reindex guidance when Ask diagnostics report missing index context, when no sources are returned, or when the Models tab indicates that the selected embedding cannot be used for search/indexing yet.
+
+This UI does **not** execute reindexing. It only shows a curl command the user can copy and run intentionally:
+
+```bash
+curl -X POST http://127.0.0.1:8000/workspaces/{workspace_id}/index
+```
+
+This preserves the local-first safety model: model selection is a manual preference update, while runtime restarts and reindexing remain explicit user actions.

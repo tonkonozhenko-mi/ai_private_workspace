@@ -69,6 +69,7 @@ export function ModelsDetail({
       usage.active_embedding_provider,
     ],
   );
+  const reindexReason = getModelReindexReason(dashboard);
 
   return (
     <div className="models-detail">
@@ -122,6 +123,7 @@ export function ModelsDetail({
         selectedEmbeddingModel={dashboard.selected_embedding_model}
         llmOptions={llmOptions}
         embeddingOptions={embeddingOptions}
+        reindexReason={reindexReason}
         onSelectionUpdated={onSelectionUpdated}
       />
 
@@ -182,14 +184,12 @@ export function ModelsDetail({
         <PanelHeading eyebrow="Workspace history" title="Model performance" />
         {dashboard.performance_summary.items.length > 0 ? (
           <div className="model-ranking-list">
-            {dashboard.performance_summary.items
-              .slice(0, 3)
-              .map((item) => (
-                <PerformanceRow
-                  key={`${item.provider}/${item.model}`}
-                  item={item}
-                />
-              ))}
+            {dashboard.performance_summary.items.slice(0, 3).map((item) => (
+              <PerformanceRow
+                key={`${item.provider}/${item.model}`}
+                item={item}
+              />
+            ))}
           </div>
         ) : (
           <EmptyState
@@ -244,6 +244,7 @@ function ModelSelectionEditor({
   selectedEmbeddingModel,
   llmOptions,
   embeddingOptions,
+  reindexReason,
   onSelectionUpdated,
 }: {
   workspaceId: string;
@@ -253,6 +254,7 @@ function ModelSelectionEditor({
   selectedEmbeddingModel: string | null;
   llmOptions: ModelOption[];
   embeddingOptions: ModelOption[];
+  reindexReason: string | null;
   onSelectionUpdated: () => Promise<void> | void;
 }) {
   const [llmValue, setLlmValue] = useState(
@@ -262,10 +264,15 @@ function ModelSelectionEditor({
   );
   const [embeddingValue, setEmbeddingValue] = useState(
     toOptionValue(selectedEmbeddingProvider, selectedEmbeddingModel) ??
-      toOptionValue(embeddingOptions[0]?.provider, embeddingOptions[0]?.model) ??
+      toOptionValue(
+        embeddingOptions[0]?.provider,
+        embeddingOptions[0]?.model,
+      ) ??
       "",
   );
-  const [savingType, setSavingType] = useState<"llm" | "embedding" | null>(null);
+  const [savingType, setSavingType] = useState<"llm" | "embedding" | null>(
+    null,
+  );
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -280,7 +287,10 @@ function ModelSelectionEditor({
   useEffect(() => {
     setEmbeddingValue(
       toOptionValue(selectedEmbeddingProvider, selectedEmbeddingModel) ??
-        toOptionValue(embeddingOptions[0]?.provider, embeddingOptions[0]?.model) ??
+        toOptionValue(
+          embeddingOptions[0]?.provider,
+          embeddingOptions[0]?.model,
+        ) ??
         "",
     );
   }, [embeddingOptions, selectedEmbeddingModel, selectedEmbeddingProvider]);
@@ -367,6 +377,13 @@ function ModelSelectionEditor({
         </span>
       </div>
 
+      {reindexReason ? (
+        <ModelReindexGuidance
+          workspaceId={workspaceId}
+          reason={reindexReason}
+        />
+      ) : null}
+
       {message ? <p className="model-selection-message">{message}</p> : null}
       {error ? <p className="model-selection-error">{error}</p> : null}
     </section>
@@ -450,6 +467,71 @@ function ModelSelectionControl({
   );
 }
 
+function ModelReindexGuidance({
+  workspaceId,
+  reason,
+}: {
+  workspaceId: string;
+  reason: string;
+}) {
+  const command = `curl -X POST http://127.0.0.1:8000/workspaces/${workspaceId}/index`;
+
+  return (
+    <article className="reindex-guidance model-reindex-guidance">
+      <div>
+        <StatusBadge label="copy only" />
+        <strong>Reindex guidance</strong>
+      </div>
+      <p>{reason}</p>
+      <div className="reindex-command-row">
+        <code title={command}>{command}</code>
+        <CopyButton text={command} />
+      </div>
+      <small>
+        Changing an LLM does not require reindexing. Reindex only when you
+        intentionally changed the embedding model or vector store, or when the
+        workspace index was built for a different retrieval runtime.
+      </small>
+    </article>
+  );
+}
+
+function getModelReindexReason(
+  dashboard: WorkspaceModelsDashboard,
+): string | null {
+  const embeddingStatus = dashboard.selection_status.embedding_status;
+  const selectedEmbedding =
+    dashboard.selected_embedding_provider && dashboard.selected_embedding_model
+      ? `${dashboard.selected_embedding_provider}/${dashboard.selected_embedding_model}`
+      : null;
+  const activeEmbedding = `${dashboard.usage_plan.active_embedding_provider}/${dashboard.usage_plan.active_embedding_model}`;
+
+  if (embeddingStatus.requires_reindex) {
+    return selectedEmbedding
+      ? `Selected embedding ${selectedEmbedding} requires rebuilding the workspace index before search can use it reliably.`
+      : "Selected embedding requires rebuilding the workspace index before search can use it reliably.";
+  }
+
+  if (
+    selectedEmbedding &&
+    embeddingStatus.matches_active_runtime &&
+    dashboard.usage_plan.index_status !== "indexed"
+  ) {
+    return `Selected embedding ${selectedEmbedding} matches the active runtime, but workspace index status is ${dashboard.usage_plan.index_status}. Reindex to build searchable context.`;
+  }
+
+  if (
+    selectedEmbedding &&
+    activeEmbedding &&
+    !dashboard.usage_plan.can_search_with_selected_embedding &&
+    embeddingStatus.matches_active_runtime
+  ) {
+    return `Selected embedding ${selectedEmbedding} matches active runtime ${activeEmbedding}, but search is not ready. Reindex to rebuild the active retrieval collection.`;
+  }
+
+  return null;
+}
+
 function PanelHeading({
   eyebrow,
   title,
@@ -484,7 +566,9 @@ function RuntimeModel({
   return (
     <article>
       <span>{label}</span>
-      <strong>{provider && model ? `${provider}/${model}` : "Not selected"}</strong>
+      <strong>
+        {provider && model ? `${provider}/${model}` : "Not selected"}
+      </strong>
       <StatusBadge label={status} />
     </article>
   );
