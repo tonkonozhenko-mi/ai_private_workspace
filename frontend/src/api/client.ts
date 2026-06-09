@@ -149,6 +149,15 @@ export function runModelExperiment(
 }
 
 
+
+export function getWorkspaceModelExperiments(
+  workspaceId: string,
+): Promise<ModelExperimentRun[]> {
+  return getJson<ModelExperimentRun[]>(
+    `/workspaces/${workspaceId}/model-experiments`,
+  );
+}
+
 export function getModelExperimentRatings(
   experimentId: string,
 ): Promise<ModelExperimentRating[]> {

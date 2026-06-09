@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import {
   getModelExperimentRatings,
+  getWorkspaceModelExperiments,
   planModelExperiment,
   runModelExperiment,
   saveModelExperimentRating,
@@ -318,6 +319,9 @@ function ModelExperimentPlanner({
   const [isRunning, setIsRunning] = useState(false);
   const [plan, setPlan] = useState<ModelExperimentPlan | null>(null);
   const [runResult, setRunResult] = useState<ModelExperimentRun | null>(null);
+  const [experimentHistory, setExperimentHistory] = useState<ModelExperimentRun[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
 
@@ -325,6 +329,23 @@ function ModelExperimentPlanner({
     setCandidateA(defaultCandidateA);
     setCandidateB(defaultCandidateB);
   }, [defaultCandidateA, defaultCandidateB]);
+
+  useEffect(() => {
+    void loadExperimentHistory();
+  }, [workspaceId]);
+
+  async function loadExperimentHistory() {
+    setIsLoadingHistory(true);
+    setHistoryError(null);
+    try {
+      const result = await getWorkspaceModelExperiments(workspaceId);
+      setExperimentHistory(result);
+    } catch (historyLoadError) {
+      setHistoryError(errorMessage(historyLoadError));
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }
 
   async function generatePlan() {
     const parsedCandidates = [candidateA, candidateB]
@@ -402,6 +423,7 @@ function ModelExperimentPlanner({
         })),
       });
       setRunResult(result);
+      setExperimentHistory((current) => upsertExperimentHistory(current, result));
     } catch (experimentError) {
       setRunError(errorMessage(experimentError));
       setRunResult(null);
@@ -489,6 +511,14 @@ function ModelExperimentPlanner({
       ) : null}
       {runError ? <p className="model-selection-error">{runError}</p> : null}
       {runResult ? <ModelExperimentRunResult result={runResult} /> : null}
+      <ModelExperimentHistoryPanel
+        experiments={experimentHistory}
+        isLoading={isLoadingHistory}
+        error={historyError}
+        activeExperimentId={runResult?.id ?? null}
+        onRefresh={() => void loadExperimentHistory()}
+        onSelectExperiment={setRunResult}
+      />
     </section>
   );
 }
@@ -675,6 +705,85 @@ function ExperimentRunHeuristics({ result }: { result: ModelExperimentRun }) {
   );
 }
 
+
+
+function ModelExperimentHistoryPanel({
+  experiments,
+  isLoading,
+  error,
+  activeExperimentId,
+  onRefresh,
+  onSelectExperiment,
+}: {
+  experiments: ModelExperimentRun[];
+  isLoading: boolean;
+  error: string | null;
+  activeExperimentId: string | null;
+  onRefresh: () => void;
+  onSelectExperiment: (experiment: ModelExperimentRun) => void;
+}) {
+  return (
+    <div className="model-experiment-history-panel">
+      <div className="model-experiment-history-heading">
+        <div>
+          <StatusBadge label="history" />
+          <strong>Experiment history</strong>
+          <p>
+            Review previous local model comparisons for this workspace. Selecting
+            a run only opens its saved details and ratings UI.
+          </p>
+        </div>
+        <button type="button" className="secondary-button" onClick={onRefresh}>
+          {isLoading ? "Refreshing…" : "Refresh history"}
+        </button>
+      </div>
+      {error ? <p className="model-selection-error">{error}</p> : null}
+      {isLoading && experiments.length === 0 ? (
+        <p className="model-experiment-rating-muted">Loading experiment history…</p>
+      ) : null}
+      {!isLoading && experiments.length === 0 ? (
+        <EmptyState
+          title="No model experiments yet"
+          message="Generate a plan and run a local comparison experiment to build workspace history."
+          compact
+        />
+      ) : null}
+      {experiments.length > 0 ? (
+        <div className="model-experiment-history-list">
+          {experiments.slice(0, 6).map((experiment) => (
+            <button
+              key={experiment.id}
+              type="button"
+              className={
+                activeExperimentId === experiment.id
+                  ? "model-experiment-history-item selected"
+                  : "model-experiment-history-item"
+              }
+              onClick={() => onSelectExperiment(experiment)}
+            >
+              <div>
+                <strong>{truncateText(experiment.question, 96)}</strong>
+                <span>{formatDateTime(experiment.created_at)}</span>
+              </div>
+              <div className="model-experiment-history-meta">
+                <StatusBadge label={experiment.status} />
+                <StatusBadge label={`${experiment.shared_context_sources_count} sources`} />
+                <StatusBadge label={`${experiment.candidates.length} candidates`} />
+              </div>
+              <div className="model-experiment-history-candidates">
+                {experiment.candidates.slice(0, 3).map((candidate) => (
+                  <span key={`${experiment.id}/${candidate.provider}/${candidate.model}`}>
+                    {candidate.provider}/{candidate.model} · {candidate.latency_ms ?? "?"} ms · {candidate.quality_warnings_count} warnings
+                  </span>
+                ))}
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function ExperimentRatingPanel({ result }: { result: ModelExperimentRun }) {
   const completedCandidates = result.candidates.filter(
@@ -961,6 +1070,13 @@ function dedupeCandidates(
     seen.add(key);
     return true;
   });
+}
+
+function upsertExperimentHistory(
+  history: ModelExperimentRun[],
+  experiment: ModelExperimentRun,
+): ModelExperimentRun[] {
+  return [experiment, ...history.filter((item) => item.id !== experiment.id)];
 }
 
 function ModelSelectionEditor({

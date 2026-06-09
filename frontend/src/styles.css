@@ -3160,3 +3160,131 @@ code {
     align-items: stretch;
   }
 }
+
+.model-experiment-history-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px;
+  background: #f7f9fa;
+  border: 1px solid #d8e1e6;
+  border-radius: 8px;
+}
+
+.model-experiment-history-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.model-experiment-history-heading > div {
+  display: grid;
+  gap: 6px;
+}
+
+.model-experiment-history-heading strong {
+  color: #2c3b43;
+  font-size: 12px;
+}
+
+.model-experiment-history-heading p {
+  margin: 0;
+  color: #61727b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.secondary-button {
+  padding: 8px 10px;
+  color: #2d5570;
+  background: #f7fbfd;
+  border: 1px solid #c8d7e2;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.secondary-button:hover {
+  background: #eef7fb;
+}
+
+.secondary-button:focus-visible {
+  outline: 2px solid #8fc4aa;
+  outline-offset: 2px;
+}
+
+.model-experiment-history-list {
+  display: grid;
+  gap: 8px;
+}
+
+.model-experiment-history-item {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 11px;
+  text-align: left;
+  background: #ffffff;
+  border: 1px solid #e0e6e9;
+  border-radius: 7px;
+}
+
+.model-experiment-history-item:hover {
+  border-color: #b8d7c5;
+  background: #fbfefc;
+}
+
+.model-experiment-history-item:focus-visible {
+  outline: 2px solid #8fc4aa;
+  outline-offset: 2px;
+}
+
+.model-experiment-history-item.selected {
+  border-color: #7fb79b;
+  box-shadow: inset 3px 0 0 #2f8f63;
+}
+
+.model-experiment-history-item > div:first-child {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.model-experiment-history-item strong {
+  color: #2c3b43;
+  font-size: 11px;
+}
+
+.model-experiment-history-item span {
+  color: #6a797f;
+  font-size: 10px;
+}
+
+.model-experiment-history-meta,
+.model-experiment-history-candidates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.model-experiment-history-candidates span {
+  padding: 4px 6px;
+  background: #f2f6f8;
+  border: 1px solid #e0e6e9;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 800px) {
+  .model-experiment-history-heading,
+  .model-experiment-history-item > div:first-child {
+    display: grid;
+  }
+
+  .secondary-button {
+    width: 100%;
+  }
+}
