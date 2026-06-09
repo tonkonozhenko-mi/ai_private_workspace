@@ -270,3 +270,10 @@ This change is read-only and uses data already loaded for the Overview screen.
 No backend behavior changed, no API calls were added, and the frontend still does
 not execute shell commands, run scan/index/reindex automatically, call models, or
 change runtime settings from this section.
+
+
+### Phase 8 UX Cleanup
+
+The native-feeling UX pass now includes final wording and visual cleanup. Action
+mutation labels are less alarming, Ask source previews are compact, and advanced
+API details stay hidden until explicitly expanded.

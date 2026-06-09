@@ -79,11 +79,10 @@ export function UIActionsPanel({ catalog }: UIActionsPanelProps) {
                           {action.is_primary ? (
                             <StatusBadge label="Recommended" />
                           ) : null}
-                          {action.mutates_data ? (
-                            <StatusBadge label="Writes Data" />
-                          ) : (
-                            <StatusBadge label="Read-only" />
-                          )}
+                          <StatusBadge
+                            label={getMutationBadge(action).label}
+                            tone={getMutationBadge(action).tone}
+                          />
                         </div>
                       </button>
                     ))}
@@ -130,16 +129,13 @@ function ActionInspector({ action }: { action: WorkspaceUIAction }) {
           action.mutates_data ? " is-warning" : " is-readonly"
         }`}
       >
-        <StatusBadge label={action.mutates_data ? "Writes Data" : "Read-only"} />
+        <StatusBadge
+          label={getMutationBadge(action).label}
+          tone={getMutationBadge(action).tone}
+        />
         <div>
-          <strong>
-            {action.mutates_data ? "Changes workspace state" : "Safe to inspect"}
-          </strong>
-          <p>
-            {action.mutates_data
-              ? "This action may change workspace state. This frontend still shows it for review only and does not execute it from the catalog."
-              : "This action does not mutate workspace data. It is shown here so you can understand the available workflow."}
-          </p>
+          <strong>{getMutationCopy(action).title}</strong>
+          <p>{getMutationCopy(action).description}</p>
         </div>
       </div>
 
@@ -178,6 +174,60 @@ function ActionInspector({ action }: { action: WorkspaceUIAction }) {
       ) : null}
     </aside>
   );
+}
+
+function getMutationBadge(action: WorkspaceUIAction): {
+  label: string;
+  tone: "warning" | "info" | "neutral";
+} {
+  if (!action.mutates_data) {
+    return { label: "Read-only", tone: "neutral" };
+  }
+
+  if (action.category.toLowerCase() === "ask") {
+    return { label: "Records Activity", tone: "info" };
+  }
+
+  if (action.category.toLowerCase() === "setup") {
+    return { label: "Updates Context", tone: "warning" };
+  }
+
+  return { label: "Updates Workspace", tone: "warning" };
+}
+
+function getMutationCopy(action: WorkspaceUIAction): {
+  title: string;
+  description: string;
+} {
+  if (!action.mutates_data) {
+    return {
+      title: "Safe to inspect",
+      description:
+        "This action does not mutate workspace data. It is shown here so you can understand the available workflow.",
+    };
+  }
+
+  if (action.category.toLowerCase() === "ask") {
+    return {
+      title: "Records workspace activity",
+      description:
+        "Asking can save an activity event and answer metadata. This catalog still does not execute the action; use the Ask tab for explicit submission.",
+    };
+  }
+
+  if (action.category.toLowerCase() === "setup") {
+    return {
+      title: "Updates workspace context",
+      description:
+        "Scan and index actions can update workspace metadata or searchable context when run from an explicit flow. This catalog only explains the action.",
+    };
+  }
+
+  return {
+    title: "May update workspace data",
+    description:
+      "This action can change workspace state when executed from an explicit workflow. The catalog remains inspection-only.",
+  };
 }
 
 function DetailRow({

@@ -440,3 +440,12 @@ Planned/completed direction:
 - Keep all technical setup and scan/index/reindex flows manual and explicit.
 
 Safety remains unchanged: the Overview section is read-only. It does not execute commands, run scan/index/reindex, call models, change selected models, or mutate runtime settings.
+
+
+## Task 113 Completed: Final UX Wording And Visual Cleanup
+
+The frontend now uses calmer action mutation wording, distinguishing workspace
+context updates from activity recording. Ask source preview controls were reduced
+to compact Preview/Hide text controls, and raw technical details remain behind
+progressive disclosure. This closes the first native-feeling UX pass across the
+main tabs.

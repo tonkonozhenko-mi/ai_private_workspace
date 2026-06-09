@@ -485,7 +485,7 @@ function Sources({
                     aria-expanded={isExpanded}
                     onClick={() => toggleSourcePreview(source.chunk_id)}
                   >
-                    {isExpanded ? "Hide preview" : "Show preview"}
+                    {isExpanded ? "Hide" : "Preview"}
                   </button>
                   {isExpanded ? (
                     <pre className="source-preview">{source.preview}</pre>

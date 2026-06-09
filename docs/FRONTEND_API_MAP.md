@@ -83,7 +83,9 @@ Use the UI Action Catalog for buttons instead of hardcoding route availability:
 - Treat `optional` actions as secondary.
 - Use `method` and `endpoint` only after the user invokes the action.
 - Use `mutates_data` to decide whether confirmation or refresh behavior is
-  appropriate.
+  appropriate. Prefer human wording in the UI: Ask actions should be described
+  as recording workspace activity, while scan/index actions can be described as
+  updating workspace context.
 
 The dashboard can perform lightweight runtime health checks when Qdrant or
 Ollama is configured. The UI Action Catalog does not call runtime providers.
@@ -618,3 +620,11 @@ Displayed readiness signals:
 
 No new API calls, mutations, scan/index/reindex actions, model calls, or runtime
 changes were added.
+
+
+### Final UX wording pass
+
+The frontend avoids alarming mutation labels when the user-facing effect is only
+activity recording. Raw API details remain available, but stay hidden behind
+explicit disclosure controls. Source previews use compact Preview/Hide controls
+so verification does not dominate the Ask screen.
