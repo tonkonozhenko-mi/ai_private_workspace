@@ -417,3 +417,15 @@ This remains frontend-only configuration. It does not add backend endpoints, exe
 - Updated backend connection save wording to be less technical.
 - Reduced the visual weight of the reset preference button while keeping the two-step confirmation.
 - No backend APIs, shell execution, scan/index/rebuild, or model/runtime behavior changed.
+
+## Task 132 — Phase 10 final polish
+
+Phase 10 settings work received a final polish pass. The Settings AI defaults
+section now includes a safe `Open Models` navigation action so users know where
+to review, compare, or change workspace model choices. The backend connection
+copy was tightened to explain when the URL should be changed and reminds users
+to refresh workspace data after changing the browser-local API address.
+
+This remains frontend-only UI polish. It does not introduce backend endpoints,
+execute commands, scan or index projects, rebuild search context, restart
+services, or change model/runtime settings.

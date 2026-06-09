@@ -5393,6 +5393,28 @@ button:focus-visible {
   padding-bottom: 16px;
 }
 
+
+.settings-helper-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.settings-inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding-top: 0.65rem;
+}
+
+.settings-inline-actions span {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 .settings-preference-group {
   display: grid;
   grid-template-columns: minmax(110px, 0.75fr) minmax(0, 1.25fr);
