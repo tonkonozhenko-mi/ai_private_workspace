@@ -32,11 +32,10 @@ export function UIActionsPanel({ catalog }: UIActionsPanelProps) {
       <div className="panel action-catalog-panel native-action-panel">
         <div className="panel-heading action-catalog-heading">
           <div>
-            <p className="eyebrow">Read-only workspace controls</p>
-            <h2>Choose what to inspect</h2>
+            <p className="eyebrow">Workspace capabilities</p>
+            <h2>Workspace capabilities</h2>
             <p className="panel-intro action-catalog-subtitle">
-              Actions are grouped by purpose. The frontend shows safety posture
-              and API contracts, but does not run workspace actions from this view.
+              Capabilities are grouped by purpose. This page explains what the assistant can do, but it does not run workspace actions from here.
             </p>
           </div>
           <span className="panel-count">{catalog.actions.length}</span>

@@ -220,7 +220,7 @@ function getEventLabel(eventType: string, category: EventCategory) {
     return "Scan";
   }
   if (type.includes("index")) {
-    return "Index";
+    return "Context";
   }
 
   if (category === "project") {

@@ -14,6 +14,7 @@ const SUCCESS_LABELS = new Set([
   "success",
   "completed",
   "no reindex",
+  "no rebuild needed",
   "no restart",
   "shared context",
   "local llm calls",
@@ -32,10 +33,12 @@ const WARNING_LABELS = new Set([
   "runtime mismatch",
   "needs attention",
   "requires reindex",
+  "requires rebuild",
   "current",
   "next",
   "medium",
   "reindex needed",
+  "rebuild needed",
   "restart needed",
 ]);
 

@@ -16,8 +16,8 @@ export function WorkspaceList({
   if (workspaces.length === 0) {
     return (
       <EmptyState
-        title="No workspaces yet"
-        message="Create one from onboarding or backend API."
+        title="No projects yet"
+        message="Add a local project from onboarding to start analyzing it."
         compact
       />
     );
@@ -43,12 +43,12 @@ export function WorkspaceList({
               {workspace.project_path}
             </span>
             <span className="workspace-list-labels">
-              <span>{formatLabel(workspace.assistant_mode)} assistant</span>
+              <span>{formatLabel(workspace.assistant_mode)} mode</span>
               <span>{formatLabel(workspace.quick_start_status)}</span>
             </span>
             <span className="workspace-list-signals">
-              <span>{workspace.detected_skills_count} skills</span>
-              <span>Index: {formatLabel(workspace.index_status)}</span>
+              <span>{workspace.detected_skills_count} technologies found</span>
+              <span>Context: {formatLabel(workspace.index_status)}</span>
             </span>
             {workspace.next_action_title ? (
               <span className="workspace-next-action">
