@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 import { askSelectedWorkspace } from "../api/client";
 import { CopyButton } from "./CopyButton";
@@ -394,7 +394,32 @@ function Sources({
   sources: RagSource[];
   suppressReindexGuidance?: boolean;
 }) {
+  const [showAllSources, setShowAllSources] = useState(false);
+  const [expandedSourceIds, setExpandedSourceIds] = useState<Set<string>>(
+    () => new Set(sources.slice(0, 1).map((source) => source.chunk_id)),
+  );
   const topSourceScoreIsLow = sources.length > 0 && sources[0].score < 0.25;
+  const visibleSources = showAllSources ? sources : sources.slice(0, 2);
+  const hiddenSourcesCount = Math.max(sources.length - visibleSources.length, 0);
+
+  useEffect(() => {
+    setShowAllSources(false);
+    setExpandedSourceIds(
+      new Set(sources.slice(0, 1).map((source) => source.chunk_id)),
+    );
+  }, [sources]);
+
+  function toggleSourcePreview(sourceId: string) {
+    setExpandedSourceIds((current) => {
+      const next = new Set(current);
+      if (next.has(sourceId)) {
+        next.delete(sourceId);
+      } else {
+        next.add(sourceId);
+      }
+      return next;
+    });
+  }
 
   return (
     <section className="panel source-panel">
@@ -411,8 +436,8 @@ function Sources({
       {sources.length > 0 ? (
         <>
           <p className="source-panel-subtitle">
-            These are the retrieved files used to ground the answer. Open the
-            previews to verify important claims.
+            Showing the strongest sources first. Expand previews only when you
+            need to verify a claim.
           </p>
           {topSourceScoreIsLow ? (
             <p className="source-quality-hint">
@@ -420,18 +445,22 @@ function Sources({
             </p>
           ) : null}
           <div className="source-list">
-            {sources.map((source, index) => {
+            {visibleSources.map((source) => {
               const detectedType = source.metadata?.detected_type;
               const extension = source.metadata?.extension;
+              const isExpanded = expandedSourceIds.has(source.chunk_id);
+              const globalIndex = sources.findIndex(
+                (candidate) => candidate.chunk_id === source.chunk_id,
+              );
 
               return (
                 <article
-                  className={index === 0 ? "is-top-source" : undefined}
+                  className={globalIndex === 0 ? "is-top-source" : undefined}
                   key={source.chunk_id}
                 >
                   <div className="source-card-heading">
                     <div>
-                      {index === 0 ? (
+                      {globalIndex === 0 ? (
                         <span className="top-source-badge">Top source</span>
                       ) : null}
                       <strong title={source.source_path}>
@@ -450,11 +479,34 @@ function Sources({
                       {extension ? <span>{extension}</span> : null}
                     </div>
                   ) : null}
-                  <pre className="source-preview">{source.preview}</pre>
+                  <button
+                    className="source-preview-toggle"
+                    type="button"
+                    aria-expanded={isExpanded}
+                    onClick={() => toggleSourcePreview(source.chunk_id)}
+                  >
+                    {isExpanded ? "Hide preview" : "Show preview"}
+                  </button>
+                  {isExpanded ? (
+                    <pre className="source-preview">{source.preview}</pre>
+                  ) : null}
                 </article>
               );
             })}
           </div>
+          {sources.length > 2 ? (
+            <div className="source-disclosure-footer">
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => setShowAllSources((current) => !current)}
+              >
+                {showAllSources
+                  ? "Show top sources only"
+                  : `Show all sources (${hiddenSourcesCount} more)`}
+              </button>
+            </div>
+          ) : null}
         </>
       ) : (
         <>

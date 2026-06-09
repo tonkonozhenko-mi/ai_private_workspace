@@ -234,3 +234,7 @@ Phase 8 native-feeling UX work continued with a Models tab simplification pass. 
 ## Frontend UX roadmap update — Task 108
 
 Phase 8 continued with an Ask tab conversational redesign. The Ask screen is now positioned as a local workspace conversation: a guided composer, local-only safety copy, native answer card, source verification panel, and calmer verification notes. Existing behavior remains unchanged: Ask is still manual-submit only, sources/diagnostics/session history are preserved, and scan/index/reindex instructions remain copy-only.
+
+### Ask source progressive disclosure
+
+The Ask screen now keeps verification context visible without overwhelming the conversation: top sources appear first, previews are individually expandable, and additional sources are hidden behind an explicit Show all sources control.

@@ -4239,3 +4239,38 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* Ask source progressive disclosure */
+.source-preview-toggle {
+  align-self: flex-start;
+  border: 1px solid var(--color-border, rgba(15, 23, 42, 0.12));
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: var(--radius-pill, 999px);
+  color: var(--color-text-secondary, #52616f);
+  cursor: pointer;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 700;
+  padding: 0.4rem 0.7rem;
+  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.source-preview-toggle:hover {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: var(--color-accent, #2f7d5c);
+  transform: translateY(-1px);
+}
+
+.source-preview-toggle:focus-visible {
+  outline: var(--focus-ring-width, 3px) solid var(--focus-ring-color, rgba(47, 125, 92, 0.25));
+  outline-offset: 2px;
+}
+
+.source-disclosure-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-4, 1rem);
+}
+
+.source-panel .source-list article {
+  gap: var(--space-3, 0.75rem);
+}
