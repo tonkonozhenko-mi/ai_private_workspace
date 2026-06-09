@@ -336,3 +336,17 @@ Recommended next tasks:
 1. Add a deterministic comparison details view using `GET /models/experiments/{experiment_id}/comparison` if available.
 2. Improve performance summary cards using accumulated ratings, preferred votes, and experiment history.
 3. Add a small roadmap/status page that summarizes completed phases and next product milestones.
+
+## Task 105: Apple-style design system foundation
+
+Completed:
+
+- Added CSS design tokens for typography, spacing, radius, shadows, semantic colors, dark sidebar colors, and focus rings.
+- Started migrating core UI surfaces, buttons, cards, focus states, and monospace elements to the shared token language.
+- Added a native-feeling interaction layer with softer hover states, active button feedback, consistent focus rings, text selection styling, and reduced-motion support.
+
+Recommended next tasks:
+
+1. Redesign the app shell with a more native segmented navigation and calmer workspace header.
+2. Simplify the Models tab through progressive disclosure: current setup, recommendations, experiments, and advanced setup.
+3. Redesign Ask as a conversational composer with collapsible verification/source panels.
