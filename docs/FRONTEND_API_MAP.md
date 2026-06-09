@@ -518,3 +518,31 @@ Safety notes:
 - Selecting a history item does not run models.
 - Selecting a history item does not change selected models.
 - Selecting a history item does not reindex, scan, restart runtime, or execute commands.
+
+### Apply preferred experiment model
+
+The Models tab can apply a preferred manual experiment rating as the workspace selected LLM after explicit user confirmation.
+
+Endpoint used:
+
+- `PUT /workspaces/{workspace_id}/models/selection`
+
+Payload shape:
+
+```json
+{
+  "provider": "ollama",
+  "model": "llama3.2",
+  "model_type": "llm",
+  "selected_reason": "Selected from experiment <experiment_id> after manual preferred rating."
+}
+```
+
+Safety behavior:
+
+- The UI only shows this control for ratings marked as preferred.
+- The user must confirm before the endpoint is called.
+- Applying a preferred model does not restart the backend.
+- Applying a preferred model does not reindex or change embedding settings.
+- Applying a preferred model does not rerun the experiment or execute shell commands.
+- After applying, the Models dashboard is refreshed so selected/default runtime status is visible.
