@@ -31,6 +31,7 @@ import { UIActionsPanel } from "./components/UIActionsPanel";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { WorkspaceDashboard } from "./components/WorkspaceDashboard";
 import { WorkspaceList } from "./components/WorkspaceList";
+import { DEFAULT_SKILL_PREFERENCES, normalizeSkillPreferences, type SkillPreferences } from "./components/skillLibrary";
 
 type WorkspaceTab = "overview" | "ask" | "models" | "actions" | "activity" | "settings";
 
@@ -47,6 +48,7 @@ export interface WorkbenchPreferences {
   apiBaseUrl: string;
   brandInitials: string;
   accentColor: AccentColorPreference;
+  skillPreferences: SkillPreferences;
 }
 
 const PREFERENCES_STORAGE_KEY = "ai-private-workspace.preferences.v1";
@@ -59,6 +61,7 @@ const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   apiBaseUrl: DEFAULT_API_BASE_URL,
   brandInitials: "AI",
   accentColor: "green",
+  skillPreferences: DEFAULT_SKILL_PREFERENCES,
 };
 
 const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
@@ -430,6 +433,8 @@ function App() {
                   onOpenCapabilities={() => setActiveTab("actions")}
                   onScanWorkspace={() => handleScanWorkspace(detail.dashboard.workspace_id)}
                   onIndexWorkspace={() => handleIndexWorkspace(detail.dashboard.workspace_id)}
+                  onOpenSettings={() => setActiveTab("settings")}
+                  skillPreferences={preferences.skillPreferences}
                 />
               ) : null}
               <div hidden={activeTab !== "ask"}>
@@ -438,6 +443,7 @@ function App() {
                   workspaceId={detail.dashboard.workspace_id}
                   assistantMode={detail.dashboard.assistant_mode}
                   defaultSourceSnippets={preferences.defaultSourceSnippets}
+                  skillPreferences={preferences.skillPreferences}
                   onAsked={() => refreshAfterAsk(detail.dashboard.workspace_id)}
                 />
               </div>
@@ -560,6 +566,7 @@ function loadStoredPreferences(): WorkbenchPreferences {
       accentColor: isAccentColorPreference(parsed.accentColor)
         ? parsed.accentColor
         : DEFAULT_PREFERENCES.accentColor,
+      skillPreferences: normalizeSkillPreferences(parsed.skillPreferences),
     };
   } catch {
     return DEFAULT_PREFERENCES;

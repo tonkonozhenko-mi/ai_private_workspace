@@ -7,6 +7,7 @@ import type {
 import { ModelsSummaryCard } from "./ModelsSummaryCard";
 import { StatusBadge } from "./StatusBadge";
 import type { StatusTone } from "./statusTone";
+import { getEnabledSkillPresets, getSkillPresetByAssistantMode, type SkillPreferences } from "./skillLibrary";
 
 interface WorkspaceDashboardProps {
   dashboard: WorkspaceDashboardData;
@@ -16,6 +17,8 @@ interface WorkspaceDashboardProps {
   onOpenCapabilities: () => void;
   onScanWorkspace: () => Promise<void>;
   onIndexWorkspace: () => Promise<void>;
+  onOpenSettings: () => void;
+  skillPreferences: SkillPreferences;
 }
 
 export function WorkspaceDashboard({
@@ -26,6 +29,8 @@ export function WorkspaceDashboard({
   onOpenCapabilities,
   onScanWorkspace,
   onIndexWorkspace,
+  onOpenSettings,
+  skillPreferences,
 }: WorkspaceDashboardProps) {
   const summary = dashboard.summary;
   const indexStatus = summary.index_status;
@@ -89,7 +94,8 @@ export function WorkspaceDashboard({
       <WorkspaceSkillsSection
         dashboard={dashboard}
         onOpenAsk={onOpenAsk}
-        onOpenCapabilities={onOpenCapabilities}
+        onOpenSettings={onOpenSettings}
+        skillPreferences={skillPreferences}
       />
 
       <ProductStatusSection
@@ -293,14 +299,17 @@ function WorkspaceOnboardingGuide({
 function WorkspaceSkillsSection({
   dashboard,
   onOpenAsk,
-  onOpenCapabilities,
+  onOpenSettings,
+  skillPreferences,
 }: {
   dashboard: WorkspaceDashboardData;
   onOpenAsk: () => void;
-  onOpenCapabilities: () => void;
+  onOpenSettings: () => void;
+  skillPreferences: SkillPreferences;
 }) {
   const summary = dashboard.summary;
-  const skills = getWorkspaceSkillCards(dashboard.assistant_mode, summary.detected_skills_count, summary.has_scan);
+  const activeSkillPresets = getEnabledSkillPresets(skillPreferences);
+  const skills = getWorkspaceSkillCards(dashboard.assistant_mode, summary.detected_skills_count, summary.has_scan, skillPreferences);
   const suggestedFocus = getAssistantFocus(dashboard.assistant_mode);
 
   return (
@@ -313,11 +322,18 @@ function WorkspaceSkillsSection({
             Skills help AI Private Workspace frame answers around the technologies and work style detected in this project.
           </p>
         </div>
-        <StatusBadge
-          label={summary.has_scan ? `${summary.detected_skills_count} found` : "scan first"}
-          tone={summary.has_scan ? "success" : "warning"}
-          size="md"
-        />
+        <div className="workspace-skills-badges">
+          <StatusBadge
+            label={summary.has_scan ? `${summary.detected_skills_count} found` : "scan first"}
+            tone={summary.has_scan ? "success" : "warning"}
+            size="md"
+          />
+          <StatusBadge
+            label={`${activeSkillPresets.length} active skills`}
+            tone="info"
+            size="md"
+          />
+        </div>
       </div>
 
       <div className="assistant-focus-card">
@@ -348,13 +364,13 @@ function WorkspaceSkillsSection({
 
       <div className="skill-library-note">
         <div>
-          <strong>Skill library coming next</strong>
+          <strong>Customize skill presets</strong>
           <p>
-            Start with presets like DevOps, Developer, Documentation, Incident Support, and Manager Summary. Later you will be able to customize them, for example by extending DevOps with Jenkins pipelines or company-specific deployment rules.
+            Open Settings to enable presets or tune custom instructions, for example extending DevOps with Jenkins pipelines, deployment rules, or company-specific review checks.
           </p>
         </div>
-        <button className="secondary-action" type="button" onClick={onOpenCapabilities}>
-          View capabilities
+        <button className="secondary-action" type="button" onClick={onOpenSettings}>
+          Manage skills
         </button>
       </div>
     </section>
@@ -388,7 +404,7 @@ function getAssistantFocus(mode: string) {
   return focuses[mode] ?? focuses.devops;
 }
 
-function getWorkspaceSkillCards(mode: string, detectedCount: number, hasScan: boolean) {
+function getWorkspaceSkillCards(mode: string, detectedCount: number, hasScan: boolean, skillPreferences: SkillPreferences) {
   if (!hasScan) {
     return [
       {
@@ -412,6 +428,11 @@ function getWorkspaceSkillCards(mode: string, detectedCount: number, hasScan: bo
     ];
   }
 
+  const activePresets = getEnabledSkillPresets(skillPreferences);
+  const activeNames = activePresets.map((preset) => preset.name).join(", ") || "No custom skills enabled";
+  const currentPreset = getSkillPresetByAssistantMode(mode);
+  const currentPreference = skillPreferences[currentPreset.id];
+
   const base = [
     {
       icon: "⌘",
@@ -421,46 +442,29 @@ function getWorkspaceSkillCards(mode: string, detectedCount: number, hasScan: bo
     },
     {
       icon: "↳",
-      title: "Answer focus",
-      description: getAssistantFocus(mode).description,
-      hint: "Assistant lens",
+      title: "Active skill presets",
+      description: activeNames,
+      hint: "Browser-local",
+    },
+    {
+      icon: "✎",
+      title: "Custom instructions",
+      description: currentPreference?.customInstructions
+        ? `${currentPreset.name} has editable instructions ready for future prompt integration.`
+        : "Use Settings to tune how each skill should frame answers.",
+      hint: "Editable",
     },
   ];
 
-  const presetByMode: Record<string, { icon: string; title: string; description: string; hint: string }> = {
-    devops: {
-      icon: "☁",
-      title: "DevOps preset",
-      description: "Best for Terraform, Terragrunt, Kubernetes, Docker, Helm, CI/CD, cloud resources, and deployment flow.",
-      hint: "Preset",
+  return [
+    ...base,
+    {
+      icon: "★",
+      title: `${currentPreset.name} preset`,
+      description: currentPreset.bestFor,
+      hint: currentPreference?.enabled ? "Active preset" : "Available preset",
     },
-    developer: {
-      icon: "{}",
-      title: "Developer preset",
-      description: "Best for code structure, tests, dependencies, implementation details, and change impact.",
-      hint: "Preset",
-    },
-    documentation: {
-      icon: "¶",
-      title: "Documentation preset",
-      description: "Best for onboarding, README quality, architecture notes, project summaries, and missing docs.",
-      hint: "Preset",
-    },
-    support_incident: {
-      icon: "!",
-      title: "Incident preset",
-      description: "Best for troubleshooting, operational checks, likely root causes, and investigation steps.",
-      hint: "Preset",
-    },
-    manager_summary: {
-      icon: "✓",
-      title: "Manager summary preset",
-      description: "Best for risks, progress, decision points, executive summaries, and stakeholder updates.",
-      hint: "Preset",
-    },
-  };
-
-  return [...base, presetByMode[mode] ?? presetByMode.devops];
+  ];
 }
 
 function ProductStatusSection({
