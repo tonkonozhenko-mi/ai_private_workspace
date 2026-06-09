@@ -40,8 +40,11 @@ def test_rag_prompt_requires_grounded_source_aware_answer() -> None:
     )
 
     assert "Use only the provided context chunks" in prompt
-    assert "Always mention source_path when making a technical claim" in prompt
+    assert "When making any technical claim, name the actual source_path exactly" in prompt
     assert "If multiple files contain relevant configuration, compare them" in prompt
+    assert "Available source paths: main.tf" in prompt
+    assert "Do not cite only numeric references such as [1] or [2]" in prompt
+    assert "S3 backend is configured (main.tf)" in prompt
     assert (
         "Do not say something is absent if any provided context contains it" in prompt
     )
