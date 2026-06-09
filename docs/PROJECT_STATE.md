@@ -360,3 +360,15 @@ This is a frontend presentation-only change. It does not add API calls, run scan
 Phase 10 settings and personalization work has started with a read-only Settings tab. The first version introduces the product structure for future preferences without saving settings yet. It shows local backend connection details, appearance placeholders, Ask defaults, AI model defaults, and the local-only safety posture.
 
 This is a frontend presentation-only foundation. It does not add backend endpoints, persist settings, execute commands, rebuild search context, restart the backend, or change model/runtime behavior.
+
+## Task 125 Update — Browser-Local Settings Preferences
+
+The Settings screen now includes safe browser-local preferences stored in
+`localStorage` only. Users can choose theme, interface density, default Ask
+source snippets, and preferred workspace landing tab without changing backend
+state.
+
+Safety constraints remain unchanged: these preferences do not execute shell
+commands, scan or index projects, rebuild search context, restart the backend,
+or change local model runtime. Ask uses the saved default source snippet count
+when a workspace Ask session opens.

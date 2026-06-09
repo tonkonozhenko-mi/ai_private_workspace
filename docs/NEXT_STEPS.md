@@ -586,3 +586,14 @@ cd frontend
 npm run typecheck
 npm run build
 ```
+
+## Task 125 Completed — Settings Local Preferences
+
+Settings now supports local browser preferences for theme, density, default Ask
+source snippets, and preferred workspace landing tab. Preferences are stored in
+`localStorage` and are intentionally frontend-only.
+
+Next recommended work: review whether any setting should become backend-backed
+workspace metadata. Keep safety settings read-only and avoid adding controls
+that would automatically run scan, index, rebuild, restart, or model-switch
+flows.
