@@ -746,3 +746,14 @@ Manual checks:
 - Verify no shell commands, scan/index/rebuild, model calls, or runtime changes are triggered.
 
 Next recommended work: add an archived workspace management view with `Show archived` and `Restore workspace`, or continue with guided scan/build-context onboarding.
+
+
+## Task 136 verification - Archived workspace restore and create onboarding polish
+
+- Archive a workspace from the sidebar and confirm it leaves the active list.
+- Use Show archived and confirm the archived workspace appears.
+- Click Restore and confirm it returns to the active list and opens Overview.
+- Verify restore does not scan, index, rebuild search context, execute shell commands, or call models.
+- Review Add project in light and dark themes for the polished onboarding hero, field helper text, assistant mode cards, and first-run guide.
+
+Next recommended work: build the guided scan/build-context screen for newly created workspaces.

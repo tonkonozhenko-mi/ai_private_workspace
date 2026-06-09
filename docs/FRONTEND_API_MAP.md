@@ -783,3 +783,8 @@ GitHub Actions CI now lives in `.github/workflows/ci.yml` and runs frontend `npm
 The sidebar now surfaces the reversible archive lifecycle action for active workspaces. The UI uses a two-step confirmation and calls `POST /workspaces/{workspace_id}/archive` only after explicit user confirmation.
 
 Archived workspaces are removed from the default active overview after refresh. This is not a hard delete and does not remove local project files. Restore/archive browsing remains a future Settings or workspace-management surface.
+
+
+### Task 136 - Archived workspace restore UI
+
+The frontend now uses `GET /workspaces/overview?include_archived=true` to populate an optional archived workspace section in the sidebar and `POST /workspaces/{workspace_id}/restore` to restore archived workspaces. The restore action is explicit, does not delete local files, and does not trigger scan/index/rebuild/model calls. The Add project screen was also polished for a clearer first-run onboarding experience.

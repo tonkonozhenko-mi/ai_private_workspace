@@ -107,14 +107,19 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
     <div className="create-workspace-page">
       <section className="create-workspace-hero surface-panel">
         <div>
-          <span className="section-eyebrow">Workspace onboarding</span>
+          <span className="section-eyebrow">Project onboarding</span>
           <h1>Add a local project</h1>
           <p>
-            Create a workspace from a local folder path. Scanning and search-context
-            building stay explicit, so the next steps are easy to review.
+            Point AI Private Workspace at a local folder, choose how you want to
+            work with it, and then review each setup step before anything runs.
           </p>
         </div>
-        <span className="status-pill info">Manual setup</span>
+        <div className="create-hero-card" aria-label="Onboarding flow preview">
+          <span>Project</span>
+          <span>Skills</span>
+          <span>Context</span>
+          <strong>Ask</strong>
+        </div>
       </section>
 
       <section className="create-workspace-grid">
@@ -123,12 +128,14 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
             <div>
               <span className="section-eyebrow">Project details</span>
               <h2>Create workspace</h2>
+              <p className="panel-helper">Start with a name and the absolute path to a local project folder.</p>
             </div>
             <span className="status-pill">Local backend</span>
           </div>
 
           <label className="settings-field-row create-field-row">
             <span>Workspace name</span>
+            <small>Use a clear name you will recognize in the sidebar.</small>
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
@@ -138,6 +145,7 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
 
           <label className="settings-field-row create-field-row">
             <span>Local project path</span>
+            <small>The path is sent only to your local backend.</small>
             <input
               value={projectPath}
               onChange={(event) => setProjectPath(event.target.value)}
@@ -148,7 +156,7 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
           <div className="create-mode-section">
             <div>
               <span className="section-eyebrow">Assistant mode</span>
-              <p>Choose the starting lens. You can refine skills later.</p>
+              <p>Choose the starting lens. It only changes guidance and wording; it does not run anything.</p>
             </div>
             <div className="choice-card-grid">
               {assistantModes.map((mode) => (
@@ -168,7 +176,7 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
           <div className="create-mode-section">
             <div>
               <span className="section-eyebrow">Privacy mode</span>
-              <p>Keep the first version predictable and local-first.</p>
+              <p>Keep setup predictable. Network-capable flows can be added later with explicit approval.</p>
             </div>
             <div className="choice-card-grid compact">
               {privacyModes.map((mode) => (
@@ -199,7 +207,8 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
 
         <aside className="create-workspace-guide surface-panel">
           <span className="section-eyebrow">What happens next</span>
-          <h2>Clear first run path</h2>
+          <h2>First run path</h2>
+          <p>Follow this simple path after the workspace is created.</p>
           <ol className="onboarding-step-list">
             <li>
               <strong>Create workspace</strong>
@@ -228,6 +237,7 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
           <div className="selected-mode-preview">
             <span>Selected mode</span>
             <strong>{selectedMode?.label ?? "DevOps mode"}</strong>
+            <small>{selectedMode?.description ?? "Infrastructure, CI/CD, Terraform, Kubernetes, and runtime setup."}</small>
           </div>
         </aside>
       </section>

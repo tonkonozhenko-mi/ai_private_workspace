@@ -453,3 +453,10 @@ GitHub CI was consolidated into `.github/workflows/ci.yml` with frontend typeche
 Workspace list management now includes a safe archive flow for old or broken workspaces. Each workspace card exposes a secondary `Archive` action with a two-step confirmation. Archiving calls the existing `POST /workspaces/{workspace_id}/archive` endpoint and refreshes the workspace overview afterward, so archived workspaces disappear from the active sidebar list.
 
 This is a reversible workspace metadata lifecycle operation. The frontend does not hard-delete local files, execute shell commands, scan/index/rebuild context, call models, or change runtime settings.
+
+
+## Task 136 - Archived workspace restore and create onboarding polish
+
+Workspace management now includes a safe archived workspace view in the sidebar. Users can show archived projects, restore an archived workspace with one explicit click, and return it to the active workspace list without deleting local files or running any commands. The create workspace screen was also polished with a clearer Apple-style onboarding hero, lighter guidance, clearer field help, and selected-mode preview copy.
+
+Safety remains unchanged: restore only calls the workspace lifecycle endpoint, and create still does not scan, index, rebuild context, execute shell commands, or call models automatically.

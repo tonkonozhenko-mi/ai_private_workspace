@@ -7197,3 +7197,199 @@ button:focus-visible {
   font-weight: 750;
   line-height: 1.45;
 }
+
+/* Task 136: archived workspace management and onboarding polish */
+.archived-workspaces-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 8px 4px 4px;
+  border-top: 1px solid rgb(255 255 255 / 8%);
+}
+
+.archived-workspaces-toggle span {
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  place-items: center;
+  color: #bed0d8;
+  background: rgb(255 255 255 / 5%);
+  border: 1px solid #40535d;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.archived-workspaces-section {
+  display: grid;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.archived-workspaces-heading {
+  display: grid;
+  gap: 4px;
+  padding: 6px 4px 2px;
+}
+
+.archived-workspaces-heading p {
+  margin: 0;
+  color: #9fb3bd;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.workspace-list-card.is-archived {
+  opacity: 0.82;
+}
+
+.workspace-list-card.is-archived .workspace-list-item {
+  cursor: default;
+}
+
+.workspace-card-action.is-restore {
+  color: #b9efd2;
+  background: rgb(34 197 94 / 10%);
+  border-color: rgb(34 197 94 / 28%);
+}
+
+.workspace-card-action.is-restore:hover:not(:disabled) {
+  color: #eafff2;
+  background: rgb(34 197 94 / 18%);
+  border-color: rgb(34 197 94 / 42%);
+}
+
+.create-workspace-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 24px;
+}
+
+.create-workspace-hero::after {
+  position: absolute;
+  inset: auto -90px -110px auto;
+  width: 260px;
+  height: 260px;
+  pointer-events: none;
+  background: radial-gradient(circle, var(--color-accent-soft), transparent 68%);
+  opacity: 0.72;
+  content: "";
+}
+
+.create-hero-card {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(72px, 1fr));
+  gap: 8px;
+  min-width: 210px;
+  padding: 12px;
+  background: rgb(255 255 255 / 72%);
+  border: 1px solid var(--color-border);
+  border-radius: 22px;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(18px);
+}
+
+.create-hero-card span,
+.create-hero-card strong {
+  display: grid;
+  min-height: 34px;
+  place-items: center;
+  padding: 6px 10px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.create-hero-card strong {
+  color: var(--color-accent-strong);
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-border);
+}
+
+.panel-helper {
+  margin: 5px 0 0;
+  max-width: 480px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.create-field-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.32fr) minmax(0, 1fr);
+  gap: 6px 14px;
+}
+
+.create-field-row small {
+  grid-column: 1;
+  color: var(--color-text-subtle);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.create-field-row input {
+  grid-row: span 2;
+  grid-column: 2;
+}
+
+.choice-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.choice-card.is-selected::after {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  color: #fff;
+  background: var(--color-accent);
+  border-radius: var(--radius-pill);
+  content: "✓";
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.selected-mode-preview small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+:root[data-theme="dark"] .create-hero-card {
+  background: rgb(10 20 27 / 72%);
+  border-color: var(--color-border);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .create-hero-card {
+    background: rgb(10 20 27 / 72%);
+    border-color: var(--color-border);
+  }
+}
+
+@media (max-width: 720px) {
+  .create-field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .create-field-row small,
+  .create-field-row input {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .create-hero-card {
+    width: 100%;
+  }
+}
