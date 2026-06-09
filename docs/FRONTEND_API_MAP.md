@@ -450,3 +450,24 @@ The request uses the backend payload shape:
 The planner is read/advisory. It does not call candidate models, run experiments,
 change selected models, restart runtime, download Ollama models, scan, index, or
 mutate workspace data. Experiment execution remains a separate explicit flow.
+
+## Task 101: Model Experiment Run UI
+
+The Models tab includes an explicit local comparison run after a plan is generated. It calls only:
+
+- `POST /models/experiments/run`
+
+The run uses the same payload shape as the plan request:
+
+```json
+{
+  "workspace_id": "<workspace_id>",
+  "question": "How is Terraform backend configured?",
+  "candidates": [
+    { "provider": "ollama", "model": "llama3.2", "model_type": "llm" },
+    { "provider": "ollama", "model": "qwen2.5-coder", "model_type": "llm" }
+  ]
+}
+```
+
+This flow calls local LLM candidates through the backend and may take time or use CPU/RAM. It still does not execute shell commands, change selected models, restart runtime, download models, scan, index, or rebuild workspace context. The UI displays experiment status, candidate answer previews, latency, source counts, warning counts, notes, and simple comparison hints. The hints are not an automatic winner; users should review answer quality and source grounding manually.

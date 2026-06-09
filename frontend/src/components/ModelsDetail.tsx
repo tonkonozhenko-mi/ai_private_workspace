@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { planModelExperiment, updateWorkspaceModelSelection } from "../api/client";
+import {
+  planModelExperiment,
+  runModelExperiment,
+  updateWorkspaceModelSelection,
+} from "../api/client";
 import type {
   LocalAIActivationGuide,
   ModelExperimentPlan,
+  ModelExperimentRun,
   ModelPerformanceItem,
   UpdateWorkspaceModelSelectionRequest,
   WorkspaceModelRecommendation,
@@ -306,8 +311,11 @@ function ModelExperimentPlanner({
   const [candidateA, setCandidateA] = useState(defaultCandidateA);
   const [candidateB, setCandidateB] = useState(defaultCandidateB);
   const [isPlanning, setIsPlanning] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
   const [plan, setPlan] = useState<ModelExperimentPlan | null>(null);
+  const [runResult, setRunResult] = useState<ModelExperimentRun | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
 
   useEffect(() => {
     setCandidateA(defaultCandidateA);
@@ -347,11 +355,54 @@ function ModelExperimentPlanner({
         })),
       });
       setPlan(result);
+      setRunResult(null);
+      setRunError(null);
     } catch (planError) {
       setError(errorMessage(planError));
       setPlan(null);
     } finally {
       setIsPlanning(false);
+    }
+  }
+
+  async function runComparisonExperiment() {
+    const parsedCandidates = [candidateA, candidateB]
+      .map(parseOptionValue)
+      .filter((candidate): candidate is { provider: string; model: string } =>
+        Boolean(candidate),
+      );
+    const uniqueCandidates = dedupeCandidates(parsedCandidates);
+
+    if (question.trim().length === 0) {
+      setRunError("Enter a comparison question before running an experiment.");
+      setRunResult(null);
+      return;
+    }
+
+    if (uniqueCandidates.length < 2) {
+      setRunError("Choose at least two different LLM candidates.");
+      setRunResult(null);
+      return;
+    }
+
+    setIsRunning(true);
+    setRunError(null);
+    try {
+      const result = await runModelExperiment({
+        workspace_id: workspaceId,
+        question: question.trim(),
+        candidates: uniqueCandidates.map((candidate) => ({
+          provider: candidate.provider,
+          model: candidate.model,
+          model_type: "llm",
+        })),
+      });
+      setRunResult(result);
+    } catch (experimentError) {
+      setRunError(errorMessage(experimentError));
+      setRunResult(null);
+    } finally {
+      setIsRunning(false);
     }
   }
 
@@ -408,6 +459,32 @@ function ModelExperimentPlanner({
       </div>
       {error ? <p className="model-selection-error">{error}</p> : null}
       {plan ? <ModelExperimentPlanResult plan={plan} /> : null}
+      {plan ? (
+        <div className="model-experiment-run-panel">
+          <div className="model-experiment-run-heading">
+            <StatusBadge label="local llm calls" />
+            <div>
+              <strong>Run local comparison experiment</strong>
+              <p>
+                This calls the selected local LLM candidates through the backend.
+                It may take time and can use CPU/RAM, but it does not execute
+                shell commands, change selected models, restart the backend, or
+                rebuild the index.
+              </p>
+            </div>
+          </div>
+          <button
+            className="model-selection-save-button"
+            type="button"
+            disabled={isRunning}
+            onClick={() => void runComparisonExperiment()}
+          >
+            {isRunning ? "Running experiment…" : "Run comparison experiment"}
+          </button>
+        </div>
+      ) : null}
+      {runError ? <p className="model-selection-error">{runError}</p> : null}
+      {runResult ? <ModelExperimentRunResult result={runResult} /> : null}
     </section>
   );
 }
@@ -501,6 +578,95 @@ function ModelExperimentPlanResult({ plan }: { plan: ModelExperimentPlan }) {
       <PlanList title="Recommended actions" items={plan.recommended_actions} />
       <PlanList title="Notes" items={plan.notes} />
     </article>
+  );
+}
+
+
+function ModelExperimentRunResult({ result }: { result: ModelExperimentRun }) {
+  return (
+    <article className="model-experiment-run-result">
+      <div className="model-experiment-plan-summary">
+        <StatusBadge label={result.status} />
+        <StatusBadge label={`${result.shared_context_sources_count} shared sources`} />
+        <strong>Experiment run</strong>
+      </div>
+      <div className="model-experiment-run-meta">
+        <span>
+          Experiment ID <code>{result.id}</code>
+        </span>
+        <span>Created {formatDateTime(result.created_at)}</span>
+        {result.completed_at ? <span>Completed {formatDateTime(result.completed_at)}</span> : null}
+      </div>
+      <div className="model-experiment-candidate-list">
+        {result.candidates.map((candidate) => (
+          <article
+            className="model-experiment-candidate-card model-experiment-run-card"
+            key={`${candidate.provider}/${candidate.model}`}
+          >
+            <div>
+              <strong>
+                {candidate.provider}/{candidate.model}
+              </strong>
+              <code>{candidate.status}</code>
+            </div>
+            <div className="model-experiment-candidate-badges">
+              <StatusBadge label={candidate.status} />
+              <StatusBadge label={`${candidate.latency_ms ?? 0} ms`} />
+              <StatusBadge label={`${candidate.sources_count} sources`} />
+              <StatusBadge label={`${candidate.quality_warnings_count} warnings`} />
+            </div>
+            {candidate.error ? (
+              <p className="model-selection-error">{candidate.error}</p>
+            ) : (
+              <p className="model-experiment-answer-preview">
+                {candidate.answer ? truncateText(candidate.answer, 560) : "No answer returned."}
+              </p>
+            )}
+          </article>
+        ))}
+      </div>
+      <ExperimentRunHeuristics result={result} />
+      <PlanList title="Run notes" items={result.notes} />
+    </article>
+  );
+}
+
+function ExperimentRunHeuristics({ result }: { result: ModelExperimentRun }) {
+  const completed = result.candidates.filter(
+    (candidate) => candidate.status === "completed" && !candidate.error,
+  );
+  if (completed.length === 0) {
+    return null;
+  }
+
+  const fastest = [...completed].sort(
+    (left, right) => (left.latency_ms ?? Number.MAX_SAFE_INTEGER) - (right.latency_ms ?? Number.MAX_SAFE_INTEGER),
+  )[0];
+  const fewestWarnings = [...completed].sort(
+    (left, right) => left.quality_warnings_count - right.quality_warnings_count,
+  )[0];
+  const mostSources = [...completed].sort(
+    (left, right) => right.sources_count - left.sources_count,
+  )[0];
+
+  return (
+    <div className="model-experiment-heuristics">
+      <strong>Quick comparison hints</strong>
+      <ul>
+        <li>
+          Fastest: {fastest.provider}/{fastest.model} ({fastest.latency_ms ?? "unknown"} ms)
+        </li>
+        <li>
+          Fewest warnings: {fewestWarnings.provider}/{fewestWarnings.model} ({fewestWarnings.quality_warnings_count})
+        </li>
+        <li>
+          Most sources used: {mostSources.provider}/{mostSources.model} ({mostSources.sources_count})
+        </li>
+      </ul>
+      <small>
+        These are simple hints, not an automatic winner. Review answer quality and source grounding manually before changing the selected LLM.
+      </small>
+    </div>
   );
 }
 
@@ -1091,6 +1257,18 @@ function parseOptionValue(value: string) {
     return null;
   }
   return { provider, model };
+}
+
+function truncateText(value: string, maxLength: number): string {
+  return value.length > maxLength ? `${value.slice(0, maxLength).trimEnd()}…` : value;
+}
+
+function formatDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleString();
 }
 
 function errorMessage(error: unknown) {

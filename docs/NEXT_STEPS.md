@@ -277,3 +277,17 @@ Recommended next tasks:
 - Add an explicitly confirmed frontend experiment run flow using `POST /models/experiments/run`.
 - Add a comparison results screen for `GET /models/experiments/{id}/comparison`.
 - Add manual rating UI for model experiment candidates.
+
+## Completed: Frontend model experiment run UI
+
+The Models tab can now run an explicitly requested local LLM comparison with
+`POST /models/experiments/run` after the user generates a comparison plan. The
+UI shows the experiment id, status, candidate answer previews, latency, source
+counts, warning counts, notes, and simple manual-review hints. The flow calls
+local LLMs but does not execute shell commands, change selected models, restart
+runtime, download models, scan, index, or rebuild workspace context.
+
+Recommended next tasks:
+- Add a saved experiment details view using `GET /models/experiments/{experiment_id}`.
+- Add deterministic comparison scoring view using `GET /models/experiments/{experiment_id}/comparison`.
+- Add manual rating UI for model experiment candidates.

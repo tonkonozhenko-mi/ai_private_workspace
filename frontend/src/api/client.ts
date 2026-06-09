@@ -2,6 +2,7 @@ import type {
   LocalAIActivationGuide,
   ModelExperimentPlan,
   ModelExperimentPlanRequest,
+  ModelExperimentRun,
   WorkspaceDashboard,
   WorkspaceModelsDashboard,
   UpdateWorkspaceModelSelectionRequest,
@@ -123,6 +124,19 @@ export function planModelExperiment(
   request: ModelExperimentPlanRequest,
 ): Promise<ModelExperimentPlan> {
   return requestJson<ModelExperimentPlan>("/models/experiments/plan", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+export function runModelExperiment(
+  request: ModelExperimentPlanRequest,
+): Promise<ModelExperimentRun> {
+  return requestJson<ModelExperimentRun>("/models/experiments/run", {
     method: "POST",
     headers: {
       Accept: "application/json",
