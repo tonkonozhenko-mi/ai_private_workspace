@@ -4913,3 +4913,100 @@ button:focus-visible {
     display: grid;
   }
 }
+
+/* Task 118 — Models simple / advanced split */
+.models-simple-panel {
+  grid-column: 1 / -1;
+}
+
+.models-simple-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.simple-model-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 252, 0.92));
+  border: 1px solid rgba(200, 213, 219, 0.86);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.simple-model-card > div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.simple-model-card span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.simple-model-card strong {
+  overflow-wrap: anywhere;
+  color: var(--color-text-strong);
+  font-size: 17px;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+}
+
+.simple-model-card p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.simple-model-card .status-badge {
+  justify-self: start;
+}
+
+.models-simple-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  color: var(--color-text-muted);
+  background: rgba(246, 249, 250, 0.84);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.models-state-panel.models-disclosure-panel {
+  grid-column: 1 / -1;
+  padding: 0;
+}
+
+.models-state-panel.models-disclosure-panel .model-runtime-grid,
+.models-state-panel.models-disclosure-panel .llm-override-note {
+  margin-right: 20px;
+  margin-left: 20px;
+}
+
+.models-state-panel.models-disclosure-panel .llm-override-note {
+  margin-bottom: 20px;
+}
+
+@media (max-width: 900px) {
+  .models-simple-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .models-simple-status {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

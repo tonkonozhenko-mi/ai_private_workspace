@@ -658,3 +658,14 @@ but common labels are displayed in more user-friendly language, for example:
 - `quality_warnings_count` -> `Verification notes`
 - experiment rating events -> `Model feedback saved`
 - index events -> `Search context rebuilt`
+
+## Task 118 Models Simple / Advanced UX Notes
+
+The frontend now presents model status in two layers:
+
+- Simple view: AI answer model and search context model.
+- Advanced details: chosen models, backend defaults, runtime mismatch details,
+  and rebuild context guidance.
+
+This is a presentation-only change. The Models tab still uses the existing model
+selection, dashboard, recommendation, experiment, rating, and history APIs.
