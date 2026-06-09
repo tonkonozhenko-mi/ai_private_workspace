@@ -9,6 +9,7 @@ import type {
 } from "../api/types";
 import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
+import { getEnabledSkillPresets, getSkillPresetByAssistantMode, type SkillPreferences } from "./skillLibrary";
 
 type SourceSnippetLimit = 3 | 5 | 8 | 10;
 
@@ -16,6 +17,7 @@ interface AskWorkspaceProps {
   workspaceId: string;
   assistantMode: string;
   defaultSourceSnippets: SourceSnippetLimit;
+  skillPreferences: SkillPreferences;
   onAsked?: () => void | Promise<void>;
 }
 
@@ -79,6 +81,7 @@ export function AskWorkspace({
   workspaceId,
   assistantMode,
   defaultSourceSnippets,
+  skillPreferences,
   onAsked,
 }: AskWorkspaceProps) {
   const [question, setQuestion] = useState("");
@@ -136,7 +139,7 @@ export function AskWorkspace({
   return (
     <div className="ask-workspace">
       <div className="ask-sidebar">
-        <AssistantFocusHint assistantMode={assistantMode} />
+        <AssistantFocusHint assistantMode={assistantMode} skillPreferences={skillPreferences} />
 
         <section className="panel ask-composer ask-composer-native">
           <div className="panel-heading ask-composer-heading">
@@ -777,8 +780,20 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
 }
 
 
-function AssistantFocusHint({ assistantMode }: { assistantMode: string }) {
+function AssistantFocusHint({
+  assistantMode,
+  skillPreferences,
+}: {
+  assistantMode: string;
+  skillPreferences: SkillPreferences;
+}) {
   const focus = getAskFocus(assistantMode);
+  const assistantPreset = getSkillPresetByAssistantMode(assistantMode);
+  const activePresets = getEnabledSkillPresets(skillPreferences);
+  const activeSkillLabel = activePresets.length > 0
+    ? activePresets.map((preset) => preset.shortName).join(" + ")
+    : "No custom skills";
+  const customInstructionReady = skillPreferences[assistantPreset.id]?.customInstructions.trim().length > 0;
 
   return (
     <section className="panel ask-focus-hint">
@@ -786,6 +801,10 @@ function AssistantFocusHint({ assistantMode }: { assistantMode: string }) {
         <p className="eyebrow">Assistant focus</p>
         <h2>{focus.title}</h2>
         <p>{focus.description}</p>
+        <div className="ask-focus-skills">
+          <strong>{activeSkillLabel}</strong>
+          <span>{customInstructionReady ? "Custom instructions saved for this focus" : "Use Settings to customize skill instructions"}</span>
+        </div>
       </div>
       <span>{focus.badge}</span>
     </section>

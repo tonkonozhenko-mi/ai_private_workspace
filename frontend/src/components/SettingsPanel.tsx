@@ -7,6 +7,7 @@ import type {
   WorkspaceModelsDashboardSummary,
 } from "../api/types";
 import { StatusBadge } from "./StatusBadge";
+import { DEFAULT_SKILL_PREFERENCES, SKILL_PRESETS, normalizeSkillPreferences } from "./skillLibrary";
 
 interface SettingsPanelProps {
   dashboard: WorkspaceDashboardData;
@@ -59,6 +60,29 @@ export function SettingsPanel({
   ) {
     setResetRequested(false);
     onPreferencesChange({ ...preferences, [key]: value });
+  }
+
+  function updateSkillPreference(
+    skillId: keyof WorkbenchPreferences["skillPreferences"],
+    patch: Partial<WorkbenchPreferences["skillPreferences"][keyof WorkbenchPreferences["skillPreferences"]]>,
+  ) {
+    setResetRequested(false);
+    onPreferencesChange({
+      ...preferences,
+      skillPreferences: {
+        ...preferences.skillPreferences,
+        [skillId]: {
+          ...preferences.skillPreferences[skillId],
+          ...patch,
+        },
+      },
+    });
+  }
+
+  function resetSkillInstruction(skillId: keyof WorkbenchPreferences["skillPreferences"]) {
+    updateSkillPreference(skillId, {
+      customInstructions: DEFAULT_SKILL_PREFERENCES[skillId].customInstructions,
+    });
   }
 
   async function handleCopyPreferences() {
@@ -339,6 +363,87 @@ export function SettingsPanel({
         </SettingsSection>
       </div>
 
+      <section className="panel skill-library-settings-panel">
+        <div className="settings-transfer-heading">
+          <div>
+            <p className="eyebrow">Skill library</p>
+            <h2>Assistant skills</h2>
+            <p>
+              Start from safe presets, then tune instructions for this browser.
+              These preferences do not change backend runtime or rebuild context.
+            </p>
+          </div>
+          <StatusBadge
+            label={`${SKILL_PRESETS.filter((preset) => preferences.skillPreferences[preset.id]?.enabled).length} active`}
+            tone="info"
+          />
+        </div>
+
+        <div className="skill-library-settings-grid">
+          {SKILL_PRESETS.map((preset) => {
+            const preference = preferences.skillPreferences[preset.id];
+            return (
+              <article
+                className={`skill-settings-card ${preference.enabled ? "is-enabled" : ""}`}
+                key={preset.id}
+              >
+                <div className="skill-settings-card-heading">
+                  <div>
+                    <p className="eyebrow">{preset.shortName} skill</p>
+                    <h3>{preset.name}</h3>
+                  </div>
+                  <button
+                    type="button"
+                    className={preference.enabled ? "primary-button" : "ghost-button"}
+                    onClick={() =>
+                      updateSkillPreference(preset.id, { enabled: !preference.enabled })
+                    }
+                  >
+                    {preference.enabled ? "Enabled" : "Enable"}
+                  </button>
+                </div>
+
+                <p>{preset.purpose}</p>
+                <div className="skill-settings-meta">
+                  <strong>Best for</strong>
+                  <span>{preset.bestFor}</span>
+                </div>
+                <div className="skill-settings-meta">
+                  <strong>Example questions</strong>
+                  <span>{preset.exampleQuestions.join(" • ")}</span>
+                </div>
+                <div className="skill-settings-meta">
+                  <strong>Recommended files</strong>
+                  <span>{preset.recommendedFiles.join(", ")}</span>
+                </div>
+
+                <label className="skill-instruction-editor">
+                  <span>Custom instruction</span>
+                  <textarea
+                    value={preference.customInstructions}
+                    onChange={(event) =>
+                      updateSkillPreference(preset.id, {
+                        customInstructions: event.target.value.slice(0, 1200),
+                      })
+                    }
+                    rows={4}
+                  />
+                </label>
+                <div className="skill-settings-actions">
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={() => resetSkillInstruction(preset.id)}
+                  >
+                    Reset instruction
+                  </button>
+                  <span>{preference.customInstructions.length}/1200</span>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="panel settings-transfer-panel is-compact">
         <div className="settings-transfer-heading">
@@ -417,7 +522,13 @@ export function SettingsPanel({
   "landingTab": "overview",
   "apiBaseUrl": "http://127.0.0.1:8000",
   "brandInitials": "AI",
-  "accentColor": "green"
+  "accentColor": "green",
+  "skillPreferences": {
+    "devops": {
+      "enabled": true,
+      "customInstructions": "Pay attention to Jenkins pipelines and deployment rules."
+    }
+  }
 }`}
                   aria-label="Import local preferences JSON"
                 />
@@ -654,6 +765,11 @@ function parseImportedPreferences(
         return null;
       }
       nextPreferences.accentColor = parsed.accentColor;
+      recognizedValueCount += 1;
+    }
+
+    if (parsed.skillPreferences !== undefined) {
+      nextPreferences.skillPreferences = normalizeSkillPreferences(parsed.skillPreferences);
       recognizedValueCount += 1;
     }
 

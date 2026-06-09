@@ -807,3 +807,7 @@ The sidebar also separates active and archived workspace sections more clearly. 
 - Ask now shows the current assistant focus using the workspace assistant mode.
 - No new backend endpoints were added.
 - Future skill customization should be implemented as an explicit settings/workspace flow, not as automatic prompt changes hidden from the user.
+
+## Task 139 frontend-only Skill Library
+
+The Skill Library is currently browser-local and uses no new backend endpoints. Presets and custom instructions are stored in the existing local preferences object. Future backend integration should expose an explicit workspace skill/profile API before these instructions affect model prompts.

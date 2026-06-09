@@ -481,3 +481,9 @@ Safety remains unchanged: the frontend does not execute shell commands, does not
 - Added an Ask assistant-focus hint so users understand how the selected mode shapes answers.
 - Documented the next direction for a customizable skill library with presets such as DevOps, Developer, Documentation, Incident Support, and Manager Summary.
 - No backend behavior, shell execution, automatic scan/index, or model/runtime changes were added.
+
+## Task 139 — Skill library presets and custom instructions
+
+Added a browser-local Skill Library layer for AI Private Workspace. The UI now includes safe skill presets for DevOps, Developer, Documentation, Incident Support, and Manager Summary. Each preset has a purpose, best-for guidance, example questions, recommended file patterns, enable/disable state, and editable custom instructions stored in localStorage.
+
+This task does not change backend runtime, prompt execution, scan, index, or model behavior yet. It prepares the UX and preference model for a later backend integration where selected skills can be included in Ask prompts.

@@ -796,3 +796,12 @@ Next recommended product tasks:
 2. Let users start from common presets and extend them with project-specific guidance, for example adding Jenkins pipeline expertise to DevOps focus.
 3. Add file include/exclude preferences before indexing so users can control what becomes search context.
 4. Keep skill changes explicit and local; do not execute commands or rebuild context automatically.
+
+## After Task 139
+
+Next recommended product tasks:
+
+1. Connect browser-local skill instructions to the Ask prompt flow through an explicit backend contract.
+2. Add file include/exclude preferences before building search context.
+3. Add a first-successful-Ask onboarding state that explains sources, confidence, and next actions.
+4. Consider backend persistence for workspace-level skill profiles after the local UI proves useful.
