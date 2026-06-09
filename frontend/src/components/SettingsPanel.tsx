@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { API_BASE_URL } from "../api/client";
@@ -13,6 +13,7 @@ interface SettingsPanelProps {
   modelsSummary: WorkspaceModelsDashboardSummary;
   preferences: WorkbenchPreferences;
   onPreferencesChange: (preferences: WorkbenchPreferences) => void;
+  onResetPreferences: () => void;
 }
 
 export function SettingsPanel({
@@ -20,16 +21,37 @@ export function SettingsPanel({
   modelsSummary,
   preferences,
   onPreferencesChange,
+  onResetPreferences,
 }: SettingsPanelProps) {
   const summary = dashboard.summary;
   const contextReady = summary.index_status.status === "indexed";
   const localAIReady = modelsSummary.overall_status === "ready";
+  const [resetRequested, setResetRequested] = useState(false);
+  const [savedMessage, setSavedMessage] = useState("Saved in this browser");
+
+  useEffect(() => {
+    setSavedMessage("Saved just now");
+    const timeoutId = window.setTimeout(() => {
+      setSavedMessage("Saved in this browser");
+    }, 1800);
+    return () => window.clearTimeout(timeoutId);
+  }, [preferences]);
 
   function updatePreference<K extends keyof WorkbenchPreferences>(
     key: K,
     value: WorkbenchPreferences[K],
   ) {
+    setResetRequested(false);
     onPreferencesChange({ ...preferences, [key]: value });
+  }
+
+  function handleResetClick() {
+    if (!resetRequested) {
+      setResetRequested(true);
+      return;
+    }
+    onResetPreferences();
+    setResetRequested(false);
   }
 
   return (
@@ -43,7 +65,10 @@ export function SettingsPanel({
             startup behavior. Project setup and model runtime stay manual.
           </p>
         </div>
-        <StatusBadge label="Saved locally" tone="info" size="md" />
+        <div className="settings-save-status">
+          <StatusBadge label={savedMessage} tone="info" size="md" />
+          <span>Browser-local only</span>
+        </div>
       </section>
 
       <section className="panel settings-focus-panel">
@@ -72,7 +97,7 @@ export function SettingsPanel({
         <SettingsSection
           eyebrow="Appearance"
           title="Display"
-          description="These preferences are stored only in this browser and can be changed safely."
+          description="Choose how the workbench looks on this computer. These choices are stored only in this browser."
           badge="Local"
           tone="info"
         >
@@ -102,7 +127,7 @@ export function SettingsPanel({
         <SettingsSection
           eyebrow="Ask defaults"
           title="Workspace questions"
-          description="Ask remains manual. This only chooses the default number of source snippets for new questions."
+          description="Choose safe defaults for new questions. Asking still only happens when you press Ask."
           badge={contextReady ? "Ready" : "Needs context"}
           tone={contextReady ? "success" : "warning"}
         >
@@ -141,6 +166,7 @@ export function SettingsPanel({
             />
           </PreferenceGroup>
           <SettingsRow label="Answer mode" value="Source-backed local answer" />
+          <SettingsRow label="Storage" value="Saved locally in this browser" />
         </SettingsSection>
 
         <SettingsSection
@@ -162,6 +188,38 @@ export function SettingsPanel({
           />
         </SettingsSection>
       </div>
+
+
+      <section className="panel settings-reset-panel">
+        <div>
+          <p className="eyebrow">Local preferences</p>
+          <h2>Reset browser settings</h2>
+          <p>
+            Reset theme, density, startup tab, and source snippet defaults for
+            this browser only. Workspace data, models, and backend settings are
+            not changed.
+          </p>
+        </div>
+        <div className="settings-reset-actions">
+          <StatusBadge label="No backend changes" tone="neutral" />
+          <button
+            type="button"
+            className={resetRequested ? "danger-button is-confirming" : "danger-button"}
+            onClick={handleResetClick}
+          >
+            {resetRequested ? "Confirm reset" : "Reset local preferences"}
+          </button>
+          {resetRequested ? (
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={() => setResetRequested(false)}
+            >
+              Cancel
+            </button>
+          ) : null}
+        </div>
+      </section>
 
       <section className="panel settings-safety-panel">
         <div>

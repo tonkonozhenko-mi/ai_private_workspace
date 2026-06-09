@@ -392,6 +392,7 @@ function App() {
                   modelsSummary={detail.modelsSummary}
                   preferences={preferences}
                   onPreferencesChange={setPreferences}
+                  onResetPreferences={() => setPreferences(DEFAULT_PREFERENCES)}
                 />
               ) : null}
             </section>

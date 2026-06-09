@@ -732,3 +732,11 @@ No API contract changes. The frontend now applies additional dark-mode surface
 overrides for Ask, Capabilities, and Activity. The Capabilities UI also formats
 backend-provided labels/descriptions so older `LLM` wording is shown with
 beginner-friendly AI model wording.
+
+
+## Task 128 — Settings reset and preference clarity
+
+- Added browser-local save feedback for Settings preferences.
+- Added a two-step reset flow for local UI preferences only.
+- Reset affects theme, density, landing tab, and default source snippets in localStorage.
+- No backend API, command execution, scan, index, rebuild, or model/runtime change is introduced.

@@ -6250,3 +6250,154 @@ button:focus-visible {
     box-shadow: var(--shadow-card-hover);
   }
 }
+
+/* Task 128 — Settings reset and local preference clarity */
+.settings-save-status {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.settings-reset-panel {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 24px;
+}
+
+.settings-reset-panel h2 {
+  margin: 4px 0 6px;
+  color: var(--color-text-strong);
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.settings-reset-panel p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.settings-reset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 280px;
+}
+
+.danger-button,
+.ghost-button {
+  min-height: 34px;
+  padding: 8px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.danger-button {
+  color: #7a3d19;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+.danger-button:hover {
+  background: #ffedd5;
+  border-color: #fdba74;
+  transform: translateY(-1px);
+}
+
+.danger-button.is-confirming {
+  color: #7f1d1d;
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
+.ghost-button {
+  color: var(--color-text-muted);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border-soft);
+}
+
+.ghost-button:hover {
+  color: var(--color-text-strong);
+  background: var(--color-surface-raised);
+  border-color: var(--color-border);
+  transform: translateY(-1px);
+}
+
+.danger-button:focus-visible,
+.ghost-button:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: 2px;
+}
+
+:root[data-theme="dark"] .settings-save-status,
+:root[data-theme="dark"] .settings-reset-panel p {
+  color: var(--color-text-muted);
+}
+
+:root[data-theme="dark"] .danger-button {
+  color: #fbbf24;
+  background: rgb(120 53 15 / 22%);
+  border-color: rgb(251 191 36 / 34%);
+}
+
+:root[data-theme="dark"] .danger-button:hover {
+  background: rgb(120 53 15 / 34%);
+  border-color: rgb(251 191 36 / 48%);
+}
+
+:root[data-theme="dark"] .danger-button.is-confirming {
+  color: #fecaca;
+  background: rgb(127 29 29 / 32%);
+  border-color: rgb(248 113 113 / 45%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .settings-save-status,
+  :root[data-theme="system"] .settings-reset-panel p {
+    color: var(--color-text-muted);
+  }
+
+  :root[data-theme="system"] .danger-button {
+    color: #fbbf24;
+    background: rgb(120 53 15 / 22%);
+    border-color: rgb(251 191 36 / 34%);
+  }
+
+  :root[data-theme="system"] .danger-button:hover {
+    background: rgb(120 53 15 / 34%);
+    border-color: rgb(251 191 36 / 48%);
+  }
+
+  :root[data-theme="system"] .danger-button.is-confirming {
+    color: #fecaca;
+    background: rgb(127 29 29 / 32%);
+    border-color: rgb(248 113 113 / 45%);
+  }
+}
+
+@media (max-width: 900px) {
+  .settings-reset-panel {
+    display: grid;
+  }
+
+  .settings-save-status,
+  .settings-reset-actions {
+    justify-items: start;
+    justify-content: flex-start;
+  }
+}
