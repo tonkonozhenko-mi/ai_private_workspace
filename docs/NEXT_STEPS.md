@@ -475,3 +475,17 @@ unless a real API change is intended.
 ## Task 116 — Capabilities Tab Wording
 
 The frontend now labels the former Actions tab as Capabilities. The route/internal tab id remains `actions` and the backend endpoint remains `/ui-actions`; this is a user-facing wording change only. The screen remains inspection-only and does not execute capabilities from the catalog. Technical endpoint details are still available behind an explicit disclosure.
+
+## Task 117 — Activity Wording Simplification
+
+Status: completed.
+
+The Activity tab now uses more beginner-friendly labels for common model, question,
+context, and feedback events. The goal is to make the timeline understandable as a
+workspace history without exposing backend-oriented terms such as `LLM provider` or
+`quality_warnings_count` in the primary UI.
+
+Next recommended beginner-friendly UX tasks:
+- simplify the Models tab further with a simple/advanced split;
+- add a first-run guided onboarding panel for new users;
+- review remaining technical terms in empty states and helper text.

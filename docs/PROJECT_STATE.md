@@ -299,3 +299,14 @@ Overview now uses one clearer primary CTA for the first workspace question. This
 ## Task 116 — Capabilities Tab Wording
 
 The frontend now labels the former Actions tab as Capabilities. The route/internal tab id remains `actions` and the backend endpoint remains `/ui-actions`; this is a user-facing wording change only. The screen remains inspection-only and does not execute capabilities from the catalog. Technical endpoint details are still available behind an explicit disclosure.
+
+## Frontend Task 117 — Activity Wording Simplification
+
+Phase 9 beginner-friendly UX work continued with a wording pass for the Activity tab.
+Technical event labels were softened so the timeline reads like a user-facing activity
+history rather than a backend event log. Examples include `LLM provider` becoming
+`AI provider`, `LLM model` becoming `AI model`, and `quality_warnings_count`
+becoming `Verification notes`.
+
+No behavior changed: the Activity tab remains read-only and does not replay events,
+run commands, rebuild context, change runtime settings, or update model selection.
