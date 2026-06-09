@@ -3,16 +3,24 @@ from pydantic import BaseModel, Field
 from app.core.domain.rag import RagQualityWarning, RagSource, WorkspaceQuestionAnswer
 
 
+class SkillContextItemRequest(BaseModel):
+    id: str = Field(..., min_length=1, max_length=80)
+    name: str = Field(..., min_length=1, max_length=80)
+    custom_instructions: str = Field(..., min_length=1, max_length=1200)
+
+
 class AskWorkspaceQuestionRequest(BaseModel):
     question: str = Field(..., min_length=1)
     limit: int = Field(default=5, ge=1, le=50)
     llm_provider: str | None = None
     llm_model: str | None = None
+    skill_context: list[SkillContextItemRequest] = Field(default_factory=list, max_length=5)
 
 
 class AskWorkspaceQuestionWithSelectedLLMRequest(BaseModel):
     question: str = Field(..., min_length=1)
     limit: int = Field(default=5, ge=1, le=50)
+    skill_context: list[SkillContextItemRequest] = Field(default_factory=list, max_length=5)
 
 
 class RagSourceResponse(BaseModel):

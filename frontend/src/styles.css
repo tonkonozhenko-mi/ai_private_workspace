@@ -7816,3 +7816,60 @@ button:focus-visible {
     flex-direction: column;
   }
 }
+
+/* Task 140: applied skill context in Ask */
+.ask-focus-skills > div {
+  display: grid;
+  gap: 2px;
+  min-width: 120px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  background: rgb(var(--accent-rgb, 47 122 92) / 6%);
+}
+
+.ask-focus-skills > p {
+  flex-basis: 100%;
+  max-width: 300px;
+  margin-top: 2px;
+}
+
+:root[data-theme="dark"] .ask-focus-skills > div {
+  background: rgb(var(--accent-rgb, 77 166 126) / 9%);
+  border-color: rgb(136 160 170 / 16%);
+}
+
+:root[data-theme="dark"] .state-card--compact {
+  color: var(--color-text-secondary);
+  background: rgb(18 26 32 / 92%);
+  border-color: rgb(136 160 170 / 18%);
+}
+
+:root[data-theme="dark"] .state-card--compact .state-title {
+  color: var(--color-text-strong);
+}
+
+:root[data-theme="dark"] .state-card--compact .state-message {
+  color: var(--color-text-secondary);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .ask-focus-skills > div {
+    background: rgb(var(--accent-rgb, 77 166 126) / 9%);
+    border-color: rgb(136 160 170 / 16%);
+  }
+
+  :root[data-theme="system"] .state-card--compact {
+    color: var(--color-text-secondary);
+    background: rgb(18 26 32 / 92%);
+    border-color: rgb(136 160 170 / 18%);
+  }
+
+  :root[data-theme="system"] .state-card--compact .state-title {
+    color: var(--color-text-strong);
+  }
+
+  :root[data-theme="system"] .state-card--compact .state-message {
+    color: var(--color-text-secondary);
+  }
+}

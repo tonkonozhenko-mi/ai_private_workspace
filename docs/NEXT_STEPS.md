@@ -805,3 +805,12 @@ Next recommended product tasks:
 2. Add file include/exclude preferences before building search context.
 3. Add a first-successful-Ask onboarding state that explains sources, confidence, and next actions.
 4. Consider backend persistence for workspace-level skill profiles after the local UI proves useful.
+
+## After Task 140
+
+Next recommended product tasks:
+
+1. Add file include/exclude preferences before building search context so users control which folders and file types become searchable.
+2. Add a first-successful-Ask onboarding state that explains sources, applied skills, and verification notes.
+3. Add workspace-level backend persistence for skills after the browser-local flow is validated.
+4. Add tests for frontend skill-context payload handling in a future frontend test setup.

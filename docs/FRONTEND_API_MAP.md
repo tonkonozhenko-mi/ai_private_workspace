@@ -811,3 +811,25 @@ The sidebar also separates active and archived workspace sections more clearly. 
 ## Task 139 frontend-only Skill Library
 
 The Skill Library is currently browser-local and uses no new backend endpoints. Presets and custom instructions are stored in the existing local preferences object. Future backend integration should expose an explicit workspace skill/profile API before these instructions affect model prompts.
+
+## Task 140 — Skill context in Ask requests
+
+`POST /workspaces/{workspace_id}/ask-selected` now accepts an optional `skill_context` array from the frontend. The frontend builds it from enabled browser-local skill presets in Settings.
+
+Example payload:
+
+```json
+{
+  "question": "What should I review before deployment?",
+  "limit": 5,
+  "skill_context": [
+    {
+      "id": "devops",
+      "name": "DevOps",
+      "custom_instructions": "Answer as a DevOps/platform assistant..."
+    }
+  ]
+}
+```
+
+This is an explicit Ask-only payload. It does not save skills to the backend, execute commands, scan files, rebuild context, or change model/runtime settings.

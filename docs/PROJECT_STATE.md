@@ -487,3 +487,13 @@ Safety remains unchanged: the frontend does not execute shell commands, does not
 Added a browser-local Skill Library layer for AI Private Workspace. The UI now includes safe skill presets for DevOps, Developer, Documentation, Incident Support, and Manager Summary. Each preset has a purpose, best-for guidance, example questions, recommended file patterns, enable/disable state, and editable custom instructions stored in localStorage.
 
 This task does not change backend runtime, prompt execution, scan, index, or model behavior yet. It prepares the UX and preference model for a later backend integration where selected skills can be included in Ask prompts.
+
+## Task 140 — Connect skill instructions to Ask prompt contract
+
+Browser-local skill presets now participate in explicit Ask requests. The frontend sends enabled skill names and custom instructions to `/workspaces/{workspace_id}/ask-selected` as `skill_context`. The backend accepts this optional field, converts it into bounded prompt guidance, and adds it to the RAG prompt as answer guidance only.
+
+Skill instructions are not treated as project evidence. The prompt explicitly keeps project claims grounded in retrieved context chunks and source paths. Skill context is limited to five enabled skills and sanitized/truncated before prompt construction.
+
+Timeline metadata now records how many skill instructions were applied and which skill names were included. No shell execution, scan/index/rebuild, model/runtime switching, or automatic action behavior was added.
+
+Backend validation: `pytest` passed with 372 tests and 3 skipped in the task workspace.
