@@ -6,6 +6,7 @@ import type {
   RagQualityWarning,
   RagSource,
   WorkspaceQuestionAnswer,
+  SkillContextRequest,
 } from "../api/types";
 import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
@@ -116,6 +117,7 @@ export function AskWorkspace({
         workspaceId,
         trimmedQuestion,
         limit,
+        buildSkillContext(skillPreferences),
       );
       const historyItem = createHistoryItem(result);
       setHistory((current) => [historyItem, ...current].slice(0, 10));
@@ -780,6 +782,22 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
 }
 
 
+
+function buildSkillContext(skillPreferences: SkillPreferences): SkillContextRequest[] {
+  return getEnabledSkillPresets(skillPreferences)
+    .map((preset) => {
+      const customInstructions =
+        skillPreferences[preset.id]?.customInstructions.trim() ?? "";
+      return {
+        id: preset.id,
+        name: preset.name,
+        custom_instructions: customInstructions.slice(0, 1200),
+      };
+    })
+    .filter((skill) => skill.custom_instructions.length > 0)
+    .slice(0, 5);
+}
+
 function AssistantFocusHint({
   assistantMode,
   skillPreferences,
@@ -788,12 +806,10 @@ function AssistantFocusHint({
   skillPreferences: SkillPreferences;
 }) {
   const focus = getAskFocus(assistantMode);
-  const assistantPreset = getSkillPresetByAssistantMode(assistantMode);
   const activePresets = getEnabledSkillPresets(skillPreferences);
   const activeSkillLabel = activePresets.length > 0
     ? activePresets.map((preset) => preset.shortName).join(" + ")
-    : "No custom skills";
-  const customInstructionReady = skillPreferences[assistantPreset.id]?.customInstructions.trim().length > 0;
+    : "No extra skills";
 
   return (
     <section className="panel ask-focus-hint">
@@ -802,8 +818,15 @@ function AssistantFocusHint({
         <h2>{focus.title}</h2>
         <p>{focus.description}</p>
         <div className="ask-focus-skills">
-          <strong>{activeSkillLabel}</strong>
-          <span>{customInstructionReady ? "Custom instructions saved for this focus" : "Use Settings to customize skill instructions"}</span>
+          <div>
+            <span>Answer style</span>
+            <strong>{focus.badge}</strong>
+          </div>
+          <div>
+            <span>Active skills</span>
+            <strong>{activeSkillLabel}</strong>
+          </div>
+          <p>Focus defines answer style. Skills add browser-local instructions to each Ask request.</p>
         </div>
       </div>
       <span>{focus.badge}</span>

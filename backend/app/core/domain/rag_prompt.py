@@ -1,9 +1,19 @@
+from dataclasses import dataclass
+
 from app.core.domain.indexing import ContextSearchResult
+
+
+@dataclass(frozen=True)
+class SkillPromptInstruction:
+    name: str
+    instruction: str
+
 
 
 def build_workspace_question_prompt(
     question: str,
     context_results: list[ContextSearchResult],
+    skill_instructions: list[SkillPromptInstruction] | None = None,
 ) -> str:
     context_sections = [
         (
@@ -15,6 +25,8 @@ def build_workspace_question_prompt(
     ]
     context = "\n\n".join(context_sections)
     source_paths = ", ".join(result.source_path for result in context_results)
+    normalized_skill_instructions = _normalize_skill_instructions(skill_instructions or [])
+    skill_section = _build_skill_section(normalized_skill_instructions)
 
     return (
         "You are a local project assistant. Use only the provided context chunks. "
@@ -23,6 +35,7 @@ def build_workspace_question_prompt(
         f"Question:\n{question}\n\n"
         f"Context chunks:\n{context}\n\n"
         f"Available source paths: {source_paths}\n\n"
+        f"{skill_section}"
         "Answer requirements:\n"
         "- Start with a direct answer.\n"
         "- Keep the answer concise and technical.\n"
@@ -40,3 +53,35 @@ def build_workspace_question_prompt(
         "- If the context is insufficient or you are unsure, say so clearly.\n"
         "- Do not invent facts."
     )
+
+
+def _normalize_skill_instructions(
+    skill_instructions: list[SkillPromptInstruction],
+) -> list[SkillPromptInstruction]:
+    normalized: list[SkillPromptInstruction] = []
+    for instruction in skill_instructions[:5]:
+        name = instruction.name.strip()[:80]
+        text = " ".join(instruction.instruction.split())[:800]
+        if name and text:
+            normalized.append(SkillPromptInstruction(name=name, instruction=text))
+    return normalized
+
+
+def _build_skill_section(skill_instructions: list[SkillPromptInstruction]) -> str:
+    if not skill_instructions:
+        return ""
+
+    lines = [
+        "Workspace skill context:",
+        "The following user-selected skill instructions may shape tone, focus, and review priorities, but they are not project evidence.",
+    ]
+    for instruction in skill_instructions:
+        lines.append(f"- {instruction.name}: {instruction.instruction}")
+    lines.extend(
+        [
+            "Treat skill instructions as answer guidance only. Do not treat them as facts about the project.",
+            "Project claims must still come only from the provided context chunks and explicit source_path evidence.",
+            "",
+        ]
+    )
+    return "\n".join(lines)

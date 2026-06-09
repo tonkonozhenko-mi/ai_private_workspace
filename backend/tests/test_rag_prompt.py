@@ -1,5 +1,5 @@
 from app.core.domain.indexing import ContextSearchResult
-from app.core.domain.rag_prompt import build_workspace_question_prompt
+from app.core.domain.rag_prompt import SkillPromptInstruction, build_workspace_question_prompt
 
 
 def test_rag_prompt_labels_multiple_context_chunks_with_source_paths() -> None:
@@ -66,3 +66,27 @@ def _context(
         score=1.0,
         metadata={},
     )
+
+
+def test_rag_prompt_includes_skill_context_as_guidance_not_evidence() -> None:
+    prompt = build_workspace_question_prompt(
+        question="What should I review before deployment?",
+        context_results=[
+            _context(
+                chunk_id="ci-1",
+                source_path=".gitlab-ci.yml",
+                content="deploy: script: ./deploy.sh",
+            )
+        ],
+        skill_instructions=[
+            SkillPromptInstruction(
+                name="DevOps",
+                instruction="Pay attention to Jenkins pipelines and deployment risks.",
+            )
+        ],
+    )
+
+    assert "Workspace skill context:" in prompt
+    assert "- DevOps: Pay attention to Jenkins pipelines and deployment risks." in prompt
+    assert "not project evidence" in prompt
+    assert "Project claims must still come only from the provided context chunks" in prompt

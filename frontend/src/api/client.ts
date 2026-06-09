@@ -15,6 +15,7 @@ import type {
   WorkspaceModelSelection,
   WorkspaceModelsDashboardSummary,
   WorkspaceQuestionAnswer,
+  SkillContextRequest,
   WorkspaceUIActionCatalog,
   WorkspacesOverview,
 } from "./types";
@@ -167,6 +168,7 @@ export function askSelectedWorkspace(
   workspaceId: string,
   question: string,
   limit: number,
+  skillContext: SkillContextRequest[] = [],
 ): Promise<WorkspaceQuestionAnswer> {
   return requestJson<WorkspaceQuestionAnswer>(
     `/workspaces/${workspaceId}/ask-selected`,
@@ -176,7 +178,7 @@ export function askSelectedWorkspace(
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ question, limit }),
+      body: JSON.stringify({ question, limit, skill_context: skillContext }),
     },
   );
 }

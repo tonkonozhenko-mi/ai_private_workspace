@@ -156,6 +156,7 @@ from app.core.use_cases.analyze_terragrunt import (
     TerragruntAnalysisScanRequiredError,
     TerragruntAnalysisWorkspaceNotFoundError,
 )
+from app.core.domain.rag_prompt import SkillPromptInstruction
 from app.core.use_cases.ask_workspace_question import (
     AskWorkspaceQuestionInput,
     AskWorkspaceQuestionNotFoundError,
@@ -593,6 +594,16 @@ def search_workspace_context(
     return [to_context_search_result_response(result) for result in results]
 
 
+def _to_skill_prompt_instructions(skill_context) -> list[SkillPromptInstruction]:
+    return [
+        SkillPromptInstruction(
+            name=item.name,
+            instruction=item.custom_instructions,
+        )
+        for item in skill_context[:5]
+    ]
+
+
 @router.post("/{workspace_id}/ask", response_model=WorkspaceQuestionAnswerResponse)
 def ask_workspace_question(
     workspace_id: str,
@@ -615,6 +626,7 @@ def ask_workspace_question(
                 limit=request.limit,
                 llm_provider_override=request.llm_provider,
                 llm_model_override=request.llm_model,
+                skill_instructions=_to_skill_prompt_instructions(request.skill_context),
             )
         )
     except AskWorkspaceQuestionNotFoundError as exc:
@@ -661,6 +673,7 @@ def ask_workspace_question_with_selected_llm(
                 workspace_id=workspace_id,
                 question=request.question,
                 limit=request.limit,
+                skill_instructions=_to_skill_prompt_instructions(request.skill_context),
             )
         )
     except AskWorkspaceQuestionWithSelectedLLMNotFoundError as exc:

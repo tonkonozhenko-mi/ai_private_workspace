@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from app.core.domain.rag import RagQualityWarning, WorkspaceQuestionAnswer
+from app.core.domain.rag_prompt import SkillPromptInstruction
 from app.core.domain.workspace_model_selection import WorkspaceSelectedModel
 from app.core.ports.llm_provider_factory import LLMProviderFactoryPort
 from app.core.ports.workspace_model_selection_repository import (
@@ -26,6 +27,7 @@ class AskWorkspaceQuestionWithSelectedLLMInput:
     workspace_id: str
     question: str
     limit: int = 5
+    skill_instructions: list[SkillPromptInstruction] | None = None
 
 
 class AskWorkspaceQuestionWithSelectedLLMNotFoundError(ValueError):
@@ -104,6 +106,7 @@ class AskWorkspaceQuestionWithSelectedLLMUseCase:
                     llm_model_override=selected_llm.model,
                     additional_quality_warnings=additional_warnings,
                     timeline_metadata={"asked_with_selected_llm": "true"},
+                    skill_instructions=request.skill_instructions or [],
                 )
             )
         except AskWorkspaceQuestionNotFoundError as exc:

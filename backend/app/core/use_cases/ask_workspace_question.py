@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.rag import RagQualityWarning, RagSource, WorkspaceQuestionAnswer
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
-from app.core.domain.rag_prompt import build_workspace_question_prompt
+from app.core.domain.rag_prompt import SkillPromptInstruction, build_workspace_question_prompt
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.llm_provider import LLMProviderPort
@@ -47,6 +47,7 @@ class AskWorkspaceQuestionInput:
     llm_model_override: str | None = None
     additional_quality_warnings: list[RagQualityWarning] = field(default_factory=list)
     timeline_metadata: dict[str, str] = field(default_factory=dict)
+    skill_instructions: list[SkillPromptInstruction] = field(default_factory=list)
 
 
 class AskWorkspaceQuestionNotFoundError(ValueError):
@@ -133,6 +134,7 @@ class AskWorkspaceQuestionUseCase:
         prompt = build_workspace_question_prompt(
             question=request.question,
             context_results=context_results,
+            skill_instructions=request.skill_instructions,
         )
         answer = llm_provider.generate(prompt)
         quality_warnings = [
@@ -228,6 +230,10 @@ class AskWorkspaceQuestionUseCase:
                         "llm_provider": answer.llm_provider,
                         "llm_model": answer.llm_model or "",
                         "quality_warnings_count": str(len(answer.quality_warnings)),
+                        "applied_skills_count": str(len(request.skill_instructions)),
+                        "applied_skills": ", ".join(
+                            instruction.name for instruction in request.skill_instructions
+                        ),
                         **request.timeline_metadata,
                     },
                 )

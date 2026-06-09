@@ -105,6 +105,12 @@ export interface RagQualityWarning {
   evidence: string[];
 }
 
+export interface SkillContextRequest {
+  id: string;
+  name: string;
+  custom_instructions: string;
+}
+
 export interface WorkspaceQuestionAnswer {
   workspace_id: string;
   question: string;
