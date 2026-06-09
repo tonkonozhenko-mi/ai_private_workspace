@@ -200,3 +200,17 @@ do not start runtimes, download models, reindex, or execute commands without a
 separate deliberate design.
 
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.
+
+## Native UX Design Direction
+
+A new Apple-style design-system foundation has been started for Phase 8. The
+frontend now has shared CSS tokens for typography, spacing, radius, color,
+shadows, focus rings, sidebar surfaces, and semantic states. This is intended
+to move the UI from a developer-dashboard feel toward a calmer native workbench
+experience while preserving the current safe behavior and local-first runtime
+model.
+
+The next UX work should avoid a full rewrite. Continue with small visual and
+interaction tasks: app shell refinement, Models tab simplification, Ask tab
+conversation layout, and progressive disclosure for advanced runtime and
+experiment details.

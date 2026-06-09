@@ -546,3 +546,10 @@ Safety behavior:
 - Applying a preferred model does not reindex or change embedding settings.
 - Applying a preferred model does not rerun the experiment or execute shell commands.
 - After applying, the Models dashboard is refreshed so selected/default runtime status is visible.
+
+## Design system note
+
+Task 105 introduced a frontend design-system foundation in `frontend/src/styles.css`.
+It is CSS-only and does not add API calls. Future frontend work should prefer
+shared tokens for color, spacing, radius, focus rings, and surface styling before
+adding new one-off CSS values.
