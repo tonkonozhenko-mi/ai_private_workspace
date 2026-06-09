@@ -303,7 +303,11 @@ function AnswerResult({ answer }: { answer: WorkspaceQuestionAnswer }) {
         </div>
         <p className="answer-question">{answer.question}</p>
         <div className="answer-content">
-          {answer.answer || "The selected LLM returned an empty answer."}
+          {answer.answer ? (
+            <MarkdownAnswer content={answer.answer} />
+          ) : (
+            "The selected LLM returned an empty answer."
+          )}
         </div>
         <div className="answer-stats">
           <span>
@@ -429,6 +433,155 @@ function Sources({ sources }: { sources: RagSource[] }) {
       )}
     </section>
   );
+}
+
+interface MarkdownBlock {
+  id: string;
+  type: "paragraph" | "bulletList" | "code";
+  lines: string[];
+  language?: string;
+}
+
+function MarkdownAnswer({ content }: { content: string }) {
+  const blocks = parseMarkdownBlocks(content);
+
+  return (
+    <div className="markdown-answer">
+      {blocks.map((block) => {
+        if (block.type === "code") {
+          return (
+            <div className="markdown-code-block" key={block.id}>
+              {block.language ? (
+                <span className="markdown-code-language">
+                  {block.language}
+                </span>
+              ) : null}
+              <pre>
+                <code>{block.lines.join("\n")}</code>
+              </pre>
+            </div>
+          );
+        }
+
+        if (block.type === "bulletList") {
+          return (
+            <ul key={block.id}>
+              {block.lines.map((line, index) => (
+                <li key={`${block.id}-${index}`}>
+                  <InlineMarkdown text={line} />
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        return (
+          <p key={block.id}>
+            <InlineMarkdown text={block.lines.join(" ")} />
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+function InlineMarkdown({ text }: { text: string }) {
+  const parts = text.split(/(`[^`]+`)/g);
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (part.startsWith("`") && part.endsWith("`") && part.length > 1) {
+          return <code key={index}>{part.slice(1, -1)}</code>;
+        }
+        return <span key={index}>{part}</span>;
+      })}
+    </>
+  );
+}
+
+export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
+  const lines = content.replace(/\r\n/g, "\n").split("\n");
+  const blocks: MarkdownBlock[] = [];
+  let paragraph: string[] = [];
+  let bullets: string[] = [];
+  let codeLines: string[] = [];
+  let codeLanguage: string | undefined;
+  let inCodeBlock = false;
+
+  function nextId(type: MarkdownBlock["type"]) {
+    return `${type}-${blocks.length}`;
+  }
+
+  function flushParagraph() {
+    if (paragraph.length === 0) return;
+    blocks.push({ id: nextId("paragraph"), type: "paragraph", lines: paragraph });
+    paragraph = [];
+  }
+
+  function flushBullets() {
+    if (bullets.length === 0) return;
+    blocks.push({ id: nextId("bulletList"), type: "bulletList", lines: bullets });
+    bullets = [];
+  }
+
+  function flushCode() {
+    blocks.push({
+      id: nextId("code"),
+      type: "code",
+      lines: codeLines,
+      language: codeLanguage,
+    });
+    codeLines = [];
+    codeLanguage = undefined;
+  }
+
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\s+$/g, "");
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith("```")) {
+      if (inCodeBlock) {
+        flushCode();
+        inCodeBlock = false;
+      } else {
+        flushParagraph();
+        flushBullets();
+        inCodeBlock = true;
+        codeLanguage = trimmed.slice(3).trim() || undefined;
+        codeLines = [];
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeLines.push(line);
+      continue;
+    }
+
+    if (trimmed.length === 0) {
+      flushParagraph();
+      flushBullets();
+      continue;
+    }
+
+    const bulletMatch = trimmed.match(/^[-*•]\s+(.*)$/);
+    if (bulletMatch) {
+      flushParagraph();
+      bullets.push(bulletMatch[1]);
+      continue;
+    }
+
+    flushBullets();
+    paragraph.push(trimmed);
+  }
+
+  if (inCodeBlock) {
+    flushCode();
+  }
+  flushParagraph();
+  flushBullets();
+
+  return blocks;
 }
 
 function AskEmptyState() {
