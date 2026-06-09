@@ -704,3 +704,20 @@ Task 123 is a UI-copy and style polish pass only. It keeps all existing frontend
 The Settings tab is read-only in its first version. It reuses already loaded workspace dashboard and model summary data plus the existing frontend `API_BASE_URL` constant. It does not introduce new API calls or persistence behavior.
 
 Future tasks may add localStorage-backed UI preferences or backend settings endpoints after the desired settings model is agreed.
+
+## 9. Settings Screen Local Preferences
+
+The Settings screen currently uses no backend write endpoints. It displays
+backend URL, workspace identity, current model selections, and safety posture
+from already-loaded frontend read models.
+
+Browser-local preferences are stored in `localStorage`:
+
+- Theme: system, light, or dark.
+- Density: comfortable or compact.
+- Default Ask source snippets: 3, 5, 8, or 10.
+- Workspace landing tab preference.
+
+These settings must remain UI-only unless a future task intentionally introduces
+a backend settings model. They must not execute commands, scan, index, rebuild
+search context, restart services, or change active runtime/model configuration.

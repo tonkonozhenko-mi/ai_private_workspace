@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+
+import type { WorkbenchPreferences } from "../App";
 import { API_BASE_URL } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
@@ -9,24 +11,39 @@ import { StatusBadge } from "./StatusBadge";
 interface SettingsPanelProps {
   dashboard: WorkspaceDashboardData;
   modelsSummary: WorkspaceModelsDashboardSummary;
+  preferences: WorkbenchPreferences;
+  onPreferencesChange: (preferences: WorkbenchPreferences) => void;
 }
 
-export function SettingsPanel({ dashboard, modelsSummary }: SettingsPanelProps) {
+export function SettingsPanel({
+  dashboard,
+  modelsSummary,
+  preferences,
+  onPreferencesChange,
+}: SettingsPanelProps) {
   const summary = dashboard.summary;
   const contextReady = summary.index_status.status === "indexed";
   const localAIReady = modelsSummary.overall_status === "ready";
+
+  function updatePreference<K extends keyof WorkbenchPreferences>(
+    key: K,
+    value: WorkbenchPreferences[K],
+  ) {
+    onPreferencesChange({ ...preferences, [key]: value });
+  }
 
   return (
     <div className="settings-page">
       <section className="panel settings-hero-panel">
         <div>
           <p className="eyebrow">Settings</p>
-          <h1>Keep local workbench preferences clear.</h1>
+          <h1>Local workbench settings</h1>
           <p>
-            Settings are introduced as a safe overview first. Saving preferences will be added only when the product flow is stable.
+            Tune browser-local preferences for display, workspace questions, and
+            startup behavior. Project setup and model runtime stay manual.
           </p>
         </div>
-        <StatusBadge label="Read only" tone="info" size="md" />
+        <StatusBadge label="Saved locally" tone="info" size="md" />
       </section>
 
       <section className="panel settings-focus-panel">
@@ -45,7 +62,7 @@ export function SettingsPanel({ dashboard, modelsSummary }: SettingsPanelProps) 
         <SettingsSection
           eyebrow="Connection"
           title="Local backend"
-          description="The frontend talks to your local backend. This value is shown for clarity and is not editable yet."
+          description="The frontend talks to your local backend. This value is shown for clarity and stays read-only."
           badge="Connected"
         >
           <SettingsRow label="Backend URL" value={API_BASE_URL} code />
@@ -55,34 +72,94 @@ export function SettingsPanel({ dashboard, modelsSummary }: SettingsPanelProps) 
         <SettingsSection
           eyebrow="Appearance"
           title="Display"
-          description="Theme controls will be added later. The current interface keeps the calm light workspace with dark sidebar."
-          badge="Planned"
-          tone="neutral"
+          description="These preferences are stored only in this browser and can be changed safely."
+          badge="Local"
+          tone="info"
         >
-          <SettingsRow label="Theme" value="System-style light workspace" />
-          <SettingsRow label="Density" value="Comfortable" />
+          <PreferenceGroup label="Theme">
+            <SegmentedChoice
+              value={preferences.theme}
+              options={[
+                { value: "system", label: "System" },
+                { value: "light", label: "Light" },
+                { value: "dark", label: "Dark" },
+              ]}
+              onChange={(value) => updatePreference("theme", value)}
+            />
+          </PreferenceGroup>
+          <PreferenceGroup label="Density">
+            <SegmentedChoice
+              value={preferences.density}
+              options={[
+                { value: "comfortable", label: "Comfortable" },
+                { value: "compact", label: "Compact" },
+              ]}
+              onChange={(value) => updatePreference("density", value)}
+            />
+          </PreferenceGroup>
         </SettingsSection>
 
         <SettingsSection
           eyebrow="Ask defaults"
           title="Workspace questions"
-          description="Ask stays manual. Default source snippet count can be made configurable in a future task."
+          description="Ask remains manual. This only chooses the default number of source snippets for new questions."
           badge={contextReady ? "Ready" : "Needs context"}
           tone={contextReady ? "success" : "warning"}
         >
-          <SettingsRow label="Default source snippets" value="5" />
+          <PreferenceGroup label="Default source snippets">
+            <SegmentedChoice
+              value={String(preferences.defaultSourceSnippets)}
+              options={[
+                { value: "3", label: "3" },
+                { value: "5", label: "5" },
+                { value: "8", label: "8" },
+                { value: "10", label: "10" },
+              ]}
+              onChange={(value) =>
+                updatePreference(
+                  "defaultSourceSnippets",
+                  Number(value) as WorkbenchPreferences["defaultSourceSnippets"],
+                )
+              }
+            />
+          </PreferenceGroup>
+          <PreferenceGroup label="Open workspace on">
+            <SegmentedChoice
+              value={preferences.landingTab}
+              options={[
+                { value: "overview", label: "Overview" },
+                { value: "ask", label: "Ask" },
+                { value: "models", label: "Models" },
+                { value: "settings", label: "Settings" },
+              ]}
+              onChange={(value) =>
+                updatePreference(
+                  "landingTab",
+                  value as WorkbenchPreferences["landingTab"],
+                )
+              }
+            />
+          </PreferenceGroup>
           <SettingsRow label="Answer mode" value="Source-backed local answer" />
         </SettingsSection>
 
         <SettingsSection
           eyebrow="AI defaults"
           title="Models"
-          description="Chosen models are managed from the Models tab. Settings will later provide global defaults."
+          description="Chosen models are still managed from the Models tab. Settings only shows the current workspace defaults."
           badge={localAIReady ? "Ready" : "Review"}
           tone={localAIReady ? "success" : "warning"}
         >
-          <SettingsRow label="AI answer model" value={modelsSummary.selected_llm ?? "Not selected"} code />
-          <SettingsRow label="Search context model" value={modelsSummary.selected_embedding ?? "Not selected"} code />
+          <SettingsRow
+            label="AI answer model"
+            value={modelsSummary.selected_llm ?? "Not selected"}
+            code
+          />
+          <SettingsRow
+            label="Search context model"
+            value={modelsSummary.selected_embedding ?? "Not selected"}
+            code
+          />
         </SettingsSection>
       </div>
 
@@ -91,7 +168,9 @@ export function SettingsPanel({ dashboard, modelsSummary }: SettingsPanelProps) 
           <p className="eyebrow">Safety</p>
           <h2>Local-only posture</h2>
           <p>
-            This screen is informational. The frontend does not execute shell commands, rebuild context, restart the backend, or change models automatically.
+            These preferences never execute shell commands, rebuild context,
+            restart the backend, or change model runtime. Safety-critical setup
+            remains explicit.
           </p>
         </div>
         <div className="settings-safety-list">
@@ -148,6 +227,46 @@ function SettingsRow({
     <div className="settings-row">
       <span>{label}</span>
       {code ? <code>{value}</code> : <strong>{value}</strong>}
+    </div>
+  );
+}
+
+function PreferenceGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="settings-preference-group">
+      <span>{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function SegmentedChoice<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: Array<{ value: T; label: string }>;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="settings-segmented-control">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          className={option.value === value ? "is-selected" : ""}
+          onClick={() => onChange(option.value)}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   );
 }

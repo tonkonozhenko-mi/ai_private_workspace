@@ -28,6 +28,25 @@ import { WorkspaceList } from "./components/WorkspaceList";
 
 type WorkspaceTab = "overview" | "ask" | "models" | "actions" | "activity" | "settings";
 
+type ThemePreference = "system" | "light" | "dark";
+type DensityPreference = "comfortable" | "compact";
+type SourceSnippetPreference = 3 | 5 | 8 | 10;
+
+export interface WorkbenchPreferences {
+  theme: ThemePreference;
+  density: DensityPreference;
+  defaultSourceSnippets: SourceSnippetPreference;
+  landingTab: WorkspaceTab;
+}
+
+const PREFERENCES_STORAGE_KEY = "private-project-ai-workbench.preferences.v1";
+const DEFAULT_PREFERENCES: WorkbenchPreferences = {
+  theme: "system",
+  density: "comfortable",
+  defaultSourceSnippets: 5,
+  landingTab: "overview",
+};
+
 const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
   { id: "overview", label: "Overview" },
   { id: "ask", label: "Ask" },
@@ -54,6 +73,9 @@ function App() {
   const [workspacesError, setWorkspacesError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
+  const [preferences, setPreferences] = useState<WorkbenchPreferences>(() =>
+    loadStoredPreferences(),
+  );
 
   const loadModelsDetail = useCallback(async (workspaceId: string) => {
     setModelsDetail(null);
@@ -80,7 +102,7 @@ function App() {
 
   const loadWorkspaceDetail = useCallback(async (workspaceId: string) => {
     if (selectedWorkspaceIdRef.current !== workspaceId) {
-      setActiveTab("overview");
+      setActiveTab(preferences.landingTab);
     }
     selectedWorkspaceIdRef.current = workspaceId;
     setSelectedWorkspaceId(workspaceId);
@@ -101,7 +123,7 @@ function App() {
     } finally {
       setDetailLoading(false);
     }
-  }, [loadModelsDetail]);
+  }, [loadModelsDetail, preferences.landingTab]);
 
   const loadWorkspaces = useCallback(async () => {
     setWorkspacesLoading(true);
@@ -176,6 +198,15 @@ function App() {
       // The submitted answer remains visible if the optional read-only refresh fails.
     }
   }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      PREFERENCES_STORAGE_KEY,
+      JSON.stringify(preferences),
+    );
+    document.documentElement.dataset.theme = preferences.theme;
+    document.documentElement.dataset.density = preferences.density;
+  }, [preferences]);
 
   useEffect(() => {
     void loadWorkspaces();
@@ -297,6 +328,7 @@ function App() {
                 <AskWorkspace
                   key={detail.dashboard.workspace_id}
                   workspaceId={detail.dashboard.workspace_id}
+                  defaultSourceSnippets={preferences.defaultSourceSnippets}
                   onAsked={() => refreshAfterAsk(detail.dashboard.workspace_id)}
                 />
               </div>
@@ -358,6 +390,8 @@ function App() {
                 <SettingsPanel
                   dashboard={detail.dashboard}
                   modelsSummary={detail.modelsSummary}
+                  preferences={preferences}
+                  onPreferencesChange={setPreferences}
                 />
               ) : null}
             </section>
@@ -371,6 +405,50 @@ function App() {
       </main>
     </div>
   );
+}
+
+function loadStoredPreferences(): WorkbenchPreferences {
+  try {
+    const raw = window.localStorage.getItem(PREFERENCES_STORAGE_KEY);
+    if (!raw) {
+      return DEFAULT_PREFERENCES;
+    }
+    const parsed = JSON.parse(raw) as Partial<WorkbenchPreferences>;
+    return {
+      theme: isThemePreference(parsed.theme)
+        ? parsed.theme
+        : DEFAULT_PREFERENCES.theme,
+      density: isDensityPreference(parsed.density)
+        ? parsed.density
+        : DEFAULT_PREFERENCES.density,
+      defaultSourceSnippets: isSourceSnippetPreference(
+        parsed.defaultSourceSnippets,
+      )
+        ? parsed.defaultSourceSnippets
+        : DEFAULT_PREFERENCES.defaultSourceSnippets,
+      landingTab: isLandingTabPreference(parsed.landingTab)
+        ? parsed.landingTab
+        : DEFAULT_PREFERENCES.landingTab,
+    };
+  } catch {
+    return DEFAULT_PREFERENCES;
+  }
+}
+
+function isThemePreference(value: unknown): value is ThemePreference {
+  return value === "system" || value === "light" || value === "dark";
+}
+
+function isDensityPreference(value: unknown): value is DensityPreference {
+  return value === "comfortable" || value === "compact";
+}
+
+function isSourceSnippetPreference(value: unknown): value is SourceSnippetPreference {
+  return value === 3 || value === 5 || value === 8 || value === 10;
+}
+
+function isLandingTabPreference(value: unknown): value is WorkspaceTab {
+  return workspaceTabs.some((tab) => tab.id === value);
 }
 
 function errorMessage(error: unknown) {

@@ -10,8 +10,11 @@ import type {
 import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
 
+type SourceSnippetLimit = 3 | 5 | 8 | 10;
+
 interface AskWorkspaceProps {
   workspaceId: string;
+  defaultSourceSnippets: SourceSnippetLimit;
   onAsked?: () => void | Promise<void>;
 }
 
@@ -62,9 +65,22 @@ const EXAMPLE_QUESTIONS = [
   "What files are related to Kubernetes or Helm?",
 ];
 
-export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
+const SOURCE_SNIPPET_LIMITS: SourceSnippetLimit[] = [3, 5, 8, 10];
+
+function parseSourceSnippetLimit(value: string): SourceSnippetLimit {
+  const numericValue = Number(value);
+  return SOURCE_SNIPPET_LIMITS.includes(numericValue as SourceSnippetLimit)
+    ? (numericValue as SourceSnippetLimit)
+    : 5;
+}
+
+export function AskWorkspace({
+  workspaceId,
+  defaultSourceSnippets,
+  onAsked,
+}: AskWorkspaceProps) {
   const [question, setQuestion] = useState("");
-  const [limit, setLimit] = useState(5);
+  const [limit, setLimit] = useState(defaultSourceSnippets);
   const [history, setHistory] = useState<AskHistoryItem[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(
     null,
@@ -75,6 +91,10 @@ export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
     history.find((item) => item.id === selectedHistoryId) ?? history[0] ?? null;
   const showGeneralQuestionHint =
     question.trim().length > 0 && !isLikelyProjectQuestion(question);
+
+  useEffect(() => {
+    setLimit(defaultSourceSnippets);
+  }, [workspaceId, defaultSourceSnippets]);
 
   async function submitQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -172,11 +192,13 @@ export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
                 Source snippets
                 <select
                   value={limit}
-                  onChange={(event) => setLimit(Number(event.target.value))}
+                  onChange={(event) => setLimit(parseSourceSnippetLimit(event.target.value))}
                 >
-                  <option value={3}>3</option>
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
+                  {SOURCE_SNIPPET_LIMITS.map((snippetLimit) => (
+                    <option key={snippetLimit} value={snippetLimit}>
+                      {snippetLimit}
+                    </option>
+                  ))}
                 </select>
               </label>
               <button

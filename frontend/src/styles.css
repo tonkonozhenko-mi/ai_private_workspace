@@ -5343,3 +5343,110 @@ button:focus-visible {
     justify-content: flex-start;
   }
 }
+
+/* Browser-local preferences */
+:root[data-theme="dark"] {
+  --color-page: #151c22;
+  --color-surface: #1f2a32;
+  --color-surface-soft: #223039;
+  --color-surface-raised: #24343e;
+  --color-border: #3d4c56;
+  --color-border-soft: #33424c;
+  --color-text: #edf3f6;
+  --color-text-strong: #f7fbfd;
+  --color-text-muted: #b1bec6;
+  --color-text-subtle: #87949d;
+  --color-accent-soft: #1f3a30;
+  --color-accent-border: #3f7a5f;
+  --color-info-soft: #1e3441;
+  --color-info-border: #42647d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    --color-page: #151c22;
+    --color-surface: #1f2a32;
+    --color-surface-soft: #223039;
+    --color-surface-raised: #24343e;
+    --color-border: #3d4c56;
+    --color-border-soft: #33424c;
+    --color-text: #edf3f6;
+    --color-text-strong: #f7fbfd;
+    --color-text-muted: #b1bec6;
+    --color-text-subtle: #87949d;
+    --color-accent-soft: #1f3a30;
+    --color-accent-border: #3f7a5f;
+    --color-info-soft: #1e3441;
+    --color-info-border: #42647d;
+  }
+}
+
+:root[data-density="compact"] {
+  --space-4: 0.75rem;
+  --space-5: 1rem;
+  --space-6: 1.15rem;
+  --space-8: 1.5rem;
+}
+
+:root[data-density="compact"] .panel {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.settings-preference-group {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.75fr) minmax(0, 1.25fr);
+  gap: 14px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.settings-preference-group > span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.settings-segmented-control {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+}
+
+.settings-segmented-control button {
+  min-height: 28px;
+  padding: 5px 10px;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.settings-segmented-control button:hover {
+  color: var(--color-text-strong);
+  background: var(--color-surface-raised);
+}
+
+.settings-segmented-control button.is-selected {
+  color: var(--color-accent-strong);
+  background: var(--color-surface);
+  box-shadow: 0 1px 2px rgb(26 42 53 / 10%);
+}
+
+.settings-segmented-control button:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  .settings-preference-group,
+  .settings-row {
+    grid-template-columns: 1fr;
+  }
+}
