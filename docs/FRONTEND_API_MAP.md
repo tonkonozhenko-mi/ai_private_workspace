@@ -413,3 +413,12 @@ curl -X POST http://127.0.0.1:8000/workspaces/{workspace_id}/index
 ```
 
 This preserves the local-first safety model: model selection is a manual preference update, while runtime restarts and reindexing remain explicit user actions.
+
+### Scan-before-index guidance
+
+When Ask or Models detects that a workspace has no usable index, the UI displays copy-only commands in the safe order:
+
+1. `POST /workspaces/{workspace_id}/scan`
+2. `POST /workspaces/{workspace_id}/index`
+
+The frontend does not run these commands automatically.

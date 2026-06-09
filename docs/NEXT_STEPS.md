@@ -256,3 +256,7 @@ Follow-up ideas:
 - Add a dedicated setup checklist screen that combines runtime health, model selection, and index state.
 - Add source ranking diagnostics for low-score or off-topic retrieval.
 - Add optional qwen2.5-coder comparison experiments after the local Ollama/Qdrant path is stable.
+
+## Frontend scan-before-index guidance
+
+The frontend now shows copy-only scan and index commands when a workspace has no usable index. This reflects the backend requirement that project scanning must happen before workspace indexing. The UI still does not execute scan or index automatically.

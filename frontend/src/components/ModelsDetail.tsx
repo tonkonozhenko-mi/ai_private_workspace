@@ -14,6 +14,7 @@ import { StatusBadge } from "./StatusBadge";
 
 interface ModelsDetailProps {
   workspaceId: string;
+  hasScan: boolean;
   dashboard: WorkspaceModelsDashboard;
   activationGuide: LocalAIActivationGuide;
   onSelectionUpdated: () => Promise<void> | void;
@@ -28,6 +29,7 @@ interface ModelOption {
 
 export function ModelsDetail({
   workspaceId,
+  hasScan,
   dashboard,
   activationGuide,
   onSelectionUpdated,
@@ -124,6 +126,7 @@ export function ModelsDetail({
         llmOptions={llmOptions}
         embeddingOptions={embeddingOptions}
         reindexReason={reindexReason}
+        hasScan={hasScan}
         onSelectionUpdated={onSelectionUpdated}
       />
 
@@ -245,6 +248,7 @@ function ModelSelectionEditor({
   llmOptions,
   embeddingOptions,
   reindexReason,
+  hasScan,
   onSelectionUpdated,
 }: {
   workspaceId: string;
@@ -255,6 +259,7 @@ function ModelSelectionEditor({
   llmOptions: ModelOption[];
   embeddingOptions: ModelOption[];
   reindexReason: string | null;
+  hasScan: boolean;
   onSelectionUpdated: () => Promise<void> | void;
 }) {
   const [llmValue, setLlmValue] = useState(
@@ -381,6 +386,7 @@ function ModelSelectionEditor({
         <ModelReindexGuidance
           workspaceId={workspaceId}
           reason={reindexReason}
+          hasScan={hasScan}
         />
       ) : null}
 
@@ -470,29 +476,56 @@ function ModelSelectionControl({
 function ModelReindexGuidance({
   workspaceId,
   reason,
+  hasScan,
 }: {
   workspaceId: string;
   reason: string;
+  hasScan: boolean;
 }) {
-  const command = `curl -X POST http://127.0.0.1:8000/workspaces/${workspaceId}/index`;
+  const scanCommand = `curl -X POST http://127.0.0.1:8000/workspaces/${workspaceId}/scan`;
+  const indexCommand = `curl -X POST http://127.0.0.1:8000/workspaces/${workspaceId}/index`;
 
   return (
     <article className="reindex-guidance model-reindex-guidance">
       <div>
         <StatusBadge label="copy only" />
-        <strong>Reindex guidance</strong>
+        <strong>{hasScan ? "Reindex guidance" : "Scan and index guidance"}</strong>
       </div>
       <p>{reason}</p>
+      {!hasScan ? (
+        <CommandGuidanceRow
+          label="Step 1 · scan project"
+          command={scanCommand}
+        />
+      ) : null}
+      <CommandGuidanceRow
+        label={hasScan ? "Rebuild workspace index" : "Step 2 · build index"}
+        command={indexCommand}
+      />
+      <small>
+        The frontend does not run scan or indexing automatically. Copy and run
+        these commands only when you intentionally want to rebuild workspace
+        context. Changing an LLM does not require reindexing.
+      </small>
+    </article>
+  );
+}
+
+function CommandGuidanceRow({
+  label,
+  command,
+}: {
+  label: string;
+  command: string;
+}) {
+  return (
+    <div className="reindex-command-step">
+      <span>{label}</span>
       <div className="reindex-command-row">
         <code title={command}>{command}</code>
         <CopyButton text={command} />
       </div>
-      <small>
-        Changing an LLM does not require reindexing. Reindex only when you
-        intentionally changed the embedding model or vector store, or when the
-        workspace index was built for a different retrieval runtime.
-      </small>
-    </article>
+    </div>
   );
 }
 
