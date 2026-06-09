@@ -291,3 +291,7 @@ LLM/RAG terminology.
 This was a wording and UI-copy change only. No backend behavior, API calls,
 model calls, runtime settings, scan/index execution, or experiment behavior was
 changed.
+
+## Frontend UX update — Task 115
+
+Overview now uses one clearer primary CTA for the first workspace question. This keeps the main dashboard more beginner-friendly and reduces repeated advisory messaging while preserving all existing read-only data and safety behavior.

@@ -638,3 +638,7 @@ selection and embedding fields. UI labels may say "rebuild search context", but
 the backend endpoint remains `POST /workspaces/{workspace_id}/index`.
 
 This keeps the interface easier to understand without changing contracts.
+
+## Task 115 note
+
+The Overview CTA simplification is UI-only. The new “Go to Ask” button switches the local frontend tab to Ask and does not call backend APIs directly.

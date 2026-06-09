@@ -4843,3 +4843,73 @@ button:focus-visible {
 .source-preview-toggle:active {
   opacity: 0.72;
 }
+
+/* Task 115: Overview CTA simplification */
+.product-status-heading h2 {
+  max-width: 760px;
+}
+
+.product-status-cta {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.product-status-cta div {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 0.45fr) minmax(260px, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.overview-cta-button {
+  min-height: 38px;
+  padding: 9px 16px;
+  color: #ffffff;
+  background: var(--color-accent);
+  border: 1px solid rgb(35 108 81 / 72%);
+  border-radius: 999px;
+  box-shadow: var(--shadow-xs), inset 0 1px 0 rgb(255 255 255 / 18%);
+  font-size: var(--text-sm);
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.overview-cta-button:hover {
+  background: #245f4b;
+  border-color: #245f4b;
+  transform: translateY(-1px);
+}
+
+.overview-cta-button:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: 2px;
+}
+
+.overview-secondary-action {
+  align-items: center;
+}
+
+.overview-secondary-action .overview-cta-button {
+  align-self: flex-start;
+}
+
+.overview-secondary-action h2 {
+  margin-top: 6px;
+}
+
+@media (max-width: 1100px) {
+  .product-status-cta,
+  .product-status-cta div {
+    grid-template-columns: 1fr;
+  }
+
+  .product-status-cta .overview-cta-button {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 760px) {
+  .overview-secondary-action {
+    display: grid;
+  }
+}
