@@ -2719,3 +2719,28 @@ code {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+
+.llm-override-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  color: #365b71;
+  background: #eef6fb;
+  border: 1px solid #c9deec;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.llm-override-note strong {
+  display: block;
+  margin-bottom: 3px;
+  color: #25465a;
+}
+
+.llm-override-note p {
+  margin: 0;
+  color: #536b7a;
+}
