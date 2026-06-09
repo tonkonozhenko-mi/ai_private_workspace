@@ -553,3 +553,15 @@ Task 105 introduced a frontend design-system foundation in `frontend/src/styles.
 It is CSS-only and does not add API calls. Future frontend work should prefer
 shared tokens for color, spacing, radius, focus rings, and surface styling before
 adding new one-off CSS values.
+
+## Task 106 App Shell Redesign Note
+
+Task 106 refined the application shell and navigation styling:
+
+- `App.tsx` wraps the workspace tabs in a native-feeling navigation shell and
+  shows the current workspace context.
+- `styles.css` adds segmented navigation, softer sidebar cards, a calmer
+  workspace hero header, and responsive app-shell adjustments.
+
+No API calls were added or changed. The shell redesign is visual and keeps tab
+switching as local React state.

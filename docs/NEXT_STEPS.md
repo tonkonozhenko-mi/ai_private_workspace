@@ -350,3 +350,27 @@ Recommended next tasks:
 1. Redesign the app shell with a more native segmented navigation and calmer workspace header.
 2. Simplify the Models tab through progressive disclosure: current setup, recommendations, experiments, and advanced setup.
 3. Redesign Ask as a conversational composer with collapsible verification/source panels.
+
+## Task 106: App shell redesign
+
+Completed:
+
+- Reworked the workspace navigation into a native-feeling segmented control.
+- Added a sticky translucent workspace navigation shell with current workspace context.
+- Softened the dark sidebar, brand mark, selected workspace cards, and hover states.
+- Turned the Overview workspace header into a calmer hero surface with better status separation.
+- Refined card spacing, radius, shadows, and responsive behavior without changing data flow.
+
+Safety and behavior:
+
+- No backend behavior changed.
+- No API calls were added.
+- Tab navigation remains local UI state only.
+- Workspace selection behavior remains unchanged.
+- The redesign is visual shell polish only.
+
+Recommended next tasks:
+
+1. Simplify the Models tab with progressive disclosure and smaller focused sections.
+2. Redesign Ask as a conversation-first interface with collapsible verification details.
+3. Add a lightweight roadmap/status view for product demos and milestone tracking.

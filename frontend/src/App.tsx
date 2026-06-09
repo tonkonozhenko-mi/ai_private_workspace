@@ -249,28 +249,33 @@ function App() {
           />
         ) : detail ? (
           <div className="dashboard-layout">
-            <nav className="workspace-tabs" aria-label="Workspace sections">
-              <div role="tablist" aria-label="Workspace views">
-                {workspaceTabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={activeTab === tab.id}
-                    aria-controls="workspace-tab-content"
-                    data-tab-id={tab.id}
-                    className={activeTab === tab.id ? "is-selected" : ""}
-                    onClick={() => setActiveTab(tab.id)}
-                  >
-                    {tab.label}
-                    {tab.id === "activity" ? (
-                      <span>{detail.dashboard.recent_events.length}</span>
-                    ) : null}
-                  </button>
-                ))}
+            <header className="workspace-navigation-shell">
+              <nav className="workspace-tabs" aria-label="Workspace sections">
+                <div role="tablist" aria-label="Workspace views">
+                  {workspaceTabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeTab === tab.id}
+                      aria-controls="workspace-tab-content"
+                      data-tab-id={tab.id}
+                      className={activeTab === tab.id ? "is-selected" : ""}
+                      onClick={() => setActiveTab(tab.id)}
+                    >
+                      {tab.label}
+                      {tab.id === "activity" ? (
+                        <span>{detail.dashboard.recent_events.length}</span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              </nav>
+              <div className="workspace-context-chip" aria-label="Current workspace">
+                <span>{detail.dashboard.workspace_name}</span>
+                <strong>{detail.dashboard.status}</strong>
               </div>
-              <p>Workspace views</p>
-            </nav>
+            </header>
 
             <section
               id="workspace-tab-content"

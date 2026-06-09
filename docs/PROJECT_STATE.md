@@ -214,3 +214,15 @@ The next UX work should avoid a full rewrite. Continue with small visual and
 interaction tasks: app shell refinement, Models tab simplification, Ask tab
 conversation layout, and progressive disclosure for advanced runtime and
 experiment details.
+
+## Task 106 App Shell Refinement
+
+Phase 8 continued with an app-shell refinement. The workspace tabs now use a
+segmented-control style inside a translucent navigation shell, the current
+workspace is shown as contextual chrome, and the sidebar/workspace cards were
+softened to feel less like a dense developer dashboard. The Overview header was
+also restyled as a calmer workspace hero surface.
+
+This task was visual-only. It did not change backend behavior, API calls,
+workspace selection logic, model selection, Ask, scan/index/reindex, or
+experiment flows.
