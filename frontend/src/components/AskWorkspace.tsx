@@ -471,25 +471,46 @@ function ReindexGuidance({
   workspaceId: string;
   reason: string;
 }) {
-  const command = `curl -X POST http://127.0.0.1:8000/workspaces/${workspaceId}/index`;
+  const scanCommand = `curl -X POST http://127.0.0.1:8000/workspaces/${workspaceId}/scan`;
+  const indexCommand = `curl -X POST http://127.0.0.1:8000/workspaces/${workspaceId}/index`;
 
   return (
     <article className="reindex-guidance">
       <div>
         <StatusBadge label="instructions only" />
-        <strong>Reindex guidance</strong>
+        <strong>Scan and reindex guidance</strong>
       </div>
       <p>{reason}</p>
+      <p>
+        If the project has not been scanned yet, run scan first. Then rebuild
+        the workspace index.
+      </p>
+      <CommandGuidanceRow label="Step 1 · scan project" command={scanCommand} />
+      <CommandGuidanceRow label="Step 2 · build index" command={indexCommand} />
+      <small>
+        The frontend does not run scan or indexing automatically. Copy and run
+        these commands yourself when you intentionally want to rebuild the
+        workspace context.
+      </small>
+    </article>
+  );
+}
+
+function CommandGuidanceRow({
+  label,
+  command,
+}: {
+  label: string;
+  command: string;
+}) {
+  return (
+    <div className="reindex-command-step">
+      <span>{label}</span>
       <div className="reindex-command-row">
         <code title={command}>{command}</code>
         <CopyButton text={command} />
       </div>
-      <small>
-        The frontend does not run indexing automatically. Copy and run this
-        command yourself when you intentionally want to rebuild the workspace
-        context.
-      </small>
-    </article>
+    </div>
   );
 }
 

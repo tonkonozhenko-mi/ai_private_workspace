@@ -2705,3 +2705,17 @@ code {
     grid-template-columns: 1fr;
   }
 }
+
+.reindex-command-step {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.reindex-command-step > span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

@@ -331,6 +331,7 @@ function App() {
                   ) : modelsDetail ? (
                     <ModelsDetail
                       workspaceId={detail.dashboard.workspace_id}
+                      hasScan={detail.dashboard.summary.has_scan}
                       dashboard={modelsDetail.dashboard}
                       activationGuide={modelsDetail.activationGuide}
                       onSelectionUpdated={() =>
