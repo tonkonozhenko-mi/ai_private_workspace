@@ -429,3 +429,11 @@ to refresh workspace data after changing the browser-local API address.
 This remains frontend-only UI polish. It does not introduce backend endpoints,
 execute commands, scan or index projects, rebuild search context, restart
 services, or change model/runtime settings.
+
+## Task 133 — Workspace Creation / Onboarding UI Foundation
+
+Phase 11 real workspace onboarding has started with a dedicated frontend create-workspace flow. The sidebar now has an `Add project` action and the main content can show a guided onboarding form for a workspace name, local project path, assistant mode, and privacy mode.
+
+The form calls the existing `POST /workspaces` backend endpoint only after explicit user submission. Creating a workspace stores workspace metadata in the local backend and then selects the new workspace so the user can continue with the guided path: scan project, build search context, ask questions, and compare models later.
+
+Safety constraints remain unchanged: the frontend does not execute shell commands, scan files, build/rebuild search context, call models, change runtime settings, or run setup automatically from the create flow.

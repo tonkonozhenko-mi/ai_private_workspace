@@ -5,6 +5,8 @@ import type {
   ModelExperimentRating,
   ModelExperimentRatingRequest,
   ModelExperimentRun,
+  CreateWorkspaceRequest,
+  CreatedWorkspace,
   WorkspaceDashboard,
   WorkspaceModelsDashboard,
   UpdateWorkspaceModelSelectionRequest,
@@ -57,6 +59,20 @@ async function requestJson<T>(path: string, init: RequestInit): Promise<T> {
 export function getWorkspacesOverview(): Promise<WorkspacesOverview> {
   return getJson<WorkspacesOverview>("/workspaces/overview");
 }
+
+export function createWorkspace(
+  request: CreateWorkspaceRequest,
+): Promise<CreatedWorkspace> {
+  return requestJson<CreatedWorkspace>("/workspaces", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+}
+
 
 export function getWorkspaceDashboard(
   workspaceId: string,

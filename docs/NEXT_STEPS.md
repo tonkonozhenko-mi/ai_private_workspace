@@ -687,3 +687,25 @@ Phase 10 can now be considered complete for the MVP. The next recommended phase
 is **Phase 11 — Real Workspace Onboarding Flow**, focused on creating a new
 workspace from a local path, guiding scan/index setup, and improving empty/new
 workspace states.
+
+## Task 133 — Workspace Creation / Onboarding UI Foundation
+
+Added the first Phase 11 onboarding UI for creating a real workspace from a local path.
+
+Validation:
+
+```bash
+cd frontend
+npm run typecheck
+npm run build
+```
+
+Manual checks:
+
+- Click `Add project` in the sidebar.
+- Create a workspace with name, local path, assistant mode, and privacy mode.
+- Confirm the new workspace appears in the sidebar and becomes selected.
+- Confirm the next guided step remains manual scan/setup.
+- Confirm the create flow does not run scan, index, rebuild search context, model calls, shell commands, or runtime changes.
+
+Next recommended work: add a beginner-friendly workspace setup screen for newly created or unscanned workspaces, with clear copy-only/manual guidance for Scan project and Build search context.

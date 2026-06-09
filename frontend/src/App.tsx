@@ -16,6 +16,7 @@ import type {
   WorkspaceOverviewItem,
 } from "./api/types";
 import { AskWorkspace } from "./components/AskWorkspace";
+import { CreateWorkspacePanel } from "./components/CreateWorkspacePanel";
 import { ModelsDetail } from "./components/ModelsDetail";
 import { ModelsSummaryCard } from "./components/ModelsSummaryCard";
 import { ActivityTimeline } from "./components/ActivityTimeline";
@@ -76,6 +77,7 @@ function App() {
   const [workspacesError, setWorkspacesError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
+  const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
   const [preferences, setPreferences] = useState<WorkbenchPreferences>(() =>
     loadStoredPreferences(),
   );
@@ -184,6 +186,13 @@ function App() {
     }
   }, []);
 
+  const handleWorkspaceCreated = useCallback(async (workspaceId: string) => {
+    setShowCreateWorkspace(false);
+    await loadWorkspaces();
+    await loadWorkspaceDetail(workspaceId);
+    setActiveTab("overview");
+  }, [loadWorkspaceDetail, loadWorkspaces]);
+
   const refreshAfterAsk = useCallback(async (workspaceId: string) => {
     try {
       const [dashboard, overview] = await Promise.all([
@@ -237,13 +246,22 @@ function App() {
             </div>
             <p className="sidebar-subtitle">Select a workspace to inspect</p>
           </div>
-          <button
-            className="text-button"
-            type="button"
-            onClick={() => void loadWorkspaces()}
-          >
-            Refresh
-          </button>
+          <div className="sidebar-heading-actions">
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => setShowCreateWorkspace(true)}
+            >
+              Add project
+            </button>
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => void loadWorkspaces()}
+            >
+              Refresh
+            </button>
+          </div>
         </div>
 
         {workspacesLoading && workspaces.length === 0 ? (
@@ -259,7 +277,10 @@ function App() {
           <WorkspaceList
             workspaces={workspaces}
             selectedWorkspaceId={selectedWorkspaceId}
-            onSelect={(workspaceId) => void loadWorkspaceDetail(workspaceId)}
+            onSelect={(workspaceId) => {
+              setShowCreateWorkspace(false);
+              void loadWorkspaceDetail(workspaceId);
+            }}
           />
         )}
 
@@ -270,7 +291,12 @@ function App() {
       </aside>
 
       <main className="main-content">
-        {detailLoading ? (
+        {showCreateWorkspace ? (
+          <CreateWorkspacePanel
+            onCreated={(workspace) => void handleWorkspaceCreated(workspace.workspace_id)}
+            onCancel={() => setShowCreateWorkspace(false)}
+          />
+        ) : detailLoading ? (
           <LoadingState
             title="Loading workspace dashboard"
             message="Collecting the latest read-only workspace state."
@@ -403,10 +429,19 @@ function App() {
             </section>
           </div>
         ) : (
-          <EmptyState
-            title="Select a workspace"
-            message="Choose a local project from the sidebar to inspect its dashboard, model status, and capabilities."
-          />
+          <div className="empty-workspace-start">
+            <EmptyState
+              title="Select or add a project"
+              message="Choose a local project from the sidebar or create a new workspace to start onboarding."
+            />
+            <button
+              className="primary-action"
+              type="button"
+              onClick={() => setShowCreateWorkspace(true)}
+            >
+              Add project
+            </button>
+          </div>
         )}
       </main>
     </div>
