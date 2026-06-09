@@ -11,6 +11,7 @@ interface WorkspaceDashboardProps {
   modelsSummary: WorkspaceModelsDashboardSummary;
   onOpenAsk: () => void;
   onOpenModels: () => void;
+  onOpenCapabilities: () => void;
 }
 
 export function WorkspaceDashboard({
@@ -18,6 +19,7 @@ export function WorkspaceDashboard({
   modelsSummary,
   onOpenAsk,
   onOpenModels,
+  onOpenCapabilities,
 }: WorkspaceDashboardProps) {
   const summary = dashboard.summary;
   const indexStatus = summary.index_status;
@@ -68,6 +70,14 @@ export function WorkspaceDashboard({
         </article>
       </section>
 
+      <WorkspaceOnboardingGuide
+        dashboard={dashboard}
+        modelsSummary={modelsSummary}
+        onOpenAsk={onOpenAsk}
+        onOpenModels={onOpenModels}
+        onOpenCapabilities={onOpenCapabilities}
+      />
+
       <ProductStatusSection
         dashboard={dashboard}
         modelsSummary={modelsSummary}
@@ -91,6 +101,92 @@ export function WorkspaceDashboard({
         </section>
       </div>
     </>
+  );
+}
+
+
+function WorkspaceOnboardingGuide({
+  dashboard,
+  modelsSummary,
+  onOpenAsk,
+  onOpenModels,
+  onOpenCapabilities,
+}: {
+  dashboard: WorkspaceDashboardData;
+  modelsSummary: WorkspaceModelsDashboardSummary;
+  onOpenAsk: () => void;
+  onOpenModels: () => void;
+  onOpenCapabilities: () => void;
+}) {
+  const summary = dashboard.summary;
+  const hasScan = summary.has_scan;
+  const indexReady = summary.index_status.status === "indexed";
+  const localAIReady = modelsSummary.overall_status === "ready";
+  const readyToAsk = hasScan && indexReady && localAIReady;
+
+  const steps = [
+    {
+      title: "Scan project",
+      description: hasScan
+        ? `${summary.detected_skills_count} technologies were found.`
+        : "Start by detecting project files, technologies, and setup signals.",
+      status: hasScan ? "done" : "next",
+    },
+    {
+      title: "Build search context",
+      description: indexReady
+        ? `${summary.index_status.chunks_count} context pieces are ready for search.`
+        : "Create searchable local context before asking grounded questions.",
+      status: indexReady ? "done" : hasScan ? "next" : "waiting",
+    },
+    {
+      title: "Ask a question",
+      description: readyToAsk
+        ? "Ask is ready and will keep retrieved sources visible."
+        : "Ask becomes useful after scan, context, and local AI are ready.",
+      status: readyToAsk ? "next" : "waiting",
+    },
+    {
+      title: "Compare models later",
+      description: "Optional: compare local models only when you want to improve answer quality.",
+      status: "optional",
+    },
+  ];
+
+  const primaryAction = !hasScan || !indexReady
+    ? { label: "Open Capabilities", onClick: onOpenCapabilities }
+    : !localAIReady
+      ? { label: "Review Models", onClick: onOpenModels }
+      : { label: "Go to Ask", onClick: onOpenAsk };
+
+  return (
+    <section className="panel onboarding-guide-panel">
+      <div className="onboarding-guide-heading">
+        <div>
+          <p className="eyebrow">Guided path</p>
+          <h2>{readyToAsk ? "Ready to ask questions" : "Set up this workspace"}</h2>
+          <p>
+            Follow these steps to move from a local project folder to source-backed
+            answers. The frontend keeps setup explicit and does not run shell commands.
+          </p>
+        </div>
+        <button className="overview-cta-button" type="button" onClick={primaryAction.onClick}>
+          {primaryAction.label}
+        </button>
+      </div>
+      <div className="onboarding-steps-grid">
+        {steps.map((step, index) => (
+          <article className={`onboarding-step-card is-${step.status}`} key={step.title}>
+            <span>{index + 1}</span>
+            <div>
+              <strong>{step.title}</strong>
+              <p>{step.description}</p>
+            </div>
+            <StatusBadge label={step.status} />
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 

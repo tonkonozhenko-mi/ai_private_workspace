@@ -686,3 +686,10 @@ The frontend still uses the existing model experiment endpoints, but the user-fa
 The Models tab lower dashboard now presents readiness, recommendation, and
 history summaries with simpler user-facing labels. API endpoints, request
 payloads, model experiment flows, and manual safety constraints are unchanged.
+
+
+## Task 122 — Guided Onboarding and Models Polish
+
+Added a beginner-friendly guided path on the Overview screen so users can understand the workspace journey: scan project, build search context, ask a question, and compare models later. The guide uses existing dashboard/model summary data and only navigates between existing frontend tabs. It does not run scan, index, rebuild, model calls, commands, or backend mutations automatically.
+
+The Models tab also received a small polish pass: advanced model details are framed as technical details, advisory step cards use less workflow-like wording, and recommendation/history panels explain fit score and past results more clearly. No backend contracts or API calls changed.

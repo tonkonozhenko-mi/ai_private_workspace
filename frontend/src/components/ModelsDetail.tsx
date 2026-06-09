@@ -160,10 +160,10 @@ export function ModelsDetail({
       <details className="panel models-state-panel models-disclosure-panel">
         <summary>
           <div>
-            <p className="eyebrow">Advanced details</p>
-            <h2>Chosen models and backend defaults</h2>
+            <p className="eyebrow">Technical details</p>
+            <h2>Technical model details</h2>
             <span>
-              Technical runtime details for debugging model setup and search context.
+              Only needed when debugging local backend defaults or search setup.
             </span>
           </div>
           <StatusBadge label={dashboard.overall_status} size="md" />
@@ -291,6 +291,7 @@ export function ModelsDetail({
 
         <section className="panel recommendations-panel">
           <PanelHeading eyebrow="Recommendations" title="Recommended models" />
+          <p className="model-ranking-hint">Fit score is an advisory ranking; higher is better.</p>
           {dashboard.recommendations.recommendations.length > 0 ? (
             <div className="model-ranking-list">
               {dashboard.recommendations.recommendations
@@ -312,6 +313,7 @@ export function ModelsDetail({
 
         <section className="panel performance-panel">
           <PanelHeading eyebrow="Workspace history" title="Past model results" />
+          <p className="model-ranking-hint">Past ratings help the workspace suggest better local models.</p>
           {dashboard.performance_summary.items.length > 0 ? (
             <div className="model-ranking-list">
               {dashboard.performance_summary.items.slice(0, 3).map((item) => (
@@ -410,23 +412,23 @@ function ModelsWorkflowSteps({
 }) {
   const steps = [
     {
-      title: "Current setup",
-      description: "Check chosen models against local backend defaults.",
+      title: "Setup check",
+      description: "Confirm this workspace can ask and search with local models.",
       status: modelStatus,
     },
     {
-      title: "Preferences",
-      description: "Choose workspace AI and search models manually.",
+      title: "Model preferences",
+      description: "Optional: choose a different AI or search model.",
       status: canAsk ? "ask ready" : "needs attention",
     },
     {
-      title: "Experiments",
-      description: "Plan, run, rate, and review local AI model comparisons.",
+      title: "Optional comparison",
+      description: "Compare local AI models only when you want to improve answers.",
       status: "advisory",
     },
     {
-      title: "Advanced setup",
-      description: "Open copy-only activation commands only when needed.",
+      title: "Technical setup",
+      description: "Open copy-only backend commands only when needed.",
       status: canSearch ? "ready" : "setup needed",
     },
   ];

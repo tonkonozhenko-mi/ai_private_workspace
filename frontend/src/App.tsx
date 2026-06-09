@@ -288,6 +288,7 @@ function App() {
                   modelsSummary={detail.modelsSummary}
                   onOpenAsk={() => setActiveTab("ask")}
                   onOpenModels={() => setActiveTab("models")}
+                  onOpenCapabilities={() => setActiveTab("actions")}
                 />
               ) : null}
               <div hidden={activeTab !== "ask"}>
