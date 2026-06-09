@@ -230,3 +230,7 @@ experiment flows.
 ## Frontend UX roadmap update — Task 107
 
 Phase 8 native-feeling UX work continued with a Models tab simplification pass. The Models tab now has a guided hero, workflow steps, a compact insights grid, and a collapsible advanced activation guide. This is a layout/progressive-disclosure change only; existing model selection, Ask, experiment planning, experiment run, ratings, and history behavior remain unchanged.
+
+## Frontend UX roadmap update — Task 108
+
+Phase 8 continued with an Ask tab conversational redesign. The Ask screen is now positioned as a local workspace conversation: a guided composer, local-only safety copy, native answer card, source verification panel, and calmer verification notes. Existing behavior remains unchanged: Ask is still manual-submit only, sources/diagnostics/session history are preserved, and scan/index/reindex instructions remain copy-only.

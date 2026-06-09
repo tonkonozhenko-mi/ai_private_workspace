@@ -569,3 +569,12 @@ switching as local React state.
 ## Task 107 frontend layout note
 
 The Models tab UX simplification does not add or change API calls. It only reorganizes existing data from the already-used models dashboard, activation guide, experiment plan/run, ratings, and history flows. Advanced local AI setup commands remain copy-only and are not executed by the frontend.
+
+## Task 108 Ask UX note
+
+The Ask tab was redesigned visually as a conversation-first workspace surface. API behavior did not change:
+
+- Manual Ask still calls only `POST /workspaces/{workspace_id}/ask-selected`.
+- Session history remains frontend state only.
+- Scan/index/reindex guidance remains copy-only and is never executed by the frontend.
+- Sources, diagnostics, quality warnings, and markdown answer rendering use the same response payload as before.
