@@ -3765,3 +3765,206 @@ button:focus-visible {
     border-radius: 20px;
   }
 }
+
+/* Task 107 — Models tab native UX simplification */
+.models-native-hero,
+.models-workflow-panel,
+.models-secondary-grid {
+  grid-column: 1 / -1;
+}
+
+.models-native-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px 28px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.9), transparent 42%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(246, 249, 250, 0.92));
+}
+
+.models-native-hero h2 {
+  max-width: 760px;
+  margin: 4px 0 0;
+  color: var(--color-text-strong);
+  font-size: clamp(24px, 3vw, 36px);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+.models-native-hero p:not(.eyebrow) {
+  max-width: 720px;
+  margin: 10px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.models-native-hero-badges {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 220px;
+}
+
+.models-workflow-panel {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.models-workflow-panel article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 10px 12px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(200, 213, 219, 0.82);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.models-workflow-panel article > span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: #2d684e;
+  background: rgba(231, 246, 238, 0.92);
+  border: 1px solid rgba(172, 211, 190, 0.9);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.models-workflow-panel article > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.models-workflow-panel strong {
+  color: var(--color-text-strong);
+  font-size: 12px;
+  letter-spacing: -0.01em;
+}
+
+.models-workflow-panel p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.models-workflow-panel .status-badge {
+  grid-column: 2;
+  justify-self: start;
+}
+
+.models-secondary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.models-secondary-grid > .panel {
+  min-height: 100%;
+}
+
+.models-disclosure-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.models-disclosure-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.models-disclosure-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.models-disclosure-panel > summary::after {
+  content: "Show";
+  padding: 6px 10px;
+  color: #2d5570;
+  background: #f7fbfd;
+  border: 1px solid #c8d7e2;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.models-disclosure-panel[open] > summary::after {
+  content: "Hide";
+}
+
+.models-disclosure-panel > summary:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: -4px;
+}
+
+.models-disclosure-panel > summary > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.models-disclosure-panel h2 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.models-disclosure-panel summary span:not(.status-badge) {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.models-disclosure-panel > .panel-intro,
+.models-disclosure-panel > .activation-safety-note,
+.models-disclosure-panel > .activation-step-list {
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+.models-disclosure-panel > .activation-step-list {
+  margin-bottom: 20px;
+}
+
+@media (max-width: 1180px) {
+  .models-workflow-panel,
+  .models-secondary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .models-native-hero,
+  .models-disclosure-panel > summary {
+    display: grid;
+  }
+
+  .models-native-hero-badges {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .models-workflow-panel,
+  .models-secondary-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -374,3 +374,12 @@ Recommended next tasks:
 1. Simplify the Models tab with progressive disclosure and smaller focused sections.
 2. Redesign Ask as a conversation-first interface with collapsible verification details.
 3. Add a lightweight roadmap/status view for product demos and milestone tracking.
+
+## Task 107 — Models tab UX simplification
+
+- Reframe the Models tab as a guided workspace rather than one long technical page.
+- Add a native-feeling hero summary for model workflow intent.
+- Add a compact workflow strip: current setup, preferences, experiments, advanced setup.
+- Group readiness, recommendations, and performance into a secondary insight grid.
+- Move local AI activation commands into a collapsible Advanced activation guide.
+- Keep behavior unchanged: no new backend calls, no automatic scan/index/reindex, no runtime mutation.

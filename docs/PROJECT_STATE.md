@@ -226,3 +226,7 @@ also restyled as a calmer workspace hero surface.
 This task was visual-only. It did not change backend behavior, API calls,
 workspace selection logic, model selection, Ask, scan/index/reindex, or
 experiment flows.
+
+## Frontend UX roadmap update — Task 107
+
+Phase 8 native-feeling UX work continued with a Models tab simplification pass. The Models tab now has a guided hero, workflow steps, a compact insights grid, and a collapsible advanced activation guide. This is a layout/progressive-disclosure change only; existing model selection, Ask, experiment planning, experiment run, ratings, and history behavior remain unchanged.
