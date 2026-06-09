@@ -4,6 +4,7 @@ import type {
 } from "../api/types";
 import { ModelsSummaryCard } from "./ModelsSummaryCard";
 import { StatusBadge } from "./StatusBadge";
+import type { StatusTone } from "./statusTone";
 
 interface WorkspaceDashboardProps {
   dashboard: WorkspaceDashboardData;
@@ -65,6 +66,8 @@ export function WorkspaceDashboard({
         </article>
       </section>
 
+      <ProductStatusSection dashboard={dashboard} modelsSummary={modelsSummary} />
+
       <div className="overview-grid">
         <ModelsSummaryCard summary={modelsSummary} compact />
         <section className="panel overview-next-action">
@@ -80,6 +83,96 @@ export function WorkspaceDashboard({
         </section>
       </div>
     </>
+  );
+}
+
+function ProductStatusSection({
+  dashboard,
+  modelsSummary,
+}: {
+  dashboard: WorkspaceDashboardData;
+  modelsSummary: WorkspaceModelsDashboardSummary;
+}) {
+  const summary = dashboard.summary;
+  const indexReady = summary.index_status.status === "indexed";
+  const localAIReady = modelsSummary.overall_status === "ready";
+  const experimentsSeen = dashboard.recent_events.some((event) =>
+    event.event_type.toLowerCase().includes("experiment") ||
+    event.title.toLowerCase().includes("model")
+  );
+
+  const statuses: Array<{ title: string; description: string; badge: string; tone: StatusTone }> = [
+    {
+      title: "Local AI",
+      description: localAIReady
+        ? "Selected models are ready for workspace questions."
+        : "Review model setup before relying on answers.",
+      badge: localAIReady ? "ready" : modelsSummary.overall_status,
+      tone: localAIReady ? "success" : "warning",
+    },
+    {
+      title: "Workspace context",
+      description: indexReady
+        ? `${summary.index_status.chunks_count} indexed context chunks are available.`
+        : "Scan and index the project before asking grounded questions.",
+      badge: indexReady ? "indexed" : summary.index_status.status,
+      tone: indexReady ? "success" : "warning",
+    },
+    {
+      title: "Model learning",
+      description: experimentsSeen
+        ? "Experiment feedback is available for this workspace."
+        : "Run comparisons to learn which local model works best.",
+      badge: experimentsSeen ? "feedback ready" : "not started",
+      tone: experimentsSeen ? "success" : "neutral",
+    },
+    {
+      title: "Safety posture",
+      description: "Frontend actions stay explicit and do not execute shell commands.",
+      badge: "local only",
+      tone: "info",
+    },
+  ];
+
+  return (
+    <section className="panel product-status-panel">
+      <div className="product-status-heading">
+        <div>
+          <p className="eyebrow">Product status</p>
+          <h2>Local workbench readiness</h2>
+          <p>
+            A quick view of what is ready for this workspace and what should be
+            reviewed next. Technical setup stays manual and transparent.
+          </p>
+        </div>
+        <StatusBadge
+          label={localAIReady && indexReady ? "demo ready" : "needs attention"}
+          tone={localAIReady && indexReady ? "success" : "warning"}
+          size="md"
+        />
+      </div>
+
+      <div className="product-status-grid">
+        {statuses.map((item) => (
+          <article className="product-status-card" key={item.title}>
+            <div>
+              <h3>{item.title}</h3>
+              <p>{item.description}</p>
+            </div>
+            <StatusBadge label={item.badge} tone={item.tone} />
+          </article>
+        ))}
+      </div>
+
+      <div className="product-status-next">
+        <span>Recommended next</span>
+        <strong>{dashboard.primary_next_action_title ?? "Review workspace"}</strong>
+        <p>
+          This recommendation stays advisory. Use the relevant tab to inspect or
+          run explicit user-submitted flows.
+        </p>
+      </div>
+    </section>
   );
 }
 

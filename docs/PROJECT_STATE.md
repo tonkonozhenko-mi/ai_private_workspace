@@ -256,3 +256,17 @@ useful for audits and demos without feeling like a low-level event log.
 
 No behavior changed: the Activity tab does not replay events, execute commands,
 run scan/index/reindex, mutate workspace state, or change runtime settings.
+
+## Frontend Task 112 — Overview Product Status Section
+
+Phase 8 Apple-style UX work continued with a Product Status section on the
+Overview tab. The section summarizes workspace readiness across Local AI,
+indexed context, model learning/experiment feedback, and safety posture. It is
+intended for demos and day-to-day orientation so users can quickly see whether a
+workspace is ready for Ask, whether indexed context exists, and what the next
+recommended action is.
+
+This change is read-only and uses data already loaded for the Overview screen.
+No backend behavior changed, no API calls were added, and the frontend still does
+not execute shell commands, run scan/index/reindex automatically, call models, or
+change runtime settings from this section.
