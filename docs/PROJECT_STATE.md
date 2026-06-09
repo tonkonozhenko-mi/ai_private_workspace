@@ -511,3 +511,9 @@ Backend validation: `pytest` passed with 372 tests and 3 skipped in the task wor
 Ask was redesigned as an Apple-style workspace conversation. The Ask screen now shows user questions as conversation bubbles, assistant answers as AI bubbles, and answer actions directly on each response. Users can copy an answer, edit a previous question back into the composer, or ask the same question again with the current workspace context and enabled skills.
 
 Sources, verification notes, diagnostics, and rebuild-context guidance remain attached to the assistant answer instead of being separated from the conversation. The redesign does not change backend behavior: Ask still runs only after an explicit user submit, and the frontend does not execute shell commands, scan/index automatically, or change runtime/model settings.
+
+## Task 143 — Centered Ask composer and conversation layout
+
+Ask was refined from a two-column form/result layout into a centered workspace conversation. The question composer now stays below the conversation timeline, so users read answers and ask follow-up questions in one place. The left panel was reduced to compact assistant focus and active-skill context.
+
+The composer keeps source-snippet selection and example questions close to the input, while user bubbles, assistant bubbles, sources, verification notes, diagnostics, copy, edit, and ask-again actions stay attached to the conversation. This is a frontend layout and UX change only: no backend behavior, API contract, shell execution, scan/index/rebuild, or model/runtime behavior changed.

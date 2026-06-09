@@ -845,3 +845,11 @@ This is an explicit Ask-only payload. It does not save skills to the backend, ex
 ## Task 142 — Ask conversation UI
 
 The Ask tab now renders `/workspaces/{workspace_id}/ask-selected` responses as a local conversation thread. This is a frontend presentation change only. Each explicit Ask submit still sends the existing selected-model Ask request, including optional `skill_context` from browser-local skill preferences. The UI adds copy/edit/ask-again controls around the returned response but does not add new backend endpoints.
+
+## Task 143 — Centered Ask composer
+
+The Ask tab now uses a centered conversation layout with a bottom composer. It continues to call the existing explicit endpoint only when the user presses Ask:
+
+- `POST /workspaces/{workspace_id}/ask-selected`
+
+No new API endpoints were added. Source-snippet count and browser-local skill context are still sent with the explicit Ask request. The frontend still does not execute shell commands, scan/index automatically, rebuild context, or change model/runtime settings.

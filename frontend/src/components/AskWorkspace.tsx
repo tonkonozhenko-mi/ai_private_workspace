@@ -145,64 +145,54 @@ export function AskWorkspace({
     error?.toLowerCase().includes("select an llm");
 
   return (
-    <div className="ask-workspace ask-workspace-chat">
-      <div className="ask-sidebar">
+    <div className="ask-workspace ask-workspace-chat ask-workspace-centered">
+      <aside className="ask-context-sidebar">
         <AssistantFocusHint assistantMode={assistantMode} skillPreferences={skillPreferences} />
+      </aside>
 
-        <section className="panel ask-composer ask-composer-native">
-          <div className="panel-heading ask-composer-heading">
-            <div>
-              <p className="eyebrow">Workspace chat</p>
-              <h2>Ask this workspace</h2>
-              <p className="ask-composer-subtitle">
-                Ask about code, infrastructure, CI/CD, or setup. Answers use
-                local project context and show sources.
-              </p>
-            </div>
-            <StatusBadge label="Manual Submit" />
-          </div>
+      <section className="ask-chat-column">
+        <ConversationPanel
+          history={history}
+          loading={loading}
+          onAskAgain={(questionText) => void askQuestion(questionText)}
+          onClear={() => setHistory([])}
+          onEditQuestion={editQuestion}
+        />
 
-          <p className="ask-safety-note">
-            Nothing happens until you press Ask. The frontend never executes commands.
-          </p>
-
-          <form onSubmit={submitQuestion}>
-            <label htmlFor="workspace-question">Question</label>
-            <textarea
-              id="workspace-question"
-              placeholder="How is Terraform backend configured?"
-              rows={5}
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
-            />
-
-            {showGeneralQuestionHint ? (
-              <p className="ask-question-hint">
-                This looks like a general chat question. Workspace Ask works
-                best with project, code, infrastructure, CI/CD, or configuration
-                questions.
-              </p>
+        {error ? (
+          <div className="ask-error ask-error-centered" role="alert">
+            <strong>Could not ask workspace</strong>
+            <span>{error}</span>
+            {missingChosenAIModel ? (
+              <span>Select an AI model in the Models tab, then try again.</span>
             ) : null}
+          </div>
+        ) : null}
 
-            <div className="ask-examples">
-              <span>Example questions</span>
-              <div>
-                {EXAMPLE_QUESTIONS.map((example) => (
-                  <button
-                    key={example}
-                    type="button"
-                    onClick={() => {
-                      setQuestion(example);
-                      setError(null);
-                    }}
-                  >
-                    {example}
-                  </button>
-                ))}
-              </div>
+        <section className="panel ask-bottom-composer" aria-label="Ask this workspace">
+          <form onSubmit={submitQuestion}>
+            <div className="ask-bottom-input-row">
+              <label className="sr-only" htmlFor="workspace-question">
+                Workspace question
+              </label>
+              <textarea
+                id="workspace-question"
+                placeholder="Ask about this project, code, infrastructure, CI/CD, or setup..."
+                rows={2}
+                value={question}
+                onChange={(event) => setQuestion(event.target.value)}
+              />
+              <button
+                className="primary-button ask-send-button"
+                type="submit"
+                disabled={loading || question.trim().length === 0}
+              >
+                {loading ? "Asking..." : "Ask"}
+              </button>
             </div>
 
-            <div className="ask-controls">
+            <div className="ask-bottom-meta-row">
+              <span>Nothing happens until you press Ask. Sources stay attached to the answer.</span>
               <label>
                 Source snippets
                 <select
@@ -216,35 +206,31 @@ export function AskWorkspace({
                   ))}
                 </select>
               </label>
-              <button
-                className="primary-button"
-                type="submit"
-                disabled={loading || question.trim().length === 0}
-              >
-                {loading ? "Asking..." : "Ask"}
-              </button>
+            </div>
+
+            {showGeneralQuestionHint ? (
+              <p className="ask-question-hint ask-question-hint-centered">
+                Workspace Ask works best with project, code, infrastructure, CI/CD, or configuration questions.
+              </p>
+            ) : null}
+
+            <div className="ask-example-strip" aria-label="Example questions">
+              {EXAMPLE_QUESTIONS.slice(0, 4).map((example) => (
+                <button
+                  key={example}
+                  type="button"
+                  onClick={() => {
+                    setQuestion(example);
+                    setError(null);
+                  }}
+                >
+                  {example}
+                </button>
+              ))}
             </div>
           </form>
-
-          {error ? (
-            <div className="ask-error" role="alert">
-              <strong>Could not ask workspace</strong>
-              <span>{error}</span>
-              {missingChosenAIModel ? (
-                <span>Select an AI model in the Models tab, then try again.</span>
-              ) : null}
-            </div>
-          ) : null}
         </section>
-      </div>
-
-      <ConversationPanel
-        history={history}
-        loading={loading}
-        onAskAgain={(questionText) => void askQuestion(questionText)}
-        onClear={() => setHistory([])}
-        onEditQuestion={editQuestion}
-      />
+      </section>
     </div>
   );
 }
