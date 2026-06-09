@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  getModelExperimentRatings,
   planModelExperiment,
   runModelExperiment,
+  saveModelExperimentRating,
   updateWorkspaceModelSelection,
 } from "../api/client";
 import type {
   LocalAIActivationGuide,
   ModelExperimentPlan,
+  ModelExperimentRating,
   ModelExperimentRun,
+  ModelExperimentRunCandidate,
   ModelPerformanceItem,
   UpdateWorkspaceModelSelectionRequest,
   WorkspaceModelRecommendation,
@@ -626,6 +630,7 @@ function ModelExperimentRunResult({ result }: { result: ModelExperimentRun }) {
         ))}
       </div>
       <ExperimentRunHeuristics result={result} />
+      <ExperimentRatingPanel result={result} />
       <PlanList title="Run notes" items={result.notes} />
     </article>
   );
@@ -666,6 +671,252 @@ function ExperimentRunHeuristics({ result }: { result: ModelExperimentRun }) {
       <small>
         These are simple hints, not an automatic winner. Review answer quality and source grounding manually before changing the selected LLM.
       </small>
+    </div>
+  );
+}
+
+
+function ExperimentRatingPanel({ result }: { result: ModelExperimentRun }) {
+  const completedCandidates = result.candidates.filter(
+    (candidate) => candidate.status === "completed" && !candidate.error,
+  );
+  const defaultCandidate = completedCandidates[0];
+  const [selectedCandidate, setSelectedCandidate] = useState(
+    defaultCandidate ? toOptionValue(defaultCandidate.provider, defaultCandidate.model) ?? "" : "",
+  );
+  const [rating, setRating] = useState(5);
+  const [isPreferred, setIsPreferred] = useState(true);
+  const [selectedTags, setSelectedTags] = useState<string[]>([
+    "better_source_grounding",
+  ]);
+  const [comment, setComment] = useState("");
+  const [ratings, setRatings] = useState<ModelExperimentRating[]>([]);
+  const [isLoadingRatings, setIsLoadingRatings] = useState(false);
+  const [isSavingRating, setIsSavingRating] = useState(false);
+  const [ratingError, setRatingError] = useState<string | null>(null);
+  const [ratingMessage, setRatingMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedCandidate(
+      defaultCandidate ? toOptionValue(defaultCandidate.provider, defaultCandidate.model) ?? "" : "",
+    );
+  }, [defaultCandidate?.provider, defaultCandidate?.model, result.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadRatings() {
+      setIsLoadingRatings(true);
+      setRatingError(null);
+      try {
+        const existingRatings = await getModelExperimentRatings(result.id);
+        if (!cancelled) {
+          setRatings(existingRatings);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setRatingError(errorMessage(loadError));
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingRatings(false);
+        }
+      }
+    }
+
+    void loadRatings();
+    return () => {
+      cancelled = true;
+    };
+  }, [result.id]);
+
+  if (completedCandidates.length === 0) {
+    return null;
+  }
+
+  async function saveRating() {
+    const parsed = parseOptionValue(selectedCandidate);
+    if (!parsed) {
+      setRatingError("Choose a completed candidate before saving a rating.");
+      return;
+    }
+
+    setIsSavingRating(true);
+    setRatingError(null);
+    setRatingMessage(null);
+    try {
+      const savedRating = await saveModelExperimentRating(result.id, {
+        provider: parsed.provider,
+        model: parsed.model,
+        rating,
+        is_preferred: isPreferred,
+        tags: selectedTags,
+        comment: comment.trim().length > 0 ? comment.trim() : undefined,
+      });
+      setRatings((current) => [savedRating, ...current]);
+      setRatingMessage("Experiment rating saved. Selected model was not changed.");
+    } catch (saveError) {
+      setRatingError(errorMessage(saveError));
+    } finally {
+      setIsSavingRating(false);
+    }
+  }
+
+  return (
+    <div className="experiment-rating-panel">
+      <div className="experiment-rating-heading">
+        <StatusBadge label="manual rating" />
+        <div>
+          <strong>Rate this experiment</strong>
+          <p>
+            Save human feedback for model performance tracking. This does not
+            change the selected LLM or rerun the experiment.
+          </p>
+        </div>
+      </div>
+      <div className="experiment-rating-form">
+        <label>
+          <span>Candidate</span>
+          <select
+            value={selectedCandidate}
+            onChange={(event) => setSelectedCandidate(event.target.value)}
+          >
+            {completedCandidates.map((candidate) => (
+              <option
+                key={`${candidate.provider}/${candidate.model}`}
+                value={`${candidate.provider}||${candidate.model}`}
+              >
+                {candidate.provider}/{candidate.model}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Rating</span>
+          <select
+            value={rating}
+            onChange={(event) => setRating(Number(event.target.value))}
+          >
+            {[5, 4, 3, 2, 1].map((value) => (
+              <option key={value} value={value}>
+                {value} / 5
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="experiment-rating-checkbox">
+          <input
+            type="checkbox"
+            checked={isPreferred}
+            onChange={(event) => setIsPreferred(event.target.checked)}
+          />
+          <span>Mark as preferred candidate</span>
+        </label>
+      </div>
+      <TagChecklist selectedTags={selectedTags} onChange={setSelectedTags} />
+      <label className="experiment-rating-comment">
+        <span>Comment</span>
+        <textarea
+          value={comment}
+          rows={3}
+          placeholder="Why did this model perform better or worse?"
+          onChange={(event) => setComment(event.target.value)}
+        />
+      </label>
+      <button
+        className="model-selection-save-button"
+        type="button"
+        disabled={isSavingRating}
+        onClick={() => void saveRating()}
+      >
+        {isSavingRating ? "Saving rating…" : "Save rating"}
+      </button>
+      {ratingMessage ? <p className="model-selection-message">{ratingMessage}</p> : null}
+      {ratingError ? <p className="model-selection-error">{ratingError}</p> : null}
+      <SavedRatingsList ratings={ratings} isLoading={isLoadingRatings} />
+    </div>
+  );
+}
+
+function TagChecklist({
+  selectedTags,
+  onChange,
+}: {
+  selectedTags: string[];
+  onChange: (tags: string[]) => void;
+}) {
+  const tags = [
+    "better_source_grounding",
+    "more_complete_answer",
+    "faster",
+    "less_hallucination",
+    "clearer_explanation",
+  ];
+
+  function toggleTag(tag: string) {
+    onChange(
+      selectedTags.includes(tag)
+        ? selectedTags.filter((selected) => selected !== tag)
+        : [...selectedTags, tag],
+    );
+  }
+
+  return (
+    <fieldset className="experiment-rating-tags">
+      <legend>Tags</legend>
+      {tags.map((tag) => (
+        <label key={tag}>
+          <input
+            type="checkbox"
+            checked={selectedTags.includes(tag)}
+            onChange={() => toggleTag(tag)}
+          />
+          <span>{formatLabel(tag)}</span>
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
+function SavedRatingsList({
+  ratings,
+  isLoading,
+}: {
+  ratings: ModelExperimentRating[];
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return <p className="model-experiment-rating-muted">Loading saved ratings…</p>;
+  }
+
+  if (ratings.length === 0) {
+    return (
+      <p className="model-experiment-rating-muted">
+        No ratings saved for this experiment yet.
+      </p>
+    );
+  }
+
+  return (
+    <div className="saved-experiment-ratings">
+      <strong>Saved ratings</strong>
+      {ratings.slice(0, 5).map((rating) => (
+        <article key={rating.id}>
+          <div>
+            <strong>
+              {rating.provider}/{rating.model}
+            </strong>
+            <span>{formatDateTime(rating.created_at)}</span>
+          </div>
+          <div className="model-experiment-candidate-badges">
+            <StatusBadge label={`${rating.rating}/5`} />
+            {rating.is_preferred ? <StatusBadge label="preferred" /> : null}
+            {rating.tags.slice(0, 3).map((tag) => (
+              <StatusBadge key={tag} label={formatLabel(tag)} />
+            ))}
+          </div>
+          {rating.comment ? <p>{rating.comment}</p> : null}
+        </article>
+      ))}
     </div>
   );
 }
