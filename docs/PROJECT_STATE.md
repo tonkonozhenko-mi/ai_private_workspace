@@ -245,3 +245,14 @@ Phase 8 Apple-style UX work continued with a native-feeling Actions tab pass.
 The UI action catalog now reads less like an API table and more like a workspace
 control inspector: grouped action cards, safety-first inspector copy, and raw API
 details hidden behind progressive disclosure. No API behavior changed.
+
+## Frontend Task 111 — Activity Native Timeline Redesign
+
+Phase 8 Apple-style UX work continued with a native-feeling Activity tab pass.
+The backend timeline is still read-only, but the UI now groups events by day,
+shows compact activity summaries, uses calmer human-readable labels, and hides
+raw metadata behind an explicit details disclosure. This keeps the Activity tab
+useful for audits and demos without feeling like a low-level event log.
+
+No behavior changed: the Activity tab does not replay events, execute commands,
+run scan/index/reindex, mutate workspace state, or change runtime settings.

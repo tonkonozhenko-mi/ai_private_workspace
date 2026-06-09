@@ -411,3 +411,20 @@ before transport-level metadata.
 No backend behavior changed. The frontend still does not execute catalog actions,
 restart services, run scan/index automatically, or mutate workspace state from
 this screen.
+
+## Task 111 — Activity Tab Native Timeline Redesign
+
+Planned/completed direction:
+
+- Reframe Activity as a native-feeling workspace timeline rather than a raw event log.
+- Group events by day so recent activity is easier to scan.
+- Add small activity summary cards for questions, project events, and model/experiment activity.
+- Use human-readable event labels and softer category indicators.
+- Hide raw metadata behind an explicit Show details disclosure.
+- Keep the timeline read-only: no event replay, no command execution, no scan/index/reindex, and no runtime mutation.
+
+Recommended next tasks:
+
+1. Add a small product roadmap/status view for demo storytelling.
+2. Consider a global command palette/search for navigation only.
+3. Continue Apple-style polish with empty-state illustrations or lighter visual hierarchy refinements.
