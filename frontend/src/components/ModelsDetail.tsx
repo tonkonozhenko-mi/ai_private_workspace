@@ -1455,7 +1455,7 @@ function ModelSelectionEditor({
     const selectedValue = modelType === "llm" ? llmValue : embeddingValue;
     const parsed = parseOptionValue(selectedValue);
     if (!parsed) {
-      setError("Select a model before saving.");
+      setError("Choose a model before saving.");
       setMessage(null);
       return;
     }
@@ -1476,7 +1476,7 @@ function ModelSelectionEditor({
     try {
       await updateWorkspaceModelSelection(workspaceId, payload);
       setMessage(
-        `${modelType === "llm" ? "AI model" : "Search model"} selection saved. Backend settings were not changed.`,
+        `${modelType === "llm" ? "AI answer model" : "Search context model"} saved. Backend settings were not changed.`,
       );
       await onSelectionUpdated();
     } catch (saveError) {
@@ -1487,20 +1487,24 @@ function ModelSelectionEditor({
   }
 
   return (
-    <section className="panel model-selection-editor-panel">
-      <PanelHeading
-        eyebrow="Selection editor"
-        title="Choose workspace models"
-        status="manual submit"
-      />
-      <p className="panel-intro">
-        Saving changes only updates workspace preferences. It does not restart the backend, rebuild search context, or execute commands.
-      </p>
+    <details className="panel model-selection-editor-panel models-disclosure-panel">
+      <summary>
+        <div>
+          <p className="eyebrow">Optional model settings</p>
+          <h2>Change workspace models</h2>
+          <span>Most users do not need to change this. Open it only when you want to choose a different AI or search model for this workspace.</span>
+        </div>
+        <StatusBadge label="manual submit" size="md" />
+      </summary>
+      <div className="model-selection-editor-body">
+        <p className="panel-intro">
+          Saving changes only updates workspace preferences. It does not restart the backend, rebuild search context, or execute commands.
+        </p>
 
       <div className="model-selection-grid">
         <ModelSelectionControl
-          label="Chosen AI model"
-          description="Used by Ask as a per-question preference when the model is available. AI model changes do not require rebuilding search context."
+          label="AI answer model"
+          description="Used when you ask questions. Most users can keep the recommended model."
           value={llmValue}
           options={llmOptions}
           selectedProvider={selectedLlmProvider}
@@ -1511,8 +1515,8 @@ function ModelSelectionEditor({
           isSaving={savingType === "llm"}
         />
         <ModelSelectionControl
-          label="Chosen search model"
-          description="Powers workspace search. If the search model changes, rebuild search context before asking questions."
+          label="Search context model"
+          description="Used to build and search local project context. Change this only when you know the backend uses the same search model."
           value={embeddingValue}
           options={embeddingOptions}
           selectedProvider={selectedEmbeddingProvider}
@@ -1540,9 +1544,10 @@ function ModelSelectionEditor({
         />
       ) : null}
 
-      {message ? <p className="model-selection-message">{message}</p> : null}
-      {error ? <p className="model-selection-error">{error}</p> : null}
-    </section>
+        {message ? <p className="model-selection-message">{message}</p> : null}
+        {error ? <p className="model-selection-error">{error}</p> : null}
+      </div>
+    </details>
   );
 }
 

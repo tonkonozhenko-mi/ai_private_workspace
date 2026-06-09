@@ -5010,3 +5010,22 @@ button:focus-visible {
     flex-direction: column;
   }
 }
+
+.model-selection-editor-panel.models-disclosure-panel {
+  grid-column: 1 / -1;
+  padding: 0;
+}
+
+.model-selection-editor-body {
+  display: grid;
+  gap: 14px;
+  margin: 0 20px 20px;
+}
+
+.model-selection-editor-body > .panel-intro {
+  margin: 0;
+}
+
+.model-selection-editor-panel .model-selection-grid {
+  margin-top: 0;
+}
