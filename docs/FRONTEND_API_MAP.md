@@ -680,3 +680,9 @@ The frontend still does not restart the backend, rebuild search context, execute
 ## Task 120 note — Model comparison UI
 
 The frontend still uses the existing model experiment endpoints, but the user-facing UI presents this area as optional model comparison. The screen does not run comparisons until the user explicitly prepares and then runs the comparison.
+
+## Task 121: Models Lower Dashboard Wording Polish
+
+The Models tab lower dashboard now presents readiness, recommendation, and
+history summaries with simpler user-facing labels. API endpoints, request
+payloads, model experiment flows, and manual safety constraints are unchanged.
