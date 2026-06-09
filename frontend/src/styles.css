@@ -7393,3 +7393,91 @@ button:focus-visible {
     width: 100%;
   }
 }
+
+/* Task 137: setup flow actions, active/archive clarity, and CI polish */
+.active-workspaces-section {
+  display: grid;
+  gap: 8px;
+}
+
+.active-workspaces-heading {
+  display: grid;
+  gap: 4px;
+  padding: 4px 4px 2px;
+}
+
+.active-workspaces-heading p {
+  margin: 0;
+  color: #9fb3bd;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.workspace-setup-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  margin: 18px 0 20px;
+  padding: 16px;
+  background:
+    linear-gradient(135deg, rgb(47 122 92 / 9%), transparent 44%),
+    var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.workspace-setup-actions strong {
+  display: block;
+  color: var(--color-text-primary);
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+
+.workspace-setup-actions p {
+  margin: 5px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.workspace-setup-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.workspace-setup-action-buttons .primary-action,
+.workspace-setup-action-buttons .secondary-action {
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.overview-cta-button:disabled,
+.primary-action:disabled,
+.secondary-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+:root[data-theme="dark"] .workspace-setup-actions {
+  background:
+    linear-gradient(135deg, rgb(77 166 126 / 12%), transparent 48%),
+    rgb(18 26 32 / 92%);
+  border-color: rgb(136 160 170 / 18%);
+}
+
+:root[data-theme="dark"] .active-workspaces-heading p {
+  color: #8fa6b2;
+}
+
+@media (max-width: 760px) {
+  .workspace-setup-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-setup-action-buttons {
+    justify-content: flex-start;
+  }
+}

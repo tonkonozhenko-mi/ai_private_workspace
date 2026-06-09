@@ -7,7 +7,9 @@ import type {
   ModelExperimentRun,
   CreateWorkspaceRequest,
   CreatedWorkspace,
+  ProjectScanResponse,
   WorkspaceDashboard,
+  WorkspaceIndexResponse,
   WorkspaceModelsDashboard,
   UpdateWorkspaceModelSelectionRequest,
   WorkspaceModelSelection,
@@ -105,6 +107,23 @@ export function restoreWorkspace(workspaceId: string): Promise<void> {
   });
 }
 
+export function scanWorkspace(workspaceId: string): Promise<ProjectScanResponse> {
+  return requestJson<ProjectScanResponse>(`/workspaces/${workspaceId}/scan`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+}
+
+export function indexWorkspace(workspaceId: string): Promise<WorkspaceIndexResponse> {
+  return requestJson<WorkspaceIndexResponse>(`/workspaces/${workspaceId}/index`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+}
 
 export function getWorkspaceDashboard(
   workspaceId: string,

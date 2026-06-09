@@ -9,6 +9,8 @@ import {
   getWorkspaceDashboard,
   getWorkspaceModelsDashboard,
   getWorkspacesOverview,
+  indexWorkspace,
+  scanWorkspace,
   getWorkspaceUIActions,
   setApiBaseUrl,
 } from "./api/client";
@@ -241,6 +243,17 @@ function App() {
     }
   }, [loadWorkspaceDetail, loadWorkspaces]);
 
+
+  const handleScanWorkspace = useCallback(async (workspaceId: string) => {
+    await scanWorkspace(workspaceId);
+    await refreshWorkspaceReadOnlyState(workspaceId);
+  }, [refreshWorkspaceReadOnlyState]);
+
+  const handleIndexWorkspace = useCallback(async (workspaceId: string) => {
+    await indexWorkspace(workspaceId);
+    await refreshWorkspaceReadOnlyState(workspaceId);
+  }, [refreshWorkspaceReadOnlyState]);
+
   const refreshAfterAsk = useCallback(async (workspaceId: string) => {
     try {
       const [dashboard, overview] = await Promise.all([
@@ -415,6 +428,8 @@ function App() {
                   onOpenAsk={() => setActiveTab("ask")}
                   onOpenModels={() => setActiveTab("models")}
                   onOpenCapabilities={() => setActiveTab("actions")}
+                  onScanWorkspace={() => handleScanWorkspace(detail.dashboard.workspace_id)}
+                  onIndexWorkspace={() => handleIndexWorkspace(detail.dashboard.workspace_id)}
                 />
               ) : null}
               <div hidden={activeTab !== "ask"}>

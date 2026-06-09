@@ -10,9 +10,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   frontend:
-    name: Frontend typecheck and build
+    name: Frontend checks
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -36,6 +40,15 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Frontend summary
+        if: always()
+        run: |
+          {
+            echo "## Frontend checks"
+            echo "- TypeScript project references: npm run typecheck"
+            echo "- Production build: npm run build"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   backend:
     name: Backend tests
@@ -61,3 +74,12 @@ jobs:
 
       - name: Run tests
         run: pytest
+
+      - name: Backend summary
+        if: always()
+        run: |
+          {
+            echo "## Backend checks"
+            echo "- Python: 3.12"
+            echo "- Tests: pytest"
+          } >> "$GITHUB_STEP_SUMMARY"

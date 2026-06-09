@@ -757,3 +757,32 @@ Next recommended work: add an archived workspace management view with `Show arch
 - Review Add project in light and dark themes for the polished onboarding hero, field helper text, assistant mode cards, and first-run guide.
 
 Next recommended work: build the guided scan/build-context screen for newly created workspaces.
+
+## Task 137 verification — Workspace setup flow and CI v2
+
+Validate locally:
+
+```bash
+cd frontend
+npm run typecheck
+npm run build
+```
+
+```bash
+cd backend
+pytest
+```
+
+Manual checks:
+
+- Open an unscanned workspace and confirm Overview shows `Scan project`.
+- Click `Scan project` and confirm the scan completes and detected technologies update.
+- Confirm the next action becomes `Build search context`.
+- Click `Build search context` and confirm context/chunk counts update.
+- Confirm ready workspaces show `Go to Ask`.
+- Toggle `Show archived` and confirm active workspace cards still show `Archive`.
+- Confirm archived workspace cards show `Restore` only.
+- Confirm frontend never runs shell commands and setup actions only call explicit backend APIs after a click.
+- Push to GitHub and confirm CI runs frontend and backend jobs with concurrency enabled.
+
+Next recommended work: add skill/focus selection after scan and file include/exclude preferences before indexing.

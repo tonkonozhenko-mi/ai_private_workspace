@@ -788,3 +788,14 @@ Archived workspaces are removed from the default active overview after refresh. 
 ### Task 136 - Archived workspace restore UI
 
 The frontend now uses `GET /workspaces/overview?include_archived=true` to populate an optional archived workspace section in the sidebar and `POST /workspaces/{workspace_id}/restore` to restore archived workspaces. The restore action is explicit, does not delete local files, and does not trigger scan/index/rebuild/model calls. The Add project screen was also polished for a clearer first-run onboarding experience.
+
+## Task 137 note — Explicit setup actions
+
+The frontend now exposes explicit Overview setup actions for workspace preparation:
+
+- `POST /workspaces/{workspace_id}/scan` for user-clicked project scans.
+- `POST /workspaces/{workspace_id}/index` for user-clicked search context builds.
+
+These actions are local backend API calls, not shell command execution. They are never triggered automatically after workspace creation. The UI refreshes read-only dashboard/model/sidebar state after each successful action.
+
+The sidebar also separates active and archived workspace sections more clearly. `Show archived` adds the archived section but should not remove Archive controls from active workspaces.
