@@ -8632,3 +8632,212 @@ button:focus-visible {
     border-color: rgb(96 173 137 / 28%);
   }
 }
+
+/* Task 144 — Ask chat layout polish and compact sources */
+.ask-workspace-centered {
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  gap: clamp(18px, 2.5vw, 34px);
+}
+
+.ask-context-sidebar {
+  gap: 12px;
+}
+
+.ask-context-sidebar .ask-focus-hint {
+  padding: 16px;
+  border-radius: 18px;
+}
+
+.ask-context-sidebar .ask-focus-hint h2 {
+  max-width: none;
+  margin: 4px 0 8px;
+  font-size: clamp(16px, 1.25vw, 20px);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.ask-context-sidebar .ask-focus-hint p {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ask-context-sidebar .ask-focus-detail-grid {
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ask-context-sidebar .ask-focus-detail-grid > div {
+  padding: 9px 10px;
+  border-radius: 12px;
+}
+
+.ask-context-sidebar .ask-focus-detail-grid span {
+  font-size: 9px;
+}
+
+.ask-context-sidebar .ask-focus-detail-grid strong {
+  font-size: 12px;
+}
+
+.ask-chat-column {
+  max-width: 1120px;
+  margin-inline: auto;
+  width: 100%;
+}
+
+.ask-chat-column .ask-conversation-panel {
+  min-height: min(62vh, 760px);
+  padding-bottom: 18px;
+}
+
+.ask-conversation-header {
+  padding: 14px 16px;
+  border-radius: 22px;
+}
+
+.ask-message-list {
+  gap: 22px;
+  padding: 8px 10px 136px;
+}
+
+.ask-conversation-turn {
+  gap: 12px;
+}
+
+.ask-message-row.is-user,
+.ask-message-row.is-assistant {
+  width: 100%;
+}
+
+.ask-message-row.is-user {
+  padding-left: min(18vw, 220px);
+}
+
+.ask-message-row.is-assistant {
+  padding-right: min(12vw, 160px);
+}
+
+.ask-message-bubble {
+  max-width: min(840px, 100%);
+}
+
+.user-bubble {
+  max-width: min(560px, 100%);
+  border-radius: 24px 24px 8px 24px;
+}
+
+.assistant-bubble {
+  width: 100%;
+  border-radius: 24px 24px 24px 8px;
+}
+
+.ask-assistant-stack {
+  width: min(920px, 100%);
+}
+
+.ask-assistant-stack .source-panel,
+.ask-assistant-stack .quality-warnings,
+.ask-assistant-stack .reindex-guidance,
+.ask-assistant-stack .ask-diagnostic,
+.ask-assistant-stack .ask-source-path-note {
+  width: min(840px, 100%);
+}
+
+.source-panel.is-collapsed {
+  padding: 13px 15px;
+  background:
+    radial-gradient(circle at top left, rgb(76 146 116 / 5%), transparent 30%),
+    var(--color-surface-soft);
+}
+
+.source-panel.is-collapsed .source-panel-subtitle {
+  margin-top: 6px;
+  max-width: 680px;
+}
+
+.source-panel-heading {
+  align-items: center;
+}
+
+.source-panel-heading h2 {
+  font-size: 14px;
+}
+
+.source-panel-toggle {
+  min-height: 32px;
+  padding-inline: 12px;
+  white-space: nowrap;
+}
+
+.ask-bottom-composer {
+  position: sticky;
+  bottom: 18px;
+  width: min(100%, 1040px);
+  margin-inline: auto;
+  border-radius: 26px;
+}
+
+.ask-bottom-input-row textarea {
+  min-height: 58px;
+}
+
+.ask-example-strip {
+  max-width: calc(100% - 148px);
+}
+
+@media (max-width: 1180px) {
+  .ask-workspace-centered {
+    grid-template-columns: 1fr;
+  }
+
+  .ask-context-sidebar .ask-focus-hint {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .ask-context-sidebar .ask-focus-detail-grid {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ask-message-row.is-user,
+  .ask-message-row.is-assistant {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .ask-context-sidebar .ask-focus-hint,
+  .ask-context-sidebar .ask-focus-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ask-message-list {
+    padding: 0 0 170px;
+  }
+
+  .ask-bottom-composer {
+    bottom: 10px;
+    border-radius: 22px;
+  }
+
+  .ask-example-strip {
+    max-width: none;
+  }
+}
+
+:root[data-theme="dark"] .source-panel.is-collapsed {
+  background:
+    radial-gradient(circle at top left, rgb(91 183 139 / 7%), transparent 30%),
+    var(--color-surface-muted);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .source-panel.is-collapsed {
+    background:
+      radial-gradient(circle at top left, rgb(91 183 139 / 7%), transparent 30%),
+      var(--color-surface-muted);
+  }
+}

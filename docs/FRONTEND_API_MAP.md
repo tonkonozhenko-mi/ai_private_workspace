@@ -853,3 +853,11 @@ The Ask tab now uses a centered conversation layout with a bottom composer. It c
 - `POST /workspaces/{workspace_id}/ask-selected`
 
 No new API endpoints were added. Source-snippet count and browser-local skill context are still sent with the explicit Ask request. The frontend still does not execute shell commands, scan/index automatically, rebuild context, or change model/runtime settings.
+
+
+## Task 144 — Ask chat layout polish and compact sources
+
+- Compacted the Ask focus sidebar so the conversation stays centered.
+- Kept the composer at the bottom of the Ask flow with more bottom spacing for sources.
+- Collapsed retrieved sources by default behind a Show sources / Hide sources control.
+- Preserved explicit Ask-only behavior; no backend, shell, scan, index, or model runtime changes.
