@@ -6603,3 +6603,72 @@ button:focus-visible {
     border-color: var(--color-border);
   }
 }
+
+/* Task 131 — Settings backup simplification */
+.settings-transfer-panel.is-compact {
+  gap: 14px;
+}
+
+.settings-disclosure-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.settings-transfer-panel.is-compact .settings-transfer-heading {
+  align-items: center;
+}
+
+.settings-transfer-panel.is-compact .settings-transfer-heading p {
+  max-width: 720px;
+}
+
+.settings-transfer-panel.is-compact .settings-transfer-grid {
+  padding-top: 4px;
+}
+
+.danger-button.is-secondary {
+  color: var(--color-text-muted);
+  background: var(--color-surface-soft);
+  border-color: var(--color-warning-border);
+}
+
+.danger-button.is-secondary:hover {
+  color: #7a3d19;
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+:root[data-theme="dark"] .danger-button.is-secondary {
+  color: var(--color-warning);
+  background: rgb(58 47 23 / 18%);
+  border-color: rgb(242 201 107 / 24%);
+}
+
+:root[data-theme="dark"] .danger-button.is-secondary:hover {
+  color: #ffe8a8;
+  background: rgb(120 53 15 / 28%);
+  border-color: rgb(251 191 36 / 42%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .danger-button.is-secondary {
+    color: var(--color-warning);
+    background: rgb(58 47 23 / 18%);
+    border-color: rgb(242 201 107 / 24%);
+  }
+
+  :root[data-theme="system"] .danger-button.is-secondary:hover {
+    color: #ffe8a8;
+    background: rgb(120 53 15 / 28%);
+    border-color: rgb(251 191 36 / 42%);
+  }
+}
+
+@media (max-width: 900px) {
+  .settings-disclosure-actions {
+    justify-content: flex-start;
+  }
+}

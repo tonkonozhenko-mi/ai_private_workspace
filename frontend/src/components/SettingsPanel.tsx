@@ -29,7 +29,8 @@ export function SettingsPanel({
   const [resetRequested, setResetRequested] = useState(false);
   const [savedMessage, setSavedMessage] = useState("Saved in this browser");
   const [importDraft, setImportDraft] = useState("");
-  const [transferMessage, setTransferMessage] = useState("Preferences can be copied or imported as JSON.");
+  const [transferMessage, setTransferMessage] = useState("Backup tools are hidden until needed.");
+  const [backupToolsVisible, setBackupToolsVisible] = useState(false);
   const [backendUrlDraft, setBackendUrlDraft] = useState(preferences.apiBaseUrl);
   const [connectionMessage, setConnectionMessage] = useState("Saved in this browser. Use Refresh after changing the backend URL.");
 
@@ -77,14 +78,14 @@ export function SettingsPanel({
     }
     updatePreference("apiBaseUrl", normalizedUrl);
     setBackendUrlDraft(normalizedUrl);
-    setConnectionMessage("Backend URL saved. Refresh workspaces to use it.");
+    setConnectionMessage("Connection saved. Use Refresh to reload workspaces from this address.");
   }
 
   function handleResetBackendUrl() {
     setResetRequested(false);
     setBackendUrlDraft(DEFAULT_API_BASE_URL);
     updatePreference("apiBaseUrl", DEFAULT_API_BASE_URL);
-    setConnectionMessage("Backend URL reset to the app default.");
+    setConnectionMessage("Connection reset to the app default. Use Refresh to reload workspaces.");
   }
 
   function handleLoadCurrentPreferences() {
@@ -288,98 +289,117 @@ export function SettingsPanel({
       </div>
 
 
-      <section className="panel settings-transfer-panel">
+      <section className="panel settings-transfer-panel is-compact">
         <div className="settings-transfer-heading">
           <div>
-            <p className="eyebrow">Local preferences</p>
-            <h2>Export or import browser settings</h2>
+            <p className="eyebrow">Local backup</p>
+            <h2>Backup local settings</h2>
             <p>
-              Copy these preferences to reuse the same UI defaults in another
-              browser. Import only changes this browser-local UI state.
+              Export or import browser-local preferences as JSON. This is optional
+              and only changes this browser.
             </p>
           </div>
-          <StatusBadge label="JSON only" tone="neutral" />
+          <div className="settings-disclosure-actions">
+            <StatusBadge label="JSON only" tone="neutral" />
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={() => {
+                setBackupToolsVisible((isVisible) => !isVisible);
+                setTransferMessage(
+                  backupToolsVisible
+                    ? "Backup tools are hidden until needed."
+                    : "Backup tools shown. Copy or paste preferences JSON.",
+                );
+              }}
+            >
+              {backupToolsVisible ? "Hide" : "Show backup tools"}
+            </button>
+          </div>
         </div>
 
-        <div className="settings-transfer-grid">
-          <div className="settings-transfer-card">
-            <div>
-              <h3>Export preferences</h3>
-              <p>Copy the current local preferences as safe JSON.</p>
-            </div>
-            <textarea
-              className="settings-json-box"
-              value={preferencesJson}
-              readOnly
-              aria-label="Current local preferences JSON"
-            />
-            <div className="settings-transfer-actions">
-              <button
-                type="button"
-                className="ghost-button"
-                onClick={() => void handleCopyPreferences()}
-              >
-                Copy JSON
-              </button>
-              <button
-                type="button"
-                className="ghost-button"
-                onClick={handleLoadCurrentPreferences}
-              >
-                Load into import box
-              </button>
-            </div>
-          </div>
+        {backupToolsVisible ? (
+          <>
+            <div className="settings-transfer-grid">
+              <div className="settings-transfer-card">
+                <div>
+                  <h3>Export preferences</h3>
+                  <p>Copy the current local preferences as safe JSON.</p>
+                </div>
+                <textarea
+                  className="settings-json-box"
+                  value={preferencesJson}
+                  readOnly
+                  aria-label="Current local preferences JSON"
+                />
+                <div className="settings-transfer-actions">
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={() => void handleCopyPreferences()}
+                  >
+                    Copy JSON
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={handleLoadCurrentPreferences}
+                  >
+                    Load into import box
+                  </button>
+                </div>
+              </div>
 
-          <div className="settings-transfer-card">
-            <div>
-              <h3>Import preferences</h3>
-              <p>Paste exported JSON. Unsupported values are rejected.</p>
-            </div>
-            <textarea
-              className="settings-json-box"
-              value={importDraft}
-              onChange={(event) => setImportDraft(event.target.value)}
-              placeholder={`{
+              <div className="settings-transfer-card">
+                <div>
+                  <h3>Import preferences</h3>
+                  <p>Paste exported JSON. Unsupported values are rejected.</p>
+                </div>
+                <textarea
+                  className="settings-json-box"
+                  value={importDraft}
+                  onChange={(event) => setImportDraft(event.target.value)}
+                  placeholder={`{
   "theme": "system",
   "density": "comfortable",
   "defaultSourceSnippets": 5,
   "landingTab": "overview",
   "apiBaseUrl": "http://127.0.0.1:8000"
 }`}
-              aria-label="Import local preferences JSON"
-            />
-            <div className="settings-transfer-actions">
-              <button
-                type="button"
-                className="primary-button"
-                disabled={!importDraft.trim()}
-                onClick={handleImportPreferences}
-              >
-                Import preferences
-              </button>
-              <button
-                type="button"
-                className="ghost-button"
-                disabled={!importDraft}
-                onClick={() => {
-                  setImportDraft("");
-                  setTransferMessage("Import box cleared.");
-                }}
-              >
-                Clear
-              </button>
+                  aria-label="Import local preferences JSON"
+                />
+                <div className="settings-transfer-actions">
+                  <button
+                    type="button"
+                    className="primary-button"
+                    disabled={!importDraft.trim()}
+                    onClick={handleImportPreferences}
+                  >
+                    Import preferences
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    disabled={!importDraft}
+                    onClick={() => {
+                      setImportDraft("");
+                      setTransferMessage("Import box cleared.");
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-
-        <p className="settings-transfer-message">{transferMessage}</p>
+            <p className="settings-transfer-message">{transferMessage}</p>
+          </>
+        ) : null}
       </section>
 
       <section className="panel settings-reset-panel">
         <div>
           <p className="eyebrow">Local preferences</p>
-          <h2>Reset browser settings</h2>
+          <h2>Reset local settings</h2>
           <p>
             Reset theme, density, startup tab, source snippet defaults, and
             backend URL for this browser only. Workspace data, models, runtime,
@@ -390,10 +410,10 @@ export function SettingsPanel({
           <StatusBadge label="No backend changes" tone="neutral" />
           <button
             type="button"
-            className={resetRequested ? "danger-button is-confirming" : "danger-button"}
+            className={resetRequested ? "danger-button is-confirming" : "danger-button is-secondary"}
             onClick={handleResetClick}
           >
-            {resetRequested ? "Confirm reset" : "Reset local preferences"}
+            {resetRequested ? "Confirm reset" : "Reset"}
           </button>
           {resetRequested ? (
             <button

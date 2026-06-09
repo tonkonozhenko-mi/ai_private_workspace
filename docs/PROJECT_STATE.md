@@ -409,3 +409,11 @@ The import flow only accepts supported theme, density, default source snippet, a
 Settings now allows the local backend URL to be edited and saved as a browser-local preference. The frontend API client reads the saved connection target for future API calls, and the sidebar/settings views show the current target.
 
 This remains frontend-only configuration. It does not add backend endpoints, execute shell commands, scan or index projects, rebuild search context, restart services, or change model/runtime settings.
+
+## Task 131 — Settings backup section simplification
+
+- Simplified the Settings backup area into an optional `Backup local settings` disclosure.
+- JSON export/import tools are hidden by default to keep Settings lightweight for normal users.
+- Updated backend connection save wording to be less technical.
+- Reduced the visual weight of the reset preference button while keeping the two-step confirmation.
+- No backend APIs, shell execution, scan/index/rebuild, or model/runtime behavior changed.

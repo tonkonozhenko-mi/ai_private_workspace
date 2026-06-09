@@ -670,3 +670,7 @@ Manual checks:
 - Reset to default and confirm the default URL is restored.
 
 No backend APIs, command execution, scan/index/rebuild, or model/runtime changes are introduced.
+
+## After Task 131
+
+Validate Settings in light and dark themes. Confirm that backup tools are hidden by default, can be shown on demand, and that reset remains a safe two-step local-only action.
