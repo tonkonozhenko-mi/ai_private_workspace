@@ -1,6 +1,10 @@
+import { useEffect, useMemo, useState } from "react";
+
+import { updateWorkspaceModelSelection } from "../api/client";
 import type {
   LocalAIActivationGuide,
   ModelPerformanceItem,
+  UpdateWorkspaceModelSelectionRequest,
   WorkspaceModelRecommendation,
   WorkspaceModelsDashboard,
 } from "../api/types";
@@ -9,15 +13,62 @@ import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
 
 interface ModelsDetailProps {
+  workspaceId: string;
   dashboard: WorkspaceModelsDashboard;
   activationGuide: LocalAIActivationGuide;
+  onSelectionUpdated: () => Promise<void> | void;
+}
+
+interface ModelOption {
+  provider: string;
+  model: string;
+  label: string;
+  source: string;
 }
 
 export function ModelsDetail({
+  workspaceId,
   dashboard,
   activationGuide,
+  onSelectionUpdated,
 }: ModelsDetailProps) {
   const usage = dashboard.usage_plan;
+  const llmOptions = useMemo(
+    () =>
+      buildModelOptions({
+        modelType: "llm",
+        selectedProvider: dashboard.selected_llm_provider,
+        selectedModel: dashboard.selected_llm_model,
+        activeProvider: usage.active_llm_provider,
+        activeModel: usage.active_llm_model,
+        recommendations: dashboard.recommendations.recommendations,
+      }),
+    [
+      dashboard.selected_llm_model,
+      dashboard.selected_llm_provider,
+      dashboard.recommendations.recommendations,
+      usage.active_llm_model,
+      usage.active_llm_provider,
+    ],
+  );
+  const embeddingOptions = useMemo(
+    () =>
+      buildModelOptions({
+        modelType: "embedding",
+        selectedProvider: dashboard.selected_embedding_provider,
+        selectedModel: dashboard.selected_embedding_model,
+        activeProvider: usage.active_embedding_provider,
+        activeModel: usage.active_embedding_model,
+        recommendations: dashboard.recommendations.recommendations,
+      }),
+    [
+      dashboard.selected_embedding_model,
+      dashboard.selected_embedding_provider,
+      dashboard.recommendations.recommendations,
+      usage.active_embedding_model,
+      usage.active_embedding_provider,
+    ],
+  );
 
   return (
     <div className="models-detail">
@@ -63,11 +114,26 @@ export function ModelsDetail({
         </div>
       </section>
 
+      <ModelSelectionEditor
+        workspaceId={workspaceId}
+        selectedLlmProvider={dashboard.selected_llm_provider}
+        selectedLlmModel={dashboard.selected_llm_model}
+        selectedEmbeddingProvider={dashboard.selected_embedding_provider}
+        selectedEmbeddingModel={dashboard.selected_embedding_model}
+        llmOptions={llmOptions}
+        embeddingOptions={embeddingOptions}
+        onSelectionUpdated={onSelectionUpdated}
+      />
+
       <section className="panel model-readiness-panel">
         <PanelHeading
           eyebrow="Usage readiness"
           title="What works now"
-          status={dashboard.usage_plan.can_use_selected_models_fully ? "ready" : "needs_attention"}
+          status={
+            dashboard.usage_plan.can_use_selected_models_fully
+              ? "ready"
+              : "needs_attention"
+          }
         />
         <div className="readiness-list">
           <ReadinessRow
@@ -167,6 +233,220 @@ export function ModelsDetail({
         </div>
       </section>
     </div>
+  );
+}
+
+function ModelSelectionEditor({
+  workspaceId,
+  selectedLlmProvider,
+  selectedLlmModel,
+  selectedEmbeddingProvider,
+  selectedEmbeddingModel,
+  llmOptions,
+  embeddingOptions,
+  onSelectionUpdated,
+}: {
+  workspaceId: string;
+  selectedLlmProvider: string | null;
+  selectedLlmModel: string | null;
+  selectedEmbeddingProvider: string | null;
+  selectedEmbeddingModel: string | null;
+  llmOptions: ModelOption[];
+  embeddingOptions: ModelOption[];
+  onSelectionUpdated: () => Promise<void> | void;
+}) {
+  const [llmValue, setLlmValue] = useState(
+    toOptionValue(selectedLlmProvider, selectedLlmModel) ??
+      toOptionValue(llmOptions[0]?.provider, llmOptions[0]?.model) ??
+      "",
+  );
+  const [embeddingValue, setEmbeddingValue] = useState(
+    toOptionValue(selectedEmbeddingProvider, selectedEmbeddingModel) ??
+      toOptionValue(embeddingOptions[0]?.provider, embeddingOptions[0]?.model) ??
+      "",
+  );
+  const [savingType, setSavingType] = useState<"llm" | "embedding" | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLlmValue(
+      toOptionValue(selectedLlmProvider, selectedLlmModel) ??
+        toOptionValue(llmOptions[0]?.provider, llmOptions[0]?.model) ??
+        "",
+    );
+  }, [llmOptions, selectedLlmModel, selectedLlmProvider]);
+
+  useEffect(() => {
+    setEmbeddingValue(
+      toOptionValue(selectedEmbeddingProvider, selectedEmbeddingModel) ??
+        toOptionValue(embeddingOptions[0]?.provider, embeddingOptions[0]?.model) ??
+        "",
+    );
+  }, [embeddingOptions, selectedEmbeddingModel, selectedEmbeddingProvider]);
+
+  async function saveSelection(modelType: "llm" | "embedding") {
+    const selectedValue = modelType === "llm" ? llmValue : embeddingValue;
+    const parsed = parseOptionValue(selectedValue);
+    if (!parsed) {
+      setError("Select a model before saving.");
+      setMessage(null);
+      return;
+    }
+
+    const payload: UpdateWorkspaceModelSelectionRequest = {
+      provider: parsed.provider,
+      model: parsed.model,
+      model_type: modelType,
+      selected_reason:
+        modelType === "llm"
+          ? "Selected from the frontend Models tab."
+          : "Selected from the frontend Models tab for workspace retrieval.",
+    };
+
+    setSavingType(modelType);
+    setError(null);
+    setMessage(null);
+    try {
+      await updateWorkspaceModelSelection(workspaceId, payload);
+      setMessage(
+        `${modelType === "llm" ? "LLM" : "Embedding"} selection saved. Runtime settings were not changed.`,
+      );
+      await onSelectionUpdated();
+    } catch (saveError) {
+      setError(errorMessage(saveError));
+    } finally {
+      setSavingType(null);
+    }
+  }
+
+  return (
+    <section className="panel model-selection-editor-panel">
+      <PanelHeading
+        eyebrow="Selection editor"
+        title="Change workspace model preferences"
+        status="manual submit"
+      />
+      <p className="panel-intro">
+        Saving changes only updates workspace preference metadata. It does not
+        restart the backend, run reindexing, or execute commands.
+      </p>
+
+      <div className="model-selection-grid">
+        <ModelSelectionControl
+          label="Selected LLM"
+          description="Used by Ask when the selected provider/model is supported by the active runtime."
+          value={llmValue}
+          options={llmOptions}
+          selectedProvider={selectedLlmProvider}
+          selectedModel={selectedLlmModel}
+          disabled={savingType !== null}
+          onChange={setLlmValue}
+          onSave={() => void saveSelection("llm")}
+          isSaving={savingType === "llm"}
+        />
+        <ModelSelectionControl
+          label="Selected embedding"
+          description="Requires matching active embedding runtime and reindexing when the embedding space changes."
+          value={embeddingValue}
+          options={embeddingOptions}
+          selectedProvider={selectedEmbeddingProvider}
+          selectedModel={selectedEmbeddingModel}
+          disabled={savingType !== null}
+          onChange={setEmbeddingValue}
+          onSave={() => void saveSelection("embedding")}
+          isSaving={savingType === "embedding"}
+        />
+      </div>
+
+      <div className="model-selection-safety-note">
+        <StatusBadge label="instructions only" />
+        <span>
+          Backend restart and reindex steps are still manual. Use the activation
+          guide below after changing runtime-sensitive selections.
+        </span>
+      </div>
+
+      {message ? <p className="model-selection-message">{message}</p> : null}
+      {error ? <p className="model-selection-error">{error}</p> : null}
+    </section>
+  );
+}
+
+function ModelSelectionControl({
+  label,
+  description,
+  value,
+  options,
+  selectedProvider,
+  selectedModel,
+  disabled,
+  onChange,
+  onSave,
+  isSaving,
+}: {
+  label: string;
+  description: string;
+  value: string;
+  options: ModelOption[];
+  selectedProvider: string | null;
+  selectedModel: string | null;
+  disabled: boolean;
+  onChange: (value: string) => void;
+  onSave: () => void;
+  isSaving: boolean;
+}) {
+  return (
+    <article className="model-selection-card">
+      <div className="model-selection-card-heading">
+        <div>
+          <span>{label}</span>
+          <strong>
+            {selectedProvider && selectedModel
+              ? `${selectedProvider}/${selectedModel}`
+              : "Not selected"}
+          </strong>
+        </div>
+        <StatusBadge label="preference" />
+      </div>
+      <p>{description}</p>
+      <label>
+        <span>Choose model</span>
+        <select
+          value={value}
+          disabled={disabled || options.length === 0}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          {options.length === 0 ? (
+            <option value="">No options available</option>
+          ) : (
+            options.map((option) => (
+              <option
+                key={`${option.provider}/${option.model}`}
+                value={`${option.provider}||${option.model}`}
+              >
+                {option.label}
+              </option>
+            ))
+          )}
+        </select>
+      </label>
+      <div className="model-option-source-list">
+        {options.slice(0, 3).map((option) => (
+          <span key={`${option.provider}/${option.model}/${option.source}`}>
+            {option.source}: {option.provider}/{option.model}
+          </span>
+        ))}
+      </div>
+      <button
+        className="model-selection-save-button"
+        type="button"
+        disabled={disabled || options.length === 0}
+        onClick={onSave}
+      >
+        {isSaving ? "Saving…" : `Save ${label}`}
+      </button>
+    </article>
   );
 }
 
@@ -307,6 +587,83 @@ function CommandList({
       ))}
     </div>
   );
+}
+
+function buildModelOptions({
+  modelType,
+  selectedProvider,
+  selectedModel,
+  activeProvider,
+  activeModel,
+  recommendations,
+}: {
+  modelType: "llm" | "embedding";
+  selectedProvider: string | null;
+  selectedModel: string | null;
+  activeProvider: string;
+  activeModel: string;
+  recommendations: WorkspaceModelRecommendation[];
+}): ModelOption[] {
+  const options = new Map<string, ModelOption>();
+
+  addOption(options, selectedProvider, selectedModel, "Current selection");
+  addOption(options, activeProvider, activeModel, "Active runtime");
+
+  for (const recommendation of recommendations) {
+    if (recommendation.model.model_type === modelType) {
+      addOption(
+        options,
+        recommendation.model.provider,
+        recommendation.model.model_name,
+        `Recommended ${recommendation.final_score}`,
+      );
+    }
+  }
+
+  return Array.from(options.values());
+}
+
+function addOption(
+  options: Map<string, ModelOption>,
+  provider: string | null | undefined,
+  model: string | null | undefined,
+  source: string,
+) {
+  if (!provider || !model) {
+    return;
+  }
+  const key = toOptionValue(provider, model);
+  if (!key || options.has(key)) {
+    return;
+  }
+  options.set(key, {
+    provider,
+    model,
+    label: `${provider}/${model} · ${source}`,
+    source,
+  });
+}
+
+function toOptionValue(
+  provider: string | null | undefined,
+  model: string | null | undefined,
+) {
+  if (!provider || !model) {
+    return null;
+  }
+  return `${provider}||${model}`;
+}
+
+function parseOptionValue(value: string) {
+  const [provider, model] = value.split("||");
+  if (!provider || !model) {
+    return null;
+  }
+  return { provider, model };
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unexpected request error";
 }
 
 function formatLabel(value: string) {

@@ -133,31 +133,32 @@ The **Real Local AI Happy Path** has been manually verified end to end:
 - Frontend Overview shows Local AI status `Ready`, Ask shows `ollama/llama3.2`,
   and Activity records Ollama-backed question events.
 
-## Immediate Next Task: Frontend Model Selection Editing Flow
+## Latest Frontend Model Selection Editing Flow
 
-The next recommended product task is a safe frontend flow for editing workspace
-model selection. Users should not need to manually call
-`PUT /workspaces/{workspace_id}/models/selection` from the terminal to switch
-between `fake`, `llama3.2`, `qwen2.5-coder`, or another catalog model.
+The frontend Models tab now includes a safe model selection editing flow. Users
+can update selected LLM and selected embedding preferences from the UI without
+using curl. The flow remains advisory and explicit:
 
-The flow must remain advisory and explicit:
+- Shows current selected and active LLM/embedding.
+- Lets the user choose from current selection, active runtime, and available
+  recommendations.
+- Saves one selection at a time only after explicit button click.
+- Uses the correct backend payload: `provider`, `model`, `model_type`, and
+  optional `selected_reason`.
+- Refreshes read-only workspace/model dashboard state after save.
+- Does not restart the backend.
+- Does not download models.
+- Does not reindex automatically.
+- Does not execute setup commands.
 
-- Show current selected and active LLM/embedding.
-- Let the user select a catalog LLM or embedding preference.
-- Save the selection only after explicit confirmation.
-- Explain whether the change requires backend restart or reindexing.
-- Do not restart the backend.
-- Do not download models.
-- Do not reindex automatically.
-- Do not execute setup commands.
-- Prefer copy-only guidance for any required runtime or reindex command.
+## Next Recommended Tasks
 
-This builds naturally on the existing model-management surface:
-
-- The catalog describes available candidates.
-- Recommendations rank candidates deterministically.
-- The switching plan explains operational consequences.
-- Selection status explains whether selected and active runtime match.
+1. Add copy-only frontend reindex guidance when selected embedding and active
+   runtime match but the workspace needs a fresh index.
+2. Add optional model catalog browsing beyond the top workspace recommendations.
+3. Add better source-ranking diagnostics for Ask results.
+4. Run a `llama3.2` vs `qwen2.5-coder` comparison experiment against the same
+   workspace context.
 - Usage and embedding-indexing plans explain whether ask/search/indexing can
   proceed.
 - The Local AI Activation Guide provides copy-only setup instructions.
