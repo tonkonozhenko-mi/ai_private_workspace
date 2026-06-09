@@ -13,6 +13,9 @@ const SUCCESS_LABELS = new Set([
   "available",
   "success",
   "completed",
+  "no reindex",
+  "no restart",
+  "shared context",
 ]);
 
 const WARNING_LABELS = new Set([
@@ -28,6 +31,8 @@ const WARNING_LABELS = new Set([
   "current",
   "next",
   "medium",
+  "reindex needed",
+  "restart needed",
 ]);
 
 const DANGER_LABELS = new Set([
@@ -55,6 +60,10 @@ const INFO_LABELS = new Set([
   "per-request override",
   "default runtime",
   "informational",
+  "advisory",
+  "plan only",
+  "catalog",
+  "custom",
 ]);
 
 const NEUTRAL_LABELS = new Set(["read-only", "readonly", "neutral"]);

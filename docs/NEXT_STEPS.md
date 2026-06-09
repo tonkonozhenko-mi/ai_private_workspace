@@ -265,3 +265,15 @@ The frontend now shows copy-only scan and index commands when a workspace has no
 ## Task 99: LLM Runtime Mismatch Guidance
 
 Frontend Models now treats LLM selection mismatches as an informational per-request preference, while embedding runtime mismatches remain action-required because they affect search/index compatibility. Saving LLM or embedding preferences remains manual-submit only and does not restart runtime, reindex, or execute commands.
+
+## Completed: Frontend model experiment plan UI
+
+The Models tab now includes a safe LLM comparison planner that calls
+`POST /models/experiments/plan` and displays candidate readiness, shared-context
+strategy, required restart/reindex flags, recommended actions, and notes. It is
+advisory only and does not call models or run experiments.
+
+Recommended next tasks:
+- Add an explicitly confirmed frontend experiment run flow using `POST /models/experiments/run`.
+- Add a comparison results screen for `GET /models/experiments/{id}/comparison`.
+- Add manual rating UI for model experiment candidates.

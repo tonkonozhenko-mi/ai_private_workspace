@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { updateWorkspaceModelSelection } from "../api/client";
+import { planModelExperiment, updateWorkspaceModelSelection } from "../api/client";
 import type {
   LocalAIActivationGuide,
+  ModelExperimentPlan,
   ModelPerformanceItem,
   UpdateWorkspaceModelSelectionRequest,
   WorkspaceModelRecommendation,
@@ -156,6 +157,15 @@ export function ModelsDetail({
         onSelectionUpdated={onSelectionUpdated}
       />
 
+      <ModelExperimentPlanner
+        workspaceId={workspaceId}
+        llmOptions={llmOptions}
+        selectedLlmProvider={dashboard.selected_llm_provider}
+        selectedLlmModel={dashboard.selected_llm_model}
+        activeLlmProvider={usage.active_llm_provider}
+        activeLlmModel={usage.active_llm_model}
+      />
+
       <section className="panel model-readiness-panel">
         <PanelHeading
           eyebrow="Usage readiness"
@@ -263,6 +273,277 @@ export function ModelsDetail({
       </section>
     </div>
   );
+}
+
+
+function ModelExperimentPlanner({
+  workspaceId,
+  llmOptions,
+  selectedLlmProvider,
+  selectedLlmModel,
+  activeLlmProvider,
+  activeLlmModel,
+}: {
+  workspaceId: string;
+  llmOptions: ModelOption[];
+  selectedLlmProvider: string | null;
+  selectedLlmModel: string | null;
+  activeLlmProvider: string;
+  activeLlmModel: string;
+}) {
+  const defaultCandidateA =
+    toOptionValue(selectedLlmProvider, selectedLlmModel) ??
+    toOptionValue(activeLlmProvider, activeLlmModel) ??
+    toOptionValue(llmOptions[0]?.provider, llmOptions[0]?.model) ??
+    "";
+  const defaultCandidateB =
+    firstDifferentOptionValue(llmOptions, defaultCandidateA) ??
+    toOptionValue(activeLlmProvider, activeLlmModel) ??
+    defaultCandidateA;
+  const [question, setQuestion] = useState(
+    "How is Terraform backend configured?",
+  );
+  const [candidateA, setCandidateA] = useState(defaultCandidateA);
+  const [candidateB, setCandidateB] = useState(defaultCandidateB);
+  const [isPlanning, setIsPlanning] = useState(false);
+  const [plan, setPlan] = useState<ModelExperimentPlan | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCandidateA(defaultCandidateA);
+    setCandidateB(defaultCandidateB);
+  }, [defaultCandidateA, defaultCandidateB]);
+
+  async function generatePlan() {
+    const parsedCandidates = [candidateA, candidateB]
+      .map(parseOptionValue)
+      .filter((candidate): candidate is { provider: string; model: string } =>
+        Boolean(candidate),
+      );
+    const uniqueCandidates = dedupeCandidates(parsedCandidates);
+
+    if (question.trim().length === 0) {
+      setError("Enter a comparison question before generating a plan.");
+      setPlan(null);
+      return;
+    }
+
+    if (uniqueCandidates.length < 2) {
+      setError("Choose at least two different LLM candidates.");
+      setPlan(null);
+      return;
+    }
+
+    setIsPlanning(true);
+    setError(null);
+    try {
+      const result = await planModelExperiment({
+        workspace_id: workspaceId,
+        question: question.trim(),
+        candidates: uniqueCandidates.map((candidate) => ({
+          provider: candidate.provider,
+          model: candidate.model,
+          model_type: "llm",
+        })),
+      });
+      setPlan(result);
+    } catch (planError) {
+      setError(errorMessage(planError));
+      setPlan(null);
+    } finally {
+      setIsPlanning(false);
+    }
+  }
+
+  return (
+    <section className="panel model-experiment-planner-panel">
+      <PanelHeading
+        eyebrow="Experiment planning"
+        title="Compare LLM candidates"
+        status="advisory"
+      />
+      <p className="panel-intro">
+        Generate a safe comparison plan before running any model experiment. This
+        does not call models, change selected models, restart the backend, or
+        rebuild the index.
+      </p>
+      <div className="model-experiment-form">
+        <label className="model-experiment-question">
+          <span>Comparison question</span>
+          <textarea
+            value={question}
+            rows={3}
+            onChange={(event) => setQuestion(event.target.value)}
+          />
+        </label>
+        <div className="model-experiment-candidates">
+          <ModelCandidateSelect
+            label="Candidate A"
+            value={candidateA}
+            options={llmOptions}
+            onChange={setCandidateA}
+          />
+          <ModelCandidateSelect
+            label="Candidate B"
+            value={candidateB}
+            options={llmOptions}
+            onChange={setCandidateB}
+          />
+        </div>
+        <button
+          className="model-selection-save-button"
+          type="button"
+          disabled={isPlanning || llmOptions.length < 2}
+          onClick={() => void generatePlan()}
+        >
+          {isPlanning ? "Generating plan…" : "Generate comparison plan"}
+        </button>
+      </div>
+      <div className="model-selection-safety-note">
+        <StatusBadge label="plan only" />
+        <span>
+          Planning is read/advisory. Use experiment run only after explicit
+          confirmation in a separate flow.
+        </span>
+      </div>
+      {error ? <p className="model-selection-error">{error}</p> : null}
+      {plan ? <ModelExperimentPlanResult plan={plan} /> : null}
+    </section>
+  );
+}
+
+function ModelCandidateSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: ModelOption[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label>
+      <span>{label}</span>
+      <select
+        value={value}
+        disabled={options.length === 0}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {options.length === 0 ? (
+          <option value="">No LLM options available</option>
+        ) : (
+          options.map((option) => (
+            <option
+              key={`${label}/${option.provider}/${option.model}`}
+              value={`${option.provider}||${option.model}`}
+            >
+              {option.label}
+            </option>
+          ))
+        )}
+      </select>
+    </label>
+  );
+}
+
+function ModelExperimentPlanResult({ plan }: { plan: ModelExperimentPlan }) {
+  return (
+    <article className="model-experiment-plan-result">
+      <div className="model-experiment-plan-summary">
+        <StatusBadge
+          label={plan.can_compare_without_reindex ? "No reindex" : "Reindex needed"}
+        />
+        <StatusBadge
+          label={plan.requires_reindex ? "Requires reindex" : "Shared context"}
+        />
+        <strong>{formatLabel(plan.experiment_type)}</strong>
+      </div>
+      <p>{plan.shared_context_strategy}</p>
+      <div className="model-experiment-candidate-list">
+        {plan.candidates.map((candidate) => (
+          <article
+            className="model-experiment-candidate-card"
+            key={`${candidate.provider}/${candidate.model}`}
+          >
+            <div>
+              <strong>{candidate.display_name}</strong>
+              <code>
+                {candidate.provider}/{candidate.model}
+              </code>
+            </div>
+            <div className="model-experiment-candidate-badges">
+              <StatusBadge
+                label={candidate.known_in_catalog ? "Catalog" : "Custom"}
+              />
+              <StatusBadge
+                label={
+                  candidate.requires_backend_restart
+                    ? "Restart needed"
+                    : "No restart"
+                }
+              />
+              <StatusBadge
+                label={candidate.requires_reindex ? "Reindex needed" : "No reindex"}
+              />
+            </div>
+            {candidate.warnings.length > 0 ? (
+              <ul>
+                {candidate.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            ) : null}
+          </article>
+        ))}
+      </div>
+      <PlanList title="Recommended actions" items={plan.recommended_actions} />
+      <PlanList title="Notes" items={plan.notes} />
+    </article>
+  );
+}
+
+function PlanList({ title, items }: { title: string; items: string[] }) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="model-experiment-plan-list">
+      <strong>{title}</strong>
+      <ul>
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function firstDifferentOptionValue(
+  options: ModelOption[],
+  currentValue: string,
+): string | null {
+  const option = options.find(
+    (candidate) =>
+      toOptionValue(candidate.provider, candidate.model) !== currentValue,
+  );
+  return option ? toOptionValue(option.provider, option.model) : null;
+}
+
+function dedupeCandidates(
+  candidates: { provider: string; model: string }[],
+): { provider: string; model: string }[] {
+  const seen = new Set<string>();
+  return candidates.filter((candidate) => {
+    const key = `${candidate.provider}/${candidate.model}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 }
 
 function ModelSelectionEditor({
