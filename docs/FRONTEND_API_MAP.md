@@ -841,3 +841,7 @@ This is an explicit Ask-only payload. It does not save skills to the backend, ex
 - Custom skill instructions use explicit Save instruction and Saved locally feedback instead of invisible auto-save.
 - Button sizing and skill-card typography were normalized for a cleaner Apple-style interface.
 - No backend changes, no new API calls, no prompt changes, and no automatic scan/index/model actions.
+
+## Task 142 — Ask conversation UI
+
+The Ask tab now renders `/workspaces/{workspace_id}/ask-selected` responses as a local conversation thread. This is a frontend presentation change only. Each explicit Ask submit still sends the existing selected-model Ask request, including optional `skill_context` from browser-local skill preferences. The UI adds copy/edit/ask-again controls around the returned response but does not add new backend endpoints.

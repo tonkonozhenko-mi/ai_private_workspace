@@ -505,3 +505,9 @@ Backend validation: `pytest` passed with 372 tests and 3 skipped in the task wor
 - Custom skill instructions use explicit Save instruction and Saved locally feedback instead of invisible auto-save.
 - Button sizing and skill-card typography were normalized for a cleaner Apple-style interface.
 - No backend changes, no new API calls, no prompt changes, and no automatic scan/index/model actions.
+
+## Task 142 — Ask conversation redesign
+
+Ask was redesigned as an Apple-style workspace conversation. The Ask screen now shows user questions as conversation bubbles, assistant answers as AI bubbles, and answer actions directly on each response. Users can copy an answer, edit a previous question back into the composer, or ask the same question again with the current workspace context and enabled skills.
+
+Sources, verification notes, diagnostics, and rebuild-context guidance remain attached to the assistant answer instead of being separated from the conversation. The redesign does not change backend behavior: Ask still runs only after an explicit user submit, and the frontend does not execute shell commands, scan/index automatically, or change runtime/model settings.

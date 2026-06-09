@@ -88,13 +88,8 @@ export function AskWorkspace({
   const [question, setQuestion] = useState("");
   const [limit, setLimit] = useState(defaultSourceSnippets);
   const [history, setHistory] = useState<AskHistoryItem[]>([]);
-  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(
-    null,
-  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const selectedHistoryItem =
-    history.find((item) => item.id === selectedHistoryId) ?? history[0] ?? null;
   const showGeneralQuestionHint =
     question.trim().length > 0 && !isLikelyProjectQuestion(question);
 
@@ -102,9 +97,8 @@ export function AskWorkspace({
     setLimit(defaultSourceSnippets);
   }, [workspaceId, defaultSourceSnippets]);
 
-  async function submitQuestion(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmedQuestion = question.trim();
+  async function askQuestion(questionText: string, options: { clearComposer?: boolean } = {}) {
+    const trimmedQuestion = questionText.trim();
     if (!trimmedQuestion) {
       setError("Enter a workspace question before asking.");
       return;
@@ -120,8 +114,10 @@ export function AskWorkspace({
         buildSkillContext(skillPreferences),
       );
       const historyItem = createHistoryItem(result);
-      setHistory((current) => [historyItem, ...current].slice(0, 10));
-      setSelectedHistoryId(historyItem.id);
+      setHistory((current) => [historyItem, ...current].slice(0, 12));
+      if (options.clearComposer) {
+        setQuestion("");
+      }
       await onAsked?.();
     } catch (requestError) {
       setError(
@@ -134,19 +130,29 @@ export function AskWorkspace({
     }
   }
 
+  function submitQuestion(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void askQuestion(question, { clearComposer: true });
+  }
+
+  function editQuestion(questionText: string) {
+    setQuestion(questionText);
+    setError(null);
+  }
+
   const missingChosenAIModel =
     error?.toLowerCase().includes("selected llm") ||
     error?.toLowerCase().includes("select an llm");
 
   return (
-    <div className="ask-workspace">
+    <div className="ask-workspace ask-workspace-chat">
       <div className="ask-sidebar">
         <AssistantFocusHint assistantMode={assistantMode} skillPreferences={skillPreferences} />
 
         <section className="panel ask-composer ask-composer-native">
           <div className="panel-heading ask-composer-heading">
             <div>
-              <p className="eyebrow">Chosen workspace AI model</p>
+              <p className="eyebrow">Workspace chat</p>
               <h2>Ask this workspace</h2>
               <p className="ask-composer-subtitle">
                 Ask about code, infrastructure, CI/CD, or setup. Answers use
@@ -160,7 +166,7 @@ export function AskWorkspace({
             Nothing happens until you press Ask. The frontend never executes commands.
           </p>
 
-          <form onSubmit={(event) => void submitQuestion(event)}>
+          <form onSubmit={submitQuestion}>
             <label htmlFor="workspace-question">Question</label>
             <textarea
               id="workspace-question"
@@ -230,95 +236,129 @@ export function AskWorkspace({
             </div>
           ) : null}
         </section>
-
-        <SessionHistory
-          history={history}
-          selectedHistoryId={selectedHistoryItem?.id ?? null}
-          onSelect={setSelectedHistoryId}
-          onClear={() => {
-            setHistory([]);
-            setSelectedHistoryId(null);
-          }}
-        />
       </div>
 
-      {selectedHistoryItem ? (
-        <AnswerResult answer={selectedHistoryItem.response} />
-      ) : (
-        <AskEmptyState />
-      )}
+      <ConversationPanel
+        history={history}
+        loading={loading}
+        onAskAgain={(questionText) => void askQuestion(questionText)}
+        onClear={() => setHistory([])}
+        onEditQuestion={editQuestion}
+      />
     </div>
   );
 }
 
-function SessionHistory({
+function ConversationPanel({
   history,
-  selectedHistoryId,
-  onSelect,
+  loading,
+  onAskAgain,
   onClear,
+  onEditQuestion,
 }: {
   history: AskHistoryItem[];
-  selectedHistoryId: string | null;
-  onSelect: (id: string) => void;
+  loading: boolean;
+  onAskAgain: (question: string) => void;
   onClear: () => void;
+  onEditQuestion: (question: string) => void;
 }) {
+  const chronologicalHistory = [...history].reverse();
+
+  if (history.length === 0) {
+    return (
+      <section className="ask-conversation-panel">
+        <AskEmptyState />
+      </section>
+    );
+  }
+
   return (
-    <section className="panel ask-history-panel">
-      <div className="panel-heading">
+    <section className="ask-conversation-panel" aria-live="polite">
+      <div className="panel ask-conversation-header">
         <div>
-          <p className="eyebrow">Current browser tab</p>
-          <h2>Recent questions</h2>
+          <p className="eyebrow">Current conversation</p>
+          <h2>Workspace chat</h2>
+          <p>
+            Questions and answers stay in this browser tab. Copy answers, edit a
+            question, or ask again without changing workspace setup.
+          </p>
         </div>
-        <span className="panel-count">{history.length}</span>
+        <div className="ask-conversation-actions">
+          <span className="panel-count">{history.length}</span>
+          <button className="secondary-button" type="button" onClick={onClear}>
+            Clear
+          </button>
+        </div>
       </div>
 
-      <p className="ask-history-note">
-        Local to this browser tab. Pick a previous question to review its answer
-        and sources.
-      </p>
-
-      {history.length > 0 ? (
-        <>
-          <div className="ask-history-list">
-            {history.map((item) => (
-              <button
-                aria-pressed={selectedHistoryId === item.id}
-                className={`ask-history-item${
-                  selectedHistoryId === item.id ? " is-selected" : ""
-                }`}
-                key={item.id}
-                type="button"
-                onClick={() => onSelect(item.id)}
-              >
-                <strong>{item.question}</strong>
-                <p>{item.answer || "Empty answer"}</p>
-                <div>
-                  <span>{item.llmLabel}</span>
-                  <span>{item.sourcesCount} sources</span>
-                  <span>{item.warningsCount} warnings</span>
-                  <time dateTime={item.createdAt}>
-                    {formatTime(item.createdAt)}
-                  </time>
-                </div>
-              </button>
-            ))}
-          </div>
-          <button
-            className="session-clear-button"
-            type="button"
-            onClick={onClear}
-          >
-            Clear session history
-          </button>
-        </>
-      ) : (
-        <EmptyState title="No questions asked in this session yet" compact />
-      )}
+      <div className="ask-message-list">
+        {chronologicalHistory.map((item) => (
+          <ConversationTurn
+            item={item}
+            key={item.id}
+            onAskAgain={onAskAgain}
+            onEditQuestion={onEditQuestion}
+          />
+        ))}
+        {loading ? (
+          <article className="ask-message-row is-assistant">
+            <div className="ask-avatar">AI</div>
+            <div className="ask-message-bubble assistant-bubble is-loading">
+              <span>Thinking with workspace context...</span>
+            </div>
+          </article>
+        ) : null}
+      </div>
     </section>
   );
 }
 
-function AnswerResult({ answer }: { answer: WorkspaceQuestionAnswer }) {
+function ConversationTurn({
+  item,
+  onAskAgain,
+  onEditQuestion,
+}: {
+  item: AskHistoryItem;
+  onAskAgain: (question: string) => void;
+  onEditQuestion: (question: string) => void;
+}) {
+  return (
+    <article className="ask-conversation-turn">
+      <div className="ask-message-row is-user">
+        <div className="ask-message-bubble user-bubble">
+          <span className="ask-message-label">You</span>
+          <p>{item.question}</p>
+          <div className="ask-message-actions">
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => onEditQuestion(item.question)}
+            >
+              Edit question
+            </button>
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => onAskAgain(item.question)}
+            >
+              Ask again
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <AnswerResult answer={item.response} createdAt={item.createdAt} />
+    </article>
+  );
+}
+
+function AnswerResult({
+  answer,
+  createdAt,
+}: {
+  answer: WorkspaceQuestionAnswer;
+  createdAt: string;
+}) {
   const warnings = answer.quality_warnings ?? [];
   const reindexReason = getAskReindexReason(answer);
   const isMissingSourcePaths = warnings.some(
@@ -326,67 +366,66 @@ function AnswerResult({ answer }: { answer: WorkspaceQuestionAnswer }) {
   );
 
   return (
-    <section className="ask-results" aria-live="polite">
-      <article className="panel answer-panel">
-        <div className="panel-heading answer-heading">
-          <div>
-            <p className="eyebrow">Workspace answer</p>
-            <h2>Answer from chosen model</h2>
+    <div className="ask-message-row is-assistant">
+      <div className="ask-avatar">AI</div>
+      <div className="ask-assistant-stack">
+        <article className="ask-message-bubble assistant-bubble">
+          <div className="assistant-bubble-header">
+            <div>
+              <span className="ask-message-label">AI Private Workspace</span>
+              <small>
+                {answer.llm_provider}/{answer.llm_model ?? "default"} · {formatTime(createdAt)}
+              </small>
+            </div>
+            <CopyButton text={answer.answer} label="answer" />
           </div>
-          <span className="answer-model">
-            {answer.llm_provider}/{answer.llm_model ?? "default"}
-          </span>
-        </div>
-        <div className="answer-question-card">
-          <span>You asked</span>
-          <p>{answer.question}</p>
-        </div>
-        <div className="answer-content answer-bubble">
-          {answer.answer ? (
-            <MarkdownAnswer content={answer.answer} />
-          ) : (
-            "The chosen AI model returned an empty answer."
-          )}
-        </div>
-        <div className="answer-stats">
-          <span>
-            <strong>{answer.used_context_chunks}</strong> context pieces used
-          </span>
-          <span>
-            <strong>{answer.sources.length}</strong> sources returned
-          </span>
-        </div>
-      </article>
-
-      {answer.diagnostic_message ? (
-        <article className="ask-diagnostic">
-          <span>{formatLabel(answer.diagnostic_code ?? "workspace status")}</span>
-          <p>{answer.diagnostic_message}</p>
+          <div className="answer-content">
+            {answer.answer ? (
+              <MarkdownAnswer content={answer.answer} />
+            ) : (
+              "The chosen AI model returned an empty answer."
+            )}
+          </div>
+          <div className="answer-stats">
+            <span>
+              <strong>{answer.used_context_chunks}</strong> context pieces
+            </span>
+            <span>
+              <strong>{answer.sources.length}</strong> sources
+            </span>
+          </div>
         </article>
-      ) : null}
 
-      {reindexReason ? (
-        <ReindexGuidance
+        {answer.diagnostic_message ? (
+          <article className="ask-diagnostic">
+            <span>{formatLabel(answer.diagnostic_code ?? "workspace status")}</span>
+            <p>{answer.diagnostic_message}</p>
+          </article>
+        ) : null}
+
+        {reindexReason ? (
+          <ReindexGuidance
+            workspaceId={answer.workspace_id}
+            reason={reindexReason}
+          />
+        ) : null}
+
+        {warnings.length > 0 ? <QualityWarnings warnings={warnings} /> : null}
+
+        {isMissingSourcePaths ? (
+          <p className="ask-source-path-note">
+            The model answered without mentioning source paths. Check retrieved
+            sources below.
+          </p>
+        ) : null}
+
+        <Sources
           workspaceId={answer.workspace_id}
-          reason={reindexReason}
+          sources={answer.sources}
+          suppressReindexGuidance={reindexReason !== null}
         />
-      ) : null}
-
-      {warnings.length > 0 ? <QualityWarnings warnings={warnings} /> : null}
-
-      {isMissingSourcePaths ? (
-        <p className="ask-source-path-note">
-          The model answered without mentioning source paths. Check retrieved
-          sources below.
-        </p>
-      ) : null}
-
-      <Sources
-        workspaceId={answer.workspace_id}
-        sources={answer.sources}
-        suppressReindexGuidance={reindexReason !== null}
-      />
-    </section>
+      </div>
+    </div>
   );
 }
 
