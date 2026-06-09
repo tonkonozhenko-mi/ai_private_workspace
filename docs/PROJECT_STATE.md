@@ -473,3 +473,11 @@ The sidebar archive view was clarified so active workspaces remain visually sepa
 GitHub CI was improved with workflow concurrency, cached frontend/backend dependency installs, clearer job names, and workflow summaries for frontend typecheck/build and backend pytest.
 
 Safety remains unchanged: the frontend does not execute shell commands, does not automatically scan/index/rebuild, does not delete local files, and does not change model/runtime settings.
+
+
+## Task 138 — Skills and assistant focus flow
+
+- Added a Workspace skills panel to Overview that explains detected skills, the current assistant focus, and starter presets.
+- Added an Ask assistant-focus hint so users understand how the selected mode shapes answers.
+- Documented the next direction for a customizable skill library with presets such as DevOps, Developer, Documentation, Incident Support, and Manager Summary.
+- No backend behavior, shell execution, automatic scan/index, or model/runtime changes were added.

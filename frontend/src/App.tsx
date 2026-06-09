@@ -436,6 +436,7 @@ function App() {
                 <AskWorkspace
                   key={detail.dashboard.workspace_id}
                   workspaceId={detail.dashboard.workspace_id}
+                  assistantMode={detail.dashboard.assistant_mode}
                   defaultSourceSnippets={preferences.defaultSourceSnippets}
                   onAsked={() => refreshAfterAsk(detail.dashboard.workspace_id)}
                 />

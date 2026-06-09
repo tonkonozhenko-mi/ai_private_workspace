@@ -14,6 +14,7 @@ type SourceSnippetLimit = 3 | 5 | 8 | 10;
 
 interface AskWorkspaceProps {
   workspaceId: string;
+  assistantMode: string;
   defaultSourceSnippets: SourceSnippetLimit;
   onAsked?: () => void | Promise<void>;
 }
@@ -76,6 +77,7 @@ function parseSourceSnippetLimit(value: string): SourceSnippetLimit {
 
 export function AskWorkspace({
   workspaceId,
+  assistantMode,
   defaultSourceSnippets,
   onAsked,
 }: AskWorkspaceProps) {
@@ -134,6 +136,8 @@ export function AskWorkspace({
   return (
     <div className="ask-workspace">
       <div className="ask-sidebar">
+        <AssistantFocusHint assistantMode={assistantMode} />
+
         <section className="panel ask-composer ask-composer-native">
           <div className="panel-heading ask-composer-heading">
             <div>
@@ -770,6 +774,54 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
   flushBullets();
 
   return blocks;
+}
+
+
+function AssistantFocusHint({ assistantMode }: { assistantMode: string }) {
+  const focus = getAskFocus(assistantMode);
+
+  return (
+    <section className="panel ask-focus-hint">
+      <div>
+        <p className="eyebrow">Assistant focus</p>
+        <h2>{focus.title}</h2>
+        <p>{focus.description}</p>
+      </div>
+      <span>{focus.badge}</span>
+    </section>
+  );
+}
+
+function getAskFocus(mode: string) {
+  const focuses: Record<string, { title: string; description: string; badge: string }> = {
+    devops: {
+      title: "DevOps and platform answers",
+      description: "Questions are framed around infrastructure, CI/CD, runtime setup, cloud, and operational context.",
+      badge: "DevOps",
+    },
+    developer: {
+      title: "Developer answers",
+      description: "Questions are framed around code structure, implementation details, dependencies, and tests.",
+      badge: "Code",
+    },
+    documentation: {
+      title: "Documentation answers",
+      description: "Questions are framed around README files, architecture notes, onboarding, and clear project summaries.",
+      badge: "Docs",
+    },
+    support_incident: {
+      title: "Incident support answers",
+      description: "Questions are framed around symptoms, likely causes, troubleshooting checks, and operational next steps.",
+      badge: "Support",
+    },
+    manager_summary: {
+      title: "Manager-ready answers",
+      description: "Questions are framed around concise summaries, risks, progress, and stakeholder-friendly wording.",
+      badge: "Summary",
+    },
+  };
+
+  return focuses[mode] ?? focuses.devops;
 }
 
 function AskEmptyState() {
