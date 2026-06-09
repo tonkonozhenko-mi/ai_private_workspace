@@ -531,3 +531,8 @@ cd frontend
 npm run typecheck
 npm run build
 ```
+
+
+## Completed — Task 120 Models experiments simplification
+
+The Models screen now keeps comparison/experiment tools optional so most users first see only the models currently used by the workspace. Next UX work can focus on first-run onboarding and new workspace guidance.

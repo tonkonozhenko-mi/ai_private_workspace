@@ -675,3 +675,8 @@ selection, dashboard, recommendation, experiment, rating, and history APIs.
 The model selection editor is now a progressive-disclosure section in the Models tab. It still uses the existing `PUT /workspaces/{workspace_id}/models/selection` flow through the existing frontend API client, but the UI presents it as optional model settings rather than a primary first-run task.
 
 The frontend still does not restart the backend, rebuild search context, execute shell commands, or automatically switch runtime models after saving a workspace preference.
+
+
+## Task 120 note — Model comparison UI
+
+The frontend still uses the existing model experiment endpoints, but the user-facing UI presents this area as optional model comparison. The screen does not run comparisons until the user explicitly prepares and then runs the comparison.

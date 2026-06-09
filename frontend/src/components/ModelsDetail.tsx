@@ -259,7 +259,7 @@ export function ModelsDetail({
       <div className="models-secondary-grid">
         <section className="panel model-readiness-panel">
           <PanelHeading
-            eyebrow="Usage readiness"
+            eyebrow="Readiness"
             title="What works now"
             status={
               dashboard.usage_plan.can_use_selected_models_fully
@@ -323,7 +323,7 @@ export function ModelsDetail({
             </div>
           ) : (
             <EmptyState
-              title="No experiment performance has been recorded yet"
+              title="No model comparison feedback has been recorded yet"
               compact
             />
           )}
@@ -596,16 +596,18 @@ function ModelExperimentPlanner({
   }
 
   return (
-    <section className="panel model-experiment-planner-panel">
-      <PanelHeading
-        eyebrow="Experiment planning"
-        title="Compare AI model candidates"
-        status="advisory"
-      />
+    <details className="panel model-experiment-planner-panel models-disclosure-panel">
+      <summary>
+        <div>
+          <p className="eyebrow">Optional model comparison</p>
+          <h2>Compare models</h2>
+          <span>Try two local AI models on the same question when you want to improve answer quality.</span>
+        </div>
+        <StatusBadge label="Optional" size="md" />
+      </summary>
       <p className="panel-intro">
-        Generate a safe comparison plan before running any model experiment. This
-        does not call models, change selected models, restart the backend, or
-        rebuild the index.
+        Prepare a safe comparison before running any local model test. This does
+        not change workspace models, restart the backend, or rebuild search context.
       </p>
       <div className="model-experiment-form">
         <label className="model-experiment-question">
@@ -618,13 +620,13 @@ function ModelExperimentPlanner({
         </label>
         <div className="model-experiment-candidates">
           <ModelCandidateSelect
-            label="Candidate A"
+            label="Model A"
             value={candidateA}
             options={llmOptions}
             onChange={setCandidateA}
           />
           <ModelCandidateSelect
-            label="Candidate B"
+            label="Model B"
             value={candidateB}
             options={llmOptions}
             onChange={setCandidateB}
@@ -636,14 +638,13 @@ function ModelExperimentPlanner({
           disabled={isPlanning || llmOptions.length < 2}
           onClick={() => void generatePlan()}
         >
-          {isPlanning ? "Generating plan…" : "Generate comparison plan"}
+          {isPlanning ? "Preparing comparison…" : "Prepare comparison"}
         </button>
       </div>
       <div className="model-selection-safety-note">
-        <StatusBadge label="plan only" />
+        <StatusBadge label="planning only" />
         <span>
-          Planning is read/advisory. Use experiment run only after explicit
-          confirmation in a separate flow.
+          Planning is advisory. Run the comparison only after you explicitly confirm it below.
         </span>
       </div>
       {error ? <p className="model-selection-error">{error}</p> : null}
@@ -651,14 +652,11 @@ function ModelExperimentPlanner({
       {plan ? (
         <div className="model-experiment-run-panel">
           <div className="model-experiment-run-heading">
-            <StatusBadge label="local llm calls" />
+            <StatusBadge label="local AI calls" />
             <div>
-              <strong>Run local comparison experiment</strong>
+              <strong>Run local model comparison</strong>
               <p>
-                This calls the chosen local AI model candidates through the backend.
-                It may take time and can use CPU/RAM, but it does not execute
-                shell commands, change chosen models, restart the backend, or
-                rebuild search context.
+                This asks both selected local AI models through the backend. It may take time and can use CPU/RAM, but it does not execute shell commands, change workspace models, restart the backend, or rebuild search context.
               </p>
             </div>
           </div>
@@ -668,7 +666,7 @@ function ModelExperimentPlanner({
             disabled={isRunning}
             onClick={() => void runComparisonExperiment()}
           >
-            {isRunning ? "Running experiment…" : "Run comparison experiment"}
+            {isRunning ? "Running comparison…" : "Run model comparison"}
           </button>
         </div>
       ) : null}
@@ -688,7 +686,7 @@ function ModelExperimentPlanner({
         onRefresh={() => void loadExperimentHistory()}
         onSelectExperiment={setRunResult}
       />
-    </section>
+    </details>
   );
 }
 
@@ -799,11 +797,11 @@ function ModelExperimentRunResult({
       <div className="model-experiment-plan-summary">
         <StatusBadge label={result.status} />
         <StatusBadge label={`${result.shared_context_sources_count} shared sources`} />
-        <strong>Experiment run</strong>
+        <strong>Comparison result</strong>
       </div>
       <div className="model-experiment-run-meta">
         <span>
-          Experiment ID <code>{result.id}</code>
+          Comparison ID <code>{result.id}</code>
         </span>
         <span>Created {formatDateTime(result.created_at)}</span>
         {result.completed_at ? <span>Completed {formatDateTime(result.completed_at)}</span> : null}
@@ -824,7 +822,7 @@ function ModelExperimentRunResult({
               <StatusBadge label={candidate.status} />
               <StatusBadge label={`${candidate.latency_ms ?? 0} ms`} />
               <StatusBadge label={`${candidate.sources_count} sources`} />
-              <StatusBadge label={`${candidate.quality_warnings_count} warnings`} />
+              <StatusBadge label={`${candidate.quality_warnings_count} notes`} />
             </div>
             {candidate.error ? (
               <p className="model-selection-error">{candidate.error}</p>
@@ -873,7 +871,7 @@ function ExperimentRunHeuristics({ result }: { result: ModelExperimentRun }) {
           Fastest: {fastest.provider}/{fastest.model} ({fastest.latency_ms ?? "unknown"} ms)
         </li>
         <li>
-          Fewest warnings: {fewestWarnings.provider}/{fewestWarnings.model} ({fewestWarnings.quality_warnings_count})
+          Fewest verification notes: {fewestWarnings.provider}/{fewestWarnings.model} ({fewestWarnings.quality_warnings_count})
         </li>
         <li>
           Most sources used: {mostSources.provider}/{mostSources.model} ({mostSources.sources_count})
@@ -908,7 +906,7 @@ function ModelExperimentHistoryPanel({
       <div className="model-experiment-history-heading">
         <div>
           <StatusBadge label="history" />
-          <strong>Experiment history</strong>
+          <strong>Comparison history</strong>
           <p>
             Review previous local model comparisons for this workspace. Selecting
             a run only opens its saved details and ratings UI.
@@ -949,12 +947,12 @@ function ModelExperimentHistoryPanel({
               <div className="model-experiment-history-meta">
                 <StatusBadge label={experiment.status} />
                 <StatusBadge label={`${experiment.shared_context_sources_count} sources`} />
-                <StatusBadge label={`${experiment.candidates.length} candidates`} />
+                <StatusBadge label={`${experiment.candidates.length} models`} />
               </div>
               <div className="model-experiment-history-candidates">
                 {experiment.candidates.slice(0, 3).map((candidate) => (
                   <span key={`${experiment.id}/${candidate.provider}/${candidate.model}`}>
-                    {candidate.provider}/{candidate.model} · {candidate.latency_ms ?? "?"} ms · {candidate.quality_warnings_count} warnings
+                    {candidate.provider}/{candidate.model} · {candidate.latency_ms ?? "?"} ms · {candidate.quality_warnings_count} notes
                   </span>
                 ))}
               </div>
@@ -1089,16 +1087,15 @@ function ExperimentRatingPanel({
       <div className="experiment-rating-heading">
         <StatusBadge label="manual rating" />
         <div>
-          <strong>Rate this experiment</strong>
+          <strong>Rate this comparison</strong>
           <p>
-            Save human feedback for model performance tracking. This does not
-            change the chosen AI model or rerun the experiment.
+            Save human feedback for model performance tracking. This does not change the chosen AI model or rerun the comparison.
           </p>
         </div>
       </div>
       <div className="experiment-rating-form">
         <label>
-          <span>Candidate</span>
+          <span>Model</span>
           <select
             value={selectedCandidate}
             onChange={(event) => setSelectedCandidate(event.target.value)}
@@ -1792,10 +1789,10 @@ function RecommendationRow({
       </div>
       <div className="model-ranking-metrics">
         <span>
-          Score <strong>{recommendation.final_score}</strong>
+          Recommendation score <strong>{recommendation.final_score}</strong>
         </span>
         <span>
-          Warnings <strong>{recommendation.warnings.length}</strong>
+          Notes <strong>{recommendation.warnings.length}</strong>
         </span>
       </div>
     </article>
