@@ -597,3 +597,15 @@ Next recommended work: review whether any setting should become backend-backed
 workspace metadata. Keep safety settings read-only and avoid adding controls
 that would automatically run scan, index, rebuild, restart, or model-switch
 flows.
+
+## Completed — Task 126 Dark Theme Token Repair
+
+Dark mode now has a dedicated contrast-safe palette for page background, panels, cards, navigation, badges, inputs, and onboarding/model surfaces. Validate visually in Dark and System modes, then run:
+
+```bash
+cd frontend
+npm run typecheck
+npm run build
+```
+
+Next recommended work: continue Settings and personalization only after confirming both Light and Dark themes remain readable.
