@@ -321,3 +321,18 @@ Recommended next tasks:
 1. Add a deterministic comparison details view using `GET /models/experiments/{experiment_id}/comparison` if available.
 2. Add an explicit "apply preferred model" confirmation flow that uses the existing model selection endpoint.
 3. Improve performance summary cards using accumulated ratings, preferred votes, and experiment history.
+
+## After Task 104: Apply preferred experiment model
+
+Completed:
+
+- Preferred experiment ratings can now be used to update the workspace selected LLM from the Models tab.
+- The flow requires explicit confirmation before calling the model selection endpoint.
+- Applying a preferred model only updates workspace LLM preference metadata.
+- It does not restart runtime, reindex, rerun experiments, change embeddings, download models, or execute shell commands.
+
+Recommended next tasks:
+
+1. Add a deterministic comparison details view using `GET /models/experiments/{experiment_id}/comparison` if available.
+2. Improve performance summary cards using accumulated ratings, preferred votes, and experiment history.
+3. Add a small roadmap/status page that summarizes completed phases and next product milestones.

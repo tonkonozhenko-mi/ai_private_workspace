@@ -174,6 +174,7 @@ export function ModelsDetail({
         selectedLlmModel={dashboard.selected_llm_model}
         activeLlmProvider={usage.active_llm_provider}
         activeLlmModel={usage.active_llm_model}
+        onSelectionUpdated={onSelectionUpdated}
       />
 
       <section className="panel model-readiness-panel">
@@ -293,6 +294,7 @@ function ModelExperimentPlanner({
   selectedLlmModel,
   activeLlmProvider,
   activeLlmModel,
+  onSelectionUpdated,
 }: {
   workspaceId: string;
   llmOptions: ModelOption[];
@@ -300,6 +302,7 @@ function ModelExperimentPlanner({
   selectedLlmModel: string | null;
   activeLlmProvider: string;
   activeLlmModel: string;
+  onSelectionUpdated: () => Promise<void> | void;
 }) {
   const defaultCandidateA =
     toOptionValue(selectedLlmProvider, selectedLlmModel) ??
@@ -510,7 +513,13 @@ function ModelExperimentPlanner({
         </div>
       ) : null}
       {runError ? <p className="model-selection-error">{runError}</p> : null}
-      {runResult ? <ModelExperimentRunResult result={runResult} /> : null}
+      {runResult ? (
+        <ModelExperimentRunResult
+          result={runResult}
+          workspaceId={workspaceId}
+          onSelectionUpdated={onSelectionUpdated}
+        />
+      ) : null}
       <ModelExperimentHistoryPanel
         experiments={experimentHistory}
         isLoading={isLoadingHistory}
@@ -616,7 +625,15 @@ function ModelExperimentPlanResult({ plan }: { plan: ModelExperimentPlan }) {
 }
 
 
-function ModelExperimentRunResult({ result }: { result: ModelExperimentRun }) {
+function ModelExperimentRunResult({
+  result,
+  workspaceId,
+  onSelectionUpdated,
+}: {
+  result: ModelExperimentRun;
+  workspaceId: string;
+  onSelectionUpdated: () => Promise<void> | void;
+}) {
   return (
     <article className="model-experiment-run-result">
       <div className="model-experiment-plan-summary">
@@ -660,7 +677,11 @@ function ModelExperimentRunResult({ result }: { result: ModelExperimentRun }) {
         ))}
       </div>
       <ExperimentRunHeuristics result={result} />
-      <ExperimentRatingPanel result={result} />
+      <ExperimentRatingPanel
+        result={result}
+        workspaceId={workspaceId}
+        onSelectionUpdated={onSelectionUpdated}
+      />
       <PlanList title="Run notes" items={result.notes} />
     </article>
   );
@@ -785,7 +806,15 @@ function ModelExperimentHistoryPanel({
   );
 }
 
-function ExperimentRatingPanel({ result }: { result: ModelExperimentRun }) {
+function ExperimentRatingPanel({
+  result,
+  workspaceId,
+  onSelectionUpdated,
+}: {
+  result: ModelExperimentRun;
+  workspaceId: string;
+  onSelectionUpdated: () => Promise<void> | void;
+}) {
   const completedCandidates = result.candidates.filter(
     (candidate) => candidate.status === "completed" && !candidate.error,
   );
@@ -804,6 +833,8 @@ function ExperimentRatingPanel({ result }: { result: ModelExperimentRun }) {
   const [isSavingRating, setIsSavingRating] = useState(false);
   const [ratingError, setRatingError] = useState<string | null>(null);
   const [ratingMessage, setRatingMessage] = useState<string | null>(null);
+  const [applyCandidate, setApplyCandidate] = useState<ModelExperimentRating | null>(null);
+  const [isApplyingSelection, setIsApplyingSelection] = useState(false);
 
   useEffect(() => {
     setSelectedCandidate(
@@ -867,6 +898,29 @@ function ExperimentRatingPanel({ result }: { result: ModelExperimentRun }) {
       setRatingError(errorMessage(saveError));
     } finally {
       setIsSavingRating(false);
+    }
+  }
+
+  async function applyPreferredRating(ratingToApply: ModelExperimentRating) {
+    setIsApplyingSelection(true);
+    setRatingError(null);
+    setRatingMessage(null);
+    try {
+      await updateWorkspaceModelSelection(workspaceId, {
+        provider: ratingToApply.provider,
+        model: ratingToApply.model,
+        model_type: "llm",
+        selected_reason: `Selected from experiment ${result.id} after manual preferred rating.`,
+      });
+      setRatingMessage(
+        `Selected LLM updated to ${ratingToApply.provider}/${ratingToApply.model}. Runtime settings, indexing, and experiment results were not changed.`,
+      );
+      setApplyCandidate(null);
+      await onSelectionUpdated();
+    } catch (applyError) {
+      setRatingError(errorMessage(applyError));
+    } finally {
+      setIsApplyingSelection(false);
     }
   }
 
@@ -941,7 +995,15 @@ function ExperimentRatingPanel({ result }: { result: ModelExperimentRun }) {
       </button>
       {ratingMessage ? <p className="model-selection-message">{ratingMessage}</p> : null}
       {ratingError ? <p className="model-selection-error">{ratingError}</p> : null}
-      <SavedRatingsList ratings={ratings} isLoading={isLoadingRatings} />
+      <SavedRatingsList
+        ratings={ratings}
+        isLoading={isLoadingRatings}
+        applyCandidate={applyCandidate}
+        isApplyingSelection={isApplyingSelection}
+        onRequestApply={setApplyCandidate}
+        onCancelApply={() => setApplyCandidate(null)}
+        onConfirmApply={(ratingToApply) => void applyPreferredRating(ratingToApply)}
+      />
     </div>
   );
 }
@@ -989,9 +1051,19 @@ function TagChecklist({
 function SavedRatingsList({
   ratings,
   isLoading,
+  applyCandidate,
+  isApplyingSelection,
+  onRequestApply,
+  onCancelApply,
+  onConfirmApply,
 }: {
   ratings: ModelExperimentRating[];
   isLoading: boolean;
+  applyCandidate: ModelExperimentRating | null;
+  isApplyingSelection: boolean;
+  onRequestApply: (rating: ModelExperimentRating) => void;
+  onCancelApply: () => void;
+  onConfirmApply: (rating: ModelExperimentRating) => void;
 }) {
   if (isLoading) {
     return <p className="model-experiment-rating-muted">Loading saved ratings…</p>;
@@ -1024,8 +1096,87 @@ function SavedRatingsList({
             ))}
           </div>
           {rating.comment ? <p>{rating.comment}</p> : null}
+          {rating.is_preferred ? (
+            <PreferredModelApplyControl
+              rating={rating}
+              applyCandidate={applyCandidate}
+              isApplyingSelection={isApplyingSelection}
+              onRequestApply={onRequestApply}
+              onCancelApply={onCancelApply}
+              onConfirmApply={onConfirmApply}
+            />
+          ) : null}
         </article>
       ))}
+    </div>
+  );
+}
+
+function PreferredModelApplyControl({
+  rating,
+  applyCandidate,
+  isApplyingSelection,
+  onRequestApply,
+  onCancelApply,
+  onConfirmApply,
+}: {
+  rating: ModelExperimentRating;
+  applyCandidate: ModelExperimentRating | null;
+  isApplyingSelection: boolean;
+  onRequestApply: (rating: ModelExperimentRating) => void;
+  onCancelApply: () => void;
+  onConfirmApply: (rating: ModelExperimentRating) => void;
+}) {
+  const isConfirming = applyCandidate?.id === rating.id;
+  const label = `${rating.provider}/${rating.model}`;
+
+  if (!isConfirming) {
+    return (
+      <div className="preferred-apply-control">
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() => onRequestApply(rating)}
+        >
+          Use this model as selected LLM
+        </button>
+        <small>
+          This only updates workspace LLM preference. It does not restart the
+          backend, reindex, rerun experiments, or change embedding settings.
+        </small>
+      </div>
+    );
+  }
+
+  return (
+    <div className="preferred-apply-confirmation">
+      <StatusBadge label="confirmation required" />
+      <div>
+        <strong>Use {label} as selected LLM?</strong>
+        <p>
+          This saves the preferred rated model as the workspace selected LLM.
+          Runtime settings stay unchanged, and Ask will use it per request when
+          supported by the provider.
+        </p>
+      </div>
+      <div className="preferred-apply-actions">
+        <button
+          type="button"
+          className="model-selection-save-button"
+          disabled={isApplyingSelection}
+          onClick={() => onConfirmApply(rating)}
+        >
+          {isApplyingSelection ? "Applying…" : "Confirm selection"}
+        </button>
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={isApplyingSelection}
+          onClick={onCancelApply}
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }

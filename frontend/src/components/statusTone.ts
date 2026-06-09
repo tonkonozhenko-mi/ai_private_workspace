@@ -65,6 +65,7 @@ const INFO_LABELS = new Set([
   "advisory",
   "plan only",
   "manual rating",
+  "confirmation required",
   "catalog",
   "custom",
 ]);
