@@ -35,7 +35,7 @@ export function UIActionsPanel({ catalog }: UIActionsPanelProps) {
             <p className="eyebrow">Workspace capabilities</p>
             <h2>Workspace capabilities</h2>
             <p className="panel-intro action-catalog-subtitle">
-              Capabilities are grouped by purpose. This page explains what the assistant can do, but it does not run workspace actions from here.
+              Capabilities are grouped by purpose. This page explains what the assistant can do. Capabilities are shown for transparency and are not run from here.
             </p>
           </div>
           <span className="panel-count">{catalog.actions.length}</span>
@@ -52,7 +52,7 @@ export function UIActionsPanel({ catalog }: UIActionsPanelProps) {
                       <h3>{summary.title}</h3>
                       <p>{summary.description}</p>
                     </div>
-                    <StatusBadge label={`${actions.length} actions`} tone="neutral" />
+                    <StatusBadge label={`${actions.length} capabilities`} tone="neutral" />
                   </div>
 
                   <div className="action-card-list">
@@ -92,8 +92,8 @@ export function UIActionsPanel({ catalog }: UIActionsPanelProps) {
           </div>
         ) : (
           <EmptyState
-            title="No UI actions are available"
-            message="The backend did not return any actions for this workspace."
+            title="No capabilities are available"
+            message="The backend did not return any capabilities for this workspace."
             compact
           />
         )}
@@ -150,18 +150,18 @@ function ActionInspector({ action }: { action: WorkspaceUIAction }) {
         aria-expanded={showAdvanced}
         onClick={() => setShowAdvanced((value) => !value)}
       >
-        {showAdvanced ? "Hide API details" : "Show API details"}
+        {showAdvanced ? "Hide technical details" : "Show technical details"}
       </button>
 
       {showAdvanced ? (
         <div className="action-advanced-panel">
           <dl className="action-details-list native-action-details-list">
-            <DetailRow label="Method" value={action.method} mono />
+            <DetailRow label="HTTP method" value={action.method} mono />
             <DetailRow label="Endpoint" value={action.endpoint} mono />
           </dl>
 
           <div className="action-endpoint native-action-endpoint">
-            <span>Copy API endpoint</span>
+            <span>Copy technical endpoint</span>
             <div>
               <code title={action.endpoint} tabIndex={0}>
                 {action.endpoint}
@@ -202,7 +202,7 @@ function getMutationCopy(action: WorkspaceUIAction): {
     return {
       title: "Safe to inspect",
       description:
-        "This action does not mutate workspace data. It is shown here so you can understand the available workflow.",
+        "This capability does not change workspace data. It is shown here so you can understand the available workflow.",
     };
   }
 
@@ -210,7 +210,7 @@ function getMutationCopy(action: WorkspaceUIAction): {
     return {
       title: "Records workspace activity",
       description:
-        "Asking can save an activity event and answer metadata. This catalog still does not execute the action; use the Ask tab for explicit submission.",
+        "Asking can save an activity event and answer metadata. This capabilities view still does not run the request; use the Ask tab for explicit submission.",
     };
   }
 
@@ -218,14 +218,14 @@ function getMutationCopy(action: WorkspaceUIAction): {
     return {
       title: "Updates workspace context",
       description:
-        "Scan and index actions can update workspace metadata or searchable context when run from an explicit flow. This catalog only explains the action.",
+        "Scan and index capabilities can update workspace metadata or searchable context when used from an explicit flow. This capabilities view only explains the workflow.",
     };
   }
 
   return {
     title: "May update workspace data",
     description:
-      "This action can change workspace state when executed from an explicit workflow. The catalog remains inspection-only.",
+      "This capability can change workspace state when used from an explicit workflow. This capabilities view remains inspection-only.",
   };
 }
 
@@ -301,7 +301,7 @@ function getCategorySummary(category: string) {
   return (
     summaries[normalized] ?? {
       title: formatLabel(category),
-      description: "Inspect workspace capability metadata returned by the backend.",
+      description: "Review workspace capability metadata returned by the backend.",
       icon: "•",
     }
   );

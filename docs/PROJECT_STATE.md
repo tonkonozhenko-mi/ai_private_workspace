@@ -295,3 +295,7 @@ changed.
 ## Frontend UX update — Task 115
 
 Overview now uses one clearer primary CTA for the first workspace question. This keeps the main dashboard more beginner-friendly and reduces repeated advisory messaging while preserving all existing read-only data and safety behavior.
+
+## Task 116 — Capabilities Tab Wording
+
+The frontend now labels the former Actions tab as Capabilities. The route/internal tab id remains `actions` and the backend endpoint remains `/ui-actions`; this is a user-facing wording change only. The screen remains inspection-only and does not execute capabilities from the catalog. Technical endpoint details are still available behind an explicit disclosure.

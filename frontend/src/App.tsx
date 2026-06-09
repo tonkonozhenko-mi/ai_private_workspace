@@ -31,7 +31,7 @@ const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
   { id: "overview", label: "Overview" },
   { id: "ask", label: "Ask" },
   { id: "models", label: "Models" },
-  { id: "actions", label: "Actions" },
+  { id: "actions", label: "Capabilities" },
   { id: "activity", label: "Activity" },
 ];
 
@@ -356,7 +356,7 @@ function App() {
         ) : (
           <EmptyState
             title="Select a workspace"
-            message="Choose a local project from the sidebar to inspect its dashboard, models status, and read-only action catalog."
+            message="Choose a local project from the sidebar to inspect its dashboard, model status, and capabilities."
           />
         )}
       </main>
