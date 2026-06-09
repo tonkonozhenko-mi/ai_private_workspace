@@ -2643,3 +2643,65 @@ code {
   padding: 0;
   white-space: pre-wrap;
 }
+
+.reindex-guidance {
+  display: grid;
+  gap: 9px;
+  padding: 12px 13px;
+  color: #654817;
+  background: #fbf4df;
+  border: 1px solid #e8d29a;
+  border-left: 3px solid #d8b75d;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.reindex-guidance > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.reindex-guidance strong {
+  color: #3a3328;
+}
+
+.reindex-guidance p,
+.reindex-guidance small {
+  margin: 0;
+}
+
+.reindex-guidance small {
+  color: #786a4e;
+}
+
+.reindex-command-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.reindex-command-row code {
+  min-width: 0;
+  padding: 9px 10px;
+  overflow: auto;
+  color: #e7f2ed;
+  background: #1b2f38;
+  border-radius: 6px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.model-reindex-guidance {
+  margin-top: 12px;
+}
+
+@media (max-width: 700px) {
+  .reindex-command-row {
+    grid-template-columns: 1fr;
+  }
+}

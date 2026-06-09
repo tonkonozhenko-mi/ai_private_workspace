@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 
 import { askSelectedWorkspace } from "../api/client";
+import { CopyButton } from "./CopyButton";
 import type {
   RagQualityWarning,
   RagSource,
@@ -140,8 +141,8 @@ export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
             {showGeneralQuestionHint ? (
               <p className="ask-question-hint">
                 This looks like a general chat question. Workspace Ask works
-                best with project, code, infrastructure, CI/CD, or
-                configuration questions.
+                best with project, code, infrastructure, CI/CD, or configuration
+                questions.
               </p>
             ) : null}
 
@@ -285,6 +286,7 @@ function SessionHistory({
 
 function AnswerResult({ answer }: { answer: WorkspaceQuestionAnswer }) {
   const warnings = answer.quality_warnings ?? [];
+  const reindexReason = getAskReindexReason(answer);
   const isMissingSourcePaths = warnings.some(
     (warning) => warning.code === "answer_missing_source_paths",
   );
@@ -326,6 +328,13 @@ function AnswerResult({ answer }: { answer: WorkspaceQuestionAnswer }) {
         </article>
       ) : null}
 
+      {reindexReason ? (
+        <ReindexGuidance
+          workspaceId={answer.workspace_id}
+          reason={reindexReason}
+        />
+      ) : null}
+
       {warnings.length > 0 ? <QualityWarnings warnings={warnings} /> : null}
 
       {isMissingSourcePaths ? (
@@ -335,7 +344,7 @@ function AnswerResult({ answer }: { answer: WorkspaceQuestionAnswer }) {
         </p>
       ) : null}
 
-      <Sources sources={answer.sources} />
+      <Sources workspaceId={answer.workspace_id} sources={answer.sources} />
     </section>
   );
 }
@@ -365,7 +374,13 @@ function QualityWarnings({ warnings }: { warnings: RagQualityWarning[] }) {
   );
 }
 
-function Sources({ sources }: { sources: RagSource[] }) {
+function Sources({
+  workspaceId,
+  sources,
+}: {
+  workspaceId: string;
+  sources: RagSource[];
+}) {
   const topSourceScoreIsLow = sources.length > 0 && sources[0].score < 0.25;
 
   return (
@@ -425,14 +440,68 @@ function Sources({ sources }: { sources: RagSource[] }) {
           </div>
         </>
       ) : (
-        <EmptyState
-          title="No sources returned"
-          message="Try reindexing or asking a more project-specific question."
-          compact
-        />
+        <>
+          <EmptyState
+            title="No sources returned"
+            message="Try reindexing or asking a more project-specific question."
+            compact
+          />
+          <ReindexGuidance
+            workspaceId={workspaceId}
+            reason="No sources were returned. If this workspace should have indexed context, rerun indexing manually."
+          />
+        </>
       )}
     </section>
   );
+}
+
+function ReindexGuidance({
+  workspaceId,
+  reason,
+}: {
+  workspaceId: string;
+  reason: string;
+}) {
+  const command = `curl -X POST http://127.0.0.1:8000/workspaces/${workspaceId}/index`;
+
+  return (
+    <article className="reindex-guidance">
+      <div>
+        <StatusBadge label="instructions only" />
+        <strong>Reindex guidance</strong>
+      </div>
+      <p>{reason}</p>
+      <div className="reindex-command-row">
+        <code title={command}>{command}</code>
+        <CopyButton text={command} />
+      </div>
+      <small>
+        The frontend does not run indexing automatically. Copy and run this
+        command yourself when you intentionally want to rebuild the workspace
+        context.
+      </small>
+    </article>
+  );
+}
+
+function getAskReindexReason(answer: WorkspaceQuestionAnswer): string | null {
+  const diagnosticCode = answer.diagnostic_code?.toLowerCase() ?? "";
+  const diagnosticMessage = answer.diagnostic_message?.toLowerCase() ?? "";
+
+  if (diagnosticCode.includes("workspace_not_indexed")) {
+    return "This workspace has no usable index metadata. Reindex the workspace before asking project questions.";
+  }
+
+  if (diagnosticCode.includes("index_metadata_exists_but_no_chunks_found")) {
+    return "Index metadata exists, but no context chunks were found in the active vector store. Reindex to rebuild the active retrieval collection.";
+  }
+
+  if (diagnosticMessage.includes("not been indexed")) {
+    return "The backend reported that this workspace has not been indexed for the active runtime.";
+  }
+
+  return null;
 }
 
 interface MarkdownBlock {
@@ -452,9 +521,7 @@ function MarkdownAnswer({ content }: { content: string }) {
           return (
             <div className="markdown-code-block" key={block.id}>
               {block.language ? (
-                <span className="markdown-code-language">
-                  {block.language}
-                </span>
+                <span className="markdown-code-language">{block.language}</span>
               ) : null}
               <pre>
                 <code>{block.lines.join("\n")}</code>
@@ -514,13 +581,21 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
 
   function flushParagraph() {
     if (paragraph.length === 0) return;
-    blocks.push({ id: nextId("paragraph"), type: "paragraph", lines: paragraph });
+    blocks.push({
+      id: nextId("paragraph"),
+      type: "paragraph",
+      lines: paragraph,
+    });
     paragraph = [];
   }
 
   function flushBullets() {
     if (bullets.length === 0) return;
-    blocks.push({ id: nextId("bulletList"), type: "bulletList", lines: bullets });
+    blocks.push({
+      id: nextId("bulletList"),
+      type: "bulletList",
+      lines: bullets,
+    });
     bullets = [];
   }
 

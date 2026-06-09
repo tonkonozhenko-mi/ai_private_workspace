@@ -247,3 +247,12 @@ Expected purpose:
   before runtime changes, downloads, migrations, or reindexing.
 - Keep provider-specific checks and actions behind adapters.
 - Keep switching-plan logic deterministic and framework-neutral.
+
+## Completed: Frontend reindex guidance
+
+The Ask and Models screens now show copy-only reindex guidance when the workspace index is missing, sources are empty, or selected embedding search/index readiness requires manual attention. The frontend still does not execute reindexing automatically.
+
+Follow-up ideas:
+- Add a dedicated setup checklist screen that combines runtime health, model selection, and index state.
+- Add source ranking diagnostics for low-score or off-topic retrieval.
+- Add optional qwen2.5-coder comparison experiments after the local Ollama/Qdrant path is stable.
