@@ -628,3 +628,13 @@ The frontend avoids alarming mutation labels when the user-facing effect is only
 activity recording. Raw API details remain available, but stay hidden behind
 explicit disclosure controls. Source previews use compact Preview/Hide controls
 so verification does not dominate the Ask screen.
+
+## Task 114 UX Wording Notes
+
+The frontend now presents model and context concepts with more user-friendly
+labels while keeping the underlying API unchanged. UI labels may say "chosen AI
+model" or "chosen search model", but the API still uses the existing model
+selection and embedding fields. UI labels may say "rebuild search context", but
+the backend endpoint remains `POST /workspaces/{workspace_id}/index`.
+
+This keeps the interface easier to understand without changing contracts.

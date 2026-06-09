@@ -58,7 +58,7 @@ const EXAMPLE_QUESTIONS = [
   "How is Terraform backend configured?",
   "Which CI/CD systems are detected?",
   "What should I review first in this project?",
-  "Are there any model/runtime setup issues?",
+  "Are there any AI setup issues?",
   "What files are related to Kubernetes or Helm?",
 ];
 
@@ -100,14 +100,14 @@ export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Could not ask the selected workspace LLM.",
+          : "Could not ask the chosen workspace AI model.",
       );
     } finally {
       setLoading(false);
     }
   }
 
-  const missingSelectedLLM =
+  const missingChosenAIModel =
     error?.toLowerCase().includes("selected llm") ||
     error?.toLowerCase().includes("select an llm");
 
@@ -117,7 +117,7 @@ export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
         <section className="panel ask-composer ask-composer-native">
           <div className="panel-heading ask-composer-heading">
             <div>
-              <p className="eyebrow">Selected workspace LLM</p>
+              <p className="eyebrow">Chosen workspace AI model</p>
               <h2>Ask this workspace</h2>
               <p className="ask-composer-subtitle">
                 Ask about code, infrastructure, CI/CD, or setup. The answer uses
@@ -129,7 +129,7 @@ export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
 
           <p className="ask-safety-note">
             Local workspace context only. Nothing is sent until you press Ask,
-            and this never executes commands or changes runtime settings.
+            and this never executes commands or changes backend settings.
           </p>
 
           <form onSubmit={(event) => void submitQuestion(event)}>
@@ -194,8 +194,8 @@ export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
             <div className="ask-error" role="alert">
               <strong>Could not ask workspace</strong>
               <span>{error}</span>
-              {missingSelectedLLM ? (
-                <span>Select an LLM in the Models tab, then try again.</span>
+              {missingChosenAIModel ? (
+                <span>Select an AI model in the Models tab, then try again.</span>
               ) : null}
             </div>
           ) : null}
@@ -301,7 +301,7 @@ function AnswerResult({ answer }: { answer: WorkspaceQuestionAnswer }) {
         <div className="panel-heading answer-heading">
           <div>
             <p className="eyebrow">Workspace answer</p>
-            <h2>Answer from selected model</h2>
+            <h2>Answer from chosen model</h2>
           </div>
           <span className="answer-model">
             {answer.llm_provider}/{answer.llm_model ?? "default"}
@@ -315,12 +315,12 @@ function AnswerResult({ answer }: { answer: WorkspaceQuestionAnswer }) {
           {answer.answer ? (
             <MarkdownAnswer content={answer.answer} />
           ) : (
-            "The selected LLM returned an empty answer."
+            "The chosen AI model returned an empty answer."
           )}
         </div>
         <div className="answer-stats">
           <span>
-            <strong>{answer.used_context_chunks}</strong> context chunks used
+            <strong>{answer.used_context_chunks}</strong> context pieces used
           </span>
           <span>
             <strong>{answer.sources.length}</strong> sources returned
@@ -449,18 +449,18 @@ function Sources({
               const detectedType = source.metadata?.detected_type;
               const extension = source.metadata?.extension;
               const isExpanded = expandedSourceIds.has(source.chunk_id);
-              const globalIndex = sources.findIndex(
+              const globalContext = sources.findIndex(
                 (candidate) => candidate.chunk_id === source.chunk_id,
               );
 
               return (
                 <article
-                  className={globalIndex === 0 ? "is-top-source" : undefined}
+                  className={globalContext === 0 ? "is-top-source" : undefined}
                   key={source.chunk_id}
                 >
                   <div className="source-card-heading">
                     <div>
-                      {globalIndex === 0 ? (
+                      {globalContext === 0 ? (
                         <span className="top-source-badge">Top source</span>
                       ) : null}
                       <strong title={source.source_path}>
@@ -512,7 +512,7 @@ function Sources({
         <>
           <EmptyState
             title="No sources returned"
-            message="Try reindexing or asking a more project-specific question."
+            message="Try rebuilding search context or asking a more project-specific question."
             compact
           />
           {!suppressReindexGuidance ? (
@@ -541,7 +541,7 @@ function ReindexGuidance({
     <article className="reindex-guidance">
       <div>
         <StatusBadge label="instructions only" />
-        <strong>Scan and reindex guidance</strong>
+        <strong>Prepare search context</strong>
       </div>
       <p>{reason}</p>
       <p>
@@ -549,7 +549,7 @@ function ReindexGuidance({
         the workspace index.
       </p>
       <CommandGuidanceRow label="Step 1 · scan project" command={scanCommand} />
-      <CommandGuidanceRow label="Step 2 · build index" command={indexCommand} />
+      <CommandGuidanceRow label="Step 2 · build search context" command={indexCommand} />
       <small>
         The frontend does not run scan or indexing automatically. Copy and run
         these commands yourself when you intentionally want to rebuild the
@@ -582,15 +582,15 @@ function getAskReindexReason(answer: WorkspaceQuestionAnswer): string | null {
   const diagnosticMessage = answer.diagnostic_message?.toLowerCase() ?? "";
 
   if (diagnosticCode.includes("workspace_not_indexed")) {
-    return "This workspace has no usable index metadata. Reindex the workspace before asking project questions.";
+    return "This workspace has no usable search context yet. Scan the project, then build the search context before asking questions.";
   }
 
   if (diagnosticCode.includes("index_metadata_exists_but_no_chunks_found")) {
-    return "Index metadata exists, but no context chunks were found in the active vector store. Reindex to rebuild the active retrieval collection.";
+    return "Search context metadata exists, but no context pieces were found in the current retrieval store. Rebuild search context for the current setup.";
   }
 
   if (diagnosticMessage.includes("not been indexed")) {
-    return "The backend reported that this workspace has not been indexed for the active runtime.";
+    return "The backend reported that this workspace has no search context for the current setup.";
   }
 
   return null;

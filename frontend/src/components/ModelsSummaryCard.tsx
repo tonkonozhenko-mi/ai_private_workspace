@@ -27,16 +27,16 @@ export function ModelsSummaryCard({
       </div>
 
       <dl className="model-summary-list">
-        <ModelRow label="Selected LLM" value={summary.selected_llm} />
-        <ModelRow label="Selected embedding" value={summary.selected_embedding} />
+        <ModelRow label="Chosen AI model" value={summary.selected_llm} />
+        <ModelRow label="Chosen search model" value={summary.selected_embedding} />
         {!compact ? (
-          <ModelRow label="Active LLM" value={summary.active_llm} />
+          <ModelRow label="Backend default AI model" value={summary.active_llm} />
         ) : null}
         {!compact ? (
-          <ModelRow label="Active embedding" value={summary.active_embedding} />
+          <ModelRow label="Backend default search model" value={summary.active_embedding} />
         ) : null}
         <ModelRow
-          label="Top recommendation"
+          label="Recommended model"
           value={summary.top_recommended_model}
         />
       </dl>
@@ -46,13 +46,13 @@ export function ModelsSummaryCard({
           <strong>{summary.warnings_count}</strong> warnings
         </span>
         <span>
-          <strong>{summary.performance_models_count}</strong> models measured
+          <strong>{summary.performance_models_count}</strong> models tested
         </span>
       </div>
 
       <div className="next-action-strip">
-        <span>Next model action</span>
-        <strong>{summary.primary_next_action_title ?? "Review model status"}</strong>
+        <span>Recommended AI action</span>
+        <strong>{summary.primary_next_action_title ?? "Review AI status"}</strong>
       </div>
     </section>
   );

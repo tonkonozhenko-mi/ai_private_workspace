@@ -83,7 +83,7 @@ export function ModelsDetail({
     ],
   );
   const reindexReason = getModelReindexReason(dashboard);
-  const llmDiffersFromActive =
+  const llmDiffersFromBackendDefault =
     Boolean(dashboard.selected_llm_provider && dashboard.selected_llm_model) &&
     !dashboard.selection_status.llm_status.matches_active_runtime;
 
@@ -94,7 +94,7 @@ export function ModelsDetail({
           <p className="eyebrow">Model workspace</p>
           <h2>Choose, compare, and learn from local models.</h2>
           <p>
-            Keep runtime changes manual while using workspace preferences, shared
+            Keep backend changes manual while using workspace preferences, shared
             context, and experiment feedback to improve Ask quality.
           </p>
         </div>
@@ -116,23 +116,23 @@ export function ModelsDetail({
       <section className="panel models-state-panel">
         <PanelHeading
           eyebrow="Workspace models"
-          title="Selected and active runtime"
+          title="Chosen and backend default"
           status={dashboard.overall_status}
         />
         <div className="model-runtime-grid">
           <RuntimeModel
-            label="Selected LLM"
+            label="Chosen AI model"
             provider={dashboard.selected_llm_provider}
             model={dashboard.selected_llm_model}
-            status={llmDiffersFromActive ? "per-request override" : dashboard.selection_status.llm_status.status}
+            status={llmDiffersFromBackendDefault ? "per-request override" : dashboard.selection_status.llm_status.status}
             title={
-              llmDiffersFromActive
-                ? "This workspace preference differs from the backend default LLM. Ask can still request it per question when the model is supported by the provider."
+              llmDiffersFromBackendDefault
+                ? "This workspace preference differs from the backend default AI model. Ask can still request it per question when the model is supported by the provider."
                 : undefined
             }
           />
           <RuntimeModel
-            label="Active LLM"
+            label="Backend default AI model"
             provider={usage.active_llm_provider}
             model={usage.active_llm_model}
             status={
@@ -141,19 +141,19 @@ export function ModelsDetail({
                 : "default runtime"
             }
             title={
-              llmDiffersFromActive
-                ? "This is the backend default LLM. It is not automatically changed by saving a workspace LLM preference."
+              llmDiffersFromBackendDefault
+                ? "This is the backend default AI model. It is not automatically changed by saving a workspace AI model preference."
                 : undefined
             }
           />
           <RuntimeModel
-            label="Selected embedding"
+            label="Chosen search model"
             provider={dashboard.selected_embedding_provider}
             model={dashboard.selected_embedding_model}
             status={dashboard.selection_status.embedding_status.status}
           />
           <RuntimeModel
-            label="Active embedding"
+            label="Backend default search model"
             provider={usage.active_embedding_provider}
             model={usage.active_embedding_model}
             status={
@@ -163,15 +163,15 @@ export function ModelsDetail({
             }
           />
         </div>
-        {llmDiffersFromActive ? (
+        {llmDiffersFromBackendDefault ? (
           <div className="llm-override-note">
             <StatusBadge label="informational" />
             <div>
-              <strong>Selected LLM is a per-request preference.</strong>
+              <strong>Chosen AI model is a per-request preference.</strong>
               <p>
-                The selected LLM differs from the backend default runtime. This
-                does not require reindexing. Ask can still use the selected LLM
-                per request when the model is available in the provider.
+                The chosen AI model differs from the backend default. This
+                does not require rebuilding search context. Ask can still use the chosen AI model
+                per question when the model is available.
               </p>
             </div>
           </div>
@@ -220,20 +220,20 @@ export function ModelsDetail({
           />
           <div className="readiness-list">
             <ReadinessRow
-              label="Ask with selected LLM"
+              label="Ask with chosen AI model"
               ready={usage.can_ask_with_selected_llm}
             />
             <ReadinessRow
-              label="Search with selected embedding"
+              label="Search with chosen search model"
               ready={usage.can_search_with_selected_embedding}
             />
             <ReadinessRow
-              label="Index with selected embedding"
+              label="Build context with chosen search model"
               ready={usage.can_index_with_selected_embedding}
             />
           </div>
           <div className="next-action-strip">
-            <span>Primary next action</span>
+            <span>Recommended next action</span>
             <strong>
               {dashboard.primary_next_action_title ?? "Review model selection"}
             </strong>
@@ -286,7 +286,7 @@ export function ModelsDetail({
           <div>
             <p className="eyebrow">Instructions only</p>
             <h2>Advanced local AI activation guide</h2>
-            <span>Copy-only setup commands for Ollama, Qdrant, and backend runtime.</span>
+            <span>Copy-only setup commands for Ollama, Qdrant, and backend settings.</span>
           </div>
           <StatusBadge label={activationGuide.overall_status} size="md" />
         </summary>
@@ -334,17 +334,17 @@ function ModelsWorkflowSteps({
   const steps = [
     {
       title: "Current setup",
-      description: "Check selected models against active local runtime.",
+      description: "Check chosen models against local backend defaults.",
       status: modelStatus,
     },
     {
       title: "Preferences",
-      description: "Change workspace LLM or embedding metadata manually.",
+      description: "Choose workspace AI and search models manually.",
       status: canAsk ? "ask ready" : "needs attention",
     },
     {
       title: "Experiments",
-      description: "Plan, run, rate, and review local LLM comparisons.",
+      description: "Plan, run, rate, and review local AI model comparisons.",
       status: "advisory",
     },
     {
@@ -448,7 +448,7 @@ function ModelExperimentPlanner({
     }
 
     if (uniqueCandidates.length < 2) {
-      setError("Choose at least two different LLM candidates.");
+      setError("Choose at least two different AI model candidates.");
       setPlan(null);
       return;
     }
@@ -491,7 +491,7 @@ function ModelExperimentPlanner({
     }
 
     if (uniqueCandidates.length < 2) {
-      setRunError("Choose at least two different LLM candidates.");
+      setRunError("Choose at least two different AI model candidates.");
       setRunResult(null);
       return;
     }
@@ -522,7 +522,7 @@ function ModelExperimentPlanner({
     <section className="panel model-experiment-planner-panel">
       <PanelHeading
         eyebrow="Experiment planning"
-        title="Compare LLM candidates"
+        title="Compare AI model candidates"
         status="advisory"
       />
       <p className="panel-intro">
@@ -578,10 +578,10 @@ function ModelExperimentPlanner({
             <div>
               <strong>Run local comparison experiment</strong>
               <p>
-                This calls the selected local LLM candidates through the backend.
+                This calls the chosen local AI model candidates through the backend.
                 It may take time and can use CPU/RAM, but it does not execute
-                shell commands, change selected models, restart the backend, or
-                rebuild the index.
+                shell commands, change chosen models, restart the backend, or
+                rebuild search context.
               </p>
             </div>
           </div>
@@ -635,7 +635,7 @@ function ModelCandidateSelect({
         onChange={(event) => onChange(event.target.value)}
       >
         {options.length === 0 ? (
-          <option value="">No LLM options available</option>
+          <option value="">No AI model options available</option>
         ) : (
           options.map((option) => (
             <option
@@ -656,10 +656,10 @@ function ModelExperimentPlanResult({ plan }: { plan: ModelExperimentPlan }) {
     <article className="model-experiment-plan-result">
       <div className="model-experiment-plan-summary">
         <StatusBadge
-          label={plan.can_compare_without_reindex ? "No reindex" : "Reindex needed"}
+          label={plan.can_compare_without_reindex ? "No rebuild needed" : "Rebuild needed"}
         />
         <StatusBadge
-          label={plan.requires_reindex ? "Requires reindex" : "Shared context"}
+          label={plan.requires_reindex ? "Requires rebuild" : "Shared context"}
         />
         <strong>{formatLabel(plan.experiment_type)}</strong>
       </div>
@@ -688,7 +688,7 @@ function ModelExperimentPlanResult({ plan }: { plan: ModelExperimentPlan }) {
                 }
               />
               <StatusBadge
-                label={candidate.requires_reindex ? "Reindex needed" : "No reindex"}
+                label={candidate.requires_reindex ? "Rebuild needed" : "No rebuild needed"}
               />
             </div>
             {candidate.warnings.length > 0 ? (
@@ -803,7 +803,7 @@ function ExperimentRunHeuristics({ result }: { result: ModelExperimentRun }) {
         </li>
       </ul>
       <small>
-        These are simple hints, not an automatic winner. Review answer quality and source grounding manually before changing the selected LLM.
+        These are simple hints, not an automatic winner. Review answer quality and source grounding manually before changing the chosen AI model.
       </small>
     </div>
   );
@@ -976,7 +976,7 @@ function ExperimentRatingPanel({
         comment: comment.trim().length > 0 ? comment.trim() : undefined,
       });
       setRatings((current) => [savedRating, ...current]);
-      setRatingMessage("Experiment rating saved. Selected model was not changed.");
+      setRatingMessage("Experiment rating saved. Chosen model was not changed.");
     } catch (saveError) {
       setRatingError(errorMessage(saveError));
     } finally {
@@ -993,10 +993,10 @@ function ExperimentRatingPanel({
         provider: ratingToApply.provider,
         model: ratingToApply.model,
         model_type: "llm",
-        selected_reason: `Selected from experiment ${result.id} after manual preferred rating.`,
+        selected_reason: `Chosen from experiment ${result.id} after manual preferred rating.`,
       });
       setRatingMessage(
-        `Selected LLM updated to ${ratingToApply.provider}/${ratingToApply.model}. Runtime settings, indexing, and experiment results were not changed.`,
+        `Chosen AI model updated to ${ratingToApply.provider}/${ratingToApply.model}. Backend settings, search context, and experiment results were not changed.`,
       );
       setApplyCandidate(null);
       await onSelectionUpdated();
@@ -1015,7 +1015,7 @@ function ExperimentRatingPanel({
           <strong>Rate this experiment</strong>
           <p>
             Save human feedback for model performance tracking. This does not
-            change the selected LLM or rerun the experiment.
+            change the chosen AI model or rerun the experiment.
           </p>
         </div>
       </div>
@@ -1221,11 +1221,11 @@ function PreferredModelApplyControl({
           className="secondary-button"
           onClick={() => onRequestApply(rating)}
         >
-          Use this model as selected LLM
+          Use as chosen AI model
         </button>
         <small>
-          This only updates workspace LLM preference. It does not restart the
-          backend, reindex, rerun experiments, or change embedding settings.
+          This only updates workspace AI model preference. It does not restart the
+          backend, rebuild search context, rerun experiments, or change search model settings.
         </small>
       </div>
     );
@@ -1235,10 +1235,10 @@ function PreferredModelApplyControl({
     <div className="preferred-apply-confirmation">
       <StatusBadge label="confirmation required" />
       <div>
-        <strong>Use {label} as selected LLM?</strong>
+        <strong>Use {label} as chosen AI model?</strong>
         <p>
-          This saves the preferred rated model as the workspace selected LLM.
-          Runtime settings stay unchanged, and Ask will use it per request when
+          This saves the preferred rated model as the workspace chosen AI model.
+          Backend settings stay unchanged, and Ask will use it per question when
           supported by the provider.
         </p>
       </div>
@@ -1389,8 +1389,8 @@ function ModelSelectionEditor({
       model_type: modelType,
       selected_reason:
         modelType === "llm"
-          ? "Selected from the frontend Models tab."
-          : "Selected from the frontend Models tab for workspace retrieval.",
+          ? "Chosen from the frontend Models tab."
+          : "Chosen from the frontend Models tab for workspace retrieval.",
     };
 
     setSavingType(modelType);
@@ -1399,7 +1399,7 @@ function ModelSelectionEditor({
     try {
       await updateWorkspaceModelSelection(workspaceId, payload);
       setMessage(
-        `${modelType === "llm" ? "LLM" : "Embedding"} selection saved. Runtime settings were not changed.`,
+        `${modelType === "llm" ? "AI model" : "Search model"} selection saved. Backend settings were not changed.`,
       );
       await onSelectionUpdated();
     } catch (saveError) {
@@ -1413,18 +1413,17 @@ function ModelSelectionEditor({
     <section className="panel model-selection-editor-panel">
       <PanelHeading
         eyebrow="Selection editor"
-        title="Change workspace model preferences"
+        title="Choose workspace models"
         status="manual submit"
       />
       <p className="panel-intro">
-        Saving changes only updates workspace preference metadata. It does not
-        restart the backend, run reindexing, or execute commands.
+        Saving changes only updates workspace preferences. It does not restart the backend, rebuild search context, or execute commands.
       </p>
 
       <div className="model-selection-grid">
         <ModelSelectionControl
-          label="Selected LLM"
-          description="Used by Ask as a per-request preference when the selected provider/model is supported. No reindex is required for LLM changes."
+          label="Chosen AI model"
+          description="Used by Ask as a per-question preference when the model is available. AI model changes do not require rebuilding search context."
           value={llmValue}
           options={llmOptions}
           selectedProvider={selectedLlmProvider}
@@ -1435,8 +1434,8 @@ function ModelSelectionEditor({
           isSaving={savingType === "llm"}
         />
         <ModelSelectionControl
-          label="Selected embedding"
-          description="Requires matching active embedding runtime and reindexing when the embedding space changes."
+          label="Chosen search model"
+          description="Powers workspace search. If the search model changes, rebuild search context before asking questions."
           value={embeddingValue}
           options={embeddingOptions}
           selectedProvider={selectedEmbeddingProvider}
@@ -1451,9 +1450,8 @@ function ModelSelectionEditor({
       <div className="model-selection-safety-note">
         <StatusBadge label="instructions only" />
         <span>
-          Backend restart and reindex steps are still manual. Changing an LLM
-          preference does not require reindexing; changing embedding/runtime
-          sensitive selections may require the guidance below.
+          Backend setup and search-context rebuild steps stay manual. Changing an AI model
+          preference does not require rebuilding; changing the search model may require the guidance below.
         </span>
       </div>
 
@@ -1564,7 +1562,7 @@ function ModelReindexGuidance({
     <article className="reindex-guidance model-reindex-guidance">
       <div>
         <StatusBadge label="copy only" />
-        <strong>{hasScan ? "Reindex guidance" : "Scan and index guidance"}</strong>
+        <strong>{hasScan ? "Rebuild search context" : "Scan and build search context"}</strong>
       </div>
       <p>{reason}</p>
       {!hasScan ? (
@@ -1574,13 +1572,13 @@ function ModelReindexGuidance({
         />
       ) : null}
       <CommandGuidanceRow
-        label={hasScan ? "Rebuild workspace index" : "Step 2 · build index"}
+        label={hasScan ? "Rebuild search context" : "Step 2 · build search context"}
         command={indexCommand}
       />
       <small>
         The frontend does not run scan or indexing automatically. Copy and run
         these commands only when you intentionally want to rebuild workspace
-        context. Changing an LLM does not require reindexing.
+        context. Changing an AI model does not require rebuilding.
       </small>
     </article>
   );
@@ -1619,17 +1617,17 @@ function getModelReindexReason(
     embeddingStatus.matches_active_runtime &&
     dashboard.usage_plan.index_status !== "indexed"
   ) {
-    return `Workspace index required. Selected embedding ${selectedEmbedding} already matches the active runtime, but workspace index status is ${dashboard.usage_plan.index_status}. Reindex to build searchable context.`;
+    return `Search context required. Chosen search model ${selectedEmbedding} already matches the backend default, but search context status is ${dashboard.usage_plan.index_status}. Rebuild it to make workspace search reliable.`;
   }
 
   if (embeddingStatus.requires_reindex) {
     if (selectedEmbedding && embeddingStatus.matches_active_runtime) {
-      return `Workspace index required. Selected embedding ${selectedEmbedding} matches the active runtime, but the workspace does not have a usable index for search yet.`;
+      return `Search context required. Chosen search model ${selectedEmbedding} matches the backend default, but the workspace does not have a usable index for search yet.`;
     }
 
     return selectedEmbedding
-      ? `Selected embedding ${selectedEmbedding} differs from the active retrieval setup. Reindex after you intentionally switch the embedding runtime or vector store.`
-      : "Selected embedding requires rebuilding the workspace index before search can use it reliably.";
+      ? `Chosen search model ${selectedEmbedding} differs from the current retrieval setup. Rebuild search context after you intentionally switch the search model or vector store.`
+      : "Chosen search model requires rebuilding search context before workspace search can use it reliably.";
   }
 
   if (
@@ -1638,7 +1636,7 @@ function getModelReindexReason(
     !dashboard.usage_plan.can_search_with_selected_embedding &&
     embeddingStatus.matches_active_runtime
   ) {
-    return `Selected embedding ${selectedEmbedding} matches active runtime ${activeEmbedding}, but search is not ready. Reindex to rebuild the active retrieval collection.`;
+    return `Chosen search model ${selectedEmbedding} matches backend default ${activeEmbedding}, but search is not ready. Rebuild search context for the current retrieval setup.`;
   }
 
   return null;
@@ -1805,7 +1803,7 @@ function buildModelOptions({
   const options = new Map<string, ModelOption>();
 
   addOption(options, selectedProvider, selectedModel, "Current selection");
-  addOption(options, activeProvider, activeModel, "Active runtime");
+  addOption(options, activeProvider, activeModel, "Backend default");
 
   for (const recommendation of recommendations) {
     if (recommendation.model.model_type === modelType) {

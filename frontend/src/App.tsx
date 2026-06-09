@@ -300,14 +300,10 @@ function App() {
                 <div className="models-tab">
                   <div className="information-band">
                     <p>
-                      <strong>Selected LLM:</strong> supported selections can be
-                      used per request without changing the active backend
-                      runtime.
+                      <strong>Chosen AI model:</strong> can be used per question without changing the backend default.
                     </p>
                     <p>
-                      <strong>Selected embedding:</strong> indexing and search
-                      require the active embedding runtime to match, followed by
-                      reindexing when the embedding space changes.
+                      <strong>Chosen search model:</strong> powers workspace search. If it changes, rebuild the search context before asking questions.
                     </p>
                   </div>
                   {modelsDetailLoading ? (

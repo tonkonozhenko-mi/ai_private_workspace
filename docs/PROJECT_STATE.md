@@ -277,3 +277,17 @@ change runtime settings from this section.
 The native-feeling UX pass now includes final wording and visual cleanup. Action
 mutation labels are less alarming, Ask source previews are compact, and advanced
 API details stay hidden until explicitly expanded.
+
+## Frontend Task 114 — UX Wording Simplification
+
+Phase 9 beginner-friendly UX work has started with a wording pass. The frontend
+now prefers user-facing labels such as chosen AI model, chosen search model,
+context ready, technologies found, rebuild search context, and workspace
+capabilities instead of more internal terms like selected LLM, embedding,
+index/reindex, or API catalog. The goal is to preserve technical accuracy while
+making the app easier to understand for users who are not already familiar with
+LLM/RAG terminology.
+
+This was a wording and UI-copy change only. No backend behavior, API calls,
+model calls, runtime settings, scan/index execution, or experiment behavior was
+changed.

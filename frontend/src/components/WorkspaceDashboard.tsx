@@ -30,7 +30,7 @@ export function WorkspaceDashboard({
         </div>
         <div className="workspace-header-status">
           <StatusBadge label={dashboard.status} size="md" />
-          <span>{formatLabel(dashboard.assistant_mode)} assistant</span>
+          <span>{formatLabel(dashboard.assistant_mode)} mode</span>
         </div>
       </header>
 
@@ -43,14 +43,14 @@ export function WorkspaceDashboard({
 
       <section className="metric-grid" aria-label="Workspace status">
         <article className="metric-card">
-          <span className="metric-label">Detected skills</span>
+          <span className="metric-label">Technologies found</span>
           <strong>{summary.detected_skills_count}</strong>
-          <span>{summary.has_scan ? "Latest scan available" : "Scan not run"}</span>
+          <span>{summary.has_scan ? "Latest scan available" : "Project scan needed"}</span>
         </article>
         <article className="metric-card">
-          <span className="metric-label">Index</span>
+          <span className="metric-label">Context</span>
           <strong className="metric-word">{formatLabel(indexStatus.status)}</strong>
-          <span>{indexStatus.chunks_count} context chunks</span>
+          <span>{indexStatus.chunks_count} context pieces</span>
         </article>
         <article className="metric-card">
           <span className="metric-label">Quick start</span>
@@ -105,7 +105,7 @@ function ProductStatusSection({
     {
       title: "Local AI",
       description: localAIReady
-        ? "Selected models are ready for workspace questions."
+        ? "Chosen models are ready for workspace questions."
         : "Review model setup before relying on answers.",
       badge: localAIReady ? "ready" : modelsSummary.overall_status,
       tone: localAIReady ? "success" : "warning",
@@ -113,7 +113,7 @@ function ProductStatusSection({
     {
       title: "Workspace context",
       description: indexReady
-        ? `${summary.index_status.chunks_count} indexed context chunks are available.`
+        ? `${summary.index_status.chunks_count} indexed context pieces are available.`
         : "Scan and index the project before asking grounded questions.",
       badge: indexReady ? "indexed" : summary.index_status.status,
       tone: indexReady ? "success" : "warning",
@@ -187,7 +187,7 @@ function LocalAISetupWarning({
     <section className="panel local-ai-setup-warning">
       <div className="local-ai-setup-warning-heading">
         <div>
-          <p className="eyebrow">Models and runtime</p>
+          <p className="eyebrow">AI setup</p>
           <h2>Local AI setup needs attention</h2>
         </div>
         <StatusBadge label={summary.overall_status} size="md" />
@@ -195,12 +195,12 @@ function LocalAISetupWarning({
 
       <div className="local-ai-runtime-comparison">
         <ModelComparisonRow
-          label="LLM"
+          label="AI model"
           selected={summary.selected_llm}
           active={summary.active_llm}
         />
         <ModelComparisonRow
-          label="Embedding"
+          label="Search model"
           selected={summary.selected_embedding}
           active={summary.active_embedding}
         />
@@ -209,31 +209,31 @@ function LocalAISetupWarning({
       <div className="local-ai-setup-messages">
         {summary.can_ask_with_selected_llm ? (
           <p className="is-available">
-            Selected LLM can already be used for Ask.
+            Chosen AI model can already be used for Ask.
           </p>
         ) : null}
         {!summary.can_search_with_selected_embedding ? (
           <p className="is-warning">
-            Selected embedding is not active for search yet.
+            Chosen search model is not active for search yet.
           </p>
         ) : null}
       </div>
 
       <div className="local-ai-setup-next">
         <div>
-          <span>Primary model action</span>
+          <span>Recommended AI setup action</span>
           <strong>
-            {summary.primary_next_action_title ?? "Review local AI setup"}
+            {summary.primary_next_action_title ?? "Review AI setup"}
           </strong>
         </div>
         <div className="local-ai-setup-navigation">
-          <p>Open the Models tab to review activation steps.</p>
+          <p>Open Models to review setup steps.</p>
           <button
             className="local-ai-models-button"
             type="button"
             onClick={onOpenModels}
           >
-            Open Models tab
+            Open Models
           </button>
         </div>
       </div>
@@ -255,11 +255,11 @@ function ModelComparisonRow({
       <strong>{label}</strong>
       <dl>
         <div>
-          <dt>Selected</dt>
+          <dt>Chosen</dt>
           <dd>{selected ?? "Not selected"}</dd>
         </div>
         <div>
-          <dt>Active</dt>
+          <dt>Backend default</dt>
           <dd>{active}</dd>
         </div>
       </dl>

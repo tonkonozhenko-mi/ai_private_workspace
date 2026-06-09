@@ -449,3 +449,18 @@ context updates from activity recording. Ask source preview controls were reduce
 to compact Preview/Hide text controls, and raw technical details remain behind
 progressive disclosure. This closes the first native-feeling UX pass across the
 main tabs.
+
+## Task 114 — UX Wording Simplification
+
+Continue reducing internal jargon in visible UI copy. Prefer:
+
+- Chosen AI model instead of Selected LLM.
+- Backend default AI model instead of Active LLM.
+- Chosen search model instead of Selected embedding.
+- Search context / Context ready instead of Index / indexed where possible.
+- Rebuild search context instead of Reindex in user-facing text.
+- Technologies found instead of skills when describing scan results.
+- Workspace capabilities instead of API/action catalog when introducing Actions.
+
+Keep backend identifiers, API payload names, and internal TypeScript types stable
+unless a real API change is intended.
