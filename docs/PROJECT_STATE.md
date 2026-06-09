@@ -347,3 +347,10 @@ manual-submit safety behavior.
 Added a beginner-friendly guided path on the Overview screen so users can understand the workspace journey: scan project, build search context, ask a question, and compare models later. The guide uses existing dashboard/model summary data and only navigates between existing frontend tabs. It does not run scan, index, rebuild, model calls, commands, or backend mutations automatically.
 
 The Models tab also received a small polish pass: advanced model details are framed as technical details, advisory step cards use less workflow-like wording, and recommendation/history panels explain fit score and past results more clearly. No backend contracts or API calls changed.
+
+
+## Task 123 — Final Beginner UX / Apple-Style Cleanup
+
+Phase 9 received a final product polish pass focused on first-time comprehension and lower visual noise. Overview guided-path copy is shorter, setup safety is presented as a small note, Models uses a lighter product framing, repeated ready/status badges were reduced in technical disclosure areas, and remaining helper text was simplified.
+
+This is a frontend presentation-only change. It does not add API calls, run scan/index/rebuild, execute shell commands, call models automatically, change backend defaults, or mutate runtime settings.

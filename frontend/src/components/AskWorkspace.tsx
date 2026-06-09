@@ -120,16 +120,15 @@ export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
               <p className="eyebrow">Chosen workspace AI model</p>
               <h2>Ask this workspace</h2>
               <p className="ask-composer-subtitle">
-                Ask about code, infrastructure, CI/CD, or setup. The answer uses
-                indexed project context and keeps sources visible.
+                Ask about code, infrastructure, CI/CD, or setup. Answers use
+                local project context and show sources.
               </p>
             </div>
             <StatusBadge label="Manual Submit" />
           </div>
 
           <p className="ask-safety-note">
-            Local workspace context only. Nothing is sent until you press Ask,
-            and this never executes commands or changes backend settings.
+            Nothing happens until you press Ask. The frontend never executes commands.
           </p>
 
           <form onSubmit={(event) => void submitQuestion(event)}>
@@ -170,7 +169,7 @@ export function AskWorkspace({ workspaceId, onAsked }: AskWorkspaceProps) {
 
             <div className="ask-controls">
               <label>
-                Context chunks
+                Source snippets
                 <select
                   value={limit}
                   onChange={(event) => setLimit(Number(event.target.value))}

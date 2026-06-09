@@ -166,9 +166,9 @@ function WorkspaceOnboardingGuide({
           <p className="eyebrow">Guided path</p>
           <h2>{readyToAsk ? "Ready to ask questions" : "Set up this workspace"}</h2>
           <p>
-            Follow these steps to move from a local project folder to source-backed
-            answers. The frontend keeps setup explicit and does not run shell commands.
+            Follow this path to turn a local project folder into source-backed answers.
           </p>
+          <span className="onboarding-safety-note">Setup stays manual. The frontend never runs shell commands.</span>
         </div>
         <button className="overview-cta-button" type="button" onClick={primaryAction.onClick}>
           {primaryAction.label}
@@ -228,13 +228,13 @@ function ProductStatusSection({
       title: "Model learning",
       description: experimentsSeen
         ? "Experiment feedback is available for this workspace."
-        : "Run comparisons to learn which local model works best.",
+        : "Compare models later if you want to improve answer quality.",
       badge: experimentsSeen ? "feedback ready" : "not started",
       tone: experimentsSeen ? "success" : "neutral",
     },
     {
       title: "Safety posture",
-      description: "Frontend actions stay explicit and do not execute shell commands.",
+      description: "Workspace actions stay explicit. The frontend never runs shell commands.",
       badge: "local only",
       tone: "info",
     },
@@ -247,8 +247,7 @@ function ProductStatusSection({
           <p className="eyebrow">Product status</p>
           <h2>Ready to work with this project</h2>
           <p>
-            This workspace is prepared for local questions, source-backed answers,
-            and model comparison. Technical setup stays manual and transparent.
+            Ask local questions with visible sources. Model comparison and technical setup stay optional.
           </p>
         </div>
         <StatusBadge
@@ -272,12 +271,9 @@ function ProductStatusSection({
 
       <div className="product-status-next product-status-cta">
         <div>
-          <span>Recommended next</span>
-          <strong>Ask your first question</strong>
-          <p>
-            Start with a project question. The answer stays local and includes
-            retrieved sources for verification.
-          </p>
+          <span>Best next step</span>
+          <strong>Ask a project question</strong>
+          <p>Get a local answer with sources you can verify.</p>
         </div>
         <button className="overview-cta-button" type="button" onClick={onOpenAsk}>
           Go to Ask

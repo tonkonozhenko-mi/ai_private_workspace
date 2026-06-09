@@ -5137,3 +5137,60 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Task 123 — final beginner UX polish */
+.onboarding-safety-note {
+  display: inline-flex;
+  margin-top: 8px;
+  color: #70818b;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.onboarding-guide-heading p:last-child {
+  max-width: 680px;
+}
+
+.models-disclosure-panel {
+  border-color: rgba(205, 218, 224, 0.72);
+  box-shadow: 0 8px 20px rgba(24, 43, 54, 0.05);
+}
+
+.models-disclosure-panel > summary {
+  min-height: 68px;
+  padding: 15px 18px;
+}
+
+.models-disclosure-panel h2 {
+  font-size: 16px;
+}
+
+.models-workflow-panel article {
+  box-shadow: none;
+}
+
+.models-workflow-panel article > span {
+  width: 24px;
+  height: 24px;
+}
+
+.models-workflow-panel .status-badge {
+  margin-top: 4px;
+}
+
+.models-native-hero-badges .status-badge,
+.models-simple-panel .panel-heading .status-badge {
+  box-shadow: none;
+}
+
+.product-status-panel .product-status-card .status-badge {
+  transform: scale(0.94);
+  transform-origin: left center;
+}
+
+@media (max-width: 720px) {
+  .onboarding-safety-note {
+    display: block;
+  }
+}
