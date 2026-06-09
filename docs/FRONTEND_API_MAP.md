@@ -642,3 +642,7 @@ This keeps the interface easier to understand without changing contracts.
 ## Task 115 note
 
 The Overview CTA simplification is UI-only. The new “Go to Ask” button switches the local frontend tab to Ask and does not call backend APIs directly.
+
+## Task 116 — Capabilities Tab Wording
+
+The frontend now labels the former Actions tab as Capabilities. The route/internal tab id remains `actions` and the backend endpoint remains `/ui-actions`; this is a user-facing wording change only. The screen remains inspection-only and does not execute capabilities from the catalog. Technical endpoint details are still available behind an explicit disclosure.

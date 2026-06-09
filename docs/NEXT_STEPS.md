@@ -471,3 +471,7 @@ unless a real API change is intended.
 - Added a single primary “Go to Ask” call-to-action in the product readiness section.
 - Kept Models status and next-action information as secondary context.
 - No backend behavior, API calls, model calls, scan, index, or runtime behavior changed.
+
+## Task 116 — Capabilities Tab Wording
+
+The frontend now labels the former Actions tab as Capabilities. The route/internal tab id remains `actions` and the backend endpoint remains `/ui-actions`; this is a user-facing wording change only. The screen remains inspection-only and does not execute capabilities from the catalog. Technical endpoint details are still available behind an explicit disclosure.
