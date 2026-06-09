@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { API_BASE_URL } from "../api/client";
@@ -28,6 +28,13 @@ export function SettingsPanel({
   const localAIReady = modelsSummary.overall_status === "ready";
   const [resetRequested, setResetRequested] = useState(false);
   const [savedMessage, setSavedMessage] = useState("Saved in this browser");
+  const [importDraft, setImportDraft] = useState("");
+  const [transferMessage, setTransferMessage] = useState("Preferences can be copied or imported as JSON.");
+
+  const preferencesJson = useMemo(
+    () => JSON.stringify(preferences, null, 2),
+    [preferences],
+  );
 
   useEffect(() => {
     setSavedMessage("Saved just now");
@@ -45,12 +52,44 @@ export function SettingsPanel({
     onPreferencesChange({ ...preferences, [key]: value });
   }
 
+  async function handleCopyPreferences() {
+    setResetRequested(false);
+    try {
+      await navigator.clipboard.writeText(preferencesJson);
+      setTransferMessage("Preferences JSON copied.");
+    } catch {
+      setTransferMessage("Copy is unavailable. Select the JSON and copy it manually.");
+    }
+  }
+
+  function handleLoadCurrentPreferences() {
+    setResetRequested(false);
+    setImportDraft(preferencesJson);
+    setTransferMessage("Current preferences loaded into the import box.");
+  }
+
+  function handleImportPreferences() {
+    setResetRequested(false);
+    const parsedPreferences = parseImportedPreferences(importDraft, preferences);
+    if (!parsedPreferences) {
+      setTransferMessage(
+        "Import failed. Paste valid preferences JSON with supported values.",
+      );
+      return;
+    }
+    onPreferencesChange(parsedPreferences);
+    setImportDraft("");
+    setTransferMessage("Preferences imported and saved in this browser.");
+  }
+
   function handleResetClick() {
     if (!resetRequested) {
       setResetRequested(true);
       return;
     }
     onResetPreferences();
+    setImportDraft("");
+    setTransferMessage("Preferences reset to defaults in this browser.");
     setResetRequested(false);
   }
 
@@ -190,6 +229,93 @@ export function SettingsPanel({
       </div>
 
 
+      <section className="panel settings-transfer-panel">
+        <div className="settings-transfer-heading">
+          <div>
+            <p className="eyebrow">Local preferences</p>
+            <h2>Export or import browser settings</h2>
+            <p>
+              Copy these preferences to reuse the same UI defaults in another
+              browser. Import only changes this browser-local UI state.
+            </p>
+          </div>
+          <StatusBadge label="JSON only" tone="neutral" />
+        </div>
+
+        <div className="settings-transfer-grid">
+          <div className="settings-transfer-card">
+            <div>
+              <h3>Export preferences</h3>
+              <p>Copy the current local preferences as safe JSON.</p>
+            </div>
+            <textarea
+              className="settings-json-box"
+              value={preferencesJson}
+              readOnly
+              aria-label="Current local preferences JSON"
+            />
+            <div className="settings-transfer-actions">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => void handleCopyPreferences()}
+              >
+                Copy JSON
+              </button>
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={handleLoadCurrentPreferences}
+              >
+                Load into import box
+              </button>
+            </div>
+          </div>
+
+          <div className="settings-transfer-card">
+            <div>
+              <h3>Import preferences</h3>
+              <p>Paste exported JSON. Unsupported values are rejected.</p>
+            </div>
+            <textarea
+              className="settings-json-box"
+              value={importDraft}
+              onChange={(event) => setImportDraft(event.target.value)}
+              placeholder={`{
+  "theme": "system",
+  "density": "comfortable",
+  "defaultSourceSnippets": 5,
+  "landingTab": "overview"
+}`}
+              aria-label="Import local preferences JSON"
+            />
+            <div className="settings-transfer-actions">
+              <button
+                type="button"
+                className="primary-button"
+                disabled={!importDraft.trim()}
+                onClick={handleImportPreferences}
+              >
+                Import preferences
+              </button>
+              <button
+                type="button"
+                className="ghost-button"
+                disabled={!importDraft}
+                onClick={() => {
+                  setImportDraft("");
+                  setTransferMessage("Import box cleared.");
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <p className="settings-transfer-message">{transferMessage}</p>
+      </section>
+
       <section className="panel settings-reset-panel">
         <div>
           <p className="eyebrow">Local preferences</p>
@@ -326,6 +452,84 @@ function SegmentedChoice<T extends string>({
         </button>
       ))}
     </div>
+  );
+}
+
+function parseImportedPreferences(
+  rawValue: string,
+  currentPreferences: WorkbenchPreferences,
+): WorkbenchPreferences | null {
+  try {
+    const parsed = JSON.parse(rawValue) as Partial<WorkbenchPreferences>;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
+    }
+
+    const nextPreferences: WorkbenchPreferences = { ...currentPreferences };
+    let recognizedValueCount = 0;
+
+    if (parsed.theme !== undefined) {
+      if (!isThemePreference(parsed.theme)) {
+        return null;
+      }
+      nextPreferences.theme = parsed.theme;
+      recognizedValueCount += 1;
+    }
+
+    if (parsed.density !== undefined) {
+      if (!isDensityPreference(parsed.density)) {
+        return null;
+      }
+      nextPreferences.density = parsed.density;
+      recognizedValueCount += 1;
+    }
+
+    if (parsed.defaultSourceSnippets !== undefined) {
+      if (!isSourceSnippetPreference(parsed.defaultSourceSnippets)) {
+        return null;
+      }
+      nextPreferences.defaultSourceSnippets = parsed.defaultSourceSnippets;
+      recognizedValueCount += 1;
+    }
+
+    if (parsed.landingTab !== undefined) {
+      if (!isLandingTabPreference(parsed.landingTab)) {
+        return null;
+      }
+      nextPreferences.landingTab = parsed.landingTab;
+      recognizedValueCount += 1;
+    }
+
+    return recognizedValueCount > 0 ? nextPreferences : null;
+  } catch {
+    return null;
+  }
+}
+
+function isThemePreference(value: unknown): value is WorkbenchPreferences["theme"] {
+  return value === "system" || value === "light" || value === "dark";
+}
+
+function isDensityPreference(value: unknown): value is WorkbenchPreferences["density"] {
+  return value === "comfortable" || value === "compact";
+}
+
+function isSourceSnippetPreference(
+  value: unknown,
+): value is WorkbenchPreferences["defaultSourceSnippets"] {
+  return value === 3 || value === 5 || value === 8 || value === 10;
+}
+
+function isLandingTabPreference(
+  value: unknown,
+): value is WorkbenchPreferences["landingTab"] {
+  return (
+    value === "overview" ||
+    value === "ask" ||
+    value === "models" ||
+    value === "actions" ||
+    value === "activity" ||
+    value === "settings"
   );
 }
 

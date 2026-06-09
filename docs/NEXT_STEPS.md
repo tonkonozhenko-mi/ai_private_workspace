@@ -628,3 +628,23 @@ Settings.
 - Added a two-step reset flow for local UI preferences only.
 - Reset affects theme, density, landing tab, and default source snippets in localStorage.
 - No backend API, command execution, scan, index, rebuild, or model/runtime change is introduced.
+
+## Task 129 — Settings export/import local preferences
+
+Completed a safe browser-local export/import flow for Settings preferences.
+
+Validation:
+
+```bash
+cd frontend
+npm run typecheck
+npm run build
+```
+
+Manual checks:
+
+- Copy preferences JSON from Settings.
+- Load current preferences into the import box.
+- Import valid JSON and confirm UI preferences update.
+- Try invalid JSON and confirm it is rejected with a clear message.
+- Verify no backend calls, command execution, scan/index/rebuild, or model/runtime changes are triggered.

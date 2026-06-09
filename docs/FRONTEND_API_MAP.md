@@ -740,3 +740,9 @@ beginner-friendly AI model wording.
 - Added a two-step reset flow for local UI preferences only.
 - Reset affects theme, density, landing tab, and default source snippets in localStorage.
 - No backend API, command execution, scan, index, rebuild, or model/runtime change is introduced.
+
+## Task 129 note — Settings export/import preferences
+
+The Settings export/import flow is frontend-only. It reads and writes the existing browser-local preferences object used by the Settings screen and Ask default source snippet selection. It introduces no backend API calls and no API contract changes.
+
+Imported JSON is validated before use and only supported UI preference values are accepted. The flow must remain limited to browser-local UI preferences unless a future task explicitly designs backend-backed settings.

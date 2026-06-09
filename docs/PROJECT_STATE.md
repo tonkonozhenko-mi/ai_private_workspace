@@ -397,3 +397,9 @@ or shell execution behavior changed.
 - Added a two-step reset flow for local UI preferences only.
 - Reset affects theme, density, landing tab, and default source snippets in localStorage.
 - No backend API, command execution, scan, index, rebuild, or model/runtime change is introduced.
+
+## Task 129 — Settings export/import local preferences
+
+Settings now includes a browser-local export/import section for UI preferences. Users can copy the current preferences as JSON, load the current JSON into an import box, validate pasted JSON, and import supported values into localStorage-backed preferences.
+
+The import flow only accepts supported theme, density, default source snippet, and landing tab values. It does not call backend APIs, access the file system, execute shell commands, scan or index projects, rebuild search context, restart services, or change model/runtime configuration.
