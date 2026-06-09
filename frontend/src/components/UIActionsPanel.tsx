@@ -70,9 +70,9 @@ export function UIActionsPanel({ catalog }: UIActionsPanelProps) {
                           <span className="action-card-icon" aria-hidden="true">
                             {summary.icon}
                           </span>
-                          <strong>{action.title}</strong>
+                          <strong>{formatCapabilityText(action.title)}</strong>
                         </div>
-                        <p>{action.description}</p>
+                        <p>{formatCapabilityText(action.description)}</p>
                         <div className="action-card-badges">
                           <StatusBadge label={action.status} />
                           {action.is_primary ? (
@@ -116,12 +116,12 @@ function ActionInspector({ action }: { action: WorkspaceUIAction }) {
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Inspector</p>
-          <h2>{action.title}</h2>
+          <h2>{formatCapabilityText(action.title)}</h2>
         </div>
         <StatusBadge label={action.status} size="md" />
       </div>
 
-      <p className="action-details-description">{action.description}</p>
+      <p className="action-details-description">{formatCapabilityText(action.description)}</p>
 
       <div
         className={`action-safety-card${
@@ -141,7 +141,7 @@ function ActionInspector({ action }: { action: WorkspaceUIAction }) {
       <dl className="action-details-list native-action-details-list">
         <DetailRow label="Purpose" value={formatLabel(action.category)} />
         <DetailRow label="Primary action" value={action.is_primary ? "Yes" : "No"} />
-        <DetailRow label="Reason" value={action.reason} />
+        <DetailRow label="Reason" value={formatCapabilityText(action.reason)} />
       </dl>
 
       <button
@@ -227,6 +227,15 @@ function getMutationCopy(action: WorkspaceUIAction): {
     description:
       "This capability can change workspace state when used from an explicit workflow. This capabilities view remains inspection-only.",
   };
+}
+
+function formatCapabilityText(value: string) {
+  return value
+    .replace(/Ask using selected LLM/gi, "Ask with chosen AI model")
+    .replace(/Asked with selected LLM/gi, "Asked with chosen AI model")
+    .replace(/using selected LLM/gi, "with chosen AI model")
+    .replace(/selected LLM/gi, "chosen AI model")
+    .replace(/LLM/gi, "AI model");
 }
 
 function DetailRow({
