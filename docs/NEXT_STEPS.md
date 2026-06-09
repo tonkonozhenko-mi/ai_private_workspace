@@ -260,3 +260,8 @@ Follow-up ideas:
 ## Frontend scan-before-index guidance
 
 The frontend now shows copy-only scan and index commands when a workspace has no usable index. This reflects the backend requirement that project scanning must happen before workspace indexing. The UI still does not execute scan or index automatically.
+
+
+## Task 99: LLM Runtime Mismatch Guidance
+
+Frontend Models now treats LLM selection mismatches as an informational per-request preference, while embedding runtime mismatches remain action-required because they affect search/index compatibility. Saving LLM or embedding preferences remains manual-submit only and does not restart runtime, reindex, or execute commands.

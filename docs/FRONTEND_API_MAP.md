@@ -422,3 +422,8 @@ When Ask or Models detects that a workspace has no usable index, the UI displays
 2. `POST /workspaces/{workspace_id}/index`
 
 The frontend does not run these commands automatically.
+
+
+## Task 99: LLM Runtime Mismatch Guidance
+
+Frontend Models now treats LLM selection mismatches as an informational per-request preference, while embedding runtime mismatches remain action-required because they affect search/index compatibility. Saving LLM or embedding preferences remains manual-submit only and does not restart runtime, reindex, or execute commands.

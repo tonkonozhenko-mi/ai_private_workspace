@@ -51,6 +51,10 @@ const INFO_LABELS = new Set([
   "manual",
   "preference",
   "instructions only",
+  "per request override",
+  "per-request override",
+  "default runtime",
+  "informational",
 ]);
 
 const NEUTRAL_LABELS = new Set(["read-only", "readonly", "neutral"]);

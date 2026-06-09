@@ -72,6 +72,9 @@ export function ModelsDetail({
     ],
   );
   const reindexReason = getModelReindexReason(dashboard);
+  const llmDiffersFromActive =
+    Boolean(dashboard.selected_llm_provider && dashboard.selected_llm_model) &&
+    !dashboard.selection_status.llm_status.matches_active_runtime;
 
   return (
     <div className="models-detail">
@@ -86,7 +89,12 @@ export function ModelsDetail({
             label="Selected LLM"
             provider={dashboard.selected_llm_provider}
             model={dashboard.selected_llm_model}
-            status={dashboard.selection_status.llm_status.status}
+            status={llmDiffersFromActive ? "per-request override" : dashboard.selection_status.llm_status.status}
+            title={
+              llmDiffersFromActive
+                ? "This workspace preference differs from the backend default LLM. Ask can still request it per question when the model is supported by the provider."
+                : undefined
+            }
           />
           <RuntimeModel
             label="Active LLM"
@@ -95,7 +103,12 @@ export function ModelsDetail({
             status={
               dashboard.selection_status.llm_status.matches_active_runtime
                 ? "ready"
-                : "runtime_mismatch"
+                : "default runtime"
+            }
+            title={
+              llmDiffersFromActive
+                ? "This is the backend default LLM. It is not automatically changed by saving a workspace LLM preference."
+                : undefined
             }
           />
           <RuntimeModel
@@ -115,6 +128,19 @@ export function ModelsDetail({
             }
           />
         </div>
+        {llmDiffersFromActive ? (
+          <div className="llm-override-note">
+            <StatusBadge label="informational" />
+            <div>
+              <strong>Selected LLM is a per-request preference.</strong>
+              <p>
+                The selected LLM differs from the backend default runtime. This
+                does not require reindexing. Ask can still use the selected LLM
+                per request when the model is available in the provider.
+              </p>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <ModelSelectionEditor
@@ -350,7 +376,7 @@ function ModelSelectionEditor({
       <div className="model-selection-grid">
         <ModelSelectionControl
           label="Selected LLM"
-          description="Used by Ask when the selected provider/model is supported by the active runtime."
+          description="Used by Ask as a per-request preference when the selected provider/model is supported. No reindex is required for LLM changes."
           value={llmValue}
           options={llmOptions}
           selectedProvider={selectedLlmProvider}
@@ -377,8 +403,9 @@ function ModelSelectionEditor({
       <div className="model-selection-safety-note">
         <StatusBadge label="instructions only" />
         <span>
-          Backend restart and reindex steps are still manual. Use the activation
-          guide below after changing runtime-sensitive selections.
+          Backend restart and reindex steps are still manual. Changing an LLM
+          preference does not require reindexing; changing embedding/runtime
+          sensitive selections may require the guidance below.
         </span>
       </div>
 
@@ -594,11 +621,13 @@ function RuntimeModel({
   provider,
   model,
   status,
+  title,
 }: {
   label: string;
   provider: string | null;
   model: string | null;
   status: string;
+  title?: string;
 }) {
   return (
     <article>
@@ -606,7 +635,7 @@ function RuntimeModel({
       <strong>
         {provider && model ? `${provider}/${model}` : "Not selected"}
       </strong>
-      <StatusBadge label={status} />
+      <StatusBadge label={status} title={title} />
     </article>
   );
 }
