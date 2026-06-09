@@ -814,3 +814,11 @@ Next recommended product tasks:
 2. Add a first-successful-Ask onboarding state that explains sources, applied skills, and verification notes.
 3. Add workspace-level backend persistence for skills after the browser-local flow is validated.
 4. Add tests for frontend skill-context payload handling in a future frontend test setup.
+
+
+## Task 141 — Skills UX and UI consistency polish
+
+- Skill Enable buttons now switch to Disable when active.
+- Custom skill instructions use explicit Save instruction and Saved locally feedback instead of invisible auto-save.
+- Button sizing and skill-card typography were normalized for a cleaner Apple-style interface.
+- No backend changes, no new API calls, no prompt changes, and no automatic scan/index/model actions.
