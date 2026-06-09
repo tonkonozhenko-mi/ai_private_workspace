@@ -1,4 +1,42 @@
 
+
+export interface ProjectFileResponse {
+  path: string;
+  extension: string | null;
+  size_bytes: number;
+  detected_type: string;
+}
+
+export interface DetectedSkillResponse {
+  name: string;
+  category: string;
+  confidence: string;
+  evidence: string[];
+}
+
+export interface ProjectScanResponse {
+  project_path: string;
+  total_files: number;
+  scanned_files: number;
+  skipped_files: number;
+  total_size_bytes: number;
+  detected_skills: DetectedSkillResponse[];
+  files: ProjectFileResponse[];
+}
+
+export interface IndexedDocumentSummaryResponse {
+  source_path: string;
+  chunks_count: number;
+}
+
+export interface WorkspaceIndexResponse {
+  workspace_id: string;
+  indexed_files_count: number;
+  chunks_count: number;
+  skipped_files_count: number;
+  documents: IndexedDocumentSummaryResponse[];
+}
+
 export interface CreateWorkspaceRequest {
   name: string;
   project_path: string;

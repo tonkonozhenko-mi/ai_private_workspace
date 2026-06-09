@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -12,6 +14,8 @@ interface WorkspaceDashboardProps {
   onOpenAsk: () => void;
   onOpenModels: () => void;
   onOpenCapabilities: () => void;
+  onScanWorkspace: () => Promise<void>;
+  onIndexWorkspace: () => Promise<void>;
 }
 
 export function WorkspaceDashboard({
@@ -20,6 +24,8 @@ export function WorkspaceDashboard({
   onOpenAsk,
   onOpenModels,
   onOpenCapabilities,
+  onScanWorkspace,
+  onIndexWorkspace,
 }: WorkspaceDashboardProps) {
   const summary = dashboard.summary;
   const indexStatus = summary.index_status;
@@ -76,6 +82,8 @@ export function WorkspaceDashboard({
         onOpenAsk={onOpenAsk}
         onOpenModels={onOpenModels}
         onOpenCapabilities={onOpenCapabilities}
+        onScanWorkspace={onScanWorkspace}
+        onIndexWorkspace={onIndexWorkspace}
       />
 
       <ProductStatusSection
@@ -111,18 +119,50 @@ function WorkspaceOnboardingGuide({
   onOpenAsk,
   onOpenModels,
   onOpenCapabilities,
+  onScanWorkspace,
+  onIndexWorkspace,
 }: {
   dashboard: WorkspaceDashboardData;
   modelsSummary: WorkspaceModelsDashboardSummary;
   onOpenAsk: () => void;
   onOpenModels: () => void;
   onOpenCapabilities: () => void;
+  onScanWorkspace: () => Promise<void>;
+  onIndexWorkspace: () => Promise<void>;
 }) {
   const summary = dashboard.summary;
   const hasScan = summary.has_scan;
   const indexReady = summary.index_status.status === "indexed";
   const localAIReady = modelsSummary.overall_status === "ready";
   const readyToAsk = hasScan && indexReady && localAIReady;
+  const [setupAction, setSetupAction] = useState<"scan" | "index" | null>(null);
+  const [setupMessage, setSetupMessage] = useState<string | null>(null);
+  const [setupError, setSetupError] = useState<string | null>(null);
+
+  async function runSetupAction(action: "scan" | "index") {
+    setSetupAction(action);
+    setSetupMessage(null);
+    setSetupError(null);
+    try {
+      if (action === "scan") {
+        await onScanWorkspace();
+        setSetupMessage("Project scan finished. Review the detected technologies, then build search context.");
+      } else {
+        await onIndexWorkspace();
+        setSetupMessage("Search context is ready. You can now ask source-backed questions.");
+      }
+    } catch (error) {
+      setSetupError(
+        error instanceof Error
+          ? error.message
+          : action === "scan"
+            ? "Could not scan this project."
+            : "Could not build search context.",
+      );
+    } finally {
+      setSetupAction(null);
+    }
+  }
 
   const steps = [
     {
@@ -153,11 +193,13 @@ function WorkspaceOnboardingGuide({
     },
   ];
 
-  const primaryAction = !hasScan || !indexReady
-    ? { label: "Open Capabilities", onClick: onOpenCapabilities }
-    : !localAIReady
-      ? { label: "Review Models", onClick: onOpenModels }
-      : { label: "Go to Ask", onClick: onOpenAsk };
+  const primaryAction = !hasScan
+    ? { label: setupAction === "scan" ? "Scanning..." : "Scan project", onClick: () => void runSetupAction("scan"), disabled: setupAction !== null }
+    : !indexReady
+      ? { label: setupAction === "index" ? "Building..." : "Build search context", onClick: () => void runSetupAction("index"), disabled: setupAction !== null }
+      : !localAIReady
+        ? { label: "Review Models", onClick: onOpenModels, disabled: false }
+        : { label: "Go to Ask", onClick: onOpenAsk, disabled: false };
 
   return (
     <section className="panel onboarding-guide-panel">
@@ -170,10 +212,61 @@ function WorkspaceOnboardingGuide({
           </p>
           <span className="onboarding-safety-note">Setup stays manual. The frontend never runs shell commands.</span>
         </div>
-        <button className="overview-cta-button" type="button" onClick={primaryAction.onClick}>
+        <button
+          className="overview-cta-button"
+          type="button"
+          disabled={primaryAction.disabled}
+          onClick={primaryAction.onClick}
+        >
           {primaryAction.label}
         </button>
       </div>
+
+      {!readyToAsk ? (
+        <div className="workspace-setup-actions" aria-label="Workspace setup actions">
+          <div>
+            <strong>{!hasScan ? "Start with a project scan" : !indexReady ? "Build searchable context" : "Review local AI setup"}</strong>
+            <p>
+              {!hasScan
+                ? "This reads the local project through the backend and records detected technologies."
+                : !indexReady
+                  ? "This creates source-backed search context from the latest scan."
+                  : "Open Models to confirm the chosen local AI models before asking questions."}
+            </p>
+          </div>
+          <div className="workspace-setup-action-buttons">
+            {!hasScan ? (
+              <button
+                className="primary-action"
+                type="button"
+                disabled={setupAction !== null}
+                onClick={() => void runSetupAction("scan")}
+              >
+                {setupAction === "scan" ? "Scanning..." : "Scan project"}
+              </button>
+            ) : !indexReady ? (
+              <button
+                className="primary-action"
+                type="button"
+                disabled={setupAction !== null}
+                onClick={() => void runSetupAction("index")}
+              >
+                {setupAction === "index" ? "Building..." : "Build search context"}
+              </button>
+            ) : (
+              <button className="secondary-action" type="button" onClick={onOpenModels}>
+                Review Models
+              </button>
+            )}
+            <button className="secondary-action" type="button" onClick={onOpenCapabilities}>
+              View capabilities
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {setupMessage ? <p className="settings-message success">{setupMessage}</p> : null}
+      {setupError ? <p className="settings-message error">{setupError}</p> : null}
       <div className="onboarding-steps-grid">
         {steps.map((step, index) => (
           <article className={`onboarding-step-card is-${step.status}`} key={step.title}>

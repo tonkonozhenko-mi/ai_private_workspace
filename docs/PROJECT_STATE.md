@@ -460,3 +460,16 @@ This is a reversible workspace metadata lifecycle operation. The frontend does n
 Workspace management now includes a safe archived workspace view in the sidebar. Users can show archived projects, restore an archived workspace with one explicit click, and return it to the active workspace list without deleting local files or running any commands. The create workspace screen was also polished with a clearer Apple-style onboarding hero, lighter guidance, clearer field help, and selected-mode preview copy.
 
 Safety remains unchanged: restore only calls the workspace lifecycle endpoint, and create still does not scan, index, rebuild context, execute shell commands, or call models automatically.
+
+## Task 137 — Workspace setup flow, archive UX fix, and CI v2
+
+Phase 11 onboarding now includes explicit setup actions on the Overview guided path. Unscanned workspaces can be scanned from the guided path with a user click, scanned but unindexed workspaces can build search context with a user click, and ready workspaces route the user to Ask. These calls use the existing local backend endpoints only after explicit user action:
+
+- `POST /workspaces/{workspace_id}/scan`
+- `POST /workspaces/{workspace_id}/index`
+
+The sidebar archive view was clarified so active workspaces remain visually separate from archived workspaces. Showing archived workspaces should not remove the archive action from active workspace cards; archived cards only expose Restore.
+
+GitHub CI was improved with workflow concurrency, cached frontend/backend dependency installs, clearer job names, and workflow summaries for frontend typecheck/build and backend pytest.
+
+Safety remains unchanged: the frontend does not execute shell commands, does not automatically scan/index/rebuild, does not delete local files, and does not change model/runtime settings.

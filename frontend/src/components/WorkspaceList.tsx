@@ -45,15 +45,20 @@ export function WorkspaceList({
 
   return (
     <nav className="workspace-list" aria-label="Workspaces">
-      {workspaces.length === 0 ? (
-        <EmptyState
-          title="No active projects"
-          message="Restore an archived project or add a new local project."
-          compact
-        />
-      ) : (
-        workspaces.map((workspace) => (
-          <WorkspaceCard
+      <div className="active-workspaces-section" aria-label="Active workspaces">
+        <div className="active-workspaces-heading">
+          <span className="section-eyebrow">Active</span>
+          <p>Projects available for setup, context building, and questions.</p>
+        </div>
+        {workspaces.length === 0 ? (
+          <EmptyState
+            title="No active projects"
+            message="Restore an archived project or add a new local project."
+            compact
+          />
+        ) : (
+          workspaces.map((workspace) => (
+            <WorkspaceCard
             key={workspace.workspace_id}
             workspace={workspace}
             selected={workspace.workspace_id === selectedWorkspaceId}
@@ -71,8 +76,9 @@ export function WorkspaceList({
             onCancelConfirm={() => setConfirmingWorkspaceId(null)}
             onConfirm={() => onArchive(workspace)}
           />
-        ))
-      )}
+          ))
+        )}
+      </div>
 
       <div className="archived-workspaces-toggle">
         <button className="text-button" type="button" onClick={onToggleArchived}>
@@ -203,7 +209,7 @@ function WorkspaceCard({
           </>
         ) : (
           <button
-            className={`workspace-card-action${danger ? "" : " is-restore"}`}
+            className={`workspace-card-action${danger ? " is-danger" : " is-restore"}`}
             type="button"
             disabled={busy}
             onClick={onStartConfirm}
