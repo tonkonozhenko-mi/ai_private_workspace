@@ -7101,3 +7101,99 @@ button:focus-visible {
     --sidebar-accent: #f0bc84;
   }
 }
+
+.workspace-list-card {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+  color: #dce4e9;
+  background: var(--sidebar-surface);
+  border: 1px solid #30424c;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.workspace-list-card:hover {
+  background: var(--sidebar-surface-hover);
+  border-color: #4b606a;
+}
+
+.workspace-list-card.is-selected {
+  background: var(--sidebar-surface-selected);
+  border-color: #7fa38f;
+  box-shadow:
+    inset 3px 0 #78ae93,
+    0 0 0 1px rgb(120 174 147 / 12%);
+}
+
+.workspace-list-card .workspace-list-item {
+  min-height: 132px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.workspace-list-card .workspace-list-item:hover,
+.workspace-list-card .workspace-list-item.is-selected {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.workspace-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 0 11px 10px;
+}
+
+.workspace-card-action {
+  min-height: 24px;
+  padding: 4px 8px;
+  color: #bed0d8;
+  background: rgb(255 255 255 / 4%);
+  border: 1px solid #40535d;
+  border-radius: var(--radius-pill);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+}
+
+.workspace-card-action:hover:not(:disabled) {
+  color: #f0f6f4;
+  background: rgb(255 255 255 / 8%);
+  border-color: #5f7681;
+}
+
+.workspace-card-action.is-danger {
+  color: #f8d7aa;
+  background: rgb(120 53 15 / 22%);
+  border-color: rgb(251 191 36 / 36%);
+}
+
+.workspace-card-action.is-danger:hover:not(:disabled) {
+  background: rgb(120 53 15 / 34%);
+  border-color: rgb(251 191 36 / 52%);
+}
+
+.workspace-card-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.workspace-card-action:focus-visible {
+  outline: 2px solid var(--sidebar-accent);
+  outline-offset: 2px;
+}
+
+.sidebar-alert {
+  padding: 9px 10px;
+  color: #f8d7aa;
+  background: rgb(120 53 15 / 20%);
+  border: 1px solid rgb(251 191 36 / 28%);
+  border-radius: var(--radius-md);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.45;
+}

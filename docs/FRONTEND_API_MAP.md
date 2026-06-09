@@ -777,3 +777,9 @@ The frontend product name is now **AI Private Workspace**. Branding preferences 
 The workspace creation form displays **Support mode** but submits the backend-supported assistant mode `support_incident`. This keeps UI copy friendly while matching the backend assistant profile registry.
 
 GitHub Actions CI now lives in `.github/workflows/ci.yml` and runs frontend `npm run typecheck`, frontend `npm run build`, and backend `pytest`.
+
+## Task 135 — Workspace archive UI
+
+The sidebar now surfaces the reversible archive lifecycle action for active workspaces. The UI uses a two-step confirmation and calls `POST /workspaces/{workspace_id}/archive` only after explicit user confirmation.
+
+Archived workspaces are removed from the default active overview after refresh. This is not a hard delete and does not remove local project files. Restore/archive browsing remains a future Settings or workspace-management surface.

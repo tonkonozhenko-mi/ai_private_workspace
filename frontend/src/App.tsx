@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   DEFAULT_API_BASE_URL,
+  archiveWorkspace,
   getLocalAIActivationGuide,
   getModelsDashboardSummary,
   getWorkspaceDashboard,
@@ -84,6 +85,8 @@ function App() {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
+  const [archivingWorkspaceId, setArchivingWorkspaceId] = useState<string | null>(null);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<WorkbenchPreferences>(() =>
     loadStoredPreferences(),
   );
@@ -199,6 +202,20 @@ function App() {
     setActiveTab("overview");
   }, [loadWorkspaceDetail, loadWorkspaces]);
 
+
+  const handleArchiveWorkspace = useCallback(async (workspace: WorkspaceOverviewItem) => {
+    setArchivingWorkspaceId(workspace.workspace_id);
+    setArchiveError(null);
+    try {
+      await archiveWorkspace(workspace.workspace_id);
+      await loadWorkspaces();
+    } catch (error) {
+      setArchiveError(`Could not archive ${workspace.name}: ${errorMessage(error)}`);
+    } finally {
+      setArchivingWorkspaceId(null);
+    }
+  }, [loadWorkspaces]);
+
   const refreshAfterAsk = useCallback(async (workspaceId: string) => {
     try {
       const [dashboard, overview] = await Promise.all([
@@ -281,14 +298,23 @@ function App() {
             onRetry={loadWorkspaces}
           />
         ) : (
-          <WorkspaceList
-            workspaces={workspaces}
-            selectedWorkspaceId={selectedWorkspaceId}
-            onSelect={(workspaceId) => {
-              setShowCreateWorkspace(false);
-              void loadWorkspaceDetail(workspaceId);
-            }}
-          />
+          <>
+            {archiveError ? (
+              <div className="sidebar-alert" role="alert">
+                {archiveError}
+              </div>
+            ) : null}
+            <WorkspaceList
+              workspaces={workspaces}
+              selectedWorkspaceId={selectedWorkspaceId}
+              archivingWorkspaceId={archivingWorkspaceId}
+              onSelect={(workspaceId) => {
+                setShowCreateWorkspace(false);
+                void loadWorkspaceDetail(workspaceId);
+              }}
+              onArchive={(workspace) => void handleArchiveWorkspace(workspace)}
+            />
+          </>
         )}
 
         <footer className="sidebar-footer">

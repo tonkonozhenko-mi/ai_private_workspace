@@ -40,20 +40,31 @@ async function getJson<T>(path: string): Promise<T> {
 
 async function requestJson<T>(path: string, init: RequestInit): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, init);
-  if (!response.ok) {
-    let detail = `${response.status} ${response.statusText}`;
-    try {
-      const body = (await response.json()) as { detail?: unknown };
-      if (typeof body.detail === "string") {
-        detail = body.detail;
-      }
-    } catch {
-      // Preserve the HTTP status when the backend did not return JSON.
-    }
-    throw new Error(detail);
-  }
+  await assertOk(response);
 
   return (await response.json()) as T;
+}
+
+async function requestWithoutBody(path: string, init: RequestInit): Promise<void> {
+  const response = await fetch(`${apiBaseUrl}${path}`, init);
+  await assertOk(response);
+}
+
+async function assertOk(response: Response): Promise<void> {
+  if (response.ok) {
+    return;
+  }
+
+  let detail = `${response.status} ${response.statusText}`;
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    if (typeof body.detail === "string") {
+      detail = body.detail;
+    }
+  } catch {
+    // Preserve the HTTP status when the backend did not return JSON.
+  }
+  throw new Error(detail);
 }
 
 export function getWorkspacesOverview(): Promise<WorkspacesOverview> {
@@ -70,6 +81,15 @@ export function createWorkspace(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(request),
+  });
+}
+
+export function archiveWorkspace(workspaceId: string): Promise<void> {
+  return requestWithoutBody(`/workspaces/${workspaceId}/archive`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+    },
   });
 }
 
