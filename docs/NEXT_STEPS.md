@@ -831,3 +831,12 @@ Next recommended product tasks:
 2. Add a first-successful-Ask onboarding state explaining answer bubbles, copy, edit, sources, applied skills, and verification notes.
 3. Consider persistent workspace conversation history after the browser-tab conversation proves useful.
 4. Add frontend component tests for Ask conversation interactions once the frontend test setup is introduced.
+
+## After Task 143
+
+Next recommended product tasks:
+
+1. Add file include/exclude preferences before building search context so users control which folders and file types become searchable.
+2. Add first-successful-Ask onboarding that explains answer bubbles, copy, edit, sources, applied skills, and verification notes.
+3. Consider persistent workspace conversation history after the browser-tab conversation flow is validated.
+4. Add frontend component tests for Ask composer, copy answer, edit question, and ask-again interactions once the frontend test setup is introduced.
