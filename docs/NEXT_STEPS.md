@@ -489,3 +489,25 @@ Next recommended beginner-friendly UX tasks:
 - simplify the Models tab further with a simple/advanced split;
 - add a first-run guided onboarding panel for new users;
 - review remaining technical terms in empty states and helper text.
+
+## Task 118 — Models Simple / Advanced Split
+
+Status: prepared.
+
+The Models tab should now lead with a simple user-facing view:
+
+- AI answer model.
+- Search context model.
+- Overall ready / needs attention status.
+
+Advanced selected-vs-runtime model details remain available in a collapsible
+Advanced details section. This keeps the technical troubleshooting data without
+making it the first thing a new user has to understand.
+
+Validation:
+
+```bash
+cd frontend
+npm run typecheck
+npm run build
+```

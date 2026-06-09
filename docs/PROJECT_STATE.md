@@ -310,3 +310,12 @@ becoming `Verification notes`.
 
 No behavior changed: the Activity tab remains read-only and does not replay events,
 run commands, rebuild context, change runtime settings, or update model selection.
+
+## Frontend Task 118 — Models Simple / Advanced Split
+
+Phase 9 beginner-friendly UX work continued by separating the Models tab into a
+simple model view and a collapsed advanced runtime section. The simple view now
+explains the two concepts most users need first: the AI answer model and the
+search context model. Backend defaults, selected-vs-runtime details, and rebuild
+context diagnostics remain available under Advanced details for troubleshooting.
+No backend endpoints, payloads, or execution behavior changed.

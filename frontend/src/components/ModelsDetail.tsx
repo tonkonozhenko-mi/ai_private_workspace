@@ -113,12 +113,61 @@ export function ModelsDetail({
         </div>
       </section>
 
-      <section className="panel models-state-panel">
+      <section className="panel models-simple-panel">
         <PanelHeading
-          eyebrow="Workspace models"
-          title="Chosen and backend default"
+          eyebrow="Simple model view"
+          title="Models used by this workspace"
           status={dashboard.overall_status}
         />
+        <p className="panel-intro">
+          Most users only need to know which model answers questions and which
+          model prepares searchable project context.
+        </p>
+        <div className="models-simple-grid">
+          <SimpleModelCard
+            label="AI answer model"
+            provider={dashboard.selected_llm_provider ?? usage.active_llm_provider}
+            model={dashboard.selected_llm_model ?? usage.active_llm_model}
+            description="Used when you ask questions about this workspace."
+            status={usage.can_ask_with_selected_llm ? "Ready" : "Needs setup"}
+          />
+          <SimpleModelCard
+            label="Search context model"
+            provider={
+              dashboard.selected_embedding_provider ?? usage.active_embedding_provider
+            }
+            model={dashboard.selected_embedding_model ?? usage.active_embedding_model}
+            description="Used to build and search the local project context."
+            status={usage.can_search_with_selected_embedding ? "Ready" : "Needs attention"}
+          />
+        </div>
+        <div className="models-simple-status">
+          <StatusBadge
+            label={
+              dashboard.usage_plan.can_use_selected_models_fully
+                ? "Ready"
+                : "Needs attention"
+            }
+          />
+          <span>
+            {dashboard.usage_plan.can_use_selected_models_fully
+              ? "Ask and search context are ready with the chosen workspace models."
+              : "Review the setup guidance below before relying on this workspace."}
+          </span>
+        </div>
+      </section>
+
+      <details className="panel models-state-panel models-disclosure-panel">
+        <summary>
+          <div>
+            <p className="eyebrow">Advanced details</p>
+            <h2>Chosen models and backend defaults</h2>
+            <span>
+              Technical runtime details for debugging model setup and search context.
+            </span>
+          </div>
+          <StatusBadge label={dashboard.overall_status} size="md" />
+        </summary>
         <div className="model-runtime-grid">
           <RuntimeModel
             label="Chosen AI model"
@@ -176,7 +225,7 @@ export function ModelsDetail({
             </div>
           </div>
         ) : null}
-      </section>
+      </details>
 
       <ModelsWorkflowSteps
         canAsk={usage.can_ask_with_selected_llm}
@@ -318,6 +367,34 @@ export function ModelsDetail({
         </div>
       </details>
     </div>
+  );
+}
+
+
+function SimpleModelCard({
+  label,
+  provider,
+  model,
+  description,
+  status,
+}: {
+  label: string;
+  provider: string | null;
+  model: string | null;
+  description: string;
+  status: string;
+}) {
+  const displayModel = model ? `${provider ?? "unknown"}/${model}` : "Not selected";
+
+  return (
+    <article className="simple-model-card">
+      <div>
+        <span>{label}</span>
+        <strong>{displayModel}</strong>
+      </div>
+      <p>{description}</p>
+      <StatusBadge label={status} />
+    </article>
   );
 }
 
