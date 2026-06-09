@@ -372,3 +372,9 @@ Safety constraints remain unchanged: these preferences do not execute shell
 commands, scan or index projects, rebuild search context, restart the backend,
 or change local model runtime. Ask uses the saved default source snippet count
 when a workspace Ask session opens.
+
+## Task 126 — Dark Theme Token Repair
+
+The dark theme palette was repaired so dark mode uses a dedicated Apple-style dark token set instead of partially inheriting light surfaces. Core surfaces, raised cards, navigation, guided onboarding cards, product status cards, model cards, status badges, form controls, and key text colors now have explicit dark-mode contrast rules.
+
+This is a frontend style-only fix. It does not change settings persistence, backend APIs, scan/index/rebuild behavior, model runtime, command execution, or workspace data.

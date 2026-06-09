@@ -721,3 +721,7 @@ Browser-local preferences are stored in `localStorage`:
 These settings must remain UI-only unless a future task intentionally introduces
 a backend settings model. They must not execute commands, scan, index, rebuild
 search context, restart services, or change active runtime/model configuration.
+
+## Task 126 note — Dark Theme Token Repair
+
+Task 126 changed CSS theme tokens and dark-mode overrides only. It introduced no new frontend API calls and no backend contract changes. Theme selection remains browser-local through the existing Settings/localStorage flow.
