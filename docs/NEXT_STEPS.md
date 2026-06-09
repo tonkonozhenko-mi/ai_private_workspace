@@ -464,3 +464,10 @@ Continue reducing internal jargon in visible UI copy. Prefer:
 
 Keep backend identifiers, API payload names, and internal TypeScript types stable
 unless a real API change is intended.
+
+## Task 115 — Overview CTA simplification
+
+- Reduced repeated “Ask first workspace question” messaging on the Overview screen.
+- Added a single primary “Go to Ask” call-to-action in the product readiness section.
+- Kept Models status and next-action information as secondary context.
+- No backend behavior, API calls, model calls, scan, index, or runtime behavior changed.

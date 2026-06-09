@@ -9,12 +9,14 @@ import type { StatusTone } from "./statusTone";
 interface WorkspaceDashboardProps {
   dashboard: WorkspaceDashboardData;
   modelsSummary: WorkspaceModelsDashboardSummary;
+  onOpenAsk: () => void;
   onOpenModels: () => void;
 }
 
 export function WorkspaceDashboard({
   dashboard,
   modelsSummary,
+  onOpenAsk,
   onOpenModels,
 }: WorkspaceDashboardProps) {
   const summary = dashboard.summary;
@@ -66,20 +68,26 @@ export function WorkspaceDashboard({
         </article>
       </section>
 
-      <ProductStatusSection dashboard={dashboard} modelsSummary={modelsSummary} />
+      <ProductStatusSection
+        dashboard={dashboard}
+        modelsSummary={modelsSummary}
+        onOpenAsk={onOpenAsk}
+      />
 
       <div className="overview-grid">
         <ModelsSummaryCard summary={modelsSummary} compact />
-        <section className="panel overview-next-action">
+        <section className="panel overview-next-action overview-secondary-action">
           <div>
-            <p className="eyebrow">Primary next action</p>
-            <h2>{dashboard.primary_next_action_title ?? "Review workspace"}</h2>
+            <p className="eyebrow">Next best step</p>
+            <h2>Ask your first workspace question</h2>
             <p>
-              The UI Action Catalog keeps this recommendation deterministic and
-              read-only until action execution is designed.
+              Use the Ask tab to get a local answer grounded in this workspace
+              context. Sources stay visible so you can verify important claims.
             </p>
           </div>
-          <StatusBadge label="recommended" size="md" />
+          <button className="overview-cta-button" type="button" onClick={onOpenAsk}>
+            Go to Ask
+          </button>
         </section>
       </div>
     </>
@@ -89,9 +97,11 @@ export function WorkspaceDashboard({
 function ProductStatusSection({
   dashboard,
   modelsSummary,
+  onOpenAsk,
 }: {
   dashboard: WorkspaceDashboardData;
   modelsSummary: WorkspaceModelsDashboardSummary;
+  onOpenAsk: () => void;
 }) {
   const summary = dashboard.summary;
   const indexReady = summary.index_status.status === "indexed";
@@ -139,10 +149,10 @@ function ProductStatusSection({
       <div className="product-status-heading">
         <div>
           <p className="eyebrow">Product status</p>
-          <h2>Local workbench readiness</h2>
+          <h2>Ready to work with this project</h2>
           <p>
-            A quick view of what is ready for this workspace and what should be
-            reviewed next. Technical setup stays manual and transparent.
+            This workspace is prepared for local questions, source-backed answers,
+            and model comparison. Technical setup stays manual and transparent.
           </p>
         </div>
         <StatusBadge
@@ -164,13 +174,18 @@ function ProductStatusSection({
         ))}
       </div>
 
-      <div className="product-status-next">
-        <span>Recommended next</span>
-        <strong>{dashboard.primary_next_action_title ?? "Review workspace"}</strong>
-        <p>
-          This recommendation stays advisory. Use the relevant tab to inspect or
-          run explicit user-submitted flows.
-        </p>
+      <div className="product-status-next product-status-cta">
+        <div>
+          <span>Recommended next</span>
+          <strong>Ask your first question</strong>
+          <p>
+            Start with a project question. The answer stays local and includes
+            retrieved sources for verification.
+          </p>
+        </div>
+        <button className="overview-cta-button" type="button" onClick={onOpenAsk}>
+          Go to Ask
+        </button>
       </div>
     </section>
   );

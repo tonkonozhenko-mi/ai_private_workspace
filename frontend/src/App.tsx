@@ -286,6 +286,7 @@ function App() {
                 <WorkspaceDashboard
                   dashboard={detail.dashboard}
                   modelsSummary={detail.modelsSummary}
+                  onOpenAsk={() => setActiveTab("ask")}
                   onOpenModels={() => setActiveTab("models")}
                 />
               ) : null}
