@@ -260,7 +260,7 @@ export function ModelsDetail({
         <section className="panel model-readiness-panel">
           <PanelHeading
             eyebrow="Readiness"
-            title="What works now"
+            title="Ready now"
             status={
               dashboard.usage_plan.can_use_selected_models_fully
                 ? "ready"
@@ -284,13 +284,13 @@ export function ModelsDetail({
           <div className="next-action-strip">
             <span>Recommended next action</span>
             <strong>
-              {dashboard.primary_next_action_title ?? "Review model selection"}
+              {formatModelActionTitle(dashboard.primary_next_action_title) ?? "Review model selection"}
             </strong>
           </div>
         </section>
 
         <section className="panel recommendations-panel">
-          <PanelHeading eyebrow="Recommendations" title="Top model options" />
+          <PanelHeading eyebrow="Recommendations" title="Recommended models" />
           {dashboard.recommendations.recommendations.length > 0 ? (
             <div className="model-ranking-list">
               {dashboard.recommendations.recommendations
@@ -311,7 +311,7 @@ export function ModelsDetail({
         </section>
 
         <section className="panel performance-panel">
-          <PanelHeading eyebrow="Workspace history" title="Model performance" />
+          <PanelHeading eyebrow="Workspace history" title="Past model results" />
           {dashboard.performance_summary.items.length > 0 ? (
             <div className="model-ranking-list">
               {dashboard.performance_summary.items.slice(0, 3).map((item) => (
@@ -1765,6 +1765,17 @@ function RuntimeModel({
   );
 }
 
+function formatModelActionTitle(title: string | null | undefined): string | null {
+  if (!title) {
+    return null;
+  }
+
+  return title
+    .replace(/Ask using selected LLM/gi, "Ask with chosen AI model")
+    .replace(/selected LLM/gi, "chosen AI model")
+    .replace(/LLM/gi, "AI model");
+}
+
 function ReadinessRow({ label, ready }: { label: string; ready: boolean }) {
   return (
     <div>
@@ -1789,7 +1800,7 @@ function RecommendationRow({
       </div>
       <div className="model-ranking-metrics">
         <span>
-          Recommendation score <strong>{recommendation.final_score}</strong>
+          Fit score <strong>{recommendation.final_score}</strong>
         </span>
         <span>
           Notes <strong>{recommendation.warnings.length}</strong>
@@ -1817,7 +1828,7 @@ function PerformanceRow({ item }: { item: ModelPerformanceItem }) {
           Preferred <strong>{item.preferred_votes}</strong>
         </span>
         <span>
-          Score <strong>{item.score}</strong>
+          Fit score <strong>{item.score}</strong>
         </span>
       </div>
     </article>

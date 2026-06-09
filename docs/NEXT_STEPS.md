@@ -536,3 +536,10 @@ npm run build
 ## Completed — Task 120 Models experiments simplification
 
 The Models screen now keeps comparison/experiment tools optional so most users first see only the models currently used by the workspace. Next UX work can focus on first-run onboarding and new workspace guidance.
+
+## Task 121: Models Lower Dashboard Wording Polish
+
+The Models lower dashboard now uses friendlier labels for beginner-facing status:
+`Ready now`, `Recommended models`, `Past model results`, `Fit score`, and
+`Ask with chosen AI model`. This is a copy-only polish pass and does not change
+model selection, experiments, runtime configuration, indexing, or API behavior.

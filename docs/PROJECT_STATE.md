@@ -333,3 +333,10 @@ This reduces cognitive load for new users and keeps advanced controls available 
 - Renamed experiment-oriented wording to user-facing comparison wording.
 - Replaced Candidate A/B with Model A/B and warnings with verification notes where visible.
 - Kept model comparison explicit and manual; no backend changes, no new API calls, no automatic model switch, and no automatic search-context rebuild.
+
+## Task 121: Models Lower Dashboard Wording Polish
+
+The Models tab lower summary cards were polished to remove remaining technical
+LLM wording from the user-facing UI. Readiness, recommendations, and history now
+use product-oriented labels while preserving all existing backend contracts and
+manual-submit safety behavior.
