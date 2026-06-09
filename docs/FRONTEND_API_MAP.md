@@ -593,3 +593,11 @@ with copy support.
 
 This change is visual only. The Actions tab remains read-only and does not invoke
 any action endpoint.
+
+## Task 111 Activity UX Notes
+
+The Activity tab continues to use the existing read-only timeline data from
+`GET /workspaces/{workspace_id}/timeline`. The frontend groups returned events
+by local day, summarizes visible categories, and hides raw metadata behind a
+local disclosure control. No new endpoints were added and no event action is
+executed from this view.
