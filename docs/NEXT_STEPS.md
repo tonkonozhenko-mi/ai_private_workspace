@@ -648,3 +648,25 @@ Manual checks:
 - Import valid JSON and confirm UI preferences update.
 - Try invalid JSON and confirm it is rejected with a clear message.
 - Verify no backend calls, command execution, scan/index/rebuild, or model/runtime changes are triggered.
+
+## Task 130 Completed — Configurable Backend URL
+
+Settings now supports a browser-local backend URL preference with validation, save, and reset-to-default controls. After changing it, use Refresh to reload workspaces from the selected local backend.
+
+Validation:
+
+```bash
+cd frontend
+npm run typecheck
+npm run build
+```
+
+Manual checks:
+
+- Change Backend URL to a valid `http://` or `https://` value.
+- Confirm Settings and the sidebar show the saved target.
+- Click Refresh and verify workspace loading uses the new target.
+- Try an invalid URL and confirm it is rejected.
+- Reset to default and confirm the default URL is restored.
+
+No backend APIs, command execution, scan/index/rebuild, or model/runtime changes are introduced.

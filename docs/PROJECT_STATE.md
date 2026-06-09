@@ -403,3 +403,9 @@ or shell execution behavior changed.
 Settings now includes a browser-local export/import section for UI preferences. Users can copy the current preferences as JSON, load the current JSON into an import box, validate pasted JSON, and import supported values into localStorage-backed preferences.
 
 The import flow only accepts supported theme, density, default source snippet, and landing tab values. It does not call backend APIs, access the file system, execute shell commands, scan or index projects, rebuild search context, restart services, or change model/runtime configuration.
+
+## Task 130 — Settings backend connection preference
+
+Settings now allows the local backend URL to be edited and saved as a browser-local preference. The frontend API client reads the saved connection target for future API calls, and the sidebar/settings views show the current target.
+
+This remains frontend-only configuration. It does not add backend endpoints, execute shell commands, scan or index projects, rebuild search context, restart services, or change model/runtime settings.

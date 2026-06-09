@@ -15,8 +15,18 @@ import type {
   WorkspacesOverview,
 } from "./types";
 
-export const API_BASE_URL =
+export const DEFAULT_API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
+
+let apiBaseUrl = DEFAULT_API_BASE_URL;
+
+export function getApiBaseUrl(): string {
+  return apiBaseUrl;
+}
+
+export function setApiBaseUrl(nextBaseUrl: string): void {
+  apiBaseUrl = nextBaseUrl.replace(/\/+$/, "");
+}
 
 async function getJson<T>(path: string): Promise<T> {
   return requestJson<T>(path, {
@@ -27,7 +37,7 @@ async function getJson<T>(path: string): Promise<T> {
 }
 
 async function requestJson<T>(path: string, init: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, init);
+  const response = await fetch(`${apiBaseUrl}${path}`, init);
   if (!response.ok) {
     let detail = `${response.status} ${response.statusText}`;
     try {

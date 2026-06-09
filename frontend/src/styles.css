@@ -6547,3 +6547,59 @@ button:focus-visible {
     box-shadow: inset 0 1px 3px rgb(0 0 0 / 22%);
   }
 }
+
+/* Task 130 — editable local backend connection preference */
+.settings-url-editor {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.settings-url-editor input {
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 12px;
+  color: var(--color-text-strong);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.settings-url-editor input:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: 2px;
+}
+
+.settings-url-editor p {
+  margin: 0;
+  color: var(--color-text-subtle);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.settings-url-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-url-actions button {
+  min-height: 32px;
+}
+
+:root[data-theme="dark"] .settings-url-editor input {
+  color: var(--color-text-strong);
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .settings-url-editor input {
+    color: var(--color-text-strong);
+    background: var(--color-surface-soft);
+    border-color: var(--color-border);
+  }
+}
