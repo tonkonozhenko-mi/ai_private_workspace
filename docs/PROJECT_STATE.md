@@ -378,3 +378,14 @@ when a workspace Ask session opens.
 The dark theme palette was repaired so dark mode uses a dedicated Apple-style dark token set instead of partially inheriting light surfaces. Core surfaces, raised cards, navigation, guided onboarding cards, product status cards, model cards, status badges, form controls, and key text colors now have explicit dark-mode contrast rules.
 
 This is a frontend style-only fix. It does not change settings persistence, backend APIs, scan/index/rebuild behavior, model runtime, command execution, or workspace data.
+
+## Task 127: Remaining Dark Surface Fixes
+
+Task 127 completes the dark-mode repair pass for the remaining component-specific
+surfaces. Ask, Capabilities, and Activity now use dark surfaces instead of
+hard-coded light cards. The task also formats capability titles, descriptions,
+and reasons so backend-facing `LLM` wording does not leak into the user-facing
+Capabilities screen.
+
+No backend APIs, runtime behavior, scan/index/rebuild behavior, model selection,
+or shell execution behavior changed.

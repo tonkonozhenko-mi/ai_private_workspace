@@ -609,3 +609,14 @@ npm run build
 ```
 
 Next recommended work: continue Settings and personalization only after confirming both Light and Dark themes remain readable.
+
+## Task 127: Remaining Dark Surface Fixes
+
+Completed a targeted dark-mode cleanup for Ask, Capabilities, and Activity
+components. Remaining hard-coded light cards were replaced with dark-mode
+surface overrides, and user-facing capability text now normalizes old `LLM`
+phrasing to chosen AI model wording.
+
+Next: run local frontend typecheck/build and visually verify Light, Dark, and
+System theme modes across Overview, Ask, Models, Capabilities, Activity, and
+Settings.

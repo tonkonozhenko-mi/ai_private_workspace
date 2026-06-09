@@ -725,3 +725,10 @@ search context, restart services, or change active runtime/model configuration.
 ## Task 126 note — Dark Theme Token Repair
 
 Task 126 changed CSS theme tokens and dark-mode overrides only. It introduced no new frontend API calls and no backend contract changes. Theme selection remains browser-local through the existing Settings/localStorage flow.
+
+## Task 127: Remaining Dark Surface Fixes
+
+No API contract changes. The frontend now applies additional dark-mode surface
+overrides for Ask, Capabilities, and Activity. The Capabilities UI also formats
+backend-provided labels/descriptions so older `LLM` wording is shown with
+beginner-friendly AI model wording.
