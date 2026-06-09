@@ -752,3 +752,7 @@ Imported JSON is validated before use and only supported UI preference values ar
 The frontend API client now has a browser-local configurable base URL. The default still comes from `VITE_API_BASE_URL` or `http://127.0.0.1:8000`, but Settings can save a different `apiBaseUrl` value into the existing preferences object.
 
 The setting changes only the frontend fetch target. It introduces no backend API contract changes and no new backend calls. Users must explicitly refresh workspace data after changing the URL.
+
+## Task 131 note
+
+Settings backup/import remains browser-local. The backup tools are now hidden behind a disclosure and still do not call backend APIs.
