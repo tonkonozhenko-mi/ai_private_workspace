@@ -48,6 +48,9 @@ const INFO_LABELS = new Set([
   "new",
   "scanned",
   "needs model selection",
+  "manual",
+  "preference",
+  "instructions only",
 ]);
 
 const NEUTRAL_LABELS = new Set(["read-only", "readonly", "neutral"]);

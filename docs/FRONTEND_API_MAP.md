@@ -375,3 +375,29 @@ executes setup commands.
 - Preserve source paths, diagnostics, and quality warnings in the Ask UI.
 - Require explicit confirmation before experiment runs and command execution.
 - Never infer provider reachability from configured provider names alone.
+
+### Implemented Model Selection Editing Flow
+
+The current frontend Models tab includes a safe model-selection editor. It uses
+only the existing workspace models dashboard data plus explicit user-submit
+calls to:
+
+- `PUT /workspaces/{workspace_id}/models/selection`
+
+The editor saves one preference at a time with the backend payload shape:
+
+```json
+{
+  "provider": "ollama",
+  "model": "llama3.2",
+  "model_type": "llm",
+  "selected_reason": "Selected from the frontend Models tab."
+}
+```
+
+For embeddings the same endpoint is used with `model_type: "embedding"`.
+Saving a selection updates preference metadata only. The frontend does not
+restart the backend, pull Ollama models, reindex the workspace, execute setup
+commands, or change runtime environment variables. After a successful save, the
+frontend reloads the read-only workspace/model dashboard state so readiness,
+activation guidance, and next actions reflect the new selection.

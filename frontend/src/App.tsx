@@ -131,6 +131,32 @@ function App() {
     }
   }, [loadWorkspaceDetail]);
 
+  const refreshWorkspaceReadOnlyState = useCallback(async (workspaceId: string) => {
+    const [
+      dashboard,
+      actions,
+      modelsSummary,
+      modelsDashboard,
+      activationGuide,
+      overview,
+    ] = await Promise.all([
+      getWorkspaceDashboard(workspaceId),
+      getWorkspaceUIActions(workspaceId),
+      getModelsDashboardSummary(workspaceId),
+      getWorkspaceModelsDashboard(workspaceId),
+      getLocalAIActivationGuide(workspaceId),
+      getWorkspacesOverview(),
+    ]);
+
+    if (selectedWorkspaceIdRef.current === workspaceId) {
+      setDetail({ dashboard, actions, modelsSummary });
+      setModelsDetail({ dashboard: modelsDashboard, activationGuide });
+      setModelsDetailError(null);
+      setWorkspaces(overview.items);
+      setTotalWorkspaces(overview.total_workspaces);
+    }
+  }, []);
+
   const refreshAfterAsk = useCallback(async (workspaceId: string) => {
     try {
       const [dashboard, overview] = await Promise.all([
@@ -304,8 +330,12 @@ function App() {
                     </>
                   ) : modelsDetail ? (
                     <ModelsDetail
+                      workspaceId={detail.dashboard.workspace_id}
                       dashboard={modelsDetail.dashboard}
                       activationGuide={modelsDetail.activationGuide}
+                      onSelectionUpdated={() =>
+                        refreshWorkspaceReadOnlyState(detail.dashboard.workspace_id)
+                      }
                     />
                   ) : (
                     <ModelsSummaryCard summary={detail.modelsSummary} spacious />

@@ -2,6 +2,8 @@ import type {
   LocalAIActivationGuide,
   WorkspaceDashboard,
   WorkspaceModelsDashboard,
+  UpdateWorkspaceModelSelectionRequest,
+  WorkspaceModelSelection,
   WorkspaceModelsDashboardSummary,
   WorkspaceQuestionAnswer,
   WorkspaceUIActionCatalog,
@@ -93,6 +95,24 @@ export function askSelectedWorkspace(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ question, limit }),
+    },
+  );
+}
+
+
+export function updateWorkspaceModelSelection(
+  workspaceId: string,
+  selection: UpdateWorkspaceModelSelectionRequest,
+): Promise<WorkspaceModelSelection> {
+  return requestJson<WorkspaceModelSelection>(
+    `/workspaces/${workspaceId}/models/selection`,
+    {
+      method: "PUT",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(selection),
     },
   );
 }

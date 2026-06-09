@@ -112,6 +112,21 @@ export interface WorkspaceSelectedModel {
   selected_reason: string | null;
 }
 
+
+export interface WorkspaceModelSelection {
+  workspace_id: string;
+  selected_llm: WorkspaceSelectedModel | null;
+  selected_embedding: WorkspaceSelectedModel | null;
+  notes: string[];
+}
+
+export interface UpdateWorkspaceModelSelectionRequest {
+  provider: string;
+  model: string;
+  model_type: "llm" | "embedding";
+  selected_reason?: string;
+}
+
 export interface SelectedModelRuntimeStatus {
   model_type: string;
   selected_provider: string | null;
