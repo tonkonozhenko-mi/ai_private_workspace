@@ -550,3 +550,25 @@ model selection, experiments, runtime configuration, indexing, or API behavior.
 Added a beginner-friendly guided path on the Overview screen so users can understand the workspace journey: scan project, build search context, ask a question, and compare models later. The guide uses existing dashboard/model summary data and only navigates between existing frontend tabs. It does not run scan, index, rebuild, model calls, commands, or backend mutations automatically.
 
 The Models tab also received a small polish pass: advanced model details are framed as technical details, advisory step cards use less workflow-like wording, and recommendation/history panels explain fit score and past results more clearly. No backend contracts or API calls changed.
+
+
+## Task 123 — Final Beginner UX / Apple-Style Cleanup
+
+Status: prepared.
+
+Validate the final beginner UX polish locally:
+
+```bash
+cd frontend
+npm run typecheck
+npm run build
+```
+
+Visual check:
+
+- Overview guided path should explain the next step without long technical text.
+- Models should lead with simple model status and keep technical/configuration details secondary.
+- Repeated Ready badges should feel less noisy.
+- Disclosures should look lightweight and optional.
+
+After this check, Phase 9 can be considered ready to close. The next planned phase is Settings and personalization.

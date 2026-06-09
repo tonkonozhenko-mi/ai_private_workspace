@@ -48,12 +48,12 @@ export function WorkspaceList({
             </span>
             <span className="workspace-list-signals">
               <span>{workspace.detected_skills_count} technologies found</span>
-              <span>Context: {formatLabel(workspace.index_status)}</span>
+              <span>{formatContextStatus(workspace.index_status)}</span>
             </span>
             {workspace.next_action_title ? (
               <span className="workspace-next-action">
                 <span>Next</span>
-                <strong>{workspace.next_action_title}</strong>
+                <strong>{formatNextAction(workspace.next_action_title)}</strong>
               </span>
             ) : null}
           </button>
@@ -65,4 +65,17 @@ export function WorkspaceList({
 
 function formatLabel(value: string) {
   return value.replaceAll("_", " ");
+}
+
+function formatContextStatus(value: string) {
+  return value === "indexed" ? "Context ready" : `Context: ${formatLabel(value)}`;
+}
+
+function formatNextAction(value: string) {
+  return value
+    .replace(/Ask using selected LLM/gi, "Ask with chosen AI model")
+    .replace(/Ask first workspace question/gi, "Ask a question")
+    .replace(/Run project scan/gi, "Scan project")
+    .replace(/selected LLM/gi, "chosen AI model")
+    .replace(/LLM/gi, "AI model");
 }

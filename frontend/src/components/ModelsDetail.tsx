@@ -92,23 +92,14 @@ export function ModelsDetail({
       <section className="panel models-native-hero">
         <div>
           <p className="eyebrow">Model workspace</p>
-          <h2>Choose, compare, and learn from local models.</h2>
+          <h2>Models for local answers.</h2>
           <p>
-            Keep backend changes manual while using workspace preferences, shared
-            context, and experiment feedback to improve Ask quality.
+            See which local AI model answers questions and which search model prepares project context.
           </p>
         </div>
         <div className="models-native-hero-badges">
-          <StatusBadge label={dashboard.overall_status} size="md" />
           <StatusBadge
-            label={usage.can_ask_with_selected_llm ? "Ask ready" : "Ask blocked"}
-          />
-          <StatusBadge
-            label={
-              usage.can_search_with_selected_embedding
-                ? "Search ready"
-                : "Search needs setup"
-            }
+            label={dashboard.usage_plan.can_use_selected_models_fully ? "Ready" : "Needs review"}
           />
         </div>
       </section>
@@ -120,8 +111,7 @@ export function ModelsDetail({
           status={dashboard.overall_status}
         />
         <p className="panel-intro">
-          Most users only need to know which model answers questions and which
-          model prepares searchable project context.
+          Most users can keep these models as they are.
         </p>
         <div className="models-simple-grid">
           <SimpleModelCard
@@ -151,7 +141,7 @@ export function ModelsDetail({
           />
           <span>
             {dashboard.usage_plan.can_use_selected_models_fully
-              ? "Ask and search context are ready with the chosen workspace models."
+              ? "Ready to ask questions with the current workspace models."
               : "Review the setup guidance below before relying on this workspace."}
           </span>
         </div>
@@ -161,12 +151,11 @@ export function ModelsDetail({
         <summary>
           <div>
             <p className="eyebrow">Technical details</p>
-            <h2>Technical model details</h2>
+            <h2>Technical model setup</h2>
             <span>
-              Only needed when debugging local backend defaults or search setup.
+              Only needed for troubleshooting backend defaults or search setup.
             </span>
           </div>
-          <StatusBadge label={dashboard.overall_status} size="md" />
         </summary>
         <div className="model-runtime-grid">
           <RuntimeModel
@@ -230,7 +219,6 @@ export function ModelsDetail({
       <ModelsWorkflowSteps
         canAsk={usage.can_ask_with_selected_llm}
         canSearch={usage.can_search_with_selected_embedding}
-        modelStatus={dashboard.overall_status}
       />
 
       <ModelSelectionEditor
@@ -259,13 +247,8 @@ export function ModelsDetail({
       <div className="models-secondary-grid">
         <section className="panel model-readiness-panel">
           <PanelHeading
-            eyebrow="Readiness"
+            eyebrow="Status"
             title="Ready now"
-            status={
-              dashboard.usage_plan.can_use_selected_models_fully
-                ? "ready"
-                : "needs_attention"
-            }
           />
           <div className="readiness-list">
             <ReadinessRow
@@ -290,7 +273,7 @@ export function ModelsDetail({
         </section>
 
         <section className="panel recommendations-panel">
-          <PanelHeading eyebrow="Recommendations" title="Recommended models" />
+          <PanelHeading eyebrow="Suggestions" title="Recommended models" />
           <p className="model-ranking-hint">Fit score is an advisory ranking; higher is better.</p>
           {dashboard.recommendations.recommendations.length > 0 ? (
             <div className="model-ranking-list">
@@ -312,7 +295,7 @@ export function ModelsDetail({
         </section>
 
         <section className="panel performance-panel">
-          <PanelHeading eyebrow="Workspace history" title="Past model results" />
+          <PanelHeading eyebrow="History" title="Past model results" />
           <p className="model-ranking-hint">Past ratings help the workspace suggest better local models.</p>
           {dashboard.performance_summary.items.length > 0 ? (
             <div className="model-ranking-list">
@@ -336,10 +319,9 @@ export function ModelsDetail({
         <summary>
           <div>
             <p className="eyebrow">Instructions only</p>
-            <h2>Advanced local AI activation guide</h2>
-            <span>Copy-only setup commands for Ollama, Qdrant, and backend settings.</span>
+            <h2>Local AI setup commands</h2>
+            <span>Copy-only commands for Ollama, Qdrant, and backend settings.</span>
           </div>
-          <StatusBadge label={activationGuide.overall_status} size="md" />
         </summary>
         <p className="panel-intro">
           These commands are displayed as setup instructions. The frontend does
@@ -356,7 +338,7 @@ export function ModelsDetail({
                   <span>{formatLabel(step.category)}</span>
                   <strong>{step.title}</strong>
                 </div>
-                <StatusBadge label={step.status} />
+                <StatusBadge label={friendlyStatus(step.status)} />
               </div>
               <p>{step.description}</p>
               <small>{step.reason}</small>
@@ -404,32 +386,30 @@ function SimpleModelCard({
 function ModelsWorkflowSteps({
   canAsk,
   canSearch,
-  modelStatus,
 }: {
   canAsk: boolean;
   canSearch: boolean;
-  modelStatus: string;
 }) {
   const steps = [
     {
-      title: "Setup check",
-      description: "Confirm this workspace can ask and search with local models.",
-      status: modelStatus,
+      title: "Ready check",
+      description: "Confirm answers and search are available.",
+      status: canAsk && canSearch ? "ready" : "review",
     },
     {
-      title: "Model preferences",
-      description: "Optional: choose a different AI or search model.",
-      status: canAsk ? "ask ready" : "needs attention",
+      title: "Model choices",
+      description: "Optional: change models only when needed.",
+      status: canAsk ? "ready" : "review",
     },
     {
       title: "Optional comparison",
-      description: "Compare local AI models only when you want to improve answers.",
+      description: "Try later if you want to improve answers.",
       status: "advisory",
     },
     {
       title: "Technical setup",
-      description: "Open copy-only backend commands only when needed.",
-      status: canSearch ? "ready" : "setup needed",
+      description: "Copy setup commands only when needed.",
+      status: canSearch ? "ready" : "review",
     },
   ];
 
@@ -442,7 +422,7 @@ function ModelsWorkflowSteps({
             <strong>{step.title}</strong>
             <p>{step.description}</p>
           </div>
-          <StatusBadge label={step.status} />
+          {step.status !== "ready" ? <StatusBadge label={step.status} /> : null}
         </article>
       ))}
     </section>
@@ -601,14 +581,13 @@ function ModelExperimentPlanner({
     <details className="panel model-experiment-planner-panel models-disclosure-panel">
       <summary>
         <div>
-          <p className="eyebrow">Optional model comparison</p>
+          <p className="eyebrow">Optional</p>
           <h2>Compare models</h2>
-          <span>Try two local AI models on the same question when you want to improve answer quality.</span>
+          <span>Try two local AI models on one question when you want to improve answer quality.</span>
         </div>
-        <StatusBadge label="Optional" size="md" />
       </summary>
       <p className="panel-intro">
-        Prepare a safe comparison before running any local model test. This does
+        Prepare a safe comparison before running a local model test. This does
         not change workspace models, restart the backend, or rebuild search context.
       </p>
       <div className="model-experiment-form">
@@ -1489,15 +1468,14 @@ function ModelSelectionEditor({
     <details className="panel model-selection-editor-panel models-disclosure-panel">
       <summary>
         <div>
-          <p className="eyebrow">Optional model settings</p>
+          <p className="eyebrow">Optional settings</p>
           <h2>Change workspace models</h2>
-          <span>Most users do not need to change this. Open it only when you want to choose a different AI or search model for this workspace.</span>
+          <span>Most users do not need this. Open it only to choose a different AI or search model.</span>
         </div>
-        <StatusBadge label="manual submit" size="md" />
       </summary>
       <div className="model-selection-editor-body">
         <p className="panel-intro">
-          Saving changes only updates workspace preferences. It does not restart the backend, rebuild search context, or execute commands.
+          Saving only updates this workspace preference. It does not restart the backend, rebuild search context, or execute commands.
         </p>
 
       <div className="model-selection-grid">
@@ -1964,6 +1942,14 @@ function formatDateTime(value: string): string {
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unexpected request error";
+}
+
+function friendlyStatus(value: string) {
+  return value
+    .replace(/needs_attention/gi, "review")
+    .replace(/setup needed/gi, "review")
+    .replace(/runtime_mismatch/gi, "review")
+    .replaceAll("_", " ");
 }
 
 function formatLabel(value: string) {

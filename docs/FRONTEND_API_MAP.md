@@ -693,3 +693,8 @@ payloads, model experiment flows, and manual safety constraints are unchanged.
 Added a beginner-friendly guided path on the Overview screen so users can understand the workspace journey: scan project, build search context, ask a question, and compare models later. The guide uses existing dashboard/model summary data and only navigates between existing frontend tabs. It does not run scan, index, rebuild, model calls, commands, or backend mutations automatically.
 
 The Models tab also received a small polish pass: advanced model details are framed as technical details, advisory step cards use less workflow-like wording, and recommendation/history panels explain fit score and past results more clearly. No backend contracts or API calls changed.
+
+
+## Task 123 note — final UX polish
+
+Task 123 is a UI-copy and style polish pass only. It keeps all existing frontend API usage unchanged. Navigation buttons still only switch tabs, disclosures still only reveal local UI sections, and copy-only setup guidance remains non-executing.
