@@ -4274,3 +4274,229 @@ button:focus-visible {
 .source-panel .source-list article {
   gap: var(--space-3, 0.75rem);
 }
+
+/* Task 110 — native Actions tab simplification */
+.native-action-catalog {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.42fr);
+  gap: var(--space-5);
+}
+
+.native-action-panel {
+  padding: var(--space-6);
+}
+
+.action-catalog-heading {
+  align-items: start;
+}
+
+.action-catalog-subtitle {
+  max-width: 680px;
+  margin: var(--space-2) 0 0;
+}
+
+.native-action-groups {
+  gap: var(--space-5);
+}
+
+.native-action-group {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.action-group-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  align-items: start;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.action-group-heading h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--text-lg);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.action-group-heading p {
+  max-width: 640px;
+  margin: 3px 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-md);
+  line-height: 1.45;
+}
+
+.action-card-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.action-card {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  width: 100%;
+  padding: var(--space-4);
+  color: var(--color-text-primary);
+  text-align: left;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease,
+    background-color 140ms ease;
+}
+
+.action-card:hover {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(76, 146, 116, 0.34);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
+.action-card.is-selected {
+  background: linear-gradient(180deg, rgba(242, 249, 246, 0.96), rgba(255, 255, 255, 0.9));
+  border-color: rgba(76, 146, 116, 0.58);
+  box-shadow: 0 0 0 1px rgba(76, 146, 116, 0.18), var(--shadow-card-hover);
+}
+
+.action-card.is-primary {
+  border-color: rgba(141, 185, 164, 0.76);
+}
+
+.action-card:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: 3px;
+}
+
+.action-card-topline {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.action-card-icon {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  color: var(--color-accent-strong);
+  background: var(--color-accent-soft);
+  border: 1px solid rgba(76, 146, 116, 0.22);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 900;
+}
+
+.action-card-topline strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--text-lg);
+  line-height: 1.25;
+}
+
+.action-card p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-md);
+  line-height: 1.5;
+}
+
+.action-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: var(--space-1);
+}
+
+.native-action-inspector {
+  padding: var(--space-5);
+}
+
+.action-safety-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+  margin: var(--space-4) 0;
+  padding: var(--space-4);
+  border: 1px solid;
+  border-radius: var(--radius-lg);
+}
+
+.action-safety-card strong {
+  display: block;
+  color: var(--color-text-primary);
+  font-size: var(--text-md);
+}
+
+.action-safety-card p {
+  margin: 3px 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-md);
+  line-height: 1.5;
+}
+
+.action-safety-card.is-readonly {
+  background: var(--color-accent-soft);
+  border-color: rgba(76, 146, 116, 0.22);
+}
+
+.action-safety-card.is-warning {
+  background: var(--color-warning-soft);
+  border-color: rgba(216, 183, 93, 0.42);
+}
+
+.native-action-details-list {
+  border-color: var(--color-border-soft);
+}
+
+.native-action-details-list div {
+  grid-template-columns: minmax(92px, 0.45fr) minmax(0, 1fr);
+  border-color: var(--color-border-soft);
+}
+
+.action-advanced-toggle {
+  width: 100%;
+  margin-top: var(--space-4);
+  justify-content: center;
+}
+
+.action-advanced-panel {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-soft);
+}
+
+.native-action-endpoint {
+  margin-top: 0;
+}
+
+@media (max-width: 1180px) {
+  .native-action-catalog {
+    grid-template-columns: 1fr;
+  }
+
+  .native-action-inspector {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .action-card-list {
+    grid-template-columns: 1fr;
+  }
+
+  .action-group-heading,
+  .action-safety-card {
+    grid-template-columns: 1fr;
+  }
+}

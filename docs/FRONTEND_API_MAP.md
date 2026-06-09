@@ -582,3 +582,14 @@ The Ask tab was redesigned visually as a conversation-first workspace surface. A
 ### Ask source disclosure
 
 `AskWorkspace` continues to use `POST /workspaces/{workspace_id}/ask-selected`; source progressive disclosure is frontend-only and does not add API calls.
+
+## Frontend Task 110 — Actions Tab Native Simplification
+
+The Actions tab continues to consume only
+`GET /workspaces/{workspace_id}/ui-actions`. The screen now presents actions as
+purpose-grouped cards and shows the selected action in an inspector panel.
+Endpoint and method details are available only in an advanced disclosure area
+with copy support.
+
+This change is visual only. The Actions tab remains read-only and does not invoke
+any action endpoint.

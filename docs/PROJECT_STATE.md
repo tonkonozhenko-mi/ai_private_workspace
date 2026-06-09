@@ -238,3 +238,10 @@ Phase 8 continued with an Ask tab conversational redesign. The Ask screen is now
 ### Ask source progressive disclosure
 
 The Ask screen now keeps verification context visible without overwhelming the conversation: top sources appear first, previews are individually expandable, and additional sources are hidden behind an explicit Show all sources control.
+
+## Frontend Task 110 — Actions Tab Native Simplification
+
+Phase 8 Apple-style UX work continued with a native-feeling Actions tab pass.
+The UI action catalog now reads less like an API table and more like a workspace
+control inspector: grouped action cards, safety-first inspector copy, and raw API
+details hidden behind progressive disclosure. No API behavior changed.
