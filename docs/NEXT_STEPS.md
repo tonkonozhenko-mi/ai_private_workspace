@@ -822,3 +822,12 @@ Next recommended product tasks:
 - Custom skill instructions use explicit Save instruction and Saved locally feedback instead of invisible auto-save.
 - Button sizing and skill-card typography were normalized for a cleaner Apple-style interface.
 - No backend changes, no new API calls, no prompt changes, and no automatic scan/index/model actions.
+
+## After Task 142
+
+Next recommended product tasks:
+
+1. Add file include/exclude preferences before building search context so users control which folders and file types become searchable.
+2. Add a first-successful-Ask onboarding state explaining answer bubbles, copy, edit, sources, applied skills, and verification notes.
+3. Consider persistent workspace conversation history after the browser-tab conversation proves useful.
+4. Add frontend component tests for Ask conversation interactions once the frontend test setup is introduced.
