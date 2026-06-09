@@ -291,3 +291,18 @@ Recommended next tasks:
 - Add a saved experiment details view using `GET /models/experiments/{experiment_id}`.
 - Add deterministic comparison scoring view using `GET /models/experiments/{experiment_id}/comparison`.
 - Add manual rating UI for model experiment candidates.
+
+## After Task 102: Experiment ratings
+
+Completed:
+
+- Frontend can display experiment run results.
+- Frontend can save manual ratings for experiment candidates.
+- Ratings include provider/model, score, preferred flag, tags, and comment.
+- Saved ratings are shown under the completed experiment result.
+
+Recommended next tasks:
+
+1. Add a small "Apply preferred model" guidance flow that copies or calls the existing model selection endpoint only after explicit confirmation.
+2. Add experiment history browsing from the Models tab using existing workspace experiment endpoints.
+3. Improve performance summary cards using accumulated ratings and preferred votes.

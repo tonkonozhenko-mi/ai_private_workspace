@@ -471,3 +471,31 @@ The run uses the same payload shape as the plan request:
 ```
 
 This flow calls local LLM candidates through the backend and may take time or use CPU/RAM. It still does not execute shell commands, change selected models, restart runtime, download models, scan, index, or rebuild workspace context. The UI displays experiment status, candidate answer previews, latency, source counts, warning counts, notes, and simple comparison hints. The hints are not an automatic winner; users should review answer quality and source grounding manually.
+
+## Task 102 update: Experiment rating UI
+
+The Models tab can save manual feedback for a completed model experiment.
+
+Endpoints used:
+
+- `GET /models/experiments/{experiment_id}/ratings` — loads saved ratings for a completed experiment.
+- `POST /models/experiments/{experiment_id}/ratings` — saves a manual rating for one candidate.
+
+Payload shape:
+
+```json
+{
+  "provider": "ollama",
+  "model": "llama3.2",
+  "rating": 5,
+  "is_preferred": true,
+  "tags": ["better_source_grounding", "faster"],
+  "comment": "Used both terragrunt.hcl and main.tf."
+}
+```
+
+Safety notes:
+
+- Rating does not change selected model preferences.
+- Rating does not run an experiment.
+- Rating does not reindex, restart the backend, or execute shell commands.

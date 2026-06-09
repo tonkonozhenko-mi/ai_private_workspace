@@ -2993,3 +2993,170 @@ code {
   font-size: 10px;
   line-height: 1.45;
 }
+
+
+.experiment-rating-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: #f7f9fa;
+  border: 1px solid #d8e1e6;
+  border-radius: 8px;
+}
+
+.experiment-rating-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.experiment-rating-heading strong {
+  display: block;
+  color: #2c3b43;
+  font-size: 12px;
+}
+
+.experiment-rating-heading p {
+  margin: 4px 0 0;
+  color: #61727b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.experiment-rating-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(120px, 0.35fr) minmax(180px, 0.55fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.experiment-rating-form label,
+.experiment-rating-comment {
+  display: grid;
+  gap: 6px;
+}
+
+.experiment-rating-form label > span,
+.experiment-rating-comment > span,
+.experiment-rating-tags legend {
+  color: #687780;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.experiment-rating-form select,
+.experiment-rating-comment textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  color: #2d3b43;
+  background: #ffffff;
+  border: 1px solid #cbd5da;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.experiment-rating-comment textarea {
+  resize: vertical;
+}
+
+.experiment-rating-form select:focus-visible,
+.experiment-rating-comment textarea:focus-visible,
+.experiment-rating-tags input:focus-visible {
+  outline: 2px solid #8fc4aa;
+  outline-offset: 2px;
+}
+
+.experiment-rating-checkbox {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  min-height: 35px;
+  color: #41545d;
+  font-size: 11px;
+}
+
+.experiment-rating-checkbox input,
+.experiment-rating-tags input {
+  accent-color: #26734f;
+}
+
+.experiment-rating-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.experiment-rating-tags legend {
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+.experiment-rating-tags label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  color: #41545d;
+  background: #ffffff;
+  border: 1px solid #d7e1e6;
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.saved-experiment-ratings {
+  display: grid;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #e0e6e9;
+}
+
+.saved-experiment-ratings > strong {
+  color: #687780;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.saved-experiment-ratings article {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid #e0e6e9;
+  border-radius: 7px;
+}
+
+.saved-experiment-ratings article > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #6a797f;
+  font-size: 10px;
+}
+
+.saved-experiment-ratings article > div:first-child strong {
+  color: #2c3b43;
+  font-size: 11px;
+}
+
+.saved-experiment-ratings p,
+.model-experiment-rating-muted {
+  margin: 0;
+  color: #60717a;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .experiment-rating-form {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+}

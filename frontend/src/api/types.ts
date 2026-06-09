@@ -299,6 +299,28 @@ export interface ModelExperimentRun {
   notes: string[];
 }
 
+
+export interface ModelExperimentRatingRequest {
+  provider: string;
+  model: string;
+  rating: number;
+  is_preferred?: boolean;
+  tags?: string[];
+  comment?: string;
+}
+
+export interface ModelExperimentRating {
+  id: string;
+  experiment_id: string;
+  provider: string;
+  model: string;
+  rating: number;
+  is_preferred: boolean;
+  tags: string[];
+  comment: string | null;
+  created_at: string;
+}
+
 export interface LocalAIActivationStep {
   id: string;
   title: string;

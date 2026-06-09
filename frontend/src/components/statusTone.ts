@@ -17,6 +17,7 @@ const SUCCESS_LABELS = new Set([
   "no restart",
   "shared context",
   "local llm calls",
+  "preferred",
 ]);
 
 const WARNING_LABELS = new Set([
@@ -63,6 +64,7 @@ const INFO_LABELS = new Set([
   "informational",
   "advisory",
   "plan only",
+  "manual rating",
   "catalog",
   "custom",
 ]);

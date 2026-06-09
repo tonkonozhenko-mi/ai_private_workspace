@@ -2,6 +2,8 @@ import type {
   LocalAIActivationGuide,
   ModelExperimentPlan,
   ModelExperimentPlanRequest,
+  ModelExperimentRating,
+  ModelExperimentRatingRequest,
   ModelExperimentRun,
   WorkspaceDashboard,
   WorkspaceModelsDashboard,
@@ -144,4 +146,30 @@ export function runModelExperiment(
     },
     body: JSON.stringify(request),
   });
+}
+
+
+export function getModelExperimentRatings(
+  experimentId: string,
+): Promise<ModelExperimentRating[]> {
+  return getJson<ModelExperimentRating[]>(
+    `/models/experiments/${experimentId}/ratings`,
+  );
+}
+
+export function saveModelExperimentRating(
+  experimentId: string,
+  rating: ModelExperimentRatingRequest,
+): Promise<ModelExperimentRating> {
+  return requestJson<ModelExperimentRating>(
+    `/models/experiments/${experimentId}/ratings`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(rating),
+    },
+  );
 }
