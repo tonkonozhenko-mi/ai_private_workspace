@@ -428,3 +428,15 @@ Recommended next tasks:
 1. Add a small product roadmap/status view for demo storytelling.
 2. Consider a global command palette/search for navigation only.
 3. Continue Apple-style polish with empty-state illustrations or lighter visual hierarchy refinements.
+
+## Task 112 — Overview Product Status Section
+
+Planned/completed direction:
+
+- Add a native-feeling Product Status section to the Overview tab for demo storytelling and quick workspace readiness checks.
+- Summarize Local AI readiness, workspace context/index readiness, model learning/experiment feedback, and safety posture.
+- Keep the section advisory and derived from already-loaded dashboard/model summary data.
+- Do not add backend calls or new runtime behavior.
+- Keep all technical setup and scan/index/reindex flows manual and explicit.
+
+Safety remains unchanged: the Overview section is read-only. It does not execute commands, run scan/index/reindex, call models, change selected models, or mutate runtime settings.

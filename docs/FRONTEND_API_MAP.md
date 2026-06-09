@@ -601,3 +601,20 @@ The Activity tab continues to use the existing read-only timeline data from
 by local day, summarizes visible categories, and hides raw metadata behind a
 local disclosure control. No new endpoints were added and no event action is
 executed from this view.
+
+## Task 112 Overview Product Status Notes
+
+The Overview Product Status section is frontend-only and uses the existing
+workspace dashboard and models summary data already loaded for the Overview tab.
+It does not add new endpoints.
+
+Displayed readiness signals:
+
+- Local AI readiness from the models dashboard summary.
+- Workspace context/index readiness from the workspace index status.
+- Model learning signal based on recent model/experiment-related activity.
+- Safety posture reminding users that frontend actions are explicit and do not
+  execute shell commands.
+
+No new API calls, mutations, scan/index/reindex actions, model calls, or runtime
+changes were added.
