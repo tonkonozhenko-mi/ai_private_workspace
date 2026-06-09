@@ -786,3 +786,13 @@ Manual checks:
 - Push to GitHub and confirm CI runs frontend and backend jobs with concurrency enabled.
 
 Next recommended work: add skill/focus selection after scan and file include/exclude preferences before indexing.
+
+
+## After Task 138
+
+Next recommended product tasks:
+
+1. Build a skill library and preset editor.
+2. Let users start from common presets and extend them with project-specific guidance, for example adding Jenkins pipeline expertise to DevOps focus.
+3. Add file include/exclude preferences before indexing so users can control what becomes search context.
+4. Keep skill changes explicit and local; do not execute commands or rebuild context automatically.

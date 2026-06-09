@@ -799,3 +799,11 @@ The frontend now exposes explicit Overview setup actions for workspace preparati
 These actions are local backend API calls, not shell command execution. They are never triggered automatically after workspace creation. The UI refreshes read-only dashboard/model/sidebar state after each successful action.
 
 The sidebar also separates active and archived workspace sections more clearly. `Show archived` adds the archived section but should not remove Archive controls from active workspaces.
+
+
+## Task 138 frontend notes
+
+- Overview now includes a read-only Workspace skills panel built from existing dashboard state.
+- Ask now shows the current assistant focus using the workspace assistant mode.
+- No new backend endpoints were added.
+- Future skill customization should be implemented as an explicit settings/workspace flow, not as automatic prompt changes hidden from the user.

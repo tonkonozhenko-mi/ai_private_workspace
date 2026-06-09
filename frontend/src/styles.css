@@ -7481,3 +7481,185 @@ button:focus-visible {
     justify-content: flex-start;
   }
 }
+
+/* Task 138: workspace skills and assistant focus flow */
+.workspace-skills-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.workspace-skills-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.workspace-skills-heading h2,
+.ask-focus-hint h2 {
+  margin: 4px 0 6px;
+  color: var(--color-text-primary);
+  font-size: 22px;
+  letter-spacing: -0.035em;
+}
+
+.workspace-skills-heading p,
+.ask-focus-hint p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  max-width: 720px;
+}
+
+.assistant-focus-card,
+.skill-library-note,
+.ask-focus-hint {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(135deg, rgb(var(--accent-rgb, 47 122 92) / 9%), transparent 48%),
+    var(--color-surface-subtle);
+}
+
+.assistant-focus-card span,
+.ask-focus-hint span,
+.skill-library-note strong {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.assistant-focus-card strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text-primary);
+  font-size: 16px;
+  letter-spacing: -0.025em;
+}
+
+.assistant-focus-card p,
+.skill-library-note p {
+  margin: 5px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 760px;
+}
+
+.skill-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.skill-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  min-height: 150px;
+  padding: 15px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-subtle);
+}
+
+.skill-card-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgb(var(--accent-rgb, 47 122 92) / 13%);
+  color: var(--color-accent-strong);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.skill-card strong {
+  display: block;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  letter-spacing: -0.02em;
+}
+
+.skill-card p {
+  margin: 6px 0 10px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.skill-card span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ask-focus-hint {
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.ask-focus-hint span {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgb(var(--accent-rgb, 47 122 92) / 12%);
+  color: var(--color-accent-strong);
+}
+
+:root[data-theme="dark"] .assistant-focus-card,
+:root[data-theme="dark"] .skill-library-note,
+:root[data-theme="dark"] .ask-focus-hint,
+:root[data-theme="dark"] .skill-card {
+  background:
+    linear-gradient(135deg, rgb(var(--accent-rgb, 77 166 126) / 10%), transparent 54%),
+    rgb(18 26 32 / 92%);
+  border-color: rgb(136 160 170 / 18%);
+}
+
+:root[data-theme="dark"] .skill-card-icon,
+:root[data-theme="dark"] .ask-focus-hint span {
+  background: rgb(var(--accent-rgb, 77 166 126) / 18%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .assistant-focus-card,
+  :root[data-theme="system"] .skill-library-note,
+  :root[data-theme="system"] .ask-focus-hint,
+  :root[data-theme="system"] .skill-card {
+    background:
+      linear-gradient(135deg, rgb(var(--accent-rgb, 77 166 126) / 10%), transparent 54%),
+      rgb(18 26 32 / 92%);
+    border-color: rgb(136 160 170 / 18%);
+  }
+
+  :root[data-theme="system"] .skill-card-icon,
+  :root[data-theme="system"] .ask-focus-hint span {
+    background: rgb(var(--accent-rgb, 77 166 126) / 18%);
+  }
+}
+
+@media (max-width: 900px) {
+  .skill-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-skills-heading,
+  .assistant-focus-card,
+  .skill-library-note,
+  .ask-focus-hint {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

@@ -86,6 +86,12 @@ export function WorkspaceDashboard({
         onIndexWorkspace={onIndexWorkspace}
       />
 
+      <WorkspaceSkillsSection
+        dashboard={dashboard}
+        onOpenAsk={onOpenAsk}
+        onOpenCapabilities={onOpenCapabilities}
+      />
+
       <ProductStatusSection
         dashboard={dashboard}
         modelsSummary={modelsSummary}
@@ -281,6 +287,180 @@ function WorkspaceOnboardingGuide({
       </div>
     </section>
   );
+}
+
+
+function WorkspaceSkillsSection({
+  dashboard,
+  onOpenAsk,
+  onOpenCapabilities,
+}: {
+  dashboard: WorkspaceDashboardData;
+  onOpenAsk: () => void;
+  onOpenCapabilities: () => void;
+}) {
+  const summary = dashboard.summary;
+  const skills = getWorkspaceSkillCards(dashboard.assistant_mode, summary.detected_skills_count, summary.has_scan);
+  const suggestedFocus = getAssistantFocus(dashboard.assistant_mode);
+
+  return (
+    <section className="panel workspace-skills-panel">
+      <div className="workspace-skills-heading">
+        <div>
+          <p className="eyebrow">Workspace skills</p>
+          <h2>Use the right project lens</h2>
+          <p>
+            Skills help AI Private Workspace frame answers around the technologies and work style detected in this project.
+          </p>
+        </div>
+        <StatusBadge
+          label={summary.has_scan ? `${summary.detected_skills_count} found` : "scan first"}
+          tone={summary.has_scan ? "success" : "warning"}
+          size="md"
+        />
+      </div>
+
+      <div className="assistant-focus-card">
+        <div>
+          <span>Current assistant focus</span>
+          <strong>{suggestedFocus.title}</strong>
+          <p>{suggestedFocus.description}</p>
+        </div>
+        <button className="secondary-action" type="button" onClick={onOpenAsk}>
+          Ask with this focus
+        </button>
+      </div>
+
+      <div className="skill-card-grid">
+        {skills.map((skill) => (
+          <article className="skill-card" key={skill.title}>
+            <div className="skill-card-icon" aria-hidden="true">
+              {skill.icon}
+            </div>
+            <div>
+              <strong>{skill.title}</strong>
+              <p>{skill.description}</p>
+              <span>{skill.hint}</span>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="skill-library-note">
+        <div>
+          <strong>Skill library coming next</strong>
+          <p>
+            Start with presets like DevOps, Developer, Documentation, Incident Support, and Manager Summary. Later you will be able to customize them, for example by extending DevOps with Jenkins pipelines or company-specific deployment rules.
+          </p>
+        </div>
+        <button className="secondary-action" type="button" onClick={onOpenCapabilities}>
+          View capabilities
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function getAssistantFocus(mode: string) {
+  const focuses: Record<string, { title: string; description: string }> = {
+    devops: {
+      title: "DevOps and platform focus",
+      description: "Answers prioritize infrastructure, CI/CD, runtime, cloud, containers, and operational setup.",
+    },
+    developer: {
+      title: "Developer focus",
+      description: "Answers prioritize application structure, implementation details, tests, and code navigation.",
+    },
+    documentation: {
+      title: "Documentation focus",
+      description: "Answers prioritize README files, architecture notes, onboarding context, and clear summaries.",
+    },
+    support_incident: {
+      title: "Incident support focus",
+      description: "Answers prioritize troubleshooting, symptoms, likely causes, operational context, and next checks.",
+    },
+    manager_summary: {
+      title: "Manager summary focus",
+      description: "Answers prioritize concise summaries, risks, progress, decisions, and stakeholder-friendly wording.",
+    },
+  };
+
+  return focuses[mode] ?? focuses.devops;
+}
+
+function getWorkspaceSkillCards(mode: string, detectedCount: number, hasScan: boolean) {
+  if (!hasScan) {
+    return [
+      {
+        icon: "1",
+        title: "Scan project first",
+        description: "Run a project scan to detect languages, infrastructure files, CI/CD, and documentation signals.",
+        hint: "Setup step",
+      },
+      {
+        icon: "2",
+        title: "Choose a focus",
+        description: "The current assistant mode gives answers a starting lens before deeper skill customization is available.",
+        hint: "Assistant mode",
+      },
+      {
+        icon: "3",
+        title: "Build context",
+        description: "After scan, build searchable local context so answers can cite source files.",
+        hint: "Source-backed answers",
+      },
+    ];
+  }
+
+  const base = [
+    {
+      icon: "⌘",
+      title: "Detected project skills",
+      description: `${detectedCount} technology signals are available from the latest scan.`,
+      hint: "From local scan",
+    },
+    {
+      icon: "↳",
+      title: "Answer focus",
+      description: getAssistantFocus(mode).description,
+      hint: "Assistant lens",
+    },
+  ];
+
+  const presetByMode: Record<string, { icon: string; title: string; description: string; hint: string }> = {
+    devops: {
+      icon: "☁",
+      title: "DevOps preset",
+      description: "Best for Terraform, Terragrunt, Kubernetes, Docker, Helm, CI/CD, cloud resources, and deployment flow.",
+      hint: "Preset",
+    },
+    developer: {
+      icon: "{}",
+      title: "Developer preset",
+      description: "Best for code structure, tests, dependencies, implementation details, and change impact.",
+      hint: "Preset",
+    },
+    documentation: {
+      icon: "¶",
+      title: "Documentation preset",
+      description: "Best for onboarding, README quality, architecture notes, project summaries, and missing docs.",
+      hint: "Preset",
+    },
+    support_incident: {
+      icon: "!",
+      title: "Incident preset",
+      description: "Best for troubleshooting, operational checks, likely root causes, and investigation steps.",
+      hint: "Preset",
+    },
+    manager_summary: {
+      icon: "✓",
+      title: "Manager summary preset",
+      description: "Best for risks, progress, decision points, executive summaries, and stakeholder updates.",
+      hint: "Preset",
+    },
+  };
+
+  return [...base, presetByMode[mode] ?? presetByMode.devops];
 }
 
 function ProductStatusSection({
