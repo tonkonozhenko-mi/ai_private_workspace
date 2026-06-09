@@ -840,3 +840,11 @@ Next recommended product tasks:
 2. Add first-successful-Ask onboarding that explains answer bubbles, copy, edit, sources, applied skills, and verification notes.
 3. Consider persistent workspace conversation history after the browser-tab conversation flow is validated.
 4. Add frontend component tests for Ask composer, copy answer, edit question, and ask-again interactions once the frontend test setup is introduced.
+
+
+## Task 144 — Ask chat layout polish and compact sources
+
+- Compacted the Ask focus sidebar so the conversation stays centered.
+- Kept the composer at the bottom of the Ask flow with more bottom spacing for sources.
+- Collapsed retrieved sources by default behind a Show sources / Hide sources control.
+- Preserved explicit Ask-only behavior; no backend, shell, scan, index, or model runtime changes.

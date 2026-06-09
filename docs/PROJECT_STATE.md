@@ -517,3 +517,11 @@ Sources, verification notes, diagnostics, and rebuild-context guidance remain at
 Ask was refined from a two-column form/result layout into a centered workspace conversation. The question composer now stays below the conversation timeline, so users read answers and ask follow-up questions in one place. The left panel was reduced to compact assistant focus and active-skill context.
 
 The composer keeps source-snippet selection and example questions close to the input, while user bubbles, assistant bubbles, sources, verification notes, diagnostics, copy, edit, and ask-again actions stay attached to the conversation. This is a frontend layout and UX change only: no backend behavior, API contract, shell execution, scan/index/rebuild, or model/runtime behavior changed.
+
+
+## Task 144 — Ask chat layout polish and compact sources
+
+- Compacted the Ask focus sidebar so the conversation stays centered.
+- Kept the composer at the bottom of the Ask flow with more bottom spacing for sources.
+- Collapsed retrieved sources by default behind a Show sources / Hide sources control.
+- Preserved explicit Ask-only behavior; no backend, shell, scan, index, or model runtime changes.

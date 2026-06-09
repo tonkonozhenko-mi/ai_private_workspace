@@ -449,19 +449,19 @@ function Sources({
   sources: RagSource[];
   suppressReindexGuidance?: boolean;
 }) {
+  const [showSources, setShowSources] = useState(false);
   const [showAllSources, setShowAllSources] = useState(false);
   const [expandedSourceIds, setExpandedSourceIds] = useState<Set<string>>(
-    () => new Set(sources.slice(0, 1).map((source) => source.chunk_id)),
+    () => new Set(),
   );
   const topSourceScoreIsLow = sources.length > 0 && sources[0].score < 0.25;
   const visibleSources = showAllSources ? sources : sources.slice(0, 2);
   const hiddenSourcesCount = Math.max(sources.length - visibleSources.length, 0);
 
   useEffect(() => {
+    setShowSources(false);
     setShowAllSources(false);
-    setExpandedSourceIds(
-      new Set(sources.slice(0, 1).map((source) => source.chunk_id)),
-    );
+    setExpandedSourceIds(new Set());
   }, [sources]);
 
   function toggleSourcePreview(sourceId: string) {
@@ -477,18 +477,28 @@ function Sources({
   }
 
   return (
-    <section className="panel source-panel">
-      <div className="panel-heading">
+    <section className={`panel source-panel ${showSources ? "is-open" : "is-collapsed"}`}>
+      <div className="panel-heading source-panel-heading">
         <div>
           <p className="eyebrow">Retrieved context</p>
-          <h2>Verify with sources</h2>
+          <h2>{sources.length > 0 ? `${sources.length} sources attached` : "No sources attached"}</h2>
         </div>
-        <span className="source-count-summary">
-          {sources.length} retrieved{" "}
-          {sources.length === 1 ? "source" : "sources"}
-        </span>
+        {sources.length > 0 ? (
+          <button
+            className="secondary-button source-panel-toggle"
+            type="button"
+            onClick={() => setShowSources((current) => !current)}
+          >
+            {showSources ? "Hide sources" : "Show sources"}
+          </button>
+        ) : null}
       </div>
-      {sources.length > 0 ? (
+      {sources.length > 0 && !showSources ? (
+        <p className="source-panel-subtitle">
+          Sources stay attached to this answer. Open them when you need to verify a claim.
+        </p>
+      ) : null}
+      {sources.length > 0 && showSources ? (
         <>
           <p className="source-panel-subtitle">
             Showing the strongest sources first. Expand previews only when you
