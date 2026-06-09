@@ -723,3 +723,26 @@ Next recommended Phase 11 work:
 2. Add explicit scan/build-context guided actions.
 3. Add skill/focus selection after scan.
 4. Add file include/exclude preferences before indexing.
+
+## Task 135 Completed — Workspace archive UI
+
+Added a safe archive flow to the sidebar workspace list.
+
+Validation:
+
+```bash
+cd frontend
+npm run typecheck
+npm run build
+```
+
+Manual checks:
+
+- Open the sidebar workspace list.
+- Click `Archive` on an old workspace.
+- Confirm the first click only opens confirmation controls.
+- Click `Confirm archive` and verify the workspace disappears from the active list.
+- Verify the app selects another workspace when the selected workspace is archived.
+- Verify no shell commands, scan/index/rebuild, model calls, or runtime changes are triggered.
+
+Next recommended work: add an archived workspace management view with `Show archived` and `Restore workspace`, or continue with guided scan/build-context onboarding.

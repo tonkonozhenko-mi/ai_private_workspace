@@ -447,3 +447,9 @@ Workspace creation now uses backend-supported assistant profile IDs. The user-fa
 Settings now includes browser-local branding controls for logo initials and accent color presets. These preferences only affect the local UI and are stored in localStorage; they do not call backend APIs or change runtime/model behavior.
 
 GitHub CI was consolidated into `.github/workflows/ci.yml` with frontend typecheck/build and backend pytest jobs. The old generated template workflows were removed.
+
+## Task 135 — Workspace archive UI
+
+Workspace list management now includes a safe archive flow for old or broken workspaces. Each workspace card exposes a secondary `Archive` action with a two-step confirmation. Archiving calls the existing `POST /workspaces/{workspace_id}/archive` endpoint and refreshes the workspace overview afterward, so archived workspaces disappear from the active sidebar list.
+
+This is a reversible workspace metadata lifecycle operation. The frontend does not hard-delete local files, execute shell commands, scan/index/rebuild context, call models, or change runtime settings.
