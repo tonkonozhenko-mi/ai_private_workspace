@@ -499,3 +499,22 @@ Safety notes:
 - Rating does not change selected model preferences.
 - Rating does not run an experiment.
 - Rating does not reindex, restart the backend, or execute shell commands.
+
+## Task 103: Model Experiment History UI
+
+The Models tab can browse saved model experiments for the selected workspace.
+
+Endpoint used:
+
+- `GET /workspaces/{workspace_id}/model-experiments`
+
+The history view shows recent experiment questions, status, shared source count,
+candidate models, latency, warning counts, and source counts. Selecting a history
+item opens the saved experiment result details and rating UI.
+
+Safety notes:
+
+- History browsing is read-only.
+- Selecting a history item does not run models.
+- Selecting a history item does not change selected models.
+- Selecting a history item does not reindex, scan, restart runtime, or execute commands.

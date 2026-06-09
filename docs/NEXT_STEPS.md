@@ -306,3 +306,18 @@ Recommended next tasks:
 1. Add a small "Apply preferred model" guidance flow that copies or calls the existing model selection endpoint only after explicit confirmation.
 2. Add experiment history browsing from the Models tab using existing workspace experiment endpoints.
 3. Improve performance summary cards using accumulated ratings and preferred votes.
+
+## After Task 103: Experiment history
+
+Completed:
+
+- The Models tab can load recent workspace experiments from `GET /workspaces/{workspace_id}/model-experiments`.
+- Users can select a previous experiment and review its saved run details.
+- Existing rating UI can be reused for selected history experiments.
+- History browsing is read-only and does not run models or change model selection.
+
+Recommended next tasks:
+
+1. Add a deterministic comparison details view using `GET /models/experiments/{experiment_id}/comparison` if available.
+2. Add an explicit "apply preferred model" confirmation flow that uses the existing model selection endpoint.
+3. Improve performance summary cards using accumulated ratings, preferred votes, and experiment history.
