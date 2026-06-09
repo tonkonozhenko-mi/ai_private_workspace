@@ -3,7 +3,7 @@
 Settings are read from environment variables when `app.config.settings.get_settings`
 is first called. Relative paths are resolved from the API process working
 directory. From inside `backend`, the default database is therefore
-`backend/.ai-workbench/workspaces.db`.
+`backend/.ai-workspace/workspaces.db`.
 
 Unsupported repository/provider/runner names fail during application
 composition. Qdrant and Ollama are optional and are not contacted under the
@@ -24,7 +24,7 @@ use a wildcard origin.
 | Variable | Default | Allowed/format | Purpose | Change when |
 | --- | --- | --- | --- | --- |
 | `WORKSPACE_REPOSITORY` | `sqlite` | `sqlite`, `memory` | Selects repositories for workspaces, scans, commands, index status, and timeline. | Use `memory` for disposable experiments or focused tests. |
-| `APP_DATA_DIR` | `.ai-workbench` | Filesystem path | Local application data directory; created at startup. | Place all local app data elsewhere. |
+| `APP_DATA_DIR` | `.ai-workspace` | Filesystem path | Local application data directory; created at startup. | Place all local app data elsewhere. |
 | `WORKSPACE_DB_PATH` | `<APP_DATA_DIR>/workspaces.db` | SQLite file path | Persistent workspace-state database; parent directory is created at startup. | Use a dedicated or absolute database location. |
 
 ## Vector Store
@@ -33,7 +33,7 @@ use a wildcard origin.
 | --- | --- | --- | --- | --- |
 | `VECTOR_STORE` | `memory` | `memory`, `qdrant` | Selects the active vector-store adapter. | Use `qdrant` when indexed context must survive API restarts. |
 | `QDRANT_URL` | `http://localhost:6333` | URL | Qdrant server used by vector storage and runtime health. | Qdrant runs at another host or port. |
-| `QDRANT_COLLECTION` | `ai_workbench_chunks` | Collection base name | Base for embedding-dimension-aware Qdrant collection names. | Isolate environments or choose a naming convention. |
+| `QDRANT_COLLECTION` | `ai_workspace_chunks` | Collection base name | Base for embedding-dimension-aware Qdrant collection names. | Isolate environments or choose a naming convention. |
 
 The in-memory vector store loses chunks on API restart. Qdrant is optional and
 is contacted only when selected or checked by configured runtime health.

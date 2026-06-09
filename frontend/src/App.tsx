@@ -33,6 +33,7 @@ type WorkspaceTab = "overview" | "ask" | "models" | "actions" | "activity" | "se
 type ThemePreference = "system" | "light" | "dark";
 type DensityPreference = "comfortable" | "compact";
 type SourceSnippetPreference = 3 | 5 | 8 | 10;
+type AccentColorPreference = "green" | "blue" | "purple" | "orange";
 
 export interface WorkbenchPreferences {
   theme: ThemePreference;
@@ -40,15 +41,20 @@ export interface WorkbenchPreferences {
   defaultSourceSnippets: SourceSnippetPreference;
   landingTab: WorkspaceTab;
   apiBaseUrl: string;
+  brandInitials: string;
+  accentColor: AccentColorPreference;
 }
 
-const PREFERENCES_STORAGE_KEY = "private-project-ai-workbench.preferences.v1";
+const PREFERENCES_STORAGE_KEY = "ai-private-workspace.preferences.v1";
+const LEGACY_PREFERENCES_STORAGE_KEY = "private-project-ai-workbench.preferences.v1";
 const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   theme: "system",
   density: "comfortable",
   defaultSourceSnippets: 5,
   landingTab: "overview",
   apiBaseUrl: DEFAULT_API_BASE_URL,
+  brandInitials: "AI",
+  accentColor: "green",
 };
 
 const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
@@ -219,6 +225,7 @@ function App() {
     document.documentElement.dataset.theme = preferences.theme;
     document.documentElement.dataset.density = preferences.density;
     setApiBaseUrl(preferences.apiBaseUrl);
+    document.documentElement.dataset.accent = preferences.accentColor;
   }, [preferences]);
 
   useEffect(() => {
@@ -230,11 +237,11 @@ function App() {
       <aside className="sidebar">
         <header className="brand">
           <span className="brand-mark" aria-hidden="true">
-            PW
+            {preferences.brandInitials}
           </span>
           <div>
-            <strong>Private Project</strong>
-            <span>AI Workbench</span>
+            <strong>AI Private</strong>
+            <span>Workspace</span>
           </div>
         </header>
 
@@ -450,7 +457,9 @@ function App() {
 
 function loadStoredPreferences(): WorkbenchPreferences {
   try {
-    const raw = window.localStorage.getItem(PREFERENCES_STORAGE_KEY);
+    const raw =
+      window.localStorage.getItem(PREFERENCES_STORAGE_KEY) ??
+      window.localStorage.getItem(LEGACY_PREFERENCES_STORAGE_KEY);
     if (!raw) {
       return DEFAULT_PREFERENCES;
     }
@@ -473,6 +482,12 @@ function loadStoredPreferences(): WorkbenchPreferences {
       apiBaseUrl: isApiBaseUrlPreference(parsed.apiBaseUrl)
         ? normalizeApiBaseUrl(parsed.apiBaseUrl)
         : DEFAULT_PREFERENCES.apiBaseUrl,
+      brandInitials: isBrandInitialsPreference(parsed.brandInitials)
+        ? normalizeBrandInitials(parsed.brandInitials)
+        : DEFAULT_PREFERENCES.brandInitials,
+      accentColor: isAccentColorPreference(parsed.accentColor)
+        ? parsed.accentColor
+        : DEFAULT_PREFERENCES.accentColor,
     };
   } catch {
     return DEFAULT_PREFERENCES;
@@ -516,3 +531,16 @@ function errorMessage(error: unknown) {
 }
 
 export default App;
+
+
+function isBrandInitialsPreference(value: unknown): value is string {
+  return typeof value === "string" && normalizeBrandInitials(value).length > 0;
+}
+
+function normalizeBrandInitials(value: string): string {
+  return value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3) || "AI";
+}
+
+function isAccentColorPreference(value: unknown): value is AccentColorPreference {
+  return value === "green" || value === "blue" || value === "purple" || value === "orange";
+}

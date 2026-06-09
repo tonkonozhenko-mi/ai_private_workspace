@@ -1,7 +1,7 @@
 # Roadmap
 
-This roadmap describes the likely product sequence for Private Project AI
-Workbench. It is directional rather than a release commitment. Safety,
+This roadmap describes the likely product sequence for AI Private
+Workspace. It is directional rather than a release commitment. Safety,
 local-first operation, clean architecture, and replaceable adapters should
 remain stable constraints throughout every phase.
 

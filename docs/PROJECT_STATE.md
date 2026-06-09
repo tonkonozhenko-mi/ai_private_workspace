@@ -2,10 +2,10 @@
 
 ## Project
 
-**Name:** Private Project AI Workbench  
+**Name:** AI Private Workspace  
 **Current state snapshot:** June 8, 2026
 
-Private Project AI Workbench is a local-first AI workbench for project
+AI Private Workspace is a local-first AI workspace for project
 onboarding, DevOps, developer, documentation, support, and manager assistants.
 It combines deterministic project inspection, local RAG, safe command approval,
 and local model experimentation foundations while keeping private project data
@@ -105,7 +105,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md), [API_INVENTORY.md](API_INVENTORY.md),
 - `POST /workspaces/{workspace_id}/ask-selected` for asking with the persisted
   selected LLM without changing runtime configuration.
 
-### Frontend Workbench
+### Frontend Workspace
 
 - Vite, React, and TypeScript frontend in `frontend/`.
 - Dark workspace sidebar with workspace status, assistant mode, index state,
@@ -178,7 +178,7 @@ for exact startup, verification, and troubleshooting commands.
 
 **Frontend Polish And Real Local AI Happy Path**
 
-The frontend MVP has been expanded and polished into a usable local workbench:
+The frontend MVP has been expanded and polished into a usable local workspace:
 workspace sidebar, Overview, Ask, Models, Actions, and Activity tabs are in
 place with consistent badges, shared state components, safe copy-only setup
 instructions, local Ask session history, source inspection, and responsive
@@ -206,7 +206,7 @@ See [NEXT_STEPS.md](NEXT_STEPS.md) for the expected behavior and safety rules.
 A new Apple-style design-system foundation has been started for Phase 8. The
 frontend now has shared CSS tokens for typography, spacing, radius, color,
 shadows, focus rings, sidebar surfaces, and semantic states. This is intended
-to move the UI from a developer-dashboard feel toward a calmer native workbench
+to move the UI from a developer-dashboard feel toward a calmer native workspace
 experience while preserving the current safe behavior and local-first runtime
 model.
 
@@ -437,3 +437,13 @@ Phase 11 real workspace onboarding has started with a dedicated frontend create-
 The form calls the existing `POST /workspaces` backend endpoint only after explicit user submission. Creating a workspace stores workspace metadata in the local backend and then selects the new workspace so the user can continue with the guided path: scan project, build search context, ask questions, and compare models later.
 
 Safety constraints remain unchanged: the frontend does not execute shell commands, scan files, build/rebuild search context, call models, change runtime settings, or run setup automatically from the create flow.
+
+## 2026-06-09 — Task 134: Branding rename, safe assistant mode IDs, and GitHub CI
+
+The product-facing name is now **AI Private Workspace**. The frontend sidebar, Settings copy, package metadata, and docs were updated away from the old Workbench naming.
+
+Workspace creation now uses backend-supported assistant profile IDs. The user-facing **Support mode** option sends `support_incident`, which matches the backend assistant profile list and avoids the previous `Unknown assistant profile: support` dashboard error.
+
+Settings now includes browser-local branding controls for logo initials and accent color presets. These preferences only affect the local UI and are stored in localStorage; they do not call backend APIs or change runtime/model behavior.
+
+GitHub CI was consolidated into `.github/workflows/ci.yml` with frontend typecheck/build and backend pytest jobs. The old generated template workflows were removed.

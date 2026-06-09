@@ -9,7 +9,7 @@ interface CreateWorkspacePanelProps {
   onCancel: () => void;
 }
 
-type AssistantMode = "devops" | "developer" | "documentation" | "support" | "manager_summary";
+type AssistantMode = "devops" | "developer" | "documentation" | "support_incident" | "manager_summary";
 type PrivacyMode = "local_only" | "manual_network";
 
 const assistantModes: Array<{
@@ -33,7 +33,7 @@ const assistantModes: Array<{
     description: "README files, architecture notes, onboarding, and project summaries.",
   },
   {
-    id: "support",
+    id: "support_incident",
     label: "Support mode",
     description: "Incidents, troubleshooting notes, logs, and operational questions.",
   },

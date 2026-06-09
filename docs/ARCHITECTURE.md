@@ -1,6 +1,6 @@
 # Architecture
 
-Private Project AI Workbench uses a small Ports and Adapters architecture. The
+AI Private Workspace uses a small Ports and Adapters architecture. The
 core describes application behavior, while FastAPI, SQLite, the filesystem,
 Qdrant, Ollama, and subprocess execution remain replaceable edge concerns.
 

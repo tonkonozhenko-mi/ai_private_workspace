@@ -113,8 +113,8 @@ The **Frontend API Map** is documented in
 buttons, provider boundaries, mutations, and timeline effects to the current
 backend surface.
 
-The **Frontend Workbench MVP** now exists in `frontend/`. It uses Vite, React,
-and TypeScript to render a polished local workbench with a dark workspace
+The **Frontend Workspace MVP** now exists in `frontend/`. It uses Vite, React,
+and TypeScript to render a polished local workspace with a dark workspace
 sidebar plus Overview, Ask, Models, Actions, and Activity tabs. The frontend
 uses the stable API map, keeps setup commands copy-only, and never executes
 workspace actions.
@@ -709,3 +709,17 @@ Manual checks:
 - Confirm the create flow does not run scan, index, rebuild search context, model calls, shell commands, or runtime changes.
 
 Next recommended work: add a beginner-friendly workspace setup screen for newly created or unscanned workspaces, with clear copy-only/manual guidance for Scan project and Build search context.
+
+## Task 134 Completed — Branding and CI foundation
+
+- Renamed user-facing product copy to **AI Private Workspace**.
+- Added safe Support mode mapping to the backend-supported `support_incident` assistant profile.
+- Added browser-local branding preferences for logo initials and accent color presets.
+- Added a consolidated GitHub Actions CI workflow for frontend typecheck/build and backend tests.
+
+Next recommended Phase 11 work:
+
+1. Add a new workspace setup guide after creation.
+2. Add explicit scan/build-context guided actions.
+3. Add skill/focus selection after scan.
+4. Add file include/exclude preferences before indexing.
