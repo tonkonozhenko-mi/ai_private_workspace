@@ -572,3 +572,17 @@ Visual check:
 - Disclosures should look lightweight and optional.
 
 After this check, Phase 9 can be considered ready to close. The next planned phase is Settings and personalization.
+
+## Completed — Task 124 Settings Page Foundation
+
+The frontend now includes a Settings tab with a safe read-only foundation for future personalization. It organizes connection, appearance, Ask defaults, AI defaults, and safety posture into a calm product settings page.
+
+Next settings work can decide which preferences should be stored in localStorage and which should belong to backend workspace/global settings.
+
+Validation:
+
+```bash
+cd frontend
+npm run typecheck
+npm run build
+```
