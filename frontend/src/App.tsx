@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_API_BASE_URL,
   archiveWorkspace,
+  restoreWorkspace,
   getLocalAIActivationGuide,
   getModelsDashboardSummary,
   getWorkspaceDashboard,
@@ -69,6 +70,7 @@ const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
 
 function App() {
   const [workspaces, setWorkspaces] = useState<WorkspaceOverviewItem[]>([]);
+  const [archivedWorkspaces, setArchivedWorkspaces] = useState<WorkspaceOverviewItem[]>([]);
   const [totalWorkspaces, setTotalWorkspaces] = useState(0);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
     null,
@@ -86,6 +88,8 @@ function App() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
   const [archivingWorkspaceId, setArchivingWorkspaceId] = useState<string | null>(null);
+  const [restoringWorkspaceId, setRestoringWorkspaceId] = useState<string | null>(null);
+  const [showArchivedWorkspaces, setShowArchivedWorkspaces] = useState(false);
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<WorkbenchPreferences>(() =>
     loadStoredPreferences(),
@@ -143,8 +147,13 @@ function App() {
     setWorkspacesLoading(true);
     setWorkspacesError(null);
     try {
-      const overview = await getWorkspacesOverview();
+      const [overview, allOverview] = await Promise.all([
+        getWorkspacesOverview(),
+        getWorkspacesOverview({ includeArchived: true }),
+      ]);
+      const archivedItems = allOverview.items.filter((workspace) => workspace.is_archived);
       setWorkspaces(overview.items);
+      setArchivedWorkspaces(archivedItems);
       setTotalWorkspaces(overview.total_workspaces);
       if (overview.items.length > 0) {
         const currentExists = overview.items.some(
@@ -215,6 +224,22 @@ function App() {
       setArchivingWorkspaceId(null);
     }
   }, [loadWorkspaces]);
+
+  const handleRestoreWorkspace = useCallback(async (workspace: WorkspaceOverviewItem) => {
+    setRestoringWorkspaceId(workspace.workspace_id);
+    setArchiveError(null);
+    try {
+      await restoreWorkspace(workspace.workspace_id);
+      await loadWorkspaces();
+      await loadWorkspaceDetail(workspace.workspace_id);
+      setActiveTab("overview");
+      setShowCreateWorkspace(false);
+    } catch (error) {
+      setArchiveError(`Could not restore ${workspace.name}: ${errorMessage(error)}`);
+    } finally {
+      setRestoringWorkspaceId(null);
+    }
+  }, [loadWorkspaceDetail, loadWorkspaces]);
 
   const refreshAfterAsk = useCallback(async (workspaceId: string) => {
     try {
@@ -307,12 +332,17 @@ function App() {
             <WorkspaceList
               workspaces={workspaces}
               selectedWorkspaceId={selectedWorkspaceId}
+              archivedWorkspaces={archivedWorkspaces}
+              showArchived={showArchivedWorkspaces}
               archivingWorkspaceId={archivingWorkspaceId}
+              restoringWorkspaceId={restoringWorkspaceId}
+              onToggleArchived={() => setShowArchivedWorkspaces((current) => !current)}
               onSelect={(workspaceId) => {
                 setShowCreateWorkspace(false);
                 void loadWorkspaceDetail(workspaceId);
               }}
               onArchive={(workspace) => void handleArchiveWorkspace(workspace)}
+              onRestore={(workspace) => void handleRestoreWorkspace(workspace)}
             />
           </>
         )}

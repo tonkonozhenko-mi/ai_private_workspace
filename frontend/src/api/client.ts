@@ -67,8 +67,11 @@ async function assertOk(response: Response): Promise<void> {
   throw new Error(detail);
 }
 
-export function getWorkspacesOverview(): Promise<WorkspacesOverview> {
-  return getJson<WorkspacesOverview>("/workspaces/overview");
+export function getWorkspacesOverview(
+  options: { includeArchived?: boolean } = {},
+): Promise<WorkspacesOverview> {
+  const query = options.includeArchived ? "?include_archived=true" : "";
+  return getJson<WorkspacesOverview>(`/workspaces/overview${query}`);
 }
 
 export function createWorkspace(
@@ -86,6 +89,15 @@ export function createWorkspace(
 
 export function archiveWorkspace(workspaceId: string): Promise<void> {
   return requestWithoutBody(`/workspaces/${workspaceId}/archive`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+}
+
+export function restoreWorkspace(workspaceId: string): Promise<void> {
+  return requestWithoutBody(`/workspaces/${workspaceId}/restore`, {
     method: "POST",
     headers: {
       Accept: "application/json",
