@@ -14,6 +14,7 @@ interface SettingsPanelProps {
   preferences: WorkbenchPreferences;
   onPreferencesChange: (preferences: WorkbenchPreferences) => void;
   onResetPreferences: () => void;
+  onOpenModels: () => void;
 }
 
 export function SettingsPanel({
@@ -22,6 +23,7 @@ export function SettingsPanel({
   preferences,
   onPreferencesChange,
   onResetPreferences,
+  onOpenModels,
 }: SettingsPanelProps) {
   const summary = dashboard.summary;
   const contextReady = summary.index_status.status === "indexed";
@@ -152,7 +154,7 @@ export function SettingsPanel({
         <SettingsSection
           eyebrow="Connection"
           title="Local backend"
-          description="Choose which local API this browser should use. This only changes the frontend connection target."
+          description="Choose the local API address for this browser. Change this only when your backend runs on a different host or port."
           badge="Browser-local"
         >
           <PreferenceGroup label="Backend URL">
@@ -191,6 +193,9 @@ export function SettingsPanel({
           <SettingsRow label="Current target" value={preferences.apiBaseUrl} code />
           <SettingsRow label="Default target" value={DEFAULT_API_BASE_URL} code />
           <SettingsRow label="Scope" value="Local browser to local API" />
+          <p className="settings-helper-note">
+            After changing this address, use Refresh in the sidebar to load workspaces from the new backend.
+          </p>
         </SettingsSection>
 
         <SettingsSection
@@ -271,7 +276,7 @@ export function SettingsPanel({
         <SettingsSection
           eyebrow="AI defaults"
           title="Models"
-          description="Chosen models are still managed from the Models tab. Settings only shows the current workspace defaults."
+          description="Settings shows the current workspace model defaults. Change or compare models from the Models tab."
           badge={localAIReady ? "Ready" : "Review"}
           tone={localAIReady ? "success" : "warning"}
         >
@@ -285,6 +290,12 @@ export function SettingsPanel({
             value={modelsSummary.selected_embedding ?? "Not selected"}
             code
           />
+          <div className="settings-inline-actions">
+            <button type="button" className="ghost-button" onClick={onOpenModels}>
+              Open Models
+            </button>
+            <span>Use Models when you want to review, compare, or change workspace model choices.</span>
+          </div>
         </SettingsSection>
       </div>
 

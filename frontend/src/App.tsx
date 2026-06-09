@@ -397,6 +397,7 @@ function App() {
                   preferences={preferences}
                   onPreferencesChange={setPreferences}
                   onResetPreferences={() => setPreferences(DEFAULT_PREFERENCES)}
+                  onOpenModels={() => setActiveTab("models")}
                 />
               ) : null}
             </section>

@@ -674,3 +674,16 @@ No backend APIs, command execution, scan/index/rebuild, or model/runtime changes
 ## After Task 131
 
 Validate Settings in light and dark themes. Confirm that backup tools are hidden by default, can be shown on demand, and that reset remains a safe two-step local-only action.
+
+## Task 132 — Phase 10 Final Polish
+
+Completed the final Phase 10 Settings polish:
+
+- Added an `Open Models` action in Settings AI defaults.
+- Clarified backend URL helper copy.
+- Kept Settings changes browser-local and explicit.
+
+Phase 10 can now be considered complete for the MVP. The next recommended phase
+is **Phase 11 — Real Workspace Onboarding Flow**, focused on creating a new
+workspace from a local path, guiding scan/index setup, and improving empty/new
+workspace states.

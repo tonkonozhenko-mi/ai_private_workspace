@@ -756,3 +756,10 @@ The setting changes only the frontend fetch target. It introduces no backend API
 ## Task 131 note
 
 Settings backup/import remains browser-local. The backup tools are now hidden behind a disclosure and still do not call backend APIs.
+
+## Task 132 note — Settings final polish
+
+The Settings screen now includes a local navigation action from AI defaults to
+the existing Models tab. This is a frontend tab switch only; it does not call a
+backend endpoint, mutate model selection, run comparisons, rebuild search
+context, or execute commands.
