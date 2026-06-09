@@ -578,3 +578,7 @@ The Ask tab was redesigned visually as a conversation-first workspace surface. A
 - Session history remains frontend state only.
 - Scan/index/reindex guidance remains copy-only and is never executed by the frontend.
 - Sources, diagnostics, quality warnings, and markdown answer rendering use the same response payload as before.
+
+### Ask source disclosure
+
+`AskWorkspace` continues to use `POST /workspaces/{workspace_id}/ask-selected`; source progressive disclosure is frontend-only and does not add API calls.

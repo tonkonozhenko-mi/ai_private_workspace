@@ -396,3 +396,7 @@ Planned/completed direction:
 - Keep session history local to the browser tab.
 
 Safety remains unchanged: Ask still only calls `/workspaces/{workspace_id}/ask-selected` after explicit submit. The frontend does not execute commands, mutate runtime settings, or rebuild indexes automatically.
+
+### Task 109 — Ask source progressive disclosure
+
+Ask source previews now use progressive disclosure: the strongest two sources are shown first, each preview can be expanded or collapsed, and the remaining retrieved sources are available through a Show all sources control. This keeps the conversational Ask screen readable while preserving full verification context.
