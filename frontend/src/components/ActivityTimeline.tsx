@@ -32,7 +32,7 @@ export function ActivityTimeline({ events }: ActivityTimelineProps) {
           <p className="eyebrow">Activity</p>
           <h2>Workspace activity</h2>
           <p className="panel-intro activity-panel-intro">
-            Recent local workspace events, grouped by day. Open details only when you need the raw metadata.
+            Recent questions, model changes, context updates, and experiment feedback. Details stay hidden until you need them.
           </p>
         </div>
         <span className="panel-count">{events.length}</span>
@@ -42,7 +42,7 @@ export function ActivityTimeline({ events }: ActivityTimelineProps) {
         <>
           <div className="activity-summary-grid" aria-label="Activity summary">
             <ActivitySummaryItem label="Questions" value={summary.ask} tone="accent" />
-            <ActivitySummaryItem label="Model events" value={summary.experiment + summary.workspace} tone="info" />
+            <ActivitySummaryItem label="AI changes" value={summary.experiment + summary.workspace} tone="info" />
             <ActivitySummaryItem label="Project events" value={summary.project} tone="success" />
           </div>
 
@@ -65,7 +65,7 @@ export function ActivityTimeline({ events }: ActivityTimelineProps) {
       ) : (
         <EmptyState
           title="Workspace events will appear here"
-          message="Scans, indexing, questions, model selections, experiments, and command decisions appear after the user explicitly invokes them."
+          message="Questions, context updates, AI model changes, experiment feedback, and command decisions appear after you explicitly invoke them."
           compact
         />
       )}
@@ -208,19 +208,19 @@ function getEventLabel(eventType: string, category: EventCategory) {
     return "Question asked";
   }
   if (type.includes("experiment") && type.includes("rating")) {
-    return "Experiment rated";
+    return "Feedback saved";
   }
   if (type.includes("experiment")) {
-    return "Experiment";
+    return "Model comparison";
   }
   if (type.includes("model") && type.includes("selected")) {
-    return "Model selected";
+    return "AI model changed";
   }
   if (type.includes("scan")) {
-    return "Scan";
+    return "Project scanned";
   }
   if (type.includes("index")) {
-    return "Context";
+    return "Context updated";
   }
 
   if (category === "project") {
@@ -230,7 +230,7 @@ function getEventLabel(eventType: string, category: EventCategory) {
     return "Ask";
   }
   if (category === "command") {
-    return "Command";
+    return "Command decision";
   }
   if (category === "workspace") {
     return "Workspace";
@@ -242,13 +242,13 @@ function getHumanTitle(event: TimelineEvent) {
   const type = event.event_type.toLowerCase();
 
   if (type.includes("question")) {
-    return "Workspace question asked";
+    return "Question asked";
   }
   if (type.includes("model") && type.includes("selected")) {
-    return "Workspace model preference updated";
+    return "AI model preference updated";
   }
   if (type.includes("experiment") && type.includes("rating")) {
-    return "Model experiment rated";
+    return "Model feedback saved";
   }
   if (type.includes("experiment")) {
     return "Model comparison completed";
@@ -257,7 +257,7 @@ function getHumanTitle(event: TimelineEvent) {
     return "Project scan completed";
   }
   if (type.includes("index")) {
-    return "Workspace index updated";
+    return "Search context rebuilt";
   }
   return event.title;
 }
@@ -374,7 +374,30 @@ function getDayLabel(value: string) {
 }
 
 function formatLabel(value: string) {
-  return value.replaceAll("_", " ");
+  const friendlyLabels: Record<string, string> = {
+    llm_provider: "AI provider",
+    llm_model: "AI model",
+    quality_warnings_count: "Verification notes",
+    sources_count: "Sources",
+    experiment_type: "Comparison type",
+    candidates_count: "Models compared",
+    shared_context_sources_count: "Shared sources",
+    detected_skills_count: "Technologies found",
+    indexed_files_count: "Files indexed",
+    chunks_count: "Context chunks",
+    provider: "Provider",
+    model: "Model",
+    model_type: "Model type",
+    selected_reason: "Reason",
+    risk_level: "Risk level",
+    policy_decision: "Policy decision",
+  };
+
+  return friendlyLabels[value] ?? titleCase(value.replaceAll("_", " "));
+}
+
+function titleCase(value: string) {
+  return value.replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function formatMetadataValue(value: string) {

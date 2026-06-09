@@ -646,3 +646,15 @@ The Overview CTA simplification is UI-only. The new “Go to Ask” button switc
 ## Task 116 — Capabilities Tab Wording
 
 The frontend now labels the former Actions tab as Capabilities. The route/internal tab id remains `actions` and the backend endpoint remains `/ui-actions`; this is a user-facing wording change only. The screen remains inspection-only and does not execute capabilities from the catalog. Technical endpoint details are still available behind an explicit disclosure.
+
+## Task 117 Activity Wording Notes
+
+The Activity tab still reads from the same timeline endpoint and remains read-only.
+Only user-facing labels changed. Backend event types and metadata keys are preserved,
+but common labels are displayed in more user-friendly language, for example:
+
+- `llm_provider` -> `AI provider`
+- `llm_model` -> `AI model`
+- `quality_warnings_count` -> `Verification notes`
+- experiment rating events -> `Model feedback saved`
+- index events -> `Search context rebuilt`
