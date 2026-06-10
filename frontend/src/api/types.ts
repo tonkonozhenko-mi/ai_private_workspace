@@ -20,6 +20,30 @@ export interface FileSelectionRulesRequest {
   exclude_patterns: string[];
 }
 
+
+export interface FileSelectionPreviewItem {
+  path: string;
+  detected_type: string;
+  size_bytes: number;
+  decision: "included" | "excluded";
+  reason: string;
+  matched_rule: string | null;
+}
+
+export interface FileSelectionPreview {
+  workspace_id: string;
+  project_path: string;
+  profile: string;
+  total_files: number;
+  included_files_count: number;
+  excluded_files_count: number;
+  skipped_files_count: number;
+  include_rules_count: number;
+  exclude_rules_count: number;
+  included_samples: FileSelectionPreviewItem[];
+  excluded_samples: FileSelectionPreviewItem[];
+}
+
 export interface ProjectScanResponse {
   project_path: string;
   total_files: number;

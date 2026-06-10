@@ -23,8 +23,10 @@ from app.api.dependencies import (
     workspace_repository,
 )
 from app.api.project_scan_schemas import (
+    FileSelectionPreviewResponse,
     ProjectScanResponse,
     ScanWorkspaceProjectRequest,
+    to_file_selection_preview_response,
     to_project_scan_response,
 )
 from app.api.schemas.analysis_schemas import (
@@ -316,6 +318,12 @@ from app.core.use_cases.get_workspace_models_dashboard_summary import (
     WorkspaceModelsDashboardSummaryNotFoundError,
 )
 from app.core.use_cases.scan_project import ProjectScanError
+from app.core.use_cases.preview_workspace_file_selection import (
+    PreviewWorkspaceFileSelectionError,
+    PreviewWorkspaceFileSelectionInput,
+    PreviewWorkspaceFileSelectionUseCase,
+    PreviewWorkspaceFileSelectionWorkspaceNotFoundError,
+)
 from app.core.use_cases.scan_workspace_project import (
     ScanWorkspaceProjectInput,
     ScanWorkspaceProjectUseCase,
@@ -518,6 +526,44 @@ def _index_workspace_result_summary(result) -> dict[str, str]:
         "chunks_count": str(result.chunks_count),
         "skipped_files_count": str(result.skipped_files_count),
     }
+
+
+@router.post("/{workspace_id}/files/preview", response_model=FileSelectionPreviewResponse)
+def preview_workspace_file_selection(
+    workspace_id: str,
+    request: ScanWorkspaceProjectRequest | None = Body(default=None),
+) -> FileSelectionPreviewResponse:
+    file_rules = request.file_rules if request is not None else None
+    use_case = PreviewWorkspaceFileSelectionUseCase(
+        workspace_repository=workspace_repository,
+        file_system=file_system,
+    )
+
+    try:
+        result = use_case.execute(
+            PreviewWorkspaceFileSelectionInput(
+                workspace_id=workspace_id,
+                include_patterns=tuple(file_rules.include_patterns)
+                if file_rules is not None
+                else (),
+                exclude_patterns=tuple(file_rules.exclude_patterns)
+                if file_rules is not None
+                else (),
+                file_rules_profile=file_rules.profile if file_rules is not None else None,
+            )
+        )
+    except PreviewWorkspaceFileSelectionWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except PreviewWorkspaceFileSelectionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return to_file_selection_preview_response(result)
 
 
 @router.post("/{workspace_id}/jobs/scan", response_model=WorkspaceJobResponse)

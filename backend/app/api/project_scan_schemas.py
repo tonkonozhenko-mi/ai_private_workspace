@@ -14,6 +14,67 @@ class ScanWorkspaceProjectRequest(BaseModel):
     file_rules: FileSelectionRulesRequest | None = None
 
 
+
+
+class FileSelectionPreviewItemResponse(BaseModel):
+    path: str
+    detected_type: str
+    size_bytes: int
+    decision: str
+    reason: str
+    matched_rule: str | None = None
+
+
+class FileSelectionPreviewResponse(BaseModel):
+    workspace_id: str
+    project_path: str
+    profile: str
+    total_files: int
+    included_files_count: int
+    excluded_files_count: int
+    skipped_files_count: int
+    include_rules_count: int
+    exclude_rules_count: int
+    included_samples: list[FileSelectionPreviewItemResponse]
+    excluded_samples: list[FileSelectionPreviewItemResponse]
+
+
+def to_file_selection_preview_response(result) -> FileSelectionPreviewResponse:
+    return FileSelectionPreviewResponse(
+        workspace_id=result.workspace_id,
+        project_path=result.project_path,
+        profile=result.profile,
+        total_files=result.total_files,
+        included_files_count=result.included_files_count,
+        excluded_files_count=result.excluded_files_count,
+        skipped_files_count=result.skipped_files_count,
+        include_rules_count=result.include_rules_count,
+        exclude_rules_count=result.exclude_rules_count,
+        included_samples=[
+            FileSelectionPreviewItemResponse(
+                path=item.path,
+                detected_type=item.detected_type,
+                size_bytes=item.size_bytes,
+                decision=item.decision,
+                reason=item.reason,
+                matched_rule=item.matched_rule,
+            )
+            for item in result.included_samples
+        ],
+        excluded_samples=[
+            FileSelectionPreviewItemResponse(
+                path=item.path,
+                detected_type=item.detected_type,
+                size_bytes=item.size_bytes,
+                decision=item.decision,
+                reason=item.reason,
+                matched_rule=item.matched_rule,
+            )
+            for item in result.excluded_samples
+        ],
+    )
+
+
 class ProjectFileResponse(BaseModel):
     path: str
     extension: str | None

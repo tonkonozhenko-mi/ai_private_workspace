@@ -8,6 +8,7 @@ import type {
   CreateWorkspaceRequest,
   CreatedWorkspace,
   ProjectScanResponse,
+  FileSelectionPreview,
   FileSelectionRulesRequest,
   WorkspaceDashboard,
   WorkspaceIndexResponse,
@@ -108,6 +109,21 @@ export function restoreWorkspace(workspaceId: string): Promise<void> {
     headers: {
       Accept: "application/json",
     },
+  });
+}
+
+
+export function previewWorkspaceFileSelection(
+  workspaceId: string,
+  fileRules?: FileSelectionRulesRequest,
+): Promise<FileSelectionPreview> {
+  return requestJson<FileSelectionPreview>(`/workspaces/${workspaceId}/files/preview`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      ...(fileRules ? { "Content-Type": "application/json" } : {}),
+    },
+    ...(fileRules ? { body: JSON.stringify({ file_rules: fileRules }) } : {}),
   });
 }
 

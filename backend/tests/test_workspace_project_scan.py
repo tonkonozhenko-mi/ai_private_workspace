@@ -135,3 +135,33 @@ def test_scan_workspace_applies_file_selection_rules(tmp_path) -> None:
     ]
     assert scan_result["scanned_files"] == 1
     assert scan_result["skipped_files"] >= 1
+
+
+def test_preview_workspace_file_selection_returns_included_and_excluded_samples(tmp_path) -> None:
+    _write_text(tmp_path / "src" / "app.py", "print('hello')")
+    _write_text(tmp_path / "docs" / "README.md", "# Docs")
+    _write_text(tmp_path / "build" / "generated.py", "print('generated')")
+
+    workspace = _create_workspace(tmp_path)
+
+    response = client.post(
+        f"/workspaces/{workspace['id']}/files/preview",
+        json={
+            "file_rules": {
+                "profile": "source-first",
+                "include_patterns": ["src/**", "docs/**"],
+                "exclude_patterns": ["docs/**"],
+            }
+        },
+    )
+
+    assert response.status_code == 200
+    preview = response.json()
+    assert preview["included_files_count"] == 1
+    assert preview["excluded_files_count"] >= 1
+    assert preview["included_samples"][0]["path"] == "src/app.py"
+    assert preview["included_samples"][0]["reason"] == "Matched include rule"
+    excluded_paths = {item["path"] for item in preview["excluded_samples"]}
+    assert "docs/README.md" in excluded_paths
+    assert preview["include_rules_count"] == 2
+    assert preview["exclude_rules_count"] == 1
