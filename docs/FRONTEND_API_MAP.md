@@ -883,3 +883,13 @@ These values are currently UI/localStorage only and are not sent to backend endp
 - `POST /workspaces/{workspace_id}/index`
 
 Future work should add an explicit scan/index contract for include/exclude rules and a preview endpoint before applying file selection preferences to indexing.
+
+### Task 149 request cancellation behavior
+
+The frontend passes `AbortSignal` to explicit long-running calls:
+
+- `POST /workspaces/{workspace_id}/scan`
+- `POST /workspaces/{workspace_id}/index`
+- `POST /workspaces/{workspace_id}/ask-selected`
+
+This cancels the browser wait state only. Backend-side job cancellation is a future background-job feature.

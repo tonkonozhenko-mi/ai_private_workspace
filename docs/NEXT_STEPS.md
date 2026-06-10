@@ -866,3 +866,7 @@ Next recommended Phase 12 tasks:
 2. Add a read-only file preview so users can see which files would be included or skipped before rebuilding search context.
 3. Explain why each file is included or excluded based on pattern matches.
 4. Keep rebuilding search context explicit; do not run scan/index automatically after editing file rules.
+
+## After Task 149
+
+Next large backend/product step: introduce real background jobs for long-running scan/index/model-comparison workflows with job status and backend-side cancellation.

@@ -539,3 +539,11 @@ This is a frontend-only UI polish task. It does not change backend behavior, API
 Phase 12 has started with browser-local file selection preferences. Overview now includes a Files and context panel that explains which project files should become searchable and which noisy/generated files should stay out of context. Settings now includes a Files and search context section with editable include and exclude pattern lists, safe defaults, rule counts, Save file rules, and Reset defaults.
 
 This task is a frontend/localStorage foundation only. The preferences are visible and exportable with other browser-local settings, but they are not yet sent to scan/index endpoints. Rebuilding search context remains an explicit user action and no shell commands, file deletion, model/runtime changes, or automatic scan/index behavior were added.
+
+### Task 149 — Running states and cancel request UX
+
+- Added frontend-side cancellation for explicit Scan, Build search context, and Ask requests.
+- Scan/Build buttons now show running labels and a Stop waiting action while the browser request is active.
+- Ask now shows Thinking and Stop while waiting for an answer.
+- Cancellation stops the browser waiting state; the local backend may still finish a job if it already started.
+- No backend job system, shell execution, automatic scan/index, or model/runtime changes were introduced.

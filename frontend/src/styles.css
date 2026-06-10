@@ -9179,3 +9179,45 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* Task 149 — running states and cancellation polish */
+.onboarding-guide-heading {
+  gap: var(--space-4);
+}
+
+.workspace-setup-action-buttons {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ask-stop-button {
+  min-width: 88px;
+  white-space: nowrap;
+}
+
+.ask-cancel-message {
+  align-self: center;
+  width: min(860px, 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-soft);
+  color: var(--text-secondary);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.file-rules-plan {
+  align-items: center;
+}
+
+.file-rules-plan > div:first-child p {
+  max-width: 760px;
+}
+
+.file-rules-plan-grid code {
+  display: block;
+  max-width: 34ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
