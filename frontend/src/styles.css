@@ -14577,3 +14577,189 @@ pre,
     grid-template-columns: 1fr;
   }
 }
+
+/* Task 200: release-candidate calm UI pass.
+   Keep first-run screens useful after launch, but reduce visual noise by
+   hiding secondary setup details behind native disclosures. */
+:root {
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 22px;
+  --text-sm: 0.6875rem;
+  --text-md: 0.8125rem;
+}
+
+.workspace-navigation-shell,
+.models-native-hero,
+.onboarding-guide-panel,
+.first-launch-panel,
+.panel,
+.metric-card {
+  border-radius: var(--radius-xl);
+}
+
+.workspace-tabs button,
+.primary-action,
+.secondary-action,
+.overview-cta-button,
+.ghost-button,
+.text-button,
+.primary-button {
+  min-height: 36px;
+  border-radius: 12px;
+  letter-spacing: 0;
+}
+
+.onboarding-guide-heading {
+  align-items: center;
+  gap: 20px;
+}
+
+.onboarding-guide-heading > div {
+  max-width: 720px;
+}
+
+.onboarding-guide-heading h2,
+.models-native-hero h2,
+.panel-heading h2 {
+  letter-spacing: -0.02em;
+}
+
+.onboarding-safety-note {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 10px;
+  padding: 6px 10px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.workspace-setup-actions {
+  align-items: center;
+  margin-top: 18px;
+  background: linear-gradient(180deg, #fbfcfd, #f6f8f9);
+}
+
+.file-rules-disclosure {
+  display: block;
+  margin-top: 16px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.file-rules-disclosure summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.file-rules-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.file-rules-disclosure summary > div {
+  min-width: 0;
+}
+
+.file-rules-disclosure summary > span {
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.file-rules-disclosure[open] {
+  padding-bottom: 16px;
+}
+
+.file-rules-disclosure[open] .file-rules-plan-grid,
+.file-rules-disclosure[open] .file-rules-plan-actions {
+  margin-left: 18px;
+  margin-right: 18px;
+}
+
+.background-jobs-panel {
+  margin-top: 16px;
+}
+
+.desktop-packaging-panel {
+  padding: 0;
+}
+
+.desktop-packaging-panel > summary {
+  padding: 18px;
+}
+
+.desktop-packaging-inner {
+  display: grid;
+  gap: 16px;
+  padding: 0 18px 18px;
+}
+
+.desktop-packaging-inner .panel-heading {
+  display: none;
+}
+
+.first-launch-panel .settings-message.info:last-child {
+  margin-bottom: 0;
+}
+
+.models-detail {
+  gap: 18px;
+}
+
+.models-simple-panel {
+  order: -1;
+}
+
+.metric-grid {
+  gap: 16px;
+}
+
+.metric-card {
+  min-height: 116px;
+}
+
+@media (max-width: 960px) {
+  .onboarding-guide-heading,
+  .workspace-setup-actions,
+  .file-rules-disclosure summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .onboarding-guide-heading > button,
+  .workspace-setup-action-buttons,
+  .file-rules-disclosure summary > span {
+    width: 100%;
+  }
+}
+
+:root[data-theme="dark"] .workspace-setup-actions,
+:root[data-theme="dark"] .onboarding-safety-note,
+:root[data-theme="dark"] .file-rules-disclosure summary > span {
+  background: #1f2a33;
+  border-color: #34434d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .workspace-setup-actions,
+  :root[data-theme="system"] .onboarding-safety-note,
+  :root[data-theme="system"] .file-rules-disclosure summary > span {
+    background: #1f2a33;
+    border-color: #34434d;
+  }
+}

@@ -427,11 +427,10 @@ function WorkspaceOnboardingGuide({
             {readyToAsk ? "Ready to ask questions" : "Set up this workspace"}
           </h2>
           <p>
-            Follow this path to turn a local project folder into source-backed
-            answers.
+            A short, safe path from local folder to source-backed answers.
           </p>
           <span className="onboarding-safety-note">
-            Setup stays manual. The frontend never runs shell commands.
+            Each step is explicit and reversible. No hidden shell commands.
           </span>
         </div>
         <button
@@ -448,7 +447,7 @@ function WorkspaceOnboardingGuide({
             type="button"
             onClick={cancelSetupAction}
           >
-            Stop waiting
+            Cancel job
           </button>
         ) : null}
       </div>
@@ -456,63 +455,25 @@ function WorkspaceOnboardingGuide({
       {!readyToAsk ? (
         <div
           className="workspace-setup-actions"
-          aria-label="Workspace setup actions"
+          aria-label="Current workspace setup step"
         >
           <div>
             <strong>
               {!hasScan
-                ? "Start with a project scan"
+                ? "Next: scan the project"
                 : !indexReady
-                  ? "Build searchable context"
-                  : "Review local AI setup"}
+                  ? "Next: build search context"
+                  : "Next: review local AI"}
             </strong>
             <p>
               {!hasScan
-                ? "This reads the local project through the backend and records detected technologies."
+                ? "The scan reads project metadata through the backend and records detected technologies."
                 : !indexReady
-                  ? "This creates source-backed search context from the latest scan."
-                  : "Open Models to confirm the chosen local AI models before asking questions."}
+                  ? "Search context makes answers grounded in local project sources."
+                  : "Confirm the selected models before asking source-backed questions."}
             </p>
           </div>
           <div className="workspace-setup-action-buttons">
-            {!hasScan ? (
-              <button
-                className="primary-action"
-                type="button"
-                disabled={setupAction !== null}
-                onClick={() => void requestSetupAction("scan")}
-              >
-                {setupAction === "scan" ? "Scanning..." : "Scan project"}
-              </button>
-            ) : null}
-            {setupAction === "scan" ? (
-              <button
-                className="secondary-action"
-                type="button"
-                onClick={cancelSetupAction}
-              >
-                Stop waiting
-              </button>
-            ) : !indexReady ? (
-              <button
-                className="primary-action"
-                type="button"
-                disabled={setupAction !== null}
-                onClick={() => void requestSetupAction("index")}
-              >
-                {setupAction === "index"
-                  ? "Building..."
-                  : "Build search context"}
-              </button>
-            ) : (
-              <button
-                className="secondary-action"
-                type="button"
-                onClick={onOpenModels}
-              >
-                Review Models
-              </button>
-            )}
             <button
               className="secondary-action"
               type="button"
@@ -524,13 +485,16 @@ function WorkspaceOnboardingGuide({
         </div>
       ) : null}
 
-      <div className="file-rules-plan" aria-label="File selection plan">
-        <div>
-          <strong>File rules applied on scan</strong>
-          <p>
-            Preview saved workspace rules or the current browser draft before starting scan/index. Scan and context build use saved rules only.
-          </p>
-        </div>
+      <details className="file-rules-plan file-rules-disclosure" aria-label="File selection plan">
+        <summary>
+          <div>
+            <strong>File rules for scan and context build</strong>
+            <p>
+              Saved rules are applied when scan/index starts. Open this only when you want to verify included files.
+            </p>
+          </div>
+          <span>{includeRuleCount} include · {excludeRuleCount} exclude</span>
+        </summary>
         <div className="file-rules-plan-grid">
           <div>
             <span>{includeRuleCount} include rules</span>
@@ -568,7 +532,7 @@ function WorkspaceOnboardingGuide({
             </button>
           ) : null}
         </div>
-      </div>
+      </details>
 
       {filePreviewError ? (
         <p className="settings-message error">{filePreviewError}</p>
