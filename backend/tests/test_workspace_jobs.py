@@ -26,6 +26,51 @@ def test_scan_workspace_job_completes_and_updates_latest_scan(tmp_path: Path) ->
     assert latest_scan_response.json()["scanned_files"] == 1
 
 
+def test_list_workspace_jobs_returns_created_jobs(tmp_path: Path) -> None:
+    _write_text(tmp_path / "README.md", "job list")
+    workspace = _create_workspace(tmp_path)
+
+    start_response = client.post(f"/workspaces/{workspace['id']}/jobs/scan")
+
+    assert start_response.status_code == 200
+    response = client.get(f"/workspaces/{workspace['id']}/jobs")
+    assert response.status_code == 200
+    jobs = response.json()
+    assert any(job["job_id"] == start_response.json()["job_id"] for job in jobs)
+
+
+def test_get_workspace_job_with_wrong_workspace_returns_404(tmp_path: Path) -> None:
+    _write_text(tmp_path / "one" / "README.md", "job one")
+    _write_text(tmp_path / "two" / "README.md", "job two")
+    workspace_one = _create_workspace(tmp_path / "one")
+    workspace_two = _create_workspace(tmp_path / "two")
+    start_response = client.post(f"/workspaces/{workspace_one['id']}/jobs/scan")
+    assert start_response.status_code == 200
+
+    response = client.get(
+        f"/workspaces/{workspace_two['id']}/jobs/{start_response.json()['job_id']}"
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Workspace job not found"
+
+
+def test_cancel_workspace_job_marks_job_for_cancellation(tmp_path: Path) -> None:
+    _write_text(tmp_path / "README.md", "cancel job")
+    workspace = _create_workspace(tmp_path)
+    start_response = client.post(f"/workspaces/{workspace['id']}/jobs/scan")
+    assert start_response.status_code == 200
+
+    response = client.post(
+        f"/workspaces/{workspace['id']}/jobs/{start_response.json()['job_id']}/cancel"
+    )
+
+    assert response.status_code == 200
+    job = response.json()
+    assert job["cancellation_requested"] is True
+    assert job["status"] in {"queued", "running", "cancelled", "completed"}
+
+
 def test_workspace_job_cancel_unknown_returns_404(tmp_path: Path) -> None:
     workspace = _create_workspace(tmp_path)
 

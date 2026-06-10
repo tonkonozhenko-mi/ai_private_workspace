@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
+from time import perf_counter
 
 from app.core.domain.indexing import ContextSearchResult
+from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
 from app.core.domain.rag import RagQualityWarning, RagSource, WorkspaceQuestionAnswer
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.rag_prompt import SkillPromptInstruction, build_workspace_question_prompt
@@ -136,7 +138,7 @@ class AskWorkspaceQuestionUseCase:
             context_results=context_results,
             skill_instructions=request.skill_instructions,
         )
-        answer = llm_provider.generate(prompt)
+        answer, usage = self._generate_answer_with_usage(llm_provider, prompt)
         quality_warnings = [
             *evaluate_rag_answer(
                 question=request.question,
@@ -159,9 +161,28 @@ class AskWorkspaceQuestionUseCase:
                 diagnostic_code=None,
                 diagnostic_message=None,
                 quality_warnings=quality_warnings,
+                usage=usage,
             ),
             request,
         )
+
+    def _generate_answer_with_usage(
+        self,
+        llm_provider: LLMProviderPort,
+        prompt: str,
+    ) -> tuple[str, LLMUsageMetrics]:
+        started_at = perf_counter()
+        answer = llm_provider.generate(prompt)
+        latency_ms = max(0, round((perf_counter() - started_at) * 1000))
+        usage = build_llm_usage_metrics(
+            prompt=prompt,
+            completion=answer,
+            latency_ms=latency_ms,
+            provider=llm_provider.provider_name,
+            model=llm_provider.model_name,
+            estimated=True,
+        )
+        return answer, usage
 
     def _diagnostic_answer(
         self,

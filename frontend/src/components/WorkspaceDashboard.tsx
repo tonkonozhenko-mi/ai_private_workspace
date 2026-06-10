@@ -522,6 +522,28 @@ function WorkspaceOnboardingGuide({
         <FileSelectionPreviewPanel preview={filePreview} />
       ) : null}
 
+      {setupJob && !["completed", "failed", "cancelled"].includes(setupJob.status) ? (
+        <div className="workspace-job-status" role="status">
+          <div>
+            <span>{setupJob.job_type}</span>
+            <strong>{setupJob.title}</strong>
+            <p>{setupJob.message ?? "Running..."}</p>
+            {setupJob.cancellation_requested ? (
+              <p>Stopping when the backend reaches a safe checkpoint...</p>
+            ) : null}
+          </div>
+          <StatusBadge label={setupJob.status} />
+          <button
+            className="secondary-action"
+            type="button"
+            onClick={cancelSetupAction}
+            disabled={setupJob.cancellation_requested}
+          >
+            {setupJob.cancellation_requested ? "Stopping..." : "Cancel job"}
+          </button>
+        </div>
+      ) : null}
+
       {setupMessage ? (
         <p className="settings-message success">{setupMessage}</p>
       ) : null}
