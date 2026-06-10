@@ -16,6 +16,7 @@ from app.adapters.memory.in_memory_indexing_rules_repository import (
 from app.adapters.memory.in_memory_model_experiment_repository import (
     InMemoryModelExperimentRepository,
 )
+from app.adapters.memory.in_memory_mcp_repository import InMemoryMCPRepository
 from app.adapters.memory.in_memory_model_experiment_rating_repository import (
     InMemoryModelExperimentRatingRepository,
 )
@@ -37,6 +38,7 @@ from app.adapters.memory.sqlite_indexing_rules_repository import SQLiteIndexingR
 from app.adapters.memory.sqlite_model_experiment_repository import (
     SQLiteModelExperimentRepository,
 )
+from app.adapters.memory.sqlite_mcp_repository import SQLiteMCPRepository
 from app.adapters.memory.sqlite_model_experiment_rating_repository import (
     SQLiteModelExperimentRatingRepository,
 )
@@ -70,6 +72,7 @@ from app.core.ports.indexing_rules_repository import IndexingRulesRepositoryPort
 from app.core.ports.llm_provider import LLMProviderPort
 from app.core.ports.llm_provider_factory import LLMProviderFactoryPort
 from app.core.ports.model_experiment_repository import ModelExperimentRepositoryPort
+from app.core.ports.mcp_repository import MCPRepositoryPort
 from app.core.ports.model_experiment_rating_repository import (
     ModelExperimentRatingRepositoryPort,
 )
@@ -121,6 +124,18 @@ def build_report_repository() -> ReportRepositoryPort:
         return SQLiteReportRepository(settings.workspace_db_path)
 
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+def build_mcp_repository() -> MCPRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryMCPRepository()
+    if repository_type == "sqlite":
+        return SQLiteMCPRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
 
 def build_agent_workflow_repository() -> AgentWorkflowRepositoryPort:
     settings = get_settings()
@@ -383,6 +398,7 @@ workspace_repository = build_workspace_repository()
 project_scan_repository = build_project_scan_repository()
 report_repository = build_report_repository()
 agent_workflow_repository = build_agent_workflow_repository()
+mcp_repository = build_mcp_repository()
 command_repository = build_command_repository()
 index_status_repository = build_index_status_repository()
 indexing_rules_repository = build_indexing_rules_repository()

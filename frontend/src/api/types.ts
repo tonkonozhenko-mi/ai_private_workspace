@@ -1084,3 +1084,75 @@ export interface UpdateAgentWorkflowStepRequest {
   status: "todo" | "in_progress" | "done" | "skipped" | "needs_review";
   notes?: string | null;
 }
+
+export interface CreateWorkspaceMCPConfigRequest {
+  template_id: string;
+  project_path?: string | null;
+  env_overrides?: Record<string, string>;
+}
+
+export interface UpdateWorkspaceMCPConfigRequest {
+  enabled?: boolean | null;
+  reviewed?: boolean | null;
+  approved_tools?: string[] | null;
+  denied_tools?: string[] | null;
+}
+
+export interface WorkspaceMCPServerConfig {
+  id: string;
+  workspace_id: string;
+  template_id: string;
+  name: string;
+  category: string;
+  transport: string;
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+  config_json: Record<string, unknown>;
+  risk_level: string;
+  scope: string;
+  enabled: boolean;
+  reviewed: boolean;
+  available_tools: string[];
+  approved_tools: string[];
+  denied_tools: string[];
+  guardrails: string[];
+  status: string;
+  available_tools_count: number;
+  approved_tools_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkspaceMCPConfigList {
+  workspace_id: string;
+  items: WorkspaceMCPServerConfig[];
+  safety_note: string;
+}
+
+export interface MCPToolInventory {
+  workspace_id: string;
+  configs_count: number;
+  enabled_configs_count: number;
+  approved_tools_count: number;
+  read_only_tools_count: number;
+  write_or_dangerous_tools_count: number;
+  tools: Array<Record<string, string>>;
+  safety_note: string;
+  agent_readiness: string;
+}
+
+export interface MCPApprovalPreviewRequest {
+  approved_tools: string[];
+}
+
+export interface MCPApprovalPreview {
+  workspace_id: string;
+  config_id: string;
+  status: string;
+  approved_tools: string[];
+  denied_tools: string[];
+  warnings: string[];
+  guardrails: string[];
+  safety_note: string;
+}

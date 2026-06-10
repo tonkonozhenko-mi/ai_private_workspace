@@ -227,6 +227,33 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
 
         connection.execute(
             """
+            CREATE TABLE IF NOT EXISTS workspace_mcp_configs (
+                id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL,
+                template_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                category TEXT NOT NULL,
+                transport TEXT NOT NULL,
+                command TEXT NOT NULL,
+                args_json TEXT NOT NULL,
+                env_json TEXT NOT NULL,
+                config_json TEXT NOT NULL,
+                risk_level TEXT NOT NULL,
+                scope TEXT NOT NULL,
+                enabled INTEGER NOT NULL,
+                reviewed INTEGER NOT NULL,
+                available_tools_json TEXT NOT NULL,
+                approved_tools_json TEXT NOT NULL,
+                denied_tools_json TEXT NOT NULL,
+                guardrails_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+
+        connection.execute(
+            """
             CREATE TABLE IF NOT EXISTS workspace_indexing_rules (
                 workspace_id TEXT PRIMARY KEY,
                 profile TEXT NOT NULL,

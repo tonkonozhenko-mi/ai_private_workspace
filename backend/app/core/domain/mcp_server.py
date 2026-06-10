@@ -242,3 +242,200 @@ def build_mcp_connection_check(template: MCPServerTemplate) -> MCPServerConnecti
         copy_commands=commands,
         safety_note="This is a copy-only connection plan. No MCP process is started by the browser or backend.",
     )
+
+from dataclasses import replace
+from uuid import uuid4
+
+
+@dataclass(frozen=True)
+class WorkspaceMCPServerConfig:
+    id: str
+    workspace_id: str
+    template_id: str
+    name: str
+    category: str
+    transport: str
+    command: str
+    args: list[str]
+    env: dict[str, str]
+    config_json: dict[str, object]
+    risk_level: str
+    scope: str
+    enabled: bool
+    reviewed: bool
+    available_tools: list[str]
+    approved_tools: list[str]
+    denied_tools: list[str]
+    guardrails: list[str]
+    created_at: str
+    updated_at: str
+
+    @property
+    def approved_tools_count(self) -> int:
+        return len(self.approved_tools)
+
+    @property
+    def available_tools_count(self) -> int:
+        return len(self.available_tools)
+
+    @property
+    def status(self) -> str:
+        if not self.enabled:
+            return "disabled"
+        if not self.reviewed:
+            return "needs_review"
+        if self.risk_level.startswith("dangerous"):
+            return "approval_required"
+        if self.approved_tools:
+            return "ready_for_planning"
+        return "reviewed_no_tools"
+
+
+@dataclass(frozen=True)
+class MCPToolInventory:
+    workspace_id: str
+    configs_count: int
+    enabled_configs_count: int
+    approved_tools_count: int
+    read_only_tools_count: int
+    write_or_dangerous_tools_count: int
+    tools: list[dict[str, str]]
+    safety_note: str
+    agent_readiness: str
+
+
+@dataclass(frozen=True)
+class MCPApprovalPreview:
+    workspace_id: str
+    config_id: str
+    status: str
+    approved_tools: list[str]
+    denied_tools: list[str]
+    warnings: list[str]
+    guardrails: list[str]
+    safety_note: str
+
+
+def create_workspace_mcp_config_from_preview(
+    *,
+    workspace_id: str,
+    template: MCPServerTemplate,
+    preview: MCPServerConfigPreview,
+) -> WorkspaceMCPServerConfig:
+    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    return WorkspaceMCPServerConfig(
+        id=str(uuid4()),
+        workspace_id=workspace_id,
+        template_id=template.id,
+        name=template.name,
+        category=template.category,
+        transport=template.transport,
+        command=template.command,
+        args=list(preview.args),
+        env=dict(preview.env),
+        config_json=dict(preview.config_json),
+        risk_level=template.risk_level,
+        scope=template.default_scope,
+        enabled=False,
+        reviewed=False,
+        available_tools=list(template.example_tools),
+        approved_tools=[],
+        denied_tools=list(template.example_tools),
+        guardrails=list(preview.guardrails),
+        created_at=now,
+        updated_at=now,
+    )
+
+
+def update_workspace_mcp_config(
+    config: WorkspaceMCPServerConfig,
+    *,
+    enabled: bool | None = None,
+    reviewed: bool | None = None,
+    approved_tools: list[str] | None = None,
+    denied_tools: list[str] | None = None,
+) -> WorkspaceMCPServerConfig:
+    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    available = set(config.available_tools)
+    next_approved = config.approved_tools if approved_tools is None else [tool for tool in approved_tools if tool in available]
+    next_denied = config.denied_tools if denied_tools is None else [tool for tool in denied_tools if tool in available]
+    if approved_tools is not None and denied_tools is None:
+        next_denied = [tool for tool in config.available_tools if tool not in set(next_approved)]
+    return replace(
+        config,
+        enabled=config.enabled if enabled is None else enabled,
+        reviewed=config.reviewed if reviewed is None else reviewed,
+        approved_tools=next_approved,
+        denied_tools=next_denied,
+        updated_at=now,
+    )
+
+
+def build_mcp_tool_inventory(workspace_id: str, configs: list[WorkspaceMCPServerConfig]) -> MCPToolInventory:
+    tools: list[dict[str, str]] = []
+    for config in configs:
+        for tool in config.available_tools:
+            if tool in config.approved_tools:
+                status = "approved"
+            elif tool in config.denied_tools:
+                status = "denied"
+            else:
+                status = "unreviewed"
+            tools.append(
+                {
+                    "config_id": config.id,
+                    "server": config.name,
+                    "tool": tool,
+                    "risk_level": config.risk_level,
+                    "status": status,
+                    "enabled": str(config.enabled).lower(),
+                }
+            )
+    approved = [tool for tool in tools if tool["status"] == "approved" and tool["enabled"] == "true"]
+    read_only = [tool for tool in approved if tool["risk_level"] == "read_only"]
+    dangerous = [tool for tool in approved if tool["risk_level"] != "read_only"]
+    readiness = "no_tools"
+    if dangerous:
+        readiness = "approval_required"
+    elif read_only:
+        readiness = "planning_ready"
+    return MCPToolInventory(
+        workspace_id=workspace_id,
+        configs_count=len(configs),
+        enabled_configs_count=len([config for config in configs if config.enabled]),
+        approved_tools_count=len(approved),
+        read_only_tools_count=len(read_only),
+        write_or_dangerous_tools_count=len(dangerous),
+        tools=tools,
+        safety_note="Only reviewed and approved tools are visible to future agent workflows. Tool execution remains manual-gated.",
+        agent_readiness=readiness,
+    )
+
+
+def build_mcp_approval_preview(
+    *,
+    workspace_id: str,
+    config: WorkspaceMCPServerConfig,
+    approved_tools: list[str],
+) -> MCPApprovalPreview:
+    approved = [tool for tool in approved_tools if tool in set(config.available_tools)]
+    denied = [tool for tool in config.available_tools if tool not in set(approved)]
+    warnings = []
+    if config.risk_level != "read_only" and approved:
+        warnings.append("This template is not read-only. Keep execution behind explicit approval gates.")
+    if not approved:
+        warnings.append("No tools are approved. The server can be saved, but agents will not be allowed to use it.")
+    return MCPApprovalPreview(
+        workspace_id=workspace_id,
+        config_id=config.id,
+        status="review_ready" if approved else "no_tools_approved",
+        approved_tools=approved,
+        denied_tools=denied,
+        warnings=warnings,
+        guardrails=[
+            "Approve the smallest read-only tool set first.",
+            "Do not approve shell/write/delete tools until sandbox execution exists.",
+            "Agent workflows must show tool intent before execution.",
+        ],
+        safety_note="Approval stores intent only. This app still does not execute MCP tool calls automatically.",
+    )

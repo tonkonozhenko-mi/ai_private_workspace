@@ -193,3 +193,9 @@ models, and commands. This document provides the finer product-oriented grouping
 - `GET /mcp/catalog` — list safe MCP server templates, risk levels, setup notes, and recommended setup flow. No server is started.
 - `POST /mcp/config-preview` — generate a disabled-by-default local MCP config preview for a selected template. Copy-only; no filesystem writes and no process start.
 - `POST /mcp/connection-check` — return a manual connection test plan and copyable commands for a selected MCP template. Copy-only; no tool execution.
+- `GET /mcp/workspaces/{workspace_id}/configs` — list workspace-saved MCP server configs, review status, approved tools, and guardrails. No server is started.
+- `POST /mcp/workspaces/{workspace_id}/configs` — save a disabled-by-default MCP config for a workspace from a catalog template. No tool execution.
+- `PATCH /mcp/workspaces/{workspace_id}/configs/{config_id}` — enable/disable or review an MCP config and store approved/denied tool lists. No tool execution.
+- `DELETE /mcp/workspaces/{workspace_id}/configs/{config_id}` — remove a saved workspace MCP config.
+- `GET /mcp/workspaces/{workspace_id}/tool-inventory` — summarize enabled MCP configs and approved tools visible to future agent planning. No tool execution.
+- `POST /mcp/workspaces/{workspace_id}/configs/{config_id}/approval-preview` — preview which tools would be approved/denied for one MCP config before saving review state.
