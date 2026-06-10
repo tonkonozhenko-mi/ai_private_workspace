@@ -10120,3 +10120,83 @@ button:focus-visible {
 .danger-text-button {
   color: #b91c1c;
 }
+
+/* Task 165 — conversation details and answer history polish */
+.conversation-history-item em {
+  color: var(--muted-text);
+  display: -webkit-box;
+  font-size: 0.78rem;
+  font-style: normal;
+  line-height: 1.35;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.conversation-history-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.45rem;
+}
+
+.conversation-details-card {
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 16px;
+  background: rgba(59, 130, 246, 0.06);
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+  padding: 0.85rem;
+}
+
+.conversation-details-card strong {
+  color: var(--heading-text);
+}
+
+.conversation-details-card p {
+  color: var(--muted-text);
+  font-size: 0.84rem;
+  margin: 0;
+}
+
+.conversation-detail-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.conversation-detail-grid span {
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  color: var(--muted-text);
+  font-size: 0.78rem;
+  overflow: hidden;
+  padding: 0.5rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversation-detail-grid b {
+  color: var(--heading-text);
+}
+
+@media (max-width: 900px) {
+  .conversation-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .conversation-history-item {
+    grid-template-columns: 1fr;
+  }
+
+  .conversation-history-actions {
+    justify-content: flex-start;
+  }
+
+  .conversation-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

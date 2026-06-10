@@ -3,7 +3,7 @@ from pathlib import Path
 import sqlite3
 
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
-from app.core.domain.conversation import ConversationMessage, WorkspaceConversation
+from app.core.domain.conversation import ConversationMessage, WorkspaceConversation, normalize_conversation_title
 from app.core.domain.rag import SkillProfileAudit
 
 
@@ -128,6 +128,31 @@ class SQLiteConversationRepository:
                 )
             connection.commit()
         return message
+
+    def update_conversation_title(
+        self,
+        workspace_id: str,
+        conversation_id: str,
+        title: str,
+    ) -> WorkspaceConversation | None:
+        normalized_title = normalize_conversation_title(title)
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT id FROM workspace_conversations WHERE id = ? AND workspace_id = ?",
+                (conversation_id, workspace_id),
+            ).fetchone()
+            if row is None:
+                return None
+            connection.execute(
+                """
+                UPDATE workspace_conversations
+                SET title = ?
+                WHERE id = ? AND workspace_id = ?
+                """,
+                (normalized_title, conversation_id, workspace_id),
+            )
+            connection.commit()
+        return self.get_conversation(workspace_id, conversation_id)
 
     def delete_conversation(self, workspace_id: str, conversation_id: str) -> bool:
         with self._connect() as connection:
