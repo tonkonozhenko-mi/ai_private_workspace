@@ -47,6 +47,10 @@ import type {
   AgentCapabilityCatalog,
   AgentPlanningPreview,
   AgentPlanningPreviewRequest,
+  AgentWorkflow,
+  AgentWorkflowList,
+  CreateAgentWorkflowRequest,
+  UpdateAgentWorkflowStepRequest,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -445,6 +449,73 @@ export function deleteSavedWorkspaceReport(workspaceId: string, reportId: string
 }
 
 
+
+
+export function listAgentWorkflows(
+  workspaceId: string,
+  options: { includeArchived?: boolean } = {},
+): Promise<AgentWorkflowList> {
+  const query = options.includeArchived ? "?include_archived=true" : "";
+  return getJson<AgentWorkflowList>(`/workspaces/${workspaceId}/agent-workflows${query}`);
+}
+
+export function createAgentWorkflow(
+  workspaceId: string,
+  request: CreateAgentWorkflowRequest,
+): Promise<AgentWorkflow> {
+  return requestJson<AgentWorkflow>(`/workspaces/${workspaceId}/agent-workflows`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+export function updateAgentWorkflowStep(
+  workspaceId: string,
+  workflowId: string,
+  stepId: string,
+  request: UpdateAgentWorkflowStepRequest,
+): Promise<AgentWorkflow> {
+  return requestJson<AgentWorkflow>(
+    `/workspaces/${workspaceId}/agent-workflows/${workflowId}/steps/${stepId}`,
+    {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    },
+  );
+}
+
+export function archiveAgentWorkflow(
+  workspaceId: string,
+  workflowId: string,
+  archived: boolean,
+): Promise<AgentWorkflow> {
+  return requestJson<AgentWorkflow>(
+    `/workspaces/${workspaceId}/agent-workflows/${workflowId}/archive`,
+    {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ archived }),
+    },
+  );
+}
+
+export function deleteAgentWorkflow(workspaceId: string, workflowId: string): Promise<void> {
+  return requestWithoutBody(`/workspaces/${workspaceId}/agent-workflows/${workflowId}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+}
 
 export function getAgentCapabilities(): Promise<AgentCapabilityCatalog> {
   return getJson<AgentCapabilityCatalog>("/models/agent-capabilities");

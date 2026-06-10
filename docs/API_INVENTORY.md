@@ -42,6 +42,12 @@ filesystem, provider, or command-runner activity outside SQLite repositories.
 | `POST /models/recommend` | Rank catalog models for an assistant profile, laptop profile, task, and model type. | No | No | No | Model selection/setup wizard |
 | `GET /models/agent-capabilities` | Describe which local LLMs appear suitable for safe planning or future tool-calling workflows. | No | No | No | Agent capability awareness |
 | `POST /models/agent-planning-preview` | Build a review-only multi-step agent plan for a selected model and goal without executing anything. | No | No | No | Safe agent planning |
+| `GET /workspaces/{workspace_id}/agent-workflows` | List saved manual agent workflow drafts for a workspace. | No | No | No | Agent workflow tracking |
+| `POST /workspaces/{workspace_id}/agent-workflows` | Save a safe planning preview as a manual workflow checklist. | Workflow draft | No | No | Agent workflow tracking |
+| `GET /workspaces/{workspace_id}/agent-workflows/{workflow_id}` | Open a saved manual agent workflow. | No | No | No | Agent workflow tracking |
+| `PATCH /workspaces/{workspace_id}/agent-workflows/{workflow_id}/steps/{step_id}` | Mark a manual agent workflow step as todo, in progress, done, skipped, or needing review. | Workflow step status | No | No | Agent workflow tracking |
+| `PATCH /workspaces/{workspace_id}/agent-workflows/{workflow_id}/archive` | Archive or restore a manual agent workflow draft. | Workflow archived flag | No | No | Agent workflow tracking |
+| `DELETE /workspaces/{workspace_id}/agent-workflows/{workflow_id}` | Delete a saved manual agent workflow draft. | Workflow delete | No | No | Agent workflow tracking |
 | `POST /models/switching-plan` | Explain deterministic restart, reindex, and collection impact before switching a model. | No | No | No | Model selection/experiments |
 | `POST /models/experiments/plan` | Plan a shared-context LLM comparison and enrich candidates with catalog/runtime guidance. | No | No | No | Model experiments |
 | `POST /models/experiments/run` | Retrieve workspace context once, run explicitly requested LLM candidates, and persist comparison results. | Experiment and timeline | No | Configured embedding/vector providers plus explicitly selected LLM providers | Model experiments |

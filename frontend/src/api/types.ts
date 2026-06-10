@@ -968,3 +968,57 @@ export interface AgentPlanningPreview {
   guardrails: string[];
   safety_note: string;
 }
+
+
+export interface AgentWorkflowStep {
+  id: string;
+  order: number;
+  title: string;
+  description: string;
+  status: string;
+  allowed_execution: string;
+  verification: string;
+  requires_user_confirmation: boolean;
+  notes: string | null;
+  updated_at: string | null;
+}
+
+export interface AgentWorkflow {
+  id: string;
+  workspace_id: string;
+  title: string;
+  goal: string;
+  provider: string | null;
+  model: string | null;
+  readiness: string;
+  agent_mode: string;
+  status: string;
+  steps: AgentWorkflowStep[];
+  completed_steps_count: number;
+  total_steps_count: number;
+  progress_percent: number;
+  guardrails: string[];
+  unsupported_actions: string[];
+  safety_note: string;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
+  is_archived: boolean;
+}
+
+export interface AgentWorkflowList {
+  workspace_id: string;
+  items: AgentWorkflow[];
+  safety_note: string;
+}
+
+export interface CreateAgentWorkflowRequest {
+  goal: string;
+  provider?: string | null;
+  model?: string | null;
+}
+
+export interface UpdateAgentWorkflowStepRequest {
+  status: "todo" | "in_progress" | "done" | "skipped" | "needs_review";
+  notes?: string | null;
+}
