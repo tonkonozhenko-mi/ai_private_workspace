@@ -8,6 +8,7 @@ from app.api.dependencies import (
     embedding_provider,
     file_system,
     index_status_repository,
+    indexing_rules_repository,
     llm_provider_factory,
     model_catalog_registry,
     model_experiment_repository,
@@ -50,6 +51,11 @@ from app.api.schemas.indexing_schemas import (
 from app.api.schemas.index_status_schemas import (
     WorkspaceIndexStatusResponse,
     to_workspace_index_status_response,
+)
+from app.api.schemas.indexing_rules_schemas import (
+    WorkspaceIndexingRulesRequest,
+    WorkspaceIndexingRulesResponse,
+    to_workspace_indexing_rules_response,
 )
 from app.api.schemas.local_ai_activation_guide_schemas import (
     LocalAIActivationGuideResponse,
@@ -145,6 +151,7 @@ from app.api.schemas.workspaces_overview_schemas import (
     to_workspaces_overview_response,
 )
 from app.core.domain.workspace import Workspace
+from app.core.domain.indexing_rules import IndexingRulesProfile, default_indexing_rules
 from app.core.use_cases.analyze_github_actions import (
     AnalyzeGitHubActionsInput,
     AnalyzeGitHubActionsUseCase,
@@ -204,6 +211,17 @@ from app.core.use_cases.get_workspace_index_status import (
     GetWorkspaceIndexStatusInput,
     GetWorkspaceIndexStatusUseCase,
     WorkspaceIndexStatusNotFoundError,
+)
+from app.core.use_cases.get_workspace_indexing_rules import (
+    GetWorkspaceIndexingRulesInput,
+    GetWorkspaceIndexingRulesNotFoundError,
+    GetWorkspaceIndexingRulesUseCase,
+)
+from app.core.use_cases.update_workspace_indexing_rules import (
+    UpdateWorkspaceIndexingRulesInput,
+    UpdateWorkspaceIndexingRulesNotFoundError,
+    UpdateWorkspaceIndexingRulesUseCase,
+    UpdateWorkspaceIndexingRulesValidationError,
 )
 from app.core.use_cases.index_workspace import (
     IndexWorkspaceCancelledError,
@@ -438,6 +456,53 @@ def get_workspace(workspace_id: str) -> WorkspaceResponse:
     return to_workspace_response(workspace)
 
 
+@router.get("/{workspace_id}/indexing-rules", response_model=WorkspaceIndexingRulesResponse)
+def get_workspace_indexing_rules(workspace_id: str) -> WorkspaceIndexingRulesResponse:
+    try:
+        profile = GetWorkspaceIndexingRulesUseCase(
+            workspace_repository=workspace_repository,
+            indexing_rules_repository=indexing_rules_repository,
+        ).execute(GetWorkspaceIndexingRulesInput(workspace_id=workspace_id))
+    except GetWorkspaceIndexingRulesNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    source = "saved" if indexing_rules_repository.get(workspace_id) is not None else "default"
+    return to_workspace_indexing_rules_response(profile, source=source)
+
+
+@router.put("/{workspace_id}/indexing-rules", response_model=WorkspaceIndexingRulesResponse)
+def update_workspace_indexing_rules(
+    workspace_id: str,
+    request: WorkspaceIndexingRulesRequest,
+) -> WorkspaceIndexingRulesResponse:
+    try:
+        profile = UpdateWorkspaceIndexingRulesUseCase(
+            workspace_repository=workspace_repository,
+            indexing_rules_repository=indexing_rules_repository,
+            timeline_repository=timeline_repository,
+        ).execute(
+            UpdateWorkspaceIndexingRulesInput(
+                workspace_id=workspace_id,
+                profile=request.profile,
+                include_patterns=tuple(request.include_patterns),
+                exclude_patterns=tuple(request.exclude_patterns),
+            )
+        )
+    except UpdateWorkspaceIndexingRulesNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except UpdateWorkspaceIndexingRulesValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    return to_workspace_indexing_rules_response(profile, source="saved")
+
+
 @router.patch("/{workspace_id}", response_model=WorkspaceResponse)
 def update_workspace_metadata(
     workspace_id: str,
@@ -551,6 +616,19 @@ def _join_patterns(patterns: tuple[str, ...]) -> str:
     return " · ".join(pattern for pattern in patterns if pattern.strip())
 
 
+def _resolve_file_rules(workspace_id: str, request: ScanWorkspaceProjectRequest | None) -> IndexingRulesProfile:
+    if request is not None and request.file_rules is not None:
+        file_rules = request.file_rules
+        return IndexingRulesProfile(
+            workspace_id=workspace_id,
+            profile=file_rules.profile,
+            include_patterns=tuple(file_rules.include_patterns),
+            exclude_patterns=tuple(file_rules.exclude_patterns),
+            updated_at=None,
+        )
+    return indexing_rules_repository.get(workspace_id) or default_indexing_rules(workspace_id)
+
+
 def _index_workspace_result_summary(result) -> dict[str, str]:
     return {
         "indexed_files_count": str(result.indexed_files_count),
@@ -564,7 +642,7 @@ def preview_workspace_file_selection(
     workspace_id: str,
     request: ScanWorkspaceProjectRequest | None = Body(default=None),
 ) -> FileSelectionPreviewResponse:
-    file_rules = request.file_rules if request is not None else None
+    resolved_rules = _resolve_file_rules(workspace_id, request)
     use_case = PreviewWorkspaceFileSelectionUseCase(
         workspace_repository=workspace_repository,
         file_system=file_system,
@@ -574,13 +652,9 @@ def preview_workspace_file_selection(
         result = use_case.execute(
             PreviewWorkspaceFileSelectionInput(
                 workspace_id=workspace_id,
-                include_patterns=tuple(file_rules.include_patterns)
-                if file_rules is not None
-                else (),
-                exclude_patterns=tuple(file_rules.exclude_patterns)
-                if file_rules is not None
-                else (),
-                file_rules_profile=file_rules.profile if file_rules is not None else None,
+                include_patterns=resolved_rules.include_patterns,
+                exclude_patterns=resolved_rules.exclude_patterns,
+                file_rules_profile=resolved_rules.profile,
             )
         )
     except PreviewWorkspaceFileSelectionWorkspaceNotFoundError as exc:
@@ -609,10 +683,10 @@ def start_scan_workspace_job(
             detail="Workspace not found",
         )
 
-    file_rules = request.file_rules if request is not None else None
-    include_patterns = tuple(file_rules.include_patterns) if file_rules is not None else ()
-    exclude_patterns = tuple(file_rules.exclude_patterns) if file_rules is not None else ()
-    file_rules_profile = file_rules.profile if file_rules is not None else None
+    resolved_rules = _resolve_file_rules(workspace_id, request)
+    include_patterns = resolved_rules.include_patterns
+    exclude_patterns = resolved_rules.exclude_patterns
+    file_rules_profile = resolved_rules.profile
 
     def operation(job_control) -> dict[str, str]:
         job_control.update_progress(
@@ -668,6 +742,7 @@ def start_index_workspace_job(workspace_id: str) -> WorkspaceJobResponse:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Workspace not found",
         )
+    resolved_rules = _resolve_file_rules(workspace_id, None)
 
     def operation(job_control) -> dict[str, str]:
         job_control.update_progress(
@@ -707,8 +782,13 @@ def start_index_workspace_job(workspace_id: str) -> WorkspaceJobResponse:
         message="Queued search context build.",
         operation=operation,
         request_summary={
+            **_file_rules_request_summary(
+                include_patterns=resolved_rules.include_patterns,
+                exclude_patterns=resolved_rules.exclude_patterns,
+                file_rules_profile=resolved_rules.profile,
+            ),
             "source": "latest_scan",
-            "rules_source": "applied during latest scan",
+            "rules_source": "saved workspace rules",
         },
     )
     return _to_workspace_job_response(job)
@@ -775,17 +855,13 @@ def scan_workspace_project(
     )
 
     try:
-        file_rules = request.file_rules if request is not None else None
+        resolved_rules = _resolve_file_rules(workspace_id, request)
         result = use_case.execute(
             ScanWorkspaceProjectInput(
                 workspace_id=workspace_id,
-                include_patterns=tuple(file_rules.include_patterns)
-                if file_rules is not None
-                else (),
-                exclude_patterns=tuple(file_rules.exclude_patterns)
-                if file_rules is not None
-                else (),
-                file_rules_profile=file_rules.profile if file_rules is not None else None,
+                include_patterns=resolved_rules.include_patterns,
+                exclude_patterns=resolved_rules.exclude_patterns,
+                file_rules_profile=resolved_rules.profile,
             )
         )
     except WorkspaceNotFoundError as exc:

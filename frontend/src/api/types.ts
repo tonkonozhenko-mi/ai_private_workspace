@@ -21,6 +21,18 @@ export interface FileSelectionRulesRequest {
 }
 
 
+export interface WorkspaceIndexingRules {
+  workspace_id: string;
+  profile: string;
+  include_patterns: string[];
+  exclude_patterns: string[];
+  include_rules_count: number;
+  exclude_rules_count: number;
+  updated_at: string | null;
+  source: "saved" | "default" | string;
+}
+
+
 export interface FileSelectionPreviewItem {
   path: string;
   detected_type: string;

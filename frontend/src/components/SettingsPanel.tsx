@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
+import { updateWorkspaceIndexingRules } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -11,6 +12,7 @@ import {
   countPatterns,
   normalizeFileIndexingPreferences,
   normalizePatternText,
+  toFileSelectionRulesRequest,
 } from "./fileIndexingPreferences";
 import { StatusBadge } from "./StatusBadge";
 import {
@@ -28,6 +30,7 @@ interface SettingsPanelProps {
   onPreferencesChange: (preferences: WorkbenchPreferences) => void;
   onResetPreferences: () => void;
   onOpenModels: () => void;
+  onIndexingRulesSaved?: () => void;
 }
 
 export function SettingsPanel({
@@ -37,6 +40,7 @@ export function SettingsPanel({
   onPreferencesChange,
   onResetPreferences,
   onOpenModels,
+  onIndexingRulesSaved,
 }: SettingsPanelProps) {
   const summary = dashboard.summary;
   const contextReady = summary.index_status.status === "indexed";
@@ -62,7 +66,8 @@ export function SettingsPanel({
     includePatterns: preferences.fileIndexingPreferences.includePatterns,
     excludePatterns: preferences.fileIndexingPreferences.excludePatterns,
   }));
-  const [fileRulesMessage, setFileRulesMessage] = useState("File rules saved in this browser.");
+  const [fileRulesMessage, setFileRulesMessage] = useState("File rules saved in workspace.");
+  const [savingFileRules, setSavingFileRules] = useState(false);
 
   useEffect(() => {
     setBackendUrlDraft(preferences.apiBaseUrl);
@@ -161,7 +166,7 @@ export function SettingsPanel({
     setFileRulesMessage("Unsaved file rule changes.");
   }
 
-  function saveFileRules() {
+  async function saveFileRules() {
     const nextPreferences = {
       ...preferences.fileIndexingPreferences,
       includePatterns: normalizePatternText(
@@ -173,12 +178,24 @@ export function SettingsPanel({
         DEFAULT_FILE_INDEXING_PREFERENCES.excludePatterns,
       ),
     };
-    updatePreference("fileIndexingPreferences", nextPreferences);
-    setFileRulesDraft({
-      includePatterns: nextPreferences.includePatterns,
-      excludePatterns: nextPreferences.excludePatterns,
-    });
-    setFileRulesMessage("File rules saved in this browser.");
+    setSavingFileRules(true);
+    try {
+      await updateWorkspaceIndexingRules(
+        dashboard.workspace_id,
+        toFileSelectionRulesRequest(nextPreferences),
+      );
+      updatePreference("fileIndexingPreferences", nextPreferences);
+      setFileRulesDraft({
+        includePatterns: nextPreferences.includePatterns,
+        excludePatterns: nextPreferences.excludePatterns,
+      });
+      setFileRulesMessage("File rules saved to this workspace.");
+      onIndexingRulesSaved?.();
+    } catch (error) {
+      setFileRulesMessage(`Could not save workspace file rules: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setSavingFileRules(false);
+    }
   }
 
   function resetFileRules() {
@@ -476,8 +493,8 @@ export function SettingsPanel({
         <SettingsSection
           eyebrow="File selection"
           title="Files and search context"
-          description="Choose browser-local file rules before rebuilding search context. These rules are prepared here first and will be connected to indexing actions in the next step."
-          badge="Local rules"
+          description="Save workspace file rules before rebuilding search context. Scan and index jobs use the saved rules unless you explicitly send temporary rules."
+          badge="Workspace rules"
           tone="info"
         >
           <div className="settings-file-rule-summary">
@@ -513,8 +530,8 @@ export function SettingsPanel({
             />
           </PreferenceGroup>
           <div className="settings-inline-actions">
-            <button type="button" className="primary-button" onClick={saveFileRules}>
-              Save file rules
+            <button type="button" className="primary-button" onClick={() => void saveFileRules()} disabled={savingFileRules}>
+              {savingFileRules ? "Saving..." : "Save file rules"}
             </button>
             <button type="button" className="ghost-button" onClick={resetFileRules}>
               Reset defaults
@@ -522,7 +539,7 @@ export function SettingsPanel({
             <span>{fileRulesMessage}</span>
           </div>
           <p className="settings-helper-note">
-            Safe defaults include source, docs, infrastructure, and CI/CD files while excluding dependencies, caches, build outputs, archives, and logs.
+            Saved rules are applied by explicit Preview, Scan, and Build context actions. Nothing rebuilds automatically.
           </p>
         </SettingsSection>
 

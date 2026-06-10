@@ -10,6 +10,7 @@ import type {
   ProjectScanResponse,
   FileSelectionPreview,
   FileSelectionRulesRequest,
+  WorkspaceIndexingRules,
   WorkspaceDashboard,
   WorkspaceIndexResponse,
   WorkspaceJob,
@@ -112,6 +113,27 @@ export function restoreWorkspace(workspaceId: string): Promise<void> {
   });
 }
 
+
+
+export function getWorkspaceIndexingRules(
+  workspaceId: string,
+): Promise<WorkspaceIndexingRules> {
+  return getJson<WorkspaceIndexingRules>(`/workspaces/${workspaceId}/indexing-rules`);
+}
+
+export function updateWorkspaceIndexingRules(
+  workspaceId: string,
+  fileRules: FileSelectionRulesRequest,
+): Promise<WorkspaceIndexingRules> {
+  return requestJson<WorkspaceIndexingRules>(`/workspaces/${workspaceId}/indexing-rules`, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(fileRules),
+  });
+}
 
 export function previewWorkspaceFileSelection(
   workspaceId: string,

@@ -15,6 +15,7 @@ import {
   startIndexWorkspaceJob,
   startScanWorkspaceJob,
   previewWorkspaceFileSelection,
+  getWorkspaceIndexingRules,
   getWorkspaceUIActions,
   setApiBaseUrl,
 } from "./api/client";
@@ -229,6 +230,7 @@ function App() {
       modelsDashboard,
       activationGuide,
       overview,
+      indexingRules,
     ] = await Promise.all([
       getWorkspaceDashboard(workspaceId),
       getWorkspaceUIActions(workspaceId),
@@ -236,6 +238,7 @@ function App() {
       getWorkspaceModelsDashboard(workspaceId),
       getLocalAIActivationGuide(workspaceId),
       getWorkspacesOverview(),
+      getWorkspaceIndexingRules(workspaceId),
     ]);
 
     if (selectedWorkspaceIdRef.current === workspaceId) {
@@ -245,6 +248,14 @@ function App() {
       setModelsDetailError(null);
       setWorkspaces(overview.items);
       setTotalWorkspaces(overview.total_workspaces);
+      setPreferences((current) => ({
+        ...current,
+        fileIndexingPreferences: {
+          profile: indexingRules.profile === "source-first" || indexingRules.profile === "docs-first" ? indexingRules.profile : "balanced",
+          includePatterns: indexingRules.include_patterns.join("\n"),
+          excludePatterns: indexingRules.exclude_patterns.join("\n"),
+        },
+      }));
     }
   }, [loadActivityJobs]);
 
@@ -588,6 +599,7 @@ function App() {
                   onPreferencesChange={setPreferences}
                   onResetPreferences={() => setPreferences(DEFAULT_PREFERENCES)}
                   onOpenModels={() => setActiveTab("models")}
+                  onIndexingRulesSaved={() => refreshWorkspaceReadOnlyState(detail.dashboard.workspace_id)}
                 />
               ) : null}
             </section>

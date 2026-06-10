@@ -112,6 +112,18 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             )
             """
         )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS workspace_indexing_rules (
+                workspace_id TEXT PRIMARY KEY,
+                profile TEXT NOT NULL,
+                include_patterns_json TEXT NOT NULL,
+                exclude_patterns_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
         _add_column_if_missing(
             connection,
             table_name="workspaces",

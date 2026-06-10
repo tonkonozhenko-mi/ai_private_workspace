@@ -20,6 +20,7 @@ export const DEFAULT_INCLUDE_PATTERNS = [
   "docs/**",
   "README*",
   "*.md",
+  "*.py",
   "*.tf",
   "*.tfvars",
   "terragrunt.hcl",
@@ -31,6 +32,7 @@ export const DEFAULT_INCLUDE_PATTERNS = [
   ".gitlab-ci.yml",
   "Jenkinsfile",
   "helm/**",
+  "chart/**",
   "charts/**",
 ].join("\n");
 
