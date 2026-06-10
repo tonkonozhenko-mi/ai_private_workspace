@@ -20,6 +20,8 @@ def test_scan_workspace_job_completes_and_updates_latest_scan(tmp_path: Path) ->
     assert job["status"] == "completed"
     assert job["job_type"] == "scan"
     assert job["result_summary"]["scanned_files"] == "1"
+    assert job["request_summary"]["file_rules_profile"] == "balanced"
+    assert job["duration_ms"] is not None
 
     latest_scan_response = client.get(f"/workspaces/{workspace['id']}/scan")
     assert latest_scan_response.status_code == 200
@@ -69,6 +71,36 @@ def test_cancel_workspace_job_marks_job_for_cancellation(tmp_path: Path) -> None
     job = response.json()
     assert job["cancellation_requested"] is True
     assert job["status"] in {"queued", "running", "cancelled", "completed"}
+
+
+
+def test_scan_workspace_job_records_applied_file_rules(tmp_path: Path) -> None:
+    _write_text(tmp_path / "src" / "app.py", "print('hello')")
+    _write_text(tmp_path / "dist" / "bundle.js", "compiled")
+    workspace = _create_workspace(tmp_path)
+
+    start_response = client.post(
+        f"/workspaces/{workspace['id']}/jobs/scan",
+        json={
+            "file_rules": {
+                "profile": "custom",
+                "include_patterns": ["src/**"],
+                "exclude_patterns": ["dist/**"],
+            }
+        },
+    )
+
+    assert start_response.status_code == 200
+    job = _wait_for_job(workspace["id"], start_response.json()["job_id"])
+    assert job["status"] == "completed"
+    assert job["request_summary"] == {
+        "file_rules_profile": "custom",
+        "include_rules_count": "1",
+        "exclude_rules_count": "1",
+        "include_patterns": "src/**",
+        "exclude_patterns": "dist/**",
+    }
+    assert job["result_summary"]["scanned_files"] == "1"
 
 
 def test_workspace_job_cancel_unknown_returns_404(tmp_path: Path) -> None:

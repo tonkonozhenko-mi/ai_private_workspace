@@ -113,6 +113,9 @@ function App() {
   const [preferences, setPreferences] = useState<WorkbenchPreferences>(() =>
     loadStoredPreferences(),
   );
+  const [activityJobs, setActivityJobs] = useState<WorkspaceJob[]>([]);
+  const [activityJobsLoading, setActivityJobsLoading] = useState(false);
+  const [activityJobsError, setActivityJobsError] = useState<string | null>(null);
 
   const loadModelsDetail = useCallback(async (workspaceId: string) => {
     setModelsDetail(null);
@@ -197,6 +200,27 @@ function App() {
     }
   }, [loadWorkspaceDetail]);
 
+
+
+  const loadActivityJobs = useCallback(async (workspaceId: string) => {
+    setActivityJobsLoading(true);
+    setActivityJobsError(null);
+    try {
+      const jobs = await listWorkspaceJobs(workspaceId);
+      if (selectedWorkspaceIdRef.current === workspaceId) {
+        setActivityJobs(jobs);
+      }
+    } catch (error) {
+      if (selectedWorkspaceIdRef.current === workspaceId) {
+        setActivityJobsError(errorMessage(error));
+      }
+    } finally {
+      if (selectedWorkspaceIdRef.current === workspaceId) {
+        setActivityJobsLoading(false);
+      }
+    }
+  }, []);
+
   const refreshWorkspaceReadOnlyState = useCallback(async (workspaceId: string) => {
     const [
       dashboard,
@@ -217,11 +241,12 @@ function App() {
     if (selectedWorkspaceIdRef.current === workspaceId) {
       setDetail({ dashboard, actions, modelsSummary });
       setModelsDetail({ dashboard: modelsDashboard, activationGuide });
+      void loadActivityJobs(workspaceId);
       setModelsDetailError(null);
       setWorkspaces(overview.items);
       setTotalWorkspaces(overview.total_workspaces);
     }
-  }, []);
+  }, [loadActivityJobs]);
 
   const handleWorkspaceCreated = useCallback(async (workspaceId: string) => {
     setShowCreateWorkspace(false);
@@ -292,6 +317,7 @@ function App() {
     return cancelWorkspaceJob(workspaceId, jobId);
   }, []);
 
+
   const refreshAfterAsk = useCallback(async (workspaceId: string) => {
     try {
       const [dashboard, overview] = await Promise.all([
@@ -309,6 +335,12 @@ function App() {
       // The submitted answer remains visible if the optional read-only refresh fails.
     }
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "activity" && selectedWorkspaceId) {
+      void loadActivityJobs(selectedWorkspaceId);
+    }
+  }, [activeTab, loadActivityJobs, selectedWorkspaceId]);
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -442,7 +474,7 @@ function App() {
                     >
                       {tab.label}
                       {tab.id === "activity" ? (
-                        <span>{detail.dashboard.recent_events.length}</span>
+                        <span>{detail.dashboard.recent_events.length + activityJobs.length}</span>
                       ) : null}
                     </button>
                   ))}
@@ -540,7 +572,13 @@ function App() {
                 <UIActionsPanel catalog={detail.actions} />
               ) : null}
               {activeTab === "activity" ? (
-                <ActivityTimeline events={detail.dashboard.recent_events} />
+                <ActivityTimeline
+                  events={detail.dashboard.recent_events}
+                  jobs={activityJobs}
+                  jobsLoading={activityJobsLoading}
+                  jobsError={activityJobsError}
+                  onRefreshJobs={() => loadActivityJobs(detail.dashboard.workspace_id)}
+                />
               ) : null}
               {activeTab === "settings" ? (
                 <SettingsPanel

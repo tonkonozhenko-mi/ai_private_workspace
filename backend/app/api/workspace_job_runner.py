@@ -24,6 +24,7 @@ class WorkspaceJob:
     status: str = "queued"
     message: str | None = None
     result_summary: dict[str, str] = field(default_factory=dict)
+    request_summary: dict[str, str] = field(default_factory=dict)
     error: str | None = None
     cancellation_requested: bool = False
     progress_current: int | None = None
@@ -33,6 +34,7 @@ class WorkspaceJob:
     created_at: str = field(default_factory=_now)
     started_at: str | None = None
     completed_at: str | None = None
+    duration_ms: int | None = None
 
 
 class WorkspaceJobNotFoundError(KeyError):
@@ -88,6 +90,7 @@ class WorkspaceJobRunner:
         title: str,
         message: str,
         operation: Callable[[WorkspaceJobControl], dict[str, str]],
+        request_summary: dict[str, str] | None = None,
     ) -> WorkspaceJob:
         job = WorkspaceJob(
             job_id=str(uuid4()),
@@ -95,6 +98,7 @@ class WorkspaceJobRunner:
             job_type=job_type,
             title=title,
             message=message,
+            request_summary=request_summary or {},
         )
         with self._lock:
             self._jobs[job.job_id] = job
@@ -124,6 +128,7 @@ class WorkspaceJobRunner:
                 job.cancellation_requested = True
                 job.message = "Cancelled before the operation started."
                 job.completed_at = _now()
+                job.duration_ms = _duration_ms(job.started_at or job.created_at, job.completed_at)
             elif job.status == "running":
                 job.cancellation_requested = True
                 job.message = (
@@ -180,6 +185,7 @@ class WorkspaceJobRunner:
                     current.status = "cancelled"
                     current.message = "Cancelled before the operation started."
                     current.completed_at = _now()
+                    current.duration_ms = _duration_ms(current.started_at or current.created_at, current.completed_at)
                     return
             result_summary = operation(WorkspaceJobControl(self, job_id))
         except WorkspaceJobCancelledError:
@@ -189,6 +195,7 @@ class WorkspaceJobRunner:
                 cancelled_job.cancellation_requested = True
                 cancelled_job.message = "Cancelled at a safe operation checkpoint."
                 cancelled_job.completed_at = _now()
+                cancelled_job.duration_ms = _duration_ms(cancelled_job.started_at or cancelled_job.created_at, cancelled_job.completed_at)
             return
         except Exception as exc:  # noqa: BLE001 - error is surfaced to API as job status
             with self._lock:
@@ -197,6 +204,7 @@ class WorkspaceJobRunner:
                 failed.error = str(exc)
                 failed.message = "The operation failed."
                 failed.completed_at = _now()
+                failed.duration_ms = _duration_ms(failed.started_at or failed.created_at, failed.completed_at)
             return
 
         with self._lock:
@@ -212,3 +220,15 @@ class WorkspaceJobRunner:
             completed.result_summary = result_summary
             completed.progress_percent = 100.0
             completed.completed_at = _now()
+            completed.duration_ms = _duration_ms(completed.started_at or completed.created_at, completed.completed_at)
+
+
+def _duration_ms(started_at: str | None, completed_at: str | None) -> int | None:
+    if not started_at or not completed_at:
+        return None
+    try:
+        start = datetime.fromisoformat(started_at)
+        completed = datetime.fromisoformat(completed_at)
+    except ValueError:
+        return None
+    return max(0, int((completed - start).total_seconds() * 1000))

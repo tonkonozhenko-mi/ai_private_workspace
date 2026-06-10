@@ -505,6 +505,7 @@ export interface WorkspaceJob {
   title: string;
   message: string | null;
   result_summary: Record<string, string>;
+  request_summary: Record<string, string>;
   error: string | null;
   cancellation_requested: boolean;
   progress_current: number | null;
@@ -514,4 +515,5 @@ export interface WorkspaceJob {
   created_at: string;
   started_at: string | null;
   completed_at: string | null;
+  duration_ms: number | null;
 }

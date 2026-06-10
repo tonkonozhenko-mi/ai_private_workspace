@@ -9,6 +9,7 @@ class WorkspaceJobResponse(BaseModel):
     title: str
     message: str | None = None
     result_summary: dict[str, str] = {}
+    request_summary: dict[str, str] = {}
     error: str | None = None
     cancellation_requested: bool = False
     progress_current: int | None = None
@@ -18,3 +19,4 @@ class WorkspaceJobResponse(BaseModel):
     created_at: str
     started_at: str | None = None
     completed_at: str | None = None
+    duration_ms: int | None = None
