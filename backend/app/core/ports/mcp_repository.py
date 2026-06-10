@@ -1,0 +1,13 @@
+from typing import Protocol
+
+from app.core.domain.mcp_server import WorkspaceMCPServerConfig
+
+
+class MCPRepositoryPort(Protocol):
+    def save_config(self, config: WorkspaceMCPServerConfig) -> WorkspaceMCPServerConfig: ...
+
+    def get_config(self, workspace_id: str, config_id: str) -> WorkspaceMCPServerConfig | None: ...
+
+    def list_configs(self, workspace_id: str) -> list[WorkspaceMCPServerConfig]: ...
+
+    def delete_config(self, workspace_id: str, config_id: str) -> bool: ...

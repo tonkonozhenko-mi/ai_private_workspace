@@ -7,6 +7,11 @@ import {
   deleteAgentWorkflow,
   createMCPConfigPreview,
   createMCPConnectionCheck,
+  createWorkspaceMCPConfig,
+  deleteWorkspaceMCPConfig,
+  getWorkspaceMCPToolInventory,
+  listWorkspaceMCPConfigs,
+  previewWorkspaceMCPApproval,
   getAgentCapabilities,
   getMCPServerCatalog,
   listAgentWorkflows,
@@ -16,6 +21,7 @@ import {
   runModelExperiment,
   saveModelExperimentRating,
   updateAgentWorkflowStep,
+  updateWorkspaceMCPConfig,
   updateWorkspaceModelSelection,
 } from "../api/client";
 import type {
@@ -26,6 +32,9 @@ import type {
   MCPServerCatalog,
   MCPServerConfigPreview,
   MCPServerConnectionCheck,
+  MCPApprovalPreview,
+  MCPToolInventory,
+  WorkspaceMCPServerConfig,
   LocalAIActivationGuide,
   ModelExperimentPlan,
   ModelExperimentRating,
@@ -744,31 +753,47 @@ function MCPServerRegistryPanel({
   const [projectPath, setProjectPath] = useState("");
   const [preview, setPreview] = useState<MCPServerConfigPreview | null>(null);
   const [check, setCheck] = useState<MCPServerConnectionCheck | null>(null);
+  const [savedConfigs, setSavedConfigs] = useState<WorkspaceMCPServerConfig[]>([]);
+  const [inventory, setInventory] = useState<MCPToolInventory | null>(null);
+  const [approvalPreview, setApprovalPreview] = useState<MCPApprovalPreview | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsLoading(true);
-    getMCPServerCatalog()
-      .then((result) => {
-        setCatalog(result);
-        if (result.templates.length > 0) {
-          setSelectedTemplateId((current) => current || result.templates[0].id);
+    Promise.all([getMCPServerCatalog(), listWorkspaceMCPConfigs(workspaceId), getWorkspaceMCPToolInventory(workspaceId)])
+      .then(([catalogResult, configResult, inventoryResult]) => {
+        setCatalog(catalogResult);
+        setSavedConfigs(configResult.items);
+        setInventory(inventoryResult);
+        if (catalogResult.templates.length > 0) {
+          setSelectedTemplateId((current) => current || catalogResult.templates[0].id);
         }
       })
       .catch((loadError) => setError(errorMessage(loadError)))
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [workspaceId]);
 
   const selectedTemplate = useMemo(
     () => catalog?.templates.find((template) => template.id === selectedTemplateId) ?? null,
     [catalog, selectedTemplateId],
   );
 
+  async function refreshWorkspaceMCPState() {
+    const [configResult, inventoryResult] = await Promise.all([
+      listWorkspaceMCPConfigs(workspaceId),
+      getWorkspaceMCPToolInventory(workspaceId),
+    ]);
+    setSavedConfigs(configResult.items);
+    setInventory(inventoryResult);
+  }
+
   async function handlePreviewConfig() {
     setIsPreviewing(true);
     setError(null);
+    setApprovalPreview(null);
     try {
       const result = await createMCPConfigPreview({
         template_id: selectedTemplateId,
@@ -785,6 +810,71 @@ function MCPServerRegistryPanel({
     }
   }
 
+  async function handleSaveWorkspaceConfig() {
+    setIsSavingConfig(true);
+    setError(null);
+    try {
+      const created = await createWorkspaceMCPConfig(workspaceId, {
+        template_id: selectedTemplateId,
+        project_path: projectPath.trim() || null,
+      });
+      setPreview(null);
+      setApprovalPreview(null);
+      await refreshWorkspaceMCPState();
+      const approval = await previewWorkspaceMCPApproval(workspaceId, created.id, {
+        approved_tools: created.risk_level === "read_only" ? created.available_tools.slice(0, 2) : [],
+      });
+      setApprovalPreview(approval);
+    } catch (saveError) {
+      setError(errorMessage(saveError));
+    } finally {
+      setIsSavingConfig(false);
+    }
+  }
+
+  async function handleApproveReadOnly(config: WorkspaceMCPServerConfig) {
+    setError(null);
+    try {
+      const approvedTools = config.risk_level === "read_only" ? config.available_tools : [];
+      const previewResult = await previewWorkspaceMCPApproval(workspaceId, config.id, {
+        approved_tools: approvedTools,
+      });
+      setApprovalPreview(previewResult);
+      await updateWorkspaceMCPConfig(workspaceId, config.id, {
+        enabled: approvedTools.length > 0,
+        reviewed: true,
+        approved_tools: approvedTools,
+      });
+      await refreshWorkspaceMCPState();
+    } catch (approvalError) {
+      setError(errorMessage(approvalError));
+    }
+  }
+
+  async function handleDisableConfig(config: WorkspaceMCPServerConfig) {
+    setError(null);
+    try {
+      await updateWorkspaceMCPConfig(workspaceId, config.id, {
+        enabled: false,
+        reviewed: config.reviewed,
+        approved_tools: config.approved_tools,
+      });
+      await refreshWorkspaceMCPState();
+    } catch (disableError) {
+      setError(errorMessage(disableError));
+    }
+  }
+
+  async function handleDeleteConfig(config: WorkspaceMCPServerConfig) {
+    setError(null);
+    try {
+      await deleteWorkspaceMCPConfig(workspaceId, config.id);
+      await refreshWorkspaceMCPState();
+    } catch (deleteError) {
+      setError(errorMessage(deleteError));
+    }
+  }
+
   return (
     <section className="panel mcp-registry-panel">
       <div className="panel-heading-row compact">
@@ -792,14 +882,23 @@ function MCPServerRegistryPanel({
           <p className="eyebrow">MCP tools</p>
           <h2>MCP server registry and safe setup</h2>
           <p>
-            Prepare local MCP servers for future Claude/Codex-style agent workflows. This is config and review only; no server or tool is started here.
+            Prepare local MCP servers for Claude/Codex-style workflows. Servers are saved per workspace, tools are approved explicitly, and execution stays manual-gated.
           </p>
         </div>
-        <StatusBadge label="planning only" />
+        <StatusBadge label={inventory?.agent_readiness ?? "planning only"} />
       </div>
 
       {isLoading ? <p className="muted-text">Loading MCP templates…</p> : null}
       {error ? <p className="form-error">{error}</p> : null}
+
+      {inventory ? (
+        <div className="mcp-inventory-strip">
+          <span><strong>{inventory.configs_count}</strong> configs</span>
+          <span><strong>{inventory.enabled_configs_count}</strong> enabled</span>
+          <span><strong>{inventory.approved_tools_count}</strong> approved tools</span>
+          <span><strong>{inventory.read_only_tools_count}</strong> read-only</span>
+        </div>
+      ) : null}
 
       {catalog ? (
         <>
@@ -847,14 +946,19 @@ function MCPServerRegistryPanel({
 
           <div className="agent-guardrail-strip">
             <strong>MCP safety</strong>
-            <span>Generated configs are disabled by default.</span>
-            <span>Start with read-only tools.</span>
-            <span>Execution requires future backend approval gates.</span>
+            <span>Saved configs start disabled.</span>
+            <span>Approve read-only tools first.</span>
+            <span>Write/shell tools require future sandbox gates.</span>
           </div>
 
-          <button type="button" onClick={handlePreviewConfig} disabled={isPreviewing || !selectedTemplateId}>
-            {isPreviewing ? "Preparing MCP config…" : "Preview MCP config"}
-          </button>
+          <div className="agent-plan-actions">
+            <button type="button" onClick={handlePreviewConfig} disabled={isPreviewing || !selectedTemplateId}>
+              {isPreviewing ? "Preparing MCP config…" : "Preview MCP config"}
+            </button>
+            <button type="button" className="secondary-button" onClick={handleSaveWorkspaceConfig} disabled={isSavingConfig || !selectedTemplateId}>
+              {isSavingConfig ? "Saving…" : "Save disabled workspace config"}
+            </button>
+          </div>
         </>
       ) : null}
 
@@ -889,6 +993,71 @@ function MCPServerRegistryPanel({
             ) : null}
             <p className="muted-text">{check?.safety_note ?? "No process is started by the UI."}</p>
           </article>
+        </div>
+      ) : null}
+
+      <div className="agent-workflow-history">
+        <div className="panel-heading-row compact">
+          <div>
+            <p className="eyebrow">Workspace MCP configs</p>
+            <h3>Approved tools visible to future agent plans</h3>
+          </div>
+          <button type="button" className="secondary-button" onClick={() => void refreshWorkspaceMCPState()}>Refresh</button>
+        </div>
+        {savedConfigs.length === 0 ? (
+          <p className="muted-text">No workspace MCP configs yet. Save a disabled config, review tools, then approve the smallest read-only set.</p>
+        ) : (
+          <div className="mcp-config-list">
+            {savedConfigs.map((config) => (
+              <article key={config.id} className="mcp-config-card">
+                <div>
+                  <p className="eyebrow">{formatLabel(config.status)} · {formatLabel(config.risk_level)}</p>
+                  <h4>{config.name}</h4>
+                  <p>{config.approved_tools_count}/{config.available_tools_count} tools approved · {config.enabled ? "Enabled" : "Disabled"}</p>
+                  <div className="mcp-tools-list">
+                    {config.available_tools.map((tool) => (
+                      <span key={tool} className={config.approved_tools.includes(tool) ? "approved" : ""}>{tool}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="agent-workflow-actions">
+                  <button type="button" onClick={() => void handleApproveReadOnly(config)}>
+                    Approve read-only
+                  </button>
+                  <button type="button" className="secondary-button" onClick={() => void handleDisableConfig(config)}>
+                    Disable
+                  </button>
+                  <button type="button" className="danger-button" onClick={() => void handleDeleteConfig(config)}>
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {approvalPreview ? (
+        <div className="agent-guardrail-strip">
+          <strong>Approval preview</strong>
+          <span>{formatLabel(approvalPreview.status)}</span>
+          <span>{approvalPreview.approved_tools.length} approved</span>
+          <span>{approvalPreview.denied_tools.length} denied</span>
+          {approvalPreview.warnings.map((warning) => <span key={warning}>{warning}</span>)}
+        </div>
+      ) : null}
+
+      {inventory?.tools.length ? (
+        <div className="mcp-tool-inventory">
+          <p className="eyebrow">Tool inventory</p>
+          <div className="mcp-tools-list">
+            {inventory.tools.slice(0, 16).map((tool) => (
+              <span key={`${tool.config_id}-${tool.tool}`} className={tool.status === "approved" ? "approved" : ""}>
+                {tool.tool} · {formatLabel(tool.status)}
+              </span>
+            ))}
+          </div>
+          <p className="muted-text">{inventory.safety_note}</p>
         </div>
       ) : null}
     </section>

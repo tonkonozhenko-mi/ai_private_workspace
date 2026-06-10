@@ -56,6 +56,13 @@ import type {
   MCPServerConfigPreview,
   MCPConnectionCheckRequest,
   MCPServerConnectionCheck,
+  CreateWorkspaceMCPConfigRequest,
+  UpdateWorkspaceMCPConfigRequest,
+  WorkspaceMCPConfigList,
+  WorkspaceMCPServerConfig,
+  MCPToolInventory,
+  MCPApprovalPreviewRequest,
+  MCPApprovalPreview,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -544,6 +551,66 @@ export function createMCPConnectionCheck(
   request: MCPConnectionCheckRequest,
 ): Promise<MCPServerConnectionCheck> {
   return requestJson<MCPServerConnectionCheck>("/mcp/connection-check", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+
+export function listWorkspaceMCPConfigs(workspaceId: string): Promise<WorkspaceMCPConfigList> {
+  return getJson<WorkspaceMCPConfigList>(`/mcp/workspaces/${workspaceId}/configs`);
+}
+
+export function createWorkspaceMCPConfig(
+  workspaceId: string,
+  request: CreateWorkspaceMCPConfigRequest,
+): Promise<WorkspaceMCPServerConfig> {
+  return requestJson<WorkspaceMCPServerConfig>(`/mcp/workspaces/${workspaceId}/configs`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+export function updateWorkspaceMCPConfig(
+  workspaceId: string,
+  configId: string,
+  request: UpdateWorkspaceMCPConfigRequest,
+): Promise<WorkspaceMCPServerConfig> {
+  return requestJson<WorkspaceMCPServerConfig>(`/mcp/workspaces/${workspaceId}/configs/${configId}`, {
+    method: "PATCH",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+export function deleteWorkspaceMCPConfig(workspaceId: string, configId: string): Promise<void> {
+  return requestWithoutBody(`/mcp/workspaces/${workspaceId}/configs/${configId}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+}
+
+export function getWorkspaceMCPToolInventory(workspaceId: string): Promise<MCPToolInventory> {
+  return getJson<MCPToolInventory>(`/mcp/workspaces/${workspaceId}/tool-inventory`);
+}
+
+export function previewWorkspaceMCPApproval(
+  workspaceId: string,
+  configId: string,
+  request: MCPApprovalPreviewRequest,
+): Promise<MCPApprovalPreview> {
+  return requestJson<MCPApprovalPreview>(`/mcp/workspaces/${workspaceId}/configs/${configId}/approval-preview`, {
     method: "POST",
     headers: {
       Accept: "application/json",

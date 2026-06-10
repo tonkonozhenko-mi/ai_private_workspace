@@ -1,6 +1,6 @@
 # AI Private Workspace — Project Checkpoint
 
-Last updated: Task 185
+Last updated: Task 190
 
 ## Working style
 
@@ -10,7 +10,7 @@ Last updated: Task 185
 - Runtime data must never be included in generated archives.
 - Apply generated archives with safe excludes for `backend/.ai-workbench`, `*.db`, `*.sqlite`, `.venv`, `node_modules`, `dist`, and `*.tsbuildinfo`.
 - Frontend must never execute shell commands. It may only display/copy commands.
-- Scan, index, rebuild, runtime changes, backups, restore, and update apply remain explicit user actions.
+- Scan, index, rebuild, runtime changes, backups, restore, update apply, MCP server start, and tool execution remain explicit user actions.
 
 ## Roadmap status
 
@@ -29,8 +29,9 @@ Last updated: Task 185
 13. Advanced skill profiles — done
 14. Persistent conversations and answer history — done
 15. Project reports and documentation generation — done
-16. Production hardening / packaging / desktop-like experience — done
+16. Production hardening / packaging / desktop-like experience — mostly done
 17. Optional company branding / sharing / final polish — in progress
+18. Safe agent and MCP workflow — started as an extension to the original roadmap
 
 ## Recent tasks
 
@@ -45,21 +46,40 @@ Last updated: Task 185
 - Task 183: Apple-style light/dark UI polish
 - Task 184: dark/light visual QA and consistency pass
 - Task 185: final UX QA, typography alignment, demo mode, and visual consistency
+- Task 187: safe agent capability awareness
+- Task 188: manual agent workflow tracking
+- Task 189: MCP server registry foundation
+- Task 190: workspace MCP configs, tool inventory, and approval gates foundation
 
 ## Current focus
 
-Phase 17 final polish:
+Safe Agent and MCP workflow, while preserving local-first safety:
 
-- consistent Apple-like UI in light and dark themes;
-- unified typography, spacing, controls, cards, chips, code blocks;
-- demo-friendly mode for walkthroughs/screenshots;
-- final accessibility and responsive checks;
-- final docs/checkpoint cleanup.
+- model capability awareness for agent-style tasks;
+- planning-only agent workflows before execution;
+- manual workflow tracking with step statuses;
+- MCP server catalog and config preview;
+- workspace-saved MCP configs;
+- reviewed/approved MCP tool inventory;
+- approval gates before any future tool execution;
+- no automatic shell/MCP/tool execution from the frontend.
+
+## Packaging direction
+
+The product is close to the original goal, but true two-click installation still needs a dedicated packaging phase:
+
+- script-based local start is available now;
+- next step is a friendly launcher/shortcut for macOS;
+- later step is Windows launcher support;
+- model selection should become a guided setup flow with recommended LLM/embedding choices, explanations, and custom model entry;
+- packaging must protect `backend/.ai-workbench/workspaces.db` and never overwrite runtime data during updates.
 
 ## Safety posture
 
 - Local-first only.
 - No external upload/share automation.
 - No shell execution from frontend.
+- No MCP server start from frontend.
+- No MCP tool execution until backend approval gates and sandbox execution exist.
 - Skills guide answer style, but project facts must come from retrieved sources.
 - Reports and exports must remain source-backed and user-controlled.

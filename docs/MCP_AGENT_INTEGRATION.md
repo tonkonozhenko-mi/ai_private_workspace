@@ -29,3 +29,33 @@ AI Private Workspace treats MCP as a tool registry first, not as an automatic ex
 ## Future direction
 
 The next stages can add workspace-scoped MCP configs, live connection checks, tool inventory discovery, and eventually approved backend execution for a small allowlist of safe tools.
+
+## Workspace MCP configs and approval gates
+
+Task 190 adds workspace-saved MCP configs and a first approval-gate model.
+
+The flow is intentionally conservative:
+
+1. Pick a catalog template.
+2. Save it as a disabled workspace config.
+3. Review the exposed tools.
+4. Approve only the minimum read-only tool set.
+5. Future agent workflows can see approved tool inventory.
+6. Execution still remains manual-gated and is not implemented as an automatic tool runner.
+
+Important safety rules:
+
+- Saved MCP configs are disabled by default.
+- Tool approval stores intent only.
+- The browser does not start MCP servers.
+- The backend does not execute MCP tools in this foundation step.
+- Shell/write/delete tools should not be approved until sandbox execution exists.
+
+New local API surfaces:
+
+- `GET /mcp/workspaces/{workspace_id}/configs`
+- `POST /mcp/workspaces/{workspace_id}/configs`
+- `PATCH /mcp/workspaces/{workspace_id}/configs/{config_id}`
+- `DELETE /mcp/workspaces/{workspace_id}/configs/{config_id}`
+- `GET /mcp/workspaces/{workspace_id}/tool-inventory`
+- `POST /mcp/workspaces/{workspace_id}/configs/{config_id}/approval-preview`

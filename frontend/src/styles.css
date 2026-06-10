@@ -13668,3 +13668,52 @@ button,
     justify-content: flex-start;
   }
 }
+
+.mcp-inventory-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-2);
+}
+
+.mcp-inventory-strip span,
+.mcp-tool-inventory {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-muted);
+  padding: var(--space-3);
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.mcp-inventory-strip strong {
+  color: var(--text-primary);
+}
+
+.mcp-config-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.mcp-config-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: start;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--surface-elevated);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-soft);
+}
+
+.mcp-tools-list span.approved {
+  color: var(--success-strong);
+  border-color: color-mix(in srgb, var(--success-strong) 38%, var(--border-subtle));
+  background: color-mix(in srgb, var(--success-weak) 62%, transparent);
+}
+
+@media (max-width: 920px) {
+  .mcp-config-card {
+    grid-template-columns: 1fr;
+  }
+}
