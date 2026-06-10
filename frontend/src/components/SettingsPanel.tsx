@@ -6,6 +6,12 @@ import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
 } from "../api/types";
+import {
+  DEFAULT_FILE_INDEXING_PREFERENCES,
+  countPatterns,
+  normalizeFileIndexingPreferences,
+  normalizePatternText,
+} from "./fileIndexingPreferences";
 import { StatusBadge } from "./StatusBadge";
 import {
   DEFAULT_SKILL_PREFERENCES,
@@ -52,6 +58,11 @@ export function SettingsPanel({
     Record<SkillPresetId, string>
   >(() => buildInstructionDrafts(preferences.skillPreferences));
   const [savedSkillId, setSavedSkillId] = useState<SkillPresetId | null>(null);
+  const [fileRulesDraft, setFileRulesDraft] = useState(() => ({
+    includePatterns: preferences.fileIndexingPreferences.includePatterns,
+    excludePatterns: preferences.fileIndexingPreferences.excludePatterns,
+  }));
+  const [fileRulesMessage, setFileRulesMessage] = useState("File rules saved in this browser.");
 
   useEffect(() => {
     setBackendUrlDraft(preferences.apiBaseUrl);
@@ -60,6 +71,13 @@ export function SettingsPanel({
   useEffect(() => {
     setInstructionDrafts(buildInstructionDrafts(preferences.skillPreferences));
   }, [preferences.skillPreferences]);
+
+  useEffect(() => {
+    setFileRulesDraft({
+      includePatterns: preferences.fileIndexingPreferences.includePatterns,
+      excludePatterns: preferences.fileIndexingPreferences.excludePatterns,
+    });
+  }, [preferences.fileIndexingPreferences]);
 
   const preferencesJson = useMemo(
     () => JSON.stringify(preferences, null, 2),
@@ -129,6 +147,47 @@ export function SettingsPanel({
       customInstructions: defaultInstruction,
     });
     setSavedSkillId(skillId);
+  }
+
+  function updateFileRulesDraft(
+    key: "includePatterns" | "excludePatterns",
+    value: string,
+  ) {
+    setResetRequested(false);
+    setFileRulesDraft((current) => ({
+      ...current,
+      [key]: value.slice(0, 4000),
+    }));
+    setFileRulesMessage("Unsaved file rule changes.");
+  }
+
+  function saveFileRules() {
+    const nextPreferences = {
+      ...preferences.fileIndexingPreferences,
+      includePatterns: normalizePatternText(
+        fileRulesDraft.includePatterns,
+        DEFAULT_FILE_INDEXING_PREFERENCES.includePatterns,
+      ),
+      excludePatterns: normalizePatternText(
+        fileRulesDraft.excludePatterns,
+        DEFAULT_FILE_INDEXING_PREFERENCES.excludePatterns,
+      ),
+    };
+    updatePreference("fileIndexingPreferences", nextPreferences);
+    setFileRulesDraft({
+      includePatterns: nextPreferences.includePatterns,
+      excludePatterns: nextPreferences.excludePatterns,
+    });
+    setFileRulesMessage("File rules saved in this browser.");
+  }
+
+  function resetFileRules() {
+    updatePreference("fileIndexingPreferences", DEFAULT_FILE_INDEXING_PREFERENCES);
+    setFileRulesDraft({
+      includePatterns: DEFAULT_FILE_INDEXING_PREFERENCES.includePatterns,
+      excludePatterns: DEFAULT_FILE_INDEXING_PREFERENCES.excludePatterns,
+    });
+    setFileRulesMessage("File rules reset to safe defaults.");
   }
 
   async function handleCopyPreferences() {
@@ -413,6 +472,60 @@ export function SettingsPanel({
           <SettingsRow label="Storage" value="Saved locally in this browser" />
         </SettingsSection>
 
+
+        <SettingsSection
+          eyebrow="File selection"
+          title="Files and search context"
+          description="Choose browser-local file rules before rebuilding search context. These rules are prepared here first and will be connected to indexing actions in the next step."
+          badge="Local rules"
+          tone="info"
+        >
+          <div className="settings-file-rule-summary">
+            <div>
+              <strong>{countPatterns(fileRulesDraft.includePatterns)}</strong>
+              <span>include rules</span>
+            </div>
+            <div>
+              <strong>{countPatterns(fileRulesDraft.excludePatterns)}</strong>
+              <span>exclude rules</span>
+            </div>
+          </div>
+          <PreferenceGroup label="Include patterns">
+            <textarea
+              className="settings-pattern-box"
+              value={fileRulesDraft.includePatterns}
+              onChange={(event) =>
+                updateFileRulesDraft("includePatterns", event.target.value)
+              }
+              rows={8}
+              aria-label="File include patterns"
+            />
+          </PreferenceGroup>
+          <PreferenceGroup label="Exclude patterns">
+            <textarea
+              className="settings-pattern-box"
+              value={fileRulesDraft.excludePatterns}
+              onChange={(event) =>
+                updateFileRulesDraft("excludePatterns", event.target.value)
+              }
+              rows={8}
+              aria-label="File exclude patterns"
+            />
+          </PreferenceGroup>
+          <div className="settings-inline-actions">
+            <button type="button" className="primary-button" onClick={saveFileRules}>
+              Save file rules
+            </button>
+            <button type="button" className="ghost-button" onClick={resetFileRules}>
+              Reset defaults
+            </button>
+            <span>{fileRulesMessage}</span>
+          </div>
+          <p className="settings-helper-note">
+            Safe defaults include source, docs, infrastructure, and CI/CD files while excluding dependencies, caches, build outputs, archives, and logs.
+          </p>
+        </SettingsSection>
+
         <SettingsSection
           eyebrow="AI defaults"
           title="Models"
@@ -638,6 +751,11 @@ export function SettingsPanel({
   "apiBaseUrl": "http://127.0.0.1:8000",
   "brandInitials": "AI",
   "accentColor": "green",
+  "fileIndexingPreferences": {
+    "profile": "balanced",
+    "includePatterns": "src/**\ndocs/**\n*.tf",
+    "excludePatterns": "node_modules/**\n.venv/**\ndist/**"
+  },
   "skillPreferences": {
     "devops": {
       "enabled": true,

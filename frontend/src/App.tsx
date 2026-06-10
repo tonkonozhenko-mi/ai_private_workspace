@@ -31,6 +31,11 @@ import { UIActionsPanel } from "./components/UIActionsPanel";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { WorkspaceDashboard } from "./components/WorkspaceDashboard";
 import { WorkspaceList } from "./components/WorkspaceList";
+import {
+  DEFAULT_FILE_INDEXING_PREFERENCES,
+  normalizeFileIndexingPreferences,
+  type FileIndexingPreferences,
+} from "./components/fileIndexingPreferences";
 import { DEFAULT_SKILL_PREFERENCES, normalizeSkillPreferences, type SkillPreferences } from "./components/skillLibrary";
 
 type WorkspaceTab = "overview" | "ask" | "models" | "actions" | "activity" | "settings";
@@ -49,6 +54,7 @@ export interface WorkbenchPreferences {
   brandInitials: string;
   accentColor: AccentColorPreference;
   skillPreferences: SkillPreferences;
+  fileIndexingPreferences: FileIndexingPreferences;
 }
 
 const PREFERENCES_STORAGE_KEY = "ai-private-workspace.preferences.v1";
@@ -62,6 +68,7 @@ const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   brandInitials: "AI",
   accentColor: "green",
   skillPreferences: DEFAULT_SKILL_PREFERENCES,
+  fileIndexingPreferences: DEFAULT_FILE_INDEXING_PREFERENCES,
 };
 
 const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
@@ -435,6 +442,7 @@ function App() {
                   onIndexWorkspace={() => handleIndexWorkspace(detail.dashboard.workspace_id)}
                   onOpenSettings={() => setActiveTab("settings")}
                   skillPreferences={preferences.skillPreferences}
+                  fileIndexingPreferences={preferences.fileIndexingPreferences}
                 />
               ) : null}
               <div hidden={activeTab !== "ask"}>
@@ -567,6 +575,9 @@ function loadStoredPreferences(): WorkbenchPreferences {
         ? parsed.accentColor
         : DEFAULT_PREFERENCES.accentColor,
       skillPreferences: normalizeSkillPreferences(parsed.skillPreferences),
+      fileIndexingPreferences: normalizeFileIndexingPreferences(
+        parsed.fileIndexingPreferences,
+      ),
     };
   } catch {
     return DEFAULT_PREFERENCES;

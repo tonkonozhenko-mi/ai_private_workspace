@@ -857,3 +857,12 @@ Task 144 — Ask chat layout polish and compact sources
 Start Phase 12 — File selection / indexing control.
 
 Recommended next product task: let users review which files will become searchable before rebuilding context. The first step should introduce safe include/exclude guidance and a read-only preview before adding more advanced indexing controls.
+
+## After Task 147
+
+Next recommended Phase 12 tasks:
+
+1. Connect file include/exclude preferences to the explicit scan/index request contract.
+2. Add a read-only file preview so users can see which files would be included or skipped before rebuilding search context.
+3. Explain why each file is included or excluded based on pattern matches.
+4. Keep rebuilding search context explicit; do not run scan/index automatically after editing file rules.

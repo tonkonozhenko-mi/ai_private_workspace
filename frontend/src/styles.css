@@ -8968,3 +8968,147 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* Task 147: file selection and indexing preference foundation */
+.workspace-files-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.workspace-files-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.workspace-skill-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  min-height: 150px;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-subtle);
+}
+
+.workspace-skill-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 14px;
+  background: rgb(var(--accent-rgb, 47 122 92) / 12%);
+  color: var(--color-accent-strong);
+  font-weight: 800;
+}
+
+.workspace-skill-card h3 {
+  margin: 2px 0 8px;
+  color: var(--color-text-primary);
+  font-size: 16px;
+  letter-spacing: -0.02em;
+}
+
+.workspace-skill-card p {
+  margin: 0 0 12px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.workspace-skill-footnote {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.settings-file-rule-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settings-file-rule-summary > div {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+}
+
+.settings-file-rule-summary strong {
+  color: var(--color-accent-strong);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.settings-file-rule-summary span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.settings-pattern-box {
+  width: 100%;
+  min-height: 168px;
+  resize: vertical;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-input-bg, var(--color-surface));
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 12px 14px;
+  outline: none;
+}
+
+.settings-pattern-box:focus {
+  border-color: rgb(var(--accent-rgb, 47 122 92) / 55%);
+  box-shadow: 0 0 0 4px rgb(var(--accent-rgb, 47 122 92) / 12%);
+}
+
+:root[data-theme="dark"] .workspace-skill-card,
+:root[data-theme="dark"] .settings-file-rule-summary > div {
+  background:
+    linear-gradient(135deg, rgb(var(--accent-rgb, 77 166 126) / 8%), transparent 58%),
+    rgb(18 26 32 / 92%);
+  border-color: rgb(136 160 170 / 18%);
+}
+
+:root[data-theme="dark"] .workspace-skill-icon {
+  background: rgb(var(--accent-rgb, 77 166 126) / 18%);
+}
+
+:root[data-theme="dark"] .settings-pattern-box {
+  background: rgb(13 21 27 / 88%);
+  border-color: rgb(136 160 170 / 24%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .workspace-skill-card,
+  :root[data-theme="system"] .settings-file-rule-summary > div {
+    background:
+      linear-gradient(135deg, rgb(var(--accent-rgb, 77 166 126) / 8%), transparent 58%),
+      rgb(18 26 32 / 92%);
+    border-color: rgb(136 160 170 / 18%);
+  }
+
+  :root[data-theme="system"] .workspace-skill-icon {
+    background: rgb(var(--accent-rgb, 77 166 126) / 18%);
+  }
+
+  :root[data-theme="system"] .settings-pattern-box {
+    background: rgb(13 21 27 / 88%);
+    border-color: rgb(136 160 170 / 24%);
+  }
+}
+
+@media (max-width: 980px) {
+  .workspace-files-grid {
+    grid-template-columns: 1fr;
+  }
+}
