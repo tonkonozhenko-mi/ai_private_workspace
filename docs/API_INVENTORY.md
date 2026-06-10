@@ -78,6 +78,12 @@ models, run benchmarks, or change active runtime configuration.
 | `POST /workspaces/{workspace_id}/index` | Chunk scanned files, embed them, and update the active vector store. | Index status, vector store, timeline | No | Filesystem plus configured embedding/vector providers | Workspace setup |
 | `GET /workspaces/{workspace_id}/index/status` | Get persistent index-status metadata. | No | No | No | Workspace setup |
 | `GET /workspaces/{workspace_id}/context/search` | Search active indexed context. | No | No | Configured embedding/vector providers | Context inspector |
+| `POST /workspaces/{workspace_id}/files/preview` | Preview which local project files would be included or excluded by file-selection rules before scanning/indexing. | No | No | Local filesystem read | Workspace setup |
+| `POST /workspaces/{workspace_id}/jobs/scan` | Queue an async project scan job that can be polled and cancellation-requested. | Job memory plus scan/timeline when completed | No | Local filesystem read | Workspace setup |
+| `POST /workspaces/{workspace_id}/jobs/index` | Queue an async search-context build job that can be polled and cancellation-requested. | Job memory plus index/vector/timeline when completed | No | Filesystem plus configured embedding/vector providers | Workspace setup |
+| `GET /workspaces/{workspace_id}/jobs` | List newest async scan/index jobs for the workspace. | No | No | No | Workspace setup |
+| `GET /workspaces/{workspace_id}/jobs/{job_id}` | Poll one async workspace job status, message, result summary, or error. | No | No | No | Workspace setup |
+| `POST /workspaces/{workspace_id}/jobs/{job_id}/cancel` | Request cancellation for a queued or running async workspace job; running jobs stop at safe checkpoints. | Job memory | No | No | Workspace setup |
 | `POST /workspaces/{workspace_id}/ask` | Retrieve context, generate an answer, and return diagnostics and quality warnings; optional `llm_provider`/`llm_model` select a supported provider for this request only. | Timeline | No | Configured embedding/vector providers and selected/default LLM provider | Ask workspace |
 | `POST /workspaces/{workspace_id}/ask-selected` | Ask using the persisted selected workspace LLM as a per-request override. | Timeline | No | Active embedding/vector providers and selected LLM provider | Ask workspace |
 | `GET /workspaces/{workspace_id}/model-experiments` | List newest persisted model experiment runs for a workspace. | No | No | No | Model experiments |

@@ -37,6 +37,17 @@ class RagQualityWarningResponse(BaseModel):
     evidence: list[str]
 
 
+class LLMUsageMetricsResponse(BaseModel):
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    total_tokens: int | None = None
+    latency_ms: int | None = None
+    tokens_per_second: float | None = None
+    provider: str | None = None
+    model: str | None = None
+    estimated: bool = False
+
+
 class WorkspaceQuestionAnswerResponse(BaseModel):
     workspace_id: str
     question: str
@@ -48,6 +59,7 @@ class WorkspaceQuestionAnswerResponse(BaseModel):
     diagnostic_code: str | None
     diagnostic_message: str | None
     quality_warnings: list[RagQualityWarningResponse]
+    usage: LLMUsageMetricsResponse | None = None
 
 
 def to_rag_source_response(source: RagSource) -> RagSourceResponse:
@@ -70,6 +82,21 @@ def to_rag_quality_warning_response(
     )
 
 
+def to_llm_usage_metrics_response(usage) -> LLMUsageMetricsResponse | None:
+    if usage is None:
+        return None
+    return LLMUsageMetricsResponse(
+        prompt_tokens=usage.prompt_tokens,
+        completion_tokens=usage.completion_tokens,
+        total_tokens=usage.total_tokens,
+        latency_ms=usage.latency_ms,
+        tokens_per_second=usage.tokens_per_second,
+        provider=usage.provider,
+        model=usage.model,
+        estimated=usage.estimated,
+    )
+
+
 def to_workspace_question_answer_response(
     result: WorkspaceQuestionAnswer,
 ) -> WorkspaceQuestionAnswerResponse:
@@ -87,4 +114,5 @@ def to_workspace_question_answer_response(
             to_rag_quality_warning_response(warning)
             for warning in result.quality_warnings
         ],
+        usage=to_llm_usage_metrics_response(result.usage),
     )

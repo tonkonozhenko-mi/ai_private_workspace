@@ -141,6 +141,17 @@ export interface SkillContextRequest {
   custom_instructions: string;
 }
 
+export interface LLMUsageMetrics {
+  prompt_tokens?: number | null;
+  completion_tokens?: number | null;
+  total_tokens?: number | null;
+  latency_ms?: number | null;
+  tokens_per_second?: number | null;
+  provider?: string | null;
+  model?: string | null;
+  estimated?: boolean;
+}
+
 export interface WorkspaceQuestionAnswer {
   workspace_id: string;
   question: string;
@@ -152,6 +163,7 @@ export interface WorkspaceQuestionAnswer {
   diagnostic_code?: string | null;
   diagnostic_message?: string | null;
   quality_warnings?: RagQualityWarning[];
+  usage?: LLMUsageMetrics | null;
 }
 
 export interface WorkspaceIndexStatus {

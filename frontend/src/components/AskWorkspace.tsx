@@ -412,6 +412,7 @@ function AnswerResult({
               <strong>{answer.sources.length}</strong> sources
             </span>
           </div>
+          <LLMUsageSummary answer={answer} />
         </article>
 
         {answer.diagnostic_message ? (
@@ -445,6 +446,42 @@ function AnswerResult({
       </div>
     </div>
   );
+}
+
+function LLMUsageSummary({ answer }: { answer: WorkspaceQuestionAnswer }) {
+  const usage = answer.usage;
+  const provider = usage?.provider ?? answer.llm_provider;
+  const model = usage?.model ?? answer.llm_model ?? "default";
+
+  return (
+    <div className="llm-usage-summary" aria-label="LLM usage metrics">
+      <span title="Prompt tokens">In {formatMetricNumber(usage?.prompt_tokens)}</span>
+      <span title="Answer tokens">Out {formatMetricNumber(usage?.completion_tokens)}</span>
+      <span title="Total tokens">Total {formatMetricNumber(usage?.total_tokens)}</span>
+      <span title="Latency">{formatLatency(usage?.latency_ms)}</span>
+      <span title="Answer speed">{formatSpeed(usage?.tokens_per_second)}</span>
+      <span title="Provider and model">{provider}/{model}</span>
+      {usage?.estimated ? <span title="Token counts are estimated">est.</span> : null}
+    </div>
+  );
+}
+
+function formatMetricNumber(value: number | null | undefined): string {
+  return typeof value === "number" ? value.toLocaleString() : "—";
+}
+
+function formatLatency(value: number | null | undefined): string {
+  if (typeof value !== "number") {
+    return "— ms";
+  }
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(1)}s`;
+  }
+  return `${value}ms`;
+}
+
+function formatSpeed(value: number | null | undefined): string {
+  return typeof value === "number" ? `${value.toFixed(1)} tok/s` : "— tok/s";
 }
 
 function QualityWarnings({ warnings }: { warnings: RagQualityWarning[] }) {

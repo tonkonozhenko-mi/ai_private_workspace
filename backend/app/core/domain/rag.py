@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
 
+from app.core.domain.llm_usage import LLMUsageMetrics
+
 
 @dataclass(frozen=True)
 class RagSource:
@@ -29,3 +31,4 @@ class WorkspaceQuestionAnswer:
     diagnostic_code: str | None = None
     diagnostic_message: str | None = None
     quality_warnings: list[RagQualityWarning] = field(default_factory=list)
+    usage: LLMUsageMetrics | None = None

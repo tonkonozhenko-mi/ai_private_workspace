@@ -9320,3 +9320,55 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* Task 153 — LLM metrics and clearer async job status */
+.llm-usage-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+  color: var(--text-muted, #667085);
+  font-size: 0.78rem;
+}
+
+.llm-usage-summary span {
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.3));
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem;
+  background: var(--surface-muted, rgba(148, 163, 184, 0.08));
+}
+
+.workspace-job-status {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.35));
+  border-left: 4px solid var(--accent, #6366f1);
+  border-radius: 1rem;
+  background: var(--surface-muted, rgba(99, 102, 241, 0.06));
+}
+
+.workspace-job-status span {
+  display: inline-block;
+  margin-bottom: 0.2rem;
+  color: var(--accent, #6366f1);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workspace-job-status p {
+  margin: 0.2rem 0 0;
+  color: var(--text-muted, #667085);
+}
+
+@media (max-width: 760px) {
+  .workspace-job-status {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+}

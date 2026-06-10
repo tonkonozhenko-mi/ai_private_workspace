@@ -40,6 +40,22 @@ def test_selected_fake_llm_reuses_existing_ask_behavior(tmp_path) -> None:
     assert result["diagnostic_code"] is None
 
 
+def test_selected_ask_usage_metrics_report_selected_provider_and_model(tmp_path) -> None:
+    _write_text(tmp_path / "README.md", "selectedmetricstoken explains the project.")
+    workspace = _create_workspace(tmp_path)
+    assert _select_llm(workspace["id"], "fake", "fake-llm-alt").status_code == 200
+    assert client.post(f"/workspaces/{workspace['id']}/scan").status_code == 200
+    assert client.post(f"/workspaces/{workspace['id']}/index").status_code == 200
+
+    response = _ask_selected(workspace["id"], "Explain selectedmetricstoken")
+
+    assert response.status_code == 200
+    usage = response.json()["usage"]
+    assert usage["provider"] == "fake"
+    assert usage["model"] == "fake-llm-alt"
+    assert usage["total_tokens"] == usage["prompt_tokens"] + usage["completion_tokens"]
+
+
 def test_selected_fake_llm_alt_reports_selected_model(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     assert _select_llm(

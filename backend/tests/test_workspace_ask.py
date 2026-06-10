@@ -64,6 +64,25 @@ def test_ask_with_index_metadata_but_empty_active_store_returns_diagnostic(
     assert result["quality_warnings"] == []
 
 
+def test_ask_response_contains_llm_usage_metrics(tmp_path) -> None:
+    _write_text(tmp_path / "README.md", "metricstoken describes local context.")
+    workspace = _create_workspace(tmp_path)
+    assert client.post(f"/workspaces/{workspace['id']}/scan").status_code == 200
+    assert client.post(f"/workspaces/{workspace['id']}/index").status_code == 200
+
+    response = _ask(workspace["id"], "Explain metricstoken")
+
+    assert response.status_code == 200
+    usage = response.json()["usage"]
+    assert usage["provider"] == "fake"
+    assert usage["model"] == "fake-llm"
+    assert usage["prompt_tokens"] > 0
+    assert usage["completion_tokens"] > 0
+    assert usage["total_tokens"] == usage["prompt_tokens"] + usage["completion_tokens"]
+    assert usage["latency_ms"] >= 0
+    assert usage["estimated"] is True
+
+
 def test_ask_after_indexing_returns_sources_and_fake_answer(tmp_path) -> None:
     _write_text(
         tmp_path / "README.md",
