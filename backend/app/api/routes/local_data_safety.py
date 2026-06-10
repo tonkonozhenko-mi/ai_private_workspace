@@ -498,7 +498,7 @@ def get_first_launch_readiness() -> FirstLaunchReadinessResponse:
             title="Local AI models",
             status="ok" if ollama_selected else "review",
             summary=f"LLM={settings.llm_provider}/{settings.ollama_llm_model}; embeddings={settings.embedding_provider}/{settings.ollama_embedding_model}",
-            detail="First launch only checks selected providers and model names. It does not pull or start models.",
+            detail="This check only validates selected providers and model names. It does not pull or start models.",
             user_action=None if ollama_selected else "Use the guided model setup and start backend with Ollama providers when ready.",
         ),
         FirstLaunchChecklistItemResponse(
@@ -533,12 +533,10 @@ def get_first_launch_readiness() -> FirstLaunchReadinessResponse:
 
     return FirstLaunchReadinessResponse(
         status=status,
-        title="First launch desktop setup",
-        summary="Ready for first launch" if status == "ok" else "Review first-launch checklist before daily use",
+        title="Post-launch workspace setup",
+        summary="Ready after launch" if status == "ok" else "Review post-launch checklist before daily use",
         checklist=checklist,
         recommended_flow=[
-            "Optionally create a macOS .app shortcut once.",
-            "Start the app with the macOS launcher, Dock shortcut, or backend/frontend scripts.",
             "Open the last workspace or create a new local workspace.",
             "Review guided model setup and save preferences only when needed.",
             "Run scan and build search context only by explicit user click.",
@@ -561,7 +559,7 @@ def get_first_launch_readiness() -> FirstLaunchReadinessResponse:
                 description="Read-only runtime preflight check.",
             ),
         ],
-        safety_note="This first-launch checklist is read-only. It never installs models, starts scans, rebuilds indexes, executes MCP tools, or runs shell commands from the frontend.",
+        safety_note="This post-launch checklist is read-only. It never installs models, starts scans, rebuilds indexes, executes MCP tools, or runs shell commands from the frontend. Startup instructions live outside the UI in docs/START_HERE.md until the real desktop package exists.",
     )
 
 

@@ -428,29 +428,29 @@ function DesktopPackagingRealityPanel() {
     <section className="panel desktop-packaging-panel">
       <PanelHeading
         eyebrow="Product packaging"
-        title="From developer run to real desktop app"
+        title="Desktop app target"
         status="planned"
       />
       <p className="panel-intro">
-        The current launcher is a safe bridge for testing. The final product target is a real
-        macOS/Windows desktop app: double-click, open, and continue work without cloning the repo
-        or running setup scripts manually.
+        This screen is not the real startup instruction. It documents the product target: a real
+        macOS/Windows app where the user downloads a package, double-clicks it, and continues
+        without cloning the repo or running scripts manually.
       </p>
       <div className="packaging-roadmap-grid">
         <article>
-          <span>Now</span>
-          <strong>Developer-safe local app</strong>
+          <span>Current build</span>
+          <strong>Developer-safe bridge</strong>
           <p>
-            Backend, frontend, runtime checks, guided models, and local data safety are already
-            wired. Scripts are still visible so we can debug packaging safely.
+            Backend, frontend, runtime checks, guided models, and local data safety are wired.
+            Scripts still exist only because this is not the final packaged app yet.
           </p>
         </article>
         <article>
-          <span>Next</span>
-          <strong>Installer-grade launch</strong>
+          <span>Packaging target</span>
+          <strong>Double-click app</strong>
           <p>
-            Package a desktop shell that starts the local backend, opens the UI, stores runtime
-            data locally, and shows clear first-launch checks.
+            Package a desktop shell that supervises the local backend, opens the UI, stores
+            runtime data locally, and recovers gracefully when something is not ready.
           </p>
         </article>
         <article>
@@ -507,8 +507,8 @@ function FirstLaunchSetupPanel() {
   if (loading) {
     return (
       <section className="panel first-launch-panel">
-        <PanelHeading eyebrow="Desktop setup" title="First launch checklist" />
-        <p className="panel-intro">Loading packaging readiness checks…</p>
+        <PanelHeading eyebrow="After launch" title="Workspace setup checklist" />
+        <p className="panel-intro">Loading post-launch readiness checks…</p>
       </section>
     );
   }
@@ -516,7 +516,7 @@ function FirstLaunchSetupPanel() {
   if (error || !readiness) {
     return (
       <section className="panel first-launch-panel">
-        <PanelHeading eyebrow="Desktop setup" title="First launch checklist" />
+        <PanelHeading eyebrow="After launch" title="Workspace setup checklist" />
         <p className="model-selection-error">{error ?? "Could not load first-launch readiness."}</p>
       </section>
     );
@@ -524,7 +524,7 @@ function FirstLaunchSetupPanel() {
 
   return (
     <section className="panel first-launch-panel">
-      <PanelHeading eyebrow="Desktop setup" title={readiness.title} status={readiness.status} />
+      <PanelHeading eyebrow="After launch" title="Workspace setup checklist" status={readiness.status} />
       <p className="panel-intro">{readiness.summary}</p>
       <div className="first-launch-grid">
         {readiness.checklist.map((item) => (
@@ -540,7 +540,7 @@ function FirstLaunchSetupPanel() {
         ))}
       </div>
       <details className="first-launch-details">
-        <summary>Recommended first-launch flow</summary>
+        <summary>Recommended flow after the app is open</summary>
         <ol>
           {readiness.recommended_flow.map((step) => (
             <li key={step}>{step}</li>
@@ -557,6 +557,7 @@ function FirstLaunchSetupPanel() {
         </div>
       </details>
       <p className="settings-message info">{readiness.safety_note}</p>
+      <p className="settings-message info">Startup instructions belong outside the UI: see docs/START_HERE.md and docs/DESKTOP_APP_TARGET.md. This screen is only for what to do after the app is already open.</p>
     </section>
   );
 }
