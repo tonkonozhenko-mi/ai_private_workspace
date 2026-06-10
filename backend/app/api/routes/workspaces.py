@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import datetime
 
 from fastapi import APIRouter, Body, HTTPException, status
@@ -118,10 +119,14 @@ from app.api.schemas.skill_profile_schemas import (
 )
 from app.api.schemas.conversation_schemas import (
     ConversationArchiveRequest,
+    ConversationExportResponse,
     ConversationPinRequest,
     CreateConversationRequest,
+    SaveAnswerNoteRequest,
     UpdateConversationRequest,
     WorkspaceConversationResponse,
+    ConversationAnswerNoteResponse,
+    to_answer_note_response,
     to_workspace_conversation_response,
 )
 from app.api.schemas.rag_schemas import (
@@ -167,6 +172,7 @@ from app.api.schemas.workspaces_overview_schemas import (
     to_workspaces_overview_response,
 )
 from app.core.domain.conversation import (
+    create_conversation_answer_note,
     create_conversation_message,
     create_workspace_conversation,
 )
@@ -1098,7 +1104,7 @@ def _ensure_conversation(workspace_id: str, conversation_id: str | None, title: 
     )
 
 
-def _persist_answer_in_conversation(conversation_id: str, answer) -> None:
+def _persist_answer_in_conversation(conversation_id: str, answer):
     conversation_repository.add_message(
         create_conversation_message(
             conversation_id=conversation_id,
@@ -1108,7 +1114,7 @@ def _persist_answer_in_conversation(conversation_id: str, answer) -> None:
         )
     )
     usage = answer.usage
-    conversation_repository.add_message(
+    assistant_message = conversation_repository.add_message(
         create_conversation_message(
             conversation_id=conversation_id,
             workspace_id=answer.workspace_id,
@@ -1125,7 +1131,47 @@ def _persist_answer_in_conversation(conversation_id: str, answer) -> None:
             skill_profile=answer.skill_profile,
         )
     )
+    return replace(answer, conversation_message_id=assistant_message.id)
 
+
+
+def _conversation_export_content(conversation, export_format: str) -> tuple[str, str]:
+    normalized_format = (export_format or "markdown").lower()
+    if normalized_format not in {"markdown", "text", "json"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported export format")
+    safe_title = "-".join(conversation.title.lower().split())[:80] or "conversation"
+    filename = f"{safe_title}.{ 'md' if normalized_format == 'markdown' else normalized_format }"
+    if normalized_format == "json":
+        import json
+        payload = to_workspace_conversation_response(conversation).model_dump()
+        return filename, json.dumps(payload, indent=2, sort_keys=True)
+    if normalized_format == "text":
+        lines = [conversation.title, f"Workspace: {conversation.workspace_id}", ""]
+        for message in conversation.messages:
+            lines.extend([message.role.upper(), message.content, ""])
+        return filename, "\n".join(lines).strip() + "\n"
+    lines = [f"# {conversation.title}", "", f"Workspace: `{conversation.workspace_id}`", ""]
+    for message in conversation.messages:
+        heading = "User" if message.role == "user" else "Assistant"
+        lines.extend([f"## {heading}", "", message.content, ""])
+        if message.role == "assistant":
+            meta = []
+            if message.llm_provider:
+                meta.append(f"model: `{message.llm_provider}/{message.llm_model or 'default'}`")
+            if message.total_tokens is not None:
+                meta.append(f"tokens: `{message.total_tokens}`")
+            if meta:
+                lines.extend(["> " + " · ".join(meta), ""])
+    return filename, "\n".join(lines).strip() + "\n"
+
+
+def _find_message_pair(conversation, message_id: str):
+    for index, message in enumerate(conversation.messages):
+        if message.id != message_id:
+            continue
+        previous_message = conversation.messages[index - 1] if index > 0 else None
+        return message, previous_message
+    return None, None
 
 @router.post("/{workspace_id}/conversations", response_model=WorkspaceConversationResponse)
 def create_workspace_conversation_endpoint(
@@ -1225,6 +1271,79 @@ def archive_workspace_conversation(
     return to_workspace_conversation_response(conversation)
 
 
+
+@router.get(
+    "/{workspace_id}/conversations/{conversation_id}/export",
+    response_model=ConversationExportResponse,
+)
+def export_workspace_conversation(
+    workspace_id: str,
+    conversation_id: str,
+    format: str = "markdown",
+) -> ConversationExportResponse:
+    conversation = conversation_repository.get_conversation(workspace_id, conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+    filename, content = _conversation_export_content(conversation, format)
+    return ConversationExportResponse(
+        conversation_id=conversation.id,
+        format=format.lower(),
+        filename=filename,
+        content=content,
+    )
+
+
+@router.get("/{workspace_id}/answer-notes", response_model=list[ConversationAnswerNoteResponse])
+def list_workspace_answer_notes(
+    workspace_id: str,
+    limit: int = 30,
+    search: str | None = None,
+) -> list[ConversationAnswerNoteResponse]:
+    if workspace_repository.get(workspace_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+    return [
+        to_answer_note_response(note)
+        for note in conversation_repository.list_answer_notes(workspace_id, limit=limit, search=search)
+    ]
+
+
+@router.post(
+    "/{workspace_id}/conversations/{conversation_id}/messages/{message_id}/note",
+    response_model=ConversationAnswerNoteResponse,
+)
+def save_conversation_answer_note(
+    workspace_id: str,
+    conversation_id: str,
+    message_id: str,
+    request: SaveAnswerNoteRequest,
+) -> ConversationAnswerNoteResponse:
+    conversation = conversation_repository.get_conversation(workspace_id, conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+    message, previous_message = _find_message_pair(conversation, message_id)
+    if message is None or message.role != "assistant":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assistant message not found")
+    content = (request.content or message.content).strip()
+    if not content:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Note content cannot be empty")
+    note = conversation_repository.add_answer_note(
+        create_conversation_answer_note(
+            workspace_id=workspace_id,
+            conversation_id=conversation_id,
+            message_id=message_id,
+            title=request.title or conversation.title,
+            content=content,
+            source_question=previous_message.content if previous_message and previous_message.role == "user" else None,
+        )
+    )
+    return to_answer_note_response(note)
+
+
+@router.delete("/{workspace_id}/answer-notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_workspace_answer_note(workspace_id: str, note_id: str) -> None:
+    if not conversation_repository.delete_answer_note(workspace_id, note_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Answer note not found")
+
 @router.delete("/{workspace_id}/conversations/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_workspace_conversation(
     workspace_id: str,
@@ -1270,7 +1389,7 @@ def ask_workspace_question(
                 conversation_id=conversation.id,
             )
         )
-        _persist_answer_in_conversation(conversation.id, result)
+        result = _persist_answer_in_conversation(conversation.id, result)
     except AskWorkspaceQuestionNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -1330,7 +1449,7 @@ def ask_workspace_question_with_selected_llm(
                 conversation_id=conversation.id,
             )
         )
-        _persist_answer_in_conversation(conversation.id, result)
+        result = _persist_answer_in_conversation(conversation.id, result)
     except AskWorkspaceQuestionWithSelectedLLMNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

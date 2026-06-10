@@ -181,3 +181,46 @@ def test_conversation_pin_archive_and_search_filters(tmp_path: Path) -> None:
         f"/workspaces/{workspace['id']}/conversations?include_archived=true"
     ).json()
     assert alpha["id"] in {conversation["id"] for conversation in with_archived}
+
+
+def test_conversation_export_and_answer_notes(tmp_path: Path) -> None:
+    _write_text(tmp_path / "README.md", "exportnotetoken documents answer export and notes.")
+    workspace = _create_workspace(tmp_path)
+    assert client.post(f"/workspaces/{workspace['id']}/scan").status_code == 200
+    assert client.post(f"/workspaces/{workspace['id']}/index").status_code == 200
+
+    ask_response = client.post(
+        f"/workspaces/{workspace['id']}/ask",
+        json={"question": "Explain exportnotetoken", "limit": 5},
+    )
+    assert ask_response.status_code == 200
+    ask_payload = ask_response.json()
+    conversation_id = ask_payload["conversation_id"]
+    message_id = ask_payload["conversation_message_id"]
+    assert message_id
+
+    export_response = client.get(
+        f"/workspaces/{workspace['id']}/conversations/{conversation_id}/export?format=markdown"
+    )
+    assert export_response.status_code == 200
+    exported = export_response.json()
+    assert exported["filename"].endswith(".md")
+    assert "Explain exportnotetoken" in exported["content"]
+    assert "Assistant" in exported["content"]
+
+    note_response = client.post(
+        f"/workspaces/{workspace['id']}/conversations/{conversation_id}/messages/{message_id}/note",
+        json={"title": "Useful export note"},
+    )
+    assert note_response.status_code == 200
+    note = note_response.json()
+    assert note["title"] == "Useful export note"
+    assert note["source_question"] == "Explain exportnotetoken"
+    assert note["content"]
+
+    notes = client.get(f"/workspaces/{workspace['id']}/answer-notes?search=export").json()
+    assert [item["id"] for item in notes] == [note["id"]]
+
+    delete_response = client.delete(f"/workspaces/{workspace['id']}/answer-notes/{note['id']}")
+    assert delete_response.status_code == 204
+    assert client.get(f"/workspaces/{workspace['id']}/answer-notes").json() == []

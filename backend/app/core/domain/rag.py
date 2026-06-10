@@ -43,3 +43,4 @@ class WorkspaceQuestionAnswer:
     usage: LLMUsageMetrics | None = None
     skill_profile: SkillProfileAudit | None = None
     conversation_id: str | None = None
+    conversation_message_id: str | None = None

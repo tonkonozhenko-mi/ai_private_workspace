@@ -1,10 +1,11 @@
-from app.core.domain.conversation import ConversationMessage, WorkspaceConversation, normalize_conversation_title, utc_now_iso
+from app.core.domain.conversation import ConversationAnswerNote, ConversationMessage, WorkspaceConversation, normalize_conversation_title, utc_now_iso
 
 
 class InMemoryConversationRepository:
     def __init__(self) -> None:
         self._conversations: dict[str, WorkspaceConversation] = {}
         self._messages: dict[str, list[ConversationMessage]] = {}
+        self._notes: dict[str, ConversationAnswerNote] = {}
 
     def add_conversation(self, conversation: WorkspaceConversation) -> WorkspaceConversation:
         self._conversations[conversation.id] = conversation
@@ -154,4 +155,36 @@ class InMemoryConversationRepository:
             return False
         del self._conversations[conversation_id]
         self._messages.pop(conversation_id, None)
+        self._notes = {
+            note_id: note
+            for note_id, note in self._notes.items()
+            if note.conversation_id != conversation_id
+        }
+        return True
+
+    def add_answer_note(self, note: ConversationAnswerNote) -> ConversationAnswerNote:
+        self._notes[note.id] = note
+        return note
+
+    def list_answer_notes(
+        self,
+        workspace_id: str,
+        limit: int = 30,
+        *,
+        search: str | None = None,
+    ) -> list[ConversationAnswerNote]:
+        normalized_search = (search or "").strip().lower()
+        notes = [note for note in self._notes.values() if note.workspace_id == workspace_id]
+        if normalized_search:
+            notes = [
+                note for note in notes
+                if normalized_search in " ".join([note.title, note.content, note.source_question or ""]).lower()
+            ]
+        return sorted(notes, key=lambda note: note.updated_at, reverse=True)[: max(0, limit)]
+
+    def delete_answer_note(self, workspace_id: str, note_id: str) -> bool:
+        note = self._notes.get(note_id)
+        if note is None or note.workspace_id != workspace_id:
+            return False
+        del self._notes[note_id]
         return True

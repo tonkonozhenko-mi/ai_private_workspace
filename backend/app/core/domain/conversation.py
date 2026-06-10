@@ -14,6 +14,46 @@ def normalize_conversation_title(title: str | None) -> str:
 
 
 @dataclass(frozen=True)
+class ConversationAnswerNote:
+    id: str
+    workspace_id: str
+    conversation_id: str
+    message_id: str
+    title: str
+    content: str
+    source_question: str | None
+    created_at: str
+    updated_at: str
+
+
+def normalize_note_title(title: str | None) -> str:
+    return (title or "Saved answer note").strip()[:120] or "Saved answer note"
+
+
+def create_conversation_answer_note(
+    *,
+    workspace_id: str,
+    conversation_id: str,
+    message_id: str,
+    title: str | None,
+    content: str,
+    source_question: str | None = None,
+) -> ConversationAnswerNote:
+    now = utc_now_iso()
+    return ConversationAnswerNote(
+        id=str(uuid4()),
+        workspace_id=workspace_id,
+        conversation_id=conversation_id,
+        message_id=message_id,
+        title=normalize_note_title(title),
+        content=content,
+        source_question=source_question,
+        created_at=now,
+        updated_at=now,
+    )
+
+
+@dataclass(frozen=True)
 class ConversationMessage:
     id: str
     conversation_id: str
