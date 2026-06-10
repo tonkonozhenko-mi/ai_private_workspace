@@ -114,10 +114,11 @@ def test_first_launch_readiness_is_read_only_and_packaging_ready() -> None:
     assert body["status"] in {"ok", "review", "blocked"}
     assert body["checklist"]
     item_ids = {item["id"] for item in body["checklist"]}
-    assert {"backend-runtime", "workspace-data", "local-ai-models", "search-context-store", "macos-launcher"}.issubset(item_ids)
+    assert {"backend-runtime", "workspace-data", "local-ai-models", "search-context-store", "macos-launcher", "desktop-shortcut"}.issubset(item_ids)
     assert "read-only" in body["safety_note"].lower()
     assert "never installs models" in body["safety_note"].lower()
     assert any("launch_macos.command" in command["command"] for command in body["copy_commands"])
+    assert any("create_macos_shortcut.sh" in command["command"] for command in body["copy_commands"])
 
 
 def test_production_readiness_is_read_only_and_has_packaging_path() -> None:
