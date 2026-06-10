@@ -11079,3 +11079,80 @@ button:focus-visible {
   line-height: 1.4;
   margin-top: 0.35rem;
 }
+
+/* Task 182 — branding presets and share/export polish */
+.branding-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.branding-preset-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  text-align: left;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  padding: var(--space-3);
+}
+
+.branding-preset-card strong {
+  font-size: var(--text-md);
+}
+
+.branding-preset-card small {
+  grid-column: 1 / -1;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.branding-preset-card:hover,
+.branding-preset-card.is-selected {
+  border-color: var(--color-accent-border);
+  background: var(--color-accent-soft);
+  box-shadow: inset 3px 0 var(--color-accent);
+}
+
+.report-share-kit {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-accent-soft);
+  padding: var(--space-4);
+  margin: var(--space-4) 0;
+}
+
+.report-share-kit strong,
+.report-share-kit span {
+  display: block;
+}
+
+.report-share-kit span {
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+  line-height: 1.45;
+}
+
+.report-share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+@media (max-width: 760px) {
+  .report-share-kit {
+    flex-direction: column;
+  }
+
+  .report-share-actions {
+    justify-content: flex-start;
+  }
+}

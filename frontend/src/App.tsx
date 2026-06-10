@@ -63,6 +63,7 @@ export interface WorkbenchPreferences {
   landingTab: WorkspaceTab;
   apiBaseUrl: string;
   brandInitials: string;
+  productName: string;
   accentColor: AccentColorPreference;
   skillPreferences: SkillPreferences;
   fileIndexingPreferences: FileIndexingPreferences;
@@ -78,6 +79,7 @@ const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   landingTab: "overview",
   apiBaseUrl: DEFAULT_API_BASE_URL,
   brandInitials: "AI",
+  productName: "AI Private Workspace",
   accentColor: "green",
   skillPreferences: DEFAULT_SKILL_PREFERENCES,
   fileIndexingPreferences: DEFAULT_FILE_INDEXING_PREFERENCES,
@@ -406,8 +408,8 @@ function App() {
             {preferences.brandInitials}
           </span>
           <div>
-            <strong>AI Private</strong>
-            <span>Workspace</span>
+            <strong>{preferences.productName}</strong>
+            <span>Local-first</span>
           </div>
         </header>
 
@@ -706,6 +708,9 @@ function loadStoredPreferences(): WorkbenchPreferences {
       brandInitials: isBrandInitialsPreference(parsed.brandInitials)
         ? normalizeBrandInitials(parsed.brandInitials)
         : DEFAULT_PREFERENCES.brandInitials,
+      productName: isProductNamePreference(parsed.productName)
+        ? normalizeProductName(parsed.productName)
+        : DEFAULT_PREFERENCES.productName,
       accentColor: isAccentColorPreference(parsed.accentColor)
         ? parsed.accentColor
         : DEFAULT_PREFERENCES.accentColor,
@@ -749,6 +754,15 @@ function isApiBaseUrlPreference(value: unknown): value is string {
 
 function normalizeApiBaseUrl(value: string): string {
   return value.trim().replace(/\/+$/, "");
+}
+
+function isProductNamePreference(value: unknown): value is string {
+  return typeof value === "string" && normalizeProductName(value).length > 0;
+}
+
+function normalizeProductName(value: string): string {
+  const normalized = value.trim().replace(/\s+/g, " ").slice(0, 48);
+  return normalized || "AI Private Workspace";
 }
 
 function errorMessage(error: unknown) {
