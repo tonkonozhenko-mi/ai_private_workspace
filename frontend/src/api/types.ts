@@ -240,6 +240,15 @@ export interface WorkspaceConversation {
   updated_at: string;
   messages: ConversationMessage[];
   messages_count: number;
+  user_messages_count: number;
+  assistant_messages_count: number;
+  total_tokens?: number | null;
+  last_question?: string | null;
+  last_answer_preview?: string | null;
+  last_llm_provider?: string | null;
+  last_llm_model?: string | null;
+  last_skill_profile_source?: string | null;
+  active_skills: string[];
 }
 
 export interface WorkspaceIndexStatus {

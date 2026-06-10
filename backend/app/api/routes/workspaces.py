@@ -118,6 +118,7 @@ from app.api.schemas.skill_profile_schemas import (
 )
 from app.api.schemas.conversation_schemas import (
     CreateConversationRequest,
+    UpdateConversationRequest,
     WorkspaceConversationResponse,
     to_workspace_conversation_response,
 )
@@ -1160,6 +1161,22 @@ def get_workspace_conversation(
     conversation_id: str,
 ) -> WorkspaceConversationResponse:
     conversation = conversation_repository.get_conversation(workspace_id, conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+    return to_workspace_conversation_response(conversation)
+
+
+@router.patch("/{workspace_id}/conversations/{conversation_id}", response_model=WorkspaceConversationResponse)
+def update_workspace_conversation(
+    workspace_id: str,
+    conversation_id: str,
+    request: UpdateConversationRequest,
+) -> WorkspaceConversationResponse:
+    conversation = conversation_repository.update_conversation_title(
+        workspace_id,
+        conversation_id,
+        request.title,
+    )
     if conversation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
     return to_workspace_conversation_response(conversation)

@@ -1,4 +1,4 @@
-from app.core.domain.conversation import ConversationMessage, WorkspaceConversation
+from app.core.domain.conversation import ConversationMessage, WorkspaceConversation, normalize_conversation_title
 
 
 class InMemoryConversationRepository:
@@ -52,6 +52,26 @@ class InMemoryConversationRepository:
                 messages=[],
             )
         return message
+
+    def update_conversation_title(
+        self,
+        workspace_id: str,
+        conversation_id: str,
+        title: str,
+    ) -> WorkspaceConversation | None:
+        conversation = self._conversations.get(conversation_id)
+        if conversation is None or conversation.workspace_id != workspace_id:
+            return None
+        updated = WorkspaceConversation(
+            id=conversation.id,
+            workspace_id=conversation.workspace_id,
+            title=normalize_conversation_title(title),
+            created_at=conversation.created_at,
+            updated_at=conversation.updated_at,
+            messages=[],
+        )
+        self._conversations[conversation_id] = updated
+        return self.get_conversation(workspace_id, conversation_id)
 
     def delete_conversation(self, workspace_id: str, conversation_id: str) -> bool:
         conversation = self._conversations.get(conversation_id)

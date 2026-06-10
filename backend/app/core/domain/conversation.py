@@ -9,6 +9,10 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def normalize_conversation_title(title: str | None) -> str:
+    return (title or "New conversation").strip()[:120] or "New conversation"
+
+
 @dataclass(frozen=True)
 class ConversationMessage:
     id: str
@@ -43,7 +47,7 @@ def create_workspace_conversation(workspace_id: str, title: str | None = None) -
     return WorkspaceConversation(
         id=str(uuid4()),
         workspace_id=workspace_id,
-        title=(title or "New conversation").strip()[:120] or "New conversation",
+        title=normalize_conversation_title(title),
         created_at=now,
         updated_at=now,
         messages=[],

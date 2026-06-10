@@ -16,5 +16,13 @@ class ConversationRepositoryPort(Protocol):
     def add_message(self, message: ConversationMessage) -> ConversationMessage:
         """Persist one conversation message."""
 
+    def update_conversation_title(
+        self,
+        workspace_id: str,
+        conversation_id: str,
+        title: str,
+    ) -> WorkspaceConversation | None:
+        """Rename a conversation and return it with messages."""
+
     def delete_conversation(self, workspace_id: str, conversation_id: str) -> bool:
         """Delete a conversation and messages."""

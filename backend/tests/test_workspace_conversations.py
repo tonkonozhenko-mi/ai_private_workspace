@@ -82,6 +82,39 @@ def test_delete_conversation_removes_history(tmp_path: Path) -> None:
     ).status_code == 404
 
 
+def test_rename_conversation_and_list_includes_answer_history_metadata(tmp_path: Path) -> None:
+    _write_text(tmp_path / "README.md", "renametoken is documented here.")
+    workspace = _create_workspace(tmp_path)
+    assert client.post(f"/workspaces/{workspace['id']}/scan").status_code == 200
+    assert client.post(f"/workspaces/{workspace['id']}/index").status_code == 200
+
+    ask_response = client.post(
+        f"/workspaces/{workspace['id']}/ask",
+        json={"question": "Explain renametoken", "limit": 5},
+    )
+    assert ask_response.status_code == 200
+    conversation_id = ask_response.json()["conversation_id"]
+
+    rename_response = client.patch(
+        f"/workspaces/{workspace['id']}/conversations/{conversation_id}",
+        json={"title": "Renamed local answer history"},
+    )
+
+    assert rename_response.status_code == 200
+    renamed = rename_response.json()
+    assert renamed["title"] == "Renamed local answer history"
+    assert renamed["user_messages_count"] == 1
+    assert renamed["assistant_messages_count"] == 1
+    assert renamed["total_tokens"] > 0
+    assert renamed["last_question"] == "Explain renametoken"
+    assert renamed["last_answer_preview"]
+
+    listed = client.get(f"/workspaces/{workspace['id']}/conversations").json()
+    assert listed[0]["title"] == "Renamed local answer history"
+    assert listed[0]["assistant_messages_count"] == 1
+    assert listed[0]["last_answer_preview"]
+
+
 def _create_workspace(project_path: Path) -> dict:
     response = client.post(
         "/workspaces",

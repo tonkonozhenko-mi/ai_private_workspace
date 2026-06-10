@@ -315,6 +315,21 @@ export function getWorkspaceConversation(
   return getJson<WorkspaceConversation>(`/workspaces/${workspaceId}/conversations/${conversationId}`);
 }
 
+export function updateWorkspaceConversationTitle(
+  workspaceId: string,
+  conversationId: string,
+  title: string,
+): Promise<WorkspaceConversation> {
+  return requestJson<WorkspaceConversation>(`/workspaces/${workspaceId}/conversations/${conversationId}`, {
+    method: "PATCH",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ title }),
+  });
+}
+
 export function deleteWorkspaceConversation(
   workspaceId: string,
   conversationId: string,

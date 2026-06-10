@@ -6,6 +6,7 @@ import {
   deleteWorkspaceConversation,
   getWorkspaceConversation,
   listWorkspaceConversations,
+  updateWorkspaceConversationTitle,
 } from "../api/client";
 import { CopyButton } from "./CopyButton";
 import type {
@@ -143,6 +144,23 @@ export function AskWorkspace({
     }
   }
 
+  async function renameConversation(conversationId: string, currentTitle: string) {
+    const nextTitle = window.prompt("Rename this conversation", currentTitle);
+    if (nextTitle === null || nextTitle.trim().length === 0) {
+      return;
+    }
+    setConversationLoading(true);
+    setError(null);
+    try {
+      await updateWorkspaceConversationTitle(workspaceId, conversationId, nextTitle.trim());
+      await refreshConversations();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not rename conversation.");
+    } finally {
+      setConversationLoading(false);
+    }
+  }
+
   async function openConversation(conversationId: string) {
     setConversationLoading(true);
     setError(null);
@@ -263,6 +281,7 @@ export function AskWorkspace({
           onStopWaiting={stopWaitingForAnswer}
           onNewConversation={() => void startNewConversation()}
           onOpenConversation={(conversationId) => void openConversation(conversationId)}
+          onRenameConversation={(conversationId, currentTitle) => void renameConversation(conversationId, currentTitle)}
           onDeleteConversation={(conversationId) => void removeConversation(conversationId)}
         />
 
@@ -365,6 +384,7 @@ function ConversationPanel({
   onStopWaiting,
   onNewConversation,
   onOpenConversation,
+  onRenameConversation,
   onDeleteConversation,
 }: {
   history: AskHistoryItem[];
@@ -378,6 +398,7 @@ function ConversationPanel({
   onStopWaiting: () => void;
   onNewConversation: () => void;
   onOpenConversation: (conversationId: string) => void;
+  onRenameConversation: (conversationId: string, currentTitle: string) => void;
   onDeleteConversation: (conversationId: string) => void;
 }) {
   const chronologicalHistory = [...history].reverse();
@@ -391,6 +412,7 @@ function ConversationPanel({
           loading={conversationLoading}
           onNewConversation={onNewConversation}
           onOpenConversation={onOpenConversation}
+          onRenameConversation={onRenameConversation}
           onDeleteConversation={onDeleteConversation}
         />
         <AskEmptyState />
@@ -406,6 +428,7 @@ function ConversationPanel({
         loading={conversationLoading}
         onNewConversation={onNewConversation}
         onOpenConversation={onOpenConversation}
+        onRenameConversation={onRenameConversation}
         onDeleteConversation={onDeleteConversation}
       />
       <div className="panel ask-conversation-header">
@@ -454,6 +477,7 @@ function ConversationHistoryBar({
   loading,
   onNewConversation,
   onOpenConversation,
+  onRenameConversation,
   onDeleteConversation,
 }: {
   conversations: WorkspaceConversation[];
@@ -461,8 +485,11 @@ function ConversationHistoryBar({
   loading: boolean;
   onNewConversation: () => void;
   onOpenConversation: (conversationId: string) => void;
+  onRenameConversation: (conversationId: string, currentTitle: string) => void;
   onDeleteConversation: (conversationId: string) => void;
 }) {
+  const activeConversation = conversations.find((conversation) => conversation.id === activeConversationId) ?? null;
+
   return (
     <section className="panel conversation-history-panel" aria-label="Saved conversations">
       <div className="panel-heading conversation-history-heading">
@@ -487,23 +514,68 @@ function ConversationHistoryBar({
                 <button type="button" onClick={() => onOpenConversation(conversation.id)} disabled={loading}>
                   <strong>{conversation.title}</strong>
                   <span>
-                    {conversation.messages_count} message{conversation.messages_count === 1 ? "" : "s"} · {formatDateTime(conversation.updated_at)}
+                    {conversation.user_messages_count} question{conversation.user_messages_count === 1 ? "" : "s"} · {conversation.assistant_messages_count} answer{conversation.assistant_messages_count === 1 ? "" : "s"} · {formatDateTime(conversation.updated_at)}
                   </span>
+                  {conversation.last_answer_preview ? (
+                    <em>{conversation.last_answer_preview}</em>
+                  ) : null}
                 </button>
-                <button
-                  className="text-button danger-text-button"
-                  type="button"
-                  disabled={loading}
-                  onClick={() => onDeleteConversation(conversation.id)}
-                >
-                  Delete
-                </button>
+                <div className="conversation-history-actions">
+                  <button
+                    className="text-button"
+                    type="button"
+                    disabled={loading}
+                    onClick={() => onRenameConversation(conversation.id, conversation.title)}
+                  >
+                    Rename
+                  </button>
+                  <button
+                    className="text-button danger-text-button"
+                    type="button"
+                    disabled={loading}
+                    onClick={() => onDeleteConversation(conversation.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </article>
             );
           })}
         </div>
       )}
+
+      {activeConversation ? (
+        <ConversationDetailsCard conversation={activeConversation} />
+      ) : null}
     </section>
+  );
+}
+
+function ConversationDetailsCard({ conversation }: { conversation: WorkspaceConversation }) {
+  const activeSkills = conversation.active_skills.length > 0
+    ? conversation.active_skills.join(" + ")
+    : "No saved skill guidance captured yet";
+  const model = conversation.last_llm_provider
+    ? `${conversation.last_llm_provider}/${conversation.last_llm_model ?? "default"}`
+    : "No answer yet";
+
+  return (
+    <article className="conversation-details-card" aria-label="Conversation details">
+      <div>
+        <p className="eyebrow">Conversation details</p>
+        <strong>{conversation.title}</strong>
+      </div>
+      <div className="conversation-detail-grid">
+        <span><b>{conversation.user_messages_count}</b> questions</span>
+        <span><b>{conversation.assistant_messages_count}</b> answers</span>
+        <span><b>{formatMetricNumber(conversation.total_tokens)}</b> tokens</span>
+        <span>{model}</span>
+      </div>
+      {conversation.last_question ? (
+        <p><strong>Last question:</strong> {conversation.last_question}</p>
+      ) : null}
+      <p><strong>Skill profile:</strong> {conversation.last_skill_profile_source ?? "not captured"} · {activeSkills}</p>
+    </article>
   );
 }
 
