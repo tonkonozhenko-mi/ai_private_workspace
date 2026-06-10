@@ -461,9 +461,6 @@ function getEventLabel(eventType: string, category: EventCategory) {
   const type = eventType.toLowerCase();
 
   if (type.includes("skill_profile")) {
-    return "Skill profile saved";
-  }
-  if (type.includes("skill_profile")) {
     return "Workspace skill profile saved";
   }
   if (type.includes("question")) {
@@ -656,6 +653,14 @@ function formatLabel(value: string) {
     selected_reason: "Reason",
     risk_level: "Risk level",
     policy_decision: "Policy decision",
+    enabled_skills_count: "Active skills",
+    enabled_skills: "Enabled skills",
+    applied_skills: "Applied skills",
+    skill_profile_source: "Skill profile source",
+    skill_profile: "Skill profile",
+    skill_profile_updated_at: "Skill profile saved",
+    guidance_count: "Guidance items",
+    source: "Source",
   };
 
   return friendlyLabels[value] ?? titleCase(value.replaceAll("_", " "));
