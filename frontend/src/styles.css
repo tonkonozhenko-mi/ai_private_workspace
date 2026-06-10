@@ -14003,3 +14003,512 @@ button,
     grid-template-columns: 1fr;
   }
 }
+
+/* Task 196 — full UI consistency pass
+ * Final visual layer: native macOS-like spacing, readable typography,
+ * symmetric cards, stable controls, and overflow-safe layouts.
+ */
+:root {
+  --ui-radius-card: 24px;
+  --ui-radius-section: 20px;
+  --ui-radius-control: 14px;
+  --ui-control-height: 42px;
+  --ui-card-padding: clamp(18px, 2vw, 26px);
+  --ui-section-gap: 18px;
+  --ui-readable: 0.875rem;
+  --ui-small: 0.78rem;
+  --ui-caption: 0.7rem;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  background: var(--color-page);
+}
+
+.app-shell {
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+}
+
+.main-content {
+  max-width: none;
+  min-width: 0;
+  padding: clamp(22px, 3vw, 42px);
+}
+
+.workspace-shell,
+.workspace-main,
+.workspace-tab-content,
+.models-detail,
+.overview-grid,
+.ask-workspace,
+.action-catalog,
+.settings-grid {
+  min-width: 0;
+}
+
+.panel,
+.metric-card,
+.state-card,
+.workspace-header,
+.workspace-navigation-shell,
+.settings-section-card,
+.settings-focus-panel,
+.settings-safety-panel,
+.models-native-hero,
+.product-status-panel,
+.onboarding-guide-panel,
+.models-simple-panel,
+.guided-model-setup-panel,
+.first-launch-panel {
+  border-radius: var(--ui-radius-card);
+}
+
+.panel,
+.metric-card,
+.state-card,
+.settings-section-card,
+.settings-focus-panel,
+.settings-safety-panel,
+.guided-model-setup-panel,
+.first-launch-panel {
+  padding: var(--ui-card-padding);
+}
+
+.panel-heading,
+.tab-section-heading,
+.workspace-header,
+.settings-section-heading,
+.model-selection-card-heading,
+.guided-model-card > div,
+.first-launch-card > div {
+  gap: 16px;
+}
+
+.panel-heading h2,
+.tab-section-heading h1,
+.workspace-header h1,
+.models-native-hero h2,
+.settings-hero-panel h1 {
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.panel-heading h2 {
+  margin-bottom: 2px;
+  font-size: clamp(1.12rem, 1.5vw, 1.38rem);
+}
+
+.panel-intro,
+.workspace-header-path,
+.information-band p,
+.guided-model-card p,
+.guided-model-notes span,
+.first-launch-card p,
+.first-launch-card small,
+.model-selection-card p,
+.activation-step p,
+.models-simple-status,
+.product-status-next p,
+.onboarding-step-card p,
+.simple-model-card p {
+  font-size: var(--ui-readable);
+  line-height: 1.58;
+}
+
+.eyebrow,
+.metric-label,
+.model-selection-card-heading span,
+.model-selection-card label > span,
+.guided-model-card > div > span,
+.guided-model-card label span,
+.first-launch-card span,
+.model-runtime-grid article > span:first-child {
+  font-size: var(--ui-caption);
+  letter-spacing: 0.12em;
+}
+
+.primary-button,
+.text-button,
+.copy-button,
+.model-selection-save-button,
+.overview-cta-button,
+.local-ai-models-button,
+.session-clear-button,
+.ask-examples button,
+.workspace-tabs button,
+.settings-segmented-control button {
+  min-height: var(--ui-control-height);
+  border-radius: var(--ui-radius-control);
+  font-size: var(--ui-small);
+  line-height: 1.1;
+}
+
+.primary-button,
+.text-button,
+.copy-button,
+.model-selection-save-button,
+.overview-cta-button,
+.local-ai-models-button,
+.session-clear-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-inline: 15px;
+  white-space: nowrap;
+}
+
+input,
+textarea,
+select,
+.guided-model-card select,
+.guided-model-card input,
+.model-selection-card select {
+  min-height: var(--ui-control-height);
+  border-radius: var(--ui-radius-control);
+  font-size: var(--ui-readable);
+  line-height: 1.35;
+}
+
+select {
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+
+.workspace-tabs > div {
+  gap: 6px;
+  padding: 5px;
+}
+
+.workspace-tabs button {
+  min-width: 104px;
+  padding-inline: 16px;
+}
+
+.workspace-tabs button span {
+  min-width: 20px;
+  height: 20px;
+}
+
+.metric-grid,
+.models-detail,
+.overview-grid,
+.ask-workspace,
+.action-catalog,
+.settings-grid,
+.model-selection-grid,
+.guided-model-grid,
+.guided-model-note-grid,
+.first-launch-grid {
+  gap: var(--ui-section-gap);
+}
+
+.metric-card,
+.model-selection-card,
+.guided-model-card,
+.guided-model-notes,
+.first-launch-card,
+.activation-step,
+.model-runtime-grid article,
+.product-status-card,
+.onboarding-step-card,
+.simple-model-card,
+.models-workflow-panel article,
+.timeline-item-card,
+.activity-summary-card,
+.job-activity-card {
+  border-radius: var(--ui-radius-section);
+}
+
+.models-detail {
+  grid-template-columns: repeat(2, minmax(360px, 1fr));
+  align-items: start;
+}
+
+.models-state-panel,
+.activation-panel,
+.model-selection-editor-panel,
+.guided-model-setup-panel,
+.first-launch-panel {
+  grid-column: 1 / -1;
+}
+
+.guided-model-setup-panel {
+  width: 100%;
+  max-width: none;
+}
+
+.guided-model-grid {
+  grid-template-columns: repeat(2, minmax(360px, 1fr));
+  align-items: stretch;
+}
+
+.guided-model-card {
+  grid-template-rows: auto minmax(92px, auto) auto auto auto;
+  padding: clamp(18px, 2vw, 24px);
+}
+
+.guided-model-card > div:first-child {
+  align-items: flex-start;
+}
+
+.guided-model-card > div:first-child .status-badge {
+  flex: 0 0 auto;
+  max-width: min(100%, 230px);
+  white-space: normal;
+  text-align: center;
+}
+
+.guided-model-card h3 {
+  max-width: 18ch;
+  font-size: clamp(1.15rem, 1.8vw, 1.45rem);
+  line-height: 1.18;
+  text-wrap: balance;
+}
+
+.guided-model-card p {
+  margin: 0;
+}
+
+.guided-model-card select,
+.guided-model-card input {
+  padding-inline: 14px;
+}
+
+.guided-model-note-grid {
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
+}
+
+.first-launch-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.first-launch-card {
+  min-height: 160px;
+  align-content: start;
+}
+
+.model-selection-grid {
+  grid-template-columns: repeat(2, minmax(360px, 1fr));
+}
+
+.model-selection-card {
+  padding: clamp(18px, 2vw, 24px);
+}
+
+.model-runtime-grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.readiness-list div,
+.model-ranking-row,
+.settings-row,
+.action-row,
+.timeline-metadata div {
+  min-width: 0;
+}
+
+.readiness-list div > span:first-child,
+.model-ranking-row > div:first-child,
+.settings-row > * {
+  min-width: 0;
+}
+
+.status-badge {
+  border-radius: var(--radius-pill);
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  line-height: 1.15;
+}
+
+.sidebar {
+  padding: 22px 16px 16px;
+}
+
+.brand {
+  padding-inline: 8px;
+}
+
+.brand strong {
+  font-size: 0.95rem;
+  letter-spacing: -0.015em;
+}
+
+.brand span:not(.brand-mark),
+.sidebar-subtitle {
+  font-size: 0.78rem;
+}
+
+.sidebar-heading h2 {
+  font-size: 1.08rem;
+}
+
+.workspace-list-item {
+  min-height: 140px;
+  padding: 14px;
+  border-radius: 18px;
+}
+
+.workspace-list-heading strong {
+  font-size: 0.88rem;
+}
+
+.workspace-path,
+.workspace-next-action,
+.workspace-list-item p,
+.workspace-list-item span {
+  font-size: 0.76rem;
+}
+
+/* Keep long technical values readable without breaking the layout. */
+code,
+pre,
+.workspace-path,
+.workspace-header-path,
+.model-runtime-grid strong,
+.model-ranking-row code,
+.model-option-source-list span,
+.action-endpoint code,
+.instruction-command-row code,
+.timeline-metadata dd {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 1180px) {
+  .models-detail,
+  .guided-model-grid,
+  .model-selection-grid,
+  .guided-model-note-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guided-model-card {
+    grid-template-rows: none;
+  }
+}
+
+@media (max-width: 840px) {
+  :root {
+    --sidebar-width: 100%;
+  }
+
+  .main-content {
+    padding: 20px 16px 36px;
+  }
+
+  .workspace-navigation-shell {
+    position: static;
+    display: grid;
+    gap: 12px;
+  }
+
+  .workspace-tabs button {
+    min-width: 96px;
+  }
+
+  .panel-heading,
+  .tab-section-heading,
+  .workspace-header,
+  .settings-section-heading,
+  .guided-model-card > div:first-child,
+  .first-launch-card > div {
+    display: grid;
+    justify-items: start;
+  }
+
+  .workspace-header-status {
+    justify-items: start;
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  :root {
+    --ui-card-padding: 16px;
+    --ui-section-gap: 12px;
+    --ui-control-height: 40px;
+  }
+
+  .main-content {
+    padding: 16px 12px 28px;
+  }
+
+  .workspace-tabs button {
+    min-width: 84px;
+    padding-inline: 11px;
+  }
+
+  .primary-button,
+  .text-button,
+  .copy-button,
+  .model-selection-save-button,
+  .overview-cta-button,
+  .local-ai-models-button,
+  .session-clear-button {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .model-ranking-metrics,
+  .readiness-list div,
+  .model-ranking-row,
+  .settings-row {
+    display: grid;
+    justify-items: start;
+  }
+}
+
+:root[data-theme="dark"] .guided-model-card,
+:root[data-theme="dark"] .guided-model-notes,
+:root[data-theme="dark"] .first-launch-card,
+:root[data-theme="dark"] .first-launch-details,
+:root[data-theme="dark"] .first-launch-command-list > div,
+:root[data-theme="dark"] .model-selection-card,
+:root[data-theme="dark"] .activation-step,
+:root[data-theme="dark"] .model-runtime-grid article {
+  background: rgb(31 45 54 / 92%);
+  border-color: var(--color-border);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
+}
+
+:root[data-theme="dark"] .guided-model-card p,
+:root[data-theme="dark"] .guided-model-card label span,
+:root[data-theme="dark"] .guided-model-notes span,
+:root[data-theme="dark"] .first-launch-card p,
+:root[data-theme="dark"] .first-launch-card small,
+:root[data-theme="dark"] .first-launch-details ol,
+:root[data-theme="dark"] .first-launch-command-list p,
+:root[data-theme="dark"] .model-selection-card p,
+:root[data-theme="dark"] .model-option-source-list span {
+  color: var(--color-text-muted);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .guided-model-card,
+  :root[data-theme="system"] .guided-model-notes,
+  :root[data-theme="system"] .first-launch-card,
+  :root[data-theme="system"] .first-launch-details,
+  :root[data-theme="system"] .first-launch-command-list > div,
+  :root[data-theme="system"] .model-selection-card,
+  :root[data-theme="system"] .activation-step,
+  :root[data-theme="system"] .model-runtime-grid article {
+    background: rgb(31 45 54 / 92%);
+    border-color: var(--color-border);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
+  }
+
+  :root[data-theme="system"] .guided-model-card p,
+  :root[data-theme="system"] .guided-model-card label span,
+  :root[data-theme="system"] .guided-model-notes span,
+  :root[data-theme="system"] .first-launch-card p,
+  :root[data-theme="system"] .first-launch-card small,
+  :root[data-theme="system"] .first-launch-details ol,
+  :root[data-theme="system"] .first-launch-command-list p,
+  :root[data-theme="system"] .model-selection-card p,
+  :root[data-theme="system"] .model-option-source-list span {
+    color: var(--color-text-muted);
+  }
+}
