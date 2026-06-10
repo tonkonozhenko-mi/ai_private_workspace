@@ -14,6 +14,25 @@ class ReportSection:
     bullets: list[str]
 
 
+
+
+@dataclass(frozen=True)
+class ReportQualityCheck:
+    id: str
+    label: str
+    status: str
+    detail: str
+
+
+@dataclass(frozen=True)
+class ReportQualitySummary:
+    score: int
+    status: str
+    source_coverage_count: int
+    source_coverage_label: str
+    checks: list[ReportQualityCheck]
+    warnings: list[str] = field(default_factory=list)
+
 @dataclass(frozen=True)
 class ProjectOverviewReport:
     workspace_id: str
@@ -211,3 +230,135 @@ def render_report_markdown(report: ProjectOverviewReport) -> str:
         lines.append(f"- {source}")
     lines.append("")
     return "\n".join(lines).strip() + "\n"
+
+
+def evaluate_report_quality(report: ProjectOverviewReport) -> ReportQualitySummary:
+    return _evaluate_report_quality(
+        title=report.title,
+        summary=report.summary,
+        sections=report.sections,
+        generated_from=report.generated_from,
+        export_markdown=report.export_markdown or render_report_markdown(report),
+        safety_note=report.safety_note,
+    )
+
+
+def evaluate_saved_report_quality(report: SavedWorkspaceReport) -> ReportQualitySummary:
+    raw_sections = report.report_json.get("sections") if isinstance(report.report_json, dict) else []
+    sections: list[ReportSection] = []
+    if isinstance(raw_sections, list):
+        for raw_section in raw_sections:
+            if not isinstance(raw_section, dict):
+                continue
+            raw_bullets = raw_section.get("bullets", [])
+            sections.append(
+                ReportSection(
+                    title=str(raw_section.get("title") or "Section"),
+                    content=str(raw_section.get("content") or ""),
+                    bullets=[str(bullet) for bullet in raw_bullets] if isinstance(raw_bullets, list) else [],
+                )
+            )
+    safety_note = str(report.report_json.get("safety_note") or "") if isinstance(report.report_json, dict) else ""
+    return _evaluate_report_quality(
+        title=report.title,
+        summary=report.summary,
+        sections=sections,
+        generated_from=report.generated_from,
+        export_markdown=report.export_markdown,
+        safety_note=safety_note,
+    )
+
+
+def _evaluate_report_quality(
+    *,
+    title: str,
+    summary: str,
+    sections: list[ReportSection],
+    generated_from: list[str],
+    export_markdown: str,
+    safety_note: str,
+) -> ReportQualitySummary:
+    source_items = _collect_report_source_items(sections, generated_from)
+    checks = [
+        _quality_check(
+            "title",
+            "Clear title",
+            bool(title.strip()),
+            "Report has a title." if title.strip() else "Add a short report title before sharing.",
+        ),
+        _quality_check(
+            "summary",
+            "Executive summary",
+            len(summary.strip()) >= 20,
+            "Summary is present." if len(summary.strip()) >= 20 else "Add a short summary explaining the report purpose.",
+        ),
+        _quality_check(
+            "sections",
+            "Structured sections",
+            len(sections) >= 3,
+            f"{len(sections)} sections included." if sections else "Add at least a few sections before saving.",
+        ),
+        _quality_check(
+            "source_coverage",
+            "Source coverage",
+            len(source_items) > 0,
+            f"{len(source_items)} source/evidence references found." if source_items else "No source or generated-from references found.",
+        ),
+        _quality_check(
+            "safety_note",
+            "Safety note",
+            bool(safety_note.strip()) or "Safety:" in export_markdown,
+            "Safety note is present." if (safety_note.strip() or "Safety:" in export_markdown) else "Add a local-first safety/review note.",
+        ),
+        _quality_check(
+            "markdown_export",
+            "Markdown export",
+            export_markdown.strip().startswith("#"),
+            "Markdown starts with a heading." if export_markdown.strip().startswith("#") else "Markdown should start with a heading.",
+        ),
+    ]
+    passed = sum(1 for check in checks if check.status == "pass")
+    score = round((passed / len(checks)) * 100) if checks else 0
+    warnings = [check.detail for check in checks if check.status != "pass"]
+    if score >= 85:
+        status = "ready"
+    elif score >= 65:
+        status = "review"
+    else:
+        status = "needs_work"
+    return ReportQualitySummary(
+        score=score,
+        status=status,
+        source_coverage_count=len(source_items),
+        source_coverage_label=_source_coverage_label(len(source_items)),
+        checks=checks,
+        warnings=warnings,
+    )
+
+
+def _quality_check(check_id: str, label: str, passed: bool, detail: str) -> ReportQualityCheck:
+    return ReportQualityCheck(
+        id=check_id,
+        label=label,
+        status="pass" if passed else "warning",
+        detail=detail,
+    )
+
+
+def _collect_report_source_items(sections: list[ReportSection], generated_from: list[str]) -> list[str]:
+    items: list[str] = [source for source in generated_from if source.strip()]
+    for section in sections:
+        title = section.title.lower()
+        if any(keyword in title for keyword in ("source", "generated", "captured")):
+            items.extend(bullet for bullet in section.bullets if bullet.strip() and "no source" not in bullet.lower())
+    return sorted(dict.fromkeys(items))
+
+
+def _source_coverage_label(count: int) -> str:
+    if count >= 8:
+        return "strong"
+    if count >= 3:
+        return "medium"
+    if count > 0:
+        return "light"
+    return "missing"

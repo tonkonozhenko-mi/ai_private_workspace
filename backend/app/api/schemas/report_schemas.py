@@ -1,12 +1,38 @@
 from pydantic import BaseModel
 
-from app.core.domain.report import ProjectOverviewReport, ReportCatalog, ReportSection, ReportTemplate, SavedWorkspaceReport
+from app.core.domain.report import (
+    ProjectOverviewReport,
+    ReportCatalog,
+    ReportQualityCheck,
+    ReportQualitySummary,
+    ReportSection,
+    ReportTemplate,
+    SavedWorkspaceReport,
+    evaluate_report_quality,
+    evaluate_saved_report_quality,
+)
 
 
 class ReportSectionResponse(BaseModel):
     title: str
     content: str
     bullets: list[str]
+
+
+class ReportQualityCheckResponse(BaseModel):
+    id: str
+    label: str
+    status: str
+    detail: str
+
+
+class ReportQualitySummaryResponse(BaseModel):
+    score: int
+    status: str
+    source_coverage_count: int
+    source_coverage_label: str
+    checks: list[ReportQualityCheckResponse]
+    warnings: list[str]
 
 
 class ProjectOverviewReportResponse(BaseModel):
@@ -18,6 +44,7 @@ class ProjectOverviewReportResponse(BaseModel):
     report_type: str = "project_overview"
     export_markdown: str = ""
     safety_note: str = ""
+    quality: ReportQualitySummaryResponse
 
 
 class ReportTemplateResponse(BaseModel):
@@ -35,6 +62,27 @@ class ReportCatalogResponse(BaseModel):
     templates: list[ReportTemplateResponse]
     safety_notes: list[str]
 
+
+
+
+def to_report_quality_check_response(check: ReportQualityCheck) -> ReportQualityCheckResponse:
+    return ReportQualityCheckResponse(
+        id=check.id,
+        label=check.label,
+        status=check.status,
+        detail=check.detail,
+    )
+
+
+def to_report_quality_summary_response(quality: ReportQualitySummary) -> ReportQualitySummaryResponse:
+    return ReportQualitySummaryResponse(
+        score=quality.score,
+        status=quality.status,
+        source_coverage_count=quality.source_coverage_count,
+        source_coverage_label=quality.source_coverage_label,
+        checks=[to_report_quality_check_response(check) for check in quality.checks],
+        warnings=list(quality.warnings),
+    )
 
 def to_report_section_response(section: ReportSection) -> ReportSectionResponse:
     return ReportSectionResponse(
@@ -58,6 +106,7 @@ def to_project_overview_report_response(
         report_type=report.report_type,
         export_markdown=report.export_markdown,
         safety_note=report.safety_note,
+        quality=to_report_quality_summary_response(evaluate_report_quality(report)),
     )
 
 
@@ -119,6 +168,7 @@ class SavedWorkspaceReportResponse(BaseModel):
     updated_at: str
     pinned_at: str | None = None
     is_pinned: bool
+    quality: ReportQualitySummaryResponse
 
 
 class UpdateSavedWorkspaceReportRequest(BaseModel):
@@ -149,4 +199,5 @@ def to_saved_workspace_report_response(report: SavedWorkspaceReport) -> SavedWor
         updated_at=report.updated_at,
         pinned_at=report.pinned_at,
         is_pinned=report.is_pinned,
+        quality=to_report_quality_summary_response(evaluate_saved_report_quality(report)),
     )

@@ -13,7 +13,7 @@ import {
   saveEditedWorkspaceReport,
   updateSavedWorkspaceReport,
 } from "../api/client";
-import type { ConversationAnswerNote, ReportCatalog, ReportSection, ReportTemplate, SavedWorkspaceReport, WorkspaceConversation, WorkspaceReport } from "../api/types";
+import type { ConversationAnswerNote, ReportCatalog, ReportQualitySummary, ReportSection, ReportTemplate, SavedWorkspaceReport, WorkspaceConversation, WorkspaceReport } from "../api/types";
 import { CopyButton } from "./CopyButton";
 import { EmptyState } from "./EmptyState";
 import { ErrorState } from "./ErrorState";
@@ -590,6 +590,7 @@ function ReportPreview({
         </div>
       </div>
       <div className="report-safety-note"><strong>Safety:</strong> {report.safety_note}</div>
+      <ReportQualityCard quality={report.quality} compact={false} />
       <div className="report-editor-grid">
         <label className="field-label">Report title
           <input className="text-input" value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
@@ -717,7 +718,7 @@ function SavedReportsPanel({
             >
               <strong>{savedReport.is_pinned ? "★ " : ""}{savedReport.title}</strong>
               <span>{savedReport.summary}</span>
-              <small>{savedReport.report_type} · {formatDate(savedReport.updated_at)}</small>
+              <small>{savedReport.report_type} · Quality {savedReport.quality.score}% · {savedReport.quality.source_coverage_label} sources · {formatDate(savedReport.updated_at)}</small>
             </button>
           ))}
         </div>
@@ -777,6 +778,7 @@ function SavedReportDetails({
         </div>
         <StatusBadge label={report.is_pinned ? "Pinned" : "Saved"} />
       </div>
+      <ReportQualityCard quality={report.quality} compact={false} />
       <dl className="report-template-details">
         <div><dt>Type</dt><dd>{report.report_type}</dd></div>
         <div><dt>Updated</dt><dd>{formatDate(report.updated_at)}</dd></div>
@@ -826,6 +828,35 @@ function SavedReportDetails({
       {showMarkdown ? <pre className="report-markdown-preview">{report.export_markdown}</pre> : null}
       {showText ? <pre className="report-markdown-preview">{report.export_text}</pre> : null}
     </article>
+  );
+}
+
+
+function ReportQualityCard({ quality, compact }: { quality: ReportQualitySummary; compact?: boolean }) {
+  const failedChecks = quality.checks.filter((check) => check.status !== "pass");
+  return (
+    <section className={`report-quality-card${compact ? " compact" : ""}`}>
+      <div className="report-quality-header">
+        <div>
+          <p className="eyebrow">Quality check</p>
+          <strong>{quality.score}% · {quality.status.replace("_", " ")}</strong>
+        </div>
+        <StatusBadge label={`${quality.source_coverage_count} evidence refs`} tone={quality.source_coverage_count > 0 ? "neutral" : "warning"} />
+      </div>
+      <div className="report-quality-grid">
+        {quality.checks.map((check) => (
+          <div className={`report-quality-check is-${check.status}`} key={check.id}>
+            <strong>{check.status === "pass" ? "✓" : "!"} {check.label}</strong>
+            {!compact || check.status !== "pass" ? <span>{check.detail}</span> : null}
+          </div>
+        ))}
+      </div>
+      {failedChecks.length > 0 ? (
+        <p className="form-help">Review recommended: {failedChecks.map((check) => check.label).join(", ")}.</p>
+      ) : (
+        <p className="form-help">Ready for human review. Quality checks do not replace source verification.</p>
+      )}
+    </section>
   );
 }
 

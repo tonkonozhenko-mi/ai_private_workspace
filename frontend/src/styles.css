@@ -10697,3 +10697,57 @@ button:focus-visible {
 .compact-preview {
   max-height: 280px;
 }
+
+/* Task 174 — report quality checks and source coverage */
+.report-quality-card {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.9rem 0;
+  padding: 0.9rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--surface-card), var(--surface-muted));
+}
+
+.report-quality-card.compact {
+  padding: 0.75rem;
+}
+
+.report-quality-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.report-quality-header strong {
+  text-transform: capitalize;
+}
+
+.report-quality-grid {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.report-quality-check {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.report-quality-check strong {
+  color: var(--text-primary);
+  font-size: 0.82rem;
+}
+
+.report-quality-check.is-warning {
+  border-color: rgba(180, 132, 34, 0.45);
+  background: rgba(180, 132, 34, 0.08);
+}

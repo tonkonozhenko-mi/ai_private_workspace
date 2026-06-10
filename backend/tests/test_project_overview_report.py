@@ -305,3 +305,31 @@ def test_save_list_pin_update_and_delete_generated_report(tmp_path) -> None:
     empty_response = client.get(f"/workspaces/{workspace['id']}/reports/saved")
     assert empty_response.status_code == 200
     assert empty_response.json() == []
+
+
+def test_workspace_report_response_includes_quality_checks(tmp_path) -> None:
+    _write_overview_project(tmp_path)
+    workspace = _create_workspace(tmp_path)
+    assert client.post(f"/workspaces/{workspace['id']}/scan").status_code == 200
+
+    response = client.get(f"/workspaces/{workspace['id']}/reports/devops-review")
+
+    assert response.status_code == 200
+    quality = response.json()["quality"]
+    assert quality["score"] >= 80
+    assert quality["status"] in {"ready", "review"}
+    assert quality["source_coverage_count"] > 0
+    assert {check["id"] for check in quality["checks"]} >= {"source_coverage", "safety_note"}
+
+
+def test_saved_report_response_includes_quality_checks(tmp_path) -> None:
+    _write_overview_project(tmp_path)
+    workspace = _create_workspace(tmp_path)
+    assert client.post(f"/workspaces/{workspace['id']}/scan").status_code == 200
+
+    save_response = client.post(f"/workspaces/{workspace['id']}/reports/devops-review/save")
+
+    assert save_response.status_code == 200
+    quality = save_response.json()["quality"]
+    assert quality["source_coverage_label"] != "missing"
+    assert any(check["id"] == "markdown_export" for check in quality["checks"])
