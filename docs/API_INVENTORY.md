@@ -12,6 +12,10 @@ filesystem, provider, or command-runner activity outside SQLite repositories.
 | `GET /runtime/health` | Report configured Qdrant, Ollama, and command-runner health. | No | No | Lightweight Qdrant/Ollama checks when configured | Runtime status |
 | `GET /runtime/local-data` | Report local workspace database path, counts, safety warnings, protected paths, and safe update excludes. | No | No | Local SQLite metadata read only | Runtime diagnostics |
 | `GET /runtime/startup-checklist` | Report local startup readiness for Python, database, model providers, vector store, and safe-update workflow. | No | No | Read-only runtime settings and SQLite diagnostics | Settings startup checklist |
+| `GET /runtime/database-backups` | List local workspace DB backup files stored next to the active database. | No | No | Local filesystem metadata read | Settings backup workflow |
+| `POST /runtime/database-backups` | Create an explicit local copy of the active workspace database. | Backup file only | No | Local filesystem copy by explicit user action | Settings backup workflow |
+| `POST /runtime/database-restore-plan` | Return manual restore steps and copy commands for a selected backup without modifying the active database. | No | No | Local filesystem metadata read | Settings restore workflow |
+| `GET /runtime/database-migration-safety` | Report read-only SQLite table readiness and migration safety recommendations. | No | No | Local SQLite metadata read only | Settings migration safety |
 | `POST /runtime/setup-guide` | Compare recommended onboarding runtime with active runtime health. | No | No | Lightweight Qdrant/Ollama checks when configured | Setup wizard |
 
 ## Onboarding And Assistant Profiles

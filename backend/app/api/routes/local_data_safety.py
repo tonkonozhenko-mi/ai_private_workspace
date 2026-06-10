@@ -1,12 +1,21 @@
 from __future__ import annotations
 
+import shutil
 import sqlite3
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from app.api.schemas.local_data_safety_schemas import (
+    CreateDatabaseBackupResponse,
+    DatabaseBackupListResponse,
+    DatabaseBackupResponse,
+    DatabaseMigrationSafetyResponse,
+    DatabaseMigrationTableResponse,
+    DatabaseRestorePlanRequest,
+    DatabaseRestorePlanResponse,
     LocalDataBackupHintResponse,
     LocalDataSafetyResponse,
     StartupChecklistItemResponse,
@@ -189,6 +198,118 @@ def get_startup_checklist() -> StartupChecklistResponse:
     )
 
 
+@router.get("/database-backups", response_model=DatabaseBackupListResponse)
+def list_database_backups() -> DatabaseBackupListResponse:
+    settings = get_settings()
+    db_path = settings.workspace_db_path
+    return DatabaseBackupListResponse(
+        database_path=_display_path(db_path),
+        backups=_list_backups(db_path),
+        restore_note="Restore is intentionally manual. The UI only shows/copies commands so local data is never overwritten by a browser action.",
+    )
+
+
+@router.post("/database-backups", response_model=CreateDatabaseBackupResponse)
+def create_database_backup() -> CreateDatabaseBackupResponse:
+    settings = get_settings()
+    db_path = settings.workspace_db_path
+    if not db_path.exists():
+        raise HTTPException(status_code=404, detail="Workspace database does not exist yet.")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    backup_path = db_path.with_name(f"{db_path.stem}-{timestamp}.backup{db_path.suffix}")
+    shutil.copy2(db_path, backup_path)
+    return CreateDatabaseBackupResponse(
+        status="created",
+        backup=_backup_response(backup_path, db_path),
+        safety_note="Backup created by explicit user action. Restore remains manual to avoid accidental data loss.",
+    )
+
+
+@router.post("/database-restore-plan", response_model=DatabaseRestorePlanResponse)
+def get_database_restore_plan(request: DatabaseRestorePlanRequest) -> DatabaseRestorePlanResponse:
+    settings = get_settings()
+    db_path = settings.workspace_db_path
+    backup_path = _resolve_backup(db_path, request.backup_filename)
+    if not backup_path.exists():
+        raise HTTPException(status_code=404, detail="Backup file was not found next to the workspace database.")
+    if backup_path.resolve() == db_path.resolve():
+        raise HTTPException(status_code=400, detail="The current database cannot be used as a restore backup.")
+
+    pre_restore_backup = db_path.with_suffix(db_path.suffix + ".before-restore")
+    warnings = [
+        "Stop the backend before restoring the database.",
+        "Restore is manual by design; the frontend must never overwrite runtime data.",
+    ]
+    if not db_path.exists():
+        warnings.append("Current database does not exist. The restore command will create it from the selected backup.")
+    return DatabaseRestorePlanResponse(
+        status="ready",
+        backup=_backup_response(backup_path, db_path),
+        steps=[
+            "Stop the backend process.",
+            "Create a before-restore copy of the current database if it exists.",
+            "Copy the selected backup to the active workspaces.db path.",
+            "Restart the backend and check /runtime/local-data.",
+        ],
+        copy_commands=[
+            f"cp {_shell_quote(db_path)} {_shell_quote(pre_restore_backup)}" if db_path.exists() else "# current database does not exist; skip before-restore backup",
+            f"cp {_shell_quote(backup_path)} {_shell_quote(db_path)}",
+            "python -m uvicorn app.main:app --reload",
+        ],
+        warnings=warnings,
+        safety_note="This endpoint only prepares a restore plan. It does not modify the active database.",
+    )
+
+
+@router.get("/database-migration-safety", response_model=DatabaseMigrationSafetyResponse)
+def get_database_migration_safety() -> DatabaseMigrationSafetyResponse:
+    settings = get_settings()
+    db_path = settings.workspace_db_path
+    expected_tables = [
+        "workspaces",
+        "project_scans",
+        "workspace_index_status",
+        "workspace_indexing_rules",
+        "workspace_skill_profiles",
+        "workspace_conversations",
+        "workspace_conversation_messages",
+        "workspace_answer_notes",
+        "workspace_saved_reports",
+        "workspace_timeline_events",
+        "workspace_model_selections",
+    ]
+    warnings: list[str] = []
+    tables: list[DatabaseMigrationTableResponse] = []
+    if not db_path.exists():
+        warnings.append("Workspace database does not exist yet.")
+        for name in expected_tables:
+            tables.append(DatabaseMigrationTableResponse(name=name, exists=False, row_count=None))
+    else:
+        table_counts = _read_counts(db_path, expected_tables, warnings)
+        for name in expected_tables:
+            exists = table_counts.get(name) is not None
+            tables.append(DatabaseMigrationTableResponse(name=name, exists=exists, row_count=table_counts.get(name)))
+
+    missing = [table.name for table in tables if not table.exists]
+    if missing:
+        warnings.append("Some known tables are missing. They may be created automatically by SQLite repositories when the feature is first used.")
+    status = "review" if warnings else "ok"
+    return DatabaseMigrationSafetyResponse(
+        status=status,
+        database_path=_display_path(db_path),
+        schema_version="sqlite-auto-migrations-v1",
+        tables=tables,
+        missing_tables=missing,
+        warnings=warnings,
+        recommended_actions=[
+            "Create a database backup before applying generated code updates.",
+            "Keep backend/.ai-workbench excluded from rsync --delete updates.",
+            "After update, check /runtime/local-data and /runtime/database-migration-safety.",
+        ],
+        safety_note="Migration safety diagnostics are read-only and do not modify the database.",
+    )
+
+
 def _read_counts(
     db_path: Path,
     table_names: object,
@@ -216,6 +337,44 @@ def _read_counts(
         for table_name in table_names:
             counts[str(table_name)] = None
     return counts
+
+
+
+def _list_backups(db_path: Path) -> list[DatabaseBackupResponse]:
+    if not db_path.parent.exists():
+        return []
+    patterns = [
+        f"{db_path.stem}-*.backup{db_path.suffix}",
+        f"{db_path.name}.backup*",
+        f"{db_path.stem}*.backup",
+    ]
+    paths: dict[str, Path] = {}
+    for pattern in patterns:
+        for backup_path in db_path.parent.glob(pattern):
+            if backup_path.is_file():
+                paths[str(backup_path.resolve())] = backup_path
+    return sorted(
+        (_backup_response(path, db_path) for path in paths.values()),
+        key=lambda item: item.created_at,
+        reverse=True,
+    )
+
+
+def _backup_response(path: Path, db_path: Path) -> DatabaseBackupResponse:
+    stat = path.stat()
+    return DatabaseBackupResponse(
+        filename=path.name,
+        path=_display_path(path),
+        size_bytes=stat.st_size,
+        created_at=datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
+        is_current_database=path.resolve() == db_path.resolve(),
+    )
+
+
+def _resolve_backup(db_path: Path, filename: str) -> Path:
+    if "/" in filename or "\\" in filename or filename in {"", ".", ".."}:
+        raise HTTPException(status_code=400, detail="Backup filename must be a file next to the workspace database.")
+    return db_path.parent / filename
 
 
 def _display_path(path: Path) -> str:

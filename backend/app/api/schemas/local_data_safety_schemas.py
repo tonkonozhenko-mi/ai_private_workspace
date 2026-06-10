@@ -43,3 +43,54 @@ class StartupChecklistResponse(BaseModel):
     items: list[StartupChecklistItemResponse]
     safe_to_continue: bool
     safety_note: str
+
+
+
+class DatabaseBackupResponse(BaseModel):
+    filename: str
+    path: str
+    size_bytes: int
+    created_at: str
+    is_current_database: bool = False
+
+
+class CreateDatabaseBackupResponse(BaseModel):
+    status: str
+    backup: DatabaseBackupResponse
+    safety_note: str
+
+
+class DatabaseBackupListResponse(BaseModel):
+    database_path: str
+    backups: list[DatabaseBackupResponse]
+    restore_note: str
+
+
+class DatabaseRestorePlanRequest(BaseModel):
+    backup_filename: str
+
+
+class DatabaseRestorePlanResponse(BaseModel):
+    status: str
+    backup: DatabaseBackupResponse
+    steps: list[str]
+    copy_commands: list[str]
+    warnings: list[str]
+    safety_note: str
+
+
+class DatabaseMigrationTableResponse(BaseModel):
+    name: str
+    exists: bool
+    row_count: int | None = None
+
+
+class DatabaseMigrationSafetyResponse(BaseModel):
+    status: str
+    database_path: str
+    schema_version: str
+    tables: list[DatabaseMigrationTableResponse]
+    missing_tables: list[str]
+    warnings: list[str]
+    recommended_actions: list[str]
+    safety_note: str

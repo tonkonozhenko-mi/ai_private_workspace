@@ -165,6 +165,53 @@ export interface LocalDataSafety {
   backup_hints: LocalDataBackupHint[];
 }
 
+
+export interface DatabaseBackup {
+  filename: string;
+  path: string;
+  size_bytes: number;
+  created_at: string;
+  is_current_database: boolean;
+}
+
+export interface DatabaseBackupList {
+  database_path: string;
+  backups: DatabaseBackup[];
+  restore_note: string;
+}
+
+export interface CreateDatabaseBackupResponse {
+  status: string;
+  backup: DatabaseBackup;
+  safety_note: string;
+}
+
+export interface DatabaseRestorePlan {
+  status: string;
+  backup: DatabaseBackup;
+  steps: string[];
+  copy_commands: string[];
+  warnings: string[];
+  safety_note: string;
+}
+
+export interface DatabaseMigrationTable {
+  name: string;
+  exists: boolean;
+  row_count: number | null;
+}
+
+export interface DatabaseMigrationSafety {
+  status: string;
+  database_path: string;
+  schema_version: string;
+  tables: DatabaseMigrationTable[];
+  missing_tables: string[];
+  warnings: string[];
+  recommended_actions: string[];
+  safety_note: string;
+}
+
 export interface TimelineEvent {
   id: string;
   workspace_id: string;
