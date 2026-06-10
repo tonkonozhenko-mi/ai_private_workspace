@@ -20,6 +20,8 @@ import type {
   WorkspaceModelsDashboardSummary,
   WorkspaceQuestionAnswer,
   SkillContextRequest,
+  WorkspaceSkillProfile,
+  WorkspaceSkillProfileRequest,
   WorkspaceUIActionCatalog,
   WorkspacesOverview,
 } from "./types";
@@ -113,6 +115,26 @@ export function restoreWorkspace(workspaceId: string): Promise<void> {
   });
 }
 
+
+export function getWorkspaceSkillProfile(
+  workspaceId: string,
+): Promise<WorkspaceSkillProfile> {
+  return getJson<WorkspaceSkillProfile>(`/workspaces/${workspaceId}/skill-profile`);
+}
+
+export function updateWorkspaceSkillProfile(
+  workspaceId: string,
+  profile: WorkspaceSkillProfileRequest,
+): Promise<WorkspaceSkillProfile> {
+  return requestJson<WorkspaceSkillProfile>(`/workspaces/${workspaceId}/skill-profile`, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(profile),
+  });
+}
 
 
 export function getWorkspaceIndexingRules(
