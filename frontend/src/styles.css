@@ -11156,3 +11156,599 @@ button:focus-visible {
     justify-content: flex-start;
   }
 }
+
+/* Task 183 — Apple-style final UX cleanup for light and dark themes.
+ * Keep the existing component structure, but make the app calmer, clearer,
+ * and more native-feeling with stronger design tokens, softer surfaces,
+ * better spacing, and consistent theme behavior.
+ */
+:root {
+  color-scheme: light;
+  --app-bg-gradient:
+    radial-gradient(circle at 14% 0%, rgba(255, 255, 255, 0.9), transparent 34rem),
+    linear-gradient(135deg, #f7f8fb 0%, #edf1f5 48%, #f8fafb 100%);
+  --glass-surface: rgba(255, 255, 255, 0.76);
+  --glass-surface-strong: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(24, 39, 51, 0.1);
+  --hairline: rgba(24, 39, 51, 0.08);
+  --shadow-soft: 0 18px 52px rgba(24, 39, 51, 0.08), 0 2px 8px rgba(24, 39, 51, 0.04);
+  --shadow-floating: 0 24px 80px rgba(24, 39, 51, 0.12), 0 8px 24px rgba(24, 39, 51, 0.06);
+  --radius-apple-card: 22px;
+  --radius-apple-control: 14px;
+  --control-bg: rgba(255, 255, 255, 0.72);
+  --control-bg-hover: rgba(255, 255, 255, 0.96);
+  --control-border: rgba(24, 39, 51, 0.14);
+  --muted-pill-bg: rgba(241, 245, 249, 0.86);
+  --apple-blue: #0a84ff;
+  --apple-green: #34c759;
+  --apple-orange: #ff9f0a;
+  --apple-red: #ff453a;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --app-bg-gradient:
+    radial-gradient(circle at 18% 0%, rgba(84, 116, 136, 0.22), transparent 30rem),
+    linear-gradient(135deg, #0b1117 0%, #101821 48%, #0c1218 100%);
+  --glass-surface: rgba(20, 29, 38, 0.72);
+  --glass-surface-strong: rgba(24, 34, 44, 0.92);
+  --glass-border: rgba(226, 232, 240, 0.12);
+  --hairline: rgba(226, 232, 240, 0.09);
+  --shadow-soft: 0 20px 58px rgba(0, 0, 0, 0.28), 0 2px 10px rgba(0, 0, 0, 0.22);
+  --shadow-floating: 0 28px 90px rgba(0, 0, 0, 0.42), 0 8px 24px rgba(0, 0, 0, 0.28);
+  --control-bg: rgba(28, 39, 50, 0.72);
+  --control-bg-hover: rgba(36, 49, 62, 0.96);
+  --control-border: rgba(226, 232, 240, 0.16);
+  --muted-pill-bg: rgba(47, 61, 74, 0.78);
+  --apple-blue: #64a8ff;
+  --apple-green: #63d887;
+  --apple-orange: #ffd166;
+  --apple-red: #ff7b72;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --app-bg-gradient:
+      radial-gradient(circle at 18% 0%, rgba(84, 116, 136, 0.22), transparent 30rem),
+      linear-gradient(135deg, #0b1117 0%, #101821 48%, #0c1218 100%);
+    --glass-surface: rgba(20, 29, 38, 0.72);
+    --glass-surface-strong: rgba(24, 34, 44, 0.92);
+    --glass-border: rgba(226, 232, 240, 0.12);
+    --hairline: rgba(226, 232, 240, 0.09);
+    --shadow-soft: 0 20px 58px rgba(0, 0, 0, 0.28), 0 2px 10px rgba(0, 0, 0, 0.22);
+    --shadow-floating: 0 28px 90px rgba(0, 0, 0, 0.42), 0 8px 24px rgba(0, 0, 0, 0.28);
+    --control-bg: rgba(28, 39, 50, 0.72);
+    --control-bg-hover: rgba(36, 49, 62, 0.96);
+    --control-border: rgba(226, 232, 240, 0.16);
+    --muted-pill-bg: rgba(47, 61, 74, 0.78);
+    --apple-blue: #64a8ff;
+    --apple-green: #63d887;
+    --apple-orange: #ffd166;
+    --apple-red: #ff7b72;
+  }
+}
+
+body {
+  background: var(--app-bg-gradient);
+  -webkit-font-smoothing: antialiased;
+  text-size-adjust: 100%;
+}
+
+.app-shell {
+  background: var(--app-bg-gradient);
+}
+
+.main-content {
+  background: transparent;
+  padding: clamp(1.1rem, 2.2vw, 2rem) clamp(1rem, 2.4vw, 2.25rem) 3.25rem;
+}
+
+.dashboard-layout {
+  max-width: 1420px;
+}
+
+.sidebar {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(169, 213, 192, 0.16), transparent 18rem),
+    linear-gradient(180deg, rgba(28, 40, 50, 0.98), rgba(20, 29, 38, 0.98));
+  border-right-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 12px 0 42px rgba(12, 18, 24, 0.14);
+}
+
+.brand,
+.sidebar-footer {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.brand-mark {
+  border-radius: 13px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+
+.workspace-list-item,
+.sidebar-surface,
+.sidebar-workspace-count {
+  backdrop-filter: blur(18px) saturate(130%);
+}
+
+.workspace-list-item {
+  min-height: 132px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.workspace-list-item:hover {
+  background: rgba(255, 255, 255, 0.075);
+  border-color: rgba(169, 213, 192, 0.28);
+  transform: translateY(-1px);
+}
+
+.workspace-list-item.is-selected {
+  background: rgba(169, 213, 192, 0.13);
+  border-color: rgba(169, 213, 192, 0.54);
+  box-shadow: inset 4px 0 rgba(169, 213, 192, 0.86), 0 14px 38px rgba(0, 0, 0, 0.14);
+}
+
+.workspace-tabs,
+.settings-segmented-control,
+.workspace-navigation-shell {
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+.workspace-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 9;
+  margin: -0.35rem 0 1.5rem;
+  padding: 0.45rem;
+  background: color-mix(in srgb, var(--glass-surface-strong) 92%, transparent);
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  box-shadow: var(--shadow-soft);
+}
+
+.workspace-tabs > div {
+  flex-wrap: wrap;
+}
+
+.workspace-tabs button,
+.settings-segmented-control button {
+  min-height: 38px;
+  border-radius: 16px;
+  border-bottom: 0;
+  color: var(--color-text-muted);
+}
+
+.workspace-tabs button:hover,
+.settings-segmented-control button:hover {
+  background: var(--muted-pill-bg);
+  color: var(--color-text-strong);
+}
+
+.workspace-tabs button.is-selected,
+.settings-segmented-control button.is-selected {
+  background: var(--color-surface);
+  border-bottom-color: transparent;
+  color: var(--color-text-strong);
+  box-shadow: 0 1px 2px rgba(24, 39, 51, 0.08), 0 8px 22px rgba(24, 39, 51, 0.07);
+}
+
+.workspace-tabs p {
+  margin: 0 0 0.45rem;
+}
+
+.workspace-header,
+.models-native-hero,
+.reports-hero,
+.settings-hero,
+.ask-chat-main,
+.panel,
+.metric-card,
+.create-workspace-panel,
+.model-summary-card,
+.activity-timeline-panel,
+.report-builder-card,
+.generated-report-panel,
+.saved-report-details,
+.settings-panel,
+.restore-plan-card,
+.troubleshooting-issue,
+.local-data-safety-panel,
+.settings-update-workflow-panel,
+.settings-desktop-startup-panel,
+.settings-troubleshooting-panel,
+.settings-backup-panel,
+.settings-migration-panel,
+.settings-production-readiness-panel {
+  background: var(--glass-surface-strong);
+  border-color: var(--glass-border);
+  border-radius: var(--radius-apple-card);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(18px) saturate(145%);
+}
+
+.panel,
+.metric-card {
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+@media (hover: hover) {
+  .panel:hover,
+  .metric-card:hover,
+  .model-summary-card:hover,
+  .saved-report-list-item:hover,
+  .conversation-list-item:hover,
+  .answer-note-card:hover {
+    border-color: color-mix(in srgb, var(--color-accent-border) 56%, var(--glass-border));
+    box-shadow: var(--shadow-floating);
+    transform: translateY(-1px);
+  }
+}
+
+.workspace-header {
+  padding: clamp(1.1rem, 2vw, 1.65rem);
+}
+
+.workspace-header h1 {
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  letter-spacing: -0.045em;
+}
+
+.panel-heading h2,
+.settings-section-title,
+.report-section-title,
+.ask-conversation-title {
+  letter-spacing: -0.02em;
+}
+
+.eyebrow,
+.metric-label,
+.settings-preflight-list,
+.status-badge {
+  letter-spacing: 0.045em;
+}
+
+.metric-grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.metric-card {
+  min-height: 112px;
+  padding: 1rem;
+}
+
+.metric-card strong {
+  letter-spacing: -0.045em;
+}
+
+.primary-button,
+.text-button,
+.secondary-button,
+.danger-button,
+.copy-button,
+.local-ai-models-button,
+button[type="submit"] {
+  border-radius: var(--radius-apple-control);
+  min-height: 36px;
+  font-weight: 760;
+}
+
+.primary-button,
+button[type="submit"] {
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-accent) 24%, transparent);
+}
+
+.primary-button:hover:not(:disabled),
+button[type="submit"]:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button:disabled,
+button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none !important;
+}
+
+input,
+select,
+textarea,
+.ask-composer textarea,
+.ask-composer select,
+.settings-field input,
+.settings-field select,
+.settings-field textarea {
+  background: var(--control-bg);
+  border-color: var(--control-border);
+  border-radius: var(--radius-apple-control);
+  color: var(--color-text-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+input:hover,
+select:hover,
+textarea:hover,
+.ask-composer textarea:hover,
+.ask-composer select:hover,
+.settings-field input:hover,
+.settings-field select:hover,
+.settings-field textarea:hover {
+  background: var(--control-bg-hover);
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.ask-composer textarea:focus,
+.ask-composer select:focus,
+.settings-field input:focus,
+.settings-field select:focus,
+.settings-field textarea:focus {
+  border-color: color-mix(in srgb, var(--color-accent) 72%, var(--control-border));
+  box-shadow: var(--focus-ring);
+}
+
+code,
+pre,
+.command-box,
+.code-block,
+.markdown-preview,
+.report-markdown-editor,
+.startup-checklist-command code,
+.settings-command-stack code {
+  border-radius: 16px;
+}
+
+pre,
+.command-box,
+.code-block,
+.markdown-preview,
+.startup-checklist-command,
+.settings-command-stack > div,
+.report-export-preview,
+.context-preview-card {
+  background: color-mix(in srgb, var(--color-surface-soft) 86%, transparent);
+  border: 1px solid var(--hairline);
+}
+
+.status-badge,
+.workspace-list-labels span,
+.workspace-tabs button span,
+.panel-count,
+.workspace-context-chip,
+.usage-metric,
+.report-quality-pill,
+.note-source-pill,
+.source-chip {
+  border-radius: 999px;
+}
+
+.status-badge.is-ok,
+.is-ok .status-badge,
+.quality-ready,
+.runtime-check.is-ok {
+  color: color-mix(in srgb, var(--apple-green) 72%, #123524);
+  background: color-mix(in srgb, var(--apple-green) 16%, transparent);
+  border-color: color-mix(in srgb, var(--apple-green) 28%, transparent);
+}
+
+.status-badge.is-warning,
+.quality-review,
+.runtime-check.is-review {
+  color: color-mix(in srgb, var(--apple-orange) 62%, #5a3b00);
+  background: color-mix(in srgb, var(--apple-orange) 18%, transparent);
+  border-color: color-mix(in srgb, var(--apple-orange) 28%, transparent);
+}
+
+.status-badge.is-error,
+.quality-needs-work,
+.runtime-check.is-blocked {
+  color: color-mix(in srgb, var(--apple-red) 70%, #591b16);
+  background: color-mix(in srgb, var(--apple-red) 14%, transparent);
+  border-color: color-mix(in srgb, var(--apple-red) 28%, transparent);
+}
+
+.ask-workspace {
+  grid-template-columns: minmax(280px, 0.58fr) minmax(0, 1.42fr);
+  gap: clamp(0.9rem, 2vw, 1.35rem);
+}
+
+.ask-sidebar {
+  top: 1rem;
+}
+
+.ask-message,
+.conversation-list-item,
+.answer-note-card,
+.saved-report-list-item,
+.report-builder-source-card,
+.file-preview-card,
+.job-detail-card,
+.timeline-item > article {
+  border-radius: 20px;
+  border-color: var(--hairline);
+  background: color-mix(in srgb, var(--color-surface-raised) 88%, transparent);
+}
+
+.ask-message.is-assistant {
+  background: color-mix(in srgb, var(--color-accent-soft) 38%, var(--color-surface-raised));
+}
+
+.ask-message.is-user {
+  background: color-mix(in srgb, var(--apple-blue) 8%, var(--color-surface-raised));
+}
+
+.ask-safety-note,
+.local-ai-setup-warning,
+.resume-workspace-banner,
+.report-share-kit {
+  border-radius: 20px;
+  border-left-width: 0;
+  border: 1px solid var(--glass-border);
+}
+
+.report-share-kit,
+.resume-workspace-banner {
+  background: color-mix(in srgb, var(--color-accent-soft) 64%, var(--glass-surface-strong));
+}
+
+.overview-grid,
+.reports-layout,
+.settings-layout,
+.models-layout {
+  gap: clamp(0.9rem, 1.8vw, 1.3rem);
+}
+
+.report-builder-grid,
+.saved-reports-grid,
+.answer-notes-grid,
+.conversation-history-grid,
+.settings-runtime-grid,
+.local-ai-runtime-comparison,
+.troubleshooting-command-grid,
+.branding-preset-grid {
+  gap: clamp(0.75rem, 1.6vw, 1rem);
+}
+
+.branding-preset-card,
+.saved-report-list-item,
+.answer-note-card,
+.conversation-list-item {
+  border-radius: 20px;
+}
+
+.report-quality-grid,
+.local-data-metric-grid,
+.production-readiness-grid,
+.startup-checklist-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.empty-state,
+.error-state,
+.loading-state {
+  border-radius: 24px;
+  background: var(--glass-surface-strong);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-soft);
+}
+
+:root[data-theme="dark"] .sidebar {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(169, 213, 192, 0.12), transparent 18rem),
+    linear-gradient(180deg, rgba(13, 20, 27, 0.98), rgba(9, 14, 19, 0.98));
+}
+
+:root[data-theme="dark"] .workspace-tabs button.is-selected,
+:root[data-theme="dark"] .settings-segmented-control button.is-selected {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+:root[data-theme="dark"] .workspace-header,
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .metric-card,
+:root[data-theme="dark"] .ask-chat-main,
+:root[data-theme="dark"] .settings-panel,
+:root[data-theme="dark"] .generated-report-panel,
+:root[data-theme="dark"] .saved-report-details,
+:root[data-theme="dark"] .model-summary-card {
+  border-color: var(--glass-border);
+}
+
+:root[data-theme="dark"] pre,
+:root[data-theme="dark"] .command-box,
+:root[data-theme="dark"] .code-block,
+:root[data-theme="dark"] .markdown-preview,
+:root[data-theme="dark"] .startup-checklist-command,
+:root[data-theme="dark"] .settings-command-stack > div,
+:root[data-theme="dark"] .report-export-preview,
+:root[data-theme="dark"] .context-preview-card {
+  background: rgba(10, 16, 22, 0.68);
+  border-color: rgba(226, 232, 240, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .sidebar {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(169, 213, 192, 0.12), transparent 18rem),
+      linear-gradient(180deg, rgba(13, 20, 27, 0.98), rgba(9, 14, 19, 0.98));
+  }
+
+  :root:not([data-theme="light"]) .workspace-tabs button.is-selected,
+  :root:not([data-theme="light"]) .settings-segmented-control button.is-selected {
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 28px rgba(0, 0, 0, 0.22);
+  }
+
+  :root:not([data-theme="light"]) pre,
+  :root:not([data-theme="light"]) .command-box,
+  :root:not([data-theme="light"]) .code-block,
+  :root:not([data-theme="light"]) .markdown-preview,
+  :root:not([data-theme="light"]) .startup-checklist-command,
+  :root:not([data-theme="light"]) .settings-command-stack > div,
+  :root:not([data-theme="light"]) .report-export-preview,
+  :root:not([data-theme="light"]) .context-preview-card {
+    background: rgba(10, 16, 22, 0.68);
+    border-color: rgba(226, 232, 240, 0.1);
+  }
+}
+
+@media (max-width: 1100px) {
+  .app-shell {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+
+  .ask-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .ask-sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 820px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    min-height: auto;
+    max-height: none;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .workspace-tabs {
+    position: static;
+  }
+
+  .workspace-tabs p {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .main-content {
+    padding: 0.9rem 0.75rem 2rem;
+  }
+
+  .workspace-header,
+  .panel,
+  .metric-card,
+  .ask-chat-main,
+  .settings-panel,
+  .generated-report-panel,
+  .saved-report-details {
+    border-radius: 18px;
+  }
+
+  .workspace-tabs {
+    border-radius: 18px;
+    overflow-x: auto;
+  }
+}
