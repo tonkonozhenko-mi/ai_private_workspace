@@ -103,6 +103,8 @@ models, run benchmarks, or change active runtime configuration.
 | Endpoint | Purpose | Writes | Executes commands | Runtime | Main UI surface |
 | --- | --- | --- | --- | --- | --- |
 | `GET /workspaces/{workspace_id}/reports/project-overview` | Generate a deterministic project overview report. | Timeline | No | Local filesystem read for analyzers | Reports |
+| `GET /workspaces/{workspace_id}/reports/catalog` | List local-first report templates and safety notes. | None | No | None | Reports |
+| `GET /workspaces/{workspace_id}/reports/{report_type}` | Generate a selected read-only workspace report draft. | Timeline | No | Local filesystem read for analyzers and saved workspace context | Reports |
 | `GET /workspaces/{workspace_id}/analysis/summary` | Aggregate relevant deterministic analyzer findings. | No | No | Local filesystem read | Analysis overview |
 | `GET /workspaces/{workspace_id}/analysis/terraform` | Analyze Terraform structure using static text rules. | No | No | Local filesystem read | Terraform analysis |
 | `GET /workspaces/{workspace_id}/analysis/terragrunt` | Analyze Terragrunt structure using static text rules. | No | No | Local filesystem read | Terragrunt analysis |

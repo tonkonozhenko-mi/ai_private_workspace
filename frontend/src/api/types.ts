@@ -290,6 +290,40 @@ export interface WorkspaceConversation {
   is_archived: boolean;
 }
 
+
+export interface ReportSection {
+  title: string;
+  content: string;
+  bullets: string[];
+}
+
+export interface WorkspaceReport {
+  workspace_id: string;
+  title: string;
+  summary: string;
+  sections: ReportSection[];
+  generated_from: string[];
+  report_type: string;
+  export_markdown: string;
+  safety_note: string;
+}
+
+export interface ReportTemplate {
+  id: string;
+  title: string;
+  description: string;
+  best_for: string;
+  requires_scan: boolean;
+  output_style: string;
+  source_strategy: string;
+}
+
+export interface ReportCatalog {
+  workspace_id: string;
+  templates: ReportTemplate[];
+  safety_notes: string[];
+}
+
 export interface WorkspaceIndexStatus {
   workspace_id: string;
   status: string;

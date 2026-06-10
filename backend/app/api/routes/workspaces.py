@@ -109,7 +109,9 @@ from app.api.schemas.workspace_models_dashboard_summary_schemas import (
 )
 from app.api.schemas.report_schemas import (
     ProjectOverviewReportResponse,
+    ReportCatalogResponse,
     to_project_overview_report_response,
+    to_report_catalog_response,
 )
 from app.api.schemas.skill_profile_schemas import (
     WorkspaceSkillProfileRequest,
@@ -276,6 +278,15 @@ from app.core.use_cases.generate_project_overview_report import (
     GenerateProjectOverviewReportUseCase,
     ProjectOverviewReportScanRequiredError,
     ProjectOverviewReportWorkspaceNotFoundError,
+)
+from app.core.use_cases.generate_workspace_report import (
+    GenerateWorkspaceReportInput,
+    GenerateWorkspaceReportUseCase,
+    GetWorkspaceReportCatalogInput,
+    GetWorkspaceReportCatalogUseCase,
+    WorkspaceReportNotFoundError,
+    WorkspaceReportScanRequiredError,
+    WorkspaceReportTypeNotFoundError,
 )
 from app.core.use_cases.get_workspace import GetWorkspaceUseCase
 from app.core.use_cases.get_workspace_summary import (
@@ -1806,6 +1817,65 @@ def generate_project_overview_report(
             detail=str(exc),
         ) from exc
 
+    return to_project_overview_report_response(report)
+
+
+
+
+@router.get(
+    "/{workspace_id}/reports/catalog",
+    response_model=ReportCatalogResponse,
+)
+def get_workspace_report_catalog(workspace_id: str) -> ReportCatalogResponse:
+    try:
+        catalog = GetWorkspaceReportCatalogUseCase(
+            workspace_repository=workspace_repository,
+        ).execute(GetWorkspaceReportCatalogInput(workspace_id=workspace_id))
+    except WorkspaceReportNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return to_report_catalog_response(catalog)
+
+
+@router.get(
+    "/{workspace_id}/reports/{report_type}",
+    response_model=ProjectOverviewReportResponse,
+)
+def generate_workspace_report(
+    workspace_id: str,
+    report_type: str,
+) -> ProjectOverviewReportResponse:
+    use_case = GenerateWorkspaceReportUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+        file_system=file_system,
+        conversation_repository=conversation_repository,
+        timeline_repository=timeline_repository,
+    )
+    try:
+        report = use_case.execute(
+            GenerateWorkspaceReportInput(
+                workspace_id=workspace_id,
+                report_type=report_type,
+            )
+        )
+    except WorkspaceReportNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except WorkspaceReportScanRequiredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except WorkspaceReportTypeNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
     return to_project_overview_report_response(report)
 
 
