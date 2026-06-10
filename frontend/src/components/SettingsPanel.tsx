@@ -238,15 +238,35 @@ export function SettingsPanel({
   const hasUnsavedFileRules =
     fileRulesDraft.includePatterns !== preferences.fileIndexingPreferences.includePatterns ||
     fileRulesDraft.excludePatterns !== preferences.fileIndexingPreferences.excludePatterns;
-  const hasUnsavedSkillProfile = SKILL_PRESETS.some((preset) => {
-    const draftInstruction = instructionDrafts[preset.id] ?? "";
-    const savedPreference = savedSkillPreferences[preset.id];
-    const currentPreference = preferences.skillPreferences[preset.id];
-    return (
-      draftInstruction !== savedPreference?.customInstructions ||
-      Boolean(currentPreference?.enabled) !== Boolean(savedPreference?.enabled)
-    );
-  });
+  const skillProfileDiff = useMemo(
+    () => buildSkillProfileDiff(savedSkillPreferences, preferences.skillPreferences, instructionDrafts),
+    [savedSkillPreferences, preferences.skillPreferences, instructionDrafts],
+  );
+  const hasUnsavedSkillProfile = skillProfileDiff.totalChanges > 0;
+  const draftActiveSkillNames = useMemo(
+    () => getActiveSkillNames(preferences.skillPreferences),
+    [preferences.skillPreferences],
+  );
+  const savedActiveSkillNames = useMemo(
+    () => getActiveSkillNames(savedSkillPreferences),
+    [savedSkillPreferences],
+  );
+
+  function resetSkillDraftToSaved() {
+    const nextPreferences = normalizeSkillPreferences(savedSkillPreferences);
+    setSavedSkillId(null);
+    setInstructionDrafts(buildInstructionDrafts(nextPreferences));
+    updatePreference("skillPreferences", nextPreferences);
+    setSkillProfileMessage("Draft reset to the saved workspace skill profile.");
+  }
+
+  function resetSkillDraftToDefault() {
+    const nextPreferences = normalizeSkillPreferences(DEFAULT_SKILL_PREFERENCES);
+    setSavedSkillId(null);
+    setInstructionDrafts(buildInstructionDrafts(nextPreferences));
+    updatePreference("skillPreferences", nextPreferences);
+    setSkillProfileMessage("Draft reset to the safe default profile. Save it to replace the workspace profile.");
+  }
 
   async function previewFileRules(mode: "saved" | "draft") {
     setPreviewingFileRules(true);
@@ -741,7 +761,7 @@ export function SettingsPanel({
           </div>
           <div className="settings-heading-actions">
             <StatusBadge
-              label={hasUnsavedSkillProfile ? "Unsaved draft" : `${SKILL_PRESETS.filter((preset) => preferences.skillPreferences[preset.id]?.enabled).length} active`}
+              label={hasUnsavedSkillProfile ? `${skillProfileDiff.totalChanges} draft changes` : `${draftActiveSkillNames.length} active`}
               tone={hasUnsavedSkillProfile ? "warning" : "info"}
             />
             <button
@@ -753,9 +773,24 @@ export function SettingsPanel({
             </button>
             <button
               type="button"
+              className="ghost-button"
+              onClick={resetSkillDraftToSaved}
+              disabled={!hasUnsavedSkillProfile}
+            >
+              Reset to saved
+            </button>
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={resetSkillDraftToDefault}
+            >
+              Reset to default
+            </button>
+            <button
+              type="button"
               className="primary-button"
               onClick={() => void saveWorkspaceSkillProfile()}
-              disabled={savingSkillProfile}
+              disabled={savingSkillProfile || !hasUnsavedSkillProfile}
             >
               {savingSkillProfile ? "Saving..." : "Save workspace profile"}
             </button>
@@ -773,21 +808,30 @@ export function SettingsPanel({
           }
         />
 
-        <div className="skill-profile-state-grid">
+        <div className="skill-profile-state-grid skill-profile-state-grid-wide">
           <article>
             <span>Saved profile</span>
             <strong>{skillProfileSource === "saved" ? "Workspace saved profile" : "Default profile"}</strong>
             <p>{skillProfileUpdatedAt ? `Last saved ${formatDateTime(skillProfileUpdatedAt)}` : "No workspace-specific profile saved yet."}</p>
+            <small>{savedActiveSkillNames.length > 0 ? savedActiveSkillNames.join(" + ") : "No saved active skills"}</small>
           </article>
           <article>
-            <span>Draft changes</span>
+            <span>Draft profile</span>
             <strong>{hasUnsavedSkillProfile ? "Unsaved draft" : "Matches saved profile"}</strong>
-            <p>Toggle skills or edit instructions, then save the workspace profile before relying on it in Ask.</p>
+            <p>{draftActiveSkillNames.length > 0 ? draftActiveSkillNames.join(" + ") : "No draft active skills"}</p>
+            <small>Ask uses the saved profile after you save this draft.</small>
+          </article>
+          <article>
+            <span>Draft diff</span>
+            <strong>{skillProfileDiff.summary}</strong>
+            <p>{skillProfileDiff.details}</p>
+            <small>Use reset to saved/default before saving if the draft looks wrong.</small>
           </article>
           <article>
             <span>Ask usage</span>
             <strong>Guidance only</strong>
             <p>Skills shape focus and wording. Facts still need retrieved source chunks.</p>
+            <small>No scan, index, rebuild, or shell command is triggered by skill edits.</small>
           </article>
         </div>
 
@@ -1368,6 +1412,70 @@ function buildInstructionDrafts(
     },
     {} as Record<SkillPresetId, string>,
   );
+}
+
+function getActiveSkillNames(skillPreferences: SkillPreferences): string[] {
+  return SKILL_PRESETS.filter((preset) => skillPreferences[preset.id]?.enabled).map(
+    (preset) => preset.name,
+  );
+}
+
+function buildSkillProfileDiff(
+  savedPreferences: SkillPreferences,
+  draftPreferences: SkillPreferences,
+  instructionDrafts: Record<SkillPresetId, string>,
+) {
+  const added: string[] = [];
+  const removed: string[] = [];
+  const instructionChanges: string[] = [];
+
+  for (const preset of SKILL_PRESETS) {
+    const saved = savedPreferences[preset.id];
+    const draft = draftPreferences[preset.id];
+    const savedEnabled = Boolean(saved?.enabled);
+    const draftEnabled = Boolean(draft?.enabled);
+    const draftInstruction = (instructionDrafts[preset.id] ?? draft?.customInstructions ?? "").trim();
+    const savedInstruction = (saved?.customInstructions ?? "").trim();
+
+    if (!savedEnabled && draftEnabled) {
+      added.push(preset.name);
+    }
+    if (savedEnabled && !draftEnabled) {
+      removed.push(preset.name);
+    }
+    if (draftInstruction !== savedInstruction) {
+      instructionChanges.push(preset.name);
+    }
+  }
+
+  const totalChanges = added.length + removed.length + instructionChanges.length;
+  const summary = totalChanges === 0
+    ? "No changes"
+    : [
+        added.length > 0 ? `${added.length} added` : null,
+        removed.length > 0 ? `${removed.length} removed` : null,
+        instructionChanges.length > 0 ? `${instructionChanges.length} instruction edits` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+  const details = totalChanges === 0
+    ? "Draft matches the saved workspace profile."
+    : [
+        added.length > 0 ? `Added: ${added.join(", ")}` : null,
+        removed.length > 0 ? `Removed: ${removed.join(", ")}` : null,
+        instructionChanges.length > 0 ? `Edited: ${instructionChanges.join(", ")}` : null,
+      ]
+        .filter(Boolean)
+        .join(". ");
+
+  return {
+    added,
+    removed,
+    instructionChanges,
+    totalChanges,
+    summary,
+    details,
+  };
 }
 
 function parseImportedPreferences(

@@ -10024,3 +10024,28 @@ button:focus-visible {
   background: var(--surface-muted);
   padding: 0.22rem 0.5rem;
 }
+
+/* Task 163: skill profile reset and draft diff polish */
+.skill-profile-state-grid-wide {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.skill-profile-state-grid small {
+  color: var(--color-text-muted);
+  display: block;
+  font-size: 11px;
+  line-height: 1.45;
+  margin-top: 8px;
+}
+
+@media (max-width: 1100px) {
+  .skill-profile-state-grid-wide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .skill-profile-state-grid-wide {
+    grid-template-columns: 1fr;
+  }
+}
