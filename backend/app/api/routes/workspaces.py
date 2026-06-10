@@ -17,6 +17,7 @@ from app.api.dependencies import (
     model_experiment_repository,
     model_experiment_rating_repository,
     project_scan_repository,
+    report_repository,
     readiness_configuration,
     runtime_health_checkers,
     runtime_health_configuration,
@@ -110,8 +111,12 @@ from app.api.schemas.workspace_models_dashboard_summary_schemas import (
 from app.api.schemas.report_schemas import (
     ProjectOverviewReportResponse,
     ReportCatalogResponse,
+    SavedReportPinRequest,
+    SavedWorkspaceReportResponse,
+    UpdateSavedWorkspaceReportRequest,
     to_project_overview_report_response,
     to_report_catalog_response,
+    to_saved_workspace_report_response,
 )
 from app.api.schemas.skill_profile_schemas import (
     WorkspaceSkillProfileRequest,
@@ -287,6 +292,18 @@ from app.core.use_cases.generate_workspace_report import (
     WorkspaceReportNotFoundError,
     WorkspaceReportScanRequiredError,
     WorkspaceReportTypeNotFoundError,
+)
+from app.core.use_cases.save_workspace_report import SaveWorkspaceReportInput, SaveWorkspaceReportUseCase
+from app.core.use_cases.manage_saved_workspace_reports import (
+    DeleteSavedWorkspaceReportInput,
+    DeleteSavedWorkspaceReportUseCase,
+    GetSavedWorkspaceReportInput,
+    GetSavedWorkspaceReportUseCase,
+    ListSavedWorkspaceReportsInput,
+    ListSavedWorkspaceReportsUseCase,
+    SavedWorkspaceReportNotFoundError,
+    UpdateSavedWorkspaceReportInput,
+    UpdateSavedWorkspaceReportUseCase,
 )
 from app.core.use_cases.get_workspace import GetWorkspaceUseCase
 from app.core.use_cases.get_workspace_summary import (
@@ -1837,6 +1854,160 @@ def get_workspace_report_catalog(workspace_id: str) -> ReportCatalogResponse:
             detail=str(exc),
         ) from exc
     return to_report_catalog_response(catalog)
+
+
+@router.post(
+    "/{workspace_id}/reports/{report_type}/save",
+    response_model=SavedWorkspaceReportResponse,
+)
+def save_workspace_report(
+    workspace_id: str,
+    report_type: str,
+) -> SavedWorkspaceReportResponse:
+    generator = GenerateWorkspaceReportUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+        file_system=file_system,
+        conversation_repository=conversation_repository,
+        timeline_repository=timeline_repository,
+    )
+    use_case = SaveWorkspaceReportUseCase(
+        report_generator=generator,
+        report_repository=report_repository,
+    )
+    try:
+        saved = use_case.execute(
+            SaveWorkspaceReportInput(
+                workspace_id=workspace_id,
+                report_type=report_type,
+            )
+        )
+    except WorkspaceReportNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except WorkspaceReportScanRequiredError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except WorkspaceReportTypeNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return to_saved_workspace_report_response(saved)
+
+
+@router.get(
+    "/{workspace_id}/reports/saved",
+    response_model=list[SavedWorkspaceReportResponse],
+)
+def list_saved_workspace_reports(
+    workspace_id: str,
+    search: str | None = None,
+    report_type: str | None = None,
+    pinned_only: bool = False,
+) -> list[SavedWorkspaceReportResponse]:
+    use_case = ListSavedWorkspaceReportsUseCase(
+        workspace_repository=workspace_repository,
+        report_repository=report_repository,
+    )
+    try:
+        reports = use_case.execute(
+            ListSavedWorkspaceReportsInput(
+                workspace_id=workspace_id,
+                search=search,
+                report_type=report_type,
+                pinned_only=pinned_only,
+            )
+        )
+    except SavedWorkspaceReportNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return [to_saved_workspace_report_response(report) for report in reports]
+
+
+@router.get(
+    "/{workspace_id}/reports/saved/{report_id}",
+    response_model=SavedWorkspaceReportResponse,
+)
+def get_saved_workspace_report(
+    workspace_id: str,
+    report_id: str,
+) -> SavedWorkspaceReportResponse:
+    use_case = GetSavedWorkspaceReportUseCase(
+        workspace_repository=workspace_repository,
+        report_repository=report_repository,
+    )
+    try:
+        report = use_case.execute(GetSavedWorkspaceReportInput(workspace_id=workspace_id, report_id=report_id))
+    except SavedWorkspaceReportNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return to_saved_workspace_report_response(report)
+
+
+@router.patch(
+    "/{workspace_id}/reports/saved/{report_id}",
+    response_model=SavedWorkspaceReportResponse,
+)
+def update_saved_workspace_report(
+    workspace_id: str,
+    report_id: str,
+    request: UpdateSavedWorkspaceReportRequest,
+) -> SavedWorkspaceReportResponse:
+    use_case = UpdateSavedWorkspaceReportUseCase(
+        workspace_repository=workspace_repository,
+        report_repository=report_repository,
+    )
+    try:
+        report = use_case.execute(
+            UpdateSavedWorkspaceReportInput(
+                workspace_id=workspace_id,
+                report_id=report_id,
+                title=request.title,
+                summary=request.summary,
+            )
+        )
+    except SavedWorkspaceReportNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return to_saved_workspace_report_response(report)
+
+
+@router.patch(
+    "/{workspace_id}/reports/saved/{report_id}/pin",
+    response_model=SavedWorkspaceReportResponse,
+)
+def pin_saved_workspace_report(
+    workspace_id: str,
+    report_id: str,
+    request: SavedReportPinRequest,
+) -> SavedWorkspaceReportResponse:
+    use_case = UpdateSavedWorkspaceReportUseCase(
+        workspace_repository=workspace_repository,
+        report_repository=report_repository,
+    )
+    try:
+        report = use_case.execute(
+            UpdateSavedWorkspaceReportInput(
+                workspace_id=workspace_id,
+                report_id=report_id,
+                pinned=request.pinned,
+            )
+        )
+    except SavedWorkspaceReportNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return to_saved_workspace_report_response(report)
+
+
+@router.delete(
+    "/{workspace_id}/reports/saved/{report_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_saved_workspace_report(
+    workspace_id: str,
+    report_id: str,
+) -> None:
+    use_case = DeleteSavedWorkspaceReportUseCase(
+        workspace_repository=workspace_repository,
+        report_repository=report_repository,
+    )
+    try:
+        use_case.execute(DeleteSavedWorkspaceReportInput(workspace_id=workspace_id, report_id=report_id))
+    except SavedWorkspaceReportNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
 
 
 @router.get(

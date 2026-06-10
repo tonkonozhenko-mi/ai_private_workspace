@@ -324,6 +324,27 @@ export interface ReportCatalog {
   safety_notes: string[];
 }
 
+export interface SavedWorkspaceReport {
+  id: string;
+  workspace_id: string;
+  report_type: string;
+  title: string;
+  summary: string;
+  export_markdown: string;
+  export_text: string;
+  report_json: Record<string, unknown>;
+  generated_from: string[];
+  created_at: string;
+  updated_at: string;
+  pinned_at?: string | null;
+  is_pinned: boolean;
+}
+
+export interface UpdateSavedWorkspaceReportRequest {
+  title?: string;
+  summary?: string;
+}
+
 export interface WorkspaceIndexStatus {
   workspace_id: string;
   status: string;

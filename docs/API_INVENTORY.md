@@ -105,6 +105,12 @@ models, run benchmarks, or change active runtime configuration.
 | `GET /workspaces/{workspace_id}/reports/project-overview` | Generate a deterministic project overview report. | Timeline | No | Local filesystem read for analyzers | Reports |
 | `GET /workspaces/{workspace_id}/reports/catalog` | List local-first report templates and safety notes. | None | No | None | Reports |
 | `GET /workspaces/{workspace_id}/reports/{report_type}` | Generate a selected read-only workspace report draft. | Timeline | No | Local filesystem read for analyzers and saved workspace context | Reports |
+| `POST /workspaces/{workspace_id}/reports/{report_type}/save` | Generate and persist a selected workspace report as local report history. | Saved report | No | Local filesystem read for analyzers and saved workspace context | Reports |
+| `GET /workspaces/{workspace_id}/reports/saved` | List saved reports with search/type/pinned filters. | None | No | None | Reports history |
+| `GET /workspaces/{workspace_id}/reports/saved/{report_id}` | Read one saved report including markdown/text/json exports. | None | No | None | Reports history |
+| `PATCH /workspaces/{workspace_id}/reports/saved/{report_id}` | Rename or update saved report metadata. | Saved report | No | None | Reports history |
+| `PATCH /workspaces/{workspace_id}/reports/saved/{report_id}/pin` | Pin or unpin a saved report. | Saved report | No | None | Reports history |
+| `DELETE /workspaces/{workspace_id}/reports/saved/{report_id}` | Delete a saved report from local workspace history. | Saved report | No | None | Reports history |
 | `GET /workspaces/{workspace_id}/analysis/summary` | Aggregate relevant deterministic analyzer findings. | No | No | Local filesystem read | Analysis overview |
 | `GET /workspaces/{workspace_id}/analysis/terraform` | Analyze Terraform structure using static text rules. | No | No | Local filesystem read | Terraform analysis |
 | `GET /workspaces/{workspace_id}/analysis/terragrunt` | Analyze Terragrunt structure using static text rules. | No | No | Local filesystem read | Terragrunt analysis |
