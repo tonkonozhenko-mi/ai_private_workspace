@@ -42,6 +42,7 @@ import type {
   StartupChecklist,
   RuntimeTroubleshooting,
   SafeUpdateWorkflow,
+  DesktopStartupExperience,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -109,6 +110,10 @@ export function getRuntimeTroubleshooting(): Promise<RuntimeTroubleshooting> {
 
 export function getSafeUpdateWorkflow(): Promise<SafeUpdateWorkflow> {
   return getJson<SafeUpdateWorkflow>("/runtime/update-safety");
+}
+
+export function getDesktopStartupExperience(): Promise<DesktopStartupExperience> {
+  return getJson<DesktopStartupExperience>("/runtime/desktop-startup");
 }
 
 

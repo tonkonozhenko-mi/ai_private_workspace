@@ -57,3 +57,15 @@ Protected paths and files:
 ## Important safety rule
 
 The UI can display and copy commands, but it must not run them. Setup, updates, scan, index, rebuild, and model changes remain explicit user actions.
+
+## Desktop-like startup helper
+
+Task 180 adds a copy-only helper script:
+
+```bash
+scripts/start_local_workspace.sh
+```
+
+It prints the backend, frontend, and runtime-check commands without executing them. Keep backend and frontend in separate terminals so logs stay visible.
+
+The browser UI stores the last selected workspace id in localStorage and restores it on startup when the workspace still exists in SQLite. This is convenience state only; project data remains in `backend/.ai-workbench/workspaces.db`.

@@ -167,6 +167,24 @@ export interface LocalDataSafety {
 
 
 
+
+export interface DesktopStartupCommand {
+  label: string;
+  command: string;
+  description: string;
+}
+
+export interface DesktopStartupExperience {
+  status: string;
+  summary: string;
+  open_last_workspace_enabled: boolean;
+  last_workspace_storage_key: string;
+  suggested_next_action: string;
+  startup_commands: DesktopStartupCommand[];
+  checklist: string[];
+  safety_notes: string[];
+}
+
 export interface SafeUpdateWorkflow {
   status: string;
   summary: string;

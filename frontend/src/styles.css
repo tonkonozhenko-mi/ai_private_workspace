@@ -11051,3 +11051,31 @@ button:focus-visible {
 .settings-preflight-list li + li {
   margin-top: 0.45rem;
 }
+
+/* Task 180 — desktop-like startup polish */
+.resume-workspace-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--accent-soft) 72%, transparent);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-soft);
+}
+
+.resume-workspace-banner span {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.settings-desktop-startup-panel .startup-checklist-command small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin-top: 0.35rem;
+}

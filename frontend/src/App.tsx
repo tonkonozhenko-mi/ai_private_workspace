@@ -70,6 +70,7 @@ export interface WorkbenchPreferences {
 
 const PREFERENCES_STORAGE_KEY = "ai-private-workspace.preferences.v1";
 const LEGACY_PREFERENCES_STORAGE_KEY = "private-project-ai-workbench.preferences.v1";
+const LAST_WORKSPACE_STORAGE_KEY = "ai-private-workspace.last-workspace-id.v1";
 const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   theme: "system",
   density: "comfortable",
@@ -122,6 +123,7 @@ function App() {
   const [activityJobsLoading, setActivityJobsLoading] = useState(false);
   const [activityJobsError, setActivityJobsError] = useState<string | null>(null);
   const [workspaceSkillProfile, setWorkspaceSkillProfile] = useState<WorkspaceSkillProfile | null>(null);
+  const [resumeMessage, setResumeMessage] = useState<string | null>(null);
 
   const loadModelsDetail = useCallback(async (workspaceId: string) => {
     setModelsDetail(null);
@@ -152,6 +154,7 @@ function App() {
     }
     selectedWorkspaceIdRef.current = workspaceId;
     setSelectedWorkspaceId(workspaceId);
+    window.localStorage.setItem(LAST_WORKSPACE_STORAGE_KEY, workspaceId);
     setDetailLoading(true);
     setDetailError(null);
     try {
@@ -194,15 +197,30 @@ function App() {
           (workspace) =>
             workspace.workspace_id === selectedWorkspaceIdRef.current,
         );
+        const storedWorkspaceId = window.localStorage.getItem(LAST_WORKSPACE_STORAGE_KEY);
+        const storedExists = storedWorkspaceId
+          ? overview.items.some((workspace) => workspace.workspace_id === storedWorkspaceId)
+          : false;
         const nextWorkspaceId = currentExists
           ? selectedWorkspaceIdRef.current
-          : overview.items[0].workspace_id;
+          : storedExists
+            ? storedWorkspaceId
+            : overview.items[0].workspace_id;
         if (nextWorkspaceId) {
           await loadWorkspaceDetail(nextWorkspaceId);
+          if (!currentExists && storedExists) {
+            const restoredWorkspace = overview.items.find((workspace) => workspace.workspace_id === nextWorkspaceId);
+            setResumeMessage(
+              restoredWorkspace
+                ? `Restored last workspace: ${restoredWorkspace.name}`
+                : "Restored last workspace",
+            );
+          }
         }
       } else {
         selectedWorkspaceIdRef.current = null;
         setSelectedWorkspaceId(null);
+        window.localStorage.removeItem(LAST_WORKSPACE_STORAGE_KEY);
         setDetail(null);
       }
     } catch (error) {
@@ -445,6 +463,7 @@ function App() {
               onToggleArchived={() => setShowArchivedWorkspaces((current) => !current)}
               onSelect={(workspaceId) => {
                 setShowCreateWorkspace(false);
+                setResumeMessage(null);
                 void loadWorkspaceDetail(workspaceId);
               }}
               onArchive={(workspace) => void handleArchiveWorkspace(workspace)}
@@ -508,6 +527,15 @@ function App() {
                 <strong>{detail.dashboard.status}</strong>
               </div>
             </header>
+
+            {resumeMessage ? (
+              <div className="resume-workspace-banner" role="status">
+                <span>{resumeMessage}</span>
+                <button type="button" className="ghost-button small" onClick={() => setResumeMessage(null)}>
+                  Dismiss
+                </button>
+              </div>
+            ) : null}
 
             <section
               id="workspace-tab-content"

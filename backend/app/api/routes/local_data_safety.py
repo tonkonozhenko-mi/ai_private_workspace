@@ -11,6 +11,8 @@ from fastapi import APIRouter, HTTPException
 from app.api.schemas.local_data_safety_schemas import (
     CreateDatabaseBackupResponse,
     DatabaseBackupListResponse,
+    DesktopStartupCommandResponse,
+    DesktopStartupExperienceResponse,
     DatabaseBackupResponse,
     DatabaseMigrationSafetyResponse,
     DatabaseMigrationTableResponse,
@@ -225,6 +227,63 @@ def get_update_safety_workflow() -> SafeUpdateWorkflowResponse:
         ],
         warnings=warnings,
         safety_note="This endpoint is read-only. The UI only displays commands; updates and restores remain explicit terminal actions.",
+    )
+
+
+@router.get("/desktop-startup", response_model=DesktopStartupExperienceResponse)
+def get_desktop_startup_experience() -> DesktopStartupExperienceResponse:
+    settings = get_settings()
+    db_path = settings.workspace_db_path
+    db_exists = db_path.exists()
+    warnings: list[str] = []
+    counts: dict[str, int | None] = {"workspaces": None}
+    if db_exists:
+        counts = _read_counts(db_path, counts.keys(), warnings)
+    workspaces_count = counts.get("workspaces") or 0
+    status = "ok" if db_exists and workspaces_count > 0 and not warnings else "review"
+    suggested_next_action = (
+        "Open the last workspace from the sidebar or create a new workspace if this is a fresh database."
+        if workspaces_count > 0
+        else "Create a workspace, then run Preview rules, Scan project, and Build search context by explicit clicks."
+    )
+    return DesktopStartupExperienceResponse(
+        status=status,
+        summary=(
+            f"Desktop-like startup is ready with {workspaces_count} workspace(s)."
+            if status == "ok"
+            else "Review local data and runtime readiness before daily work."
+        ),
+        open_last_workspace_enabled=True,
+        last_workspace_storage_key="ai-private-workspace.last-workspace-id.v1",
+        suggested_next_action=suggested_next_action,
+        startup_commands=[
+            DesktopStartupCommandResponse(
+                label="Start backend",
+                command="cd ~/Documents/ai_workspace/backend && source .venv/bin/activate && export VECTOR_STORE=qdrant EMBEDDING_PROVIDER=ollama OLLAMA_EMBEDDING_MODEL=nomic-embed-text LLM_PROVIDER=ollama OLLAMA_LLM_MODEL=llama3.2 && python -m uvicorn app.main:app --reload",
+                description="Starts the local FastAPI backend with explicit local Ollama/Qdrant settings.",
+            ),
+            DesktopStartupCommandResponse(
+                label="Start frontend",
+                command="cd ~/Documents/ai_workspace/frontend && npm run dev",
+                description="Starts the Vite development UI. The browser UI only calls local backend APIs.",
+            ),
+            DesktopStartupCommandResponse(
+                label="Check runtime",
+                command="cd ~/Documents/ai_workspace && scripts/check_runtime.sh",
+                description="Runs copy-safe diagnostics for backend, frontend, DB, and local runtime readiness.",
+            ),
+        ],
+        checklist=[
+            "Open the UI after backend and frontend are running.",
+            "The app restores the last selected workspace from browser localStorage when it still exists.",
+            "If the database is fresh, create a workspace first and rebuild context by explicit user action.",
+            "Run safe generated updates with dry-run first and keep backend/.ai-workbench excluded.",
+        ],
+        safety_notes=[
+            "This endpoint is read-only and never starts processes.",
+            "The frontend only displays or copies commands; it never executes shell commands.",
+            "Open-last-workspace state is browser-local convenience only; workspace data remains in SQLite.",
+        ],
     )
 
 
