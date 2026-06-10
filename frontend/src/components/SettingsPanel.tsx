@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getLocalDataSafety, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getLocalDataSafety, getRuntimeTroubleshooting, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -12,6 +12,7 @@ import type {
   DatabaseRestorePlan,
   LocalDataSafety,
   StartupChecklist,
+  RuntimeTroubleshooting,
 } from "../api/types";
 import {
   DEFAULT_FILE_INDEXING_PREFERENCES,
@@ -111,6 +112,9 @@ export function SettingsPanel({
   const [databaseMigrationSafety, setDatabaseMigrationSafety] = useState<DatabaseMigrationSafety | null>(null);
   const [databaseMigrationSafetyError, setDatabaseMigrationSafetyError] = useState<string | null>(null);
   const [databaseMigrationSafetyLoading, setDatabaseMigrationSafetyLoading] = useState(false);
+  const [runtimeTroubleshooting, setRuntimeTroubleshooting] = useState<RuntimeTroubleshooting | null>(null);
+  const [runtimeTroubleshootingError, setRuntimeTroubleshootingError] = useState<string | null>(null);
+  const [runtimeTroubleshootingLoading, setRuntimeTroubleshootingLoading] = useState(false);
 
 
   useEffect(() => {
@@ -159,6 +163,32 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setStartupChecklistLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    setRuntimeTroubleshootingLoading(true);
+    setRuntimeTroubleshootingError(null);
+    getRuntimeTroubleshooting()
+      .then((diagnostics) => {
+        if (!cancelled) {
+          setRuntimeTroubleshooting(diagnostics);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setRuntimeTroubleshootingError(error instanceof Error ? error.message : "Could not load runtime troubleshooting");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setRuntimeTroubleshootingLoading(false);
         }
       });
     return () => {
@@ -1377,6 +1407,88 @@ export function SettingsPanel({
         ) : null}
       </section>
 
+
+      <section className="panel settings-troubleshooting-panel">
+        <div className="settings-section-heading">
+          <div>
+            <p className="eyebrow">Troubleshooting assistant</p>
+            <h2>Model and Qdrant diagnostics</h2>
+            <p>
+              Read-only troubleshooting for Ollama, Qdrant, backend startup, and local runtime configuration. Commands are copy-only.
+            </p>
+          </div>
+          <StatusBadge
+            label={runtimeTroubleshootingLoading ? "Checking" : runtimeTroubleshooting?.status === "ok" ? "Healthy" : runtimeTroubleshooting?.status === "blocked" ? "Blocked" : "Review"}
+            tone={runtimeTroubleshooting?.status === "ok" ? "success" : runtimeTroubleshooting?.status === "blocked" ? "danger" : "warning"}
+          />
+        </div>
+        {runtimeTroubleshootingError ? (
+          <p className="settings-transfer-message">Troubleshooting diagnostics error: {runtimeTroubleshootingError}</p>
+        ) : null}
+        {runtimeTroubleshooting ? (
+          <>
+            <div className="startup-checklist-summary">
+              <strong>{runtimeTroubleshooting.summary}</strong>
+              <span>{runtimeTroubleshooting.safety_note}</span>
+            </div>
+            {runtimeTroubleshooting.issues.length > 0 ? (
+              <div className="troubleshooting-issue-list">
+                {runtimeTroubleshooting.issues.map((issue) => (
+                  <article className={`troubleshooting-issue is-${issue.severity}`} key={issue.id}>
+                    <div className="startup-checklist-item-header">
+                      <div>
+                        <span>{issue.component}</span>
+                        <strong>{issue.title}</strong>
+                      </div>
+                      <StatusBadge
+                        label={issue.severity === "blocked" ? "Blocked" : "Review"}
+                        tone={issue.severity === "blocked" ? "danger" : "warning"}
+                      />
+                    </div>
+                    <p>{issue.summary}</p>
+                    <small>{issue.details}</small>
+                    <div className="troubleshooting-step-list">
+                      {issue.steps.map((step) => (
+                        <div className="startup-checklist-command" key={`${issue.id}-${step.title}`}>
+                          <span>{step.title}</span>
+                          {step.copy_command ? <code>{step.copy_command}</code> : <small>{step.detail}</small>}
+                          {step.copy_command ? (
+                            <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(step.copy_command ?? "")}>
+                              Copy
+                            </button>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="settings-transfer-message">No runtime issues detected by backend diagnostics.</p>
+            )}
+            <div className="troubleshooting-command-grid">
+              <div>
+                <span>Quick checks</span>
+                {runtimeTroubleshooting.quick_checks.map((step) => (
+                  <div className="startup-checklist-command" key={step.title}>
+                    <code>{step.copy_command}</code>
+                    <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(step.copy_command ?? "")}>Copy</button>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <span>Safe restart commands</span>
+                {runtimeTroubleshooting.safe_restart_commands.map((step) => (
+                  <div className="startup-checklist-command" key={step.title}>
+                    <code>{step.copy_command}</code>
+                    <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(step.copy_command ?? "")}>Copy</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : null}
+      </section>
 
       <section className="panel settings-backup-panel">
         <div className="settings-section-heading">

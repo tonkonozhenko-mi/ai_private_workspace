@@ -40,6 +40,7 @@ import type {
   DatabaseRestorePlan,
   LocalDataSafety,
   StartupChecklist,
+  RuntimeTroubleshooting,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -99,6 +100,10 @@ export function getLocalDataSafety(): Promise<LocalDataSafety> {
 
 export function getStartupChecklist(): Promise<StartupChecklist> {
   return getJson<StartupChecklist>("/runtime/startup-checklist");
+}
+
+export function getRuntimeTroubleshooting(): Promise<RuntimeTroubleshooting> {
+  return getJson<RuntimeTroubleshooting>("/runtime/troubleshooting");
 }
 
 

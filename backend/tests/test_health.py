@@ -61,3 +61,17 @@ def test_restore_plan_rejects_path_traversal() -> None:
     )
 
     assert response.status_code == 400
+
+
+def test_runtime_troubleshooting_is_read_only_and_actionable() -> None:
+    response = client.get("/runtime/troubleshooting")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] in {"ok", "review", "blocked"}
+    assert "read-only" in body["safety_note"].lower()
+    assert isinstance(body["issues"], list)
+    assert body["quick_checks"]
+    assert body["safe_restart_commands"]
+    assert any("runtime/health" in step["copy_command"] for step in body["quick_checks"] if step["copy_command"])
+    assert any("python -m uvicorn" in step["copy_command"] for step in body["safe_restart_commands"] if step["copy_command"])

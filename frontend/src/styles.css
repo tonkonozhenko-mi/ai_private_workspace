@@ -10970,3 +10970,61 @@ button:focus-visible {
 .migration-table-item.is-missing strong {
   color: #b45309;
 }
+
+/* Task 178 — runtime troubleshooting assistant */
+.settings-troubleshooting-panel {
+  gap: 1rem;
+}
+
+.troubleshooting-issue-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.troubleshooting-issue {
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  padding: 1rem;
+  background: var(--surface-muted);
+}
+
+.troubleshooting-issue.is-blocked {
+  border-color: rgba(239, 68, 68, 0.32);
+}
+
+.troubleshooting-issue.is-review {
+  border-color: rgba(245, 158, 11, 0.34);
+}
+
+.troubleshooting-issue p {
+  margin: 0.6rem 0 0.35rem;
+}
+
+.troubleshooting-issue small {
+  color: var(--text-muted);
+}
+
+.troubleshooting-step-list {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+}
+
+.troubleshooting-command-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.troubleshooting-command-grid > div {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.troubleshooting-command-grid > div > span {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

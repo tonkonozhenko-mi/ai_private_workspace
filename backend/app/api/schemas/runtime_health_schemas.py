@@ -18,6 +18,31 @@ class RuntimeHealthResponse(BaseModel):
     configuration: dict[str, str]
 
 
+class RuntimeTroubleshootingStepResponse(BaseModel):
+    title: str
+    detail: str
+    copy_command: str | None = None
+
+
+class RuntimeTroubleshootingIssueResponse(BaseModel):
+    id: str
+    title: str
+    severity: str
+    component: str
+    summary: str
+    details: str
+    steps: list[RuntimeTroubleshootingStepResponse]
+
+
+class RuntimeTroubleshootingResponse(BaseModel):
+    status: str
+    summary: str
+    issues: list[RuntimeTroubleshootingIssueResponse]
+    quick_checks: list[RuntimeTroubleshootingStepResponse]
+    safe_restart_commands: list[RuntimeTroubleshootingStepResponse]
+    safety_note: str
+
+
 def to_runtime_component_health_response(
     component: RuntimeComponentHealth,
 ) -> RuntimeComponentHealthResponse:
