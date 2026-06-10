@@ -19,6 +19,8 @@ import type {
   WorkspaceModelSelection,
   WorkspaceModelsDashboardSummary,
   WorkspaceQuestionAnswer,
+  ConversationAnswerNote,
+  ConversationExport,
   WorkspaceConversation,
   SkillContextRequest,
   WorkspaceSkillProfile,
@@ -369,6 +371,58 @@ export function updateWorkspaceConversationArchived(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ archived }),
+  });
+}
+
+export function exportWorkspaceConversation(
+  workspaceId: string,
+  conversationId: string,
+  format: "markdown" | "text" | "json" = "markdown",
+): Promise<ConversationExport> {
+  const params = new URLSearchParams({ format });
+  return getJson<ConversationExport>(
+    `/workspaces/${workspaceId}/conversations/${conversationId}/export?${params.toString()}`,
+  );
+}
+
+export function listWorkspaceAnswerNotes(
+  workspaceId: string,
+  options: { search?: string } = {},
+): Promise<ConversationAnswerNote[]> {
+  const params = new URLSearchParams();
+  if (options.search?.trim()) {
+    params.set("search", options.search.trim());
+  }
+  const query = params.toString();
+  return getJson<ConversationAnswerNote[]>(`/workspaces/${workspaceId}/answer-notes${query ? `?${query}` : ""}`);
+}
+
+export function saveConversationAnswerNote(
+  workspaceId: string,
+  conversationId: string,
+  messageId: string,
+  request: { title?: string; content?: string } = {},
+): Promise<ConversationAnswerNote> {
+  return requestJson<ConversationAnswerNote>(
+    `/workspaces/${workspaceId}/conversations/${conversationId}/messages/${messageId}/note`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    },
+  );
+}
+
+export function deleteWorkspaceAnswerNote(
+  workspaceId: string,
+  noteId: string,
+): Promise<void> {
+  return requestWithoutBody(`/workspaces/${workspaceId}/answer-notes/${noteId}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
   });
 }
 

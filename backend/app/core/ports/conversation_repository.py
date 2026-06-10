@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from app.core.domain.conversation import ConversationMessage, WorkspaceConversation
+from app.core.domain.conversation import ConversationAnswerNote, ConversationMessage, WorkspaceConversation
 
 
 class ConversationRepositoryPort(Protocol):
@@ -50,3 +50,18 @@ class ConversationRepositoryPort(Protocol):
 
     def delete_conversation(self, workspace_id: str, conversation_id: str) -> bool:
         """Delete a conversation and messages."""
+
+    def add_answer_note(self, note: ConversationAnswerNote) -> ConversationAnswerNote:
+        """Persist a reusable answer note."""
+
+    def list_answer_notes(
+        self,
+        workspace_id: str,
+        limit: int = 30,
+        *,
+        search: str | None = None,
+    ) -> list[ConversationAnswerNote]:
+        """Return reusable answer notes for a workspace."""
+
+    def delete_answer_note(self, workspace_id: str, note_id: str) -> bool:
+        """Delete a reusable answer note."""

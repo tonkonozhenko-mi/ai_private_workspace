@@ -3,7 +3,7 @@ from pathlib import Path
 import sqlite3
 
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
-from app.core.domain.conversation import ConversationMessage, WorkspaceConversation, normalize_conversation_title, utc_now_iso
+from app.core.domain.conversation import ConversationAnswerNote, ConversationMessage, WorkspaceConversation, normalize_conversation_title, utc_now_iso
 from app.core.domain.rag import SkillProfileAudit
 
 
@@ -249,11 +249,96 @@ class SQLiteConversationRepository:
                 (conversation_id, workspace_id),
             )
             connection.execute(
+                "DELETE FROM workspace_answer_notes WHERE conversation_id = ? AND workspace_id = ?",
+                (conversation_id, workspace_id),
+            )
+            connection.execute(
                 "DELETE FROM workspace_conversations WHERE id = ? AND workspace_id = ?",
                 (conversation_id, workspace_id),
             )
             connection.commit()
         return True
+
+    def add_answer_note(self, note: ConversationAnswerNote) -> ConversationAnswerNote:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO workspace_answer_notes (
+                    id, workspace_id, conversation_id, message_id, title, content,
+                    source_question, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    note.id,
+                    note.workspace_id,
+                    note.conversation_id,
+                    note.message_id,
+                    note.title,
+                    note.content,
+                    note.source_question,
+                    note.created_at,
+                    note.updated_at,
+                ),
+            )
+            connection.commit()
+        return note
+
+    def list_answer_notes(
+        self,
+        workspace_id: str,
+        limit: int = 30,
+        *,
+        search: str | None = None,
+    ) -> list[ConversationAnswerNote]:
+        clauses = ["workspace_id = ?"]
+        parameters: list[object] = [workspace_id]
+        normalized_search = (search or "").strip().lower()
+        if normalized_search:
+            clauses.append("(LOWER(title) LIKE ? OR LOWER(content) LIKE ? OR LOWER(COALESCE(source_question, '')) LIKE ?)")
+            like_value = f"%{normalized_search}%"
+            parameters.extend([like_value, like_value, like_value])
+        parameters.append(max(0, limit))
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT id, workspace_id, conversation_id, message_id, title, content,
+                       source_question, created_at, updated_at
+                FROM workspace_answer_notes
+                WHERE {' AND '.join(clauses)}
+                ORDER BY updated_at DESC, rowid DESC
+                LIMIT ?
+                """,
+                tuple(parameters),
+            ).fetchall()
+        return [self._answer_note_from_row(row) for row in rows]
+
+    def delete_answer_note(self, workspace_id: str, note_id: str) -> bool:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT id FROM workspace_answer_notes WHERE id = ? AND workspace_id = ?",
+                (note_id, workspace_id),
+            ).fetchone()
+            if row is None:
+                return False
+            connection.execute(
+                "DELETE FROM workspace_answer_notes WHERE id = ? AND workspace_id = ?",
+                (note_id, workspace_id),
+            )
+            connection.commit()
+        return True
+
+    def _answer_note_from_row(self, row: sqlite3.Row) -> ConversationAnswerNote:
+        return ConversationAnswerNote(
+            id=row["id"],
+            workspace_id=row["workspace_id"],
+            conversation_id=row["conversation_id"],
+            message_id=row["message_id"],
+            title=row["title"],
+            content=row["content"],
+            source_question=row["source_question"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )
 
     def _message_from_row(self, row: sqlite3.Row) -> ConversationMessage:
         return ConversationMessage(

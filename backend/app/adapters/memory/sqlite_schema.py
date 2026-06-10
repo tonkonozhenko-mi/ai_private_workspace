@@ -92,6 +92,23 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             )
             """
         )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS workspace_answer_notes (
+                id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL,
+                conversation_id TEXT NOT NULL,
+                message_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                content TEXT NOT NULL,
+                source_question TEXT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS workspace_conversation_messages (

@@ -3,11 +3,15 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   askSelectedWorkspace,
   createWorkspaceConversation,
+  deleteWorkspaceAnswerNote,
   deleteWorkspaceConversation,
+  exportWorkspaceConversation,
   getWorkspaceConversation,
+  listWorkspaceAnswerNotes,
   listWorkspaceConversations,
   updateWorkspaceConversationArchived,
   updateWorkspaceConversationPinned,
+  saveConversationAnswerNote,
   updateWorkspaceConversationTitle,
 } from "../api/client";
 import { CopyButton } from "./CopyButton";
@@ -16,6 +20,7 @@ import type {
   RagSource,
   WorkspaceQuestionAnswer,
   SkillContextRequest,
+  ConversationAnswerNote,
   WorkspaceConversation,
 } from "../api/types";
 import { EmptyState } from "./EmptyState";
@@ -106,6 +111,8 @@ export function AskWorkspace({
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [conversationLoading, setConversationLoading] = useState(false);
   const [conversationSearch, setConversationSearch] = useState("");
+  const [answerNotes, setAnswerNotes] = useState<ConversationAnswerNote[]>([]);
+  const [conversationStatus, setConversationStatus] = useState<string | null>(null);
   const [showArchivedConversations, setShowArchivedConversations] = useState(false);
   const [pinnedOnlyConversations, setPinnedOnlyConversations] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,6 +133,7 @@ export function AskWorkspace({
     setShowArchivedConversations(false);
     setPinnedOnlyConversations(false);
     void refreshConversations({ search: "", includeArchived: false, pinnedOnly: false });
+    void refreshAnswerNotes();
   }, [workspaceId]);
 
   useEffect(() => {
@@ -147,6 +155,68 @@ export function AskWorkspace({
       setConversations(items);
     } catch {
       setConversations([]);
+    }
+  }
+
+  async function refreshAnswerNotes() {
+    try {
+      const notes = await listWorkspaceAnswerNotes(workspaceId);
+      setAnswerNotes(notes);
+    } catch {
+      setAnswerNotes([]);
+    }
+  }
+
+  async function exportConversation(conversationId: string, format: "markdown" | "text" | "json" = "markdown") {
+    setConversationLoading(true);
+    setConversationStatus(null);
+    setError(null);
+    try {
+      const exportedConversation = await exportWorkspaceConversation(workspaceId, conversationId, format);
+      downloadTextFile(exportedConversation.filename, exportedConversation.content);
+      setConversationStatus(`Exported ${exportedConversation.filename}`);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not export conversation.");
+    } finally {
+      setConversationLoading(false);
+    }
+  }
+
+  async function saveAnswerNote(answer: WorkspaceQuestionAnswer) {
+    const conversationId = answer.conversation_id;
+    const messageId = answer.conversation_message_id;
+    if (!conversationId || !messageId) {
+      setError("This answer cannot be saved as a note because message metadata is missing.");
+      return;
+    }
+    setConversationLoading(true);
+    setConversationStatus(null);
+    setError(null);
+    try {
+      await saveConversationAnswerNote(workspaceId, conversationId, messageId, {
+        title: answer.question.slice(0, 90) || "Saved answer note",
+      });
+      await refreshAnswerNotes();
+      setConversationStatus("Saved answer note");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not save answer note.");
+    } finally {
+      setConversationLoading(false);
+    }
+  }
+
+  async function deleteAnswerNote(noteId: string) {
+    setConversationLoading(true);
+    setConversationStatus(null);
+    setError(null);
+    try {
+      await deleteWorkspaceAnswerNote(workspaceId, noteId);
+      await refreshAnswerNotes();
+      setConversationStatus("Deleted answer note");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not delete answer note.");
+    } finally {
+      setConversationLoading(false);
     }
   }
 
@@ -328,6 +398,8 @@ export function AskWorkspace({
           activeConversationId={activeConversationId}
           conversationLoading={conversationLoading}
           conversationSearch={conversationSearch}
+          answerNotes={answerNotes}
+          conversationStatus={conversationStatus}
           showArchivedConversations={showArchivedConversations}
           pinnedOnlyConversations={pinnedOnlyConversations}
           onAskAgain={(questionText) => void askQuestion(questionText)}
@@ -338,6 +410,9 @@ export function AskWorkspace({
           onOpenConversation={(conversationId) => void openConversation(conversationId)}
           onRenameConversation={(conversationId, currentTitle) => void renameConversation(conversationId, currentTitle)}
           onDeleteConversation={(conversationId) => void removeConversation(conversationId)}
+          onExportConversation={(conversationId, format) => void exportConversation(conversationId, format)}
+          onSaveAnswerNote={(answer) => void saveAnswerNote(answer)}
+          onDeleteAnswerNote={(noteId) => void deleteAnswerNote(noteId)}
           onTogglePinned={(conversationId, pinned) => void toggleConversationPinned(conversationId, pinned)}
           onToggleArchived={(conversationId, archived) => void toggleConversationArchived(conversationId, archived)}
           onSearch={setConversationSearch}
@@ -439,6 +514,8 @@ function ConversationPanel({
   activeConversationId,
   conversationLoading,
   conversationSearch,
+  answerNotes,
+  conversationStatus,
   showArchivedConversations,
   pinnedOnlyConversations,
   onAskAgain,
@@ -449,6 +526,9 @@ function ConversationPanel({
   onOpenConversation,
   onRenameConversation,
   onDeleteConversation,
+  onExportConversation,
+  onSaveAnswerNote,
+  onDeleteAnswerNote,
   onTogglePinned,
   onToggleArchived,
   onSearch,
@@ -461,6 +541,8 @@ function ConversationPanel({
   activeConversationId: string | null;
   conversationLoading: boolean;
   conversationSearch: string;
+  answerNotes: ConversationAnswerNote[];
+  conversationStatus: string | null;
   showArchivedConversations: boolean;
   pinnedOnlyConversations: boolean;
   onAskAgain: (question: string) => void;
@@ -471,6 +553,9 @@ function ConversationPanel({
   onOpenConversation: (conversationId: string) => void;
   onRenameConversation: (conversationId: string, currentTitle: string) => void;
   onDeleteConversation: (conversationId: string) => void;
+  onExportConversation: (conversationId: string, format: "markdown" | "text" | "json") => void;
+  onSaveAnswerNote: (answer: WorkspaceQuestionAnswer) => void;
+  onDeleteAnswerNote: (noteId: string) => void;
   onTogglePinned: (conversationId: string, pinned: boolean) => void;
   onToggleArchived: (conversationId: string, archived: boolean) => void;
   onSearch: (search: string) => void;
@@ -489,10 +574,14 @@ function ConversationPanel({
           search={conversationSearch}
           showArchived={showArchivedConversations}
           pinnedOnly={pinnedOnlyConversations}
+          answerNotes={answerNotes}
+          conversationStatus={conversationStatus}
           onNewConversation={onNewConversation}
           onOpenConversation={onOpenConversation}
           onRenameConversation={onRenameConversation}
           onDeleteConversation={onDeleteConversation}
+          onExportConversation={onExportConversation}
+          onDeleteAnswerNote={onDeleteAnswerNote}
           onTogglePinned={onTogglePinned}
           onToggleArchived={onToggleArchived}
           onSearch={onSearch}
@@ -513,10 +602,14 @@ function ConversationPanel({
         search={conversationSearch}
         showArchived={showArchivedConversations}
         pinnedOnly={pinnedOnlyConversations}
+        answerNotes={answerNotes}
+        conversationStatus={conversationStatus}
         onNewConversation={onNewConversation}
         onOpenConversation={onOpenConversation}
         onRenameConversation={onRenameConversation}
         onDeleteConversation={onDeleteConversation}
+        onExportConversation={onExportConversation}
+        onDeleteAnswerNote={onDeleteAnswerNote}
         onTogglePinned={onTogglePinned}
         onToggleArchived={onToggleArchived}
         onSearch={onSearch}
@@ -547,6 +640,7 @@ function ConversationPanel({
             key={item.id}
             onAskAgain={onAskAgain}
             onEditQuestion={onEditQuestion}
+            onSaveAnswerNote={onSaveAnswerNote}
           />
         ))}
         {loading ? (
@@ -570,10 +664,14 @@ function ConversationHistoryBar({
   search,
   showArchived,
   pinnedOnly,
+  answerNotes,
+  conversationStatus,
   onNewConversation,
   onOpenConversation,
   onRenameConversation,
   onDeleteConversation,
+  onExportConversation,
+  onDeleteAnswerNote,
   onTogglePinned,
   onToggleArchived,
   onSearch,
@@ -586,10 +684,14 @@ function ConversationHistoryBar({
   search: string;
   showArchived: boolean;
   pinnedOnly: boolean;
+  answerNotes: ConversationAnswerNote[];
+  conversationStatus: string | null;
   onNewConversation: () => void;
   onOpenConversation: (conversationId: string) => void;
   onRenameConversation: (conversationId: string, currentTitle: string) => void;
   onDeleteConversation: (conversationId: string) => void;
+  onExportConversation: (conversationId: string, format: "markdown" | "text" | "json") => void;
+  onDeleteAnswerNote: (noteId: string) => void;
   onTogglePinned: (conversationId: string, pinned: boolean) => void;
   onToggleArchived: (conversationId: string, archived: boolean) => void;
   onSearch: (search: string) => void;
@@ -670,6 +772,14 @@ function ConversationHistoryBar({
                     className="text-button"
                     type="button"
                     disabled={loading}
+                    onClick={() => onExportConversation(conversation.id, "markdown")}
+                  >
+                    Export
+                  </button>
+                  <button
+                    className="text-button"
+                    type="button"
+                    disabled={loading}
                     onClick={() => onRenameConversation(conversation.id, conversation.title)}
                   >
                     Rename
@@ -697,9 +807,58 @@ function ConversationHistoryBar({
         </div>
       )}
 
+      {conversationStatus ? <p className="conversation-history-status">{conversationStatus}</p> : null}
+
+      {answerNotes.length > 0 ? (
+        <AnswerNotesPanel notes={answerNotes} loading={loading} onDeleteAnswerNote={onDeleteAnswerNote} />
+      ) : null}
+
       {activeConversation ? (
         <ConversationDetailsCard conversation={activeConversation} />
       ) : null}
+    </section>
+  );
+}
+
+function AnswerNotesPanel({
+  notes,
+  loading,
+  onDeleteAnswerNote,
+}: {
+  notes: ConversationAnswerNote[];
+  loading: boolean;
+  onDeleteAnswerNote: (noteId: string) => void;
+}) {
+  return (
+    <section className="answer-notes-panel" aria-label="Reusable answer notes">
+      <div>
+        <p className="eyebrow">Reusable notes</p>
+        <strong>Saved answer snippets</strong>
+        <p>Save useful AI answers here, then copy them into docs, tickets, or reports.</p>
+      </div>
+      <div className="answer-notes-list">
+        {notes.slice(0, 5).map((note) => (
+          <article key={note.id} className="answer-note-card">
+            <div>
+              <strong>{note.title}</strong>
+              <span>{formatDateTime(note.updated_at)}</span>
+            </div>
+            {note.source_question ? <p><b>Question:</b> {note.source_question}</p> : null}
+            <p>{truncateText(note.content, 220)}</p>
+            <div className="answer-note-actions">
+              <CopyButton text={note.content} label="note" />
+              <button
+                className="text-button danger-text-button"
+                type="button"
+                disabled={loading}
+                onClick={() => onDeleteAnswerNote(note.id)}
+              >
+                Delete note
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
@@ -738,10 +897,12 @@ function ConversationTurn({
   item,
   onAskAgain,
   onEditQuestion,
+  onSaveAnswerNote,
 }: {
   item: AskHistoryItem;
   onAskAgain: (question: string) => void;
   onEditQuestion: (question: string) => void;
+  onSaveAnswerNote: (answer: WorkspaceQuestionAnswer) => void;
 }) {
   return (
     <article className="ask-conversation-turn">
@@ -768,7 +929,7 @@ function ConversationTurn({
         </div>
       </div>
 
-      <AnswerResult answer={item.response} createdAt={item.createdAt} />
+      <AnswerResult answer={item.response} createdAt={item.createdAt} onSaveAnswerNote={onSaveAnswerNote} />
     </article>
   );
 }
@@ -776,9 +937,11 @@ function ConversationTurn({
 function AnswerResult({
   answer,
   createdAt,
+  onSaveAnswerNote,
 }: {
   answer: WorkspaceQuestionAnswer;
   createdAt: string;
+  onSaveAnswerNote: (answer: WorkspaceQuestionAnswer) => void;
 }) {
   const warnings = answer.quality_warnings ?? [];
   const reindexReason = getAskReindexReason(answer);
@@ -798,7 +961,17 @@ function AnswerResult({
                 {answer.llm_provider}/{answer.llm_model ?? "default"} · {formatTime(createdAt)}
               </small>
             </div>
-            <CopyButton text={answer.answer} label="answer" />
+            <div className="answer-header-actions">
+              <button
+                className="text-button"
+                type="button"
+                disabled={!answer.conversation_id || !answer.conversation_message_id}
+                onClick={() => onSaveAnswerNote(answer)}
+              >
+                Save note
+              </button>
+              <CopyButton text={answer.answer} label="answer" />
+            </div>
           </div>
           <div className="answer-content">
             {answer.answer ? (
@@ -1456,6 +1629,7 @@ function conversationToHistory(conversation: WorkspaceConversation): AskHistoryI
     const response: WorkspaceQuestionAnswer = {
       workspace_id: conversation.workspace_id,
       conversation_id: conversation.id,
+      conversation_message_id: assistantMessage.id,
       question: userMessage.content,
       answer: assistantMessage.content,
       sources: [],
@@ -1508,6 +1682,26 @@ function createHistoryItem(response: WorkspaceQuestionAnswer): AskHistoryItem {
     createdAt: new Date().toISOString(),
     response,
   };
+}
+
+function downloadTextFile(filename: string, content: string) {
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function truncateText(value: string, limit: number): string {
+  const normalized = " ".concat(value).trim().replace(/\s+/g, " ");
+  if (normalized.length <= limit) {
+    return normalized;
+  }
+  return `${normalized.slice(0, limit - 1)}…`;
 }
 
 function formatDateTime(value: string) {

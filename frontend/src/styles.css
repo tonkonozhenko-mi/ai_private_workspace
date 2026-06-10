@@ -10246,3 +10246,66 @@ button:focus-visible {
     justify-content: flex-start;
   }
 }
+
+/* Task 167 — conversation export and reusable answer notes */
+.answer-header-actions,
+.answer-note-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.conversation-history-status {
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 999px;
+  color: #2563eb;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin: 0.35rem 0 0;
+  padding: 0.3rem 0.65rem;
+}
+
+.answer-notes-panel {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 1.1rem;
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
+.answer-notes-panel > div:first-child p:last-child {
+  color: var(--muted-text);
+  font-size: 0.86rem;
+  margin: 0.2rem 0 0;
+}
+
+.answer-notes-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.answer-note-card {
+  background: rgba(248, 250, 252, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.9rem;
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.8rem;
+}
+
+.answer-note-card > div:first-child {
+  align-items: center;
+  display: flex;
+  gap: 0.6rem;
+  justify-content: space-between;
+}
+
+.answer-note-card span,
+.answer-note-card p {
+  color: var(--muted-text);
+  font-size: 0.82rem;
+  margin: 0;
+}

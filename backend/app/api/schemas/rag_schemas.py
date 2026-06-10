@@ -61,6 +61,7 @@ class SkillProfileAuditResponse(BaseModel):
 class WorkspaceQuestionAnswerResponse(BaseModel):
     workspace_id: str
     conversation_id: str | None = None
+    conversation_message_id: str | None = None
     question: str
     answer: str
     sources: list[RagSourceResponse]
@@ -127,6 +128,7 @@ def to_workspace_question_answer_response(
     return WorkspaceQuestionAnswerResponse(
         workspace_id=result.workspace_id,
         conversation_id=result.conversation_id,
+        conversation_message_id=result.conversation_message_id,
         question=result.question,
         answer=result.answer,
         sources=[to_rag_source_response(source) for source in result.sources],

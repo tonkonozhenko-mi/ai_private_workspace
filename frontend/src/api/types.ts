@@ -197,6 +197,7 @@ export interface AskSkillProfileAudit {
 export interface WorkspaceQuestionAnswer {
   workspace_id: string;
   conversation_id?: string | null;
+  conversation_message_id?: string | null;
   question: string;
   answer: string;
   sources: RagSource[];
@@ -230,6 +231,25 @@ export interface ConversationMessage {
   skill_profile?: string | null;
   active_skills: string[];
   guidance_count: number;
+}
+
+export interface ConversationExport {
+  conversation_id: string;
+  format: string;
+  filename: string;
+  content: string;
+}
+
+export interface ConversationAnswerNote {
+  id: string;
+  workspace_id: string;
+  conversation_id: string;
+  message_id: string;
+  title: string;
+  content: string;
+  source_question?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface WorkspaceConversation {

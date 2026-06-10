@@ -134,3 +134,41 @@ def _preview(value: str, limit: int = 180) -> str:
     if len(normalized) <= limit:
         return normalized
     return f"{normalized[: limit - 1]}…"
+
+
+class ConversationExportResponse(BaseModel):
+    conversation_id: str
+    format: str
+    filename: str
+    content: str
+
+
+class SaveAnswerNoteRequest(BaseModel):
+    title: str | None = Field(default=None, max_length=120)
+    content: str | None = None
+
+
+class ConversationAnswerNoteResponse(BaseModel):
+    id: str
+    workspace_id: str
+    conversation_id: str
+    message_id: str
+    title: str
+    content: str
+    source_question: str | None = None
+    created_at: str
+    updated_at: str
+
+
+def to_answer_note_response(note) -> ConversationAnswerNoteResponse:
+    return ConversationAnswerNoteResponse(
+        id=note.id,
+        workspace_id=note.workspace_id,
+        conversation_id=note.conversation_id,
+        message_id=note.message_id,
+        title=note.title,
+        content=note.content,
+        source_question=note.source_question,
+        created_at=note.created_at,
+        updated_at=note.updated_at,
+    )
