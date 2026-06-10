@@ -13317,3 +13317,126 @@ button,
     min-width: 90px !important;
   }
 }
+
+/* Task 187 — safe agent planning UX */
+.agent-mode-panel {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.agent-readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+.agent-readiness-card,
+.agent-planner-card,
+.agent-plan-preview {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-soft);
+  padding: var(--space-4);
+}
+
+.agent-readiness-card {
+  display: grid;
+  gap: var(--space-3);
+  min-height: 160px;
+}
+
+.agent-readiness-card.is-selected {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--border-subtle));
+}
+
+.agent-readiness-card strong {
+  font-size: var(--font-size-lg);
+  letter-spacing: -0.02em;
+}
+
+.agent-capability-flags,
+.agent-model-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.agent-model-list span {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  padding: 0.45rem 0.7rem;
+  color: var(--text-secondary);
+  background: var(--surface-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.agent-guardrail-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--success) 28%, var(--border-subtle));
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--success) 9%, var(--surface-elevated));
+}
+
+.agent-guardrail-strip strong {
+  color: var(--text-primary);
+}
+
+.agent-planner-card {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.agent-planner-card label {
+  display: grid;
+  gap: var(--space-2);
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.agent-planner-card button {
+  justify-self: start;
+}
+
+.agent-plan-steps {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.agent-plan-steps li {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  padding: var(--space-3);
+}
+
+.agent-plan-steps strong {
+  display: block;
+  color: var(--text-primary);
+}
+
+.agent-plan-steps p {
+  margin: var(--space-1) 0;
+}
+
+.agent-plan-steps span {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+@media (max-width: 980px) {
+  .agent-readiness-grid {
+    grid-template-columns: 1fr;
+  }
+}
