@@ -90,3 +90,12 @@ The product is close to the original goal, but true two-click installation still
 - No MCP tool execution. Approval gates record intent only until backend sandbox execution exists.
 - Skills guide answer style, but project facts must come from retrieved sources.
 - Reports and exports must remain source-backed and user-controlled.
+
+## Task 194 checkpoint
+
+Added the macOS launcher foundation for the packaging path:
+
+- `scripts/launch_macos.command` starts only local backend/frontend servers after explicit confirmation.
+- The launcher performs prerequisite checks and exits with setup instructions if dependencies are missing.
+- No project scan, indexing, model pull, MCP execution, or agent execution is triggered by the launcher.
+- `docs/MACOS_LAUNCHER.md` documents setup and optional Finder alias usage.

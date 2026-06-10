@@ -60,3 +60,11 @@ The update workflow must preserve:
 3. Desktop wrapper such as Tauri/Electron — later, after backup/restore and update safety are stable.
 
 Do not introduce auto-updates or auto-start behavior until local data protection is fully reliable.
+
+## Task 194 macOS launcher foundation
+
+The first packaging-ready launcher is now `scripts/launch_macos.command`.
+
+It is a conservative macOS `.command` file that checks prerequisites, asks for explicit confirmation, starts backend and frontend in Terminal, and opens the local UI. It does not install models, scan projects, rebuild indexes, run MCP tools, or execute agent workflows.
+
+See `docs/MACOS_LAUNCHER.md` for setup and Finder shortcut instructions.
