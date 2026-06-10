@@ -59,3 +59,15 @@ New local API surfaces:
 - `DELETE /mcp/workspaces/{workspace_id}/configs/{config_id}`
 - `GET /mcp/workspaces/{workspace_id}/tool-inventory`
 - `POST /mcp/workspaces/{workspace_id}/configs/{config_id}/approval-preview`
+
+## Task 192 update: evidence and execution readiness
+
+Agent workflows now include an execution readiness view that maps each workflow step to approved workspace MCP tools. This is still advisory and manual-only:
+
+- a step can show whether its proposed tool is approved, denied, or missing;
+- blockers explain what must happen before the step can be tracked as manually executable;
+- evidence can be attached to a step after the user checks results outside the browser;
+- evidence may include a short summary and source paths;
+- the browser still never executes MCP tools, shell commands, file edits, git operations, scans, indexes, rebuilds, or restarts.
+
+This prepares the product for a future backend sandbox/allowlist execution layer without weakening the local-first safety rules.

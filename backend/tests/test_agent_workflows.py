@@ -122,3 +122,54 @@ def test_agent_workflow_approval_gate_blocks_done_until_approved() -> None:
     )
     assert done_response.status_code == 200
     assert next(item for item in done_response.json()["steps"] if item["id"] == step["id"])["status"] == "done"
+
+
+def test_agent_workflow_execution_readiness_maps_mcp_tools_and_evidence() -> None:
+    workspace_id = _create_workspace()
+
+    config_response = client.post(
+        f"/mcp/workspaces/{workspace_id}/configs",
+        json={"template_id": "filesystem-readonly", "project_path": "/tmp/agent-workflow-project"},
+    )
+    assert config_response.status_code == 200
+    config = config_response.json()
+    update_config_response = client.patch(
+        f"/mcp/workspaces/{workspace_id}/configs/{config['id']}",
+        json={"enabled": True, "reviewed": True, "approved_tools": ["read_file", "list_directory", "search_files"]},
+    )
+    assert update_config_response.status_code == 200
+
+    create_response = client.post(
+        f"/workspaces/{workspace_id}/agent-workflows",
+        json={
+            "goal": "Inspect files, propose a safe command, then verify the result.",
+            "provider": "ollama",
+            "model": "llama3.2",
+        },
+    )
+    assert create_response.status_code == 200
+    workflow = create_response.json()
+    step = workflow["steps"][0]
+
+    evidence_response = client.patch(
+        f"/workspaces/{workspace_id}/agent-workflows/{workflow['id']}/steps/{step['id']}/evidence",
+        json={
+            "evidence_status": "provided",
+            "evidence_summary": "Checked the file list manually.",
+            "evidence_sources": ["README.md"],
+        },
+    )
+    assert evidence_response.status_code == 200
+    updated_step = next(item for item in evidence_response.json()["steps"] if item["id"] == step["id"])
+    assert updated_step["evidence_status"] == "provided"
+    assert updated_step["evidence_sources"] == ["README.md"]
+
+    readiness_response = client.get(
+        f"/workspaces/{workspace_id}/agent-workflows/{workflow['id']}/execution-readiness"
+    )
+    assert readiness_response.status_code == 200
+    readiness = readiness_response.json()
+    assert readiness["workspace_id"] == workspace_id
+    assert readiness["approved_tools_count"] >= 3
+    assert readiness["steps"]
+    assert readiness["safety_note"].startswith("This readiness panel")

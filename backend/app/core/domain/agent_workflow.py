@@ -28,6 +28,9 @@ class AgentWorkflowStep:
     execution_hint: str | None = None
     evidence_hint: str | None = None
     approved_at: str | None = None
+    evidence_status: str = "not_provided"
+    evidence_summary: str | None = None
+    evidence_sources: list[str] | None = None
     notes: str | None = None
     updated_at: str | None = None
 
@@ -103,6 +106,34 @@ class AgentWorkflowDraft:
         if self.pending_approval_steps_count:
             return "approval_required"
         return "ready_for_manual_tracking"
+
+
+@dataclass(frozen=True)
+class AgentWorkflowExecutionReadinessStep:
+    step_id: str
+    title: str
+    proposed_tool: str | None
+    tool_status: str
+    tool_risk: str
+    approval_status: str
+    evidence_status: str
+    ready_for_manual_execution: bool
+    blockers: list[str]
+    next_action: str
+
+
+@dataclass(frozen=True)
+class AgentWorkflowExecutionReadiness:
+    workspace_id: str
+    workflow_id: str
+    status: str
+    approved_tools_count: int
+    risky_tools_count: int
+    ready_steps_count: int
+    blocked_steps_count: int
+    steps: list[AgentWorkflowExecutionReadinessStep]
+    guardrails: list[str]
+    safety_note: str
 
 
 def create_agent_workflow_from_preview(*, workspace_id: str, goal: str, provider: str | None, model: str | None, readiness: str, agent_mode: str, preview_steps: list, guardrails: list[str], unsupported_actions: list[str], safety_note: str) -> AgentWorkflowDraft:
@@ -191,6 +222,101 @@ def update_workflow_step_approval(workflow: AgentWorkflowDraft, step_id: str, ap
         raise KeyError(step_id)
     workflow_status = _workflow_status_from_steps(updated_steps)
     return replace(workflow, steps=updated_steps, status=workflow_status, updated_at=now)
+
+
+def update_workflow_step_evidence(
+    workflow: AgentWorkflowDraft,
+    step_id: str,
+    evidence_status: str,
+    evidence_summary: str | None = None,
+    evidence_sources: list[str] | None = None,
+) -> AgentWorkflowDraft:
+    if evidence_status not in {"not_provided", "provided", "needs_review", "verified"}:
+        raise ValueError(f"Unsupported evidence status: {evidence_status}")
+    now = utc_now_iso()
+    updated_steps = []
+    found = False
+    for step in workflow.steps:
+        if step.id == step_id:
+            found = True
+            updated_steps.append(
+                replace(
+                    step,
+                    evidence_status=evidence_status,
+                    evidence_summary=evidence_summary,
+                    evidence_sources=evidence_sources or [],
+                    updated_at=now,
+                )
+            )
+        else:
+            updated_steps.append(step)
+    if not found:
+        raise KeyError(step_id)
+    return replace(workflow, steps=updated_steps, updated_at=now)
+
+
+def build_workflow_execution_readiness(workflow: AgentWorkflowDraft, approved_tools: list[dict[str, str]]) -> AgentWorkflowExecutionReadiness:
+    approved_tool_names = {tool.get("tool", "") for tool in approved_tools if tool.get("status") == "approved" and tool.get("enabled") == "true"}
+    risky_tool_names = {tool.get("tool", "") for tool in approved_tools if tool.get("status") == "approved" and tool.get("risk_level") != "read_only"}
+    readiness_steps: list[AgentWorkflowExecutionReadinessStep] = []
+    for step in workflow.steps:
+        blockers: list[str] = []
+        proposed_tool = step.proposed_tool
+        tool_status = "manual_checkpoint"
+        if proposed_tool:
+            tool_status = "approved" if proposed_tool in approved_tool_names else "not_approved"
+        if step.requires_user_confirmation and step.approval_status != "approved":
+            blockers.append("Step approval is required.")
+        if proposed_tool and proposed_tool not in approved_tool_names:
+            blockers.append("Proposed MCP/tool is not approved for this workspace.")
+        if step.tool_risk != "read_only" and step.approval_status != "approved":
+            blockers.append("Risky or manual tool requires explicit approval before tracking execution.")
+        ready = not blockers
+        if ready and step.evidence_status in {"provided", "verified"}:
+            next_action = "Review evidence and mark the step done if the result is correct."
+        elif ready:
+            next_action = "Run/check manually outside the browser, then attach evidence."
+        else:
+            next_action = "Resolve blockers before manual execution tracking."
+        readiness_steps.append(
+            AgentWorkflowExecutionReadinessStep(
+                step_id=step.id,
+                title=step.title,
+                proposed_tool=proposed_tool,
+                tool_status=tool_status,
+                tool_risk=step.tool_risk,
+                approval_status=step.approval_status,
+                evidence_status=step.evidence_status,
+                ready_for_manual_execution=ready,
+                blockers=blockers,
+                next_action=next_action,
+            )
+        )
+    ready_count = len([step for step in readiness_steps if step.ready_for_manual_execution])
+    blocked_count = len(readiness_steps) - ready_count
+    if blocked_count:
+        status = "blocked"
+    elif ready_count:
+        status = "ready_for_manual_execution"
+    else:
+        status = "no_steps"
+    return AgentWorkflowExecutionReadiness(
+        workspace_id=workflow.workspace_id,
+        workflow_id=workflow.id,
+        status=status,
+        approved_tools_count=len(approved_tool_names),
+        risky_tools_count=len(risky_tool_names),
+        ready_steps_count=ready_count,
+        blocked_steps_count=blocked_count,
+        steps=readiness_steps,
+        guardrails=[
+            "Execution readiness is advisory only.",
+            "The browser UI never executes shell commands or MCP tools.",
+            "Run commands manually or through a future backend sandbox with explicit approval.",
+            "Attach evidence before marking risky steps done.",
+        ],
+        safety_note="This readiness panel maps approved tools to workflow steps. It does not execute tools, commands, file edits, git actions, scans, indexes, rebuilds, or restarts.",
+    )
 
 
 def build_step_approval_preview(workflow: AgentWorkflowDraft, step_id: str) -> AgentStepApprovalPreview:

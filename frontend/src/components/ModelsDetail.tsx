@@ -9,6 +9,7 @@ import {
   createMCPConnectionCheck,
   createWorkspaceMCPConfig,
   deleteWorkspaceMCPConfig,
+  getAgentWorkflowExecutionReadiness,
   getWorkspaceMCPToolInventory,
   listWorkspaceMCPConfigs,
   previewWorkspaceMCPApproval,
@@ -23,6 +24,7 @@ import {
   saveModelExperimentRating,
   updateAgentWorkflowStep,
   updateAgentWorkflowStepApproval,
+  updateAgentWorkflowStepEvidence,
   updateWorkspaceMCPConfig,
   updateWorkspaceModelSelection,
 } from "../api/client";
@@ -31,6 +33,7 @@ import type {
   AgentCapabilityCatalog,
   AgentPlanningPreview,
   AgentWorkflow,
+  AgentWorkflowExecutionReadiness,
   AgentWorkflowStepApprovalPreview,
   MCPServerCatalog,
   MCPServerConfigPreview,
@@ -490,6 +493,7 @@ function AgentModeReadinessPanel({
   const [workflowError, setWorkflowError] = useState<string | null>(null);
   const [isSavingWorkflow, setIsSavingWorkflow] = useState(false);
   const [stepApprovalPreview, setStepApprovalPreview] = useState<AgentWorkflowStepApprovalPreview | null>(null);
+  const [executionReadiness, setExecutionReadiness] = useState<AgentWorkflowExecutionReadiness | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -568,6 +572,32 @@ function AgentModeReadinessPanel({
       setWorkflowError(errorMessage(error));
     } finally {
       setIsSavingWorkflow(false);
+    }
+  }
+
+  async function handleExecutionReadiness(workflow: AgentWorkflow) {
+    setWorkflowError(null);
+    try {
+      const result = await getAgentWorkflowExecutionReadiness(workspaceId, workflow.id);
+      setExecutionReadiness(result);
+    } catch (error) {
+      setWorkflowError(errorMessage(error));
+    }
+  }
+
+  async function handleStepEvidence(workflow: AgentWorkflow, stepId: string, evidenceStatus: "provided" | "verified" | "needs_review") {
+    setWorkflowError(null);
+    try {
+      const updated = await updateAgentWorkflowStepEvidence(workspaceId, workflow.id, stepId, {
+        evidence_status: evidenceStatus,
+        evidence_summary: evidenceStatus === "verified"
+          ? "Manual evidence was reviewed and marked as verified."
+          : "Manual evidence should be checked outside the browser UI.",
+        evidence_sources: [],
+      });
+      setWorkflows((current) => current.map((item) => item.id === updated.id ? updated : item));
+    } catch (error) {
+      setWorkflowError(errorMessage(error));
     }
   }
 
@@ -747,6 +777,7 @@ function AgentModeReadinessPanel({
                     <p>{workflow.provider}/{workflow.model} · approvals {workflow.approved_steps_count}/{workflow.approval_required_steps_count}</p>
                   </div>
                   <div className="agent-workflow-actions">
+                    <button type="button" className="secondary-button" onClick={() => void handleExecutionReadiness(workflow)}>Readiness</button>
                     <button type="button" className="secondary-button" onClick={() => void handleArchiveWorkflow(workflow)}>Archive</button>
                     <button type="button" className="danger-button" onClick={() => void handleDeleteWorkflow(workflow)}>Delete</button>
                   </div>
@@ -764,6 +795,7 @@ function AgentModeReadinessPanel({
                           {formatLabel(step.status)} · approval {formatLabel(step.approval_status)} · {step.proposed_tool ?? "manual checkpoint"} · {formatLabel(step.tool_risk)}
                         </span>
                         {step.execution_hint ? <small>{step.execution_hint}</small> : null}
+                        <small>Evidence: {formatLabel(step.evidence_status)}{step.evidence_summary ? ` · ${step.evidence_summary}` : ""}</small>
                       </div>
                       <div className="agent-step-actions">
                         <button type="button" className="secondary-button" onClick={() => void handleApprovalPreview(workflow, step.id)}>Gate</button>
@@ -773,6 +805,8 @@ function AgentModeReadinessPanel({
                             <button type="button" className="secondary-button" onClick={() => void handleStepApproval(workflow, step.id, "rejected")}>Reject</button>
                           </>
                         ) : null}
+                        <button type="button" className="secondary-button" onClick={() => void handleStepEvidence(workflow, step.id, "provided")}>Evidence</button>
+                        <button type="button" className="secondary-button" onClick={() => void handleStepEvidence(workflow, step.id, "verified")}>Verified</button>
                         <button type="button" onClick={() => void handleStepStatus(workflow, step.id, "done")} disabled={blockedByApproval}>Done</button>
                         <button type="button" onClick={() => void handleStepStatus(workflow, step.id, "needs_review")}>Review</button>
                         <button type="button" onClick={() => void handleStepStatus(workflow, step.id, "skipped")}>Skip</button>
@@ -787,6 +821,36 @@ function AgentModeReadinessPanel({
           </div>
         )}
       </div>
+
+      {executionReadiness ? (
+        <div className="agent-execution-readiness-card">
+          <div className="panel-heading-row compact">
+            <div>
+              <p className="eyebrow">Execution readiness</p>
+              <h3>{formatLabel(executionReadiness.status)}</h3>
+            </div>
+            <StatusBadge label={`${executionReadiness.ready_steps_count}/${executionReadiness.steps.length} ready`} />
+          </div>
+          <div className="agent-readiness-summary-grid">
+            <span>Approved tools: <strong>{executionReadiness.approved_tools_count}</strong></span>
+            <span>Risky tools: <strong>{executionReadiness.risky_tools_count}</strong></span>
+            <span>Blocked steps: <strong>{executionReadiness.blocked_steps_count}</strong></span>
+          </div>
+          <ol className="agent-readiness-steps">
+            {executionReadiness.steps.map((step) => (
+              <li key={step.step_id}>
+                <div>
+                  <strong>{step.title}</strong>
+                  <span>{step.proposed_tool ?? "manual checkpoint"} · {formatLabel(step.tool_status)} · evidence {formatLabel(step.evidence_status)}</span>
+                  <small>{step.next_action}</small>
+                </div>
+                {step.blockers.length > 0 ? <ul>{step.blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul> : <StatusBadge label="Ready" />}
+              </li>
+            ))}
+          </ol>
+          <p className="muted-text">{executionReadiness.safety_note}</p>
+        </div>
+      ) : null}
 
       {stepApprovalPreview ? (
         <div className="agent-approval-preview-card">
