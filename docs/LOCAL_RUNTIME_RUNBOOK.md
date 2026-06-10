@@ -69,3 +69,7 @@ scripts/start_local_workspace.sh
 It prints the backend, frontend, and runtime-check commands without executing them. Keep backend and frontend in separate terminals so logs stay visible.
 
 The browser UI stores the last selected workspace id in localStorage and restores it on startup when the workspace still exists in SQLite. This is convenience state only; project data remains in `backend/.ai-workbench/workspaces.db`.
+
+## Production readiness
+
+See `docs/PRODUCTION_READINESS.md` for the final daily-use checklist and packaging path.
