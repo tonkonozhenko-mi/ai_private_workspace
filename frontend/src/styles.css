@@ -14763,3 +14763,631 @@ pre,
     border-color: #34434d;
   }
 }
+
+/* Task 201 — Apple-grade calm UX reset.
+   Final release-candidate visual layer: one rhythm, one hierarchy, progressive
+   disclosure, and dark-mode-safe surfaces. The UI should invite action instead
+   of broadcasting every technical detail at once. */
+:root {
+  --ui-page-gutter: clamp(24px, 3vw, 44px);
+  --ui-block-gap: 22px;
+  --ui-card-gap: 16px;
+  --ui-card-padding: clamp(22px, 2.2vw, 30px);
+  --ui-radius-card: 28px;
+  --ui-radius-section: 20px;
+  --ui-radius-control: 16px;
+  --ui-control-height: 44px;
+  --ui-body: 0.94rem;
+  --ui-body-small: 0.84rem;
+  --ui-caption: 0.72rem;
+  --ui-title: clamp(1.35rem, 1.8vw, 1.72rem);
+  --ui-line: 1.58;
+  --ui-dark-surface: #111b22;
+  --ui-dark-raised: #17232b;
+  --ui-dark-card: #1b2932;
+  --ui-dark-border: rgb(139 163 174 / 22%);
+  --ui-dark-muted: #aab7c0;
+}
+
+.main-content {
+  padding: var(--ui-page-gutter);
+}
+
+.workspace-tab-content,
+.models-detail,
+.overview-grid,
+.ask-workspace,
+.settings-grid,
+.action-catalog,
+.reports-grid {
+  gap: var(--ui-block-gap);
+}
+
+.panel,
+.metric-card,
+.state-card,
+.workspace-header,
+.workspace-navigation-shell,
+.settings-section-card,
+.settings-focus-panel,
+.settings-safety-panel,
+.models-native-hero,
+.product-status-panel,
+.onboarding-guide-panel,
+.models-simple-panel,
+.guided-model-setup-panel,
+.first-launch-panel,
+.ask-workspace-chat,
+.conversation-details-card {
+  border-radius: var(--ui-radius-card);
+}
+
+.panel,
+.metric-card,
+.state-card,
+.settings-section-card,
+.settings-focus-panel,
+.settings-safety-panel,
+.guided-model-setup-panel,
+.first-launch-panel,
+.ask-workspace-chat,
+.conversation-details-card {
+  padding: var(--ui-card-padding);
+}
+
+.panel,
+.metric-card,
+.state-card,
+.workspace-header,
+.workspace-navigation-shell,
+.settings-section-card,
+.settings-focus-panel,
+.settings-safety-panel,
+.models-native-hero,
+.product-status-panel,
+.onboarding-guide-panel,
+.models-simple-panel,
+.guided-model-setup-panel,
+.first-launch-panel,
+.ask-workspace-chat,
+.conversation-details-card {
+  border-color: color-mix(in srgb, var(--color-border) 78%, transparent);
+  box-shadow: 0 1px 2px rgb(15 23 32 / 5%), 0 18px 44px rgb(15 23 32 / 5%);
+}
+
+.panel-heading,
+.tab-section-heading,
+.workspace-header,
+.settings-section-heading,
+.onboarding-guide-heading,
+.workspace-setup-actions,
+.product-status-cta,
+.file-rules-disclosure summary,
+.models-native-hero,
+.model-selection-card-heading,
+.guided-model-card > div:first-child,
+.first-launch-card > div,
+.ask-panel-heading {
+  gap: var(--ui-card-gap);
+}
+
+.panel-heading h2,
+.tab-section-heading h1,
+.workspace-header h1,
+.models-native-hero h2,
+.settings-hero-panel h1,
+.conversation-details-card strong {
+  color: var(--color-text-strong);
+  font-size: var(--ui-title);
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.panel-intro,
+.workspace-header-path,
+.information-band p,
+.guided-model-card p,
+.guided-model-notes span,
+.first-launch-card p,
+.first-launch-card small,
+.first-launch-footnote,
+.model-selection-card p,
+.activation-step p,
+.models-simple-status,
+.product-status-next p,
+.onboarding-step-card p,
+.simple-model-card p,
+.conversation-details-card p,
+.file-rules-disclosure summary p,
+.workspace-setup-actions p {
+  color: var(--color-text-muted);
+  font-size: var(--ui-body);
+  line-height: var(--ui-line);
+}
+
+.eyebrow,
+.metric-label,
+.model-selection-card-heading span,
+.model-selection-card label > span,
+.guided-model-card > div > span,
+.guided-model-card label span,
+.first-launch-card span,
+.model-runtime-grid article > span:first-child,
+.file-rules-disclosure summary > span {
+  color: var(--color-text-subtle);
+  font-size: var(--ui-caption);
+  font-weight: 850;
+  letter-spacing: 0.13em;
+}
+
+.primary-button,
+.secondary-action,
+.primary-action,
+.text-button,
+.copy-button,
+.model-selection-save-button,
+.overview-cta-button,
+.local-ai-models-button,
+.session-clear-button,
+.ask-examples button,
+.workspace-tabs button,
+.settings-segmented-control button,
+button {
+  min-height: var(--ui-control-height);
+  border-radius: var(--ui-radius-control);
+  font-size: var(--ui-body-small);
+  font-weight: 780;
+}
+
+button,
+select,
+input,
+textarea {
+  letter-spacing: -0.01em;
+}
+
+input,
+textarea,
+select,
+.guided-model-card select,
+.guided-model-card input,
+.model-selection-card select {
+  min-height: var(--ui-control-height);
+  border-radius: var(--ui-radius-control);
+  font-size: var(--ui-body-small);
+}
+
+/* One clear next action. Secondary technical details stay quiet. */
+.onboarding-guide-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.onboarding-guide-heading {
+  align-items: center;
+}
+
+.onboarding-guide-heading > div,
+.workspace-setup-actions > div:first-child,
+.file-rules-disclosure summary > div,
+.models-native-hero > div:first-child {
+  max-width: 760px;
+}
+
+.onboarding-safety-note,
+.file-rules-disclosure summary > span,
+.status-badge,
+.panel-count {
+  border-radius: var(--radius-pill);
+}
+
+.workspace-setup-actions,
+.file-rules-disclosure,
+.first-launch-details,
+.models-disclosure-panel {
+  background: color-mix(in srgb, var(--color-surface-raised) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent);
+  border-radius: var(--ui-radius-section);
+}
+
+.file-rules-disclosure {
+  margin-top: var(--ui-block-gap);
+}
+
+.file-rules-disclosure summary {
+  padding: 18px 20px;
+}
+
+.file-rules-disclosure summary strong {
+  color: var(--color-text-strong);
+  font-size: 1rem;
+  letter-spacing: -0.025em;
+}
+
+.file-rules-disclosure summary p {
+  margin: 4px 0 0;
+  max-width: 760px;
+}
+
+/* Start screen: show the human flow first, hide diagnostics unless requested. */
+.first-launch-panel {
+  gap: 18px;
+}
+
+.first-launch-summary {
+  max-width: 820px;
+  margin-bottom: 0;
+}
+
+.first-launch-flow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.first-launch-flow-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 14px 15px;
+  background: color-mix(in srgb, var(--color-surface-raised) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-soft) 86%, transparent);
+  border-radius: var(--ui-radius-section);
+}
+
+.first-launch-flow-step span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: var(--color-accent-strong);
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.first-launch-flow-step strong {
+  min-width: 0;
+  color: var(--color-text-strong);
+  font-size: var(--ui-body-small);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.first-launch-details {
+  padding: 0;
+  overflow: hidden;
+}
+
+.first-launch-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--ui-control-height);
+  padding: 14px 18px;
+  color: var(--color-text-strong);
+  cursor: pointer;
+  font-size: var(--ui-body-small);
+  font-weight: 850;
+  list-style: none;
+}
+
+.first-launch-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.first-launch-details summary::after {
+  content: "Show";
+  padding: 5px 10px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-pill);
+  font-size: var(--ui-caption);
+  font-weight: 850;
+}
+
+.first-launch-details[open] summary::after {
+  content: "Hide";
+}
+
+.first-launch-details[open] .first-launch-grid,
+.first-launch-details[open] .first-launch-command-list {
+  padding: 0 18px 18px;
+}
+
+.first-launch-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.first-launch-card {
+  min-height: auto;
+  padding: 16px;
+  background: color-mix(in srgb, var(--color-surface-raised) 95%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-soft) 88%, transparent);
+}
+
+.first-launch-card strong {
+  color: var(--color-text-strong);
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+
+.first-launch-command-list > div {
+  background: color-mix(in srgb, var(--color-surface-raised) 96%, transparent);
+  border-color: color-mix(in srgb, var(--color-border-soft) 86%, transparent);
+}
+
+.first-launch-footnote {
+  margin: 0;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--color-info-soft) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-info-border) 70%, transparent);
+  border-radius: var(--ui-radius-section);
+}
+
+/* Conversation details should look like metadata, not disabled form fields. */
+.conversation-details-card {
+  margin-top: var(--ui-block-gap);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-info-soft) 45%, transparent), transparent 58%),
+    color-mix(in srgb, var(--color-surface-raised) 94%, transparent);
+  border-color: color-mix(in srgb, var(--color-info-border) 50%, var(--color-border));
+}
+
+.conversation-details-card > div:first-child {
+  display: grid;
+  gap: 5px;
+}
+
+.conversation-detail-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.conversation-detail-grid span {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 11px;
+  color: var(--color-text-muted);
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-soft) 80%, transparent);
+  border-radius: var(--ui-radius-control);
+  font-size: var(--ui-body-small);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.conversation-detail-grid b {
+  color: var(--color-text-strong);
+  font-weight: 850;
+}
+
+/* Packaging roadmap is a future plan; keep it visually quiet. */
+.desktop-packaging-panel,
+.models-disclosure-panel {
+  box-shadow: none;
+}
+
+.models-disclosure-panel > summary {
+  padding: 18px 20px;
+}
+
+.models-disclosure-panel h2 {
+  font-size: 1.05rem;
+}
+
+.models-disclosure-panel summary span:not(.status-badge) {
+  font-size: var(--ui-body-small);
+  line-height: 1.5;
+}
+
+.packaging-roadmap-grid article {
+  border-radius: var(--ui-radius-section);
+}
+
+/* Dark theme contrast and typography reset. */
+:root[data-theme="dark"] .main-content,
+:root[data-theme="dark"] body {
+  background: #071017;
+}
+
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .metric-card,
+:root[data-theme="dark"] .state-card,
+:root[data-theme="dark"] .workspace-header,
+:root[data-theme="dark"] .workspace-navigation-shell,
+:root[data-theme="dark"] .settings-section-card,
+:root[data-theme="dark"] .settings-focus-panel,
+:root[data-theme="dark"] .settings-safety-panel,
+:root[data-theme="dark"] .models-native-hero,
+:root[data-theme="dark"] .product-status-panel,
+:root[data-theme="dark"] .onboarding-guide-panel,
+:root[data-theme="dark"] .models-simple-panel,
+:root[data-theme="dark"] .guided-model-setup-panel,
+:root[data-theme="dark"] .first-launch-panel,
+:root[data-theme="dark"] .ask-workspace-chat,
+:root[data-theme="dark"] .conversation-details-card,
+:root[data-theme="dark"] .workspace-setup-actions,
+:root[data-theme="dark"] .file-rules-disclosure,
+:root[data-theme="dark"] .first-launch-details,
+:root[data-theme="dark"] .models-disclosure-panel,
+:root[data-theme="dark"] .first-launch-card,
+:root[data-theme="dark"] .first-launch-flow-step,
+:root[data-theme="dark"] .first-launch-command-list > div,
+:root[data-theme="dark"] .conversation-detail-grid span {
+  background: var(--ui-dark-raised);
+  border-color: var(--ui-dark-border);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 4%), 0 18px 44px rgb(0 0 0 / 16%);
+}
+
+:root[data-theme="dark"] .first-launch-flow-step span,
+:root[data-theme="dark"] .onboarding-step-card > span:first-child {
+  color: #bfe8d3;
+  background: rgb(var(--accent-rgb, 77 166 126) / 18%);
+  border-color: rgb(var(--accent-rgb, 77 166 126) / 36%);
+}
+
+:root[data-theme="dark"] .panel-intro,
+:root[data-theme="dark"] .workspace-header-path,
+:root[data-theme="dark"] .guided-model-card p,
+:root[data-theme="dark"] .first-launch-card p,
+:root[data-theme="dark"] .first-launch-card small,
+:root[data-theme="dark"] .first-launch-footnote,
+:root[data-theme="dark"] .conversation-details-card p,
+:root[data-theme="dark"] .conversation-detail-grid span,
+:root[data-theme="dark"] .file-rules-disclosure summary p,
+:root[data-theme="dark"] .workspace-setup-actions p,
+:root[data-theme="dark"] .models-disclosure-panel summary span:not(.status-badge) {
+  color: var(--ui-dark-muted);
+}
+
+:root[data-theme="dark"] .panel-heading h2,
+:root[data-theme="dark"] .workspace-header h1,
+:root[data-theme="dark"] .models-native-hero h2,
+:root[data-theme="dark"] .conversation-details-card strong,
+:root[data-theme="dark"] .conversation-detail-grid b,
+:root[data-theme="dark"] .first-launch-flow-step strong,
+:root[data-theme="dark"] .first-launch-card strong,
+:root[data-theme="dark"] .first-launch-details summary,
+:root[data-theme="dark"] .file-rules-disclosure summary strong {
+  color: #f2f6f8;
+}
+
+:root[data-theme="dark"] .first-launch-footnote {
+  background: rgb(41 77 98 / 18%);
+}
+
+:root[data-theme="dark"] .first-launch-details summary::after,
+:root[data-theme="dark"] .file-rules-disclosure summary > span,
+:root[data-theme="dark"] .onboarding-safety-note {
+  color: #d7e0e5;
+  background: rgb(255 255 255 / 5%);
+  border-color: var(--ui-dark-border);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .main-content,
+  :root[data-theme="system"] body {
+    background: #071017;
+  }
+
+  :root[data-theme="system"] .panel,
+  :root[data-theme="system"] .metric-card,
+  :root[data-theme="system"] .state-card,
+  :root[data-theme="system"] .workspace-header,
+  :root[data-theme="system"] .workspace-navigation-shell,
+  :root[data-theme="system"] .settings-section-card,
+  :root[data-theme="system"] .settings-focus-panel,
+  :root[data-theme="system"] .settings-safety-panel,
+  :root[data-theme="system"] .models-native-hero,
+  :root[data-theme="system"] .product-status-panel,
+  :root[data-theme="system"] .onboarding-guide-panel,
+  :root[data-theme="system"] .models-simple-panel,
+  :root[data-theme="system"] .guided-model-setup-panel,
+  :root[data-theme="system"] .first-launch-panel,
+  :root[data-theme="system"] .ask-workspace-chat,
+  :root[data-theme="system"] .conversation-details-card,
+  :root[data-theme="system"] .workspace-setup-actions,
+  :root[data-theme="system"] .file-rules-disclosure,
+  :root[data-theme="system"] .first-launch-details,
+  :root[data-theme="system"] .models-disclosure-panel,
+  :root[data-theme="system"] .first-launch-card,
+  :root[data-theme="system"] .first-launch-flow-step,
+  :root[data-theme="system"] .first-launch-command-list > div,
+  :root[data-theme="system"] .conversation-detail-grid span {
+    background: var(--ui-dark-raised);
+    border-color: var(--ui-dark-border);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 4%), 0 18px 44px rgb(0 0 0 / 16%);
+  }
+
+  :root[data-theme="system"] .first-launch-flow-step span,
+  :root[data-theme="system"] .onboarding-step-card > span:first-child {
+    color: #bfe8d3;
+    background: rgb(var(--accent-rgb, 77 166 126) / 18%);
+    border-color: rgb(var(--accent-rgb, 77 166 126) / 36%);
+  }
+
+  :root[data-theme="system"] .panel-intro,
+  :root[data-theme="system"] .workspace-header-path,
+  :root[data-theme="system"] .guided-model-card p,
+  :root[data-theme="system"] .first-launch-card p,
+  :root[data-theme="system"] .first-launch-card small,
+  :root[data-theme="system"] .first-launch-footnote,
+  :root[data-theme="system"] .conversation-details-card p,
+  :root[data-theme="system"] .conversation-detail-grid span,
+  :root[data-theme="system"] .file-rules-disclosure summary p,
+  :root[data-theme="system"] .workspace-setup-actions p,
+  :root[data-theme="system"] .models-disclosure-panel summary span:not(.status-badge) {
+    color: var(--ui-dark-muted);
+  }
+
+  :root[data-theme="system"] .panel-heading h2,
+  :root[data-theme="system"] .workspace-header h1,
+  :root[data-theme="system"] .models-native-hero h2,
+  :root[data-theme="system"] .conversation-details-card strong,
+  :root[data-theme="system"] .conversation-detail-grid b,
+  :root[data-theme="system"] .first-launch-flow-step strong,
+  :root[data-theme="system"] .first-launch-card strong,
+  :root[data-theme="system"] .first-launch-details summary,
+  :root[data-theme="system"] .file-rules-disclosure summary strong {
+    color: #f2f6f8;
+  }
+
+  :root[data-theme="system"] .first-launch-footnote {
+    background: rgb(41 77 98 / 18%);
+  }
+
+  :root[data-theme="system"] .first-launch-details summary::after,
+  :root[data-theme="system"] .file-rules-disclosure summary > span,
+  :root[data-theme="system"] .onboarding-safety-note {
+    color: #d7e0e5;
+    background: rgb(255 255 255 / 5%);
+    border-color: var(--ui-dark-border);
+  }
+}
+
+@media (max-width: 960px) {
+  .main-content {
+    padding: 20px 16px 36px;
+  }
+
+  .onboarding-guide-heading,
+  .workspace-setup-actions,
+  .file-rules-disclosure summary,
+  .models-native-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .overview-cta-button,
+  .workspace-setup-action-buttons,
+  .file-rules-disclosure summary > span {
+    width: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  :root {
+    --ui-card-padding: 17px;
+    --ui-block-gap: 14px;
+    --ui-control-height: 42px;
+  }
+
+  .main-content {
+    padding: 16px 12px 28px;
+  }
+
+  .conversation-detail-grid,
+  .first-launch-flow,
+  .first-launch-grid {
+    grid-template-columns: 1fr;
+  }
+}
