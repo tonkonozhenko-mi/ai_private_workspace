@@ -533,28 +533,34 @@ function FirstLaunchSetupPanel() {
 
   return (
     <section className="panel first-launch-panel">
-      <PanelHeading eyebrow="After launch" title="Workspace setup checklist" status={readiness.status} />
-      <p className="panel-intro">{readiness.summary}</p>
-      <div className="first-launch-grid">
-        {readiness.checklist.map((item) => (
-          <article className="first-launch-card" key={item.id}>
-            <div>
-              <span>{item.title}</span>
-              <StatusBadge label={item.status} />
-            </div>
-            <strong>{item.summary}</strong>
-            <p>{item.detail}</p>
-            {item.user_action ? <small>{item.user_action}</small> : null}
+      <PanelHeading eyebrow="Start here" title="Workspace setup" status={readiness.status} />
+      <p className="panel-intro first-launch-summary">{readiness.summary}</p>
+      <div className="first-launch-flow" aria-label="Recommended workspace setup flow">
+        {readiness.recommended_flow.slice(0, 6).map((step, index) => (
+          <article className="first-launch-flow-step" key={step}>
+            <span>{index + 1}</span>
+            <strong>{step}</strong>
           </article>
         ))}
       </div>
       <details className="first-launch-details">
-        <summary>Recommended flow after the app is open</summary>
-        <ol>
-          {readiness.recommended_flow.map((step) => (
-            <li key={step}>{step}</li>
+        <summary>Readiness checks</summary>
+        <div className="first-launch-grid">
+          {readiness.checklist.map((item) => (
+            <article className="first-launch-card" key={item.id}>
+              <div>
+                <span>{item.title}</span>
+                <StatusBadge label={item.status} />
+              </div>
+              <strong>{item.summary}</strong>
+              <p>{item.detail}</p>
+              {item.user_action ? <small>{item.user_action}</small> : null}
+            </article>
           ))}
-        </ol>
+        </div>
+      </details>
+      <details className="first-launch-details is-secondary">
+        <summary>Developer commands</summary>
         <div className="first-launch-command-list">
           {readiness.copy_commands.map((command) => (
             <div key={command.label}>
@@ -565,8 +571,7 @@ function FirstLaunchSetupPanel() {
           ))}
         </div>
       </details>
-      <p className="settings-message info">{readiness.safety_note}</p>
-      <p className="settings-message info">Startup instructions belong outside the UI. This screen only explains what to do after the app is already open.</p>
+      <p className="first-launch-footnote">{readiness.safety_note}</p>
     </section>
   );
 }
