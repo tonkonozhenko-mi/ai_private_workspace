@@ -864,6 +864,19 @@ export function SettingsPanel({
               onChange={(value) => updatePreference("density", value)}
             />
           </PreferenceGroup>
+          <PreferenceGroup label="Demo mode">
+            <SegmentedChoice
+              value={preferences.demoMode}
+              options={[
+                { value: "off", label: "Off" },
+                { value: "on", label: "On" },
+              ]}
+              onChange={(value) => updatePreference("demoMode", value)}
+            />
+          </PreferenceGroup>
+          <p className="settings-helper-note">
+            Demo mode keeps all actions manual, but makes the interface calmer for walkthroughs and screenshots.
+          </p>
         </SettingsSection>
 
         <SettingsSection
@@ -1373,6 +1386,7 @@ export function SettingsPanel({
   "productName": "AI Private Workspace",
   "brandInitials": "AI",
   "accentColor": "green",
+  "demoMode": "off",
   "fileIndexingPreferences": {
     "profile": "balanced",
     "includePatterns": "src/**\ndocs/**\n*.tf",
@@ -2476,6 +2490,14 @@ function parseImportedPreferences(
       recognizedValueCount += 1;
     }
 
+    if (parsed.demoMode !== undefined) {
+      if (!isDemoModePreference(parsed.demoMode)) {
+        return null;
+      }
+      nextPreferences.demoMode = parsed.demoMode;
+      recognizedValueCount += 1;
+    }
+
     if (parsed.skillPreferences !== undefined) {
       nextPreferences.skillPreferences = normalizeSkillPreferences(
         parsed.skillPreferences,
@@ -2569,6 +2591,12 @@ function isAccentColorPreference(
     value === "purple" ||
     value === "orange"
   );
+}
+
+function isDemoModePreference(
+  value: unknown,
+): value is WorkbenchPreferences["demoMode"] {
+  return value === "off" || value === "on";
 }
 
 function formatMode(value: string) {
