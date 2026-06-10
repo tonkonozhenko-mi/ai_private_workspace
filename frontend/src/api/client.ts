@@ -67,6 +67,7 @@ import type {
   MCPToolInventory,
   MCPApprovalPreviewRequest,
   MCPApprovalPreview,
+  GuidedModelSetupGuide,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -1017,4 +1018,10 @@ export function saveModelExperimentRating(
       body: JSON.stringify(rating),
     },
   );
+}
+
+export function getGuidedModelSetup(
+  workspaceId: string,
+): Promise<GuidedModelSetupGuide> {
+  return getJson<GuidedModelSetupGuide>(`/workspaces/${workspaceId}/models/setup-guide`);
 }

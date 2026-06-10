@@ -88,6 +88,10 @@ from app.api.schemas.workspace_model_selection_schemas import (
     WorkspaceModelSelectionResponse,
     to_workspace_model_selection_response,
 )
+from app.api.schemas.guided_model_setup_schemas import (
+    GuidedModelSetupGuideResponse,
+    to_guided_model_setup_guide_response,
+)
 from app.api.schemas.workspace_model_selection_status_schemas import (
     WorkspaceModelSelectionStatusResponse,
     to_workspace_model_selection_status_response,
@@ -371,6 +375,11 @@ from app.core.use_cases.get_workspace_model_selection import (
     GetWorkspaceModelSelectionInput,
     GetWorkspaceModelSelectionUseCase,
     WorkspaceModelSelectionNotFoundError,
+)
+from app.core.use_cases.get_guided_model_setup import (
+    GetGuidedModelSetupInput,
+    GetGuidedModelSetupUseCase,
+    GuidedModelSetupNotFoundError,
 )
 from app.core.use_cases.update_workspace_model_selection import (
     UpdateWorkspaceModelSelectionInput,
@@ -2415,6 +2424,26 @@ def explain_workspace_model_recommendation(
         ) from exc
 
     return to_model_recommendation_explanation_response(explanation)
+
+
+@router.get(
+    "/{workspace_id}/models/setup-guide",
+    response_model=GuidedModelSetupGuideResponse,
+)
+def get_guided_model_setup(
+    workspace_id: str,
+) -> GuidedModelSetupGuideResponse:
+    try:
+        guide = GetGuidedModelSetupUseCase(
+            workspace_repository=workspace_repository,
+            model_catalog_registry=model_catalog_registry,
+        ).execute(GetGuidedModelSetupInput(workspace_id=workspace_id))
+    except GuidedModelSetupNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return to_guided_model_setup_guide_response(guide)
 
 
 @router.get(
