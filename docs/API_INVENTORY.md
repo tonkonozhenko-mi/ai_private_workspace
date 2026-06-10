@@ -146,12 +146,12 @@ models, and commands. This document provides the finer product-oriented grouping
 
 - `POST /workspaces/{workspace_id}/conversations` — create an explicit saved conversation for a workspace. No scan/index/rebuild is started.
 - `GET /workspaces/{workspace_id}/conversations` — list saved workspace conversations with message counts, update times, and optional filters: `search`, `pinned_only`, `include_archived`.
-- `GET /workspaces/{workspace_id}/conversations/{conversation_id}` — return one saved conversation with persisted user/assistant messages plus answer history metadata.
+- `GET /workspaces/{workspace_id}/conversations/{conversation_id}` — return one saved conversation with persisted user/assistant messages, restored source snapshots, and answer history metadata.
 - `PATCH /workspaces/{workspace_id}/conversations/{conversation_id}` — rename one saved conversation. No scan/index/rebuild is started.
 - `PATCH /workspaces/{workspace_id}/conversations/{conversation_id}/pin` — pin or unpin one saved conversation. This changes local conversation metadata only.
 - `PATCH /workspaces/{workspace_id}/conversations/{conversation_id}/archive` — archive or restore one saved conversation without deleting its messages.
-- `GET /workspaces/{workspace_id}/conversations/{conversation_id}/export` — export a saved conversation as markdown, text, or JSON content for local reuse. No network upload or shell execution.
+- `GET /workspaces/{workspace_id}/conversations/{conversation_id}/export` — export a saved conversation as markdown, text, or JSON content for local reuse, including captured source paths/previews where available. No network upload or shell execution.
 - `GET /workspaces/{workspace_id}/answer-notes` — list reusable answer notes saved from assistant messages, with optional search.
-- `POST /workspaces/{workspace_id}/conversations/{conversation_id}/messages/{message_id}/note` — save an assistant answer as a reusable local note.
+- `POST /workspaces/{workspace_id}/conversations/{conversation_id}/messages/{message_id}/note` — save an assistant answer as a reusable local note with its source question and captured source paths.
 - `DELETE /workspaces/{workspace_id}/answer-notes/{note_id}` — delete a reusable answer note.
 - `DELETE /workspaces/{workspace_id}/conversations/{conversation_id}` — delete one saved conversation and its messages.

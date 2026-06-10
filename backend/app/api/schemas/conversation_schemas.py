@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 
 from app.core.domain.conversation import ConversationMessage, WorkspaceConversation
-from app.core.domain.rag import SkillProfileAudit
+from app.core.domain.rag import RagSource, SkillProfileAudit
 
 
 class CreateConversationRequest(BaseModel):
@@ -18,6 +18,22 @@ class ConversationPinRequest(BaseModel):
 
 class ConversationArchiveRequest(BaseModel):
     archived: bool
+
+
+class ConversationSourceResponse(BaseModel):
+    chunk_id: str
+    source_path: str
+    score: float
+    preview: str
+
+
+def to_conversation_source_response(source: RagSource) -> ConversationSourceResponse:
+    return ConversationSourceResponse(
+        chunk_id=source.chunk_id,
+        source_path=source.source_path,
+        score=source.score,
+        preview=source.preview,
+    )
 
 
 class ConversationMessageResponse(BaseModel):
@@ -39,6 +55,7 @@ class ConversationMessageResponse(BaseModel):
     skill_profile: str | None = None
     active_skills: list[str] = Field(default_factory=list)
     guidance_count: int = 0
+    sources: list[ConversationSourceResponse] = Field(default_factory=list)
 
 
 class WorkspaceConversationResponse(BaseModel):
@@ -85,6 +102,7 @@ def to_conversation_message_response(message: ConversationMessage) -> Conversati
         skill_profile=profile.profile if profile else None,
         active_skills=profile.active_skills if profile else [],
         guidance_count=profile.guidance_count if profile else 0,
+        sources=[to_conversation_source_response(source) for source in message.sources],
     )
 
 
@@ -156,6 +174,7 @@ class ConversationAnswerNoteResponse(BaseModel):
     title: str
     content: str
     source_question: str | None = None
+    source_paths: list[str] = Field(default_factory=list)
     created_at: str
     updated_at: str
 
@@ -169,6 +188,7 @@ def to_answer_note_response(note) -> ConversationAnswerNoteResponse:
         title=note.title,
         content=note.content,
         source_question=note.source_question,
+        source_paths=note.source_paths,
         created_at=note.created_at,
         updated_at=note.updated_at,
     )

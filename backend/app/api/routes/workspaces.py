@@ -1129,6 +1129,7 @@ def _persist_answer_in_conversation(conversation_id: str, answer):
             total_tokens=usage.total_tokens if usage else None,
             latency_ms=usage.latency_ms if usage else None,
             skill_profile=answer.skill_profile,
+            sources=answer.sources,
         )
     )
     return replace(answer, conversation_message_id=assistant_message.id)
@@ -1149,6 +1150,11 @@ def _conversation_export_content(conversation, export_format: str) -> tuple[str,
         lines = [conversation.title, f"Workspace: {conversation.workspace_id}", ""]
         for message in conversation.messages:
             lines.extend([message.role.upper(), message.content, ""])
+            if message.role == "assistant" and message.sources:
+                lines.append("SOURCES")
+                for source in message.sources:
+                    lines.append(f"- {source.source_path} ({source.score:.2f})")
+                lines.append("")
         return filename, "\n".join(lines).strip() + "\n"
     lines = [f"# {conversation.title}", "", f"Workspace: `{conversation.workspace_id}`", ""]
     for message in conversation.messages:
@@ -1160,8 +1166,19 @@ def _conversation_export_content(conversation, export_format: str) -> tuple[str,
                 meta.append(f"model: `{message.llm_provider}/{message.llm_model or 'default'}`")
             if message.total_tokens is not None:
                 meta.append(f"tokens: `{message.total_tokens}`")
+            if message.skill_profile:
+                meta.append(f"skills: `{', '.join(message.skill_profile.active_skills) or 'none'}`")
             if meta:
                 lines.extend(["> " + " · ".join(meta), ""])
+            if message.sources:
+                lines.extend(["### Sources", ""])
+                for index, source in enumerate(message.sources, start=1):
+                    lines.extend([
+                        f"{index}. `{source.source_path}` — score `{source.score:.2f}`",
+                        "",
+                        f"> {source.preview[:280]}",
+                        "",
+                    ])
     return filename, "\n".join(lines).strip() + "\n"
 
 
@@ -1334,6 +1351,7 @@ def save_conversation_answer_note(
             title=request.title or conversation.title,
             content=content,
             source_question=previous_message.content if previous_message and previous_message.role == "user" else None,
+            source_paths=[source.source_path for source in message.sources],
         )
     )
     return to_answer_note_response(note)

@@ -231,6 +231,7 @@ export interface ConversationMessage {
   skill_profile?: string | null;
   active_skills: string[];
   guidance_count: number;
+  sources: RagSource[];
 }
 
 export interface ConversationExport {
@@ -248,6 +249,7 @@ export interface ConversationAnswerNote {
   title: string;
   content: string;
   source_question?: string | null;
+  source_paths: string[];
   created_at: string;
   updated_at: string;
 }
