@@ -166,6 +166,21 @@ export interface LocalDataSafety {
 }
 
 
+
+export interface SafeUpdateWorkflow {
+  status: string;
+  summary: string;
+  script_path: string;
+  dry_run_command: string;
+  apply_command: string;
+  required_excludes: string[];
+  backup_policy: string;
+  protected_paths: string[];
+  preflight_checks: string[];
+  warnings: string[];
+  safety_note: string;
+}
+
 export interface DatabaseBackup {
   filename: string;
   path: string;

@@ -41,6 +41,7 @@ import type {
   LocalDataSafety,
   StartupChecklist,
   RuntimeTroubleshooting,
+  SafeUpdateWorkflow,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -104,6 +105,10 @@ export function getStartupChecklist(): Promise<StartupChecklist> {
 
 export function getRuntimeTroubleshooting(): Promise<RuntimeTroubleshooting> {
   return getJson<RuntimeTroubleshooting>("/runtime/troubleshooting");
+}
+
+export function getSafeUpdateWorkflow(): Promise<SafeUpdateWorkflow> {
+  return getJson<SafeUpdateWorkflow>("/runtime/update-safety");
 }
 
 
