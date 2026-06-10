@@ -28,6 +28,9 @@ class AskWorkspaceQuestionWithSelectedLLMInput:
     question: str
     limit: int = 5
     skill_instructions: list[SkillPromptInstruction] | None = None
+    skill_profile_source: str = "default"
+    skill_profile_name: str = "workspace"
+    skill_profile_updated_at: str | None = None
 
 
 class AskWorkspaceQuestionWithSelectedLLMNotFoundError(ValueError):
@@ -107,6 +110,9 @@ class AskWorkspaceQuestionWithSelectedLLMUseCase:
                     additional_quality_warnings=additional_warnings,
                     timeline_metadata={"asked_with_selected_llm": "true"},
                     skill_instructions=request.skill_instructions or [],
+                    skill_profile_source=request.skill_profile_source,
+                    skill_profile_name=request.skill_profile_name,
+                    skill_profile_updated_at=request.skill_profile_updated_at,
                 )
             )
         except AskWorkspaceQuestionNotFoundError as exc:

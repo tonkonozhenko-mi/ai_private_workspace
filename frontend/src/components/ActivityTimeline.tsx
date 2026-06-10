@@ -409,6 +409,9 @@ function TimelineItem({ event }: { event: TimelineEvent }) {
 function getEventCategory(eventType: string): EventCategory {
   const type = eventType.toLowerCase();
 
+  if (type.includes("skill_profile")) {
+    return "workspace";
+  }
   if (type.includes("command")) {
     return "command";
   }
@@ -457,6 +460,12 @@ function getEventTone(category: EventCategory): StatusTone {
 function getEventLabel(eventType: string, category: EventCategory) {
   const type = eventType.toLowerCase();
 
+  if (type.includes("skill_profile")) {
+    return "Skill profile saved";
+  }
+  if (type.includes("skill_profile")) {
+    return "Workspace skill profile saved";
+  }
   if (type.includes("question")) {
     return "Question asked";
   }
@@ -494,6 +503,9 @@ function getEventLabel(eventType: string, category: EventCategory) {
 function getHumanTitle(event: TimelineEvent) {
   const type = event.event_type.toLowerCase();
 
+  if (type.includes("skill_profile")) {
+    return "Skill profile saved";
+  }
   if (type.includes("question")) {
     return "Question asked";
   }
@@ -536,10 +548,10 @@ function getEventIcon(category: EventCategory) {
 
 function getPreviewMetadata(event: TimelineEvent, category: EventCategory) {
   const preferredKeysByCategory: Record<EventCategory, string[]> = {
-    ask: ["llm_provider", "llm_model", "quality_warnings_count", "sources_count"],
+    ask: ["llm_provider", "llm_model", "skill_profile_source", "guidance_count"],
     experiment: ["experiment_type", "status", "candidates_count", "shared_context_sources_count"],
     project: ["detected_skills_count", "indexed_files_count", "chunks_count", "status"],
-    workspace: ["provider", "model", "model_type", "selected_reason"],
+    workspace: ["enabled_skills_count", "enabled_skills", "source", "selected_reason", "provider", "model", "model_type"],
     command: ["command", "status", "risk_level", "policy_decision"],
     general: [],
   };

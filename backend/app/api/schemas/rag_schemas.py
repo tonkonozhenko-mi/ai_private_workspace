@@ -48,6 +48,14 @@ class LLMUsageMetricsResponse(BaseModel):
     estimated: bool = False
 
 
+class SkillProfileAuditResponse(BaseModel):
+    source: str
+    profile: str
+    active_skills: list[str]
+    guidance_count: int
+    updated_at: str | None = None
+
+
 class WorkspaceQuestionAnswerResponse(BaseModel):
     workspace_id: str
     question: str
@@ -60,6 +68,7 @@ class WorkspaceQuestionAnswerResponse(BaseModel):
     diagnostic_message: str | None
     quality_warnings: list[RagQualityWarningResponse]
     usage: LLMUsageMetricsResponse | None = None
+    skill_profile: SkillProfileAuditResponse | None = None
 
 
 def to_rag_source_response(source: RagSource) -> RagSourceResponse:
@@ -97,6 +106,18 @@ def to_llm_usage_metrics_response(usage) -> LLMUsageMetricsResponse | None:
     )
 
 
+def to_skill_profile_audit_response(audit) -> SkillProfileAuditResponse | None:
+    if audit is None:
+        return None
+    return SkillProfileAuditResponse(
+        source=audit.source,
+        profile=audit.profile,
+        active_skills=audit.active_skills,
+        guidance_count=audit.guidance_count,
+        updated_at=audit.updated_at,
+    )
+
+
 def to_workspace_question_answer_response(
     result: WorkspaceQuestionAnswer,
 ) -> WorkspaceQuestionAnswerResponse:
@@ -115,4 +136,5 @@ def to_workspace_question_answer_response(
             for warning in result.quality_warnings
         ],
         usage=to_llm_usage_metrics_response(result.usage),
+        skill_profile=to_skill_profile_audit_response(result.skill_profile),
     )
