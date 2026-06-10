@@ -34,6 +34,8 @@ import type {
   SaveEditedWorkspaceReportRequest,
   SavedWorkspaceReport,
   UpdateSavedWorkspaceReportRequest,
+  LocalDataSafety,
+  StartupChecklist,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -85,6 +87,14 @@ async function assertOk(response: Response): Promise<void> {
     // Preserve the HTTP status when the backend did not return JSON.
   }
   throw new Error(detail);
+}
+
+export function getLocalDataSafety(): Promise<LocalDataSafety> {
+  return getJson<LocalDataSafety>("/runtime/local-data");
+}
+
+export function getStartupChecklist(): Promise<StartupChecklist> {
+  return getJson<StartupChecklist>("/runtime/startup-checklist");
 }
 
 export function getWorkspacesOverview(

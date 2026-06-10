@@ -1,37 +1,13 @@
-.DS_Store
-
-# Python
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.venv/
-venv/
-
-# Environment
-.env
-.env.*
-.ai-workbench/
+# Local runtime data. Do not commit or overwrite these during update archives.
+backend/.ai-workbench/
 *.db
-*.db-shm
-*.db-wal
 *.sqlite
 *.sqlite3
 
-# Local runtime data
-.qdrant/
-.ollama/
-qdrant_data/
-qdrant_storage/
-ollama_data/
-
-# Build artifacts
-dist/
-build/
-node_modules/
-*.egg-info/
-
-# Editor
-.idea/
-.vscode/
+# Python / frontend build artifacts
+*/.venv/
+*/__pycache__/
+*.pyc
+*/.pytest_cache/
+frontend/node_modules/
+frontend/dist/

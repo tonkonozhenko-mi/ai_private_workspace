@@ -3,7 +3,7 @@
 Settings are read from environment variables when `app.config.settings.get_settings`
 is first called. Relative paths are resolved from the API process working
 directory. From inside `backend`, the default database is therefore
-`backend/.ai-workspace/workspaces.db`.
+`backend/.ai-workbench/workspaces.db`.
 
 Unsupported repository/provider/runner names fail during application
 composition. Qdrant and Ollama are optional and are not contacted under the
@@ -24,7 +24,7 @@ use a wildcard origin.
 | Variable | Default | Allowed/format | Purpose | Change when |
 | --- | --- | --- | --- | --- |
 | `WORKSPACE_REPOSITORY` | `sqlite` | `sqlite`, `memory` | Selects repositories for workspaces, scans, commands, index status, and timeline. | Use `memory` for disposable experiments or focused tests. |
-| `APP_DATA_DIR` | `.ai-workspace` | Filesystem path | Local application data directory; created at startup. | Place all local app data elsewhere. |
+| `APP_DATA_DIR` | `.ai-workbench` | Filesystem path | Local application data directory; created at startup. | Place all local app data elsewhere. |
 | `WORKSPACE_DB_PATH` | `<APP_DATA_DIR>/workspaces.db` | SQLite file path | Persistent workspace-state database; parent directory is created at startup. | Use a dedicated or absolute database location. |
 
 ## Vector Store
@@ -158,13 +158,13 @@ export OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 export LLM_PROVIDER=ollama
 export OLLAMA_LLM_MODEL=llama3.2
 
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
 Single-line alternative:
 
 ```bash
-VECTOR_STORE=qdrant EMBEDDING_PROVIDER=ollama OLLAMA_EMBEDDING_MODEL=nomic-embed-text LLM_PROVIDER=ollama OLLAMA_LLM_MODEL=llama3.2 uvicorn app.main:app --reload
+VECTOR_STORE=qdrant EMBEDDING_PROVIDER=ollama OLLAMA_EMBEDDING_MODEL=nomic-embed-text LLM_PROVIDER=ollama OLLAMA_LLM_MODEL=llama3.2 python -m uvicorn app.main:app --reload
 ```
 
 Avoid copied multi-line environment commands with blank lines in zsh. If the
@@ -320,7 +320,7 @@ VECTOR_STORE=memory \
 EMBEDDING_PROVIDER=fake \
 LLM_PROVIDER=fake \
 COMMAND_RUNNER=fake \
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
 Persistent local RAG with guarded fake command execution:
@@ -334,7 +334,7 @@ QDRANT_URL=http://localhost:6333 \
 OLLAMA_BASE_URL=http://localhost:11434 \
 OLLAMA_EMBEDDING_MODEL=nomic-embed-text \
 OLLAMA_LLM_MODEL=llama3.2 \
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
 `COMMAND_RUNNER=local` should be enabled separately and intentionally after
