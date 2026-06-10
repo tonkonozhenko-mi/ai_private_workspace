@@ -141,3 +141,10 @@ models, and commands. This document provides the finer product-oriented grouping
 
 - `GET /workspaces/{workspace_id}/skill-profile` — return the saved workspace skill profile, or safe default skill guidance if none is saved.
 - `PUT /workspaces/{workspace_id}/skill-profile` — save active skills and custom instructions for the workspace. Ask uses the saved profile as guidance only; retrieved sources remain the basis for project claims.
+
+### Workspace conversations
+
+- `POST /workspaces/{workspace_id}/conversations` — create an explicit saved conversation for a workspace. No scan/index/rebuild is started.
+- `GET /workspaces/{workspace_id}/conversations` — list saved workspace conversations with message counts and update times.
+- `GET /workspaces/{workspace_id}/conversations/{conversation_id}` — return one saved conversation with persisted user/assistant messages.
+- `DELETE /workspaces/{workspace_id}/conversations/{conversation_id}` — delete one saved conversation and its messages.

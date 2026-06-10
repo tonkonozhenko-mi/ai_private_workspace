@@ -196,6 +196,7 @@ export interface AskSkillProfileAudit {
 
 export interface WorkspaceQuestionAnswer {
   workspace_id: string;
+  conversation_id?: string | null;
   question: string;
   answer: string;
   sources: RagSource[];
@@ -207,6 +208,38 @@ export interface WorkspaceQuestionAnswer {
   quality_warnings?: RagQualityWarning[];
   usage?: LLMUsageMetrics | null;
   skill_profile?: AskSkillProfileAudit | null;
+}
+
+
+export interface ConversationMessage {
+  id: string;
+  conversation_id: string;
+  workspace_id: string;
+  role: "user" | "assistant" | string;
+  content: string;
+  created_at: string;
+  sources_count: number;
+  used_context_chunks: number;
+  llm_provider?: string | null;
+  llm_model?: string | null;
+  prompt_tokens?: number | null;
+  completion_tokens?: number | null;
+  total_tokens?: number | null;
+  latency_ms?: number | null;
+  skill_profile_source?: string | null;
+  skill_profile?: string | null;
+  active_skills: string[];
+  guidance_count: number;
+}
+
+export interface WorkspaceConversation {
+  id: string;
+  workspace_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  messages: ConversationMessage[];
+  messages_count: number;
 }
 
 export interface WorkspaceIndexStatus {

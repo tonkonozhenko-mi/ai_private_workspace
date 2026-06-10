@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
     command_repository,
+    conversation_repository,
     embedding_provider,
     file_system,
     index_status_repository,
@@ -115,6 +116,11 @@ from app.api.schemas.skill_profile_schemas import (
     to_skill_profile_item,
     to_workspace_skill_profile_response,
 )
+from app.api.schemas.conversation_schemas import (
+    CreateConversationRequest,
+    WorkspaceConversationResponse,
+    to_workspace_conversation_response,
+)
 from app.api.schemas.rag_schemas import (
     AskWorkspaceQuestionRequest,
     AskWorkspaceQuestionWithSelectedLLMRequest,
@@ -156,6 +162,10 @@ from app.api.schemas.workspace_dashboard_schemas import (
 from app.api.schemas.workspaces_overview_schemas import (
     WorkspacesOverviewResponse,
     to_workspaces_overview_response,
+)
+from app.core.domain.conversation import (
+    create_conversation_message,
+    create_workspace_conversation,
 )
 from app.core.domain.workspace import Workspace
 from app.core.domain.indexing_rules import IndexingRulesProfile, default_indexing_rules
@@ -1069,6 +1079,100 @@ def _to_skill_prompt_instructions(skill_context) -> list[SkillPromptInstruction]
     ]
 
 
+
+
+def _ensure_conversation(workspace_id: str, conversation_id: str | None, title: str | None = None):
+    if conversation_id:
+        conversation = conversation_repository.get_conversation(workspace_id, conversation_id)
+        if conversation is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Conversation not found",
+            )
+        return conversation
+    return conversation_repository.add_conversation(
+        create_workspace_conversation(workspace_id, title=title)
+    )
+
+
+def _persist_answer_in_conversation(conversation_id: str, answer) -> None:
+    conversation_repository.add_message(
+        create_conversation_message(
+            conversation_id=conversation_id,
+            workspace_id=answer.workspace_id,
+            role="user",
+            content=answer.question,
+        )
+    )
+    usage = answer.usage
+    conversation_repository.add_message(
+        create_conversation_message(
+            conversation_id=conversation_id,
+            workspace_id=answer.workspace_id,
+            role="assistant",
+            content=answer.answer,
+            sources_count=len(answer.sources),
+            used_context_chunks=answer.used_context_chunks,
+            llm_provider=answer.llm_provider,
+            llm_model=answer.llm_model,
+            prompt_tokens=usage.prompt_tokens if usage else None,
+            completion_tokens=usage.completion_tokens if usage else None,
+            total_tokens=usage.total_tokens if usage else None,
+            latency_ms=usage.latency_ms if usage else None,
+            skill_profile=answer.skill_profile,
+        )
+    )
+
+
+@router.post("/{workspace_id}/conversations", response_model=WorkspaceConversationResponse)
+def create_workspace_conversation_endpoint(
+    workspace_id: str,
+    request: CreateConversationRequest | None = None,
+) -> WorkspaceConversationResponse:
+    if workspace_repository.get(workspace_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+    conversation = conversation_repository.add_conversation(
+        create_workspace_conversation(
+            workspace_id,
+            title=request.title if request else None,
+        )
+    )
+    return to_workspace_conversation_response(conversation)
+
+
+@router.get("/{workspace_id}/conversations", response_model=list[WorkspaceConversationResponse])
+def list_workspace_conversations(
+    workspace_id: str,
+    limit: int = 30,
+) -> list[WorkspaceConversationResponse]:
+    if workspace_repository.get(workspace_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+    conversations = conversation_repository.list_conversations(workspace_id, limit=limit)
+    return [
+        to_workspace_conversation_response(conversation, include_messages=False)
+        for conversation in conversations
+    ]
+
+
+@router.get("/{workspace_id}/conversations/{conversation_id}", response_model=WorkspaceConversationResponse)
+def get_workspace_conversation(
+    workspace_id: str,
+    conversation_id: str,
+) -> WorkspaceConversationResponse:
+    conversation = conversation_repository.get_conversation(workspace_id, conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+    return to_workspace_conversation_response(conversation)
+
+
+@router.delete("/{workspace_id}/conversations/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_workspace_conversation(
+    workspace_id: str,
+    conversation_id: str,
+) -> None:
+    if not conversation_repository.delete_conversation(workspace_id, conversation_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
 @router.post("/{workspace_id}/ask", response_model=WorkspaceQuestionAnswerResponse)
 def ask_workspace_question(
     workspace_id: str,
@@ -1084,6 +1188,11 @@ def ask_workspace_question(
     )
 
     try:
+        conversation = _ensure_conversation(
+            workspace_id,
+            request.conversation_id,
+            title=request.question,
+        )
         skill_instructions, skill_source, skill_profile_name, skill_updated_at = (
             _skill_profile_context_from_request(workspace_id, request.skill_context)
         )
@@ -1098,8 +1207,10 @@ def ask_workspace_question(
                 skill_profile_source=skill_source,
                 skill_profile_name=skill_profile_name,
                 skill_profile_updated_at=skill_updated_at,
+                conversation_id=conversation.id,
             )
         )
+        _persist_answer_in_conversation(conversation.id, result)
     except AskWorkspaceQuestionNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -1139,6 +1250,11 @@ def ask_workspace_question_with_selected_llm(
     )
 
     try:
+        conversation = _ensure_conversation(
+            workspace_id,
+            request.conversation_id,
+            title=request.question,
+        )
         skill_instructions, skill_source, skill_profile_name, skill_updated_at = (
             _skill_profile_context_from_request(workspace_id, request.skill_context)
         )
@@ -1151,8 +1267,10 @@ def ask_workspace_question_with_selected_llm(
                 skill_profile_source=skill_source,
                 skill_profile_name=skill_profile_name,
                 skill_profile_updated_at=skill_updated_at,
+                conversation_id=conversation.id,
             )
         )
+        _persist_answer_in_conversation(conversation.id, result)
     except AskWorkspaceQuestionWithSelectedLLMNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

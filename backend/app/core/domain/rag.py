@@ -42,3 +42,4 @@ class WorkspaceQuestionAnswer:
     quality_warnings: list[RagQualityWarning] = field(default_factory=list)
     usage: LLMUsageMetrics | None = None
     skill_profile: SkillProfileAudit | None = None
+    conversation_id: str | None = None

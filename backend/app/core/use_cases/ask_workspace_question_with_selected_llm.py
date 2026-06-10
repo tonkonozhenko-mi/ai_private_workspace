@@ -31,6 +31,7 @@ class AskWorkspaceQuestionWithSelectedLLMInput:
     skill_profile_source: str = "default"
     skill_profile_name: str = "workspace"
     skill_profile_updated_at: str | None = None
+    conversation_id: str | None = None
 
 
 class AskWorkspaceQuestionWithSelectedLLMNotFoundError(ValueError):
@@ -113,6 +114,7 @@ class AskWorkspaceQuestionWithSelectedLLMUseCase:
                     skill_profile_source=request.skill_profile_source,
                     skill_profile_name=request.skill_profile_name,
                     skill_profile_updated_at=request.skill_profile_updated_at,
+                    conversation_id=request.conversation_id,
                 )
             )
         except AskWorkspaceQuestionNotFoundError as exc:

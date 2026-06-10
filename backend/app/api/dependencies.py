@@ -5,6 +5,7 @@ from app.adapters.filesystem.local_file_system import LocalFileSystem
 from app.adapters.llm.fake_llm_provider import FakeLLMProvider
 from app.adapters.llm.llm_provider_factory import LLMProviderFactory
 from app.adapters.memory.in_memory_command_repository import InMemoryCommandRepository
+from app.adapters.memory.in_memory_conversation_repository import InMemoryConversationRepository
 from app.adapters.memory.in_memory_index_status_repository import (
     InMemoryIndexStatusRepository,
 )
@@ -27,6 +28,7 @@ from app.adapters.memory.in_memory_workspace_model_selection_repository import (
     InMemoryWorkspaceModelSelectionRepository,
 )
 from app.adapters.memory.sqlite_command_repository import SQLiteCommandRepository
+from app.adapters.memory.sqlite_conversation_repository import SQLiteConversationRepository
 from app.adapters.memory.sqlite_index_status_repository import SQLiteIndexStatusRepository
 from app.adapters.memory.sqlite_indexing_rules_repository import SQLiteIndexingRulesRepository
 from app.adapters.memory.sqlite_model_experiment_repository import (
@@ -55,6 +57,7 @@ from app.adapters.runtime_health.qdrant_runtime_health_checker import (
 from app.adapters.vector_store.in_memory_vector_store import InMemoryVectorStore
 from app.config.settings import get_settings
 from app.core.ports.command_repository import CommandRepositoryPort
+from app.core.ports.conversation_repository import ConversationRepositoryPort
 from app.core.ports.command_runner import CommandRunnerPort
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
@@ -157,6 +160,18 @@ def build_timeline_repository() -> TimelineRepositoryPort:
         return InMemoryTimelineRepository()
     if repository_type == "sqlite":
         return SQLiteTimelineRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_conversation_repository() -> ConversationRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryConversationRepository()
+    if repository_type == "sqlite":
+        return SQLiteConversationRepository(settings.workspace_db_path)
 
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
@@ -341,6 +356,7 @@ index_status_repository = build_index_status_repository()
 indexing_rules_repository = build_indexing_rules_repository()
 skill_profile_repository = build_skill_profile_repository()
 timeline_repository = build_timeline_repository()
+conversation_repository = build_conversation_repository()
 model_experiment_repository = build_model_experiment_repository()
 model_experiment_rating_repository = build_model_experiment_rating_repository()
 workspace_model_selection_repository = build_workspace_model_selection_repository()

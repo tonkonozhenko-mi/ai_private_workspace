@@ -53,6 +53,7 @@ class AskWorkspaceQuestionInput:
     skill_profile_source: str = "default"
     skill_profile_name: str = "workspace"
     skill_profile_updated_at: str | None = None
+    conversation_id: str | None = None
 
 
 class AskWorkspaceQuestionNotFoundError(ValueError):
@@ -166,6 +167,7 @@ class AskWorkspaceQuestionUseCase:
                 quality_warnings=quality_warnings,
                 usage=usage,
                 skill_profile=self._skill_profile_audit(request),
+                conversation_id=request.conversation_id,
             ),
             request,
         )
@@ -208,6 +210,7 @@ class AskWorkspaceQuestionUseCase:
             diagnostic_message=diagnostic_message,
             quality_warnings=list(request.additional_quality_warnings),
             skill_profile=self._skill_profile_audit(request),
+            conversation_id=request.conversation_id,
         )
 
     def _create_llm_provider(
