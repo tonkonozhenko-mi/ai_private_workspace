@@ -848,53 +848,63 @@ function AssistantFocusHint({
     : "No extra skills";
 
   return (
-    <section className="panel ask-focus-hint">
-      <div>
-        <p className="eyebrow">Assistant focus</p>
-        <h2>{focus.title}</h2>
-        <p>{focus.description}</p>
-        <div className="ask-focus-skills">
-          <div>
-            <span>Answer style</span>
-            <strong>{focus.badge}</strong>
-          </div>
-          <div>
-            <span>Active skills</span>
-            <strong>{activeSkillLabel}</strong>
-          </div>
-          <p>Focus defines answer style. Skills add browser-local instructions to each Ask request.</p>
+    <section className="panel ask-focus-hint ask-focus-hint-compact">
+      <header className="ask-focus-compact-header">
+        <div>
+          <p className="eyebrow">Assistant focus</p>
+          <h2>{focus.badge}</h2>
+        </div>
+        <span>{focus.badge}</span>
+      </header>
+
+      <p className="ask-focus-compact-summary">{focus.shortDescription}</p>
+
+      <div className="ask-focus-compact-rows">
+        <div>
+          <span>Answer style</span>
+          <strong>{focus.badge}</strong>
+        </div>
+        <div>
+          <span>Active skills</span>
+          <strong>{activeSkillLabel}</strong>
         </div>
       </div>
-      <span>{focus.badge}</span>
+
+      <p className="ask-focus-compact-note">Skills are applied to each Ask request.</p>
     </section>
   );
 }
 
 function getAskFocus(mode: string) {
-  const focuses: Record<string, { title: string; description: string; badge: string }> = {
+  const focuses: Record<string, { title: string; description: string; shortDescription: string; badge: string }> = {
     devops: {
       title: "DevOps and platform answers",
       description: "Questions are framed around infrastructure, CI/CD, runtime setup, cloud, and operational context.",
+      shortDescription: "Infrastructure, CI/CD, runtime, cloud, and operations.",
       badge: "DevOps",
     },
     developer: {
       title: "Developer answers",
       description: "Questions are framed around code structure, implementation details, dependencies, and tests.",
+      shortDescription: "Code structure, implementation, dependencies, and tests.",
       badge: "Code",
     },
     documentation: {
       title: "Documentation answers",
       description: "Questions are framed around README files, architecture notes, onboarding, and clear project summaries.",
+      shortDescription: "READMEs, architecture notes, onboarding, and summaries.",
       badge: "Docs",
     },
     support_incident: {
       title: "Incident support answers",
       description: "Questions are framed around symptoms, likely causes, troubleshooting checks, and operational next steps.",
+      shortDescription: "Symptoms, likely causes, troubleshooting, and checks.",
       badge: "Support",
     },
     manager_summary: {
       title: "Manager-ready answers",
       description: "Questions are framed around concise summaries, risks, progress, and stakeholder-friendly wording.",
+      shortDescription: "Concise summaries, risks, progress, and stakeholder notes.",
       badge: "Summary",
     },
   };
