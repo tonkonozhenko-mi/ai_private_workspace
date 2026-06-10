@@ -105,6 +105,8 @@ models, run benchmarks, or change active runtime configuration.
 | `GET /workspaces/{workspace_id}/reports/project-overview` | Generate a deterministic project overview report. | Timeline | No | Local filesystem read for analyzers | Reports |
 | `GET /workspaces/{workspace_id}/reports/catalog` | List local-first report templates and safety notes. | None | No | None | Reports |
 | `GET /workspaces/{workspace_id}/reports/{report_type}` | Generate a selected read-only workspace report draft. | Timeline | No | Local filesystem read for analyzers and saved workspace context | Reports |
+| `POST /workspaces/{workspace_id}/reports/custom-preview` | Build a custom read-only report draft from explicitly selected saved notes, conversations, source paths, and user drafting context. | None | No | None | Reports custom builder |
+| `POST /workspaces/{workspace_id}/reports/custom-save` | Build and persist a custom read-only report from explicitly selected local workspace context. | Saved report | No | None | Reports custom builder |
 | `POST /workspaces/{workspace_id}/reports/{report_type}/save` | Generate and persist a selected workspace report as local report history. | Saved report | No | Local filesystem read for analyzers and saved workspace context | Reports |
 | `GET /workspaces/{workspace_id}/reports/saved` | List saved reports with search/type/pinned filters. | None | No | None | Reports history |
 | `GET /workspaces/{workspace_id}/reports/saved/{report_id}` | Read one saved report including markdown/text/json exports. | None | No | None | Reports history |

@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  buildCustomWorkspaceReport,
   deleteSavedWorkspaceReport,
   generateWorkspaceReport,
   getWorkspaceReportCatalog,
+  listWorkspaceAnswerNotes,
+  listWorkspaceConversations,
   listSavedWorkspaceReports,
   pinSavedWorkspaceReport,
+  saveCustomWorkspaceReport,
   saveWorkspaceReport,
   updateSavedWorkspaceReport,
 } from "../api/client";
-import type { ReportCatalog, ReportTemplate, SavedWorkspaceReport, WorkspaceReport } from "../api/types";
+import type { ConversationAnswerNote, ReportCatalog, ReportTemplate, SavedWorkspaceReport, WorkspaceConversation, WorkspaceReport } from "../api/types";
 import { CopyButton } from "./CopyButton";
 import { EmptyState } from "./EmptyState";
 import { ErrorState } from "./ErrorState";
@@ -36,6 +40,13 @@ export function ReportsPanel({ workspaceId, hasScan }: ReportsPanelProps) {
   const [reportError, setReportError] = useState<string | null>(null);
   const [savingReport, setSavingReport] = useState(false);
   const [savedReportError, setSavedReportError] = useState<string | null>(null);
+  const [builderNotes, setBuilderNotes] = useState<ConversationAnswerNote[]>([]);
+  const [builderConversations, setBuilderConversations] = useState<WorkspaceConversation[]>([]);
+  const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
+  const [selectedConversationIds, setSelectedConversationIds] = useState<string[]>([]);
+  const [customReportTitle, setCustomReportTitle] = useState("Custom workspace report");
+  const [customReportContext, setCustomReportContext] = useState("");
+  const [customReportLoading, setCustomReportLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +74,28 @@ export function ReportsPanel({ workspaceId, hasScan }: ReportsPanelProps) {
     void refreshSavedReports();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId, reportSearch, pinnedOnly]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      listWorkspaceAnswerNotes(workspaceId),
+      listWorkspaceConversations(workspaceId, { includeArchived: false }),
+    ])
+      .then(([notes, conversations]) => {
+        if (cancelled) return;
+        setBuilderNotes(notes);
+        setBuilderConversations(conversations);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setBuilderNotes([]);
+        setBuilderConversations([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId]);
 
   const selectedTemplate = useMemo(
     () => catalog?.templates.find((template) => template.id === selectedTemplateId) ?? catalog?.templates[0] ?? null,
@@ -113,6 +146,47 @@ export function ReportsPanel({ workspaceId, hasScan }: ReportsPanelProps) {
       setSavedReportError(errorMessage(error));
     } finally {
       setSavingReport(false);
+    }
+  }
+
+
+  function customReportRequest() {
+    return {
+      title: customReportTitle,
+      summary: "Custom report assembled from selected workspace notes and conversations.",
+      report_type: "custom_report",
+      note_ids: selectedNoteIds,
+      conversation_ids: selectedConversationIds,
+      extra_context: customReportContext,
+    };
+  }
+
+  async function handleBuildCustomReport() {
+    setCustomReportLoading(true);
+    setReportError(null);
+    setSelectedSavedReport(null);
+    try {
+      const nextReport = await buildCustomWorkspaceReport(workspaceId, customReportRequest());
+      setReport(nextReport);
+    } catch (error) {
+      setReportError(errorMessage(error));
+    } finally {
+      setCustomReportLoading(false);
+    }
+  }
+
+  async function handleSaveCustomReport() {
+    setCustomReportLoading(true);
+    setSavedReportError(null);
+    try {
+      const saved = await saveCustomWorkspaceReport(workspaceId, customReportRequest());
+      setSelectedSavedReport(saved);
+      setReport(null);
+      await refreshSavedReports();
+    } catch (error) {
+      setSavedReportError(errorMessage(error));
+    } finally {
+      setCustomReportLoading(false);
     }
   }
 
@@ -242,6 +316,22 @@ export function ReportsPanel({ workspaceId, hasScan }: ReportsPanelProps) {
         </div>
       </div>
 
+      <CustomReportBuilder
+        notes={builderNotes}
+        conversations={builderConversations}
+        selectedNoteIds={selectedNoteIds}
+        selectedConversationIds={selectedConversationIds}
+        title={customReportTitle}
+        extraContext={customReportContext}
+        loading={customReportLoading}
+        onTitleChange={setCustomReportTitle}
+        onExtraContextChange={setCustomReportContext}
+        onSelectedNoteIdsChange={setSelectedNoteIds}
+        onSelectedConversationIdsChange={setSelectedConversationIds}
+        onPreview={handleBuildCustomReport}
+        onSave={handleSaveCustomReport}
+      />
+
       {report ? (
         <ReportPreview
           report={report}
@@ -267,6 +357,122 @@ export function ReportsPanel({ workspaceId, hasScan }: ReportsPanelProps) {
         onDelete={handleDeleteReport}
         onRename={handleRenameReport}
       />
+    </section>
+  );
+}
+
+function CustomReportBuilder({
+  notes,
+  conversations,
+  selectedNoteIds,
+  selectedConversationIds,
+  title,
+  extraContext,
+  loading,
+  onTitleChange,
+  onExtraContextChange,
+  onSelectedNoteIdsChange,
+  onSelectedConversationIdsChange,
+  onPreview,
+  onSave,
+}: {
+  notes: ConversationAnswerNote[];
+  conversations: WorkspaceConversation[];
+  selectedNoteIds: string[];
+  selectedConversationIds: string[];
+  title: string;
+  extraContext: string;
+  loading: boolean;
+  onTitleChange: (value: string) => void;
+  onExtraContextChange: (value: string) => void;
+  onSelectedNoteIdsChange: (value: string[]) => void;
+  onSelectedConversationIdsChange: (value: string[]) => void;
+  onPreview: () => void;
+  onSave: () => void;
+}) {
+  const selectedCount = selectedNoteIds.length + selectedConversationIds.length;
+  function toggleNote(noteId: string) {
+    onSelectedNoteIdsChange(
+      selectedNoteIds.includes(noteId)
+        ? selectedNoteIds.filter((id) => id !== noteId)
+        : [...selectedNoteIds, noteId],
+    );
+  }
+  function toggleConversation(conversationId: string) {
+    onSelectedConversationIdsChange(
+      selectedConversationIds.includes(conversationId)
+        ? selectedConversationIds.filter((id) => id !== conversationId)
+        : [...selectedConversationIds, conversationId],
+    );
+  }
+  return (
+    <section className="panel custom-report-builder">
+      <div className="panel-heading compact-heading">
+        <div>
+          <p className="eyebrow">Custom builder</p>
+          <h3>Build from selected notes and conversations</h3>
+          <p className="panel-intro">
+            Select reusable workspace evidence, add drafting notes, then preview or save a custom report. Nothing runs automatically.
+          </p>
+        </div>
+        <StatusBadge label={`${selectedCount} selected`} tone={selectedCount > 0 ? "neutral" : "warning"} />
+      </div>
+      <div className="custom-report-grid">
+        <div className="custom-report-column">
+          <label className="field-label" htmlFor="custom-report-title">Report title</label>
+          <input
+            id="custom-report-title"
+            className="text-input"
+            value={title}
+            onChange={(event) => onTitleChange(event.target.value)}
+          />
+          <label className="field-label" htmlFor="custom-report-context">Drafting notes</label>
+          <textarea
+            id="custom-report-context"
+            className="textarea-input custom-report-textarea"
+            value={extraContext}
+            onChange={(event) => onExtraContextChange(event.target.value)}
+            placeholder="Optional: target audience, sections to emphasize, ticket/doc purpose…"
+          />
+        </div>
+        <div className="custom-report-column">
+          <strong>Saved notes</strong>
+          <div className="custom-report-picker">
+            {notes.slice(0, 8).map((note) => (
+              <label className="checkbox-row compact-checkbox" key={note.id}>
+                <input type="checkbox" checked={selectedNoteIds.includes(note.id)} onChange={() => toggleNote(note.id)} />
+                <span>{note.is_pinned ? "★ " : ""}{note.title}</span>
+              </label>
+            ))}
+            {notes.length === 0 ? <span className="form-help">No saved notes yet.</span> : null}
+          </div>
+        </div>
+        <div className="custom-report-column">
+          <strong>Conversations</strong>
+          <div className="custom-report-picker">
+            {conversations.slice(0, 8).map((conversation) => (
+              <label className="checkbox-row compact-checkbox" key={conversation.id}>
+                <input
+                  type="checkbox"
+                  checked={selectedConversationIds.includes(conversation.id)}
+                  onChange={() => toggleConversation(conversation.id)}
+                />
+                <span>{conversation.is_pinned ? "★ " : ""}{conversation.title}</span>
+              </label>
+            ))}
+            {conversations.length === 0 ? <span className="form-help">No saved conversations yet.</span> : null}
+          </div>
+        </div>
+      </div>
+      <div className="report-action-row">
+        <button className="secondary-button" type="button" disabled={loading} onClick={onPreview}>
+          {loading ? "Building…" : "Preview custom report"}
+        </button>
+        <button className="primary-action" type="button" disabled={loading} onClick={onSave}>
+          {loading ? "Saving…" : "Save custom report"}
+        </button>
+        <span className="form-help">Read-only builder: no scan, index, rebuild, command execution, or upload.</span>
+      </div>
     </section>
   );
 }

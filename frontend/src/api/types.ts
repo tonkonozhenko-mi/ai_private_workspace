@@ -324,6 +324,16 @@ export interface ReportCatalog {
   safety_notes: string[];
 }
 
+
+export interface BuildCustomWorkspaceReportRequest {
+  title?: string | null;
+  summary?: string | null;
+  report_type?: string;
+  note_ids: string[];
+  conversation_ids: string[];
+  extra_context?: string | null;
+}
+
 export interface SavedWorkspaceReport {
   id: string;
   workspace_id: string;

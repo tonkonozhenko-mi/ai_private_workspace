@@ -10573,3 +10573,39 @@ button:focus-visible {
 .saved-report-details .report-preview-actions {
   justify-content: flex-start;
 }
+
+.custom-report-builder {
+  margin-top: 18px;
+}
+
+.custom-report-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.2fr) minmax(220px, 1fr) minmax(220px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.custom-report-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-report-textarea {
+  min-height: 96px;
+}
+
+.custom-report-picker {
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 10px;
+  background: var(--surface-muted);
+  max-height: 180px;
+  overflow: auto;
+}
+
+@media (max-width: 1100px) {
+  .custom-report-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -109,10 +109,12 @@ from app.api.schemas.workspace_models_dashboard_summary_schemas import (
     to_workspace_models_dashboard_summary_response,
 )
 from app.api.schemas.report_schemas import (
+    BuildCustomWorkspaceReportRequest,
     ProjectOverviewReportResponse,
     ReportCatalogResponse,
     SavedReportPinRequest,
     SavedWorkspaceReportResponse,
+    SaveCustomWorkspaceReportRequest,
     UpdateSavedWorkspaceReportRequest,
     to_project_overview_report_response,
     to_report_catalog_response,
@@ -294,6 +296,7 @@ from app.core.use_cases.generate_workspace_report import (
     WorkspaceReportTypeNotFoundError,
 )
 from app.core.use_cases.save_workspace_report import SaveWorkspaceReportInput, SaveWorkspaceReportUseCase
+from app.core.domain.report import ProjectOverviewReport, ReportSection, create_saved_workspace_report, render_report_markdown
 from app.core.use_cases.manage_saved_workspace_reports import (
     DeleteSavedWorkspaceReportInput,
     DeleteSavedWorkspaceReportUseCase,
@@ -1889,6 +1892,146 @@ def save_workspace_report(
     except WorkspaceReportTypeNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return to_saved_workspace_report_response(saved)
+
+
+
+
+@router.post(
+    "/{workspace_id}/reports/custom-preview",
+    response_model=ProjectOverviewReportResponse,
+)
+def build_custom_workspace_report_preview(
+    workspace_id: str,
+    request: BuildCustomWorkspaceReportRequest,
+) -> ProjectOverviewReportResponse:
+    report = _build_custom_workspace_report(workspace_id, request)
+    return to_project_overview_report_response(report)
+
+
+@router.post(
+    "/{workspace_id}/reports/custom-save",
+    response_model=SavedWorkspaceReportResponse,
+)
+def save_custom_workspace_report(
+    workspace_id: str,
+    request: SaveCustomWorkspaceReportRequest,
+) -> SavedWorkspaceReportResponse:
+    report = _build_custom_workspace_report(workspace_id, request)
+    saved = report_repository.add_report(create_saved_workspace_report(report))
+    return to_saved_workspace_report_response(saved)
+
+
+def _build_custom_workspace_report(
+    workspace_id: str,
+    request: BuildCustomWorkspaceReportRequest,
+) -> ProjectOverviewReport:
+    workspace = workspace_repository.get(workspace_id)
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+
+    selected_note_ids = set(request.note_ids)
+    selected_conversation_ids = set(request.conversation_ids)
+    notes = [
+        note
+        for note in conversation_repository.list_answer_notes(workspace_id, limit=200)
+        if not selected_note_ids or note.id in selected_note_ids
+    ]
+    conversations = [
+        conversation_repository.get_conversation(workspace_id, conversation_id)
+        for conversation_id in selected_conversation_ids
+    ]
+    conversations = [conversation for conversation in conversations if conversation is not None]
+
+    source_paths = sorted({path for note in notes for path in note.source_paths})
+    recent_questions: list[str] = []
+    answer_previews: list[str] = []
+    for conversation in conversations:
+        for message in conversation.messages:
+            if message.role == "user" and len(recent_questions) < 8:
+                recent_questions.append(message.content[:220])
+            elif message.role == "assistant" and len(answer_previews) < 6:
+                answer_previews.append(message.content[:260])
+            for source in message.sources:
+                if source.source_path:
+                    source_paths.append(source.source_path)
+    source_paths = sorted(dict.fromkeys(source_paths))
+
+    title = (request.title or "Custom workspace report").strip()[:180] or "Custom workspace report"
+    summary = (
+        request.summary
+        or "Custom report assembled from selected saved notes, conversations, and local workspace evidence."
+    ).strip()
+
+    sections = [
+        ReportSection(
+            title="Source boundaries",
+            content="This custom report is assembled from explicit user-selected workspace context.",
+            bullets=[
+                "No shell commands are executed.",
+                "No scan, index, rebuild, upload, or model change is triggered.",
+                "Selected notes and conversations guide the draft; verify source-backed claims before sharing.",
+            ],
+        ),
+        ReportSection(
+            title="Selected notes",
+            content=f"Selected reusable notes: {len(notes)}.",
+            bullets=[f"{note.title}: {note.content[:240]}" for note in notes[:12]] or ["No saved notes selected."],
+        ),
+        ReportSection(
+            title="Selected conversations",
+            content=f"Selected conversations: {len(conversations)}.",
+            bullets=[f"{conversation.title}: {len(conversation.messages)} messages" for conversation in conversations[:8]]
+            or ["No conversations selected."],
+        ),
+        ReportSection(
+            title="Reusable findings",
+            content="Condensed snippets from the selected context.",
+            bullets=(recent_questions[:4] + answer_previews[:4]) or ["No reusable findings were available in the selected context."],
+        ),
+        ReportSection(
+            title="Captured sources",
+            content="Source paths captured from selected notes and conversations.",
+            bullets=source_paths[:20] or ["No source paths captured."],
+        ),
+    ]
+    extra_context = (request.extra_context or "").strip()
+    if extra_context:
+        sections.append(
+            ReportSection(
+                title="User drafting notes",
+                content="Additional user-provided drafting context.",
+                bullets=[line.strip() for line in extra_context.splitlines() if line.strip()][:12]
+                or [extra_context[:500]],
+            )
+        )
+
+    draft = ProjectOverviewReport(
+        workspace_id=workspace_id,
+        title=title,
+        summary=summary,
+        sections=sections,
+        generated_from=[
+            "selected_answer_notes",
+            "selected_conversations",
+            "captured_source_paths",
+            "manual_drafting_context",
+        ],
+        report_type=(request.report_type or "custom_report").strip().lower().replace("-", "_") or "custom_report",
+        safety_note=(
+            "Custom report builder is read-only. It uses selected saved context and does not execute commands, "
+            "scan, index, rebuild, upload, or change models."
+        ),
+    )
+    return ProjectOverviewReport(
+        workspace_id=draft.workspace_id,
+        title=draft.title,
+        summary=draft.summary,
+        sections=draft.sections,
+        generated_from=draft.generated_from,
+        report_type=draft.report_type,
+        export_markdown=render_report_markdown(draft),
+        safety_note=draft.safety_note,
+    )
 
 
 @router.get(
