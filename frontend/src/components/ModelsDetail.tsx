@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  createAgentPlanningPreview,
+  getAgentCapabilities,
   getModelExperimentRatings,
   getWorkspaceModelExperiments,
   planModelExperiment,
@@ -9,6 +11,9 @@ import {
   updateWorkspaceModelSelection,
 } from "../api/client";
 import type {
+  AgentCapability,
+  AgentCapabilityCatalog,
+  AgentPlanningPreview,
   LocalAIActivationGuide,
   ModelExperimentPlan,
   ModelExperimentRating,
@@ -234,6 +239,11 @@ export function ModelsDetail({
         onSelectionUpdated={onSelectionUpdated}
       />
 
+      <AgentModeReadinessPanel
+        selectedProvider={dashboard.selected_llm_provider ?? usage.active_llm_provider}
+        selectedModel={dashboard.selected_llm_model ?? usage.active_llm_model}
+      />
+
       <ModelExperimentPlanner
         workspaceId={workspaceId}
         llmOptions={llmOptions}
@@ -425,6 +435,161 @@ function ModelsWorkflowSteps({
           {step.status !== "ready" ? <StatusBadge label={step.status} /> : null}
         </article>
       ))}
+    </section>
+  );
+}
+
+
+function AgentModeReadinessPanel({
+  selectedProvider,
+  selectedModel,
+}: {
+  selectedProvider: string;
+  selectedModel: string;
+}) {
+  const [catalog, setCatalog] = useState<AgentCapabilityCatalog | null>(null);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [goal, setGoal] = useState(
+    "Review the project, identify risky deployment areas, propose checks, then re-check the result before continuing.",
+  );
+  const [preview, setPreview] = useState<AgentPlanningPreview | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [isPlanning, setIsPlanning] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAgentCapabilities()
+      .then((result) => {
+        if (!cancelled) {
+          setCatalog(result);
+          setCatalogError(null);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setCatalogError(errorMessage(error));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectedCapability = useMemo(
+    () =>
+      catalog?.models.find(
+        (model) =>
+          model.provider === selectedProvider && model.model === selectedModel,
+      ) ?? null,
+    [catalog?.models, selectedModel, selectedProvider],
+  );
+
+  const recommendedModels = catalog?.models.filter(
+    (model) => model.model_type === "llm" && ["agent_ready", "planning_ready"].includes(model.readiness),
+  ) ?? [];
+
+  async function handlePreviewPlan() {
+    setIsPlanning(true);
+    setPreviewError(null);
+    try {
+      const result = await createAgentPlanningPreview({
+        goal,
+        provider: selectedProvider,
+        model: selectedModel,
+      });
+      setPreview(result);
+    } catch (error) {
+      setPreviewError(errorMessage(error));
+    } finally {
+      setIsPlanning(false);
+    }
+  }
+
+  return (
+    <section className="panel agent-mode-panel">
+      <div className="panel-heading-row">
+        <div>
+          <p className="eyebrow">Agent capability</p>
+          <h2>Safe agent planning mode</h2>
+          <p className="panel-intro">
+            Some open-source LLMs can follow multi-step instructions or tool-style plans. In this workspace agent mode is planning-only: no automatic shell commands, edits, scan, index, rebuild, or restart.
+          </p>
+        </div>
+        <StatusBadge label={selectedCapability?.readiness ?? "Checking"} />
+      </div>
+
+      {catalogError ? <p className="form-error">{catalogError}</p> : null}
+
+      <div className="agent-readiness-grid">
+        <div className="agent-readiness-card is-selected">
+          <span className="eyebrow">Current AI model</span>
+          <strong>{selectedProvider}/{selectedModel}</strong>
+          <p>{selectedCapability?.recommended_use ?? "Loading model capability metadata."}</p>
+          <div className="agent-capability-flags">
+            <StatusBadge label={selectedCapability?.planning_supported ? "Planning" : "Ask only"} />
+            <StatusBadge label={selectedCapability?.tool_calling_supported ? "Tool calling declared" : "No declared tools"} />
+            <StatusBadge label={selectedCapability?.json_mode_supported ? "Structured output" : "Free text"} />
+          </div>
+        </div>
+        <div className="agent-readiness-card">
+          <span className="eyebrow">Recommended local models</span>
+          {recommendedModels.length > 0 ? (
+            <div className="agent-model-list">
+              {recommendedModels.slice(0, 4).map((model) => (
+                <span key={`${model.provider}/${model.model}`}>
+                  {model.provider}/{model.model} · {formatLabel(model.readiness)}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p>No planning-ready local LLMs found in the catalog yet.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="agent-guardrail-strip">
+        <strong>Guardrails</strong>
+        <span>Plans are reviewable guidance only.</span>
+        <span>Every action stays explicit and user-confirmed.</span>
+        <span>Facts still need retrieved sources.</span>
+      </div>
+
+      <div className="agent-planner-card">
+        <label>
+          Try a multi-step agent-style request
+          <textarea
+            value={goal}
+            onChange={(event) => setGoal(event.target.value)}
+            rows={3}
+          />
+        </label>
+        <button type="button" onClick={handlePreviewPlan} disabled={isPlanning || goal.trim().length < 3}>
+          {isPlanning ? "Preparing…" : "Preview safe plan"}
+        </button>
+        {previewError ? <p className="form-error">{previewError}</p> : null}
+      </div>
+
+      {preview ? (
+        <div className="agent-plan-preview">
+          <div className="panel-heading-row compact">
+            <div>
+              <p className="eyebrow">Planning preview</p>
+              <h3>{formatLabel(preview.agent_mode)}</h3>
+            </div>
+            <StatusBadge label={preview.readiness} />
+          </div>
+          <ol className="agent-plan-steps">
+            {preview.steps.map((step) => (
+              <li key={step.order}>
+                <strong>{step.title}</strong>
+                <p>{step.description}</p>
+                <span>{step.requires_user_confirmation ? "Requires confirmation" : "Read-only"} · {formatLabel(step.allowed_execution)}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="muted-text">{preview.safety_note}</p>
+        </div>
+      ) : null}
     </section>
   );
 }

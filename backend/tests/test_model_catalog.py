@@ -179,3 +179,37 @@ def _recommendation(recommendations: list[dict], model_id: str) -> dict:
         for recommendation in recommendations
         if recommendation["model"]["id"] == model_id
     )
+
+
+def test_agent_capabilities_rank_planning_models_and_keep_execution_manual() -> None:
+    response = client.get("/models/agent-capabilities")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["safety_note"].startswith("Current agent mode is planning-only")
+    models = {(model["provider"], model["model"]): model for model in payload["models"]}
+    qwen = models[("ollama", "qwen2.5-coder")]
+    assert qwen["planning_supported"] is True
+    assert qwen["safe_execution_supported"] is False
+    assert "safe_planning" in qwen["supported_agent_modes"]
+    fake = models[("fake", "fake-llm")]
+    assert fake["readiness"] == "demo_only"
+
+
+def test_agent_planning_preview_is_review_only() -> None:
+    response = client.post(
+        "/models/agent-planning-preview",
+        json={
+            "goal": "Inspect the project, propose deployment checks, re-check, then continue.",
+            "provider": "ollama",
+            "model": "qwen2.5-coder",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["agent_mode"] == "safe_planning_only"
+    assert payload["readiness"] in {"planning_ready", "agent_ready"}
+    assert len(payload["steps"]) >= 4
+    assert "Automatic shell execution" in payload["unsupported_actions"]
+    assert "does not execute the plan" in payload["safety_note"]

@@ -44,6 +44,9 @@ import type {
   SafeUpdateWorkflow,
   DesktopStartupExperience,
   ProductionReadiness,
+  AgentCapabilityCatalog,
+  AgentPlanningPreview,
+  AgentPlanningPreviewRequest,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -441,6 +444,24 @@ export function deleteSavedWorkspaceReport(workspaceId: string, reportId: string
   });
 }
 
+
+
+export function getAgentCapabilities(): Promise<AgentCapabilityCatalog> {
+  return getJson<AgentCapabilityCatalog>("/models/agent-capabilities");
+}
+
+export function createAgentPlanningPreview(
+  request: AgentPlanningPreviewRequest,
+): Promise<AgentPlanningPreview> {
+  return requestJson<AgentPlanningPreview>("/models/agent-planning-preview", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+}
 
 export function getModelsDashboardSummary(
   workspaceId: string,

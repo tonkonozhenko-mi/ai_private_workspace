@@ -916,3 +916,55 @@ export interface WorkspaceJob {
   completed_at: string | null;
   duration_ms: number | null;
 }
+
+export interface AgentCapability {
+  provider: string;
+  model: string;
+  display_name: string;
+  model_type: string;
+  readiness: string;
+  planning_supported: boolean;
+  tool_calling_supported: boolean;
+  json_mode_supported: boolean;
+  safe_execution_supported: boolean;
+  supported_agent_modes: string[];
+  recommended_use: string;
+  guardrails: string[];
+  evidence: string[];
+  limitations: string[];
+}
+
+export interface AgentCapabilityCatalog {
+  summary: string;
+  models: AgentCapability[];
+  recommended_models: string[];
+  safety_note: string;
+  planning_modes: string[];
+}
+
+export interface AgentPlanningPreviewRequest {
+  goal: string;
+  provider?: string | null;
+  model?: string | null;
+}
+
+export interface AgentPlanStep {
+  order: number;
+  title: string;
+  description: string;
+  requires_user_confirmation: boolean;
+  allowed_execution: string;
+  verification: string;
+}
+
+export interface AgentPlanningPreview {
+  goal: string;
+  selected_provider: string | null;
+  selected_model: string | null;
+  readiness: string;
+  agent_mode: string;
+  steps: AgentPlanStep[];
+  unsupported_actions: string[];
+  guardrails: string[];
+  safety_note: string;
+}

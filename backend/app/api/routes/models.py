@@ -11,6 +11,13 @@ from app.api.dependencies import (
     vector_store,
     workspace_repository,
 )
+from app.api.schemas.agent_schemas import (
+    AgentCapabilityCatalogResponse,
+    AgentPlanningPreviewRequest,
+    AgentPlanningPreviewResponse,
+    to_agent_capability_catalog_response,
+    to_agent_planning_preview_response,
+)
 from app.api.schemas.model_catalog_schemas import (
     ModelCatalogDetailsResponse,
     LocalModelDefinitionResponse,
@@ -95,6 +102,11 @@ from app.core.use_cases.run_model_experiment import (
     RunModelExperimentWorkspaceNotFoundError,
 )
 from app.core.domain.model_experiment_run import ModelExperimentCandidateRequest
+from app.core.domain.agent_capability import (
+    build_agent_capability,
+    build_agent_capability_catalog,
+    build_agent_planning_preview,
+)
 
 
 router = APIRouter(prefix="/models", tags=["models"])
@@ -136,6 +148,35 @@ def get_model_catalog_details(
 def reload_model_catalog() -> ModelCatalogReloadResponse:
     result = ReloadModelCatalogUseCase(model_catalog_registry).execute()
     return to_model_catalog_reload_response(result)
+
+
+@router.get("/agent-capabilities", response_model=AgentCapabilityCatalogResponse)
+def get_agent_capabilities() -> AgentCapabilityCatalogResponse:
+    catalog = build_agent_capability_catalog(model_catalog_registry.list_models())
+    return to_agent_capability_catalog_response(catalog)
+
+
+@router.post("/agent-planning-preview", response_model=AgentPlanningPreviewResponse)
+def create_agent_planning_preview(
+    request: AgentPlanningPreviewRequest,
+) -> AgentPlanningPreviewResponse:
+    selected_capability = None
+    if request.provider and request.model:
+        for catalog_model in model_catalog_registry.list_models():
+            if (
+                catalog_model.provider == request.provider
+                and catalog_model.model_name == request.model
+            ):
+                selected_capability = build_agent_capability(catalog_model)
+                break
+
+    preview = build_agent_planning_preview(
+        goal=request.goal,
+        provider=request.provider,
+        model=request.model,
+        capability=selected_capability,
+    )
+    return to_agent_planning_preview_response(preview)
 
 
 @router.post("/recommend", response_model=ModelRecommendationResultResponse)
