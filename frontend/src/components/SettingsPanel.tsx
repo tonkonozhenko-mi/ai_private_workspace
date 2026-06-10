@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -14,6 +14,7 @@ import type {
   StartupChecklist,
   RuntimeTroubleshooting,
   SafeUpdateWorkflow,
+  DesktopStartupExperience,
 } from "../api/types";
 import {
   DEFAULT_FILE_INDEXING_PREFERENCES,
@@ -120,11 +121,40 @@ export function SettingsPanel({
   const [safeUpdateWorkflow, setSafeUpdateWorkflow] = useState<SafeUpdateWorkflow | null>(null);
   const [safeUpdateWorkflowError, setSafeUpdateWorkflowError] = useState<string | null>(null);
   const [safeUpdateWorkflowLoading, setSafeUpdateWorkflowLoading] = useState(false);
+  const [desktopStartup, setDesktopStartup] = useState<DesktopStartupExperience | null>(null);
+  const [desktopStartupError, setDesktopStartupError] = useState<string | null>(null);
+  const [desktopStartupLoading, setDesktopStartupLoading] = useState(false);
 
 
   useEffect(() => {
     setBackendUrlDraft(preferences.apiBaseUrl);
   }, [preferences.apiBaseUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDesktopStartupLoading(true);
+    setDesktopStartupError(null);
+    getDesktopStartupExperience()
+      .then((experience) => {
+        if (!cancelled) {
+          setDesktopStartup(experience);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setDesktopStartupError(error instanceof Error ? error.message : "Could not load desktop startup guidance");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setDesktopStartupLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
   useEffect(() => {
     let cancelled = false;
     setLocalDataSafetyLoading(true);
@@ -1314,6 +1344,66 @@ export function SettingsPanel({
           <span>No automatic model changes</span>
           <span>Sources stay visible</span>
         </div>
+      </section>
+
+
+      <section className="panel settings-desktop-startup-panel">
+        <div className="settings-section-heading">
+          <div>
+            <p className="eyebrow">Desktop startup</p>
+            <h2>Resume local workspace</h2>
+            <p>
+              Use a desktop-like startup flow: start local services, open the UI, and automatically restore the last selected workspace when it still exists. Commands are copy-only.
+            </p>
+          </div>
+          <StatusBadge
+            label={desktopStartupLoading ? "Checking" : desktopStartup?.status === "ok" ? "Ready" : "Review"}
+            tone={desktopStartup?.status === "ok" ? "success" : "warning"}
+          />
+        </div>
+        {desktopStartupError ? (
+          <p className="settings-transfer-message">Could not load desktop startup guidance: {desktopStartupError}</p>
+        ) : null}
+        {desktopStartup ? (
+          <>
+            <div className="startup-checklist-summary">
+              <strong>{desktopStartup.summary}</strong>
+              <span>{desktopStartup.suggested_next_action}</span>
+            </div>
+            <div className="local-data-details">
+              <div>
+                <span>Open last workspace</span>
+                <strong>{desktopStartup.open_last_workspace_enabled ? "Enabled" : "Disabled"}</strong>
+                <small>Browser key: {desktopStartup.last_workspace_storage_key}</small>
+              </div>
+              <div>
+                <span>Safety notes</span>
+                <ul>
+                  {desktopStartup.safety_notes.map((note) => (
+                    <li key={note}>{note}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div className="settings-command-stack">
+              {desktopStartup.startup_commands.map((command) => (
+                <div className="startup-checklist-command" key={command.label}>
+                  <span>{command.label}</span>
+                  <code>{command.command}</code>
+                  <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(command.command)}>
+                    Copy
+                  </button>
+                  <small>{command.description}</small>
+                </div>
+              ))}
+            </div>
+            <ol className="settings-preflight-list">
+              {desktopStartup.checklist.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ol>
+          </>
+        ) : null}
       </section>
 
       <section className="panel settings-startup-checklist-panel">

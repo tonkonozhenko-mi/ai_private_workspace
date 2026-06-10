@@ -46,6 +46,23 @@ class StartupChecklistResponse(BaseModel):
 
 
 
+class DesktopStartupCommandResponse(BaseModel):
+    label: str
+    command: str
+    description: str
+
+
+class DesktopStartupExperienceResponse(BaseModel):
+    status: str
+    summary: str
+    open_last_workspace_enabled: bool
+    last_workspace_storage_key: str
+    suggested_next_action: str
+    startup_commands: list[DesktopStartupCommandResponse]
+    checklist: list[str]
+    safety_notes: list[str]
+
+
 class DatabaseBackupResponse(BaseModel):
     filename: str
     path: str

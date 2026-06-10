@@ -89,3 +89,18 @@ def test_update_safety_workflow_is_copy_only_and_protects_runtime_data() -> None
     assert "*.db" in body["required_excludes"]
     assert "read-only" in body["safety_note"].lower()
     assert any("dry-run" in check.lower() for check in body["preflight_checks"])
+
+
+def test_desktop_startup_experience_is_read_only_and_copy_only() -> None:
+    response = client.get("/runtime/desktop-startup")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] in {"ok", "review"}
+    assert body["open_last_workspace_enabled"] is True
+    assert body["last_workspace_storage_key"] == "ai-private-workspace.last-workspace-id.v1"
+    assert body["startup_commands"]
+    assert any("python -m uvicorn" in command["command"] for command in body["startup_commands"])
+    assert any("npm run dev" in command["command"] for command in body["startup_commands"])
+    assert any("read-only" in note.lower() for note in body["safety_notes"])
+    assert any("never executes shell commands" in note.lower() for note in body["safety_notes"])
