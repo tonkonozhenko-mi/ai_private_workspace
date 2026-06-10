@@ -13440,3 +13440,127 @@ button,
     grid-template-columns: 1fr;
   }
 }
+
+/* Task 188 — safe agent workflow drafts */
+.agent-plan-actions,
+.agent-workflow-header,
+.agent-step-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.agent-plan-actions {
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.agent-workflow-history {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.agent-workflow-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.agent-workflow-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--surface-elevated);
+  padding: 1rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.agent-workflow-header {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.agent-workflow-header h4 {
+  margin: 0.15rem 0;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.agent-workflow-header p,
+.agent-workflow-steps p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.agent-workflow-actions,
+.agent-step-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.agent-workflow-progress {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  margin: 0.9rem 0;
+}
+
+.agent-workflow-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.agent-workflow-steps {
+  list-style: none;
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+  margin: 0;
+}
+
+.agent-workflow-steps li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: start;
+  padding: 0.9rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.agent-workflow-steps strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.agent-workflow-steps span {
+  display: inline-flex;
+  margin-top: 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.agent-step-actions button,
+.agent-workflow-actions button,
+.agent-plan-actions button {
+  min-height: 2.35rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 920px) {
+  .agent-workflow-steps li,
+  .agent-workflow-header {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-step-actions,
+  .agent-workflow-actions {
+    width: 100%;
+  }
+}

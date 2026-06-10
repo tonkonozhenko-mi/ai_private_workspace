@@ -1,19 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  archiveAgentWorkflow,
   createAgentPlanningPreview,
+  createAgentWorkflow,
+  deleteAgentWorkflow,
   getAgentCapabilities,
+  listAgentWorkflows,
   getModelExperimentRatings,
   getWorkspaceModelExperiments,
   planModelExperiment,
   runModelExperiment,
   saveModelExperimentRating,
+  updateAgentWorkflowStep,
   updateWorkspaceModelSelection,
 } from "../api/client";
 import type {
   AgentCapability,
   AgentCapabilityCatalog,
   AgentPlanningPreview,
+  AgentWorkflow,
   LocalAIActivationGuide,
   ModelExperimentPlan,
   ModelExperimentRating,
@@ -240,6 +246,7 @@ export function ModelsDetail({
       />
 
       <AgentModeReadinessPanel
+        workspaceId={workspaceId}
         selectedProvider={dashboard.selected_llm_provider ?? usage.active_llm_provider}
         selectedModel={dashboard.selected_llm_model ?? usage.active_llm_model}
       />
@@ -441,9 +448,11 @@ function ModelsWorkflowSteps({
 
 
 function AgentModeReadinessPanel({
+  workspaceId,
   selectedProvider,
   selectedModel,
 }: {
+  workspaceId: string;
   selectedProvider: string;
   selectedModel: string;
 }) {
@@ -455,6 +464,9 @@ function AgentModeReadinessPanel({
   const [preview, setPreview] = useState<AgentPlanningPreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [isPlanning, setIsPlanning] = useState(false);
+  const [workflows, setWorkflows] = useState<AgentWorkflow[]>([]);
+  const [workflowError, setWorkflowError] = useState<string | null>(null);
+  const [isSavingWorkflow, setIsSavingWorkflow] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -474,6 +486,20 @@ function AgentModeReadinessPanel({
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    void loadAgentWorkflows();
+  }, [workspaceId]);
+
+  async function loadAgentWorkflows() {
+    setWorkflowError(null);
+    try {
+      const result = await listAgentWorkflows(workspaceId);
+      setWorkflows(result.items);
+    } catch (error) {
+      setWorkflowError(errorMessage(error));
+    }
+  }
 
   const selectedCapability = useMemo(
     () =>
@@ -502,6 +528,53 @@ function AgentModeReadinessPanel({
       setPreviewError(errorMessage(error));
     } finally {
       setIsPlanning(false);
+    }
+  }
+
+  async function handleSaveWorkflowDraft() {
+    setIsSavingWorkflow(true);
+    setWorkflowError(null);
+    try {
+      const saved = await createAgentWorkflow(workspaceId, {
+        goal,
+        provider: selectedProvider,
+        model: selectedModel,
+      });
+      setWorkflows((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
+    } catch (error) {
+      setWorkflowError(errorMessage(error));
+    } finally {
+      setIsSavingWorkflow(false);
+    }
+  }
+
+  async function handleStepStatus(workflow: AgentWorkflow, stepId: string, status: "todo" | "in_progress" | "done" | "skipped" | "needs_review") {
+    setWorkflowError(null);
+    try {
+      const updated = await updateAgentWorkflowStep(workspaceId, workflow.id, stepId, { status });
+      setWorkflows((current) => current.map((item) => item.id === updated.id ? updated : item));
+    } catch (error) {
+      setWorkflowError(errorMessage(error));
+    }
+  }
+
+  async function handleArchiveWorkflow(workflow: AgentWorkflow) {
+    setWorkflowError(null);
+    try {
+      const updated = await archiveAgentWorkflow(workspaceId, workflow.id, true);
+      setWorkflows((current) => current.filter((item) => item.id !== updated.id));
+    } catch (error) {
+      setWorkflowError(errorMessage(error));
+    }
+  }
+
+  async function handleDeleteWorkflow(workflow: AgentWorkflow) {
+    setWorkflowError(null);
+    try {
+      await deleteAgentWorkflow(workspaceId, workflow.id);
+      setWorkflows((current) => current.filter((item) => item.id !== workflow.id));
+    } catch (error) {
+      setWorkflowError(errorMessage(error));
     }
   }
 
@@ -587,9 +660,65 @@ function AgentModeReadinessPanel({
               </li>
             ))}
           </ol>
+          <div className="agent-plan-actions">
+            <button type="button" onClick={handleSaveWorkflowDraft} disabled={isSavingWorkflow}>
+              {isSavingWorkflow ? "Saving…" : "Save as manual workflow"}
+            </button>
+            <span>Track steps manually; nothing runs automatically.</span>
+          </div>
           <p className="muted-text">{preview.safety_note}</p>
         </div>
       ) : null}
+
+      <div className="agent-workflow-history">
+        <div className="panel-heading-row compact">
+          <div>
+            <p className="eyebrow">Manual workflow drafts</p>
+            <h3>Agent plans you can track step by step</h3>
+          </div>
+          <button type="button" className="secondary-button" onClick={() => void loadAgentWorkflows()}>Refresh</button>
+        </div>
+        {workflowError ? <p className="form-error">{workflowError}</p> : null}
+        {workflows.length === 0 ? (
+          <p className="muted-text">No saved agent workflow drafts yet. Preview a plan, then save it for manual tracking.</p>
+        ) : (
+          <div className="agent-workflow-list">
+            {workflows.map((workflow) => (
+              <article key={workflow.id} className="agent-workflow-card">
+                <div className="agent-workflow-header">
+                  <div>
+                    <span className="eyebrow">{formatLabel(workflow.status)} · {workflow.progress_percent}%</span>
+                    <h4>{workflow.title}</h4>
+                    <p>{workflow.provider}/{workflow.model} · {formatLabel(workflow.readiness)}</p>
+                  </div>
+                  <div className="agent-workflow-actions">
+                    <button type="button" className="secondary-button" onClick={() => void handleArchiveWorkflow(workflow)}>Archive</button>
+                    <button type="button" className="danger-button" onClick={() => void handleDeleteWorkflow(workflow)}>Delete</button>
+                  </div>
+                </div>
+                <div className="agent-workflow-progress"><span style={{ width: `${workflow.progress_percent}%` }} /></div>
+                <ol className="agent-workflow-steps">
+                  {workflow.steps.map((step) => (
+                    <li key={step.id}>
+                      <div>
+                        <strong>{step.title}</strong>
+                        <p>{step.description}</p>
+                        <span>{formatLabel(step.status)} · {step.requires_user_confirmation ? "Manual confirmation" : "Read-only"}</span>
+                      </div>
+                      <div className="agent-step-actions">
+                        <button type="button" onClick={() => void handleStepStatus(workflow, step.id, "done")}>Done</button>
+                        <button type="button" onClick={() => void handleStepStatus(workflow, step.id, "needs_review")}>Review</button>
+                        <button type="button" onClick={() => void handleStepStatus(workflow, step.id, "skipped")}>Skip</button>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+                <p className="muted-text">{workflow.safety_note}</p>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

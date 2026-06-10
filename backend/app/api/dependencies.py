@@ -4,6 +4,7 @@ from app.adapters.embeddings.fake_embedding_provider import FakeEmbeddingProvide
 from app.adapters.filesystem.local_file_system import LocalFileSystem
 from app.adapters.llm.fake_llm_provider import FakeLLMProvider
 from app.adapters.llm.llm_provider_factory import LLMProviderFactory
+from app.adapters.memory.in_memory_agent_workflow_repository import InMemoryAgentWorkflowRepository
 from app.adapters.memory.in_memory_command_repository import InMemoryCommandRepository
 from app.adapters.memory.in_memory_conversation_repository import InMemoryConversationRepository
 from app.adapters.memory.in_memory_index_status_repository import (
@@ -28,6 +29,7 @@ from app.adapters.memory.in_memory_workspace_repository import InMemoryWorkspace
 from app.adapters.memory.in_memory_workspace_model_selection_repository import (
     InMemoryWorkspaceModelSelectionRepository,
 )
+from app.adapters.memory.sqlite_agent_workflow_repository import SQLiteAgentWorkflowRepository
 from app.adapters.memory.sqlite_command_repository import SQLiteCommandRepository
 from app.adapters.memory.sqlite_conversation_repository import SQLiteConversationRepository
 from app.adapters.memory.sqlite_index_status_repository import SQLiteIndexStatusRepository
@@ -58,6 +60,7 @@ from app.adapters.runtime_health.qdrant_runtime_health_checker import (
 )
 from app.adapters.vector_store.in_memory_vector_store import InMemoryVectorStore
 from app.config.settings import get_settings
+from app.core.ports.agent_workflow_repository import AgentWorkflowRepositoryPort
 from app.core.ports.command_repository import CommandRepositoryPort
 from app.core.ports.conversation_repository import ConversationRepositoryPort
 from app.core.ports.command_runner import CommandRunnerPort
@@ -118,6 +121,18 @@ def build_report_repository() -> ReportRepositoryPort:
         return SQLiteReportRepository(settings.workspace_db_path)
 
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+def build_agent_workflow_repository() -> AgentWorkflowRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryAgentWorkflowRepository()
+    if repository_type == "sqlite":
+        return SQLiteAgentWorkflowRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
 
 def build_command_repository() -> CommandRepositoryPort:
     settings = get_settings()
@@ -367,6 +382,7 @@ def build_model_catalog_registry() -> ModelCatalogRegistry:
 workspace_repository = build_workspace_repository()
 project_scan_repository = build_project_scan_repository()
 report_repository = build_report_repository()
+agent_workflow_repository = build_agent_workflow_repository()
 command_repository = build_command_repository()
 index_status_repository = build_index_status_repository()
 indexing_rules_repository = build_indexing_rules_repository()

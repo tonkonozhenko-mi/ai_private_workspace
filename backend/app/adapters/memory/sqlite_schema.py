@@ -201,6 +201,30 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             )
             """
         )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS workspace_agent_workflows (
+                id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                goal TEXT NOT NULL,
+                provider TEXT NULL,
+                model TEXT NULL,
+                readiness TEXT NOT NULL,
+                agent_mode TEXT NOT NULL,
+                status TEXT NOT NULL,
+                steps_json TEXT NOT NULL,
+                guardrails_json TEXT NOT NULL,
+                unsupported_actions_json TEXT NOT NULL,
+                safety_note TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                archived_at TEXT NULL
+            )
+            """
+        )
+
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS workspace_indexing_rules (
