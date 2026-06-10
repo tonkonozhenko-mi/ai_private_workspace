@@ -879,3 +879,13 @@ Next Phase 12 steps:
 2. Show recent scan/index jobs in Activity with job status, duration, and applied file rules.
 3. Consider cooperative cancellation checkpoints inside long scan/index loops if real projects expose operations that can run for a long time.
 4. Keep all scan/index jobs explicit user-click actions.
+
+
+## After Task 151
+
+Next Phase 12 steps:
+
+1. Add Activity/job history presentation for scan/index jobs, including duration, status, and applied file rules.
+2. Improve file preview with grouped file types and search/filter when projects are large.
+3. Consider cooperative cancellation checkpoints inside scan/index loops if real projects expose long-running operations.
+4. After Phase 12, run a UI simplification pass because Overview and Settings now contain many powerful controls.

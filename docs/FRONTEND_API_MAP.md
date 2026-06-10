@@ -910,3 +910,13 @@ The older synchronous endpoints remain available for compatibility:
 - `POST /workspaces/{workspace_id}/index`
 
 Frontend cancellation for scan/index is now job-based. Ask still uses request cancellation for the active `/ask-selected` call.
+
+
+## Task 151 file selection preview
+
+The frontend can preview file selection before starting a scan job:
+
+- `POST /workspaces/{workspace_id}/files/preview` accepts the same optional `file_rules` payload as scan jobs.
+- The response returns included/excluded counts, skipped files, and sample files with reasons and matched rules.
+- The preview does not save scan results, build search context, call models, delete files, or start background jobs.
+- The Overview Guided path shows `Preview files` before `Scan project` so users can understand what will enter the searchable context.

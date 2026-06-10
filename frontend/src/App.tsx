@@ -13,6 +13,7 @@ import {
   getWorkspaceJob,
   startIndexWorkspaceJob,
   startScanWorkspaceJob,
+  previewWorkspaceFileSelection,
   getWorkspaceUIActions,
   setApiBaseUrl,
 } from "./api/client";
@@ -21,6 +22,7 @@ import type {
   WorkspaceModelsDetailBundle,
   WorkspaceOverviewItem,
   WorkspaceJob,
+  FileSelectionPreview,
 } from "./api/types";
 import { AskWorkspace } from "./components/AskWorkspace";
 import { CreateWorkspacePanel } from "./components/CreateWorkspacePanel";
@@ -258,6 +260,14 @@ function App() {
   }, [loadWorkspaceDetail, loadWorkspaces]);
 
 
+
+  const handlePreviewFileSelection = useCallback((workspaceId: string): Promise<FileSelectionPreview> => {
+    return previewWorkspaceFileSelection(
+      workspaceId,
+      toFileSelectionRulesRequest(preferences.fileIndexingPreferences),
+    );
+  }, [preferences.fileIndexingPreferences]);
+
   const handleStartScanJob = useCallback(async (workspaceId: string): Promise<WorkspaceJob> => {
     return startScanWorkspaceJob(
       workspaceId,
@@ -451,6 +461,7 @@ function App() {
                   onOpenAsk={() => setActiveTab("ask")}
                   onOpenModels={() => setActiveTab("models")}
                   onOpenCapabilities={() => setActiveTab("actions")}
+                  onPreviewFileSelection={() => handlePreviewFileSelection(detail.dashboard.workspace_id)}
                   onStartScanJob={() => handleStartScanJob(detail.dashboard.workspace_id)}
                   onStartIndexJob={() => handleStartIndexJob(detail.dashboard.workspace_id)}
                   onGetWorkspaceJob={(jobId) => handleGetWorkspaceJob(detail.dashboard.workspace_id, jobId)}

@@ -4,6 +4,7 @@ import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
   WorkspaceJob,
+  FileSelectionPreview,
 } from "../api/types";
 import {
   countPatterns,
@@ -25,6 +26,7 @@ interface WorkspaceDashboardProps {
   onOpenAsk: () => void;
   onOpenModels: () => void;
   onOpenCapabilities: () => void;
+  onPreviewFileSelection: () => Promise<FileSelectionPreview>;
   onStartScanJob: () => Promise<WorkspaceJob>;
   onStartIndexJob: () => Promise<WorkspaceJob>;
   onGetWorkspaceJob: (jobId: string) => Promise<WorkspaceJob>;
@@ -41,6 +43,7 @@ export function WorkspaceDashboard({
   onOpenAsk,
   onOpenModels,
   onOpenCapabilities,
+  onPreviewFileSelection,
   onStartScanJob,
   onStartIndexJob,
   onGetWorkspaceJob,
@@ -109,6 +112,7 @@ export function WorkspaceDashboard({
         onOpenAsk={onOpenAsk}
         onOpenModels={onOpenModels}
         onOpenCapabilities={onOpenCapabilities}
+        onPreviewFileSelection={onPreviewFileSelection}
         onStartScanJob={onStartScanJob}
         onStartIndexJob={onStartIndexJob}
         onGetWorkspaceJob={onGetWorkspaceJob}
@@ -166,6 +170,7 @@ function WorkspaceOnboardingGuide({
   onOpenAsk,
   onOpenModels,
   onOpenCapabilities,
+  onPreviewFileSelection,
   onStartScanJob,
   onStartIndexJob,
   onGetWorkspaceJob,
@@ -178,6 +183,7 @@ function WorkspaceOnboardingGuide({
   onOpenAsk: () => void;
   onOpenModels: () => void;
   onOpenCapabilities: () => void;
+  onPreviewFileSelection: () => Promise<FileSelectionPreview>;
   onStartScanJob: () => Promise<WorkspaceJob>;
   onStartIndexJob: () => Promise<WorkspaceJob>;
   onGetWorkspaceJob: (jobId: string) => Promise<WorkspaceJob>;
@@ -206,7 +212,28 @@ function WorkspaceOnboardingGuide({
   const [setupJob, setSetupJob] = useState<WorkspaceJob | null>(null);
   const [setupMessage, setSetupMessage] = useState<string | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
+  const [filePreview, setFilePreview] = useState<FileSelectionPreview | null>(null);
+  const [filePreviewLoading, setFilePreviewLoading] = useState(false);
+  const [filePreviewError, setFilePreviewError] = useState<string | null>(null);
+  const [filePreviewOpen, setFilePreviewOpen] = useState(false);
   const pollingJobIdRef = useRef<string | null>(null);
+
+  async function previewFilesBeforeScan() {
+    setFilePreviewLoading(true);
+    setFilePreviewError(null);
+    setFilePreviewOpen(true);
+    try {
+      setFilePreview(await onPreviewFileSelection());
+    } catch (error) {
+      setFilePreviewError(
+        error instanceof Error
+          ? error.message
+          : "Could not preview file selection.",
+      );
+    } finally {
+      setFilePreviewLoading(false);
+    }
+  }
 
   async function runSetupAction(action: "scan" | "index") {
     setSetupAction(action);
@@ -452,9 +479,8 @@ function WorkspaceOnboardingGuide({
         <div>
           <strong>File rules applied on scan</strong>
           <p>
-            The next project scan will apply your browser-local include and
-            exclude rules. Build search context then uses the latest filtered
-            scan.
+            Preview which local files match your browser-local include and
+            exclude rules before starting the scan job.
           </p>
         </div>
         <div className="file-rules-plan-grid">
@@ -467,7 +493,34 @@ function WorkspaceOnboardingGuide({
             <code>{excludePreview.join(" · ") || "No exclusions"}</code>
           </div>
         </div>
+        <div className="file-rules-plan-actions">
+          <button
+            className="secondary-action"
+            type="button"
+            onClick={() => void previewFilesBeforeScan()}
+            disabled={filePreviewLoading}
+          >
+            {filePreviewLoading ? "Previewing..." : "Preview files"}
+          </button>
+          {filePreview ? (
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => setFilePreviewOpen((current) => !current)}
+            >
+              {filePreviewOpen ? "Hide preview" : "Show preview"}
+            </button>
+          ) : null}
+        </div>
       </div>
+
+      {filePreviewError ? (
+        <p className="settings-message error">{filePreviewError}</p>
+      ) : null}
+
+      {filePreview && filePreviewOpen ? (
+        <FileSelectionPreviewPanel preview={filePreview} />
+      ) : null}
 
       {setupMessage ? (
         <p className="settings-message success">{setupMessage}</p>
@@ -491,6 +544,75 @@ function WorkspaceOnboardingGuide({
         ))}
       </div>
     </section>
+  );
+}
+
+
+function FileSelectionPreviewPanel({
+  preview,
+}: {
+  preview: FileSelectionPreview;
+}) {
+  return (
+    <div className="file-preview-panel">
+      <div className="file-preview-summary">
+        <div>
+          <span>Included</span>
+          <strong>{preview.included_files_count}</strong>
+        </div>
+        <div>
+          <span>Excluded</span>
+          <strong>{preview.excluded_files_count}</strong>
+        </div>
+        <div>
+          <span>Skipped</span>
+          <strong>{preview.skipped_files_count}</strong>
+        </div>
+      </div>
+      <div className="file-preview-columns">
+        <FilePreviewList
+          title="Included samples"
+          emptyText="No files matched the current include rules."
+          items={preview.included_samples}
+        />
+        <FilePreviewList
+          title="Excluded samples"
+          emptyText="No files were excluded by the current rules."
+          items={preview.excluded_samples}
+        />
+      </div>
+    </div>
+  );
+}
+
+function FilePreviewList({
+  title,
+  emptyText,
+  items,
+}: {
+  title: string;
+  emptyText: string;
+  items: FileSelectionPreview["included_samples"];
+}) {
+  return (
+    <div className="file-preview-list">
+      <h3>{title}</h3>
+      {items.length > 0 ? (
+        <ul>
+          {items.map((item) => (
+            <li key={`${item.decision}-${item.path}`}>
+              <code>{item.path}</code>
+              <span>
+                {item.reason}
+                {item.matched_rule ? `: ${item.matched_rule}` : ""}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>{emptyText}</p>
+      )}
+    </div>
   );
 }
 

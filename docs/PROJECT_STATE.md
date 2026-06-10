@@ -553,3 +553,10 @@ This task is a frontend/localStorage foundation only. The preferences are visibl
 Scan and Build search context now have backend job endpoints. The frontend starts explicit scan/index jobs, polls job status, and can request backend job cancellation instead of only aborting the browser request. Job status includes queued, running, completed, failed, and cancelled states, plus result summaries and error messages.
 
 The original synchronous scan/index endpoints remain available for compatibility, but the guided setup flow uses the new job endpoints. Starting and cancelling jobs still requires explicit user clicks. The frontend does not execute shell commands, does not run scan/index automatically, does not delete local files, and does not change model/runtime settings.
+
+
+## Task 151 — File preview before scan
+
+Added a backend file selection preview endpoint and a frontend Preview files action in the Overview guided path. Users can now see included/excluded counts and sample files with match reasons before starting a scan job. The preview uses the same browser-local include/exclude rules that Scan applies, but it does not save scan results, build search context, call models, delete files, or start jobs.
+
+This completes the first practical layer of Phase 12: users can define file rules, apply them during explicit scan jobs, and preview their effect before scanning.
