@@ -868,3 +868,18 @@ No new API endpoints were added. Source-snippet count and browser-local skill co
 
 - `AskWorkspace.tsx` now renders a compact assistant-focus panel for the Ask screen.
 - No API contract changed. Ask still calls the existing `/workspaces/{workspace_id}/ask-selected` endpoint only after explicit user submit.
+
+## Task 147 — File selection preferences foundation
+
+The frontend now stores browser-local file indexing preferences in the shared preferences object:
+
+- `fileIndexingPreferences.profile`
+- `fileIndexingPreferences.includePatterns`
+- `fileIndexingPreferences.excludePatterns`
+
+These values are currently UI/localStorage only and are not sent to backend endpoints yet. Existing explicit setup APIs remain unchanged:
+
+- `POST /workspaces/{workspace_id}/scan`
+- `POST /workspaces/{workspace_id}/index`
+
+Future work should add an explicit scan/index contract for include/exclude rules and a preview endpoint before applying file selection preferences to indexing.

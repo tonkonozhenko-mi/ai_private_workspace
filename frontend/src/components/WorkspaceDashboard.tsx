@@ -4,6 +4,7 @@ import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
 } from "../api/types";
+import { countPatterns, type FileIndexingPreferences } from "./fileIndexingPreferences";
 import { ModelsSummaryCard } from "./ModelsSummaryCard";
 import { StatusBadge } from "./StatusBadge";
 import type { StatusTone } from "./statusTone";
@@ -19,6 +20,7 @@ interface WorkspaceDashboardProps {
   onIndexWorkspace: () => Promise<void>;
   onOpenSettings: () => void;
   skillPreferences: SkillPreferences;
+  fileIndexingPreferences: FileIndexingPreferences;
 }
 
 export function WorkspaceDashboard({
@@ -31,6 +33,7 @@ export function WorkspaceDashboard({
   onIndexWorkspace,
   onOpenSettings,
   skillPreferences,
+  fileIndexingPreferences,
 }: WorkspaceDashboardProps) {
   const summary = dashboard.summary;
   const indexStatus = summary.index_status;
@@ -96,6 +99,12 @@ export function WorkspaceDashboard({
         onOpenAsk={onOpenAsk}
         onOpenSettings={onOpenSettings}
         skillPreferences={skillPreferences}
+      />
+
+      <WorkspaceFilesSection
+        dashboard={dashboard}
+        fileIndexingPreferences={fileIndexingPreferences}
+        onOpenSettings={onOpenSettings}
       />
 
       <ProductStatusSection
@@ -465,6 +474,87 @@ function getWorkspaceSkillCards(mode: string, detectedCount: number, hasScan: bo
       hint: currentPreference?.enabled ? "Active preset" : "Available preset",
     },
   ];
+}
+
+
+function WorkspaceFilesSection({
+  dashboard,
+  fileIndexingPreferences,
+  onOpenSettings,
+}: {
+  dashboard: WorkspaceDashboardData;
+  fileIndexingPreferences: FileIndexingPreferences;
+  onOpenSettings: () => void;
+}) {
+  const summary = dashboard.summary;
+  const includeCount = countPatterns(fileIndexingPreferences.includePatterns);
+  const excludeCount = countPatterns(fileIndexingPreferences.excludePatterns);
+  const contextReady = summary.index_status.status === "indexed";
+  const scanReady = summary.has_scan;
+
+  return (
+    <section className="panel workspace-files-panel">
+      <div className="workspace-skills-heading">
+        <div>
+          <p className="eyebrow">Files and context</p>
+          <h2>Control what becomes searchable</h2>
+          <p>
+            File preferences define which local project files should be considered for scan and future indexing. Defaults keep source, docs, and infrastructure files while skipping generated or heavy folders.
+          </p>
+        </div>
+        <div className="workspace-skills-badges">
+          <StatusBadge label={`${includeCount} include rules`} tone="info" />
+          <StatusBadge label={`${excludeCount} exclude rules`} tone="neutral" />
+        </div>
+      </div>
+
+      <div className="workspace-files-grid">
+        <article className="workspace-skill-card">
+          <div className="workspace-skill-icon" aria-hidden="true">↳</div>
+          <div>
+            <h3>Include useful project files</h3>
+            <p>
+              Source code, documentation, Terraform, Kubernetes, Docker, Helm, and CI/CD definitions are included by default.
+            </p>
+            <span className="workspace-skill-footnote">Source, docs, configs, IaC</span>
+          </div>
+        </article>
+        <article className="workspace-skill-card">
+          <div className="workspace-skill-icon" aria-hidden="true">⊘</div>
+          <div>
+            <h3>Skip noisy or generated files</h3>
+            <p>
+              Dependencies, caches, build outputs, binaries, archives, and logs stay out of the context by default.
+            </p>
+            <span className="workspace-skill-footnote">node_modules, .venv, dist, build</span>
+          </div>
+        </article>
+        <article className="workspace-skill-card">
+          <div className="workspace-skill-icon" aria-hidden="true">⌘</div>
+          <div>
+            <h3>Review before rebuilding</h3>
+            <p>
+              This task only prepares browser-local preferences. Rebuilding search context remains an explicit action.
+            </p>
+            <span className="workspace-skill-footnote">Manual and safe</span>
+          </div>
+        </article>
+      </div>
+
+      <div className="workspace-skills-next-step">
+        <div>
+          <p className="eyebrow">Indexing control</p>
+          <h3>{contextReady ? "Search context is ready" : scanReady ? "Review file rules before building context" : "Scan first, then review file rules"}</h3>
+          <p>
+            File preferences are saved in this browser and will be connected to scan/index requests in the next phase step.
+          </p>
+        </div>
+        <button className="secondary-action" type="button" onClick={onOpenSettings}>
+          Edit file rules
+        </button>
+      </div>
+    </section>
+  );
 }
 
 function ProductStatusSection({

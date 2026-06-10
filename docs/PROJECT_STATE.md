@@ -533,3 +533,9 @@ The composer keeps source-snippet selection and example questions close to the i
 The Ask assistant-focus panel was compacted so it no longer dominates the chat layout. The panel now shows a small Assistant focus header, a short focus summary, answer style, active skills, and a concise note that skills are applied to Ask requests.
 
 This is a frontend-only UI polish task. It does not change backend behavior, API calls, skill prompt behavior, shell execution, scan/index/rebuild, or model/runtime settings.
+
+## Task 147 — File selection and indexing preferences foundation
+
+Phase 12 has started with browser-local file selection preferences. Overview now includes a Files and context panel that explains which project files should become searchable and which noisy/generated files should stay out of context. Settings now includes a Files and search context section with editable include and exclude pattern lists, safe defaults, rule counts, Save file rules, and Reset defaults.
+
+This task is a frontend/localStorage foundation only. The preferences are visible and exportable with other browser-local settings, but they are not yet sent to scan/index endpoints. Rebuilding search context remains an explicit user action and no shell commands, file deletion, model/runtime changes, or automatic scan/index behavior were added.
