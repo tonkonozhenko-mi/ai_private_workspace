@@ -11,6 +11,7 @@ import {
   getWorkspacesOverview,
   cancelWorkspaceJob,
   getWorkspaceJob,
+  listWorkspaceJobs,
   startIndexWorkspaceJob,
   startScanWorkspaceJob,
   previewWorkspaceFileSelection,
@@ -283,6 +284,10 @@ function App() {
     return getWorkspaceJob(workspaceId, jobId);
   }, []);
 
+  const handleListWorkspaceJobs = useCallback((workspaceId: string) => {
+    return listWorkspaceJobs(workspaceId);
+  }, []);
+
   const handleCancelWorkspaceJob = useCallback((workspaceId: string, jobId: string) => {
     return cancelWorkspaceJob(workspaceId, jobId);
   }, []);
@@ -465,6 +470,7 @@ function App() {
                   onStartScanJob={() => handleStartScanJob(detail.dashboard.workspace_id)}
                   onStartIndexJob={() => handleStartIndexJob(detail.dashboard.workspace_id)}
                   onGetWorkspaceJob={(jobId) => handleGetWorkspaceJob(detail.dashboard.workspace_id, jobId)}
+                  onListWorkspaceJobs={() => handleListWorkspaceJobs(detail.dashboard.workspace_id)}
                   onCancelWorkspaceJob={(jobId) => handleCancelWorkspaceJob(detail.dashboard.workspace_id, jobId)}
                   onRefreshWorkspaceState={() => refreshWorkspaceReadOnlyState(detail.dashboard.workspace_id)}
                   onOpenSettings={() => setActiveTab("settings")}

@@ -30,6 +30,7 @@ interface WorkspaceDashboardProps {
   onStartScanJob: () => Promise<WorkspaceJob>;
   onStartIndexJob: () => Promise<WorkspaceJob>;
   onGetWorkspaceJob: (jobId: string) => Promise<WorkspaceJob>;
+  onListWorkspaceJobs: () => Promise<WorkspaceJob[]>;
   onCancelWorkspaceJob: (jobId: string) => Promise<WorkspaceJob>;
   onRefreshWorkspaceState: () => Promise<void>;
   onOpenSettings: () => void;
@@ -47,6 +48,7 @@ export function WorkspaceDashboard({
   onStartScanJob,
   onStartIndexJob,
   onGetWorkspaceJob,
+  onListWorkspaceJobs,
   onCancelWorkspaceJob,
   onRefreshWorkspaceState,
   onOpenSettings,
@@ -116,6 +118,7 @@ export function WorkspaceDashboard({
         onStartScanJob={onStartScanJob}
         onStartIndexJob={onStartIndexJob}
         onGetWorkspaceJob={onGetWorkspaceJob}
+        onListWorkspaceJobs={onListWorkspaceJobs}
         onCancelWorkspaceJob={onCancelWorkspaceJob}
         onRefreshWorkspaceState={onRefreshWorkspaceState}
         fileIndexingPreferences={fileIndexingPreferences}
@@ -174,6 +177,7 @@ function WorkspaceOnboardingGuide({
   onStartScanJob,
   onStartIndexJob,
   onGetWorkspaceJob,
+  onListWorkspaceJobs,
   onCancelWorkspaceJob,
   onRefreshWorkspaceState,
   fileIndexingPreferences,
@@ -187,6 +191,7 @@ function WorkspaceOnboardingGuide({
   onStartScanJob: () => Promise<WorkspaceJob>;
   onStartIndexJob: () => Promise<WorkspaceJob>;
   onGetWorkspaceJob: (jobId: string) => Promise<WorkspaceJob>;
+  onListWorkspaceJobs: () => Promise<WorkspaceJob[]>;
   onCancelWorkspaceJob: (jobId: string) => Promise<WorkspaceJob>;
   onRefreshWorkspaceState: () => Promise<void>;
   fileIndexingPreferences: FileIndexingPreferences;
@@ -210,6 +215,8 @@ function WorkspaceOnboardingGuide({
   ).slice(0, 4);
   const [setupAction, setSetupAction] = useState<"scan" | "index" | null>(null);
   const [setupJob, setSetupJob] = useState<WorkspaceJob | null>(null);
+  const [jobHistory, setJobHistory] = useState<WorkspaceJob[]>([]);
+  const [jobHistoryError, setJobHistoryError] = useState<string | null>(null);
   const [setupMessage, setSetupMessage] = useState<string | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
   const [filePreview, setFilePreview] = useState<FileSelectionPreview | null>(null);
@@ -217,6 +224,17 @@ function WorkspaceOnboardingGuide({
   const [filePreviewError, setFilePreviewError] = useState<string | null>(null);
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
   const pollingJobIdRef = useRef<string | null>(null);
+
+  async function refreshJobHistory() {
+    setJobHistoryError(null);
+    try {
+      setJobHistory(await onListWorkspaceJobs());
+    } catch (error) {
+      setJobHistoryError(
+        error instanceof Error ? error.message : "Could not load background jobs.",
+      );
+    }
+  }
 
   async function previewFilesBeforeScan() {
     setFilePreviewLoading(true);
@@ -244,6 +262,7 @@ function WorkspaceOnboardingGuide({
       const job =
         action === "scan" ? await onStartScanJob() : await onStartIndexJob();
       setSetupJob(job);
+      setJobHistory((current) => [job, ...current.filter((item) => item.job_id !== job.job_id)].slice(0, 8));
       pollingJobIdRef.current = job.job_id;
     } catch (error) {
       setSetupAction(null);
@@ -264,6 +283,7 @@ function WorkspaceOnboardingGuide({
     try {
       const cancelledJob = await onCancelWorkspaceJob(setupJob.job_id);
       setSetupJob(cancelledJob);
+      setJobHistory((current) => [cancelledJob, ...current.filter((item) => item.job_id !== cancelledJob.job_id)].slice(0, 8));
       setSetupMessage("Cancellation requested for this backend job.");
     } catch (error) {
       setSetupError(
@@ -288,6 +308,7 @@ function WorkspaceOnboardingGuide({
           return;
         }
         setSetupJob(latestJob);
+        setJobHistory((current) => [latestJob, ...current.filter((item) => item.job_id !== latestJob.job_id)].slice(0, 8));
         if (["completed", "failed", "cancelled"].includes(latestJob.status)) {
           window.clearInterval(intervalId);
           pollingJobIdRef.current = null;
@@ -321,6 +342,10 @@ function WorkspaceOnboardingGuide({
       window.clearInterval(intervalId);
     };
   }, [onGetWorkspaceJob, onRefreshWorkspaceState, setupJob]);
+
+  useEffect(() => {
+    void refreshJobHistory();
+  }, []);
 
   const steps = [
     {
@@ -524,10 +549,11 @@ function WorkspaceOnboardingGuide({
 
       {setupJob && !["completed", "failed", "cancelled"].includes(setupJob.status) ? (
         <div className="workspace-job-status" role="status">
-          <div>
-            <span>{setupJob.job_type}</span>
+          <div className="workspace-job-main">
+            <span>{formatLabel(setupJob.job_type)}</span>
             <strong>{setupJob.title}</strong>
             <p>{setupJob.message ?? "Running..."}</p>
+            <JobProgress job={setupJob} />
             {setupJob.cancellation_requested ? (
               <p>Stopping when the backend reaches a safe checkpoint...</p>
             ) : null}
@@ -550,6 +576,13 @@ function WorkspaceOnboardingGuide({
       {setupError ? (
         <p className="settings-message error">{setupError}</p>
       ) : null}
+
+      <BackgroundJobsPanel
+        jobs={jobHistory}
+        error={jobHistoryError}
+        onRefresh={() => void refreshJobHistory()}
+      />
+
       <div className="onboarding-steps-grid">
         {steps.map((step, index) => (
           <article
@@ -567,6 +600,94 @@ function WorkspaceOnboardingGuide({
       </div>
     </section>
   );
+}
+
+
+function BackgroundJobsPanel({
+  jobs,
+  error,
+  onRefresh,
+}: {
+  jobs: WorkspaceJob[];
+  error: string | null;
+  onRefresh: () => void;
+}) {
+  const visibleJobs = jobs.slice(0, 6);
+
+  return (
+    <div className="background-jobs-panel" aria-label="Background jobs">
+      <div className="background-jobs-heading">
+        <div>
+          <p className="eyebrow">Background jobs</p>
+          <h3>Scan and context build history</h3>
+          <p>Track local long-running operations without leaving this workspace.</p>
+        </div>
+        <button className="text-button" type="button" onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? <p className="settings-message error">{error}</p> : null}
+      {visibleJobs.length === 0 ? (
+        <p className="background-jobs-empty">No background jobs yet.</p>
+      ) : (
+        <div className="background-jobs-list">
+          {visibleJobs.map((job) => (
+            <article className="background-job-item" key={job.job_id}>
+              <div>
+                <strong>{job.title}</strong>
+                <p>{job.message ?? job.error ?? "No job message."}</p>
+                <JobProgress job={job} compact />
+              </div>
+              <div className="background-job-meta">
+                <StatusBadge label={job.status} />
+                <span>{formatJobTime(job)}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function JobProgress({ job, compact = false }: { job: WorkspaceJob; compact?: boolean }) {
+  const percent = job.progress_percent ?? null;
+  const hasProgress = percent !== null || job.progress_current !== null || job.progress_total !== null;
+
+  if (!hasProgress) {
+    return null;
+  }
+
+  const value = Math.max(0, Math.min(100, percent ?? 0));
+  const label = progressLabel(job);
+
+  return (
+    <div className={compact ? "job-progress is-compact" : "job-progress"}>
+      <div className="job-progress-label">
+        <span>{job.current_step ? formatLabel(job.current_step) : "Progress"}</span>
+        <span>{label}</span>
+      </div>
+      <div className="job-progress-track" aria-hidden="true">
+        <span style={{ width: `${value}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function progressLabel(job: WorkspaceJob): string {
+  const parts: string[] = [];
+  if (job.progress_current !== null && job.progress_total !== null) {
+    parts.push(`${job.progress_current}/${job.progress_total}`);
+  }
+  if (job.progress_percent !== null) {
+    parts.push(`${job.progress_percent}%`);
+  }
+  return parts.join(" · ") || "In progress";
+}
+
+function formatJobTime(job: WorkspaceJob): string {
+  const timestamp = job.completed_at ?? job.started_at ?? job.created_at;
+  return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 

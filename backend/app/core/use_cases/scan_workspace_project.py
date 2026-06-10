@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Callable
 
 from app.core.domain.project_scan import ProjectScanResult
 from app.core.domain.skill_registry import SkillRegistry
@@ -19,6 +20,8 @@ class ScanWorkspaceProjectInput:
     include_patterns: tuple[str, ...] = ()
     exclude_patterns: tuple[str, ...] = ()
     file_rules_profile: str | None = None
+    cancellation_check: Callable[[], bool] | None = None
+    progress_callback: Callable[[int, int, str], None] | None = None
 
 
 class WorkspaceNotFoundError(ValueError):
@@ -53,6 +56,8 @@ class ScanWorkspaceProjectUseCase:
                 project_path=workspace.project_path,
                 include_patterns=request.include_patterns,
                 exclude_patterns=request.exclude_patterns,
+                cancellation_check=request.cancellation_check,
+                progress_callback=request.progress_callback,
             )
         )
 

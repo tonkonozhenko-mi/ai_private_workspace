@@ -507,6 +507,10 @@ export interface WorkspaceJob {
   result_summary: Record<string, string>;
   error: string | null;
   cancellation_requested: boolean;
+  progress_current: number | null;
+  progress_total: number | null;
+  progress_percent: number | null;
+  current_step: string | null;
   created_at: string;
   started_at: string | null;
   completed_at: string | null;

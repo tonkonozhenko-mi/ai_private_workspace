@@ -9372,3 +9372,88 @@ button:focus-visible {
     align-items: stretch;
   }
 }
+
+.background-jobs-panel {
+  border: 1px solid var(--color-border);
+  border-radius: 22px;
+  background: var(--color-surface-soft);
+  padding: 18px;
+  margin: 18px 0;
+}
+
+.background-jobs-heading,
+.background-job-item,
+.background-job-meta,
+.job-progress-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.background-jobs-heading h3 {
+  margin: 0;
+}
+
+.background-jobs-heading p,
+.background-job-item p,
+.background-jobs-empty {
+  margin: 4px 0 0;
+  color: var(--color-text-muted);
+}
+
+.background-jobs-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.background-job-item {
+  align-items: flex-start;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface);
+  padding: 14px;
+}
+
+.background-job-meta {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.workspace-job-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.job-progress {
+  margin-top: 10px;
+  max-width: 420px;
+}
+
+.job-progress.is-compact {
+  max-width: 320px;
+}
+
+.job-progress-label {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  margin-bottom: 6px;
+}
+
+.job-progress-track {
+  overflow: hidden;
+  height: 8px;
+  border-radius: 999px;
+  background: rgb(148 163 184 / 12%);
+  border: 1px solid var(--color-border);
+}
+
+.job-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+  transition: width 160ms ease;
+}

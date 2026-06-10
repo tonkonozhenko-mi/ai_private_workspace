@@ -119,7 +119,11 @@ from app.api.schemas.workspace_summary_schemas import (
     to_workspace_summary_response,
 )
 from app.api.schemas.workspace_job_schemas import WorkspaceJobResponse
-from app.api.workspace_job_runner import WorkspaceJob, WorkspaceJobNotFoundError
+from app.api.workspace_job_runner import (
+    WorkspaceJob,
+    WorkspaceJobCancelledError,
+    WorkspaceJobNotFoundError,
+)
 from app.api.schemas.workspace_ui_actions_schemas import (
     WorkspaceUIActionCatalogResponse,
     to_workspace_ui_action_catalog_response,
@@ -202,6 +206,7 @@ from app.core.use_cases.get_workspace_index_status import (
     WorkspaceIndexStatusNotFoundError,
 )
 from app.core.use_cases.index_workspace import (
+    IndexWorkspaceCancelledError,
     IndexWorkspaceInput,
     IndexWorkspaceNotFoundError,
     IndexWorkspaceScanRequiredError,
@@ -324,6 +329,7 @@ from app.core.use_cases.preview_workspace_file_selection import (
     PreviewWorkspaceFileSelectionUseCase,
     PreviewWorkspaceFileSelectionWorkspaceNotFoundError,
 )
+from app.core.use_cases.scan_project import ProjectScanCancelledError
 from app.core.use_cases.scan_workspace_project import (
     ScanWorkspaceProjectInput,
     ScanWorkspaceProjectUseCase,
@@ -440,8 +446,8 @@ def update_workspace_metadata(
     try:
         workspace = UpdateWorkspaceMetadataUseCase(
             workspace_repository=workspace_repository,
-            timeline_repository=timeline_repository,
-        ).execute(
+                timeline_repository=timeline_repository,
+            ).execute(
             UpdateWorkspaceMetadataInput(
                 workspace_id=workspace_id,
                 name=request.name,
@@ -505,6 +511,10 @@ def _to_workspace_job_response(job: WorkspaceJob) -> WorkspaceJobResponse:
         result_summary=job.result_summary,
         error=job.error,
         cancellation_requested=job.cancellation_requested,
+        progress_current=job.progress_current,
+        progress_total=job.progress_total,
+        progress_percent=job.progress_percent,
+        current_step=job.current_step,
         created_at=job.created_at,
         started_at=job.started_at,
         completed_at=job.completed_at,
@@ -583,20 +593,35 @@ def start_scan_workspace_job(
     exclude_patterns = tuple(file_rules.exclude_patterns) if file_rules is not None else ()
     file_rules_profile = file_rules.profile if file_rules is not None else None
 
-    def operation() -> dict[str, str]:
-        result = ScanWorkspaceProjectUseCase(
-            workspace_repository=workspace_repository,
-            file_system=file_system,
-            project_scan_repository=project_scan_repository,
-            timeline_repository=timeline_repository,
-        ).execute(
-            ScanWorkspaceProjectInput(
-                workspace_id=workspace_id,
-                include_patterns=include_patterns,
-                exclude_patterns=exclude_patterns,
-                file_rules_profile=file_rules_profile,
-            )
+    def operation(job_control) -> dict[str, str]:
+        job_control.update_progress(
+            message="Preparing project scan...",
+            current_step="prepare",
         )
+        try:
+            result = ScanWorkspaceProjectUseCase(
+                workspace_repository=workspace_repository,
+                file_system=file_system,
+                project_scan_repository=project_scan_repository,
+                timeline_repository=timeline_repository,
+            ).execute(
+                ScanWorkspaceProjectInput(
+                    workspace_id=workspace_id,
+                    include_patterns=include_patterns,
+                    exclude_patterns=exclude_patterns,
+                    file_rules_profile=file_rules_profile,
+                    cancellation_check=job_control.is_cancellation_requested,
+                    progress_callback=lambda current, total, message: job_control.update_progress(
+                        current=current,
+                        total=total,
+                        message=message,
+                        current_step="scan",
+                    ),
+                )
+            )
+        except ProjectScanCancelledError as exc:
+            raise WorkspaceJobCancelledError(str(exc)) from exc
+        job_control.checkpoint("Finalizing project scan...")
         return _scan_workspace_result_summary(result)
 
     job = workspace_job_runner.start_job(
@@ -618,16 +643,35 @@ def start_index_workspace_job(workspace_id: str) -> WorkspaceJobResponse:
             detail="Workspace not found",
         )
 
-    def operation() -> dict[str, str]:
-        result = IndexWorkspaceUseCase(
-            workspace_repository=workspace_repository,
-            project_scan_repository=project_scan_repository,
-            file_system=file_system,
-            embedding_provider=embedding_provider,
-            vector_store=vector_store,
-            index_status_repository=index_status_repository,
-            timeline_repository=timeline_repository,
-        ).execute(IndexWorkspaceInput(workspace_id=workspace_id))
+    def operation(job_control) -> dict[str, str]:
+        job_control.update_progress(
+            message="Preparing search context build...",
+            current_step="prepare",
+        )
+        try:
+            result = IndexWorkspaceUseCase(
+                workspace_repository=workspace_repository,
+                project_scan_repository=project_scan_repository,
+                file_system=file_system,
+                embedding_provider=embedding_provider,
+                vector_store=vector_store,
+                index_status_repository=index_status_repository,
+                timeline_repository=timeline_repository,
+            ).execute(
+                IndexWorkspaceInput(
+                    workspace_id=workspace_id,
+                    cancellation_check=job_control.is_cancellation_requested,
+                    progress_callback=lambda current, total, message: job_control.update_progress(
+                        current=current,
+                        total=total,
+                        message=message,
+                        current_step="index",
+                    ),
+                )
+            )
+        except IndexWorkspaceCancelledError as exc:
+            raise WorkspaceJobCancelledError(str(exc)) from exc
+        job_control.checkpoint("Finalizing search context build...")
         return _index_workspace_result_summary(result)
 
     job = workspace_job_runner.start_job(
