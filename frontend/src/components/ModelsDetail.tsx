@@ -144,6 +144,8 @@ export function ModelsDetail({
 
       <FirstLaunchSetupPanel />
 
+      <DesktopPackagingRealityPanel />
+
       <section className="panel models-simple-panel">
         <PanelHeading
           eyebrow="Simple model view"
@@ -419,6 +421,58 @@ export function ModelsDetail({
 
 
 
+
+
+function DesktopPackagingRealityPanel() {
+  return (
+    <section className="panel desktop-packaging-panel">
+      <PanelHeading
+        eyebrow="Product packaging"
+        title="From developer run to real desktop app"
+        status="planned"
+      />
+      <p className="panel-intro">
+        The current launcher is a safe bridge for testing. The final product target is a real
+        macOS/Windows desktop app: double-click, open, and continue work without cloning the repo
+        or running setup scripts manually.
+      </p>
+      <div className="packaging-roadmap-grid">
+        <article>
+          <span>Now</span>
+          <strong>Developer-safe local app</strong>
+          <p>
+            Backend, frontend, runtime checks, guided models, and local data safety are already
+            wired. Scripts are still visible so we can debug packaging safely.
+          </p>
+        </article>
+        <article>
+          <span>Next</span>
+          <strong>Installer-grade launch</strong>
+          <p>
+            Package a desktop shell that starts the local backend, opens the UI, stores runtime
+            data locally, and shows clear first-launch checks.
+          </p>
+        </article>
+        <article>
+          <span>Models</span>
+          <strong>Explicit download manager</strong>
+          <p>
+            Model downloads should be a user-approved flow: choose model, see size/purpose, copy
+            or approve pull, then verify availability. No hidden downloads.
+          </p>
+        </article>
+        <article>
+          <span>MCP</span>
+          <strong>Registry before execution</strong>
+          <p>
+            MCP servers should be configured, explained, checked, and approval-gated before any
+            real tool execution. Current work stays planning/manual by design.
+          </p>
+        </article>
+      </div>
+    </section>
+  );
+}
 
 function FirstLaunchSetupPanel() {
   const [readiness, setReadiness] = useState<FirstLaunchReadiness | null>(null);
