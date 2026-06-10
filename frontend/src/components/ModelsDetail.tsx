@@ -144,7 +144,16 @@ export function ModelsDetail({
 
       <FirstLaunchSetupPanel />
 
-      <DesktopPackagingRealityPanel />
+      <details className="panel desktop-packaging-panel models-disclosure-panel">
+        <summary>
+          <div>
+            <p className="eyebrow">Product packaging</p>
+            <h2>Desktop app direction</h2>
+            <span>Planned path from developer-safe build to double-click app.</span>
+          </div>
+        </summary>
+        <DesktopPackagingRealityPanel />
+      </details>
 
       <section className="panel models-simple-panel">
         <PanelHeading
@@ -425,7 +434,7 @@ export function ModelsDetail({
 
 function DesktopPackagingRealityPanel() {
   return (
-    <section className="panel desktop-packaging-panel">
+    <div className="desktop-packaging-inner">
       <PanelHeading
         eyebrow="Product packaging"
         title="Desktop app target"
@@ -470,7 +479,7 @@ function DesktopPackagingRealityPanel() {
           </p>
         </article>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -557,7 +566,7 @@ function FirstLaunchSetupPanel() {
         </div>
       </details>
       <p className="settings-message info">{readiness.safety_note}</p>
-      <p className="settings-message info">Startup instructions belong outside the UI: see docs/START_HERE.md and docs/DESKTOP_APP_TARGET.md. This screen is only for what to do after the app is already open.</p>
+      <p className="settings-message info">Startup instructions belong outside the UI. This screen only explains what to do after the app is already open.</p>
     </section>
   );
 }

@@ -115,3 +115,7 @@ The current macOS launcher is a bridge for developer-safe testing, not the final
 
 Model downloads and MCP server setup should be implemented as explicit, user-approved product flows before the final installer: model manager first, MCP install/config/checks second, sandboxed execution later.
 
+
+## Task 200 — Release candidate UI review
+
+Completed a full UI/UX consistency pass focused on calm Apple-like layout, reduced cognitive load, clearer first-run logic, and one-primary-action sections. Advanced file rules and packaging roadmap details are now progressively disclosed instead of competing with the main setup flow.
