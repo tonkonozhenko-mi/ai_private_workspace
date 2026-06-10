@@ -255,17 +255,28 @@ function App() {
   }, [loadWorkspaceDetail, loadWorkspaces]);
 
 
-  const handleScanWorkspace = useCallback(async (workspaceId: string) => {
+  const handleScanWorkspace = useCallback(async (
+    workspaceId: string,
+    options: { signal?: AbortSignal } = {},
+  ) => {
     await scanWorkspace(
       workspaceId,
       toFileSelectionRulesRequest(preferences.fileIndexingPreferences),
+      { signal: options.signal },
     );
-    await refreshWorkspaceReadOnlyState(workspaceId);
+    if (!options.signal?.aborted) {
+      await refreshWorkspaceReadOnlyState(workspaceId);
+    }
   }, [preferences.fileIndexingPreferences, refreshWorkspaceReadOnlyState]);
 
-  const handleIndexWorkspace = useCallback(async (workspaceId: string) => {
-    await indexWorkspace(workspaceId);
-    await refreshWorkspaceReadOnlyState(workspaceId);
+  const handleIndexWorkspace = useCallback(async (
+    workspaceId: string,
+    options: { signal?: AbortSignal } = {},
+  ) => {
+    await indexWorkspace(workspaceId, { signal: options.signal });
+    if (!options.signal?.aborted) {
+      await refreshWorkspaceReadOnlyState(workspaceId);
+    }
   }, [refreshWorkspaceReadOnlyState]);
 
   const refreshAfterAsk = useCallback(async (workspaceId: string) => {
@@ -442,8 +453,8 @@ function App() {
                   onOpenAsk={() => setActiveTab("ask")}
                   onOpenModels={() => setActiveTab("models")}
                   onOpenCapabilities={() => setActiveTab("actions")}
-                  onScanWorkspace={() => handleScanWorkspace(detail.dashboard.workspace_id)}
-                  onIndexWorkspace={() => handleIndexWorkspace(detail.dashboard.workspace_id)}
+                  onScanWorkspace={(options) => handleScanWorkspace(detail.dashboard.workspace_id, options)}
+                  onIndexWorkspace={(options) => handleIndexWorkspace(detail.dashboard.workspace_id, options)}
                   onOpenSettings={() => setActiveTab("settings")}
                   skillPreferences={preferences.skillPreferences}
                   fileIndexingPreferences={preferences.fileIndexingPreferences}

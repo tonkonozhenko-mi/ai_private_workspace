@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { askSelectedWorkspace } from "../api/client";
 import { CopyButton } from "./CopyButton";
@@ -90,6 +90,8 @@ export function AskWorkspace({
   const [history, setHistory] = useState<AskHistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cancelMessage, setCancelMessage] = useState<string | null>(null);
+  const askAbortControllerRef = useRef<AbortController | null>(null);
   const showGeneralQuestionHint =
     question.trim().length > 0 && !isLikelyProjectQuestion(question);
 
@@ -104,14 +106,19 @@ export function AskWorkspace({
       return;
     }
 
+    askAbortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    askAbortControllerRef.current = abortController;
     setLoading(true);
     setError(null);
+    setCancelMessage(null);
     try {
       const result = await askSelectedWorkspace(
         workspaceId,
         trimmedQuestion,
         limit,
         buildSkillContext(skillPreferences),
+        { signal: abortController.signal },
       );
       const historyItem = createHistoryItem(result);
       setHistory((current) => [historyItem, ...current].slice(0, 12));
@@ -120,14 +127,25 @@ export function AskWorkspace({
       }
       await onAsked?.();
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Could not ask the chosen workspace AI model.",
-      );
+      if (isAbortError(requestError)) {
+        setCancelMessage("Stopped waiting for this answer. The backend may still finish the request if it already started.");
+      } else {
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : "Could not ask the chosen workspace AI model.",
+        );
+      }
     } finally {
-      setLoading(false);
+      if (askAbortControllerRef.current === abortController) {
+        askAbortControllerRef.current = null;
+        setLoading(false);
+      }
     }
+  }
+
+  function stopWaitingForAnswer() {
+    askAbortControllerRef.current?.abort();
   }
 
   function submitQuestion(event: FormEvent<HTMLFormElement>) {
@@ -157,7 +175,14 @@ export function AskWorkspace({
           onAskAgain={(questionText) => void askQuestion(questionText)}
           onClear={() => setHistory([])}
           onEditQuestion={editQuestion}
+          onStopWaiting={stopWaitingForAnswer}
         />
+
+        {cancelMessage ? (
+          <div className="ask-cancel-message" role="status">
+            {cancelMessage}
+          </div>
+        ) : null}
 
         {error ? (
           <div className="ask-error ask-error-centered" role="alert">
@@ -187,8 +212,13 @@ export function AskWorkspace({
                 type="submit"
                 disabled={loading || question.trim().length === 0}
               >
-                {loading ? "Asking..." : "Ask"}
+                {loading ? "Thinking..." : "Ask"}
               </button>
+              {loading ? (
+                <button className="secondary-action ask-stop-button" type="button" onClick={stopWaitingForAnswer}>
+                  Stop
+                </button>
+              ) : null}
             </div>
 
             <div className="ask-bottom-meta-row">
@@ -241,12 +271,14 @@ function ConversationPanel({
   onAskAgain,
   onClear,
   onEditQuestion,
+  onStopWaiting,
 }: {
   history: AskHistoryItem[];
   loading: boolean;
   onAskAgain: (question: string) => void;
   onClear: () => void;
   onEditQuestion: (question: string) => void;
+  onStopWaiting: () => void;
 }) {
   const chronologicalHistory = [...history].reverse();
 
@@ -955,4 +987,8 @@ function formatSourceScore(score: number): string {
     return `${(score * 100).toFixed(1)}%`;
   }
   return score.toFixed(3);
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
 }

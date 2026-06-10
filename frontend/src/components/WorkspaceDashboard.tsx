@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
@@ -16,8 +16,8 @@ interface WorkspaceDashboardProps {
   onOpenAsk: () => void;
   onOpenModels: () => void;
   onOpenCapabilities: () => void;
-  onScanWorkspace: () => Promise<void>;
-  onIndexWorkspace: () => Promise<void>;
+  onScanWorkspace: (options?: { signal?: AbortSignal }) => Promise<void>;
+  onIndexWorkspace: (options?: { signal?: AbortSignal }) => Promise<void>;
   onOpenSettings: () => void;
   skillPreferences: SkillPreferences;
   fileIndexingPreferences: FileIndexingPreferences;
@@ -150,8 +150,8 @@ function WorkspaceOnboardingGuide({
   onOpenAsk: () => void;
   onOpenModels: () => void;
   onOpenCapabilities: () => void;
-  onScanWorkspace: () => Promise<void>;
-  onIndexWorkspace: () => Promise<void>;
+  onScanWorkspace: (options?: { signal?: AbortSignal }) => Promise<void>;
+  onIndexWorkspace: (options?: { signal?: AbortSignal }) => Promise<void>;
   fileIndexingPreferences: FileIndexingPreferences;
 }) {
   const summary = dashboard.summary;
@@ -166,30 +166,53 @@ function WorkspaceOnboardingGuide({
   const [setupAction, setSetupAction] = useState<"scan" | "index" | null>(null);
   const [setupMessage, setSetupMessage] = useState<string | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
+  const setupAbortControllerRef = useRef<AbortController | null>(null);
 
   async function runSetupAction(action: "scan" | "index") {
+    setupAbortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    setupAbortControllerRef.current = abortController;
     setSetupAction(action);
     setSetupMessage(null);
     setSetupError(null);
     try {
       if (action === "scan") {
-        await onScanWorkspace();
-        setSetupMessage("Project scan finished. Review the detected technologies, then build search context.");
+        await onScanWorkspace({ signal: abortController.signal });
+        if (!abortController.signal.aborted) {
+          setSetupMessage("Project scan finished. Review the detected technologies, then build search context.");
+        }
       } else {
-        await onIndexWorkspace();
-        setSetupMessage("Search context is ready. You can now ask source-backed questions.");
+        await onIndexWorkspace({ signal: abortController.signal });
+        if (!abortController.signal.aborted) {
+          setSetupMessage("Search context is ready. You can now ask source-backed questions.");
+        }
       }
     } catch (error) {
-      setSetupError(
-        error instanceof Error
-          ? error.message
-          : action === "scan"
-            ? "Could not scan this project."
-            : "Could not build search context.",
-      );
+      if (isAbortError(error)) {
+        setSetupMessage(
+          action === "scan"
+            ? "Stopped waiting for the project scan. The backend may still finish the local scan if it already started."
+            : "Stopped waiting for context build. The backend may still finish indexing if it already started.",
+        );
+      } else {
+        setSetupError(
+          error instanceof Error
+            ? error.message
+            : action === "scan"
+              ? "Could not scan this project."
+              : "Could not build search context.",
+        );
+      }
     } finally {
-      setSetupAction(null);
+      if (setupAbortControllerRef.current === abortController) {
+        setupAbortControllerRef.current = null;
+        setSetupAction(null);
+      }
     }
+  }
+
+  function cancelSetupAction() {
+    setupAbortControllerRef.current?.abort();
   }
 
   const steps = [
@@ -248,6 +271,11 @@ function WorkspaceOnboardingGuide({
         >
           {primaryAction.label}
         </button>
+        {setupAction ? (
+          <button className="secondary-action" type="button" onClick={cancelSetupAction}>
+            Stop waiting
+          </button>
+        ) : null}
       </div>
 
       {!readyToAsk ? (
@@ -271,6 +299,11 @@ function WorkspaceOnboardingGuide({
                 onClick={() => void runSetupAction("scan")}
               >
                 {setupAction === "scan" ? "Scanning..." : "Scan project"}
+              </button>
+            ) : null}
+            {setupAction === "scan" ? (
+              <button className="secondary-action" type="button" onClick={cancelSetupAction}>
+                Stop waiting
               </button>
             ) : !indexReady ? (
               <button
@@ -771,4 +804,8 @@ function ModelComparisonRow({
 
 function formatLabel(value: string) {
   return value.replaceAll("_", " ");
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
 }

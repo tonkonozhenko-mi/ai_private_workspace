@@ -34,8 +34,9 @@ export function setApiBaseUrl(nextBaseUrl: string): void {
   apiBaseUrl = nextBaseUrl.replace(/\/+$/, "");
 }
 
-async function getJson<T>(path: string): Promise<T> {
+async function getJson<T>(path: string, init: RequestInit = {}): Promise<T> {
   return requestJson<T>(path, {
+    ...init,
     headers: {
       Accept: "application/json",
     },
@@ -112,8 +113,10 @@ export function restoreWorkspace(workspaceId: string): Promise<void> {
 export function scanWorkspace(
   workspaceId: string,
   fileRules?: FileSelectionRulesRequest,
+  options: { signal?: AbortSignal } = {},
 ): Promise<ProjectScanResponse> {
   return requestJson<ProjectScanResponse>(`/workspaces/${workspaceId}/scan`, {
+    signal: options.signal,
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -123,8 +126,12 @@ export function scanWorkspace(
   });
 }
 
-export function indexWorkspace(workspaceId: string): Promise<WorkspaceIndexResponse> {
+export function indexWorkspace(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<WorkspaceIndexResponse> {
   return requestJson<WorkspaceIndexResponse>(`/workspaces/${workspaceId}/index`, {
+    signal: options.signal,
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -175,6 +182,7 @@ export function askSelectedWorkspace(
   question: string,
   limit: number,
   skillContext: SkillContextRequest[] = [],
+  options: { signal?: AbortSignal } = {},
 ): Promise<WorkspaceQuestionAnswer> {
   return requestJson<WorkspaceQuestionAnswer>(
     `/workspaces/${workspaceId}/ask-selected`,
@@ -185,6 +193,7 @@ export function askSelectedWorkspace(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ question, limit, skill_context: skillContext }),
+      signal: options.signal,
     },
   );
 }
