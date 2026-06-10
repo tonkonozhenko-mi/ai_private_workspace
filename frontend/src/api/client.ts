@@ -49,7 +49,9 @@ import type {
   AgentPlanningPreviewRequest,
   AgentWorkflow,
   AgentWorkflowList,
+  AgentWorkflowStepApprovalPreview,
   CreateAgentWorkflowRequest,
+  UpdateAgentWorkflowStepApprovalRequest,
   UpdateAgentWorkflowStepRequest,
   MCPServerCatalog,
   MCPConfigPreviewRequest,
@@ -493,6 +495,36 @@ export function updateAgentWorkflowStep(
 ): Promise<AgentWorkflow> {
   return requestJson<AgentWorkflow>(
     `/workspaces/${workspaceId}/agent-workflows/${workflowId}/steps/${stepId}`,
+    {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    },
+  );
+}
+
+export function previewAgentWorkflowStepApproval(
+  workspaceId: string,
+  workflowId: string,
+  stepId: string,
+): Promise<AgentWorkflowStepApprovalPreview> {
+  return requestJson<AgentWorkflowStepApprovalPreview>(
+    `/workspaces/${workspaceId}/agent-workflows/${workflowId}/steps/${stepId}/approval-preview`,
+    { method: "POST", headers: { Accept: "application/json" } },
+  );
+}
+
+export function updateAgentWorkflowStepApproval(
+  workspaceId: string,
+  workflowId: string,
+  stepId: string,
+  request: UpdateAgentWorkflowStepApprovalRequest,
+): Promise<AgentWorkflow> {
+  return requestJson<AgentWorkflow>(
+    `/workspaces/${workspaceId}/agent-workflows/${workflowId}/steps/${stepId}/approval`,
     {
       method: "PATCH",
       headers: {
