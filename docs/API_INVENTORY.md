@@ -104,13 +104,13 @@ models, run benchmarks, or change active runtime configuration.
 | --- | --- | --- | --- | --- | --- |
 | `GET /workspaces/{workspace_id}/reports/project-overview` | Generate a deterministic project overview report. | Timeline | No | Local filesystem read for analyzers | Reports |
 | `GET /workspaces/{workspace_id}/reports/catalog` | List local-first report templates and safety notes. | None | No | None | Reports |
-| `GET /workspaces/{workspace_id}/reports/{report_type}` | Generate a selected read-only workspace report draft. | Timeline | No | Local filesystem read for analyzers and saved workspace context | Reports |
-| `POST /workspaces/{workspace_id}/reports/custom-preview` | Build a custom read-only report draft from explicitly selected saved notes, conversations, source paths, and user drafting context. | None | No | None | Reports custom builder |
+| `GET /workspaces/{workspace_id}/reports/{report_type}` | Generate a selected read-only workspace report draft with quality checks and source coverage metadata. | Timeline | No | Local filesystem read for analyzers and saved workspace context | Reports |
+| `POST /workspaces/{workspace_id}/reports/custom-preview` | Build a custom read-only report draft from explicitly selected saved notes, conversations, source paths, and user drafting context, including quality checks. | None | No | None | Reports custom builder |
 | `POST /workspaces/{workspace_id}/reports/custom-save` | Build and persist a custom read-only report from explicitly selected local workspace context. | Saved report | No | None | Reports custom builder |
-| `POST /workspaces/{workspace_id}/reports/draft-save` | Persist an explicitly edited report draft with selected sections and documentation-ready markdown. | Saved report | No | None | Reports editor |
+| `POST /workspaces/{workspace_id}/reports/draft-save` | Persist an explicitly edited report draft with selected sections, documentation-ready markdown, and quality metadata. | Saved report | No | None | Reports editor |
 | `POST /workspaces/{workspace_id}/reports/{report_type}/save` | Generate and persist a selected workspace report as local report history. | Saved report | No | Local filesystem read for analyzers and saved workspace context | Reports |
 | `GET /workspaces/{workspace_id}/reports/saved` | List saved reports with search/type/pinned filters. | None | No | None | Reports history |
-| `GET /workspaces/{workspace_id}/reports/saved/{report_id}` | Read one saved report including markdown/text/json exports. | None | No | None | Reports history |
+| `GET /workspaces/{workspace_id}/reports/saved/{report_id}` | Read one saved report including markdown/text/json exports, quality checks, and source coverage metadata. | None | No | None | Reports history |
 | `PATCH /workspaces/{workspace_id}/reports/saved/{report_id}` | Rename or update saved report metadata. | Saved report | No | None | Reports history |
 | `PATCH /workspaces/{workspace_id}/reports/saved/{report_id}/pin` | Pin or unpin a saved report. | Saved report | No | None | Reports history |
 | `DELETE /workspaces/{workspace_id}/reports/saved/{report_id}` | Delete a saved report from local workspace history. | Saved report | No | None | Reports history |

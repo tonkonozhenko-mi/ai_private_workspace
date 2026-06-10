@@ -297,6 +297,22 @@ export interface ReportSection {
   bullets: string[];
 }
 
+export interface ReportQualityCheck {
+  id: string;
+  label: string;
+  status: string;
+  detail: string;
+}
+
+export interface ReportQualitySummary {
+  score: number;
+  status: string;
+  source_coverage_count: number;
+  source_coverage_label: string;
+  checks: ReportQualityCheck[];
+  warnings: string[];
+}
+
 export interface WorkspaceReport {
   workspace_id: string;
   title: string;
@@ -306,6 +322,7 @@ export interface WorkspaceReport {
   report_type: string;
   export_markdown: string;
   safety_note: string;
+  quality: ReportQualitySummary;
 }
 
 export interface ReportTemplate {
@@ -358,6 +375,7 @@ export interface SavedWorkspaceReport {
   updated_at: string;
   pinned_at?: string | null;
   is_pinned: boolean;
+  quality: ReportQualitySummary;
 }
 
 export interface UpdateSavedWorkspaceReportRequest {
