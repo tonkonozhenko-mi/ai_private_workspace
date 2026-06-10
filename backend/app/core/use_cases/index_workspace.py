@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Callable
 from datetime import UTC, datetime
 
 from app.core.domain.chunking import chunk_text, estimate_tokens
@@ -41,6 +42,8 @@ INDEXABLE_FILE_TYPES = {
 @dataclass(frozen=True)
 class IndexWorkspaceInput:
     workspace_id: str
+    cancellation_check: Callable[[], bool] | None = None
+    progress_callback: Callable[[int, int, str], None] | None = None
 
 
 class IndexWorkspaceNotFoundError(ValueError):
@@ -48,6 +51,10 @@ class IndexWorkspaceNotFoundError(ValueError):
 
 
 class IndexWorkspaceScanRequiredError(ValueError):
+    pass
+
+
+class IndexWorkspaceCancelledError(RuntimeError):
     pass
 
 
@@ -86,7 +93,11 @@ class IndexWorkspaceUseCase:
                 workspace_id=request.workspace_id,
                 project_path=workspace.project_path,
                 latest_scan=latest_scan,
+                cancellation_check=request.cancellation_check,
+                progress_callback=request.progress_callback,
             )
+        except IndexWorkspaceCancelledError:
+            raise
         except Exception as exc:
             self.index_status_repository.save(
                 WorkspaceIndexStatus(
@@ -135,12 +146,18 @@ class IndexWorkspaceUseCase:
         workspace_id: str,
         project_path: str,
         latest_scan: ProjectScanResult,
+        cancellation_check: Callable[[], bool] | None = None,
+        progress_callback: Callable[[int, int, str], None] | None = None,
     ) -> WorkspaceIndexResult:
         documents: list[IndexedDocumentSummary] = []
         chunks: list[TextChunk] = []
         skipped_files_count = latest_scan.skipped_files
 
-        for project_file in latest_scan.files:
+        total_files = len(latest_scan.files) or 1
+        for file_index, project_file in enumerate(latest_scan.files, start=1):
+            self._checkpoint(cancellation_check)
+            if progress_callback is not None:
+                progress_callback(file_index, total_files, f"Reading files: {file_index}/{total_files}")
             if project_file.detected_type not in INDEXABLE_FILE_TYPES:
                 skipped_files_count += 1
                 continue
@@ -162,10 +179,17 @@ class IndexWorkspaceUseCase:
             )
             chunks.extend(file_chunks)
 
-        embeddings = [
-            self.embedding_provider.embed_text(chunk.content) for chunk in chunks
-        ]
+        embeddings = []
+        total_chunks = len(chunks) or 1
+        for chunk_index, chunk in enumerate(chunks, start=1):
+            self._checkpoint(cancellation_check)
+            if progress_callback is not None:
+                progress_callback(chunk_index, total_chunks, f"Embedding chunks: {chunk_index}/{total_chunks}")
+            embeddings.append(self.embedding_provider.embed_text(chunk.content))
+        self._checkpoint(cancellation_check)
         embedding_dimension = self._embedding_dimension(embeddings)
+        if progress_callback is not None:
+            progress_callback(total_chunks, total_chunks, "Writing vector store...")
         self.vector_store.clear_workspace(
             workspace_id=workspace_id,
             embedding_provider=self.embedding_provider.provider_name,
@@ -173,6 +197,7 @@ class IndexWorkspaceUseCase:
             embedding_dimension=embedding_dimension,
         )
         if chunks:
+            self._checkpoint(cancellation_check)
             self.vector_store.upsert_chunks(
                 workspace_id=workspace_id,
                 chunks=chunks,
@@ -189,6 +214,11 @@ class IndexWorkspaceUseCase:
             skipped_files_count=skipped_files_count,
             documents=documents,
         )
+
+    @staticmethod
+    def _checkpoint(cancellation_check: Callable[[], bool] | None) -> None:
+        if cancellation_check is not None and cancellation_check():
+            raise IndexWorkspaceCancelledError("Workspace indexing cancelled")
 
     def _embedding_dimension(self, embeddings: list[list[float]]) -> int | None:
         if not embeddings:

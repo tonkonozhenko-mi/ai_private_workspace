@@ -26,6 +26,10 @@ class WorkspaceJob:
     result_summary: dict[str, str] = field(default_factory=dict)
     error: str | None = None
     cancellation_requested: bool = False
+    progress_current: int | None = None
+    progress_total: int | None = None
+    progress_percent: float | None = None
+    current_step: str | None = None
     created_at: str = field(default_factory=_now)
     started_at: str | None = None
     completed_at: str | None = None
@@ -33,6 +37,41 @@ class WorkspaceJob:
 
 class WorkspaceJobNotFoundError(KeyError):
     pass
+
+
+class WorkspaceJobCancelledError(RuntimeError):
+    pass
+
+
+class WorkspaceJobControl:
+    def __init__(self, runner: "WorkspaceJobRunner", job_id: str) -> None:
+        self._runner = runner
+        self._job_id = job_id
+
+    def is_cancellation_requested(self) -> bool:
+        return self._runner.is_cancellation_requested(self._job_id)
+
+    def checkpoint(self, message: str | None = None) -> None:
+        if message is not None:
+            self.update_progress(message=message)
+        if self.is_cancellation_requested():
+            raise WorkspaceJobCancelledError("Workspace job cancelled")
+
+    def update_progress(
+        self,
+        *,
+        current: int | None = None,
+        total: int | None = None,
+        message: str | None = None,
+        current_step: str | None = None,
+    ) -> None:
+        self._runner.update_progress(
+            self._job_id,
+            current=current,
+            total=total,
+            message=message,
+            current_step=current_step,
+        )
 
 
 class WorkspaceJobRunner:
@@ -48,7 +87,7 @@ class WorkspaceJobRunner:
         job_type: str,
         title: str,
         message: str,
-        operation: Callable[[], dict[str, str]],
+        operation: Callable[[WorkspaceJobControl], dict[str, str]],
     ) -> WorkspaceJob:
         job = WorkspaceJob(
             job_id=str(uuid4()),
@@ -93,7 +132,37 @@ class WorkspaceJobRunner:
                 )
         return self.get_job(job_id)
 
-    def _run_job(self, job_id: str, operation: Callable[[], dict[str, str]]) -> None:
+    def is_cancellation_requested(self, job_id: str) -> bool:
+        with self._lock:
+            job = self._jobs.get(job_id)
+            return bool(job and job.cancellation_requested)
+
+    def update_progress(
+        self,
+        job_id: str,
+        *,
+        current: int | None = None,
+        total: int | None = None,
+        message: str | None = None,
+        current_step: str | None = None,
+    ) -> WorkspaceJob:
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job is None:
+                raise WorkspaceJobNotFoundError(job_id)
+            if current is not None:
+                job.progress_current = current
+            if total is not None:
+                job.progress_total = total
+            if message is not None:
+                job.message = message
+            if current_step is not None:
+                job.current_step = current_step
+            if job.progress_current is not None and job.progress_total:
+                job.progress_percent = min(100.0, round((job.progress_current / job.progress_total) * 100, 1))
+        return self.get_job(job_id)
+
+    def _run_job(self, job_id: str, operation: Callable[[WorkspaceJobControl], dict[str, str]]) -> None:
         with self._lock:
             job = self._jobs.get(job_id)
             if job is None:
@@ -112,7 +181,15 @@ class WorkspaceJobRunner:
                     current.message = "Cancelled before the operation started."
                     current.completed_at = _now()
                     return
-            result_summary = operation()
+            result_summary = operation(WorkspaceJobControl(self, job_id))
+        except WorkspaceJobCancelledError:
+            with self._lock:
+                cancelled_job = self._jobs[job_id]
+                cancelled_job.status = "cancelled"
+                cancelled_job.cancellation_requested = True
+                cancelled_job.message = "Cancelled at a safe operation checkpoint."
+                cancelled_job.completed_at = _now()
+            return
         except Exception as exc:  # noqa: BLE001 - error is surfaced to API as job status
             with self._lock:
                 failed = self._jobs[job_id]
@@ -133,4 +210,5 @@ class WorkspaceJobRunner:
                 completed.message = "Completed."
             completed.status = "completed"
             completed.result_summary = result_summary
+            completed.progress_percent = 100.0
             completed.completed_at = _now()

@@ -11,6 +11,10 @@ class WorkspaceJobResponse(BaseModel):
     result_summary: dict[str, str] = {}
     error: str | None = None
     cancellation_requested: bool = False
+    progress_current: int | None = None
+    progress_total: int | None = None
+    progress_percent: float | None = None
+    current_step: str | None = None
     created_at: str
     started_at: str | None = None
     completed_at: str | None = None

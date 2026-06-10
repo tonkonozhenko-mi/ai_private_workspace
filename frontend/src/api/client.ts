@@ -180,6 +180,11 @@ export function startIndexWorkspaceJob(workspaceId: string): Promise<WorkspaceJo
   });
 }
 
+
+export function listWorkspaceJobs(workspaceId: string): Promise<WorkspaceJob[]> {
+  return getJson<WorkspaceJob[]>(`/workspaces/${workspaceId}/jobs`);
+}
+
 export function getWorkspaceJob(
   workspaceId: string,
   jobId: string,
