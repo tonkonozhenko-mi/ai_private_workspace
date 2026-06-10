@@ -893,3 +893,20 @@ The frontend passes `AbortSignal` to explicit long-running calls:
 - `POST /workspaces/{workspace_id}/ask-selected`
 
 This cancels the browser wait state only. Backend-side job cancellation is a future background-job feature.
+
+## Task 150 background jobs
+
+The guided setup flow now uses backend job endpoints for explicit long-running workspace setup actions:
+
+- `POST /workspaces/{workspace_id}/jobs/scan` starts a scan job and accepts optional `file_rules`.
+- `POST /workspaces/{workspace_id}/jobs/index` starts a search-context build job.
+- `GET /workspaces/{workspace_id}/jobs/{job_id}` polls job status.
+- `POST /workspaces/{workspace_id}/jobs/{job_id}/cancel` requests backend job cancellation.
+- `GET /workspaces/{workspace_id}/jobs` lists recent in-memory jobs for a workspace.
+
+The older synchronous endpoints remain available for compatibility:
+
+- `POST /workspaces/{workspace_id}/scan`
+- `POST /workspaces/{workspace_id}/index`
+
+Frontend cancellation for scan/index is now job-based. Ask still uses request cancellation for the active `/ask-selected` call.

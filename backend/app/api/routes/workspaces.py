@@ -17,6 +17,7 @@ from app.api.dependencies import (
     runtime_health_checkers,
     runtime_health_configuration,
     timeline_repository,
+    workspace_job_runner,
     vector_store,
     workspace_model_selection_repository,
     workspace_repository,
@@ -115,6 +116,8 @@ from app.api.schemas.workspace_summary_schemas import (
     WorkspaceSummaryResponse,
     to_workspace_summary_response,
 )
+from app.api.schemas.workspace_job_schemas import WorkspaceJobResponse
+from app.api.workspace_job_runner import WorkspaceJob, WorkspaceJobNotFoundError
 from app.api.schemas.workspace_ui_actions_schemas import (
     WorkspaceUIActionCatalogResponse,
     to_workspace_ui_action_catalog_response,
@@ -479,6 +482,164 @@ def restore_workspace(workspace_id: str) -> WorkspaceResponse:
             detail=str(exc),
         ) from exc
     return to_workspace_response(workspace)
+
+
+
+
+def _to_workspace_job_response(job: WorkspaceJob) -> WorkspaceJobResponse:
+    return WorkspaceJobResponse(
+        job_id=job.job_id,
+        workspace_id=job.workspace_id,
+        job_type=job.job_type,
+        status=job.status,
+        title=job.title,
+        message=job.message,
+        result_summary=job.result_summary,
+        error=job.error,
+        cancellation_requested=job.cancellation_requested,
+        created_at=job.created_at,
+        started_at=job.started_at,
+        completed_at=job.completed_at,
+    )
+
+
+def _scan_workspace_result_summary(result) -> dict[str, str]:
+    return {
+        "total_files": str(result.total_files),
+        "scanned_files": str(result.scanned_files),
+        "skipped_files": str(result.skipped_files),
+        "detected_skills_count": str(len(result.detected_skills)),
+    }
+
+
+def _index_workspace_result_summary(result) -> dict[str, str]:
+    return {
+        "indexed_files_count": str(result.indexed_files_count),
+        "chunks_count": str(result.chunks_count),
+        "skipped_files_count": str(result.skipped_files_count),
+    }
+
+
+@router.post("/{workspace_id}/jobs/scan", response_model=WorkspaceJobResponse)
+def start_scan_workspace_job(
+    workspace_id: str,
+    request: ScanWorkspaceProjectRequest | None = Body(default=None),
+) -> WorkspaceJobResponse:
+    workspace = workspace_repository.get(workspace_id)
+    if workspace is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace not found",
+        )
+
+    file_rules = request.file_rules if request is not None else None
+    include_patterns = tuple(file_rules.include_patterns) if file_rules is not None else ()
+    exclude_patterns = tuple(file_rules.exclude_patterns) if file_rules is not None else ()
+    file_rules_profile = file_rules.profile if file_rules is not None else None
+
+    def operation() -> dict[str, str]:
+        result = ScanWorkspaceProjectUseCase(
+            workspace_repository=workspace_repository,
+            file_system=file_system,
+            project_scan_repository=project_scan_repository,
+            timeline_repository=timeline_repository,
+        ).execute(
+            ScanWorkspaceProjectInput(
+                workspace_id=workspace_id,
+                include_patterns=include_patterns,
+                exclude_patterns=exclude_patterns,
+                file_rules_profile=file_rules_profile,
+            )
+        )
+        return _scan_workspace_result_summary(result)
+
+    job = workspace_job_runner.start_job(
+        workspace_id=workspace_id,
+        job_type="scan",
+        title="Scan project",
+        message="Queued project scan.",
+        operation=operation,
+    )
+    return _to_workspace_job_response(job)
+
+
+@router.post("/{workspace_id}/jobs/index", response_model=WorkspaceJobResponse)
+def start_index_workspace_job(workspace_id: str) -> WorkspaceJobResponse:
+    workspace = workspace_repository.get(workspace_id)
+    if workspace is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace not found",
+        )
+
+    def operation() -> dict[str, str]:
+        result = IndexWorkspaceUseCase(
+            workspace_repository=workspace_repository,
+            project_scan_repository=project_scan_repository,
+            file_system=file_system,
+            embedding_provider=embedding_provider,
+            vector_store=vector_store,
+            index_status_repository=index_status_repository,
+            timeline_repository=timeline_repository,
+        ).execute(IndexWorkspaceInput(workspace_id=workspace_id))
+        return _index_workspace_result_summary(result)
+
+    job = workspace_job_runner.start_job(
+        workspace_id=workspace_id,
+        job_type="index",
+        title="Build search context",
+        message="Queued search context build.",
+        operation=operation,
+    )
+    return _to_workspace_job_response(job)
+
+
+@router.get("/{workspace_id}/jobs", response_model=list[WorkspaceJobResponse])
+def list_workspace_jobs(workspace_id: str) -> list[WorkspaceJobResponse]:
+    workspace = workspace_repository.get(workspace_id)
+    if workspace is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace not found",
+        )
+    return [
+        _to_workspace_job_response(job)
+        for job in workspace_job_runner.list_workspace_jobs(workspace_id)
+    ]
+
+
+@router.get("/{workspace_id}/jobs/{job_id}", response_model=WorkspaceJobResponse)
+def get_workspace_job(workspace_id: str, job_id: str) -> WorkspaceJobResponse:
+    try:
+        job = workspace_job_runner.get_job(job_id)
+    except WorkspaceJobNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace job not found",
+        ) from exc
+    if job.workspace_id != workspace_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace job not found",
+        )
+    return _to_workspace_job_response(job)
+
+
+@router.post("/{workspace_id}/jobs/{job_id}/cancel", response_model=WorkspaceJobResponse)
+def cancel_workspace_job(workspace_id: str, job_id: str) -> WorkspaceJobResponse:
+    try:
+        job = workspace_job_runner.get_job(job_id)
+    except WorkspaceJobNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace job not found",
+        ) from exc
+    if job.workspace_id != workspace_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace job not found",
+        )
+    return _to_workspace_job_response(workspace_job_runner.cancel_job(job_id))
 
 
 @router.post("/{workspace_id}/scan", response_model=ProjectScanResponse)

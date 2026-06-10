@@ -6936,6 +6936,12 @@ button:focus-visible {
   line-height: 1.45;
 }
 
+.settings-message.info {
+  color: var(--color-info-strong, var(--color-text-strong));
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+}
+
 .settings-message.error {
   color: var(--color-danger);
   background: var(--color-danger-soft);
