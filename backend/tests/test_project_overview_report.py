@@ -217,3 +217,45 @@ def _section(report: dict, title: str) -> dict:
 def _write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+def test_workspace_report_catalog_lists_documentation_templates(tmp_path) -> None:
+    workspace = _create_workspace(tmp_path)
+
+    response = client.get(f"/workspaces/{workspace['id']}/reports/catalog")
+
+    assert response.status_code == 200
+    catalog = response.json()
+    template_ids = {template["id"] for template in catalog["templates"]}
+    assert "project_overview" in template_ids
+    assert "onboarding_guide" in template_ids
+    assert "devops_review" in template_ids
+    assert any("explicit user action" in note for note in catalog["safety_notes"])
+
+
+def test_workspace_report_template_generates_markdown_and_safety_note(tmp_path) -> None:
+    _write_overview_project(tmp_path)
+    workspace = _create_workspace(tmp_path)
+    scan_response = client.post(f"/workspaces/{workspace['id']}/scan")
+    assert scan_response.status_code == 200
+
+    response = client.get(f"/workspaces/{workspace['id']}/reports/devops-review")
+
+    assert response.status_code == 200
+    report = response.json()
+    assert report["report_type"] == "devops_review"
+    assert report["title"].startswith("DevOps review")
+    assert "read-only" in report["safety_note"]
+    assert "# DevOps review" in report["export_markdown"]
+    assert "report_template:devops_review" in report["generated_from"]
+    assert _section(report, "Infrastructure")
+    assert _section(report, "CI/CD")
+
+
+def test_unknown_workspace_report_template_returns_404(tmp_path) -> None:
+    workspace = _create_workspace(tmp_path)
+
+    response = client.get(f"/workspaces/{workspace['id']}/reports/missing-report")
+
+    assert response.status_code == 404
+    assert "Unknown report type" in response.json()["detail"]

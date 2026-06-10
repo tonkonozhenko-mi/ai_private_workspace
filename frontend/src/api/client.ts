@@ -28,6 +28,8 @@ import type {
   WorkspaceSkillProfileRequest,
   WorkspaceUIActionCatalog,
   WorkspacesOverview,
+  ReportCatalog,
+  WorkspaceReport,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -265,6 +267,21 @@ export function getWorkspaceUIActions(
     `/workspaces/${workspaceId}/ui-actions`,
   );
 }
+
+
+export function getWorkspaceReportCatalog(
+  workspaceId: string,
+): Promise<ReportCatalog> {
+  return getJson<ReportCatalog>(`/workspaces/${workspaceId}/reports/catalog`);
+}
+
+export function generateWorkspaceReport(
+  workspaceId: string,
+  reportType: string,
+): Promise<WorkspaceReport> {
+  return getJson<WorkspaceReport>(`/workspaces/${workspaceId}/reports/${reportType}`);
+}
+
 
 export function getModelsDashboardSummary(
   workspaceId: string,

@@ -32,6 +32,7 @@ import { AskWorkspace } from "./components/AskWorkspace";
 import { CreateWorkspacePanel } from "./components/CreateWorkspacePanel";
 import { ModelsDetail } from "./components/ModelsDetail";
 import { ModelsSummaryCard } from "./components/ModelsSummaryCard";
+import { ReportsPanel } from "./components/ReportsPanel";
 import { ActivityTimeline } from "./components/ActivityTimeline";
 import { EmptyState } from "./components/EmptyState";
 import { ErrorState } from "./components/ErrorState";
@@ -48,7 +49,7 @@ import {
 } from "./components/fileIndexingPreferences";
 import { DEFAULT_SKILL_PREFERENCES, normalizeSkillPreferences, skillPreferencesFromProfile, type SkillPreferences } from "./components/skillLibrary";
 
-type WorkspaceTab = "overview" | "ask" | "models" | "actions" | "activity" | "settings";
+type WorkspaceTab = "overview" | "ask" | "models" | "reports" | "actions" | "activity" | "settings";
 
 type ThemePreference = "system" | "light" | "dark";
 type DensityPreference = "comfortable" | "compact";
@@ -85,6 +86,7 @@ const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
   { id: "overview", label: "Overview" },
   { id: "ask", label: "Ask" },
   { id: "models", label: "Models" },
+  { id: "reports", label: "Reports" },
   { id: "actions", label: "Capabilities" },
   { id: "activity", label: "Activity" },
   { id: "settings", label: "Settings" },
@@ -591,6 +593,12 @@ function App() {
                     <ModelsSummaryCard summary={detail.modelsSummary} spacious />
                   )}
                 </div>
+              ) : null}
+              {activeTab === "reports" ? (
+                <ReportsPanel
+                  workspaceId={detail.dashboard.workspace_id}
+                  hasScan={detail.dashboard.summary.has_scan}
+                />
               ) : null}
               {activeTab === "actions" ? (
                 <UIActionsPanel catalog={detail.actions} />
