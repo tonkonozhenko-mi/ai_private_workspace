@@ -113,6 +113,18 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             """
         )
 
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS workspace_skill_profiles (
+                workspace_id TEXT PRIMARY KEY,
+                profile TEXT NOT NULL,
+                skills_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS workspace_indexing_rules (

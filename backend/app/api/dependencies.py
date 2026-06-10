@@ -20,6 +20,7 @@ from app.adapters.memory.in_memory_model_experiment_rating_repository import (
 from app.adapters.memory.in_memory_project_scan_repository import (
     InMemoryProjectScanRepository,
 )
+from app.adapters.memory.in_memory_skill_profile_repository import InMemorySkillProfileRepository
 from app.adapters.memory.in_memory_timeline_repository import InMemoryTimelineRepository
 from app.adapters.memory.in_memory_workspace_repository import InMemoryWorkspaceRepository
 from app.adapters.memory.in_memory_workspace_model_selection_repository import (
@@ -35,6 +36,7 @@ from app.adapters.memory.sqlite_model_experiment_rating_repository import (
     SQLiteModelExperimentRatingRepository,
 )
 from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScanRepository
+from app.adapters.memory.sqlite_skill_profile_repository import SQLiteSkillProfileRepository
 from app.adapters.memory.sqlite_timeline_repository import SQLiteTimelineRepository
 from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
 from app.adapters.memory.sqlite_workspace_model_selection_repository import (
@@ -65,6 +67,7 @@ from app.core.ports.model_experiment_rating_repository import (
 )
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.runtime_health_checker import RuntimeHealthCheckerPort
+from app.core.ports.skill_profile_repository import SkillProfileRepositoryPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -130,6 +133,18 @@ def build_indexing_rules_repository() -> IndexingRulesRepositoryPort:
         return InMemoryIndexingRulesRepository()
     if repository_type == "sqlite":
         return SQLiteIndexingRulesRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_skill_profile_repository() -> SkillProfileRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemorySkillProfileRepository()
+    if repository_type == "sqlite":
+        return SQLiteSkillProfileRepository(settings.workspace_db_path)
 
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
@@ -324,6 +339,7 @@ project_scan_repository = build_project_scan_repository()
 command_repository = build_command_repository()
 index_status_repository = build_index_status_repository()
 indexing_rules_repository = build_indexing_rules_repository()
+skill_profile_repository = build_skill_profile_repository()
 timeline_repository = build_timeline_repository()
 model_experiment_repository = build_model_experiment_repository()
 model_experiment_rating_repository = build_model_experiment_rating_repository()

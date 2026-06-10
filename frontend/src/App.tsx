@@ -16,6 +16,7 @@ import {
   startScanWorkspaceJob,
   previewWorkspaceFileSelection,
   getWorkspaceIndexingRules,
+  getWorkspaceSkillProfile,
   getWorkspaceUIActions,
   setApiBaseUrl,
 } from "./api/client";
@@ -44,7 +45,7 @@ import {
   toFileSelectionRulesRequest,
   type FileIndexingPreferences,
 } from "./components/fileIndexingPreferences";
-import { DEFAULT_SKILL_PREFERENCES, normalizeSkillPreferences, type SkillPreferences } from "./components/skillLibrary";
+import { DEFAULT_SKILL_PREFERENCES, normalizeSkillPreferences, skillPreferencesFromProfile, type SkillPreferences } from "./components/skillLibrary";
 
 type WorkspaceTab = "overview" | "ask" | "models" | "actions" | "activity" | "settings";
 
@@ -150,12 +151,17 @@ function App() {
     setDetailLoading(true);
     setDetailError(null);
     try {
-      const [dashboard, actions, modelsSummary] = await Promise.all([
+      const [dashboard, actions, modelsSummary, skillProfile] = await Promise.all([
         getWorkspaceDashboard(workspaceId),
         getWorkspaceUIActions(workspaceId),
         getModelsDashboardSummary(workspaceId),
+        getWorkspaceSkillProfile(workspaceId),
       ]);
       setDetail({ dashboard, actions, modelsSummary });
+      setPreferences((current) => ({
+        ...current,
+        skillPreferences: skillPreferencesFromProfile(skillProfile),
+      }));
       void loadModelsDetail(workspaceId);
     } catch (error) {
       setDetail(null);
@@ -231,6 +237,7 @@ function App() {
       activationGuide,
       overview,
       indexingRules,
+      skillProfile,
     ] = await Promise.all([
       getWorkspaceDashboard(workspaceId),
       getWorkspaceUIActions(workspaceId),
@@ -239,6 +246,7 @@ function App() {
       getLocalAIActivationGuide(workspaceId),
       getWorkspacesOverview(),
       getWorkspaceIndexingRules(workspaceId),
+      getWorkspaceSkillProfile(workspaceId),
     ]);
 
     if (selectedWorkspaceIdRef.current === workspaceId) {
@@ -255,6 +263,7 @@ function App() {
           includePatterns: indexingRules.include_patterns.join("\n"),
           excludePatterns: indexingRules.exclude_patterns.join("\n"),
         },
+        skillPreferences: skillPreferencesFromProfile(skillProfile),
       }));
     }
   }, [loadActivityJobs]);
@@ -598,6 +607,7 @@ function App() {
                   onResetPreferences={() => setPreferences(DEFAULT_PREFERENCES)}
                   onOpenModels={() => setActiveTab("models")}
                   onIndexingRulesSaved={() => refreshWorkspaceReadOnlyState(detail.dashboard.workspace_id)}
+                  onSkillProfileSaved={() => refreshWorkspaceReadOnlyState(detail.dashboard.workspace_id)}
                 />
               ) : null}
             </section>

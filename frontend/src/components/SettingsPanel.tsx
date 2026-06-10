@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { previewWorkspaceFileSelection, updateWorkspaceIndexingRules } from "../api/client";
+import { previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -20,6 +20,7 @@ import {
   DEFAULT_SKILL_PREFERENCES,
   SKILL_PRESETS,
   normalizeSkillPreferences,
+  toSkillProfileRequest,
   type SkillPresetId,
   type SkillPreferences,
 } from "./skillLibrary";
@@ -32,6 +33,7 @@ interface SettingsPanelProps {
   onResetPreferences: () => void;
   onOpenModels: () => void;
   onIndexingRulesSaved?: () => void;
+  onSkillProfileSaved?: () => void;
 }
 
 export function SettingsPanel({
@@ -42,6 +44,7 @@ export function SettingsPanel({
   onResetPreferences,
   onOpenModels,
   onIndexingRulesSaved,
+  onSkillProfileSaved,
 }: SettingsPanelProps) {
   const summary = dashboard.summary;
   const contextReady = summary.index_status.status === "indexed";
@@ -63,6 +66,8 @@ export function SettingsPanel({
     Record<SkillPresetId, string>
   >(() => buildInstructionDrafts(preferences.skillPreferences));
   const [savedSkillId, setSavedSkillId] = useState<SkillPresetId | null>(null);
+  const [skillProfileMessage, setSkillProfileMessage] = useState("Saved workspace skill profile is used by Ask.");
+  const [savingSkillProfile, setSavingSkillProfile] = useState(false);
   const [fileRulesDraft, setFileRulesDraft] = useState(() => ({
     includePatterns: preferences.fileIndexingPreferences.includePatterns,
     excludePatterns: preferences.fileIndexingPreferences.excludePatterns,
@@ -158,6 +163,38 @@ export function SettingsPanel({
     setSavedSkillId(skillId);
   }
 
+  async function saveWorkspaceSkillProfile() {
+    const nextPreferences = normalizeSkillPreferences(
+      SKILL_PRESETS.reduce((current, preset) => {
+        current[preset.id] = {
+          enabled: preferences.skillPreferences[preset.id]?.enabled ?? false,
+          customInstructions:
+            instructionDrafts[preset.id]?.trim() ||
+            preferences.skillPreferences[preset.id]?.customInstructions ||
+            preset.defaultInstructions,
+        };
+        return current;
+      }, {} as Partial<Record<SkillPresetId, { enabled: boolean; customInstructions: string }>>),
+    );
+    setSavingSkillProfile(true);
+    setSkillProfileMessage("Saving workspace skill profile...");
+    try {
+      await updateWorkspaceSkillProfile(
+        dashboard.workspace_id,
+        toSkillProfileRequest(nextPreferences),
+      );
+      updatePreference("skillPreferences", nextPreferences);
+      setInstructionDrafts(buildInstructionDrafts(nextPreferences));
+      setSavedSkillId(null);
+      setSkillProfileMessage("Workspace skill profile saved. Ask will use this saved profile.");
+      onSkillProfileSaved?.();
+    } catch (error) {
+      setSkillProfileMessage(`Could not save skill profile: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setSavingSkillProfile(false);
+    }
+  }
+
   function updateFileRulesDraft(
     key: "includePatterns" | "excludePatterns",
     value: string,
@@ -173,6 +210,9 @@ export function SettingsPanel({
   const hasUnsavedFileRules =
     fileRulesDraft.includePatterns !== preferences.fileIndexingPreferences.includePatterns ||
     fileRulesDraft.excludePatterns !== preferences.fileIndexingPreferences.excludePatterns;
+  const hasUnsavedSkillProfile = SKILL_PRESETS.some((preset) =>
+    (instructionDrafts[preset.id] ?? "") !== preferences.skillPreferences[preset.id]?.customInstructions,
+  );
 
   async function previewFileRules(mode: "saved" | "draft") {
     setPreviewingFileRules(true);
@@ -539,7 +579,7 @@ export function SettingsPanel({
             />
           </PreferenceGroup>
           <SettingsRow label="Answer mode" value="Source-backed local answer" />
-          <SettingsRow label="Storage" value="Saved locally in this browser" />
+          <SettingsRow label="Storage" value="Saved draft in this browser" />
         </SettingsSection>
 
 
@@ -662,16 +702,25 @@ export function SettingsPanel({
             <p className="eyebrow">Skill library</p>
             <h2>Assistant skills</h2>
             <p>
-              Start from safe presets, then tune instructions for this browser.
-              These preferences do not change backend runtime or rebuild
-              context.
+              Start from safe presets, then save the workspace profile. Ask uses the saved profile as guidance only; project claims still come from retrieved sources.
             </p>
           </div>
-          <StatusBadge
-            label={`${SKILL_PRESETS.filter((preset) => preferences.skillPreferences[preset.id]?.enabled).length} active`}
-            tone="info"
-          />
+          <div className="settings-heading-actions">
+            <StatusBadge
+              label={hasUnsavedSkillProfile ? "Unsaved draft" : `${SKILL_PRESETS.filter((preset) => preferences.skillPreferences[preset.id]?.enabled).length} active`}
+              tone={hasUnsavedSkillProfile ? "warning" : "info"}
+            />
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => void saveWorkspaceSkillProfile()}
+              disabled={savingSkillProfile}
+            >
+              {savingSkillProfile ? "Saving..." : "Save workspace profile"}
+            </button>
+          </div>
         </div>
+        <p className="settings-helper-text">{skillProfileMessage}</p>
 
         <div className="skill-library-settings-grid">
           {SKILL_PRESETS.map((preset) => {
@@ -758,7 +807,7 @@ export function SettingsPanel({
                   </div>
                   <span>
                     {savedSkillId === preset.id && !hasUnsavedInstruction
-                      ? "Saved locally"
+                      ? "Saved draft"
                       : hasUnsavedInstruction
                         ? "Unsaved"
                         : `${draft.length}/1200`}

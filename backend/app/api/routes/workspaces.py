@@ -9,6 +9,7 @@ from app.api.dependencies import (
     file_system,
     index_status_repository,
     indexing_rules_repository,
+    skill_profile_repository,
     llm_provider_factory,
     model_catalog_registry,
     model_experiment_repository,
@@ -108,6 +109,12 @@ from app.api.schemas.report_schemas import (
     ProjectOverviewReportResponse,
     to_project_overview_report_response,
 )
+from app.api.schemas.skill_profile_schemas import (
+    WorkspaceSkillProfileRequest,
+    WorkspaceSkillProfileResponse,
+    to_skill_profile_item,
+    to_workspace_skill_profile_response,
+)
 from app.api.schemas.rag_schemas import (
     AskWorkspaceQuestionRequest,
     AskWorkspaceQuestionWithSelectedLLMRequest,
@@ -177,6 +184,7 @@ from app.core.use_cases.analyze_terragrunt import (
     TerragruntAnalysisWorkspaceNotFoundError,
 )
 from app.core.domain.rag_prompt import SkillPromptInstruction
+from app.core.domain.skill_profile import default_skill_profile, normalize_skill_profile
 from app.core.use_cases.ask_workspace_question import (
     AskWorkspaceQuestionInput,
     AskWorkspaceQuestionNotFoundError,
@@ -970,6 +978,53 @@ def search_workspace_context(
     return [to_context_search_result_response(result) for result in results]
 
 
+@router.get("/{workspace_id}/skill-profile", response_model=WorkspaceSkillProfileResponse)
+def get_workspace_skill_profile(workspace_id: str) -> WorkspaceSkillProfileResponse:
+    workspace = workspace_repository.get(workspace_id)
+    if workspace is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Workspace not found: {workspace_id}",
+        )
+    saved = skill_profile_repository.get(workspace_id)
+    if saved is None:
+        return to_workspace_skill_profile_response(
+            default_skill_profile(workspace_id),
+            source="default",
+        )
+    return to_workspace_skill_profile_response(saved, source="saved")
+
+
+@router.put("/{workspace_id}/skill-profile", response_model=WorkspaceSkillProfileResponse)
+def update_workspace_skill_profile(
+    workspace_id: str,
+    request: WorkspaceSkillProfileRequest,
+) -> WorkspaceSkillProfileResponse:
+    workspace = workspace_repository.get(workspace_id)
+    if workspace is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Workspace not found: {workspace_id}",
+        )
+    profile = normalize_skill_profile(
+        workspace_id=workspace_id,
+        profile=request.profile,
+        skills=[to_skill_profile_item(item) for item in request.skills],
+    )
+    saved = skill_profile_repository.save(profile)
+    return to_workspace_skill_profile_response(saved, source="saved")
+
+
+def _saved_skill_prompt_instructions(workspace_id: str) -> list[SkillPromptInstruction]:
+    profile = skill_profile_repository.get(workspace_id)
+    if profile is None:
+        profile = default_skill_profile(workspace_id)
+    return [
+        SkillPromptInstruction(name=skill.name, instruction=skill.custom_instructions)
+        for skill in profile.enabled_skills[:5]
+    ]
+
+
 def _to_skill_prompt_instructions(skill_context) -> list[SkillPromptInstruction]:
     return [
         SkillPromptInstruction(
@@ -1002,7 +1057,11 @@ def ask_workspace_question(
                 limit=request.limit,
                 llm_provider_override=request.llm_provider,
                 llm_model_override=request.llm_model,
-                skill_instructions=_to_skill_prompt_instructions(request.skill_context),
+                skill_instructions=(
+                    _to_skill_prompt_instructions(request.skill_context)
+                    if request.skill_context
+                    else _saved_skill_prompt_instructions(workspace_id)
+                ),
             )
         )
     except AskWorkspaceQuestionNotFoundError as exc:
@@ -1049,7 +1108,11 @@ def ask_workspace_question_with_selected_llm(
                 workspace_id=workspace_id,
                 question=request.question,
                 limit=request.limit,
-                skill_instructions=_to_skill_prompt_instructions(request.skill_context),
+                skill_instructions=(
+                    _to_skill_prompt_instructions(request.skill_context)
+                    if request.skill_context
+                    else _saved_skill_prompt_instructions(workspace_id)
+                ),
             )
         )
     except AskWorkspaceQuestionWithSelectedLLMNotFoundError as exc:

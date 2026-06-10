@@ -134,3 +134,34 @@ export function getSkillPresetByAssistantMode(mode: string): SkillPresetDefiniti
   const normalizedMode = mode === "support_incident" ? "incident_support" : mode;
   return SKILL_PRESETS.find((preset) => preset.id === normalizedMode) ?? SKILL_PRESETS[0];
 }
+
+
+export function toSkillProfileRequest(preferences: SkillPreferences) {
+  return {
+    profile: "workspace",
+    skills: SKILL_PRESETS.map((preset) => ({
+      id: preset.id,
+      name: preset.name,
+      enabled: Boolean(preferences[preset.id]?.enabled),
+      custom_instructions:
+        preferences[preset.id]?.customInstructions.trim() || preset.defaultInstructions,
+    })),
+  };
+}
+
+export function skillPreferencesFromProfile(value: unknown): SkillPreferences {
+  if (!value || typeof value !== "object" || !("skills" in value)) {
+    return DEFAULT_SKILL_PREFERENCES;
+  }
+  const profile = value as { skills?: Array<{ id?: string; enabled?: boolean; custom_instructions?: string }> };
+  const raw = profile.skills?.reduce((accumulator, item) => {
+    if (typeof item.id === "string") {
+      accumulator[item.id as SkillPresetId] = {
+        enabled: Boolean(item.enabled),
+        customInstructions: typeof item.custom_instructions === "string" ? item.custom_instructions : "",
+      };
+    }
+    return accumulator;
+  }, {} as Partial<Record<SkillPresetId, Partial<SkillPreference>>>) ?? {};
+  return normalizeSkillPreferences(raw);
+}

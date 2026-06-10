@@ -136,3 +136,8 @@ models, and commands. This document provides the finer product-oriented grouping
 
 - `GET /workspaces/{workspace_id}/indexing-rules` — return saved or default workspace indexing rules.
 - `PUT /workspaces/{workspace_id}/indexing-rules` — save workspace indexing rules for future preview, scan, and index actions.
+
+### Workspace skill profile
+
+- `GET /workspaces/{workspace_id}/skill-profile` — return the saved workspace skill profile, or safe default skill guidance if none is saved.
+- `PUT /workspaces/{workspace_id}/skill-profile` — save active skills and custom instructions for the workspace. Ask uses the saved profile as guidance only; retrieved sources remain the basis for project claims.

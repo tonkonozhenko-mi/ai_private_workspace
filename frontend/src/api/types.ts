@@ -147,6 +147,28 @@ export interface RagQualityWarning {
   evidence: string[];
 }
 
+
+export interface SkillProfileItem {
+  id: string;
+  name: string;
+  enabled: boolean;
+  custom_instructions: string;
+}
+
+export interface WorkspaceSkillProfile {
+  workspace_id: string;
+  profile: string;
+  skills: SkillProfileItem[];
+  enabled_skills_count: number;
+  updated_at: string | null;
+  source: "saved" | "default" | string;
+}
+
+export interface WorkspaceSkillProfileRequest {
+  profile: string;
+  skills: SkillProfileItem[];
+}
+
 export interface SkillContextRequest {
   id: string;
   name: string;
