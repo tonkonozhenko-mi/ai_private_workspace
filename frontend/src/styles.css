@@ -14512,3 +14512,68 @@ pre,
     color: var(--color-text-muted);
   }
 }
+
+
+/* Task 198: packaging clarity panel */
+.desktop-packaging-panel {
+  width: 100%;
+}
+
+.packaging-roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.packaging-roadmap-grid article {
+  min-width: 0;
+  border: 1px solid var(--border-soft);
+  border-radius: 24px;
+  padding: 18px;
+  background: color-mix(in srgb, var(--panel-muted) 82%, transparent);
+  box-shadow: var(--shadow-soft);
+}
+
+.packaging-roadmap-grid span {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.packaging-roadmap-grid strong {
+  display: block;
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.packaging-roadmap-grid p {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+@media (max-width: 1180px) {
+  .packaging-roadmap-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .packaging-roadmap-grid {
+    grid-template-columns: 1fr;
+  }
+}

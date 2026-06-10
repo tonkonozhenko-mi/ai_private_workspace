@@ -108,3 +108,10 @@ Added a macOS `.app` shortcut generator for desktop-like startup:
 - The generated app delegates to `scripts/launch_macos.command`.
 - First-launch readiness now includes an optional desktop shortcut item and copy-only command.
 - No automatic model pull, scan, index, rebuild, MCP execution, or agent execution was introduced.
+
+## Packaging clarity update — Task 198
+
+The current macOS launcher is a bridge for developer-safe testing, not the final distribution model. The final product target remains a true desktop app for macOS and Windows: download, double-click, local services start safely, and the UI opens without cloning the repository or manually running backend/frontend scripts.
+
+Model downloads and MCP server setup should be implemented as explicit, user-approved product flows before the final installer: model manager first, MCP install/config/checks second, sandboxed execution later.
+
