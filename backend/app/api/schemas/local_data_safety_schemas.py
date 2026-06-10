@@ -125,3 +125,31 @@ class SafeUpdateWorkflowResponse(BaseModel):
     preflight_checks: list[str]
     warnings: list[str]
     safety_note: str
+
+
+class ProductionReadinessItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    detail: str
+    recommended_action: str | None = None
+
+
+class PackagingOptionResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    steps: list[str]
+    copy_commands: list[str]
+
+
+class ProductionReadinessResponse(BaseModel):
+    status: str
+    summary: str
+    readiness_score: int
+    items: list[ProductionReadinessItemResponse]
+    packaging_options: list[PackagingOptionResponse]
+    recommended_next_steps: list[str]
+    safety_note: str

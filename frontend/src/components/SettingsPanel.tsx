@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -15,6 +15,7 @@ import type {
   RuntimeTroubleshooting,
   SafeUpdateWorkflow,
   DesktopStartupExperience,
+  ProductionReadiness,
 } from "../api/types";
 import {
   DEFAULT_FILE_INDEXING_PREFERENCES,
@@ -124,11 +125,40 @@ export function SettingsPanel({
   const [desktopStartup, setDesktopStartup] = useState<DesktopStartupExperience | null>(null);
   const [desktopStartupError, setDesktopStartupError] = useState<string | null>(null);
   const [desktopStartupLoading, setDesktopStartupLoading] = useState(false);
+  const [productionReadiness, setProductionReadiness] = useState<ProductionReadiness | null>(null);
+  const [productionReadinessError, setProductionReadinessError] = useState<string | null>(null);
+  const [productionReadinessLoading, setProductionReadinessLoading] = useState(false);
 
 
   useEffect(() => {
     setBackendUrlDraft(preferences.apiBaseUrl);
   }, [preferences.apiBaseUrl]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    setProductionReadinessLoading(true);
+    setProductionReadinessError(null);
+    getProductionReadiness()
+      .then((readiness) => {
+        if (!cancelled) {
+          setProductionReadiness(readiness);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setProductionReadinessError(error instanceof Error ? error.message : "Could not load production readiness");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setProductionReadinessLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1401,6 +1431,69 @@ export function SettingsPanel({
               {desktopStartup.checklist.map((item) => (
                 <li key={item}>{item}</li>
               ))}
+            </ol>
+          </>
+        ) : null}
+      </section>
+
+
+
+      <section className="panel settings-production-readiness-panel">
+        <div className="settings-section-heading">
+          <div>
+            <p className="eyebrow">Production readiness</p>
+            <h2>Daily-use readiness and packaging path</h2>
+            <p>
+              Final Phase 16 checklist for running AI Private Workspace like a local product. This is read-only and copy-only.
+            </p>
+          </div>
+          <StatusBadge
+            label={productionReadinessLoading ? "Checking" : productionReadiness?.status === "ok" ? "Ready" : productionReadiness?.status === "blocked" ? "Blocked" : "Review"}
+            tone={productionReadiness?.status === "ok" ? "success" : productionReadiness?.status === "blocked" ? "danger" : "warning"}
+          />
+        </div>
+        {productionReadinessError ? (
+          <p className="settings-transfer-message">Could not load production readiness: {productionReadinessError}</p>
+        ) : null}
+        {productionReadiness ? (
+          <>
+            <div className="startup-checklist-summary">
+              <strong>{productionReadiness.summary}</strong>
+              <span>Readiness score: {productionReadiness.readiness_score}%</span>
+              <span>{productionReadiness.safety_note}</span>
+            </div>
+            <div className="startup-checklist-grid">
+              {productionReadiness.items.map((item) => (
+                <div className={`startup-checklist-item is-${item.status}`} key={item.id}>
+                  <div className="startup-checklist-item-header">
+                    <strong>{item.title}</strong>
+                    <StatusBadge label={item.status} tone={item.status === "ok" ? "success" : item.status === "blocked" ? "danger" : "warning"} />
+                  </div>
+                  <p>{item.summary}</p>
+                  <small>{item.detail}</small>
+                  {item.recommended_action ? <small>Action: {item.recommended_action}</small> : null}
+                </div>
+              ))}
+            </div>
+            <div className="settings-command-stack">
+              {productionReadiness.packaging_options.map((option) => (
+                <div className="startup-checklist-command" key={option.id}>
+                  <span>{option.title} · {option.status}</span>
+                  <small>{option.summary}</small>
+                  <ol className="settings-preflight-list">
+                    {option.steps.map((step) => <li key={step}>{step}</li>)}
+                  </ol>
+                  {option.copy_commands.map((command) => (
+                    <div className="settings-inline-command" key={command}>
+                      <code>{command}</code>
+                      <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(command)}>Copy</button>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <ol className="settings-preflight-list">
+              {productionReadiness.recommended_next_steps.map((step) => <li key={step}>{step}</li>)}
             </ol>
           </>
         ) : null}

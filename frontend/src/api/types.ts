@@ -271,6 +271,35 @@ export interface RuntimeTroubleshooting {
   safety_note: string;
 }
 
+
+export interface ProductionReadinessItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  detail: string;
+  recommended_action: string | null;
+}
+
+export interface PackagingOption {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  steps: string[];
+  copy_commands: string[];
+}
+
+export interface ProductionReadiness {
+  status: string;
+  summary: string;
+  readiness_score: number;
+  items: ProductionReadinessItem[];
+  packaging_options: PackagingOption[];
+  recommended_next_steps: string[];
+  safety_note: string;
+}
+
 export interface TimelineEvent {
   id: string;
   workspace_id: string;

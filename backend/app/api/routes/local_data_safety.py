@@ -20,6 +20,9 @@ from app.api.schemas.local_data_safety_schemas import (
     DatabaseRestorePlanResponse,
     LocalDataBackupHintResponse,
     LocalDataSafetyResponse,
+    PackagingOptionResponse,
+    ProductionReadinessItemResponse,
+    ProductionReadinessResponse,
     SafeUpdateWorkflowResponse,
     StartupChecklistItemResponse,
     StartupChecklistResponse,
@@ -284,6 +287,174 @@ def get_desktop_startup_experience() -> DesktopStartupExperienceResponse:
             "The frontend only displays or copies commands; it never executes shell commands.",
             "Open-last-workspace state is browser-local convenience only; workspace data remains in SQLite.",
         ],
+    )
+
+
+@router.get("/production-readiness", response_model=ProductionReadinessResponse)
+def get_production_readiness() -> ProductionReadinessResponse:
+    settings = get_settings()
+    db_path = settings.workspace_db_path
+    warnings: list[str] = []
+    counts: dict[str, int | None] = {
+        "workspaces": None,
+        "workspace_conversations": None,
+        "workspace_saved_reports": None,
+        "workspace_answer_notes": None,
+    }
+    if db_path.exists():
+        counts = _read_counts(db_path, counts.keys(), warnings)
+
+    checks: list[ProductionReadinessItemResponse] = []
+
+    python_ok = sys.version_info >= (3, 10)
+    checks.append(
+        ProductionReadinessItemResponse(
+            id="python-runtime",
+            title="Python runtime",
+            status="ok" if python_ok else "blocked",
+            summary=f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+            detail="Backend should run on Python 3.10+; Python 3.12 is preferred for local development.",
+            recommended_action=None if python_ok else "Recreate backend/.venv with Python 3.12.",
+        )
+    )
+
+    has_workspace = (counts.get("workspaces") or 0) > 0
+    checks.append(
+        ProductionReadinessItemResponse(
+            id="workspace-data",
+            title="Workspace data",
+            status="ok" if has_workspace else "review",
+            summary=f"{counts.get('workspaces') or 0} workspace(s) in local DB",
+            detail=f"Active database: {_display_path(db_path)}",
+            recommended_action="Create a workspace and build context before daily use." if not has_workspace else None,
+        )
+    )
+
+    local_data_protected = db_path.parent.name == ".ai-workbench" and db_path.exists()
+    checks.append(
+        ProductionReadinessItemResponse(
+            id="local-data-guardrails",
+            title="Local data guardrails",
+            status="ok" if local_data_protected else "review",
+            summary="Runtime DB is under backend/.ai-workbench" if local_data_protected else "Runtime DB path needs review",
+            detail="Generated update workflows must preserve backend/.ai-workbench and never copy *.db/*.sqlite from generated archives.",
+            recommended_action="Use scripts/apply_generated_update.sh with --dry-run before every generated update.",
+        )
+    )
+
+    model_ready = settings.llm_provider.lower() != "fake" and settings.embedding_provider.lower() != "fake"
+    checks.append(
+        ProductionReadinessItemResponse(
+            id="local-ai-runtime",
+            title="Local AI runtime",
+            status="ok" if model_ready else "review",
+            summary=f"LLM={settings.llm_provider}/{settings.ollama_llm_model}; embeddings={settings.embedding_provider}/{settings.ollama_embedding_model}",
+            detail="Production-like local use should run with Ollama LLM and embedding providers, not fake test providers.",
+            recommended_action="Start backend with LLM_PROVIDER=ollama and EMBEDDING_PROVIDER=ollama." if not model_ready else None,
+        )
+    )
+
+    vector_ready = settings.vector_store.lower() == "qdrant"
+    checks.append(
+        ProductionReadinessItemResponse(
+            id="persistent-vector-store",
+            title="Persistent vector store",
+            status="ok" if vector_ready else "review",
+            summary=f"Vector store: {settings.vector_store}",
+            detail="Use Qdrant for persistent local search context. Memory vector store is process-local only.",
+            recommended_action="Start backend with VECTOR_STORE=qdrant." if not vector_ready else None,
+        )
+    )
+
+    docs_ready = Path("../docs").exists() or Path("docs").exists()
+    checks.append(
+        ProductionReadinessItemResponse(
+            id="operator-docs",
+            title="Operator docs",
+            status="ok" if docs_ready else "review",
+            summary="Local runbooks are included" if docs_ready else "Docs directory not found from current working directory",
+            detail="Runbooks should explain startup, backup/restore, safe updates, troubleshooting, and packaging choices.",
+            recommended_action=None if docs_ready else "Start the backend from the project backend directory or verify docs are packaged.",
+        )
+    )
+
+    if warnings:
+        checks.append(
+            ProductionReadinessItemResponse(
+                id="diagnostic-warnings",
+                title="Diagnostic warnings",
+                status="review",
+                summary=f"{len(warnings)} warning(s)",
+                detail="; ".join(warnings),
+                recommended_action="Review /runtime/local-data and /runtime/database-migration-safety.",
+            )
+        )
+
+    ok_count = sum(1 for item in checks if item.status == "ok")
+    blocked = any(item.status == "blocked" for item in checks)
+    review = any(item.status == "review" for item in checks)
+    status = "blocked" if blocked else "review" if review else "ok"
+    score = round((ok_count / len(checks)) * 100) if checks else 0
+
+    packaging_options = [
+        PackagingOptionResponse(
+            id="dev-scripts",
+            title="Script-based local app",
+            status="recommended-now",
+            summary="Use the included scripts to start backend/frontend and keep updates explicit.",
+            steps=[
+                "Run scripts/check_runtime.sh before work.",
+                "Start backend with scripts/start_backend.sh.",
+                "Start frontend with scripts/start_frontend.sh.",
+                "Use scripts/apply_generated_update.sh --dry-run before applying generated archives.",
+            ],
+            copy_commands=[
+                "cd ~/Documents/ai_workspace && scripts/check_runtime.sh",
+                "cd ~/Documents/ai_workspace && scripts/start_backend.sh",
+                "cd ~/Documents/ai_workspace && scripts/start_frontend.sh",
+            ],
+        ),
+        PackagingOptionResponse(
+            id="mac-shortcuts",
+            title="macOS shortcuts / launcher",
+            status="next",
+            summary="Create a small local launcher later; it should only call project scripts and never bypass safety checks.",
+            steps=[
+                "Keep backend/frontend startup in scripts.",
+                "Add a macOS Automator/Shortcut wrapper only after scripts are stable.",
+                "Show commands to the user before adding any auto-start behavior.",
+            ],
+            copy_commands=[
+                "open ~/Documents/ai_workspace",
+            ],
+        ),
+        PackagingOptionResponse(
+            id="desktop-wrapper",
+            title="Desktop wrapper",
+            status="later",
+            summary="A Tauri/Electron wrapper can be considered after local data safety and runtime scripts are stable.",
+            steps=[
+                "Keep the backend API local-only.",
+                "Protect backend/.ai-workbench from app updates.",
+                "Make backup/restore explicit before introducing packaged updates.",
+            ],
+            copy_commands=[],
+        ),
+    ]
+
+    return ProductionReadinessResponse(
+        status=status,
+        summary="Ready for daily local use" if status == "ok" else "Production readiness needs review before daily use",
+        readiness_score=score,
+        items=checks,
+        packaging_options=packaging_options,
+        recommended_next_steps=[
+            "Keep using script-based startup until packaging is stable.",
+            "Create a DB backup before every generated update.",
+            "Use dry-run apply workflow for generated archives.",
+            "Only consider a desktop wrapper after scripts and backup/restore are reliable.",
+        ],
+        safety_note="This readiness report is read-only. The frontend only displays or copies commands and never executes shell commands.",
     )
 
 

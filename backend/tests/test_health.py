@@ -104,3 +104,18 @@ def test_desktop_startup_experience_is_read_only_and_copy_only() -> None:
     assert any("npm run dev" in command["command"] for command in body["startup_commands"])
     assert any("read-only" in note.lower() for note in body["safety_notes"])
     assert any("never executes shell commands" in note.lower() for note in body["safety_notes"])
+
+
+def test_production_readiness_is_read_only_and_has_packaging_path() -> None:
+    response = client.get("/runtime/production-readiness")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] in {"ok", "review", "blocked"}
+    assert 0 <= body["readiness_score"] <= 100
+    assert "read-only" in body["safety_note"].lower()
+    item_ids = {item["id"] for item in body["items"]}
+    assert {"python-runtime", "workspace-data", "local-data-guardrails", "local-ai-runtime", "persistent-vector-store"}.issubset(item_ids)
+    option_ids = {option["id"] for option in body["packaging_options"]}
+    assert {"dev-scripts", "mac-shortcuts", "desktop-wrapper"}.issubset(option_ids)
+    assert any("start_backend.sh" in command for option in body["packaging_options"] for command in option["copy_commands"])
