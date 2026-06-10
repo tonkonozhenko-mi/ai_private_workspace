@@ -10007,3 +10007,20 @@ button:focus-visible {
     justify-content: stretch;
   }
 }
+
+/* Task 162 — Ask skill profile audit trail */
+.ask-skill-audit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+}
+
+.ask-skill-audit span {
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  padding: 0.22rem 0.5rem;
+}

@@ -3,7 +3,7 @@ from time import perf_counter
 
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
-from app.core.domain.rag import RagQualityWarning, RagSource, WorkspaceQuestionAnswer
+from app.core.domain.rag import RagQualityWarning, RagSource, SkillProfileAudit, WorkspaceQuestionAnswer
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.rag_prompt import SkillPromptInstruction, build_workspace_question_prompt
 from app.core.ports.embedding_provider import EmbeddingProviderPort
@@ -50,6 +50,9 @@ class AskWorkspaceQuestionInput:
     additional_quality_warnings: list[RagQualityWarning] = field(default_factory=list)
     timeline_metadata: dict[str, str] = field(default_factory=dict)
     skill_instructions: list[SkillPromptInstruction] = field(default_factory=list)
+    skill_profile_source: str = "default"
+    skill_profile_name: str = "workspace"
+    skill_profile_updated_at: str | None = None
 
 
 class AskWorkspaceQuestionNotFoundError(ValueError):
@@ -162,6 +165,7 @@ class AskWorkspaceQuestionUseCase:
                 diagnostic_message=None,
                 quality_warnings=quality_warnings,
                 usage=usage,
+                skill_profile=self._skill_profile_audit(request),
             ),
             request,
         )
@@ -203,6 +207,7 @@ class AskWorkspaceQuestionUseCase:
             diagnostic_code=diagnostic_code,
             diagnostic_message=diagnostic_message,
             quality_warnings=list(request.additional_quality_warnings),
+            skill_profile=self._skill_profile_audit(request),
         )
 
     def _create_llm_provider(
@@ -234,6 +239,19 @@ class AskWorkspaceQuestionUseCase:
             embedding_dimension=len(query_embedding),
         )
 
+
+    def _skill_profile_audit(
+        self,
+        request: AskWorkspaceQuestionInput,
+    ) -> SkillProfileAudit:
+        return SkillProfileAudit(
+            source=request.skill_profile_source,
+            profile=request.skill_profile_name,
+            active_skills=[instruction.name for instruction in request.skill_instructions],
+            guidance_count=len(request.skill_instructions),
+            updated_at=request.skill_profile_updated_at,
+        )
+
     def _record_question_event(
         self,
         answer: WorkspaceQuestionAnswer,
@@ -251,6 +269,10 @@ class AskWorkspaceQuestionUseCase:
                         "llm_provider": answer.llm_provider,
                         "llm_model": answer.llm_model or "",
                         "quality_warnings_count": str(len(answer.quality_warnings)),
+                        "skill_profile_source": request.skill_profile_source,
+                        "skill_profile": request.skill_profile_name,
+                        "skill_profile_updated_at": request.skill_profile_updated_at or "",
+                        "guidance_count": str(len(request.skill_instructions)),
                         "applied_skills_count": str(len(request.skill_instructions)),
                         "applied_skills": ", ".join(
                             instruction.name for instruction in request.skill_instructions

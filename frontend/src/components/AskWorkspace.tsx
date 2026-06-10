@@ -422,6 +422,7 @@ function AnswerResult({
             </span>
           </div>
           <LLMUsageSummary answer={answer} />
+          <AskSkillProfileAuditSummary answer={answer} />
         </article>
 
         {answer.diagnostic_message ? (
@@ -453,6 +454,33 @@ function AnswerResult({
           suppressReindexGuidance={reindexReason !== null}
         />
       </div>
+    </div>
+  );
+}
+
+
+function AskSkillProfileAuditSummary({ answer }: { answer: WorkspaceQuestionAnswer }) {
+  const profile = answer.skill_profile;
+  if (!profile) {
+    return null;
+  }
+
+  const sourceLabel = profile.source === "saved"
+    ? "Workspace saved profile"
+    : profile.source === "request"
+      ? "Temporary request guidance"
+      : "Default workspace profile";
+  const skills = profile.active_skills.length > 0
+    ? profile.active_skills.join(" + ")
+    : "No active skill guidance";
+
+  return (
+    <div className="ask-skill-audit" aria-label="Ask skill profile audit">
+      <span title="Skill profile source">{sourceLabel}</span>
+      <span title="Active skill guidance">{skills}</span>
+      <span title="Guidance items">{profile.guidance_count} guidance item{profile.guidance_count === 1 ? "" : "s"}</span>
+      {profile.updated_at ? <span title="Profile saved time">Saved {formatDateTime(profile.updated_at)}</span> : null}
+      <span title="Safety note">guidance only; facts need retrieved sources</span>
     </div>
   );
 }

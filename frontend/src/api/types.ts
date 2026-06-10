@@ -186,6 +186,14 @@ export interface LLMUsageMetrics {
   estimated?: boolean;
 }
 
+export interface AskSkillProfileAudit {
+  source: string;
+  profile: string;
+  active_skills: string[];
+  guidance_count: number;
+  updated_at?: string | null;
+}
+
 export interface WorkspaceQuestionAnswer {
   workspace_id: string;
   question: string;
@@ -198,6 +206,7 @@ export interface WorkspaceQuestionAnswer {
   diagnostic_message?: string | null;
   quality_warnings?: RagQualityWarning[];
   usage?: LLMUsageMetrics | null;
+  skill_profile?: AskSkillProfileAudit | null;
 }
 
 export interface WorkspaceIndexStatus {

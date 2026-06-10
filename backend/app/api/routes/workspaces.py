@@ -1035,14 +1035,28 @@ def update_workspace_skill_profile(
     return to_workspace_skill_profile_response(saved, source="saved")
 
 
-def _saved_skill_prompt_instructions(workspace_id: str) -> list[SkillPromptInstruction]:
+def _saved_skill_profile_context(workspace_id: str):
     profile = skill_profile_repository.get(workspace_id)
+    source = "saved"
     if profile is None:
         profile = default_skill_profile(workspace_id)
-    return [
+        source = "default"
+    instructions = [
         SkillPromptInstruction(name=skill.name, instruction=skill.custom_instructions)
         for skill in profile.enabled_skills[:5]
     ]
+    return instructions, source, profile.profile, profile.updated_at
+
+
+def _skill_profile_context_from_request(workspace_id: str, skill_context):
+    if skill_context:
+        return (
+            _to_skill_prompt_instructions(skill_context),
+            "request",
+            "temporary",
+            None,
+        )
+    return _saved_skill_profile_context(workspace_id)
 
 
 def _to_skill_prompt_instructions(skill_context) -> list[SkillPromptInstruction]:
@@ -1070,6 +1084,9 @@ def ask_workspace_question(
     )
 
     try:
+        skill_instructions, skill_source, skill_profile_name, skill_updated_at = (
+            _skill_profile_context_from_request(workspace_id, request.skill_context)
+        )
         result = use_case.execute(
             AskWorkspaceQuestionInput(
                 workspace_id=workspace_id,
@@ -1077,11 +1094,10 @@ def ask_workspace_question(
                 limit=request.limit,
                 llm_provider_override=request.llm_provider,
                 llm_model_override=request.llm_model,
-                skill_instructions=(
-                    _to_skill_prompt_instructions(request.skill_context)
-                    if request.skill_context
-                    else _saved_skill_prompt_instructions(workspace_id)
-                ),
+                skill_instructions=skill_instructions,
+                skill_profile_source=skill_source,
+                skill_profile_name=skill_profile_name,
+                skill_profile_updated_at=skill_updated_at,
             )
         )
     except AskWorkspaceQuestionNotFoundError as exc:
@@ -1123,16 +1139,18 @@ def ask_workspace_question_with_selected_llm(
     )
 
     try:
+        skill_instructions, skill_source, skill_profile_name, skill_updated_at = (
+            _skill_profile_context_from_request(workspace_id, request.skill_context)
+        )
         result = use_case.execute(
             AskWorkspaceQuestionWithSelectedLLMInput(
                 workspace_id=workspace_id,
                 question=request.question,
                 limit=request.limit,
-                skill_instructions=(
-                    _to_skill_prompt_instructions(request.skill_context)
-                    if request.skill_context
-                    else _saved_skill_prompt_instructions(workspace_id)
-                ),
+                skill_instructions=skill_instructions,
+                skill_profile_source=skill_source,
+                skill_profile_name=skill_profile_name,
+                skill_profile_updated_at=skill_updated_at,
             )
         )
     except AskWorkspaceQuestionWithSelectedLLMNotFoundError as exc:

@@ -20,6 +20,15 @@ class RagQualityWarning:
 
 
 @dataclass(frozen=True)
+class SkillProfileAudit:
+    source: str
+    profile: str
+    active_skills: list[str]
+    guidance_count: int
+    updated_at: str | None = None
+
+
+@dataclass(frozen=True)
 class WorkspaceQuestionAnswer:
     workspace_id: str
     question: str
@@ -32,3 +41,4 @@ class WorkspaceQuestionAnswer:
     diagnostic_message: str | None = None
     quality_warnings: list[RagQualityWarning] = field(default_factory=list)
     usage: LLMUsageMetrics | None = None
+    skill_profile: SkillProfileAudit | None = None
