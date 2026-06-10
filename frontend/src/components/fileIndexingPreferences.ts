@@ -6,6 +6,12 @@ export interface FileIndexingPreferences {
   excludePatterns: string;
 }
 
+export interface FileSelectionRulesRequest {
+  profile: FileIndexingProfile;
+  include_patterns: string[];
+  exclude_patterns: string[];
+}
+
 export const DEFAULT_INCLUDE_PATTERNS = [
   "src/**",
   "app/**",
@@ -104,4 +110,21 @@ export function countPatterns(value: string): number {
 
 function isFileIndexingProfile(value: unknown): value is FileIndexingProfile {
   return value === "balanced" || value === "source-first" || value === "docs-first";
+}
+
+export function patternLines(value: string): string[] {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+export function toFileSelectionRulesRequest(
+  preferences: FileIndexingPreferences,
+): FileSelectionRulesRequest {
+  return {
+    profile: preferences.profile,
+    include_patterns: patternLines(preferences.includePatterns),
+    exclude_patterns: patternLines(preferences.excludePatterns),
+  };
 }

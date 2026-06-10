@@ -14,6 +14,12 @@ export interface DetectedSkillResponse {
   evidence: string[];
 }
 
+export interface FileSelectionRulesRequest {
+  profile: string;
+  include_patterns: string[];
+  exclude_patterns: string[];
+}
+
 export interface ProjectScanResponse {
   project_path: string;
   total_files: number;

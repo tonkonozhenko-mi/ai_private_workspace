@@ -4,7 +4,7 @@ import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
 } from "../api/types";
-import { countPatterns, type FileIndexingPreferences } from "./fileIndexingPreferences";
+import { countPatterns, patternLines, type FileIndexingPreferences } from "./fileIndexingPreferences";
 import { ModelsSummaryCard } from "./ModelsSummaryCard";
 import { StatusBadge } from "./StatusBadge";
 import type { StatusTone } from "./statusTone";
@@ -92,6 +92,7 @@ export function WorkspaceDashboard({
         onOpenCapabilities={onOpenCapabilities}
         onScanWorkspace={onScanWorkspace}
         onIndexWorkspace={onIndexWorkspace}
+        fileIndexingPreferences={fileIndexingPreferences}
       />
 
       <WorkspaceSkillsSection
@@ -142,6 +143,7 @@ function WorkspaceOnboardingGuide({
   onOpenCapabilities,
   onScanWorkspace,
   onIndexWorkspace,
+  fileIndexingPreferences,
 }: {
   dashboard: WorkspaceDashboardData;
   modelsSummary: WorkspaceModelsDashboardSummary;
@@ -150,12 +152,17 @@ function WorkspaceOnboardingGuide({
   onOpenCapabilities: () => void;
   onScanWorkspace: () => Promise<void>;
   onIndexWorkspace: () => Promise<void>;
+  fileIndexingPreferences: FileIndexingPreferences;
 }) {
   const summary = dashboard.summary;
   const hasScan = summary.has_scan;
   const indexReady = summary.index_status.status === "indexed";
   const localAIReady = modelsSummary.overall_status === "ready";
   const readyToAsk = hasScan && indexReady && localAIReady;
+  const includeRuleCount = countPatterns(fileIndexingPreferences.includePatterns);
+  const excludeRuleCount = countPatterns(fileIndexingPreferences.excludePatterns);
+  const includePreview = patternLines(fileIndexingPreferences.includePatterns).slice(0, 4);
+  const excludePreview = patternLines(fileIndexingPreferences.excludePatterns).slice(0, 4);
   const [setupAction, setSetupAction] = useState<"scan" | "index" | null>(null);
   const [setupMessage, setSetupMessage] = useState<string | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
@@ -285,6 +292,27 @@ function WorkspaceOnboardingGuide({
           </div>
         </div>
       ) : null}
+
+
+      <div className="file-rules-plan" aria-label="File selection plan">
+        <div>
+          <strong>File rules applied on scan</strong>
+          <p>
+            The next project scan will apply your browser-local include and exclude rules.
+            Build search context then uses the latest filtered scan.
+          </p>
+        </div>
+        <div className="file-rules-plan-grid">
+          <div>
+            <span>{includeRuleCount} include rules</span>
+            <code>{includePreview.join(" · ") || "All files"}</code>
+          </div>
+          <div>
+            <span>{excludeRuleCount} exclude rules</span>
+            <code>{excludePreview.join(" · ") || "No exclusions"}</code>
+          </div>
+        </div>
+      </div>
 
       {setupMessage ? <p className="settings-message success">{setupMessage}</p> : null}
       {setupError ? <p className="settings-message error">{setupError}</p> : null}

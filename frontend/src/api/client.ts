@@ -8,6 +8,7 @@ import type {
   CreateWorkspaceRequest,
   CreatedWorkspace,
   ProjectScanResponse,
+  FileSelectionRulesRequest,
   WorkspaceDashboard,
   WorkspaceIndexResponse,
   WorkspaceModelsDashboard,
@@ -108,12 +109,17 @@ export function restoreWorkspace(workspaceId: string): Promise<void> {
   });
 }
 
-export function scanWorkspace(workspaceId: string): Promise<ProjectScanResponse> {
+export function scanWorkspace(
+  workspaceId: string,
+  fileRules?: FileSelectionRulesRequest,
+): Promise<ProjectScanResponse> {
   return requestJson<ProjectScanResponse>(`/workspaces/${workspaceId}/scan`, {
     method: "POST",
     headers: {
       Accept: "application/json",
+      ...(fileRules ? { "Content-Type": "application/json" } : {}),
     },
+    ...(fileRules ? { body: JSON.stringify({ file_rules: fileRules }) } : {}),
   });
 }
 

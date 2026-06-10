@@ -1,7 +1,17 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.core.domain.project_scan import ProjectFile, ProjectScanResult
 from app.core.domain.skill import SkillMatch
+
+
+class FileSelectionRulesRequest(BaseModel):
+    profile: str = "balanced"
+    include_patterns: list[str] = Field(default_factory=list)
+    exclude_patterns: list[str] = Field(default_factory=list)
+
+
+class ScanWorkspaceProjectRequest(BaseModel):
+    file_rules: FileSelectionRulesRequest | None = None
 
 
 class ProjectFileResponse(BaseModel):
