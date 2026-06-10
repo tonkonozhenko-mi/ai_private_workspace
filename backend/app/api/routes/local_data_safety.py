@@ -18,6 +18,7 @@ from app.api.schemas.local_data_safety_schemas import (
     DatabaseRestorePlanResponse,
     LocalDataBackupHintResponse,
     LocalDataSafetyResponse,
+    SafeUpdateWorkflowResponse,
     StartupChecklistItemResponse,
     StartupChecklistResponse,
 )
@@ -54,16 +55,7 @@ def get_local_data_safety() -> LocalDataSafetyResponse:
     if not db_path.is_absolute():
         warnings.append("Database path is relative to the backend process working directory. Start the backend from the project backend directory or set WORKSPACE_DB_PATH explicitly.")
 
-    safe_update_excludes = [
-        "backend/.ai-workbench",
-        "*.db",
-        "*.sqlite",
-        "*/.venv/*",
-        "*/node_modules/*",
-        "*/dist/*",
-        "*/__pycache__/*",
-        "*/.pytest_cache/*",
-    ]
+    safe_update_excludes = _safe_update_excludes()
     protected_paths = [
         _display_path(app_data_dir),
         _display_path(db_path),
@@ -150,7 +142,7 @@ def get_startup_checklist() -> StartupChecklistResponse:
             summary="Runtime data is under backend/.ai-workbench" if local_db_protected else "Runtime DB path should be reviewed",
             detail="Generated update archives must never overwrite backend/.ai-workbench, *.db, or *.sqlite.",
             action_label="Use safe update script",
-            copy_command="scripts/apply_generated_update.sh /path/to/unzipped/update ~/Documents/ai_workspace",
+            copy_command="scripts/apply_generated_update.sh --dry-run /path/to/unzipped/update ~/Documents/ai_workspace",
         ),
         StartupChecklistItemResponse(
             id="models",
@@ -195,6 +187,44 @@ def get_startup_checklist() -> StartupChecklistResponse:
         items=items,
         safe_to_continue=status != "blocked",
         safety_note="This checklist is read-only. The frontend only displays/copies commands; it never executes shell commands.",
+    )
+
+
+@router.get("/update-safety", response_model=SafeUpdateWorkflowResponse)
+def get_update_safety_workflow() -> SafeUpdateWorkflowResponse:
+    settings = get_settings()
+    db_path = settings.workspace_db_path
+    app_data_dir = settings.app_data_dir
+    warnings: list[str] = []
+
+    if not db_path.exists():
+        warnings.append("Active workspace database does not exist yet. Create a workspace before relying on update backups.")
+    if not db_path.is_absolute():
+        warnings.append("Workspace DB path is relative; run update scripts from the ai_workspace project root or set WORKSPACE_DB_PATH explicitly.")
+    if settings.workspace_repository.lower() != "sqlite":
+        warnings.append("Workspace repository is not sqlite; backup guardrails may not protect all runtime data for this configuration.")
+
+    required_excludes = _safe_update_excludes()
+    target_root = "~/Documents/ai_workspace"
+    source_root = "~/Documents/ai_workspace_taskXXX_work"
+    return SafeUpdateWorkflowResponse(
+        status="review" if warnings else "ok",
+        summary="Use the generated update script with dry-run first, then apply with automatic DB backup.",
+        script_path="scripts/apply_generated_update.sh",
+        dry_run_command=f"scripts/apply_generated_update.sh --dry-run {source_root} {target_root}",
+        apply_command=f"scripts/apply_generated_update.sh {source_root} {target_root}",
+        required_excludes=required_excludes,
+        backup_policy="The script creates a timestamped pre-update backup when backend/.ai-workbench/workspaces.db exists. Restore remains manual.",
+        protected_paths=[_display_path(app_data_dir), _display_path(db_path)],
+        preflight_checks=[
+            "Unzip the generated archive into a temporary folder, not directly over ~/Documents/ai_workspace.",
+            "Confirm the unzipped folder contains backend/ and frontend/ directly at its root.",
+            "Run the script with --dry-run and review the file list before applying.",
+            "Make sure backend/.ai-workbench, *.db, and *.sqlite are excluded from update copy operations.",
+            "After applying, restart backend/frontend and check /runtime/local-data plus /runtime/database-migration-safety.",
+        ],
+        warnings=warnings,
+        safety_note="This endpoint is read-only. The UI only displays commands; updates and restores remain explicit terminal actions.",
     )
 
 
@@ -375,6 +405,20 @@ def _resolve_backup(db_path: Path, filename: str) -> Path:
     if "/" in filename or "\\" in filename or filename in {"", ".", ".."}:
         raise HTTPException(status_code=400, detail="Backup filename must be a file next to the workspace database.")
     return db_path.parent / filename
+
+
+def _safe_update_excludes() -> list[str]:
+    return [
+        "backend/.ai-workbench",
+        "*.db",
+        "*.sqlite",
+        "*/.venv/*",
+        "*/node_modules/*",
+        "*/dist/*",
+        "*/__pycache__/*",
+        "*/.pytest_cache/*",
+        "*.tsbuildinfo",
+    ]
 
 
 def _display_path(path: Path) -> str:

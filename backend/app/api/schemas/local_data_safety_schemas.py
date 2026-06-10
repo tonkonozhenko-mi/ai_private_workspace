@@ -94,3 +94,17 @@ class DatabaseMigrationSafetyResponse(BaseModel):
     warnings: list[str]
     recommended_actions: list[str]
     safety_note: str
+
+
+class SafeUpdateWorkflowResponse(BaseModel):
+    status: str
+    summary: str
+    script_path: str
+    dry_run_command: str
+    apply_command: str
+    required_excludes: list[str]
+    backup_policy: str
+    protected_paths: list[str]
+    preflight_checks: list[str]
+    warnings: list[str]
+    safety_note: str

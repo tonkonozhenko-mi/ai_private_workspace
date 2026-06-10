@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getLocalDataSafety, getRuntimeTroubleshooting, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -13,6 +13,7 @@ import type {
   LocalDataSafety,
   StartupChecklist,
   RuntimeTroubleshooting,
+  SafeUpdateWorkflow,
 } from "../api/types";
 import {
   DEFAULT_FILE_INDEXING_PREFERENCES,
@@ -116,6 +117,10 @@ export function SettingsPanel({
   const [runtimeTroubleshootingError, setRuntimeTroubleshootingError] = useState<string | null>(null);
   const [runtimeTroubleshootingLoading, setRuntimeTroubleshootingLoading] = useState(false);
 
+  const [safeUpdateWorkflow, setSafeUpdateWorkflow] = useState<SafeUpdateWorkflow | null>(null);
+  const [safeUpdateWorkflowError, setSafeUpdateWorkflowError] = useState<string | null>(null);
+  const [safeUpdateWorkflowLoading, setSafeUpdateWorkflowLoading] = useState(false);
+
 
   useEffect(() => {
     setBackendUrlDraft(preferences.apiBaseUrl);
@@ -163,6 +168,32 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setStartupChecklistLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    setSafeUpdateWorkflowLoading(true);
+    setSafeUpdateWorkflowError(null);
+    getSafeUpdateWorkflow()
+      .then((workflow) => {
+        if (!cancelled) {
+          setSafeUpdateWorkflow(workflow);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setSafeUpdateWorkflowError(error instanceof Error ? error.message : "Could not load safe update workflow");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setSafeUpdateWorkflowLoading(false);
         }
       });
     return () => {
@@ -1407,6 +1438,75 @@ export function SettingsPanel({
         ) : null}
       </section>
 
+
+      <section className="panel settings-update-workflow-panel">
+        <div className="settings-section-heading">
+          <div>
+            <p className="eyebrow">Safe updates</p>
+            <h2>Generated archive apply workflow</h2>
+            <p>
+              Apply generated task archives through a dry-run and automatic DB backup guardrail. The UI only shows copyable commands.
+            </p>
+          </div>
+          <StatusBadge
+            label={safeUpdateWorkflowLoading ? "Checking" : safeUpdateWorkflow?.status === "ok" ? "Protected" : "Review"}
+            tone={safeUpdateWorkflow?.status === "ok" ? "success" : "warning"}
+          />
+        </div>
+        {safeUpdateWorkflowError ? (
+          <p className="settings-transfer-message">Could not load safe update workflow: {safeUpdateWorkflowError}</p>
+        ) : null}
+        {safeUpdateWorkflow ? (
+          <>
+            <div className="startup-checklist-summary">
+              <strong>{safeUpdateWorkflow.summary}</strong>
+              <span>{safeUpdateWorkflow.safety_note}</span>
+            </div>
+            <div className="local-data-details">
+              <div>
+                <span>Protected paths</span>
+                <code>{safeUpdateWorkflow.protected_paths.join(" · ")}</code>
+              </div>
+              <div>
+                <span>Required excludes</span>
+                <code>{safeUpdateWorkflow.required_excludes.join(" ")}</code>
+              </div>
+              <div>
+                <span>Backup policy</span>
+                <small>{safeUpdateWorkflow.backup_policy}</small>
+              </div>
+            </div>
+            <div className="settings-command-stack">
+              <div className="startup-checklist-command">
+                <span>Dry-run first</span>
+                <code>{safeUpdateWorkflow.dry_run_command}</code>
+                <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(safeUpdateWorkflow.dry_run_command)}>
+                  Copy
+                </button>
+              </div>
+              <div className="startup-checklist-command">
+                <span>Apply after review</span>
+                <code>{safeUpdateWorkflow.apply_command}</code>
+                <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(safeUpdateWorkflow.apply_command)}>
+                  Copy
+                </button>
+              </div>
+            </div>
+            <ol className="settings-preflight-list">
+              {safeUpdateWorkflow.preflight_checks.map((check) => (
+                <li key={check}>{check}</li>
+              ))}
+            </ol>
+            {safeUpdateWorkflow.warnings.length > 0 ? (
+              <ul className="quality-warning-list">
+                {safeUpdateWorkflow.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            ) : null}
+          </>
+        ) : null}
+      </section>
 
       <section className="panel settings-troubleshooting-panel">
         <div className="settings-section-heading">

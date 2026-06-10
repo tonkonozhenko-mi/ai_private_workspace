@@ -39,8 +39,11 @@ Always preserve runtime data:
 
 ```bash
 cd ~/Documents/ai_workspace
+scripts/apply_generated_update.sh --dry-run ~/Documents/ai_workspace_taskXXX_work ~/Documents/ai_workspace
 scripts/apply_generated_update.sh ~/Documents/ai_workspace_taskXXX_work ~/Documents/ai_workspace
 ```
+
+The apply script creates a pre-update DB backup when `backend/.ai-workbench/workspaces.db` exists.
 
 Protected paths and files:
 

@@ -69,13 +69,16 @@ The response shows the active database path, whether the database exists, key ob
 
 ## Safer generated update workflow
 
-Use the helper script when applying generated archives:
+Use the helper script when applying generated archives. Always run a dry-run first:
 
 ```bash
+scripts/apply_generated_update.sh --dry-run /path/to/unzipped/update ~/Documents/ai_workspace
 scripts/apply_generated_update.sh /path/to/unzipped/update ~/Documents/ai_workspace
 ```
 
-The script keeps generated source files in sync while preserving runtime data such as `backend/.ai-workbench/workspaces.db`.
+The script keeps generated source files in sync while preserving runtime data such as `backend/.ai-workbench/workspaces.db`. When the active DB exists, the script creates a timestamped pre-update backup before applying changes.
+
+The helper refuses sources that do not contain `backend/` and `frontend/` directly at the archive root. This prevents accidentally applying a nested folder with a different structure.
 
 ## Task 177 backup/restore workflow
 
@@ -93,3 +96,14 @@ curl -X POST http://127.0.0.1:8000/runtime/database-backups
 ```
 
 Restore remains manual. The restore-plan endpoint returns copy commands only and does not modify the active database.
+
+
+## Update safety diagnostics
+
+The backend exposes a read-only checklist for the safe generated-update workflow:
+
+```bash
+curl http://127.0.0.1:8000/runtime/update-safety
+```
+
+The frontend only displays/copies the returned commands. It never applies updates or restores databases from the browser.

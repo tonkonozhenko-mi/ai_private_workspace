@@ -75,3 +75,17 @@ def test_runtime_troubleshooting_is_read_only_and_actionable() -> None:
     assert body["safe_restart_commands"]
     assert any("runtime/health" in step["copy_command"] for step in body["quick_checks"] if step["copy_command"])
     assert any("python -m uvicorn" in step["copy_command"] for step in body["safe_restart_commands"] if step["copy_command"])
+
+
+def test_update_safety_workflow_is_copy_only_and_protects_runtime_data() -> None:
+    response = client.get("/runtime/update-safety")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] in {"ok", "review"}
+    assert "--dry-run" in body["dry_run_command"]
+    assert "apply_generated_update.sh" in body["apply_command"]
+    assert "backend/.ai-workbench" in body["required_excludes"]
+    assert "*.db" in body["required_excludes"]
+    assert "read-only" in body["safety_note"].lower()
+    assert any("dry-run" in check.lower() for check in body["preflight_checks"])
