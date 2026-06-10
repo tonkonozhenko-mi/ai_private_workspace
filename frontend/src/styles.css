@@ -12196,3 +12196,480 @@ pre {
     min-width: max-content;
   }
 }
+
+/* Task 185 — final Apple-style UX QA pass.
+ * Keep the interface calm in light and dark themes: one type scale,
+ * consistent cards, aligned grids, and readable copy/code blocks.
+ */
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Inter, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+  --text-xs: 0.6875rem;
+  --text-sm: 0.75rem;
+  --text-md: 0.875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.25rem;
+  --text-2xl: clamp(1.5rem, 2.3vw, 2rem);
+  --text-hero: clamp(2.25rem, 5vw, 3.625rem);
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --control-height: 42px;
+  --panel-padding: clamp(1.15rem, 2vw, 1.75rem);
+  --apple-hairline: color-mix(in srgb, var(--color-border) 72%, transparent);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: 1.5;
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+.panel-heading h2,
+.workspace-hero h1,
+.workspace-overview-title,
+.report-title,
+.settings-section h2 {
+  color: var(--color-text-strong);
+  font-family: var(--font-sans);
+  font-weight: 760;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+h1 { font-size: var(--text-hero); }
+h2, .panel-heading h2, .settings-section h2 { font-size: var(--text-xl); }
+h3 { font-size: var(--text-lg); }
+
+p,
+li,
+.settings-helper-note,
+.panel-intro,
+.empty-state p,
+.workspace-card p,
+.report-card p,
+.action-card p {
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  line-height: 1.55;
+}
+
+.eyebrow,
+label,
+.settings-preference-group > span,
+.action-card-topline,
+.settings-row dt,
+.status-badge,
+.panel-count {
+  font-size: var(--text-xs);
+  font-weight: 780;
+  letter-spacing: 0.045em;
+}
+
+.app-shell {
+  background:
+    radial-gradient(circle at 16% 4%, color-mix(in srgb, var(--color-accent-soft) 74%, transparent) 0, transparent 34rem),
+    radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--color-info-soft) 62%, transparent) 0, transparent 28rem),
+    var(--color-page);
+}
+
+.main-content,
+.dashboard-layout,
+.workspace-tab-content,
+.settings-grid,
+.reports-panel,
+.ask-workspace,
+.models-tab,
+.activity-timeline,
+.action-catalog {
+  gap: clamp(1rem, 2vw, 1.5rem);
+}
+
+.panel,
+.settings-section,
+.workspace-navigation-shell,
+.workspace-hero,
+.workspace-summary-card,
+.report-card,
+.report-preview-panel,
+.saved-report-card,
+.action-card,
+.action-details-panel,
+.model-card,
+.startup-checklist-item,
+.production-readiness-item,
+.backup-list-item,
+.migration-table-item,
+.local-data-metric,
+.troubleshooting-issue,
+.branding-preset-card,
+.conversation-card,
+.note-card,
+.ask-answer-card,
+.workspace-chat-card {
+  border: 1px solid var(--apple-hairline);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+  box-shadow: var(--shadow-card);
+}
+
+.panel,
+.settings-section,
+.report-preview-panel,
+.action-details-panel,
+.workspace-hero {
+  padding: var(--panel-padding);
+}
+
+.panel-heading,
+.workspace-header,
+.action-group-heading,
+.settings-section-heading,
+.report-section-heading,
+.startup-checklist-item-header {
+  align-items: flex-start;
+  min-height: auto;
+}
+
+.workspace-navigation-shell {
+  position: sticky;
+  top: 1rem;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(0, auto) max-content;
+  align-items: center;
+  gap: 1rem;
+  width: min(100%, var(--content-max));
+  margin-inline: auto;
+  padding: 0.65rem 0.75rem;
+  backdrop-filter: blur(22px) saturate(150%);
+}
+
+.workspace-tabs > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 48px;
+  padding: 0.25rem;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--color-surface-soft) 74%, transparent);
+  border: 1px solid var(--apple-hairline);
+}
+
+.workspace-tabs button,
+.settings-segmented-control button {
+  min-height: 38px;
+  border-radius: 18px;
+  padding: 0 1rem;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 760;
+  letter-spacing: -0.01em;
+}
+
+.workspace-tabs button.is-selected,
+.settings-segmented-control button.is-selected {
+  color: var(--color-text-strong);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 9%), inset 0 1px 0 rgb(255 255 255 / 38%);
+}
+
+.workspace-context-chip,
+.status-badge,
+.panel-count,
+.usage-metric,
+.source-chip,
+.note-source-pill,
+.report-quality-pill,
+.runtime-check {
+  min-height: 28px;
+  border-radius: var(--radius-pill);
+  padding: 0.35rem 0.7rem;
+  white-space: nowrap;
+}
+
+button,
+.primary-action,
+.primary-button,
+.secondary-button,
+.ghost-button,
+.text-button,
+.danger-button,
+.copy-button {
+  min-height: var(--control-height);
+  border-radius: 16px;
+  font-size: var(--text-sm);
+  font-weight: 760;
+  letter-spacing: -0.01em;
+}
+
+input,
+textarea,
+select,
+.text-input,
+.settings-json-box {
+  min-height: var(--control-height);
+  border-radius: 16px;
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  border: 1px solid var(--apple-hairline);
+  font-size: var(--text-md);
+  line-height: 1.45;
+}
+
+textarea,
+.settings-json-box {
+  resize: vertical;
+  min-height: 112px;
+}
+
+.command-box,
+.startup-checklist-command,
+.settings-command-stack > div,
+.restore-plan-card,
+.local-data-details code,
+.startup-checklist-command code,
+.settings-command-stack code,
+.report-export-preview,
+.context-preview-card,
+.markdown-preview,
+.code-block,
+pre {
+  border-radius: 18px !important;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm) !important;
+  line-height: 1.55 !important;
+}
+
+.startup-checklist-grid,
+.production-readiness-grid,
+.local-data-grid,
+.migration-table-grid,
+.settings-file-rule-summary,
+.report-template-grid,
+.saved-reports-list,
+.note-list,
+.action-card-list {
+  align-items: stretch;
+}
+
+.startup-checklist-grid,
+.production-readiness-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.startup-checklist-item,
+.production-readiness-item {
+  min-height: unset;
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+}
+
+.startup-checklist-command,
+.settings-command-stack > div {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.startup-checklist-command code,
+.settings-command-stack code,
+.command-box,
+.local-data-details code {
+  max-height: 210px;
+  overflow: auto;
+}
+
+.migration-table-item,
+.local-data-metric,
+.backup-list-item,
+.runtime-check {
+  min-width: 0;
+}
+
+.migration-table-item span,
+.migration-table-item code,
+.local-data-metric span,
+.local-data-metric code,
+.backup-list-item code,
+.workspace-context-chip span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-section:has(.startup-checklist-grid),
+.settings-section:has(.production-readiness-grid),
+.settings-section:has(.migration-table-grid),
+.settings-section:has(.settings-command-stack),
+.settings-section:has(.settings-transfer-grid),
+.settings-section:has(.skill-card-grid) {
+  grid-column: 1 / -1;
+}
+
+.app-shell.is-demo-mode .settings-section:has(.settings-command-stack),
+.app-shell.is-demo-mode .settings-section:has(.local-data-details),
+.app-shell.is-demo-mode .settings-section:has(.migration-table-grid) {
+  display: none;
+}
+
+.app-shell.is-demo-mode .panel-intro,
+.app-shell.is-demo-mode .settings-helper-note,
+.app-shell.is-demo-mode .safety-note,
+.app-shell.is-demo-mode .technical-caption {
+  max-width: 72ch;
+}
+
+:root[data-theme="dark"] {
+  --color-page: #0d1419;
+  --color-surface: #151f26;
+  --color-surface-soft: #111a20;
+  --color-surface-raised: #1b2730;
+  --color-border: #2d3d48;
+  --color-border-soft: #23313a;
+  --color-text: #e7edf2;
+  --color-text-strong: #f7fafc;
+  --color-text-muted: #aebbc5;
+  --color-text-subtle: #83929d;
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 18%, #101820);
+  --apple-hairline: rgba(155, 178, 190, 0.22);
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 4%) inset, 0 16px 44px rgb(0 0 0 / 24%);
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .settings-section,
+:root[data-theme="dark"] .workspace-navigation-shell,
+:root[data-theme="dark"] .workspace-hero,
+:root[data-theme="dark"] .workspace-summary-card,
+:root[data-theme="dark"] .report-card,
+:root[data-theme="dark"] .report-preview-panel,
+:root[data-theme="dark"] .saved-report-card,
+:root[data-theme="dark"] .action-card,
+:root[data-theme="dark"] .action-details-panel,
+:root[data-theme="dark"] .model-card,
+:root[data-theme="dark"] .startup-checklist-item,
+:root[data-theme="dark"] .production-readiness-item,
+:root[data-theme="dark"] .backup-list-item,
+:root[data-theme="dark"] .migration-table-item,
+:root[data-theme="dark"] .local-data-metric,
+:root[data-theme="dark"] .troubleshooting-issue,
+:root[data-theme="dark"] .branding-preset-card,
+:root[data-theme="dark"] .conversation-card,
+:root[data-theme="dark"] .note-card,
+:root[data-theme="dark"] .ask-answer-card,
+:root[data-theme="dark"] .workspace-chat-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018)), var(--color-surface) !important;
+  border-color: var(--apple-hairline) !important;
+  color: var(--color-text) !important;
+}
+
+:root[data-theme="dark"] .command-box,
+:root[data-theme="dark"] .startup-checklist-command,
+:root[data-theme="dark"] .settings-command-stack > div,
+:root[data-theme="dark"] .restore-plan-card,
+:root[data-theme="dark"] .local-data-details code,
+:root[data-theme="dark"] .startup-checklist-command code,
+:root[data-theme="dark"] .settings-command-stack code,
+:root[data-theme="dark"] .report-export-preview,
+:root[data-theme="dark"] .context-preview-card,
+:root[data-theme="dark"] .markdown-preview,
+:root[data-theme="dark"] .code-block,
+:root[data-theme="dark"] pre {
+  background: #0b1117 !important;
+  color: #dce7ef !important;
+  border-color: rgba(151, 174, 189, 0.2) !important;
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] .text-input,
+:root[data-theme="dark"] .settings-json-box {
+  background: #101820;
+  border-color: rgba(151, 174, 189, 0.2);
+  color: var(--color-text-strong);
+}
+
+:root[data-theme="dark"] .workspace-tabs > div,
+:root[data-theme="dark"] .settings-segmented-control {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(151, 174, 189, 0.18);
+}
+
+:root[data-theme="dark"] .workspace-tabs button.is-selected,
+:root[data-theme="dark"] .settings-segmented-control button.is-selected {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 20px rgba(0,0,0,0.22);
+}
+
+:root[data-theme="dark"] .status-badge,
+:root[data-theme="dark"] .panel-count,
+:root[data-theme="dark"] .usage-metric,
+:root[data-theme="dark"] .source-chip,
+:root[data-theme="dark"] .note-source-pill,
+:root[data-theme="dark"] .report-quality-pill,
+:root[data-theme="dark"] .runtime-check,
+:root[data-theme="dark"] .migration-table-item {
+  background: rgba(255, 255, 255, 0.075) !important;
+  color: var(--color-text) !important;
+  border-color: rgba(151, 174, 189, 0.18) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-page: #0d1419;
+    --color-surface: #151f26;
+    --color-surface-soft: #111a20;
+    --color-surface-raised: #1b2730;
+    --color-border: #2d3d48;
+    --color-border-soft: #23313a;
+    --color-text: #e7edf2;
+    --color-text-strong: #f7fafc;
+    --color-text-muted: #aebbc5;
+    --color-text-subtle: #83929d;
+    --apple-hairline: rgba(155, 178, 190, 0.22);
+    color-scheme: dark;
+  }
+}
+
+@media (max-width: 1040px) {
+  .settings-grid,
+  .workspace-navigation-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-context-chip {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 720px) {
+  .panel,
+  .settings-section,
+  .report-preview-panel,
+  .action-details-panel,
+  .workspace-hero {
+    padding: 1rem;
+  }
+
+  .workspace-tabs > div {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .workspace-tabs button {
+    min-width: max-content;
+  }
+}

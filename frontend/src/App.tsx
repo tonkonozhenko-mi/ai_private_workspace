@@ -55,6 +55,7 @@ type ThemePreference = "system" | "light" | "dark";
 type DensityPreference = "comfortable" | "compact";
 type SourceSnippetPreference = 3 | 5 | 8 | 10;
 type AccentColorPreference = "green" | "blue" | "purple" | "orange";
+type DemoModePreference = "off" | "on";
 
 export interface WorkbenchPreferences {
   theme: ThemePreference;
@@ -65,6 +66,7 @@ export interface WorkbenchPreferences {
   brandInitials: string;
   productName: string;
   accentColor: AccentColorPreference;
+  demoMode: DemoModePreference;
   skillPreferences: SkillPreferences;
   fileIndexingPreferences: FileIndexingPreferences;
 }
@@ -81,6 +83,7 @@ const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   brandInitials: "AI",
   productName: "AI Private Workspace",
   accentColor: "green",
+  demoMode: "off",
   skillPreferences: DEFAULT_SKILL_PREFERENCES,
   fileIndexingPreferences: DEFAULT_FILE_INDEXING_PREFERENCES,
 };
@@ -394,6 +397,7 @@ function App() {
     document.documentElement.dataset.density = preferences.density;
     setApiBaseUrl(preferences.apiBaseUrl);
     document.documentElement.dataset.accent = preferences.accentColor;
+    document.documentElement.dataset.demoMode = preferences.demoMode;
   }, [preferences]);
 
   useEffect(() => {
@@ -401,7 +405,7 @@ function App() {
   }, [loadWorkspaces]);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${preferences.demoMode === "on" ? " is-demo-mode" : ""}`}>
       <aside className="sidebar">
         <header className="brand">
           <span className="brand-mark" aria-hidden="true">
@@ -714,6 +718,9 @@ function loadStoredPreferences(): WorkbenchPreferences {
       accentColor: isAccentColorPreference(parsed.accentColor)
         ? parsed.accentColor
         : DEFAULT_PREFERENCES.accentColor,
+      demoMode: isDemoModePreference(parsed.demoMode)
+        ? parsed.demoMode
+        : DEFAULT_PREFERENCES.demoMode,
       skillPreferences: normalizeSkillPreferences(parsed.skillPreferences),
       fileIndexingPreferences: normalizeFileIndexingPreferences(
         parsed.fileIndexingPreferences,
@@ -782,4 +789,8 @@ function normalizeBrandInitials(value: string): string {
 
 function isAccentColorPreference(value: unknown): value is AccentColorPreference {
   return value === "green" || value === "blue" || value === "purple" || value === "orange";
+}
+
+function isDemoModePreference(value: unknown): value is DemoModePreference {
+  return value === "off" || value === "on";
 }
