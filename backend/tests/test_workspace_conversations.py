@@ -132,3 +132,52 @@ def _create_workspace(project_path: Path) -> dict:
 def _write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+def test_conversation_pin_archive_and_search_filters(tmp_path: Path) -> None:
+    workspace = _create_workspace(tmp_path)
+    alpha = client.post(
+        f"/workspaces/{workspace['id']}/conversations",
+        json={"title": "Alpha deployment review"},
+    ).json()
+    beta = client.post(
+        f"/workspaces/{workspace['id']}/conversations",
+        json={"title": "Beta incident notes"},
+    ).json()
+
+    pin_response = client.patch(
+        f"/workspaces/{workspace['id']}/conversations/{beta['id']}/pin",
+        json={"pinned": True},
+    )
+    assert pin_response.status_code == 200
+    assert pin_response.json()["is_pinned"] is True
+    assert pin_response.json()["pinned_at"]
+
+    listed = client.get(f"/workspaces/{workspace['id']}/conversations").json()
+    assert listed[0]["id"] == beta["id"]
+    assert listed[0]["is_pinned"] is True
+
+    pinned_only = client.get(
+        f"/workspaces/{workspace['id']}/conversations?pinned_only=true"
+    ).json()
+    assert [conversation["id"] for conversation in pinned_only] == [beta["id"]]
+
+    search_results = client.get(
+        f"/workspaces/{workspace['id']}/conversations?search=deployment"
+    ).json()
+    assert [conversation["id"] for conversation in search_results] == [alpha["id"]]
+
+    archive_response = client.patch(
+        f"/workspaces/{workspace['id']}/conversations/{alpha['id']}/archive",
+        json={"archived": True},
+    )
+    assert archive_response.status_code == 200
+    assert archive_response.json()["is_archived"] is True
+
+    active_only = client.get(f"/workspaces/{workspace['id']}/conversations").json()
+    assert alpha["id"] not in {conversation["id"] for conversation in active_only}
+
+    with_archived = client.get(
+        f"/workspaces/{workspace['id']}/conversations?include_archived=true"
+    ).json()
+    assert alpha["id"] in {conversation["id"] for conversation in with_archived}

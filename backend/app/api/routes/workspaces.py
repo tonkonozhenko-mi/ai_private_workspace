@@ -117,6 +117,8 @@ from app.api.schemas.skill_profile_schemas import (
     to_workspace_skill_profile_response,
 )
 from app.api.schemas.conversation_schemas import (
+    ConversationArchiveRequest,
+    ConversationPinRequest,
     CreateConversationRequest,
     UpdateConversationRequest,
     WorkspaceConversationResponse,
@@ -1145,10 +1147,19 @@ def create_workspace_conversation_endpoint(
 def list_workspace_conversations(
     workspace_id: str,
     limit: int = 30,
+    include_archived: bool = False,
+    search: str | None = None,
+    pinned_only: bool = False,
 ) -> list[WorkspaceConversationResponse]:
     if workspace_repository.get(workspace_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
-    conversations = conversation_repository.list_conversations(workspace_id, limit=limit)
+    conversations = conversation_repository.list_conversations(
+        workspace_id,
+        limit=limit,
+        include_archived=include_archived,
+        search=search,
+        pinned_only=pinned_only,
+    )
     return [
         to_workspace_conversation_response(conversation, include_messages=False)
         for conversation in conversations
@@ -1176,6 +1187,38 @@ def update_workspace_conversation(
         workspace_id,
         conversation_id,
         request.title,
+    )
+    if conversation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+    return to_workspace_conversation_response(conversation)
+
+
+@router.patch("/{workspace_id}/conversations/{conversation_id}/pin", response_model=WorkspaceConversationResponse)
+def pin_workspace_conversation(
+    workspace_id: str,
+    conversation_id: str,
+    request: ConversationPinRequest,
+) -> WorkspaceConversationResponse:
+    conversation = conversation_repository.set_conversation_pinned(
+        workspace_id,
+        conversation_id,
+        request.pinned,
+    )
+    if conversation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+    return to_workspace_conversation_response(conversation)
+
+
+@router.patch("/{workspace_id}/conversations/{conversation_id}/archive", response_model=WorkspaceConversationResponse)
+def archive_workspace_conversation(
+    workspace_id: str,
+    conversation_id: str,
+    request: ConversationArchiveRequest,
+) -> WorkspaceConversationResponse:
+    conversation = conversation_repository.set_conversation_archived(
+        workspace_id,
+        conversation_id,
+        request.archived,
     )
     if conversation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")

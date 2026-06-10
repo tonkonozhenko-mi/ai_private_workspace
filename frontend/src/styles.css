@@ -10200,3 +10200,49 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* Task 166 — conversation search and pin/archive controls */
+.conversation-history-tools {
+  align-items: end;
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+  margin-top: 0.9rem;
+}
+
+.conversation-history-tools label {
+  color: var(--muted-text);
+  display: grid;
+  font-size: 0.78rem;
+  gap: 0.28rem;
+}
+
+.conversation-history-tools input[type="search"] {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 12px;
+  font: inherit;
+  min-height: 2.35rem;
+  padding: 0.45rem 0.65rem;
+}
+
+.conversation-history-tools .inline-toggle {
+  align-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  display: flex;
+  gap: 0.4rem;
+  min-height: 2.35rem;
+  padding: 0.35rem 0.65rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .conversation-history-tools {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .conversation-history-tools .inline-toggle {
+    justify-content: flex-start;
+  }
+}

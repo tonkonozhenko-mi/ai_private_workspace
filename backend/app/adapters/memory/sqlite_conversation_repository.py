@@ -3,7 +3,7 @@ from pathlib import Path
 import sqlite3
 
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
-from app.core.domain.conversation import ConversationMessage, WorkspaceConversation, normalize_conversation_title
+from app.core.domain.conversation import ConversationMessage, WorkspaceConversation, normalize_conversation_title, utc_now_iso
 from app.core.domain.rag import SkillProfileAudit
 
 
@@ -17,8 +17,8 @@ class SQLiteConversationRepository:
             connection.execute(
                 """
                 INSERT INTO workspace_conversations (
-                    id, workspace_id, title, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?)
+                    id, workspace_id, title, created_at, updated_at, pinned_at, archived_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     conversation.id,
@@ -26,6 +26,8 @@ class SQLiteConversationRepository:
                     conversation.title,
                     conversation.created_at,
                     conversation.updated_at,
+                    conversation.pinned_at,
+                    conversation.archived_at,
                 ),
             )
             connection.commit()
@@ -35,7 +37,7 @@ class SQLiteConversationRepository:
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT id, workspace_id, title, created_at, updated_at
+                SELECT id, workspace_id, title, created_at, updated_at, pinned_at, archived_at
                 FROM workspace_conversations
                 WHERE id = ? AND workspace_id = ?
                 """,
@@ -59,19 +61,49 @@ class SQLiteConversationRepository:
             created_at=row["created_at"],
             updated_at=row["updated_at"],
             messages=[self._message_from_row(message_row) for message_row in message_rows],
+            pinned_at=row["pinned_at"],
+            archived_at=row["archived_at"],
         )
 
-    def list_conversations(self, workspace_id: str, limit: int = 30) -> list[WorkspaceConversation]:
+    def list_conversations(
+        self,
+        workspace_id: str,
+        limit: int = 30,
+        *,
+        include_archived: bool = False,
+        search: str | None = None,
+        pinned_only: bool = False,
+    ) -> list[WorkspaceConversation]:
+        clauses = ["workspace_id = ?"]
+        parameters: list[object] = [workspace_id]
+        if not include_archived:
+            clauses.append("archived_at IS NULL")
+        if pinned_only:
+            clauses.append("pinned_at IS NOT NULL")
+        normalized_search = (search or "").strip().lower()
+        if normalized_search:
+            clauses.append(
+                """
+                (LOWER(title) LIKE ? OR id IN (
+                    SELECT conversation_id
+                    FROM workspace_conversation_messages
+                    WHERE workspace_id = ? AND LOWER(content) LIKE ?
+                ))
+                """
+            )
+            like_value = f"%{normalized_search}%"
+            parameters.extend([like_value, workspace_id, like_value])
+        parameters.append(max(0, limit))
         with self._connect() as connection:
             rows = connection.execute(
-                """
-                SELECT id, workspace_id, title, created_at, updated_at
+                f"""
+                SELECT id, workspace_id, title, created_at, updated_at, pinned_at, archived_at
                 FROM workspace_conversations
-                WHERE workspace_id = ?
-                ORDER BY updated_at DESC, rowid DESC
+                WHERE {' AND '.join(clauses)}
+                ORDER BY CASE WHEN pinned_at IS NULL THEN 0 ELSE 1 END DESC, updated_at DESC, rowid DESC
                 LIMIT ?
                 """,
-                (workspace_id, max(0, limit)),
+                tuple(parameters),
             ).fetchall()
         return [
             self.get_conversation(workspace_id, row["id"])
@@ -150,6 +182,56 @@ class SQLiteConversationRepository:
                 WHERE id = ? AND workspace_id = ?
                 """,
                 (normalized_title, conversation_id, workspace_id),
+            )
+            connection.commit()
+        return self.get_conversation(workspace_id, conversation_id)
+
+    def set_conversation_pinned(
+        self,
+        workspace_id: str,
+        conversation_id: str,
+        pinned: bool,
+    ) -> WorkspaceConversation | None:
+        pinned_at = utc_now_iso() if pinned else None
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT id FROM workspace_conversations WHERE id = ? AND workspace_id = ?",
+                (conversation_id, workspace_id),
+            ).fetchone()
+            if row is None:
+                return None
+            connection.execute(
+                """
+                UPDATE workspace_conversations
+                SET pinned_at = ?, updated_at = ?
+                WHERE id = ? AND workspace_id = ?
+                """,
+                (pinned_at, utc_now_iso(), conversation_id, workspace_id),
+            )
+            connection.commit()
+        return self.get_conversation(workspace_id, conversation_id)
+
+    def set_conversation_archived(
+        self,
+        workspace_id: str,
+        conversation_id: str,
+        archived: bool,
+    ) -> WorkspaceConversation | None:
+        archived_at = utc_now_iso() if archived else None
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT id FROM workspace_conversations WHERE id = ? AND workspace_id = ?",
+                (conversation_id, workspace_id),
+            ).fetchone()
+            if row is None:
+                return None
+            connection.execute(
+                """
+                UPDATE workspace_conversations
+                SET archived_at = ?, updated_at = ?
+                WHERE id = ? AND workspace_id = ?
+                """,
+                (archived_at, utc_now_iso(), conversation_id, workspace_id),
             )
             connection.commit()
         return self.get_conversation(workspace_id, conversation_id)

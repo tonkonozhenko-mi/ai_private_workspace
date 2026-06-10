@@ -40,6 +40,8 @@ class WorkspaceConversation:
     created_at: str
     updated_at: str
     messages: list[ConversationMessage] = field(default_factory=list)
+    pinned_at: str | None = None
+    archived_at: str | None = None
 
 
 def create_workspace_conversation(workspace_id: str, title: str | None = None) -> WorkspaceConversation:
@@ -51,6 +53,8 @@ def create_workspace_conversation(workspace_id: str, title: str | None = None) -
         created_at=now,
         updated_at=now,
         messages=[],
+        pinned_at=None,
+        archived_at=None,
     )
 
 

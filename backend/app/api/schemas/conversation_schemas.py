@@ -12,6 +12,14 @@ class UpdateConversationRequest(BaseModel):
     title: str = Field(min_length=1, max_length=120)
 
 
+class ConversationPinRequest(BaseModel):
+    pinned: bool
+
+
+class ConversationArchiveRequest(BaseModel):
+    archived: bool
+
+
 class ConversationMessageResponse(BaseModel):
     id: str
     conversation_id: str
@@ -50,6 +58,10 @@ class WorkspaceConversationResponse(BaseModel):
     last_llm_model: str | None = None
     last_skill_profile_source: str | None = None
     active_skills: list[str] = Field(default_factory=list)
+    pinned_at: str | None = None
+    archived_at: str | None = None
+    is_pinned: bool = False
+    is_archived: bool = False
 
 
 def to_conversation_message_response(message: ConversationMessage) -> ConversationMessageResponse:
@@ -110,6 +122,10 @@ def to_workspace_conversation_response(
         last_llm_model=last_assistant_message.llm_model if last_assistant_message else None,
         last_skill_profile_source=skill_profile.source if skill_profile else None,
         active_skills=skill_profile.active_skills if skill_profile else [],
+        pinned_at=conversation.pinned_at,
+        archived_at=conversation.archived_at,
+        is_pinned=conversation.pinned_at is not None,
+        is_archived=conversation.archived_at is not None,
     )
 
 

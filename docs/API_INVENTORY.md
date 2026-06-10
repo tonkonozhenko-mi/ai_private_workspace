@@ -145,7 +145,9 @@ models, and commands. This document provides the finer product-oriented grouping
 ### Workspace conversations
 
 - `POST /workspaces/{workspace_id}/conversations` — create an explicit saved conversation for a workspace. No scan/index/rebuild is started.
-- `GET /workspaces/{workspace_id}/conversations` — list saved workspace conversations with message counts and update times.
+- `GET /workspaces/{workspace_id}/conversations` — list saved workspace conversations with message counts, update times, and optional filters: `search`, `pinned_only`, `include_archived`.
 - `GET /workspaces/{workspace_id}/conversations/{conversation_id}` — return one saved conversation with persisted user/assistant messages plus answer history metadata.
 - `PATCH /workspaces/{workspace_id}/conversations/{conversation_id}` — rename one saved conversation. No scan/index/rebuild is started.
+- `PATCH /workspaces/{workspace_id}/conversations/{conversation_id}/pin` — pin or unpin one saved conversation. This changes local conversation metadata only.
+- `PATCH /workspaces/{workspace_id}/conversations/{conversation_id}/archive` — archive or restore one saved conversation without deleting its messages.
 - `DELETE /workspaces/{workspace_id}/conversations/{conversation_id}` — delete one saved conversation and its messages.

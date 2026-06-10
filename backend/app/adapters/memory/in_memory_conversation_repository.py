@@ -1,4 +1,4 @@
-from app.core.domain.conversation import ConversationMessage, WorkspaceConversation, normalize_conversation_title
+from app.core.domain.conversation import ConversationMessage, WorkspaceConversation, normalize_conversation_title, utc_now_iso
 
 
 class InMemoryConversationRepository:
@@ -22,17 +22,44 @@ class InMemoryConversationRepository:
             created_at=conversation.created_at,
             updated_at=conversation.updated_at,
             messages=list(self._messages.get(conversation_id, [])),
+            pinned_at=conversation.pinned_at,
+            archived_at=conversation.archived_at,
         )
 
-    def list_conversations(self, workspace_id: str, limit: int = 30) -> list[WorkspaceConversation]:
+    def list_conversations(
+        self,
+        workspace_id: str,
+        limit: int = 30,
+        *,
+        include_archived: bool = False,
+        search: str | None = None,
+        pinned_only: bool = False,
+    ) -> list[WorkspaceConversation]:
+        normalized_search = (search or "").strip().lower()
         conversations = [
             self.get_conversation(workspace_id, conversation.id)
             for conversation in self._conversations.values()
             if conversation.workspace_id == workspace_id
         ]
+        filtered = []
+        for conversation in conversations:
+            if conversation is None:
+                continue
+            if not include_archived and conversation.archived_at is not None:
+                continue
+            if pinned_only and conversation.pinned_at is None:
+                continue
+            if normalized_search:
+                haystack = " ".join([
+                    conversation.title,
+                    *(message.content for message in conversation.messages),
+                ]).lower()
+                if normalized_search not in haystack:
+                    continue
+            filtered.append(conversation)
         return sorted(
-            [conversation for conversation in conversations if conversation is not None],
-            key=lambda conversation: conversation.updated_at,
+            filtered,
+            key=lambda conversation: (conversation.pinned_at is not None, conversation.updated_at),
             reverse=True,
         )[: max(0, limit)]
 
@@ -50,6 +77,8 @@ class InMemoryConversationRepository:
                 created_at=conversation.created_at,
                 updated_at=message.created_at,
                 messages=[],
+                pinned_at=conversation.pinned_at,
+                archived_at=conversation.archived_at,
             )
         return message
 
@@ -69,6 +98,52 @@ class InMemoryConversationRepository:
             created_at=conversation.created_at,
             updated_at=conversation.updated_at,
             messages=[],
+            pinned_at=conversation.pinned_at,
+            archived_at=conversation.archived_at,
+        )
+        self._conversations[conversation_id] = updated
+        return self.get_conversation(workspace_id, conversation_id)
+
+    def set_conversation_pinned(
+        self,
+        workspace_id: str,
+        conversation_id: str,
+        pinned: bool,
+    ) -> WorkspaceConversation | None:
+        conversation = self._conversations.get(conversation_id)
+        if conversation is None or conversation.workspace_id != workspace_id:
+            return None
+        updated = WorkspaceConversation(
+            id=conversation.id,
+            workspace_id=conversation.workspace_id,
+            title=conversation.title,
+            created_at=conversation.created_at,
+            updated_at=utc_now_iso(),
+            messages=[],
+            pinned_at=utc_now_iso() if pinned else None,
+            archived_at=conversation.archived_at,
+        )
+        self._conversations[conversation_id] = updated
+        return self.get_conversation(workspace_id, conversation_id)
+
+    def set_conversation_archived(
+        self,
+        workspace_id: str,
+        conversation_id: str,
+        archived: bool,
+    ) -> WorkspaceConversation | None:
+        conversation = self._conversations.get(conversation_id)
+        if conversation is None or conversation.workspace_id != workspace_id:
+            return None
+        updated = WorkspaceConversation(
+            id=conversation.id,
+            workspace_id=conversation.workspace_id,
+            title=conversation.title,
+            created_at=conversation.created_at,
+            updated_at=utc_now_iso(),
+            messages=[],
+            pinned_at=conversation.pinned_at,
+            archived_at=utc_now_iso() if archived else None,
         )
         self._conversations[conversation_id] = updated
         return self.get_conversation(workspace_id, conversation_id)
