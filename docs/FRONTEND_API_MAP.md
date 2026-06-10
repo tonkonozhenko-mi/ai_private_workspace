@@ -863,3 +863,8 @@ No new API endpoints were added. Source-snippet count and browser-local skill co
 - Preserved explicit Ask-only behavior; no backend, shell, scan, index, or model runtime changes.
 
 - Task 145 — Ask sources consistency and final chat polish: fixed collapsed source panels so attached sources no longer show the empty-source fallback until the real source list is empty.
+
+## Task 146 — Compact Assistant Focus panel
+
+- `AskWorkspace.tsx` now renders a compact assistant-focus panel for the Ask screen.
+- No API contract changed. Ask still calls the existing `/workspaces/{workspace_id}/ask-selected` endpoint only after explicit user submit.

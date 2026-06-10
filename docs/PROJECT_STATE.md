@@ -527,3 +527,9 @@ The composer keeps source-snippet selection and example questions close to the i
 - Preserved explicit Ask-only behavior; no backend, shell, scan, index, or model runtime changes.
 
 - Task 145 — Ask sources consistency and final chat polish: fixed collapsed source panels so attached sources no longer show the empty-source fallback until the real source list is empty.
+
+## Task 146 — Compact Assistant Focus panel
+
+The Ask assistant-focus panel was compacted so it no longer dominates the chat layout. The panel now shows a small Assistant focus header, a short focus summary, answer style, active skills, and a concise note that skills are applied to Ask requests.
+
+This is a frontend-only UI polish task. It does not change backend behavior, API calls, skill prompt behavior, shell execution, scan/index/rebuild, or model/runtime settings.

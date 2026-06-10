@@ -851,3 +851,9 @@ Task 144 — Ask chat layout polish and compact sources
 - Kept the composer at the bottom of the Ask flow with more bottom spacing for sources.
 - Collapsed retrieved sources by default behind a Show sources / Hide sources control.
 - Preserved explicit Ask-only behavior; no backend, shell, scan, index, or model runtime changes.
+
+## After Task 146
+
+Start Phase 12 — File selection / indexing control.
+
+Recommended next product task: let users review which files will become searchable before rebuilding context. The first step should introduce safe include/exclude guidance and a read-only preview before adding more advanced indexing controls.
