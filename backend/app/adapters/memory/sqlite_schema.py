@@ -181,6 +181,26 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             """
         )
 
+
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS workspace_saved_reports (
+                id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL,
+                report_type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                export_markdown TEXT NOT NULL,
+                export_text TEXT NOT NULL,
+                report_json TEXT NOT NULL,
+                generated_from_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                pinned_at TEXT NULL
+            )
+            """
+        )
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS workspace_indexing_rules (
@@ -225,6 +245,12 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
         _add_column_if_missing(
             connection,
             table_name="workspace_answer_notes",
+            column_name="pinned_at",
+            column_definition="pinned_at TEXT NULL",
+        )
+        _add_column_if_missing(
+            connection,
+            table_name="workspace_saved_reports",
             column_name="pinned_at",
             column_definition="pinned_at TEXT NULL",
         )

@@ -10536,3 +10536,40 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* Task 171 — saved report history */
+.saved-reports-layout {
+  align-items: start;
+}
+
+.saved-reports-panel .conversation-filter-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  margin: 0.75rem 0 1rem;
+}
+
+.text-input {
+  width: 100%;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.85rem;
+  padding: 0.65rem 0.8rem;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.compact-checkbox {
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.saved-report-details {
+  display: grid;
+  gap: 1rem;
+}
+
+.saved-report-details .report-preview-actions {
+  justify-content: flex-start;
+}

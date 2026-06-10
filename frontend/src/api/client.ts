@@ -30,6 +30,8 @@ import type {
   WorkspacesOverview,
   ReportCatalog,
   WorkspaceReport,
+  SavedWorkspaceReport,
+  UpdateSavedWorkspaceReportRequest,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -280,6 +282,66 @@ export function generateWorkspaceReport(
   reportType: string,
 ): Promise<WorkspaceReport> {
   return getJson<WorkspaceReport>(`/workspaces/${workspaceId}/reports/${reportType}`);
+}
+
+
+export function saveWorkspaceReport(
+  workspaceId: string,
+  reportType: string,
+): Promise<SavedWorkspaceReport> {
+  return requestJson<SavedWorkspaceReport>(`/workspaces/${workspaceId}/reports/${reportType}/save`, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
+}
+
+export function listSavedWorkspaceReports(
+  workspaceId: string,
+  options: { search?: string; reportType?: string; pinnedOnly?: boolean } = {},
+): Promise<SavedWorkspaceReport[]> {
+  const params = new URLSearchParams();
+  if (options.search?.trim()) params.set("search", options.search.trim());
+  if (options.reportType?.trim()) params.set("report_type", options.reportType.trim());
+  if (options.pinnedOnly) params.set("pinned_only", "true");
+  const query = params.toString();
+  return getJson<SavedWorkspaceReport[]>(`/workspaces/${workspaceId}/reports/saved${query ? `?${query}` : ""}`);
+}
+
+export function updateSavedWorkspaceReport(
+  workspaceId: string,
+  reportId: string,
+  request: UpdateSavedWorkspaceReportRequest,
+): Promise<SavedWorkspaceReport> {
+  return requestJson<SavedWorkspaceReport>(`/workspaces/${workspaceId}/reports/saved/${reportId}`, {
+    method: "PATCH",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+export function pinSavedWorkspaceReport(
+  workspaceId: string,
+  reportId: string,
+  pinned: boolean,
+): Promise<SavedWorkspaceReport> {
+  return requestJson<SavedWorkspaceReport>(`/workspaces/${workspaceId}/reports/saved/${reportId}/pin`, {
+    method: "PATCH",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ pinned }),
+  });
+}
+
+export function deleteSavedWorkspaceReport(workspaceId: string, reportId: string): Promise<void> {
+  return requestWithoutBody(`/workspaces/${workspaceId}/reports/saved/${reportId}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
 }
 
 

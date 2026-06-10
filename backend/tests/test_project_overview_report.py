@@ -259,3 +259,49 @@ def test_unknown_workspace_report_template_returns_404(tmp_path) -> None:
 
     assert response.status_code == 404
     assert "Unknown report type" in response.json()["detail"]
+
+
+def test_save_list_pin_update_and_delete_generated_report(tmp_path) -> None:
+    _write_overview_project(tmp_path)
+    workspace = _create_workspace(tmp_path)
+    scan_response = client.post(f"/workspaces/{workspace['id']}/scan")
+    assert scan_response.status_code == 200
+
+    save_response = client.post(f"/workspaces/{workspace['id']}/reports/devops-review/save")
+
+    assert save_response.status_code == 200
+    saved = save_response.json()
+    assert saved["report_type"] == "devops_review"
+    assert saved["export_markdown"].startswith("# DevOps review")
+    assert saved["export_text"].startswith("DevOps review")
+    assert saved["report_json"]["report_type"] == "devops_review"
+    assert saved["is_pinned"] is False
+
+    list_response = client.get(f"/workspaces/{workspace['id']}/reports/saved?search=devops")
+    assert list_response.status_code == 200
+    assert [report["id"] for report in list_response.json()] == [saved["id"]]
+
+    update_response = client.patch(
+        f"/workspaces/{workspace['id']}/reports/saved/{saved['id']}",
+        json={"title": "Sprint DevOps Review"},
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["title"] == "Sprint DevOps Review"
+
+    pin_response = client.patch(
+        f"/workspaces/{workspace['id']}/reports/saved/{saved['id']}/pin",
+        json={"pinned": True},
+    )
+    assert pin_response.status_code == 200
+    assert pin_response.json()["is_pinned"] is True
+
+    pinned_response = client.get(f"/workspaces/{workspace['id']}/reports/saved?pinned_only=true")
+    assert pinned_response.status_code == 200
+    assert [report["id"] for report in pinned_response.json()] == [saved["id"]]
+
+    delete_response = client.delete(f"/workspaces/{workspace['id']}/reports/saved/{saved['id']}")
+    assert delete_response.status_code == 204
+
+    empty_response = client.get(f"/workspaces/{workspace['id']}/reports/saved")
+    assert empty_response.status_code == 200
+    assert empty_response.json() == []

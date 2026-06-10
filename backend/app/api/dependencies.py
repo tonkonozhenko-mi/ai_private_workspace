@@ -21,6 +21,7 @@ from app.adapters.memory.in_memory_model_experiment_rating_repository import (
 from app.adapters.memory.in_memory_project_scan_repository import (
     InMemoryProjectScanRepository,
 )
+from app.adapters.memory.in_memory_report_repository import InMemoryReportRepository
 from app.adapters.memory.in_memory_skill_profile_repository import InMemorySkillProfileRepository
 from app.adapters.memory.in_memory_timeline_repository import InMemoryTimelineRepository
 from app.adapters.memory.in_memory_workspace_repository import InMemoryWorkspaceRepository
@@ -38,6 +39,7 @@ from app.adapters.memory.sqlite_model_experiment_rating_repository import (
     SQLiteModelExperimentRatingRepository,
 )
 from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScanRepository
+from app.adapters.memory.sqlite_report_repository import SQLiteReportRepository
 from app.adapters.memory.sqlite_skill_profile_repository import SQLiteSkillProfileRepository
 from app.adapters.memory.sqlite_timeline_repository import SQLiteTimelineRepository
 from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
@@ -69,6 +71,7 @@ from app.core.ports.model_experiment_rating_repository import (
     ModelExperimentRatingRepositoryPort,
 )
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
+from app.core.ports.report_repository import ReportRepositoryPort
 from app.core.ports.runtime_health_checker import RuntimeHealthCheckerPort
 from app.core.ports.skill_profile_repository import SkillProfileRepositoryPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
@@ -103,6 +106,18 @@ def build_project_scan_repository() -> ProjectScanRepositoryPort:
 
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
+
+
+def build_report_repository() -> ReportRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryReportRepository()
+    if repository_type == "sqlite":
+        return SQLiteReportRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
 def build_command_repository() -> CommandRepositoryPort:
     settings = get_settings()
@@ -351,6 +366,7 @@ def build_model_catalog_registry() -> ModelCatalogRegistry:
 
 workspace_repository = build_workspace_repository()
 project_scan_repository = build_project_scan_repository()
+report_repository = build_report_repository()
 command_repository = build_command_repository()
 index_status_repository = build_index_status_repository()
 indexing_rules_repository = build_indexing_rules_repository()
