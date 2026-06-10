@@ -13,7 +13,7 @@ The project now has:
 - backend/frontend startup scripts;
 - macOS launcher foundation;
 - optional macOS `.app` wrapper;
-- first-launch readiness checks;
+- post-launch readiness checks;
 - guided local model setup;
 - safe agent and MCP planning foundation.
 
@@ -27,7 +27,7 @@ The expected final experience is:
 2. Double-click AI Private Workspace.
 3. The desktop shell starts the local backend safely.
 4. The UI opens automatically.
-5. The app shows first-launch readiness.
+5. The app shows post-launch readiness.
 6. The user chooses models, creates a workspace, scans, indexes, asks, and generates reports from the UI.
 
 No repository clone, no manual `npm`, no manual `uvicorn`, and no terminal-first workflow should be required in the final packaged version.
