@@ -9642,3 +9642,136 @@ button:focus-visible {
     flex-direction: row;
   }
 }
+
+/* Task 158 — job details and file rules explainability */
+.job-details-card {
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface-soft);
+  margin-top: 12px;
+  padding: 14px;
+}
+
+.job-details-header,
+.job-details-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.job-details-header {
+  align-items: center;
+  grid-template-columns: 1fr auto;
+}
+
+.job-details-header h5 {
+  margin: 2px 0 0;
+  font-size: 1rem;
+}
+
+.job-details-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 12px;
+}
+
+.job-rules-detail {
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.job-rules-detail p,
+.pattern-list-card p {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  margin: 4px 0 0;
+}
+
+.pattern-list-card {
+  display: grid;
+  gap: 6px;
+}
+
+.pattern-list-card > span,
+.settings-preview-samples > span {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pattern-list-card ul,
+.settings-preview-samples ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pattern-list-card code,
+.settings-preview-samples code {
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 0.76rem;
+  padding: 4px 8px;
+}
+
+.settings-file-preview-result {
+  align-items: stretch;
+  grid-template-columns: 1fr;
+}
+
+.settings-file-preview-summary {
+  align-items: center;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: minmax(160px, 1.4fr) repeat(3, minmax(90px, 0.7fr));
+}
+
+.settings-file-preview-explain {
+  border-top: 1px solid var(--border-subtle);
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-top: 0.85rem;
+}
+
+.settings-preview-samples {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.settings-preview-samples ul {
+  display: grid;
+}
+
+.settings-preview-samples li {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.settings-preview-samples code {
+  border-radius: 10px;
+  width: fit-content;
+}
+
+.settings-preview-samples small,
+.settings-preview-samples p {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 900px) {
+  .job-details-grid,
+  .settings-file-preview-summary,
+  .settings-file-preview-explain {
+    grid-template-columns: 1fr;
+  }
+}

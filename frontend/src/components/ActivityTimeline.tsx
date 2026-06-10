@@ -136,9 +136,12 @@ function JobActivitySection({
 
 function JobActivityCard({ job }: { job: WorkspaceJob }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const requestEntries = Object.entries(job.request_summary);
+  const requestEntries = metadataEntriesWithoutRules(job.request_summary);
   const resultEntries = Object.entries(job.result_summary);
-  const hasDetails = requestEntries.length > 0 || resultEntries.length > 0 || Boolean(job.error);
+  const includePatterns = splitPatterns(job.request_summary.include_patterns);
+  const excludePatterns = splitPatterns(job.request_summary.exclude_patterns);
+  const hasRuleDetails = includePatterns.length > 0 || excludePatterns.length > 0;
+  const hasDetails = requestEntries.length > 0 || resultEntries.length > 0 || hasRuleDetails || Boolean(job.error);
 
   return (
     <article className="job-activity-card">
@@ -164,7 +167,7 @@ function JobActivityCard({ job }: { job: WorkspaceJob }) {
         </div>
         {job.request_summary.file_rules_profile ? (
           <div title={`File rules profile: ${job.request_summary.file_rules_profile}`}>
-            <dt>File rules</dt>
+            <dt>Rules profile</dt>
             <dd>{job.request_summary.file_rules_profile}</dd>
           </div>
         ) : null}
@@ -192,21 +195,109 @@ function JobActivityCard({ job }: { job: WorkspaceJob }) {
             {isExpanded ? "Hide job details" : "View job details"}
           </button>
           {isExpanded ? (
-            <div className="job-activity-details-grid">
-              <JobMetadataList title="Applied request" entries={requestEntries} />
-              <JobMetadataList title="Result" entries={resultEntries} />
-              {job.error ? (
-                <div className="job-error-detail">
-                  <strong>Error</strong>
-                  <p>{job.error}</p>
+            <div className="job-details-card" aria-label="Job details">
+              <div className="job-details-header">
+                <div>
+                  <p className="eyebrow">Job details</p>
+                  <h5>{job.title}</h5>
                 </div>
-              ) : null}
+                <StatusBadge label={job.status} tone={jobTone(job.status)} />
+              </div>
+              <div className="job-details-grid">
+                <JobMetadataList title="Applied request" entries={requestEntries} />
+                <JobMetadataList title="Result" entries={resultEntries} />
+                {hasRuleDetails ? (
+                  <JobRulesDetail
+                    includePatterns={includePatterns}
+                    excludePatterns={excludePatterns}
+                    includeCount={job.request_summary.include_rules_count}
+                    excludeCount={job.request_summary.exclude_rules_count}
+                    profile={job.request_summary.file_rules_profile}
+                  />
+                ) : null}
+                {job.error ? (
+                  <div className="job-error-detail">
+                    <strong>Error</strong>
+                    <p>{job.error}</p>
+                  </div>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </div>
       ) : null}
     </article>
   );
+}
+
+
+function JobRulesDetail({
+  includePatterns,
+  excludePatterns,
+  includeCount,
+  excludeCount,
+  profile,
+}: {
+  includePatterns: string[];
+  excludePatterns: string[];
+  includeCount?: string;
+  excludeCount?: string;
+  profile?: string;
+}) {
+  return (
+    <div className="job-rules-detail">
+      <div>
+        <strong>Applied file rules</strong>
+        <p>
+          {profile ?? "workspace"} profile · include {includeCount ?? includePatterns.length} · exclude {excludeCount ?? excludePatterns.length}
+        </p>
+      </div>
+      <PatternList title="Include patterns" patterns={includePatterns} emptyText="All files can be included unless excluded." />
+      <PatternList title="Exclude patterns" patterns={excludePatterns} emptyText="No exclude patterns were applied." />
+    </div>
+  );
+}
+
+function PatternList({
+  title,
+  patterns,
+  emptyText,
+}: {
+  title: string;
+  patterns: string[];
+  emptyText: string;
+}) {
+  return (
+    <div className="pattern-list-card">
+      <span>{title}</span>
+      {patterns.length > 0 ? (
+        <ul>
+          {patterns.map((pattern) => (
+            <li key={`${title}-${pattern}`}>
+              <code>{pattern}</code>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>{emptyText}</p>
+      )}
+    </div>
+  );
+}
+
+function metadataEntriesWithoutRules(summary: Record<string, string>) {
+  const hiddenKeys = new Set(["include_patterns", "exclude_patterns"]);
+  return Object.entries(summary).filter(([key]) => !hiddenKeys.has(key));
+}
+
+function splitPatterns(value?: string) {
+  if (!value || value === "All files" || value === "No exclusions") {
+    return [];
+  }
+  return value
+    .split(" · ")
+    .map((pattern) => pattern.trim())
+    .filter(Boolean);
 }
 
 function JobMetadataList({
