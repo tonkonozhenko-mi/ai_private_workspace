@@ -8,6 +8,9 @@ from app.adapters.memory.in_memory_command_repository import InMemoryCommandRepo
 from app.adapters.memory.in_memory_index_status_repository import (
     InMemoryIndexStatusRepository,
 )
+from app.adapters.memory.in_memory_indexing_rules_repository import (
+    InMemoryIndexingRulesRepository,
+)
 from app.adapters.memory.in_memory_model_experiment_repository import (
     InMemoryModelExperimentRepository,
 )
@@ -24,6 +27,7 @@ from app.adapters.memory.in_memory_workspace_model_selection_repository import (
 )
 from app.adapters.memory.sqlite_command_repository import SQLiteCommandRepository
 from app.adapters.memory.sqlite_index_status_repository import SQLiteIndexStatusRepository
+from app.adapters.memory.sqlite_indexing_rules_repository import SQLiteIndexingRulesRepository
 from app.adapters.memory.sqlite_model_experiment_repository import (
     SQLiteModelExperimentRepository,
 )
@@ -52,6 +56,7 @@ from app.core.ports.command_repository import CommandRepositoryPort
 from app.core.ports.command_runner import CommandRunnerPort
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
+from app.core.ports.indexing_rules_repository import IndexingRulesRepositoryPort
 from app.core.ports.llm_provider import LLMProviderPort
 from app.core.ports.llm_provider_factory import LLMProviderFactoryPort
 from app.core.ports.model_experiment_repository import ModelExperimentRepositoryPort
@@ -113,6 +118,18 @@ def build_index_status_repository() -> IndexStatusRepositoryPort:
         return InMemoryIndexStatusRepository()
     if repository_type == "sqlite":
         return SQLiteIndexStatusRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_indexing_rules_repository() -> IndexingRulesRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryIndexingRulesRepository()
+    if repository_type == "sqlite":
+        return SQLiteIndexingRulesRepository(settings.workspace_db_path)
 
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
@@ -306,6 +323,7 @@ workspace_repository = build_workspace_repository()
 project_scan_repository = build_project_scan_repository()
 command_repository = build_command_repository()
 index_status_repository = build_index_status_repository()
+indexing_rules_repository = build_indexing_rules_repository()
 timeline_repository = build_timeline_repository()
 model_experiment_repository = build_model_experiment_repository()
 model_experiment_rating_repository = build_model_experiment_rating_repository()

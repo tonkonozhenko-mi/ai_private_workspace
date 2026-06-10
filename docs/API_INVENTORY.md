@@ -133,3 +133,6 @@ FastAPI exposes interactive documentation at `/docs`, alternative documentation
 at `/redoc`, and the OpenAPI contract at `/openapi.json`. Routers use coarse
 tags for health, runtime, onboarding, projects, workspaces, assistant profiles,
 models, and commands. This document provides the finer product-oriented grouping.
+
+- `GET /workspaces/{workspace_id}/indexing-rules` — return saved or default workspace indexing rules.
+- `PUT /workspaces/{workspace_id}/indexing-rules` — save workspace indexing rules for future preview, scan, and index actions.
