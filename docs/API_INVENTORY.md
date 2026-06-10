@@ -187,3 +187,9 @@ models, and commands. This document provides the finer product-oriented grouping
 - `PATCH /workspaces/{workspace_id}/answer-notes/{note_id}/pin` — pin or unpin a reusable answer note.
 - `DELETE /workspaces/{workspace_id}/answer-notes/{note_id}` — delete a reusable answer note.
 - `DELETE /workspaces/{workspace_id}/conversations/{conversation_id}` — delete one saved conversation and its messages.
+
+### MCP server registry
+
+- `GET /mcp/catalog` — list safe MCP server templates, risk levels, setup notes, and recommended setup flow. No server is started.
+- `POST /mcp/config-preview` — generate a disabled-by-default local MCP config preview for a selected template. Copy-only; no filesystem writes and no process start.
+- `POST /mcp/connection-check` — return a manual connection test plan and copyable commands for a selected MCP template. Copy-only; no tool execution.

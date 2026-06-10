@@ -5,7 +5,10 @@ import {
   createAgentPlanningPreview,
   createAgentWorkflow,
   deleteAgentWorkflow,
+  createMCPConfigPreview,
+  createMCPConnectionCheck,
   getAgentCapabilities,
+  getMCPServerCatalog,
   listAgentWorkflows,
   getModelExperimentRatings,
   getWorkspaceModelExperiments,
@@ -20,6 +23,9 @@ import type {
   AgentCapabilityCatalog,
   AgentPlanningPreview,
   AgentWorkflow,
+  MCPServerCatalog,
+  MCPServerConfigPreview,
+  MCPServerConnectionCheck,
   LocalAIActivationGuide,
   ModelExperimentPlan,
   ModelExperimentRating,
@@ -249,6 +255,10 @@ export function ModelsDetail({
         workspaceId={workspaceId}
         selectedProvider={dashboard.selected_llm_provider ?? usage.active_llm_provider}
         selectedModel={dashboard.selected_llm_model ?? usage.active_llm_model}
+      />
+
+      <MCPServerRegistryPanel
+        workspaceId={workspaceId}
       />
 
       <ModelExperimentPlanner
@@ -719,6 +729,168 @@ function AgentModeReadinessPanel({
           </div>
         )}
       </div>
+    </section>
+  );
+}
+
+
+function MCPServerRegistryPanel({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
+  const [catalog, setCatalog] = useState<MCPServerCatalog | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("filesystem-readonly");
+  const [projectPath, setProjectPath] = useState("");
+  const [preview, setPreview] = useState<MCPServerConfigPreview | null>(null);
+  const [check, setCheck] = useState<MCPServerConnectionCheck | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsLoading(true);
+    getMCPServerCatalog()
+      .then((result) => {
+        setCatalog(result);
+        if (result.templates.length > 0) {
+          setSelectedTemplateId((current) => current || result.templates[0].id);
+        }
+      })
+      .catch((loadError) => setError(errorMessage(loadError)))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const selectedTemplate = useMemo(
+    () => catalog?.templates.find((template) => template.id === selectedTemplateId) ?? null,
+    [catalog, selectedTemplateId],
+  );
+
+  async function handlePreviewConfig() {
+    setIsPreviewing(true);
+    setError(null);
+    try {
+      const result = await createMCPConfigPreview({
+        template_id: selectedTemplateId,
+        workspace_id: workspaceId,
+        project_path: projectPath.trim() || null,
+      });
+      setPreview(result);
+      const checkResult = await createMCPConnectionCheck({ template_id: selectedTemplateId });
+      setCheck(checkResult);
+    } catch (previewError) {
+      setError(errorMessage(previewError));
+    } finally {
+      setIsPreviewing(false);
+    }
+  }
+
+  return (
+    <section className="panel mcp-registry-panel">
+      <div className="panel-heading-row compact">
+        <div>
+          <p className="eyebrow">MCP tools</p>
+          <h2>MCP server registry and safe setup</h2>
+          <p>
+            Prepare local MCP servers for future Claude/Codex-style agent workflows. This is config and review only; no server or tool is started here.
+          </p>
+        </div>
+        <StatusBadge label="planning only" />
+      </div>
+
+      {isLoading ? <p className="muted-text">Loading MCP templates…</p> : null}
+      {error ? <p className="form-error">{error}</p> : null}
+
+      {catalog ? (
+        <>
+          <div className="mcp-flow-strip">
+            {catalog.recommended_flow.map((step, index) => (
+              <span key={step}>{index + 1}. {step}</span>
+            ))}
+          </div>
+          <div className="mcp-template-grid">
+            <label>
+              <span>Server template</span>
+              <select value={selectedTemplateId} onChange={(event) => setSelectedTemplateId(event.target.value)}>
+                {catalog.templates.map((template) => (
+                  <option key={template.id} value={template.id}>{template.name}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Project path/env value</span>
+              <input
+                value={projectPath}
+                onChange={(event) => setProjectPath(event.target.value)}
+                placeholder="Optional path, for example /Users/maks/project"
+              />
+            </label>
+          </div>
+
+          {selectedTemplate ? (
+            <div className="mcp-template-card">
+              <div>
+                <p className="eyebrow">{formatLabel(selectedTemplate.category)}</p>
+                <h3>{selectedTemplate.name}</h3>
+                <p>{selectedTemplate.description}</p>
+              </div>
+              <div className="mcp-template-badges">
+                <StatusBadge label={selectedTemplate.risk_level} />
+                <StatusBadge label={selectedTemplate.transport} />
+                <StatusBadge label={selectedTemplate.default_scope} />
+              </div>
+              <div className="mcp-tools-list">
+                {selectedTemplate.example_tools.map((tool) => <span key={tool}>{tool}</span>)}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="agent-guardrail-strip">
+            <strong>MCP safety</strong>
+            <span>Generated configs are disabled by default.</span>
+            <span>Start with read-only tools.</span>
+            <span>Execution requires future backend approval gates.</span>
+          </div>
+
+          <button type="button" onClick={handlePreviewConfig} disabled={isPreviewing || !selectedTemplateId}>
+            {isPreviewing ? "Preparing MCP config…" : "Preview MCP config"}
+          </button>
+        </>
+      ) : null}
+
+      {preview ? (
+        <div className="mcp-preview-grid">
+          <article className="mcp-preview-card">
+            <div className="panel-heading-row compact">
+              <div>
+                <p className="eyebrow">Config preview</p>
+                <h3>{preview.name}</h3>
+              </div>
+              <StatusBadge label={preview.allowed_by_default ? "enabled" : "disabled by default"} />
+            </div>
+            <pre className="copyable-code-block">{JSON.stringify(preview.config_json, null, 2)}</pre>
+            <CopyButton text={JSON.stringify(preview.config_json, null, 2)} label="Copy config" />
+          </article>
+          <article className="mcp-preview-card">
+            <p className="eyebrow">Manual connection plan</p>
+            <h3>{check?.status ? formatLabel(check.status) : "Manual check"}</h3>
+            <ul>
+              {(check?.checks ?? preview.test_plan).map((item) => <li key={item}>{item}</li>)}
+            </ul>
+            {check?.copy_commands.length ? (
+              <div className="command-list compact">
+                {check.copy_commands.map((command) => (
+                  <div className="command-card" key={command}>
+                    <code>{command}</code>
+                    <CopyButton text={command} label="Copy" />
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            <p className="muted-text">{check?.safety_note ?? "No process is started by the UI."}</p>
+          </article>
+        </div>
+      ) : null}
     </section>
   );
 }

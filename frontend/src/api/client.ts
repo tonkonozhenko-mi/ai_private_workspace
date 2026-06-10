@@ -51,6 +51,11 @@ import type {
   AgentWorkflowList,
   CreateAgentWorkflowRequest,
   UpdateAgentWorkflowStepRequest,
+  MCPServerCatalog,
+  MCPConfigPreviewRequest,
+  MCPServerConfigPreview,
+  MCPConnectionCheckRequest,
+  MCPServerConnectionCheck,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -514,6 +519,37 @@ export function deleteAgentWorkflow(workspaceId: string, workflowId: string): Pr
   return requestWithoutBody(`/workspaces/${workspaceId}/agent-workflows/${workflowId}`, {
     method: "DELETE",
     headers: { Accept: "application/json" },
+  });
+}
+
+
+export function getMCPServerCatalog(): Promise<MCPServerCatalog> {
+  return getJson<MCPServerCatalog>("/mcp/catalog");
+}
+
+export function createMCPConfigPreview(
+  request: MCPConfigPreviewRequest,
+): Promise<MCPServerConfigPreview> {
+  return requestJson<MCPServerConfigPreview>("/mcp/config-preview", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+export function createMCPConnectionCheck(
+  request: MCPConnectionCheckRequest,
+): Promise<MCPServerConnectionCheck> {
+  return requestJson<MCPServerConnectionCheck>("/mcp/connection-check", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
   });
 }
 

@@ -917,6 +917,68 @@ export interface WorkspaceJob {
   duration_ms: number | null;
 }
 
+
+export interface MCPServerTemplate {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  transport: string;
+  command: string;
+  args: string[];
+  env_vars: string[];
+  default_scope: string;
+  risk_level: string;
+  capabilities: string[];
+  example_tools: string[];
+  setup_notes: string[];
+}
+
+export interface MCPServerCatalog {
+  summary: string;
+  templates: MCPServerTemplate[];
+  safety_note: string;
+  recommended_flow: string[];
+}
+
+export interface MCPConfigPreviewRequest {
+  template_id: string;
+  workspace_id?: string | null;
+  project_path?: string | null;
+  env_overrides?: Record<string, string>;
+}
+
+export interface MCPServerConfigPreview {
+  template_id: string;
+  name: string;
+  transport: string;
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+  config_json: Record<string, unknown>;
+  risk_level: string;
+  scope: string;
+  allowed_by_default: boolean;
+  guardrails: string[];
+  setup_steps: string[];
+  test_plan: string[];
+  generated_at: string;
+}
+
+export interface MCPConnectionCheckRequest {
+  template_id: string;
+}
+
+export interface MCPServerConnectionCheck {
+  template_id: string;
+  status: string;
+  summary: string;
+  checks: string[];
+  warnings: string[];
+  copy_commands: string[];
+  safety_note: string;
+}
+
 export interface AgentCapability {
   provider: string;
   model: string;

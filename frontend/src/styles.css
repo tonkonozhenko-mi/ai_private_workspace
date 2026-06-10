@@ -13564,3 +13564,107 @@ button,
     width: 100%;
   }
 }
+
+.mcp-registry-panel {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.mcp-flow-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-muted);
+}
+
+.mcp-flow-strip span {
+  padding: 0.4rem 0.65rem;
+  border-radius: 999px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.mcp-template-grid {
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.8fr) minmax(20rem, 1.2fr);
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.mcp-template-card,
+.mcp-preview-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-soft);
+}
+
+.mcp-template-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.mcp-template-badges,
+.mcp-tools-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.mcp-tools-list {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+}
+
+.mcp-tools-list span {
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 0.35rem 0.6rem;
+  color: var(--text-secondary);
+  background: var(--surface-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.mcp-preview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.copyable-code-block {
+  max-height: 22rem;
+  overflow: auto;
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--code-background);
+  color: var(--code-text);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 920px) {
+  .mcp-template-grid,
+  .mcp-preview-grid,
+  .mcp-template-card {
+    grid-template-columns: 1fr;
+  }
+
+  .mcp-template-badges {
+    justify-content: flex-start;
+  }
+}
