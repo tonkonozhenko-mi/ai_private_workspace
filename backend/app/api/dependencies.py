@@ -319,3 +319,7 @@ readiness_configuration = build_readiness_configuration()
 runtime_health_configuration = build_runtime_health_configuration()
 runtime_health_checkers = build_runtime_health_checkers()
 model_catalog_registry = build_model_catalog_registry()
+
+from app.api.workspace_job_runner import WorkspaceJobRunner
+
+workspace_job_runner = WorkspaceJobRunner()

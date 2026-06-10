@@ -460,3 +460,18 @@ export interface WorkspaceModelsDetailBundle {
   dashboard: WorkspaceModelsDashboard;
   activationGuide: LocalAIActivationGuide;
 }
+
+export interface WorkspaceJob {
+  job_id: string;
+  workspace_id: string;
+  job_type: string;
+  status: "queued" | "running" | "completed" | "failed" | "cancelled" | string;
+  title: string;
+  message: string | null;
+  result_summary: Record<string, string>;
+  error: string | null;
+  cancellation_requested: boolean;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+}

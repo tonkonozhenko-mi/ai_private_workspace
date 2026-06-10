@@ -1,14 +1,23 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
+  WorkspaceJob,
 } from "../api/types";
-import { countPatterns, patternLines, type FileIndexingPreferences } from "./fileIndexingPreferences";
+import {
+  countPatterns,
+  patternLines,
+  type FileIndexingPreferences,
+} from "./fileIndexingPreferences";
 import { ModelsSummaryCard } from "./ModelsSummaryCard";
 import { StatusBadge } from "./StatusBadge";
 import type { StatusTone } from "./statusTone";
-import { getEnabledSkillPresets, getSkillPresetByAssistantMode, type SkillPreferences } from "./skillLibrary";
+import {
+  getEnabledSkillPresets,
+  getSkillPresetByAssistantMode,
+  type SkillPreferences,
+} from "./skillLibrary";
 
 interface WorkspaceDashboardProps {
   dashboard: WorkspaceDashboardData;
@@ -16,8 +25,11 @@ interface WorkspaceDashboardProps {
   onOpenAsk: () => void;
   onOpenModels: () => void;
   onOpenCapabilities: () => void;
-  onScanWorkspace: (options?: { signal?: AbortSignal }) => Promise<void>;
-  onIndexWorkspace: (options?: { signal?: AbortSignal }) => Promise<void>;
+  onStartScanJob: () => Promise<WorkspaceJob>;
+  onStartIndexJob: () => Promise<WorkspaceJob>;
+  onGetWorkspaceJob: (jobId: string) => Promise<WorkspaceJob>;
+  onCancelWorkspaceJob: (jobId: string) => Promise<WorkspaceJob>;
+  onRefreshWorkspaceState: () => Promise<void>;
   onOpenSettings: () => void;
   skillPreferences: SkillPreferences;
   fileIndexingPreferences: FileIndexingPreferences;
@@ -29,8 +41,11 @@ export function WorkspaceDashboard({
   onOpenAsk,
   onOpenModels,
   onOpenCapabilities,
-  onScanWorkspace,
-  onIndexWorkspace,
+  onStartScanJob,
+  onStartIndexJob,
+  onGetWorkspaceJob,
+  onCancelWorkspaceJob,
+  onRefreshWorkspaceState,
   onOpenSettings,
   skillPreferences,
   fileIndexingPreferences,
@@ -63,11 +78,15 @@ export function WorkspaceDashboard({
         <article className="metric-card">
           <span className="metric-label">Technologies found</span>
           <strong>{summary.detected_skills_count}</strong>
-          <span>{summary.has_scan ? "Latest scan available" : "Project scan needed"}</span>
+          <span>
+            {summary.has_scan ? "Latest scan available" : "Project scan needed"}
+          </span>
         </article>
         <article className="metric-card">
           <span className="metric-label">Context</span>
-          <strong className="metric-word">{formatLabel(indexStatus.status)}</strong>
+          <strong className="metric-word">
+            {formatLabel(indexStatus.status)}
+          </strong>
           <span>{indexStatus.chunks_count} context pieces</span>
         </article>
         <article className="metric-card">
@@ -90,8 +109,11 @@ export function WorkspaceDashboard({
         onOpenAsk={onOpenAsk}
         onOpenModels={onOpenModels}
         onOpenCapabilities={onOpenCapabilities}
-        onScanWorkspace={onScanWorkspace}
-        onIndexWorkspace={onIndexWorkspace}
+        onStartScanJob={onStartScanJob}
+        onStartIndexJob={onStartIndexJob}
+        onGetWorkspaceJob={onGetWorkspaceJob}
+        onCancelWorkspaceJob={onCancelWorkspaceJob}
+        onRefreshWorkspaceState={onRefreshWorkspaceState}
         fileIndexingPreferences={fileIndexingPreferences}
       />
 
@@ -125,7 +147,11 @@ export function WorkspaceDashboard({
               context. Sources stay visible so you can verify important claims.
             </p>
           </div>
-          <button className="overview-cta-button" type="button" onClick={onOpenAsk}>
+          <button
+            className="overview-cta-button"
+            type="button"
+            onClick={onOpenAsk}
+          >
             Go to Ask
           </button>
         </section>
@@ -134,15 +160,17 @@ export function WorkspaceDashboard({
   );
 }
 
-
 function WorkspaceOnboardingGuide({
   dashboard,
   modelsSummary,
   onOpenAsk,
   onOpenModels,
   onOpenCapabilities,
-  onScanWorkspace,
-  onIndexWorkspace,
+  onStartScanJob,
+  onStartIndexJob,
+  onGetWorkspaceJob,
+  onCancelWorkspaceJob,
+  onRefreshWorkspaceState,
   fileIndexingPreferences,
 }: {
   dashboard: WorkspaceDashboardData;
@@ -150,8 +178,11 @@ function WorkspaceOnboardingGuide({
   onOpenAsk: () => void;
   onOpenModels: () => void;
   onOpenCapabilities: () => void;
-  onScanWorkspace: (options?: { signal?: AbortSignal }) => Promise<void>;
-  onIndexWorkspace: (options?: { signal?: AbortSignal }) => Promise<void>;
+  onStartScanJob: () => Promise<WorkspaceJob>;
+  onStartIndexJob: () => Promise<WorkspaceJob>;
+  onGetWorkspaceJob: (jobId: string) => Promise<WorkspaceJob>;
+  onCancelWorkspaceJob: (jobId: string) => Promise<WorkspaceJob>;
+  onRefreshWorkspaceState: () => Promise<void>;
   fileIndexingPreferences: FileIndexingPreferences;
 }) {
   const summary = dashboard.summary;
@@ -159,61 +190,110 @@ function WorkspaceOnboardingGuide({
   const indexReady = summary.index_status.status === "indexed";
   const localAIReady = modelsSummary.overall_status === "ready";
   const readyToAsk = hasScan && indexReady && localAIReady;
-  const includeRuleCount = countPatterns(fileIndexingPreferences.includePatterns);
-  const excludeRuleCount = countPatterns(fileIndexingPreferences.excludePatterns);
-  const includePreview = patternLines(fileIndexingPreferences.includePatterns).slice(0, 4);
-  const excludePreview = patternLines(fileIndexingPreferences.excludePatterns).slice(0, 4);
+  const includeRuleCount = countPatterns(
+    fileIndexingPreferences.includePatterns,
+  );
+  const excludeRuleCount = countPatterns(
+    fileIndexingPreferences.excludePatterns,
+  );
+  const includePreview = patternLines(
+    fileIndexingPreferences.includePatterns,
+  ).slice(0, 4);
+  const excludePreview = patternLines(
+    fileIndexingPreferences.excludePatterns,
+  ).slice(0, 4);
   const [setupAction, setSetupAction] = useState<"scan" | "index" | null>(null);
+  const [setupJob, setSetupJob] = useState<WorkspaceJob | null>(null);
   const [setupMessage, setSetupMessage] = useState<string | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
-  const setupAbortControllerRef = useRef<AbortController | null>(null);
+  const pollingJobIdRef = useRef<string | null>(null);
 
   async function runSetupAction(action: "scan" | "index") {
-    setupAbortControllerRef.current?.abort();
-    const abortController = new AbortController();
-    setupAbortControllerRef.current = abortController;
     setSetupAction(action);
+    setSetupJob(null);
     setSetupMessage(null);
     setSetupError(null);
     try {
-      if (action === "scan") {
-        await onScanWorkspace({ signal: abortController.signal });
-        if (!abortController.signal.aborted) {
-          setSetupMessage("Project scan finished. Review the detected technologies, then build search context.");
-        }
-      } else {
-        await onIndexWorkspace({ signal: abortController.signal });
-        if (!abortController.signal.aborted) {
-          setSetupMessage("Search context is ready. You can now ask source-backed questions.");
-        }
-      }
+      const job =
+        action === "scan" ? await onStartScanJob() : await onStartIndexJob();
+      setSetupJob(job);
+      pollingJobIdRef.current = job.job_id;
     } catch (error) {
-      if (isAbortError(error)) {
-        setSetupMessage(
-          action === "scan"
-            ? "Stopped waiting for the project scan. The backend may still finish the local scan if it already started."
-            : "Stopped waiting for context build. The backend may still finish indexing if it already started.",
-        );
-      } else {
-        setSetupError(
-          error instanceof Error
-            ? error.message
-            : action === "scan"
-              ? "Could not scan this project."
-              : "Could not build search context.",
-        );
-      }
-    } finally {
-      if (setupAbortControllerRef.current === abortController) {
-        setupAbortControllerRef.current = null;
-        setSetupAction(null);
-      }
+      setSetupAction(null);
+      setSetupError(
+        error instanceof Error
+          ? error.message
+          : action === "scan"
+            ? "Could not start project scan."
+            : "Could not start search context build.",
+      );
     }
   }
 
-  function cancelSetupAction() {
-    setupAbortControllerRef.current?.abort();
+  async function cancelSetupAction() {
+    if (!setupJob) {
+      return;
+    }
+    try {
+      const cancelledJob = await onCancelWorkspaceJob(setupJob.job_id);
+      setSetupJob(cancelledJob);
+      setSetupMessage("Cancellation requested for this backend job.");
+    } catch (error) {
+      setSetupError(
+        error instanceof Error ? error.message : "Could not cancel this job.",
+      );
+    }
   }
+
+  useEffect(() => {
+    if (
+      !setupJob ||
+      ["completed", "failed", "cancelled"].includes(setupJob.status)
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const intervalId = window.setInterval(async () => {
+      try {
+        const latestJob = await onGetWorkspaceJob(setupJob.job_id);
+        if (cancelled || pollingJobIdRef.current !== setupJob.job_id) {
+          return;
+        }
+        setSetupJob(latestJob);
+        if (["completed", "failed", "cancelled"].includes(latestJob.status)) {
+          window.clearInterval(intervalId);
+          pollingJobIdRef.current = null;
+          setSetupAction(null);
+          if (latestJob.status === "completed") {
+            setSetupMessage(
+              latestJob.job_type === "scan"
+                ? "Project scan finished. Review the detected technologies, then build search context."
+                : "Search context is ready. You can now ask source-backed questions.",
+            );
+            await onRefreshWorkspaceState();
+          } else if (latestJob.status === "cancelled") {
+            setSetupMessage("Backend job cancelled.");
+          } else {
+            setSetupError(latestJob.error ?? "Backend job failed.");
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setSetupError(
+            error instanceof Error
+              ? error.message
+              : "Could not refresh job status.",
+          );
+        }
+      }
+    }, 1000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [onGetWorkspaceJob, onRefreshWorkspaceState, setupJob]);
 
   const steps = [
     {
@@ -239,15 +319,25 @@ function WorkspaceOnboardingGuide({
     },
     {
       title: "Compare models later",
-      description: "Optional: compare local models only when you want to improve answer quality.",
+      description:
+        "Optional: compare local models only when you want to improve answer quality.",
       status: "optional",
     },
   ];
 
   const primaryAction = !hasScan
-    ? { label: setupAction === "scan" ? "Scanning..." : "Scan project", onClick: () => void runSetupAction("scan"), disabled: setupAction !== null }
+    ? {
+        label: setupAction === "scan" ? "Scanning..." : "Scan project",
+        onClick: () => void runSetupAction("scan"),
+        disabled: setupAction !== null,
+      }
     : !indexReady
-      ? { label: setupAction === "index" ? "Building..." : "Build search context", onClick: () => void runSetupAction("index"), disabled: setupAction !== null }
+      ? {
+          label:
+            setupAction === "index" ? "Building..." : "Build search context",
+          onClick: () => void runSetupAction("index"),
+          disabled: setupAction !== null,
+        }
       : !localAIReady
         ? { label: "Review Models", onClick: onOpenModels, disabled: false }
         : { label: "Go to Ask", onClick: onOpenAsk, disabled: false };
@@ -257,11 +347,16 @@ function WorkspaceOnboardingGuide({
       <div className="onboarding-guide-heading">
         <div>
           <p className="eyebrow">Guided path</p>
-          <h2>{readyToAsk ? "Ready to ask questions" : "Set up this workspace"}</h2>
+          <h2>
+            {readyToAsk ? "Ready to ask questions" : "Set up this workspace"}
+          </h2>
           <p>
-            Follow this path to turn a local project folder into source-backed answers.
+            Follow this path to turn a local project folder into source-backed
+            answers.
           </p>
-          <span className="onboarding-safety-note">Setup stays manual. The frontend never runs shell commands.</span>
+          <span className="onboarding-safety-note">
+            Setup stays manual. The frontend never runs shell commands.
+          </span>
         </div>
         <button
           className="overview-cta-button"
@@ -272,16 +367,29 @@ function WorkspaceOnboardingGuide({
           {primaryAction.label}
         </button>
         {setupAction ? (
-          <button className="secondary-action" type="button" onClick={cancelSetupAction}>
+          <button
+            className="secondary-action"
+            type="button"
+            onClick={cancelSetupAction}
+          >
             Stop waiting
           </button>
         ) : null}
       </div>
 
       {!readyToAsk ? (
-        <div className="workspace-setup-actions" aria-label="Workspace setup actions">
+        <div
+          className="workspace-setup-actions"
+          aria-label="Workspace setup actions"
+        >
           <div>
-            <strong>{!hasScan ? "Start with a project scan" : !indexReady ? "Build searchable context" : "Review local AI setup"}</strong>
+            <strong>
+              {!hasScan
+                ? "Start with a project scan"
+                : !indexReady
+                  ? "Build searchable context"
+                  : "Review local AI setup"}
+            </strong>
             <p>
               {!hasScan
                 ? "This reads the local project through the backend and records detected technologies."
@@ -302,7 +410,11 @@ function WorkspaceOnboardingGuide({
               </button>
             ) : null}
             {setupAction === "scan" ? (
-              <button className="secondary-action" type="button" onClick={cancelSetupAction}>
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={cancelSetupAction}
+              >
                 Stop waiting
               </button>
             ) : !indexReady ? (
@@ -312,27 +424,37 @@ function WorkspaceOnboardingGuide({
                 disabled={setupAction !== null}
                 onClick={() => void runSetupAction("index")}
               >
-                {setupAction === "index" ? "Building..." : "Build search context"}
+                {setupAction === "index"
+                  ? "Building..."
+                  : "Build search context"}
               </button>
             ) : (
-              <button className="secondary-action" type="button" onClick={onOpenModels}>
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={onOpenModels}
+              >
                 Review Models
               </button>
             )}
-            <button className="secondary-action" type="button" onClick={onOpenCapabilities}>
+            <button
+              className="secondary-action"
+              type="button"
+              onClick={onOpenCapabilities}
+            >
               View capabilities
             </button>
           </div>
         </div>
       ) : null}
 
-
       <div className="file-rules-plan" aria-label="File selection plan">
         <div>
           <strong>File rules applied on scan</strong>
           <p>
-            The next project scan will apply your browser-local include and exclude rules.
-            Build search context then uses the latest filtered scan.
+            The next project scan will apply your browser-local include and
+            exclude rules. Build search context then uses the latest filtered
+            scan.
           </p>
         </div>
         <div className="file-rules-plan-grid">
@@ -347,11 +469,18 @@ function WorkspaceOnboardingGuide({
         </div>
       </div>
 
-      {setupMessage ? <p className="settings-message success">{setupMessage}</p> : null}
-      {setupError ? <p className="settings-message error">{setupError}</p> : null}
+      {setupMessage ? (
+        <p className="settings-message success">{setupMessage}</p>
+      ) : null}
+      {setupError ? (
+        <p className="settings-message error">{setupError}</p>
+      ) : null}
       <div className="onboarding-steps-grid">
         {steps.map((step, index) => (
-          <article className={`onboarding-step-card is-${step.status}`} key={step.title}>
+          <article
+            className={`onboarding-step-card is-${step.status}`}
+            key={step.title}
+          >
             <span>{index + 1}</span>
             <div>
               <strong>{step.title}</strong>
@@ -364,7 +493,6 @@ function WorkspaceOnboardingGuide({
     </section>
   );
 }
-
 
 function WorkspaceSkillsSection({
   dashboard,
@@ -379,7 +507,12 @@ function WorkspaceSkillsSection({
 }) {
   const summary = dashboard.summary;
   const activeSkillPresets = getEnabledSkillPresets(skillPreferences);
-  const skills = getWorkspaceSkillCards(dashboard.assistant_mode, summary.detected_skills_count, summary.has_scan, skillPreferences);
+  const skills = getWorkspaceSkillCards(
+    dashboard.assistant_mode,
+    summary.detected_skills_count,
+    summary.has_scan,
+    skillPreferences,
+  );
   const suggestedFocus = getAssistantFocus(dashboard.assistant_mode);
 
   return (
@@ -389,12 +522,17 @@ function WorkspaceSkillsSection({
           <p className="eyebrow">Workspace skills</p>
           <h2>Use the right project lens</h2>
           <p>
-            Skills help AI Private Workspace frame answers around the technologies and work style detected in this project.
+            Skills help AI Private Workspace frame answers around the
+            technologies and work style detected in this project.
           </p>
         </div>
         <div className="workspace-skills-badges">
           <StatusBadge
-            label={summary.has_scan ? `${summary.detected_skills_count} found` : "scan first"}
+            label={
+              summary.has_scan
+                ? `${summary.detected_skills_count} found`
+                : "scan first"
+            }
             tone={summary.has_scan ? "success" : "warning"}
             size="md"
           />
@@ -436,10 +574,16 @@ function WorkspaceSkillsSection({
         <div>
           <strong>Customize skill presets</strong>
           <p>
-            Open Settings to enable presets or tune custom instructions, for example extending DevOps with Jenkins pipelines, deployment rules, or company-specific review checks.
+            Open Settings to enable presets or tune custom instructions, for
+            example extending DevOps with Jenkins pipelines, deployment rules,
+            or company-specific review checks.
           </p>
         </div>
-        <button className="secondary-action" type="button" onClick={onOpenSettings}>
+        <button
+          className="secondary-action"
+          type="button"
+          onClick={onOpenSettings}
+        >
           Manage skills
         </button>
       </div>
@@ -451,55 +595,70 @@ function getAssistantFocus(mode: string) {
   const focuses: Record<string, { title: string; description: string }> = {
     devops: {
       title: "DevOps and platform focus",
-      description: "Answers prioritize infrastructure, CI/CD, runtime, cloud, containers, and operational setup.",
+      description:
+        "Answers prioritize infrastructure, CI/CD, runtime, cloud, containers, and operational setup.",
     },
     developer: {
       title: "Developer focus",
-      description: "Answers prioritize application structure, implementation details, tests, and code navigation.",
+      description:
+        "Answers prioritize application structure, implementation details, tests, and code navigation.",
     },
     documentation: {
       title: "Documentation focus",
-      description: "Answers prioritize README files, architecture notes, onboarding context, and clear summaries.",
+      description:
+        "Answers prioritize README files, architecture notes, onboarding context, and clear summaries.",
     },
     support_incident: {
       title: "Incident support focus",
-      description: "Answers prioritize troubleshooting, symptoms, likely causes, operational context, and next checks.",
+      description:
+        "Answers prioritize troubleshooting, symptoms, likely causes, operational context, and next checks.",
     },
     manager_summary: {
       title: "Manager summary focus",
-      description: "Answers prioritize concise summaries, risks, progress, decisions, and stakeholder-friendly wording.",
+      description:
+        "Answers prioritize concise summaries, risks, progress, decisions, and stakeholder-friendly wording.",
     },
   };
 
   return focuses[mode] ?? focuses.devops;
 }
 
-function getWorkspaceSkillCards(mode: string, detectedCount: number, hasScan: boolean, skillPreferences: SkillPreferences) {
+function getWorkspaceSkillCards(
+  mode: string,
+  detectedCount: number,
+  hasScan: boolean,
+  skillPreferences: SkillPreferences,
+) {
   if (!hasScan) {
     return [
       {
         icon: "1",
         title: "Scan project first",
-        description: "Run a project scan to detect languages, infrastructure files, CI/CD, and documentation signals.",
+        description:
+          "Run a project scan to detect languages, infrastructure files, CI/CD, and documentation signals.",
         hint: "Setup step",
       },
       {
         icon: "2",
         title: "Choose a focus",
-        description: "The current assistant mode gives answers a starting lens before deeper skill customization is available.",
+        description:
+          "The current assistant mode gives answers a starting lens before deeper skill customization is available.",
         hint: "Assistant mode",
       },
       {
         icon: "3",
         title: "Build context",
-        description: "After scan, build searchable local context so answers can cite source files.",
+        description:
+          "After scan, build searchable local context so answers can cite source files.",
         hint: "Source-backed answers",
       },
     ];
   }
 
   const activePresets = getEnabledSkillPresets(skillPreferences);
-  const activeNames = activePresets.map((preset) => preset.name).join(", ") || "No custom skills enabled";
+  const activeNames =
+    activePresets.map((preset) => preset.name).join(", ") ||
+    "No custom skills enabled";
   const currentPreset = getSkillPresetByAssistantMode(mode);
   const currentPreference = skillPreferences[currentPreset.id];
 
@@ -537,7 +696,6 @@ function getWorkspaceSkillCards(mode: string, detectedCount: number, hasScan: bo
   ];
 }
 
-
 function WorkspaceFilesSection({
   dashboard,
   fileIndexingPreferences,
@@ -560,7 +718,9 @@ function WorkspaceFilesSection({
           <p className="eyebrow">Files and context</p>
           <h2>Control what becomes searchable</h2>
           <p>
-            File preferences define which local project files should be considered for scan and future indexing. Defaults keep source, docs, and infrastructure files while skipping generated or heavy folders.
+            File preferences define which local project files should be
+            considered for scan and future indexing. Defaults keep source, docs,
+            and infrastructure files while skipping generated or heavy folders.
           </p>
         </div>
         <div className="workspace-skills-badges">
@@ -571,31 +731,44 @@ function WorkspaceFilesSection({
 
       <div className="workspace-files-grid">
         <article className="workspace-skill-card">
-          <div className="workspace-skill-icon" aria-hidden="true">↳</div>
+          <div className="workspace-skill-icon" aria-hidden="true">
+            ↳
+          </div>
           <div>
             <h3>Include useful project files</h3>
             <p>
-              Source code, documentation, Terraform, Kubernetes, Docker, Helm, and CI/CD definitions are included by default.
+              Source code, documentation, Terraform, Kubernetes, Docker, Helm,
+              and CI/CD definitions are included by default.
             </p>
-            <span className="workspace-skill-footnote">Source, docs, configs, IaC</span>
+            <span className="workspace-skill-footnote">
+              Source, docs, configs, IaC
+            </span>
           </div>
         </article>
         <article className="workspace-skill-card">
-          <div className="workspace-skill-icon" aria-hidden="true">⊘</div>
+          <div className="workspace-skill-icon" aria-hidden="true">
+            ⊘
+          </div>
           <div>
             <h3>Skip noisy or generated files</h3>
             <p>
-              Dependencies, caches, build outputs, binaries, archives, and logs stay out of the context by default.
+              Dependencies, caches, build outputs, binaries, archives, and logs
+              stay out of the context by default.
             </p>
-            <span className="workspace-skill-footnote">node_modules, .venv, dist, build</span>
+            <span className="workspace-skill-footnote">
+              node_modules, .venv, dist, build
+            </span>
           </div>
         </article>
         <article className="workspace-skill-card">
-          <div className="workspace-skill-icon" aria-hidden="true">⌘</div>
+          <div className="workspace-skill-icon" aria-hidden="true">
+            ⌘
+          </div>
           <div>
             <h3>Review before rebuilding</h3>
             <p>
-              This task only prepares browser-local preferences. Rebuilding search context remains an explicit action.
+              This task only prepares browser-local preferences. Rebuilding
+              search context remains an explicit action.
             </p>
             <span className="workspace-skill-footnote">Manual and safe</span>
           </div>
@@ -605,12 +778,23 @@ function WorkspaceFilesSection({
       <div className="workspace-skills-next-step">
         <div>
           <p className="eyebrow">Indexing control</p>
-          <h3>{contextReady ? "Search context is ready" : scanReady ? "Review file rules before building context" : "Scan first, then review file rules"}</h3>
+          <h3>
+            {contextReady
+              ? "Search context is ready"
+              : scanReady
+                ? "Review file rules before building context"
+                : "Scan first, then review file rules"}
+          </h3>
           <p>
-            File preferences are saved in this browser and will be connected to scan/index requests in the next phase step.
+            File preferences are saved in this browser and will be connected to
+            scan/index requests in the next phase step.
           </p>
         </div>
-        <button className="secondary-action" type="button" onClick={onOpenSettings}>
+        <button
+          className="secondary-action"
+          type="button"
+          onClick={onOpenSettings}
+        >
           Edit file rules
         </button>
       </div>
@@ -630,12 +814,18 @@ function ProductStatusSection({
   const summary = dashboard.summary;
   const indexReady = summary.index_status.status === "indexed";
   const localAIReady = modelsSummary.overall_status === "ready";
-  const experimentsSeen = dashboard.recent_events.some((event) =>
-    event.event_type.toLowerCase().includes("experiment") ||
-    event.title.toLowerCase().includes("model")
+  const experimentsSeen = dashboard.recent_events.some(
+    (event) =>
+      event.event_type.toLowerCase().includes("experiment") ||
+      event.title.toLowerCase().includes("model"),
   );
 
-  const statuses: Array<{ title: string; description: string; badge: string; tone: StatusTone }> = [
+  const statuses: Array<{
+    title: string;
+    description: string;
+    badge: string;
+    tone: StatusTone;
+  }> = [
     {
       title: "Local AI",
       description: localAIReady
@@ -662,7 +852,8 @@ function ProductStatusSection({
     },
     {
       title: "Safety posture",
-      description: "Workspace actions stay explicit. The frontend never runs shell commands.",
+      description:
+        "Workspace actions stay explicit. The frontend never runs shell commands.",
       badge: "local only",
       tone: "info",
     },
@@ -675,7 +866,8 @@ function ProductStatusSection({
           <p className="eyebrow">Product status</p>
           <h2>Ready to work with this project</h2>
           <p>
-            Ask local questions with visible sources. Model comparison and technical setup stay optional.
+            Ask local questions with visible sources. Model comparison and
+            technical setup stay optional.
           </p>
         </div>
         <StatusBadge
@@ -703,7 +895,11 @@ function ProductStatusSection({
           <strong>Ask a project question</strong>
           <p>Get a local answer with sources you can verify.</p>
         </div>
-        <button className="overview-cta-button" type="button" onClick={onOpenAsk}>
+        <button
+          className="overview-cta-button"
+          type="button"
+          onClick={onOpenAsk}
+        >
           Go to Ask
         </button>
       </div>
@@ -804,8 +1000,4 @@ function ModelComparisonRow({
 
 function formatLabel(value: string) {
   return value.replaceAll("_", " ");
-}
-
-function isAbortError(error: unknown): boolean {
-  return error instanceof DOMException && error.name === "AbortError";
 }

@@ -870,3 +870,12 @@ Next recommended Phase 12 tasks:
 ## After Task 149
 
 Next large backend/product step: introduce real background jobs for long-running scan/index/model-comparison workflows with job status and backend-side cancellation.
+
+## After Task 150
+
+Next Phase 12 steps:
+
+1. Add a file preview plan before scanning so users can see which files will be included or excluded before starting a backend job.
+2. Show recent scan/index jobs in Activity with job status, duration, and applied file rules.
+3. Consider cooperative cancellation checkpoints inside long scan/index loops if real projects expose operations that can run for a long time.
+4. Keep all scan/index jobs explicit user-click actions.

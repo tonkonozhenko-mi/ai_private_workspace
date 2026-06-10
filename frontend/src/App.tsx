@@ -9,8 +9,10 @@ import {
   getWorkspaceDashboard,
   getWorkspaceModelsDashboard,
   getWorkspacesOverview,
-  indexWorkspace,
-  scanWorkspace,
+  cancelWorkspaceJob,
+  getWorkspaceJob,
+  startIndexWorkspaceJob,
+  startScanWorkspaceJob,
   getWorkspaceUIActions,
   setApiBaseUrl,
 } from "./api/client";
@@ -18,6 +20,7 @@ import type {
   WorkspaceDetailBundle,
   WorkspaceModelsDetailBundle,
   WorkspaceOverviewItem,
+  WorkspaceJob,
 } from "./api/types";
 import { AskWorkspace } from "./components/AskWorkspace";
 import { CreateWorkspacePanel } from "./components/CreateWorkspacePanel";
@@ -255,29 +258,24 @@ function App() {
   }, [loadWorkspaceDetail, loadWorkspaces]);
 
 
-  const handleScanWorkspace = useCallback(async (
-    workspaceId: string,
-    options: { signal?: AbortSignal } = {},
-  ) => {
-    await scanWorkspace(
+  const handleStartScanJob = useCallback(async (workspaceId: string): Promise<WorkspaceJob> => {
+    return startScanWorkspaceJob(
       workspaceId,
       toFileSelectionRulesRequest(preferences.fileIndexingPreferences),
-      { signal: options.signal },
     );
-    if (!options.signal?.aborted) {
-      await refreshWorkspaceReadOnlyState(workspaceId);
-    }
-  }, [preferences.fileIndexingPreferences, refreshWorkspaceReadOnlyState]);
+  }, [preferences.fileIndexingPreferences]);
 
-  const handleIndexWorkspace = useCallback(async (
-    workspaceId: string,
-    options: { signal?: AbortSignal } = {},
-  ) => {
-    await indexWorkspace(workspaceId, { signal: options.signal });
-    if (!options.signal?.aborted) {
-      await refreshWorkspaceReadOnlyState(workspaceId);
-    }
-  }, [refreshWorkspaceReadOnlyState]);
+  const handleStartIndexJob = useCallback(async (workspaceId: string): Promise<WorkspaceJob> => {
+    return startIndexWorkspaceJob(workspaceId);
+  }, []);
+
+  const handleGetWorkspaceJob = useCallback((workspaceId: string, jobId: string) => {
+    return getWorkspaceJob(workspaceId, jobId);
+  }, []);
+
+  const handleCancelWorkspaceJob = useCallback((workspaceId: string, jobId: string) => {
+    return cancelWorkspaceJob(workspaceId, jobId);
+  }, []);
 
   const refreshAfterAsk = useCallback(async (workspaceId: string) => {
     try {
@@ -453,8 +451,11 @@ function App() {
                   onOpenAsk={() => setActiveTab("ask")}
                   onOpenModels={() => setActiveTab("models")}
                   onOpenCapabilities={() => setActiveTab("actions")}
-                  onScanWorkspace={(options) => handleScanWorkspace(detail.dashboard.workspace_id, options)}
-                  onIndexWorkspace={(options) => handleIndexWorkspace(detail.dashboard.workspace_id, options)}
+                  onStartScanJob={() => handleStartScanJob(detail.dashboard.workspace_id)}
+                  onStartIndexJob={() => handleStartIndexJob(detail.dashboard.workspace_id)}
+                  onGetWorkspaceJob={(jobId) => handleGetWorkspaceJob(detail.dashboard.workspace_id, jobId)}
+                  onCancelWorkspaceJob={(jobId) => handleCancelWorkspaceJob(detail.dashboard.workspace_id, jobId)}
+                  onRefreshWorkspaceState={() => refreshWorkspaceReadOnlyState(detail.dashboard.workspace_id)}
                   onOpenSettings={() => setActiveTab("settings")}
                   skillPreferences={preferences.skillPreferences}
                   fileIndexingPreferences={preferences.fileIndexingPreferences}

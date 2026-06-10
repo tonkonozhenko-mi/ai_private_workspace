@@ -547,3 +547,9 @@ This task is a frontend/localStorage foundation only. The preferences are visibl
 - Ask now shows Thinking and Stop while waiting for an answer.
 - Cancellation stops the browser waiting state; the local backend may still finish a job if it already started.
 - No backend job system, shell execution, automatic scan/index, or model/runtime changes were introduced.
+
+## Task 150 — Backend background jobs for scan/index
+
+Scan and Build search context now have backend job endpoints. The frontend starts explicit scan/index jobs, polls job status, and can request backend job cancellation instead of only aborting the browser request. Job status includes queued, running, completed, failed, and cancelled states, plus result summaries and error messages.
+
+The original synchronous scan/index endpoints remain available for compatibility, but the guided setup flow uses the new job endpoints. Starting and cancelling jobs still requires explicit user clicks. The frontend does not execute shell commands, does not run scan/index automatically, does not delete local files, and does not change model/runtime settings.

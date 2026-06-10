@@ -11,6 +11,7 @@ import type {
   FileSelectionRulesRequest,
   WorkspaceDashboard,
   WorkspaceIndexResponse,
+  WorkspaceJob,
   WorkspaceModelsDashboard,
   UpdateWorkspaceModelSelectionRequest,
   WorkspaceModelSelection,
@@ -132,6 +133,49 @@ export function indexWorkspace(
 ): Promise<WorkspaceIndexResponse> {
   return requestJson<WorkspaceIndexResponse>(`/workspaces/${workspaceId}/index`, {
     signal: options.signal,
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+}
+
+
+export function startScanWorkspaceJob(
+  workspaceId: string,
+  fileRules?: FileSelectionRulesRequest,
+): Promise<WorkspaceJob> {
+  return requestJson<WorkspaceJob>(`/workspaces/${workspaceId}/jobs/scan`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      ...(fileRules ? { "Content-Type": "application/json" } : {}),
+    },
+    ...(fileRules ? { body: JSON.stringify({ file_rules: fileRules }) } : {}),
+  });
+}
+
+export function startIndexWorkspaceJob(workspaceId: string): Promise<WorkspaceJob> {
+  return requestJson<WorkspaceJob>(`/workspaces/${workspaceId}/jobs/index`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+}
+
+export function getWorkspaceJob(
+  workspaceId: string,
+  jobId: string,
+): Promise<WorkspaceJob> {
+  return getJson<WorkspaceJob>(`/workspaces/${workspaceId}/jobs/${jobId}`);
+}
+
+export function cancelWorkspaceJob(
+  workspaceId: string,
+  jobId: string,
+): Promise<WorkspaceJob> {
+  return requestJson<WorkspaceJob>(`/workspaces/${workspaceId}/jobs/${jobId}/cancel`, {
     method: "POST",
     headers: {
       Accept: "application/json",
