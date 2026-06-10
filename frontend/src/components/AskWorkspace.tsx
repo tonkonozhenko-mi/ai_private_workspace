@@ -6,9 +6,12 @@ import {
   deleteWorkspaceAnswerNote,
   deleteWorkspaceConversation,
   exportWorkspaceConversation,
+  getConversationContextPreview,
   getWorkspaceConversation,
   listWorkspaceAnswerNotes,
   listWorkspaceConversations,
+  updateWorkspaceAnswerNote,
+  updateWorkspaceAnswerNotePinned,
   updateWorkspaceConversationArchived,
   updateWorkspaceConversationPinned,
   saveConversationAnswerNote,
@@ -21,6 +24,7 @@ import type {
   WorkspaceQuestionAnswer,
   SkillContextRequest,
   ConversationAnswerNote,
+  ConversationContextPreview,
   WorkspaceConversation,
 } from "../api/types";
 import { EmptyState } from "./EmptyState";
@@ -111,7 +115,10 @@ export function AskWorkspace({
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [conversationLoading, setConversationLoading] = useState(false);
   const [conversationSearch, setConversationSearch] = useState("");
+  const [answerNoteSearch, setAnswerNoteSearch] = useState("");
+  const [answerNotesPinnedOnly, setAnswerNotesPinnedOnly] = useState(false);
   const [answerNotes, setAnswerNotes] = useState<ConversationAnswerNote[]>([]);
+  const [conversationContextPreview, setConversationContextPreview] = useState<ConversationContextPreview | null>(null);
   const [conversationStatus, setConversationStatus] = useState<string | null>(null);
   const [showArchivedConversations, setShowArchivedConversations] = useState(false);
   const [pinnedOnlyConversations, setPinnedOnlyConversations] = useState(false);
@@ -133,7 +140,10 @@ export function AskWorkspace({
     setShowArchivedConversations(false);
     setPinnedOnlyConversations(false);
     void refreshConversations({ search: "", includeArchived: false, pinnedOnly: false });
-    void refreshAnswerNotes();
+    setAnswerNoteSearch("");
+    setAnswerNotesPinnedOnly(false);
+    setConversationContextPreview(null);
+    void refreshAnswerNotes({ search: "", pinnedOnly: false });
   }, [workspaceId]);
 
   useEffect(() => {
@@ -142,6 +152,13 @@ export function AskWorkspace({
     }, 250);
     return () => window.clearTimeout(timeout);
   }, [conversationSearch, showArchivedConversations, pinnedOnlyConversations]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      void refreshAnswerNotes();
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [answerNoteSearch, answerNotesPinnedOnly]);
 
   async function refreshConversations(
     options: { search?: string; includeArchived?: boolean; pinnedOnly?: boolean } = {},
@@ -158,9 +175,14 @@ export function AskWorkspace({
     }
   }
 
-  async function refreshAnswerNotes() {
+  async function refreshAnswerNotes(
+    options: { search?: string; pinnedOnly?: boolean } = {},
+  ) {
     try {
-      const notes = await listWorkspaceAnswerNotes(workspaceId);
+      const notes = await listWorkspaceAnswerNotes(workspaceId, {
+        search: options.search ?? answerNoteSearch,
+        pinnedOnly: options.pinnedOnly ?? answerNotesPinnedOnly,
+      });
       setAnswerNotes(notes);
     } catch {
       setAnswerNotes([]);
@@ -200,6 +222,62 @@ export function AskWorkspace({
       setConversationStatus("Saved answer note");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not save answer note.");
+    } finally {
+      setConversationLoading(false);
+    }
+  }
+
+  async function editAnswerNote(note: ConversationAnswerNote) {
+    const nextTitle = window.prompt("Edit note title", note.title);
+    if (nextTitle === null || nextTitle.trim().length === 0) {
+      return;
+    }
+    const nextContent = window.prompt("Edit note content", note.content);
+    if (nextContent === null || nextContent.trim().length === 0) {
+      return;
+    }
+    setConversationLoading(true);
+    setConversationStatus(null);
+    setError(null);
+    try {
+      await updateWorkspaceAnswerNote(workspaceId, note.id, {
+        title: nextTitle.trim(),
+        content: nextContent.trim(),
+      });
+      await refreshAnswerNotes();
+      setConversationStatus("Updated answer note");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not update answer note.");
+    } finally {
+      setConversationLoading(false);
+    }
+  }
+
+  async function toggleAnswerNotePinned(noteId: string, pinned: boolean) {
+    setConversationLoading(true);
+    setConversationStatus(null);
+    setError(null);
+    try {
+      await updateWorkspaceAnswerNotePinned(workspaceId, noteId, pinned);
+      await refreshAnswerNotes();
+      setConversationStatus(pinned ? "Pinned answer note" : "Unpinned answer note");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not update answer note pin state.");
+    } finally {
+      setConversationLoading(false);
+    }
+  }
+
+  async function previewConversationContext(conversationId: string) {
+    setConversationLoading(true);
+    setConversationStatus(null);
+    setError(null);
+    try {
+      const preview = await getConversationContextPreview(workspaceId, conversationId);
+      setConversationContextPreview(preview);
+      setConversationStatus("Prepared conversation context preview");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not prepare conversation context preview.");
     } finally {
       setConversationLoading(false);
     }
@@ -399,6 +477,9 @@ export function AskWorkspace({
           conversationLoading={conversationLoading}
           conversationSearch={conversationSearch}
           answerNotes={answerNotes}
+          answerNoteSearch={answerNoteSearch}
+          answerNotesPinnedOnly={answerNotesPinnedOnly}
+          conversationContextPreview={conversationContextPreview}
           conversationStatus={conversationStatus}
           showArchivedConversations={showArchivedConversations}
           pinnedOnlyConversations={pinnedOnlyConversations}
@@ -413,6 +494,11 @@ export function AskWorkspace({
           onExportConversation={(conversationId, format) => void exportConversation(conversationId, format)}
           onSaveAnswerNote={(answer) => void saveAnswerNote(answer)}
           onDeleteAnswerNote={(noteId) => void deleteAnswerNote(noteId)}
+          onEditAnswerNote={(note) => void editAnswerNote(note)}
+          onToggleAnswerNotePinned={(noteId, pinned) => void toggleAnswerNotePinned(noteId, pinned)}
+          onSearchAnswerNotes={setAnswerNoteSearch}
+          onToggleAnswerNotesPinnedOnly={setAnswerNotesPinnedOnly}
+          onPreviewConversationContext={(conversationId) => void previewConversationContext(conversationId)}
           onTogglePinned={(conversationId, pinned) => void toggleConversationPinned(conversationId, pinned)}
           onToggleArchived={(conversationId, archived) => void toggleConversationArchived(conversationId, archived)}
           onSearch={setConversationSearch}
@@ -515,6 +601,9 @@ function ConversationPanel({
   conversationLoading,
   conversationSearch,
   answerNotes,
+  answerNoteSearch,
+  answerNotesPinnedOnly,
+  conversationContextPreview,
   conversationStatus,
   showArchivedConversations,
   pinnedOnlyConversations,
@@ -529,6 +618,11 @@ function ConversationPanel({
   onExportConversation,
   onSaveAnswerNote,
   onDeleteAnswerNote,
+  onEditAnswerNote,
+  onToggleAnswerNotePinned,
+  onSearchAnswerNotes,
+  onToggleAnswerNotesPinnedOnly,
+  onPreviewConversationContext,
   onTogglePinned,
   onToggleArchived,
   onSearch,
@@ -542,6 +636,9 @@ function ConversationPanel({
   conversationLoading: boolean;
   conversationSearch: string;
   answerNotes: ConversationAnswerNote[];
+  answerNoteSearch: string;
+  answerNotesPinnedOnly: boolean;
+  conversationContextPreview: ConversationContextPreview | null;
   conversationStatus: string | null;
   showArchivedConversations: boolean;
   pinnedOnlyConversations: boolean;
@@ -556,6 +653,11 @@ function ConversationPanel({
   onExportConversation: (conversationId: string, format: "markdown" | "text" | "json") => void;
   onSaveAnswerNote: (answer: WorkspaceQuestionAnswer) => void;
   onDeleteAnswerNote: (noteId: string) => void;
+  onEditAnswerNote: (note: ConversationAnswerNote) => void;
+  onToggleAnswerNotePinned: (noteId: string, pinned: boolean) => void;
+  onSearchAnswerNotes: (search: string) => void;
+  onToggleAnswerNotesPinnedOnly: (pinnedOnly: boolean) => void;
+  onPreviewConversationContext: (conversationId: string) => void;
   onTogglePinned: (conversationId: string, pinned: boolean) => void;
   onToggleArchived: (conversationId: string, archived: boolean) => void;
   onSearch: (search: string) => void;
@@ -575,6 +677,9 @@ function ConversationPanel({
           showArchived={showArchivedConversations}
           pinnedOnly={pinnedOnlyConversations}
           answerNotes={answerNotes}
+          answerNoteSearch={answerNoteSearch}
+          answerNotesPinnedOnly={answerNotesPinnedOnly}
+          conversationContextPreview={conversationContextPreview}
           conversationStatus={conversationStatus}
           onNewConversation={onNewConversation}
           onOpenConversation={onOpenConversation}
@@ -582,6 +687,11 @@ function ConversationPanel({
           onDeleteConversation={onDeleteConversation}
           onExportConversation={onExportConversation}
           onDeleteAnswerNote={onDeleteAnswerNote}
+          onEditAnswerNote={onEditAnswerNote}
+          onToggleAnswerNotePinned={onToggleAnswerNotePinned}
+          onSearchAnswerNotes={onSearchAnswerNotes}
+          onToggleAnswerNotesPinnedOnly={onToggleAnswerNotesPinnedOnly}
+          onPreviewConversationContext={onPreviewConversationContext}
           onTogglePinned={onTogglePinned}
           onToggleArchived={onToggleArchived}
           onSearch={onSearch}
@@ -603,6 +713,9 @@ function ConversationPanel({
         showArchived={showArchivedConversations}
         pinnedOnly={pinnedOnlyConversations}
         answerNotes={answerNotes}
+        answerNoteSearch={answerNoteSearch}
+        answerNotesPinnedOnly={answerNotesPinnedOnly}
+        conversationContextPreview={conversationContextPreview}
         conversationStatus={conversationStatus}
         onNewConversation={onNewConversation}
         onOpenConversation={onOpenConversation}
@@ -610,6 +723,11 @@ function ConversationPanel({
         onDeleteConversation={onDeleteConversation}
         onExportConversation={onExportConversation}
         onDeleteAnswerNote={onDeleteAnswerNote}
+        onEditAnswerNote={onEditAnswerNote}
+        onToggleAnswerNotePinned={onToggleAnswerNotePinned}
+        onSearchAnswerNotes={onSearchAnswerNotes}
+        onToggleAnswerNotesPinnedOnly={onToggleAnswerNotesPinnedOnly}
+        onPreviewConversationContext={onPreviewConversationContext}
         onTogglePinned={onTogglePinned}
         onToggleArchived={onToggleArchived}
         onSearch={onSearch}
@@ -665,6 +783,9 @@ function ConversationHistoryBar({
   showArchived,
   pinnedOnly,
   answerNotes,
+  answerNoteSearch,
+  answerNotesPinnedOnly,
+  conversationContextPreview,
   conversationStatus,
   onNewConversation,
   onOpenConversation,
@@ -672,6 +793,11 @@ function ConversationHistoryBar({
   onDeleteConversation,
   onExportConversation,
   onDeleteAnswerNote,
+  onEditAnswerNote,
+  onToggleAnswerNotePinned,
+  onSearchAnswerNotes,
+  onToggleAnswerNotesPinnedOnly,
+  onPreviewConversationContext,
   onTogglePinned,
   onToggleArchived,
   onSearch,
@@ -685,6 +811,9 @@ function ConversationHistoryBar({
   showArchived: boolean;
   pinnedOnly: boolean;
   answerNotes: ConversationAnswerNote[];
+  answerNoteSearch: string;
+  answerNotesPinnedOnly: boolean;
+  conversationContextPreview: ConversationContextPreview | null;
   conversationStatus: string | null;
   onNewConversation: () => void;
   onOpenConversation: (conversationId: string) => void;
@@ -692,6 +821,11 @@ function ConversationHistoryBar({
   onDeleteConversation: (conversationId: string) => void;
   onExportConversation: (conversationId: string, format: "markdown" | "text" | "json") => void;
   onDeleteAnswerNote: (noteId: string) => void;
+  onEditAnswerNote: (note: ConversationAnswerNote) => void;
+  onToggleAnswerNotePinned: (noteId: string, pinned: boolean) => void;
+  onSearchAnswerNotes: (search: string) => void;
+  onToggleAnswerNotesPinnedOnly: (pinnedOnly: boolean) => void;
+  onPreviewConversationContext: (conversationId: string) => void;
   onTogglePinned: (conversationId: string, pinned: boolean) => void;
   onToggleArchived: (conversationId: string, archived: boolean) => void;
   onSearch: (search: string) => void;
@@ -826,7 +960,35 @@ function ConversationHistoryBar({
       {conversationStatus ? <p className="conversation-history-status">{conversationStatus}</p> : null}
 
       {answerNotes.length > 0 ? (
-        <AnswerNotesPanel notes={answerNotes} loading={loading} onDeleteAnswerNote={onDeleteAnswerNote} />
+        <AnswerNotesPanel
+          notes={answerNotes}
+          loading={loading}
+          search={answerNoteSearch}
+          pinnedOnly={answerNotesPinnedOnly}
+          onSearch={onSearchAnswerNotes}
+          onTogglePinnedOnly={onToggleAnswerNotesPinnedOnly}
+          onEditAnswerNote={onEditAnswerNote}
+          onToggleAnswerNotePinned={onToggleAnswerNotePinned}
+          onDeleteAnswerNote={onDeleteAnswerNote}
+        />
+      ) : null}
+
+      {activeConversation ? (
+        <div className="conversation-context-actions">
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={loading}
+            onClick={() => onPreviewConversationContext(activeConversation.id)}
+          >
+            Prepare context preview
+          </button>
+          <span>This prepares reusable context only. It does not inject history into Ask automatically.</span>
+        </div>
+      ) : null}
+
+      {conversationContextPreview ? (
+        <ConversationContextPreviewCard preview={conversationContextPreview} />
       ) : null}
 
       {activeConversation ? (
@@ -839,10 +1001,22 @@ function ConversationHistoryBar({
 function AnswerNotesPanel({
   notes,
   loading,
+  search,
+  pinnedOnly,
+  onSearch,
+  onTogglePinnedOnly,
+  onEditAnswerNote,
+  onToggleAnswerNotePinned,
   onDeleteAnswerNote,
 }: {
   notes: ConversationAnswerNote[];
   loading: boolean;
+  search: string;
+  pinnedOnly: boolean;
+  onSearch: (search: string) => void;
+  onTogglePinnedOnly: (pinnedOnly: boolean) => void;
+  onEditAnswerNote: (note: ConversationAnswerNote) => void;
+  onToggleAnswerNotePinned: (noteId: string, pinned: boolean) => void;
   onDeleteAnswerNote: (noteId: string) => void;
 }) {
   return (
@@ -850,22 +1024,57 @@ function AnswerNotesPanel({
       <div>
         <p className="eyebrow">Reusable notes</p>
         <strong>Saved answer snippets</strong>
-        <p>Save useful AI answers here, then copy them into docs, tickets, or reports.</p>
+        <p>Search, pin, edit, and reuse useful AI answers in docs, tickets, or reports.</p>
+      </div>
+      <div className="conversation-history-tools answer-notes-tools">
+        <label>
+          Search notes
+          <input
+            type="search"
+            value={search}
+            placeholder="Search title, note text, question, or source..."
+            onChange={(event) => onSearch(event.target.value)}
+          />
+        </label>
+        <label className="inline-toggle">
+          <input
+            type="checkbox"
+            checked={pinnedOnly}
+            onChange={(event) => onTogglePinnedOnly(event.target.checked)}
+          />
+          Pinned notes only
+        </label>
       </div>
       <div className="answer-notes-list">
-        {notes.slice(0, 5).map((note) => (
-          <article key={note.id} className="answer-note-card">
+        {notes.slice(0, 8).map((note) => (
+          <article key={note.id} className={`answer-note-card ${note.is_pinned ? "is-pinned" : ""}`}>
             <div>
-              <strong>{note.title}</strong>
+              <strong>{note.is_pinned ? "★ " : ""}{note.title}</strong>
               <span>{formatDateTime(note.updated_at)}</span>
             </div>
             {note.source_question ? <p><b>Question:</b> {note.source_question}</p> : null}
             {note.source_paths.length > 0 ? (
               <p><b>Sources:</b> {note.source_paths.slice(0, 3).join(" · ")}{note.source_paths.length > 3 ? ` +${note.source_paths.length - 3} more` : ""}</p>
             ) : null}
-            <p>{truncateText(note.content, 220)}</p>
+            <p>{truncateText(note.content, 260)}</p>
             <div className="answer-note-actions">
               <CopyButton text={note.content} label="note" />
+              <button
+                className="text-button"
+                type="button"
+                disabled={loading}
+                onClick={() => onToggleAnswerNotePinned(note.id, !note.is_pinned)}
+              >
+                {note.is_pinned ? "Unpin" : "Pin"}
+              </button>
+              <button
+                className="text-button"
+                type="button"
+                disabled={loading}
+                onClick={() => onEditAnswerNote(note)}
+              >
+                Edit
+              </button>
               <button
                 className="text-button danger-text-button"
                 type="button"
@@ -879,6 +1088,26 @@ function AnswerNotesPanel({
         ))}
       </div>
     </section>
+  );
+}
+
+function ConversationContextPreviewCard({ preview }: { preview: ConversationContextPreview }) {
+  return (
+    <article className="conversation-context-preview-card" aria-label="Conversation context preview">
+      <div>
+        <p className="eyebrow">Context preparation</p>
+        <strong>{preview.title}</strong>
+        <p>{preview.safety_note}</p>
+      </div>
+      <div className="conversation-detail-grid">
+        <span><b>{preview.questions_count}</b> questions</span>
+        <span><b>{preview.answers_count}</b> answers</span>
+        <span><b>{preview.notes_count}</b> notes</span>
+        <span><b>{preview.source_paths.length}</b> source paths</span>
+      </div>
+      <pre>{preview.reusable_context}</pre>
+      <CopyButton text={preview.reusable_context} label="context preview" />
+    </article>
   );
 }
 

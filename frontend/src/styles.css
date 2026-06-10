@@ -10309,3 +10309,51 @@ button:focus-visible {
   font-size: 0.82rem;
   margin: 0;
 }
+
+/* Task 169 — conversation knowledge base polish */
+.answer-notes-tools {
+  margin-top: 0.75rem;
+}
+
+.answer-note-card.is-pinned {
+  border-color: rgba(64, 99, 255, 0.32);
+  box-shadow: 0 12px 30px rgba(20, 29, 54, 0.08);
+}
+
+.conversation-context-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  background: var(--surface-muted);
+}
+
+.conversation-context-actions span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.conversation-context-preview-card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  background: var(--surface-card);
+}
+
+.conversation-context-preview-card pre {
+  max-height: 280px;
+  overflow: auto;
+  padding: 0.85rem;
+  border-radius: 14px;
+  background: var(--surface-muted);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}

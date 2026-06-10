@@ -252,6 +252,19 @@ export interface ConversationAnswerNote {
   source_paths: string[];
   created_at: string;
   updated_at: string;
+  pinned_at?: string | null;
+  is_pinned: boolean;
+}
+
+export interface ConversationContextPreview {
+  conversation_id: string;
+  title: string;
+  questions_count: number;
+  answers_count: number;
+  notes_count: number;
+  source_paths: string[];
+  reusable_context: string;
+  safety_note: string;
 }
 
 export interface WorkspaceConversation {
