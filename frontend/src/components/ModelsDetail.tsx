@@ -12,6 +12,7 @@ import {
   getWorkspaceMCPToolInventory,
   listWorkspaceMCPConfigs,
   previewWorkspaceMCPApproval,
+  previewAgentWorkflowStepApproval,
   getAgentCapabilities,
   getMCPServerCatalog,
   listAgentWorkflows,
@@ -21,6 +22,7 @@ import {
   runModelExperiment,
   saveModelExperimentRating,
   updateAgentWorkflowStep,
+  updateAgentWorkflowStepApproval,
   updateWorkspaceMCPConfig,
   updateWorkspaceModelSelection,
 } from "../api/client";
@@ -29,6 +31,7 @@ import type {
   AgentCapabilityCatalog,
   AgentPlanningPreview,
   AgentWorkflow,
+  AgentWorkflowStepApprovalPreview,
   MCPServerCatalog,
   MCPServerConfigPreview,
   MCPServerConnectionCheck,
@@ -486,6 +489,7 @@ function AgentModeReadinessPanel({
   const [workflows, setWorkflows] = useState<AgentWorkflow[]>([]);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
   const [isSavingWorkflow, setIsSavingWorkflow] = useState(false);
+  const [stepApprovalPreview, setStepApprovalPreview] = useState<AgentWorkflowStepApprovalPreview | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -577,6 +581,31 @@ function AgentModeReadinessPanel({
     }
   }
 
+  async function handleApprovalPreview(workflow: AgentWorkflow, stepId: string) {
+    setWorkflowError(null);
+    try {
+      const result = await previewAgentWorkflowStepApproval(workspaceId, workflow.id, stepId);
+      setStepApprovalPreview(result);
+    } catch (error) {
+      setWorkflowError(errorMessage(error));
+    }
+  }
+
+  async function handleStepApproval(workflow: AgentWorkflow, stepId: string, approvalStatus: "approved" | "rejected" | "revoked") {
+    setWorkflowError(null);
+    try {
+      const updated = await updateAgentWorkflowStepApproval(workspaceId, workflow.id, stepId, {
+        approval_status: approvalStatus,
+        approval_note: approvalStatus === "approved"
+          ? "Approved for manual tracking. No automatic execution was performed."
+          : "Marked by user in the manual approval gate.",
+      });
+      setWorkflows((current) => current.map((item) => item.id === updated.id ? updated : item));
+    } catch (error) {
+      setWorkflowError(errorMessage(error));
+    }
+  }
+
   async function handleArchiveWorkflow(workflow: AgentWorkflow) {
     setWorkflowError(null);
     try {
@@ -604,7 +633,7 @@ function AgentModeReadinessPanel({
           <p className="eyebrow">Agent capability</p>
           <h2>Safe agent planning mode</h2>
           <p className="panel-intro">
-            Some open-source LLMs can follow multi-step instructions or tool-style plans. In this workspace agent mode is planning-only: no automatic shell commands, edits, scan, index, rebuild, or restart.
+            This is the bridge toward Claude Code/Codex-style work: the model can plan a task, map steps to approved tools, and track manual progress. It still never executes commands, edits files, scans, indexes, rebuilds, or restarts by itself.
           </p>
         </div>
         <StatusBadge label={selectedCapability?.readiness ?? "Checking"} />
@@ -639,10 +668,17 @@ function AgentModeReadinessPanel({
         </div>
       </div>
 
+      <div className="agent-execution-ladder">
+        <div><strong>1. Plan</strong><span>LLM creates a step-by-step draft.</span></div>
+        <div><strong>2. Approve</strong><span>User reviews tool gates and risk.</span></div>
+        <div><strong>3. Run manually</strong><span>Commands stay outside the browser UI.</span></div>
+        <div><strong>4. Verify</strong><span>Paste evidence and mark step status.</span></div>
+      </div>
+
       <div className="agent-guardrail-strip">
         <strong>Guardrails</strong>
         <span>Plans are reviewable guidance only.</span>
-        <span>Every action stays explicit and user-confirmed.</span>
+        <span>Every risky action needs approval.</span>
         <span>Facts still need retrieved sources.</span>
       </div>
 
@@ -683,7 +719,7 @@ function AgentModeReadinessPanel({
             <button type="button" onClick={handleSaveWorkflowDraft} disabled={isSavingWorkflow}>
               {isSavingWorkflow ? "Saving…" : "Save as manual workflow"}
             </button>
-            <span>Track steps manually; nothing runs automatically.</span>
+            <span>Saved workflows add approval gates and step tracking. Nothing runs automatically.</span>
           </div>
           <p className="muted-text">{preview.safety_note}</p>
         </div>
@@ -693,22 +729,22 @@ function AgentModeReadinessPanel({
         <div className="panel-heading-row compact">
           <div>
             <p className="eyebrow">Manual workflow drafts</p>
-            <h3>Agent plans you can track step by step</h3>
+            <h3>Approval-gated agent plans</h3>
           </div>
           <button type="button" className="secondary-button" onClick={() => void loadAgentWorkflows()}>Refresh</button>
         </div>
         {workflowError ? <p className="form-error">{workflowError}</p> : null}
         {workflows.length === 0 ? (
-          <p className="muted-text">No saved agent workflow drafts yet. Preview a plan, then save it for manual tracking.</p>
+          <p className="muted-text">No saved agent workflow drafts yet. Preview a plan, then save it for approval-gated tracking.</p>
         ) : (
           <div className="agent-workflow-list">
             {workflows.map((workflow) => (
               <article key={workflow.id} className="agent-workflow-card">
                 <div className="agent-workflow-header">
                   <div>
-                    <span className="eyebrow">{formatLabel(workflow.status)} · {workflow.progress_percent}%</span>
+                    <span className="eyebrow">{formatLabel(workflow.status)} · {workflow.progress_percent}% · {formatLabel(workflow.approval_readiness)}</span>
                     <h4>{workflow.title}</h4>
-                    <p>{workflow.provider}/{workflow.model} · {formatLabel(workflow.readiness)}</p>
+                    <p>{workflow.provider}/{workflow.model} · approvals {workflow.approved_steps_count}/{workflow.approval_required_steps_count}</p>
                   </div>
                   <div className="agent-workflow-actions">
                     <button type="button" className="secondary-button" onClick={() => void handleArchiveWorkflow(workflow)}>Archive</button>
@@ -717,20 +753,33 @@ function AgentModeReadinessPanel({
                 </div>
                 <div className="agent-workflow-progress"><span style={{ width: `${workflow.progress_percent}%` }} /></div>
                 <ol className="agent-workflow-steps">
-                  {workflow.steps.map((step) => (
+                  {workflow.steps.map((step) => {
+                    const blockedByApproval = step.requires_user_confirmation && step.approval_status !== "approved";
+                    return (
                     <li key={step.id}>
                       <div>
                         <strong>{step.title}</strong>
                         <p>{step.description}</p>
-                        <span>{formatLabel(step.status)} · {step.requires_user_confirmation ? "Manual confirmation" : "Read-only"}</span>
+                        <span>
+                          {formatLabel(step.status)} · approval {formatLabel(step.approval_status)} · {step.proposed_tool ?? "manual checkpoint"} · {formatLabel(step.tool_risk)}
+                        </span>
+                        {step.execution_hint ? <small>{step.execution_hint}</small> : null}
                       </div>
                       <div className="agent-step-actions">
-                        <button type="button" onClick={() => void handleStepStatus(workflow, step.id, "done")}>Done</button>
+                        <button type="button" className="secondary-button" onClick={() => void handleApprovalPreview(workflow, step.id)}>Gate</button>
+                        {step.requires_user_confirmation ? (
+                          <>
+                            <button type="button" onClick={() => void handleStepApproval(workflow, step.id, "approved")}>Approve</button>
+                            <button type="button" className="secondary-button" onClick={() => void handleStepApproval(workflow, step.id, "rejected")}>Reject</button>
+                          </>
+                        ) : null}
+                        <button type="button" onClick={() => void handleStepStatus(workflow, step.id, "done")} disabled={blockedByApproval}>Done</button>
                         <button type="button" onClick={() => void handleStepStatus(workflow, step.id, "needs_review")}>Review</button>
                         <button type="button" onClick={() => void handleStepStatus(workflow, step.id, "skipped")}>Skip</button>
                       </div>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ol>
                 <p className="muted-text">{workflow.safety_note}</p>
               </article>
@@ -738,6 +787,32 @@ function AgentModeReadinessPanel({
           </div>
         )}
       </div>
+
+      {stepApprovalPreview ? (
+        <div className="agent-approval-preview-card">
+          <div className="panel-heading-row compact">
+            <div>
+              <p className="eyebrow">Approval gate preview</p>
+              <h3>{stepApprovalPreview.title}</h3>
+            </div>
+            <StatusBadge label={stepApprovalPreview.tool_risk} />
+          </div>
+          <p><strong>Proposed tool:</strong> {stepApprovalPreview.proposed_tool ?? "Manual checkpoint"}</p>
+          <p><strong>Execution:</strong> {stepApprovalPreview.execution_hint}</p>
+          <p><strong>Evidence:</strong> {stepApprovalPreview.evidence_hint}</p>
+          <div className="agent-approval-grid">
+            <div>
+              <strong>Approval checklist</strong>
+              <ul>{stepApprovalPreview.approval_checklist.map((item) => <li key={item}>{item}</li>)}</ul>
+            </div>
+            <div>
+              <strong>Blocked actions</strong>
+              <ul>{stepApprovalPreview.blocked_actions.map((item) => <li key={item}>{item}</li>)}</ul>
+            </div>
+          </div>
+          <p className="muted-text">{stepApprovalPreview.safety_note}</p>
+        </div>
+      ) : null}
     </section>
   );
 }

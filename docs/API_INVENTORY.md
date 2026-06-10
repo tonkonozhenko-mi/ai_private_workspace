@@ -45,7 +45,9 @@ filesystem, provider, or command-runner activity outside SQLite repositories.
 | `GET /workspaces/{workspace_id}/agent-workflows` | List saved manual agent workflow drafts for a workspace. | No | No | No | Agent workflow tracking |
 | `POST /workspaces/{workspace_id}/agent-workflows` | Save a safe planning preview as a manual workflow checklist. | Workflow draft | No | No | Agent workflow tracking |
 | `GET /workspaces/{workspace_id}/agent-workflows/{workflow_id}` | Open a saved manual agent workflow. | No | No | No | Agent workflow tracking |
-| `PATCH /workspaces/{workspace_id}/agent-workflows/{workflow_id}/steps/{step_id}` | Mark a manual agent workflow step as todo, in progress, done, skipped, or needing review. | Workflow step status | No | No | Agent workflow tracking |
+| `PATCH /workspaces/{workspace_id}/agent-workflows/{workflow_id}/steps/{step_id}` | Mark a manual agent workflow step as todo, in progress, done, skipped, or needing review. Requires approval before in-progress/done for gated steps. | Workflow step status | No | No | Agent workflow tracking |
+| `POST /workspaces/{workspace_id}/agent-workflows/{workflow_id}/steps/{step_id}/approval-preview` | Show a copy-only approval gate plan for a workflow step, including proposed tool, risk, evidence, and blocked actions. | Approval preview | No | No | Agent approval gates |
+| `PATCH /workspaces/{workspace_id}/agent-workflows/{workflow_id}/steps/{step_id}/approval` | Record user approval/rejection intent for a workflow step. Does not execute tools or commands. | Approval status | No | No | Agent approval gates |
 | `PATCH /workspaces/{workspace_id}/agent-workflows/{workflow_id}/archive` | Archive or restore a manual agent workflow draft. | Workflow archived flag | No | No | Agent workflow tracking |
 | `DELETE /workspaces/{workspace_id}/agent-workflows/{workflow_id}` | Delete a saved manual agent workflow draft. | Workflow delete | No | No | Agent workflow tracking |
 | `POST /models/switching-plan` | Explain deterministic restart, reindex, and collection impact before switching a model. | No | No | No | Model selection/experiments |

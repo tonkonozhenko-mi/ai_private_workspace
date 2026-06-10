@@ -6,13 +6,17 @@ from app.api.schemas.agent_workflow_schemas import (
     AgentWorkflowListResponse,
     AgentWorkflowResponse,
     CreateAgentWorkflowRequest,
+    UpdateAgentWorkflowStepApprovalRequest,
     UpdateAgentWorkflowStepRequest,
+    to_agent_step_approval_preview_response,
     to_agent_workflow_response,
 )
 from app.core.domain.agent_capability import build_agent_capability, build_agent_planning_preview
 from app.core.domain.agent_workflow import (
     archive_agent_workflow,
+    build_step_approval_preview,
     create_agent_workflow_from_preview,
+    update_workflow_step_approval,
     update_workflow_step_status,
 )
 
@@ -71,6 +75,42 @@ def update_agent_workflow_step(
     workflow = _require_workflow(workspace_id, workflow_id)
     try:
         updated = update_workflow_step_status(workflow, step_id=step_id, status=request.status, notes=request.notes)
+    except KeyError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent workflow step not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return to_agent_workflow_response(agent_workflow_repository.save_workflow(updated))
+
+
+@router.post("/{workflow_id}/steps/{step_id}/approval-preview")
+def preview_agent_workflow_step_approval(
+    workspace_id: str,
+    workflow_id: str,
+    step_id: str,
+):
+    workflow = _require_workflow(workspace_id, workflow_id)
+    try:
+        preview = build_step_approval_preview(workflow, step_id=step_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent workflow step not found") from exc
+    return to_agent_step_approval_preview_response(preview)
+
+
+@router.patch("/{workflow_id}/steps/{step_id}/approval", response_model=AgentWorkflowResponse)
+def update_agent_workflow_step_approval(
+    workspace_id: str,
+    workflow_id: str,
+    step_id: str,
+    request: UpdateAgentWorkflowStepApprovalRequest,
+) -> AgentWorkflowResponse:
+    workflow = _require_workflow(workspace_id, workflow_id)
+    try:
+        updated = update_workflow_step_approval(
+            workflow,
+            step_id=step_id,
+            approval_status=request.approval_status,
+            approval_note=request.approval_note,
+        )
     except KeyError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent workflow step not found") from exc
     except ValueError as exc:

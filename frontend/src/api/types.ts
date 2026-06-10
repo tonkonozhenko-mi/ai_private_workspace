@@ -1041,6 +1041,13 @@ export interface AgentWorkflowStep {
   allowed_execution: string;
   verification: string;
   requires_user_confirmation: boolean;
+  approval_status: string;
+  approval_note: string | null;
+  proposed_tool: string | null;
+  tool_risk: string;
+  execution_hint: string | null;
+  evidence_hint: string | null;
+  approved_at: string | null;
   notes: string | null;
   updated_at: string | null;
 }
@@ -1059,6 +1066,10 @@ export interface AgentWorkflow {
   completed_steps_count: number;
   total_steps_count: number;
   progress_percent: number;
+  approval_required_steps_count: number;
+  approved_steps_count: number;
+  pending_approval_steps_count: number;
+  approval_readiness: string;
   guardrails: string[];
   unsupported_actions: string[];
   safety_note: string;
@@ -1083,6 +1094,27 @@ export interface CreateAgentWorkflowRequest {
 export interface UpdateAgentWorkflowStepRequest {
   status: "todo" | "in_progress" | "done" | "skipped" | "needs_review";
   notes?: string | null;
+}
+
+export interface UpdateAgentWorkflowStepApprovalRequest {
+  approval_status: "not_required" | "pending" | "approved" | "rejected" | "revoked";
+  approval_note?: string | null;
+}
+
+export interface AgentWorkflowStepApprovalPreview {
+  workflow_id: string;
+  step_id: string;
+  title: string;
+  approval_status: string;
+  proposed_tool: string | null;
+  tool_risk: string;
+  allowed_execution: string;
+  requires_user_confirmation: boolean;
+  execution_hint: string;
+  evidence_hint: string;
+  approval_checklist: string[];
+  blocked_actions: string[];
+  safety_note: string;
 }
 
 export interface CreateWorkspaceMCPConfigRequest {

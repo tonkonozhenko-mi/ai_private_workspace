@@ -1,6 +1,6 @@
 # AI Private Workspace — Project Checkpoint
 
-Last updated: Task 190
+Last updated: Task 191
 
 ## Working style
 
@@ -50,6 +50,7 @@ Last updated: Task 190
 - Task 188: manual agent workflow tracking
 - Task 189: MCP server registry foundation
 - Task 190: workspace MCP configs, tool inventory, and approval gates foundation
+- Task 191: agent approval-gated execution plan UI and step approval tracking
 
 ## Current focus
 
@@ -62,6 +63,8 @@ Safe Agent and MCP workflow, while preserving local-first safety:
 - workspace-saved MCP configs;
 - reviewed/approved MCP tool inventory;
 - approval gates before any future tool execution;
+- step approval preview with proposed tool, risk, evidence, and blocked actions;
+- workflow steps cannot be marked in progress/done until approved when confirmation is required;
 - no automatic shell/MCP/tool execution from the frontend.
 
 ## Packaging direction
@@ -80,6 +83,6 @@ The product is close to the original goal, but true two-click installation still
 - No external upload/share automation.
 - No shell execution from frontend.
 - No MCP server start from frontend.
-- No MCP tool execution until backend approval gates and sandbox execution exist.
+- No MCP tool execution. Approval gates record intent only until backend sandbox execution exists.
 - Skills guide answer style, but project facts must come from retrieved sources.
 - Reports and exports must remain source-backed and user-controlled.
