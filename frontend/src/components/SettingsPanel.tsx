@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { getLocalDataSafety, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
   FileSelectionPreview,
+  LocalDataSafety,
+  StartupChecklist,
 } from "../api/types";
 import {
   DEFAULT_FILE_INDEXING_PREFERENCES,
@@ -90,10 +92,67 @@ export function SettingsPanel({
   const [fileRulesPreview, setFileRulesPreview] = useState<FileSelectionPreview | null>(null);
   const [fileRulesPreviewMode, setFileRulesPreviewMode] = useState<"saved" | "draft" | null>(null);
   const [previewingFileRules, setPreviewingFileRules] = useState(false);
+  const [localDataSafety, setLocalDataSafety] = useState<LocalDataSafety | null>(null);
+  const [localDataSafetyError, setLocalDataSafetyError] = useState<string | null>(null);
+  const [localDataSafetyLoading, setLocalDataSafetyLoading] = useState(false);
+  const [startupChecklist, setStartupChecklist] = useState<StartupChecklist | null>(null);
+  const [startupChecklistError, setStartupChecklistError] = useState<string | null>(null);
+  const [startupChecklistLoading, setStartupChecklistLoading] = useState(false);
+
 
   useEffect(() => {
     setBackendUrlDraft(preferences.apiBaseUrl);
   }, [preferences.apiBaseUrl]);
+  useEffect(() => {
+    let cancelled = false;
+    setLocalDataSafetyLoading(true);
+    setLocalDataSafetyError(null);
+    getLocalDataSafety()
+      .then((diagnostics) => {
+        if (!cancelled) {
+          setLocalDataSafety(diagnostics);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setLocalDataSafetyError(error instanceof Error ? error.message : "Could not load local data diagnostics");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLocalDataSafetyLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setStartupChecklistLoading(true);
+    setStartupChecklistError(null);
+    getStartupChecklist()
+      .then((checklist) => {
+        if (!cancelled) {
+          setStartupChecklist(checklist);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setStartupChecklistError(error instanceof Error ? error.message : "Could not load startup checklist");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setStartupChecklistLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
 
   useEffect(() => {
     setInstructionDrafts(buildInstructionDrafts(preferences.skillPreferences));
@@ -1111,10 +1170,147 @@ export function SettingsPanel({
           <span>Sources stay visible</span>
         </div>
       </section>
+
+      <section className="panel settings-startup-checklist-panel">
+        <div className="settings-section-heading">
+          <div>
+            <p className="eyebrow">Startup checklist</p>
+            <h2>Local runtime readiness</h2>
+            <p>
+              Review the backend Python, database, models, and safe-update posture before daily work. Commands are shown for copy only.
+            </p>
+          </div>
+          <StatusBadge
+            label={startupChecklistLoading ? "Checking" : startupChecklist?.status === "ok" ? "Ready" : startupChecklist?.status === "blocked" ? "Blocked" : "Review"}
+            tone={startupChecklist?.status === "ok" ? "success" : startupChecklist?.status === "blocked" ? "danger" : "warning"}
+          />
+        </div>
+        {startupChecklistError ? (
+          <p className="settings-transfer-message">Could not load startup checklist: {startupChecklistError}</p>
+        ) : null}
+        {startupChecklist ? (
+          <>
+            <div className="startup-checklist-summary">
+              <strong>{startupChecklist.summary}</strong>
+              <span>{startupChecklist.safety_note}</span>
+            </div>
+            <div className="startup-checklist-grid">
+              {startupChecklist.items.map((item) => (
+                <div className={`startup-checklist-item is-${item.status}`} key={item.id}>
+                  <div className="startup-checklist-item-header">
+                    <div>
+                      <span>{item.title}</span>
+                      <strong>{item.summary}</strong>
+                    </div>
+                    <StatusBadge
+                      label={item.status === "ok" ? "OK" : item.status === "blocked" ? "Blocked" : "Review"}
+                      tone={item.status === "ok" ? "success" : item.status === "blocked" ? "danger" : "warning"}
+                    />
+                  </div>
+                  <p>{item.detail}</p>
+                  {item.copy_command ? (
+                    <div className="startup-checklist-command">
+                      {item.action_label ? <span>{item.action_label}</span> : null}
+                      <code>{item.copy_command}</code>
+                      <button
+                        className="secondary-action small"
+                        type="button"
+                        onClick={() => void navigator.clipboard.writeText(item.copy_command ?? "")}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </>
+        ) : null}
+      </section>
+
+      <section className="panel settings-local-data-panel">
+        <div className="settings-section-heading">
+          <div>
+            <p className="eyebrow">Local data safety</p>
+            <h2>Workspace database protection</h2>
+            <p>
+              Runtime workspace data is stored outside update archives. Keep these paths excluded when applying generated zips.
+            </p>
+          </div>
+          <StatusBadge
+            label={localDataSafetyLoading ? "Checking" : localDataSafety?.status === "ok" ? "Protected" : "Review"}
+            tone={localDataSafety?.status === "ok" ? "success" : "warning"}
+          />
+        </div>
+        {localDataSafetyError ? (
+          <p className="settings-transfer-message">Could not load diagnostics: {localDataSafetyError}</p>
+        ) : null}
+        {localDataSafety ? (
+          <>
+            <div className="local-data-grid">
+              <div>
+                <span>Database</span>
+                <strong>{localDataSafety.database_exists ? "Exists" : "Missing"}</strong>
+                <small>{formatBytes(localDataSafety.database_size_bytes)}</small>
+              </div>
+              <div>
+                <span>Workspaces</span>
+                <strong>{formatOptionalCount(localDataSafety.workspaces_count)}</strong>
+                <small>local DB records</small>
+              </div>
+              <div>
+                <span>Conversations</span>
+                <strong>{formatOptionalCount(localDataSafety.conversations_count)}</strong>
+                <small>saved history</small>
+              </div>
+              <div>
+                <span>Reports</span>
+                <strong>{formatOptionalCount(localDataSafety.saved_reports_count)}</strong>
+                <small>saved docs</small>
+              </div>
+            </div>
+            <div className="local-data-details">
+              <div>
+                <span>Active DB path</span>
+                <code>{localDataSafety.database_path}</code>
+              </div>
+              <div>
+                <span>Safe update excludes</span>
+                <code>{localDataSafety.safe_update_excludes.join(" ")}</code>
+              </div>
+              {localDataSafety.warnings.length > 0 ? (
+                <div>
+                  <span>Warnings</span>
+                  <ul>
+                    {localDataSafety.warnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          </>
+        ) : null}
+      </section>
     </div>
   );
 }
 
+
+
+function formatOptionalCount(value: number | null): string {
+  return typeof value === "number" ? String(value) : "—";
+}
+
+function formatBytes(value: number): string {
+  if (value < 1024) {
+    return `${value} B`;
+  }
+  if (value < 1024 * 1024) {
+    return `${(value / 1024).toFixed(1)} KB`;
+  }
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 
 function SkillTemplatePicker({

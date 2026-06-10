@@ -122,6 +122,49 @@ export interface WorkspacesOverview {
   items: WorkspaceOverviewItem[];
 }
 
+export interface LocalDataBackupHint {
+  label: string;
+  command: string;
+}
+
+export interface StartupChecklistItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  detail: string;
+  action_label: string | null;
+  copy_command: string | null;
+}
+
+export interface StartupChecklist {
+  status: string;
+  summary: string;
+  items: StartupChecklistItem[];
+  safe_to_continue: boolean;
+  safety_note: string;
+}
+
+export interface LocalDataSafety {
+  status: string;
+  app_data_dir: string;
+  database_path: string;
+  database_exists: boolean;
+  database_size_bytes: number;
+  repository: string;
+  vector_store: string;
+  llm_provider: string;
+  embedding_provider: string;
+  workspaces_count: number | null;
+  conversations_count: number | null;
+  saved_reports_count: number | null;
+  answer_notes_count: number | null;
+  warnings: string[];
+  protected_paths: string[];
+  safe_update_excludes: string[];
+  backup_hints: LocalDataBackupHint[];
+}
+
 export interface TimelineEvent {
   id: string;
   workspace_id: string;
