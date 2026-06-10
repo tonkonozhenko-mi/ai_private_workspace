@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { updateWorkspaceIndexingRules } from "../api/client";
+import { previewWorkspaceFileSelection, updateWorkspaceIndexingRules } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
+  FileSelectionPreview,
 } from "../api/types";
 import {
   DEFAULT_FILE_INDEXING_PREFERENCES,
@@ -68,6 +69,9 @@ export function SettingsPanel({
   }));
   const [fileRulesMessage, setFileRulesMessage] = useState("File rules saved in workspace.");
   const [savingFileRules, setSavingFileRules] = useState(false);
+  const [fileRulesPreview, setFileRulesPreview] = useState<FileSelectionPreview | null>(null);
+  const [fileRulesPreviewMode, setFileRulesPreviewMode] = useState<"saved" | "draft" | null>(null);
+  const [previewingFileRules, setPreviewingFileRules] = useState(false);
 
   useEffect(() => {
     setBackendUrlDraft(preferences.apiBaseUrl);
@@ -166,6 +170,52 @@ export function SettingsPanel({
     setFileRulesMessage("Unsaved file rule changes.");
   }
 
+  const hasUnsavedFileRules =
+    fileRulesDraft.includePatterns !== preferences.fileIndexingPreferences.includePatterns ||
+    fileRulesDraft.excludePatterns !== preferences.fileIndexingPreferences.excludePatterns;
+
+  async function previewFileRules(mode: "saved" | "draft") {
+    setPreviewingFileRules(true);
+    setFileRulesPreviewMode(mode);
+    setFileRulesMessage(
+      mode === "saved"
+        ? "Previewing saved workspace rules."
+        : "Previewing unsaved draft rules. Save them before scan/index if this looks right.",
+    );
+    try {
+      const draftPreferences = {
+        ...preferences.fileIndexingPreferences,
+        includePatterns: normalizePatternText(
+          fileRulesDraft.includePatterns,
+          DEFAULT_FILE_INDEXING_PREFERENCES.includePatterns,
+        ),
+        excludePatterns: normalizePatternText(
+          fileRulesDraft.excludePatterns,
+          DEFAULT_FILE_INDEXING_PREFERENCES.excludePatterns,
+        ),
+      };
+      setFileRulesPreview(
+        mode === "saved"
+          ? await previewWorkspaceFileSelection(dashboard.workspace_id)
+          : await previewWorkspaceFileSelection(
+              dashboard.workspace_id,
+              toFileSelectionRulesRequest(draftPreferences),
+            ),
+      );
+      setFileRulesMessage(
+        mode === "saved"
+          ? "Saved rules preview loaded."
+          : "Draft preview loaded. Save rules before scan/index to apply them.",
+      );
+    } catch (error) {
+      setFileRulesMessage(
+        `Could not preview file rules: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    } finally {
+      setPreviewingFileRules(false);
+    }
+  }
+
   async function saveFileRules() {
     const nextPreferences = {
       ...preferences.fileIndexingPreferences,
@@ -189,7 +239,9 @@ export function SettingsPanel({
         includePatterns: nextPreferences.includePatterns,
         excludePatterns: nextPreferences.excludePatterns,
       });
-      setFileRulesMessage("File rules saved to this workspace.");
+      setFileRulesPreview(null);
+      setFileRulesPreviewMode(null);
+      setFileRulesMessage("File rules saved to this workspace. Preview saved rules before scan/index.");
       onIndexingRulesSaved?.();
     } catch (error) {
       setFileRulesMessage(`Could not save workspace file rules: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -199,12 +251,13 @@ export function SettingsPanel({
   }
 
   function resetFileRules() {
-    updatePreference("fileIndexingPreferences", DEFAULT_FILE_INDEXING_PREFERENCES);
     setFileRulesDraft({
       includePatterns: DEFAULT_FILE_INDEXING_PREFERENCES.includePatterns,
       excludePatterns: DEFAULT_FILE_INDEXING_PREFERENCES.excludePatterns,
     });
-    setFileRulesMessage("File rules reset to safe defaults.");
+    setFileRulesPreview(null);
+    setFileRulesPreviewMode(null);
+    setFileRulesMessage("Draft reset to safe defaults. Save to apply these rules to the workspace.");
   }
 
   async function handleCopyPreferences() {
@@ -499,13 +552,28 @@ export function SettingsPanel({
         >
           <div className="settings-file-rule-summary">
             <div>
+              <strong>{countPatterns(preferences.fileIndexingPreferences.includePatterns)}</strong>
+              <span>saved include rules</span>
+            </div>
+            <div>
+              <strong>{countPatterns(preferences.fileIndexingPreferences.excludePatterns)}</strong>
+              <span>saved exclude rules</span>
+            </div>
+            <div>
               <strong>{countPatterns(fileRulesDraft.includePatterns)}</strong>
-              <span>include rules</span>
+              <span>draft include rules</span>
             </div>
             <div>
               <strong>{countPatterns(fileRulesDraft.excludePatterns)}</strong>
-              <span>exclude rules</span>
+              <span>draft exclude rules</span>
             </div>
+          </div>
+          <div className="file-rules-draft-state">
+            <StatusBadge
+              label={hasUnsavedFileRules ? "Unsaved draft" : "Saved draft"}
+              tone={hasUnsavedFileRules ? "warning" : "success"}
+            />
+            <span>Scan and Build context use saved workspace rules. Draft changes are ignored until you save them.</span>
           </div>
           <PreferenceGroup label="Include patterns">
             <textarea
@@ -530,16 +598,42 @@ export function SettingsPanel({
             />
           </PreferenceGroup>
           <div className="settings-inline-actions">
-            <button type="button" className="primary-button" onClick={() => void saveFileRules()} disabled={savingFileRules}>
+            <button type="button" className="primary-button" onClick={() => void saveFileRules()} disabled={savingFileRules || !hasUnsavedFileRules}>
               {savingFileRules ? "Saving..." : "Save file rules"}
             </button>
+            <button type="button" className="ghost-button" onClick={() => void previewFileRules("saved")} disabled={previewingFileRules}>
+              {previewingFileRules && fileRulesPreviewMode === "saved" ? "Previewing..." : "Preview saved rules"}
+            </button>
+            <button type="button" className="ghost-button" onClick={() => void previewFileRules("draft")} disabled={previewingFileRules}>
+              {previewingFileRules && fileRulesPreviewMode === "draft" ? "Previewing..." : "Preview draft rules"}
+            </button>
             <button type="button" className="ghost-button" onClick={resetFileRules}>
-              Reset defaults
+              Reset draft
             </button>
             <span>{fileRulesMessage}</span>
           </div>
+          {fileRulesPreview ? (
+            <div className="settings-file-preview-result">
+              <div>
+                <strong>{fileRulesPreviewMode === "draft" ? "Draft preview" : "Saved preview"}</strong>
+                <span>{fileRulesPreview.profile} profile</span>
+              </div>
+              <div>
+                <span>Included</span>
+                <strong>{fileRulesPreview.included_files_count}</strong>
+              </div>
+              <div>
+                <span>Excluded</span>
+                <strong>{fileRulesPreview.excluded_files_count}</strong>
+              </div>
+              <div>
+                <span>Skipped</span>
+                <strong>{fileRulesPreview.skipped_files_count}</strong>
+              </div>
+            </div>
+          ) : null}
           <p className="settings-helper-note">
-            Saved rules are applied by explicit Preview, Scan, and Build context actions. Nothing rebuilds automatically.
+            Flow: edit draft → preview draft → save rules → preview saved rules → scan/index manually. Nothing rebuilds automatically.
           </p>
         </SettingsSection>
 

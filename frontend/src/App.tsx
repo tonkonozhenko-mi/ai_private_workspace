@@ -306,11 +306,8 @@ function App() {
   }, [preferences.fileIndexingPreferences]);
 
   const handleStartScanJob = useCallback(async (workspaceId: string): Promise<WorkspaceJob> => {
-    return startScanWorkspaceJob(
-      workspaceId,
-      toFileSelectionRulesRequest(preferences.fileIndexingPreferences),
-    );
-  }, [preferences.fileIndexingPreferences]);
+    return startScanWorkspaceJob(workspaceId);
+  }, []);
 
   const handleStartIndexJob = useCallback(async (workspaceId: string): Promise<WorkspaceJob> => {
     return startIndexWorkspaceJob(workspaceId);
@@ -509,7 +506,8 @@ function App() {
                   onOpenAsk={() => setActiveTab("ask")}
                   onOpenModels={() => setActiveTab("models")}
                   onOpenCapabilities={() => setActiveTab("actions")}
-                  onPreviewFileSelection={() => handlePreviewFileSelection(detail.dashboard.workspace_id)}
+                  onPreviewSavedFileSelection={() => previewWorkspaceFileSelection(detail.dashboard.workspace_id)}
+                  onPreviewDraftFileSelection={() => handlePreviewFileSelection(detail.dashboard.workspace_id)}
                   onStartScanJob={() => handleStartScanJob(detail.dashboard.workspace_id)}
                   onStartIndexJob={() => handleStartIndexJob(detail.dashboard.workspace_id)}
                   onGetWorkspaceJob={(jobId) => handleGetWorkspaceJob(detail.dashboard.workspace_id, jobId)}

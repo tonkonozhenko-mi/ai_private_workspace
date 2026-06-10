@@ -26,7 +26,8 @@ interface WorkspaceDashboardProps {
   onOpenAsk: () => void;
   onOpenModels: () => void;
   onOpenCapabilities: () => void;
-  onPreviewFileSelection: () => Promise<FileSelectionPreview>;
+  onPreviewSavedFileSelection: () => Promise<FileSelectionPreview>;
+  onPreviewDraftFileSelection: () => Promise<FileSelectionPreview>;
   onStartScanJob: () => Promise<WorkspaceJob>;
   onStartIndexJob: () => Promise<WorkspaceJob>;
   onGetWorkspaceJob: (jobId: string) => Promise<WorkspaceJob>;
@@ -44,7 +45,8 @@ export function WorkspaceDashboard({
   onOpenAsk,
   onOpenModels,
   onOpenCapabilities,
-  onPreviewFileSelection,
+  onPreviewSavedFileSelection,
+  onPreviewDraftFileSelection,
   onStartScanJob,
   onStartIndexJob,
   onGetWorkspaceJob,
@@ -114,7 +116,8 @@ export function WorkspaceDashboard({
         onOpenAsk={onOpenAsk}
         onOpenModels={onOpenModels}
         onOpenCapabilities={onOpenCapabilities}
-        onPreviewFileSelection={onPreviewFileSelection}
+        onPreviewSavedFileSelection={onPreviewSavedFileSelection}
+        onPreviewDraftFileSelection={onPreviewDraftFileSelection}
         onStartScanJob={onStartScanJob}
         onStartIndexJob={onStartIndexJob}
         onGetWorkspaceJob={onGetWorkspaceJob}
@@ -173,7 +176,8 @@ function WorkspaceOnboardingGuide({
   onOpenAsk,
   onOpenModels,
   onOpenCapabilities,
-  onPreviewFileSelection,
+  onPreviewSavedFileSelection,
+  onPreviewDraftFileSelection,
   onStartScanJob,
   onStartIndexJob,
   onGetWorkspaceJob,
@@ -187,7 +191,8 @@ function WorkspaceOnboardingGuide({
   onOpenAsk: () => void;
   onOpenModels: () => void;
   onOpenCapabilities: () => void;
-  onPreviewFileSelection: () => Promise<FileSelectionPreview>;
+  onPreviewSavedFileSelection: () => Promise<FileSelectionPreview>;
+  onPreviewDraftFileSelection: () => Promise<FileSelectionPreview>;
   onStartScanJob: () => Promise<WorkspaceJob>;
   onStartIndexJob: () => Promise<WorkspaceJob>;
   onGetWorkspaceJob: (jobId: string) => Promise<WorkspaceJob>;
@@ -223,6 +228,8 @@ function WorkspaceOnboardingGuide({
   const [filePreviewLoading, setFilePreviewLoading] = useState(false);
   const [filePreviewError, setFilePreviewError] = useState<string | null>(null);
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
+  const [filePreviewMode, setFilePreviewMode] = useState<"saved" | "draft" | null>(null);
+  const [confirmationAction, setConfirmationAction] = useState<"scan" | "index" | null>(null);
   const pollingJobIdRef = useRef<string | null>(null);
 
   async function refreshJobHistory() {
@@ -236,12 +243,17 @@ function WorkspaceOnboardingGuide({
     }
   }
 
-  async function previewFilesBeforeScan() {
+  async function previewFiles(mode: "saved" | "draft") {
     setFilePreviewLoading(true);
     setFilePreviewError(null);
     setFilePreviewOpen(true);
+    setFilePreviewMode(mode);
     try {
-      setFilePreview(await onPreviewFileSelection());
+      setFilePreview(
+        mode === "saved"
+          ? await onPreviewSavedFileSelection()
+          : await onPreviewDraftFileSelection(),
+      );
     } catch (error) {
       setFilePreviewError(
         error instanceof Error
@@ -253,7 +265,19 @@ function WorkspaceOnboardingGuide({
     }
   }
 
+  async function requestSetupAction(action: "scan" | "index") {
+    setConfirmationAction(action);
+    setSetupError(null);
+    setSetupMessage(null);
+    await previewFiles("saved");
+  }
+
+  function clearSetupConfirmation() {
+    setConfirmationAction(null);
+  }
+
   async function runSetupAction(action: "scan" | "index") {
+    setConfirmationAction(null);
     setSetupAction(action);
     setSetupJob(null);
     setSetupMessage(null);
@@ -380,14 +404,14 @@ function WorkspaceOnboardingGuide({
   const primaryAction = !hasScan
     ? {
         label: setupAction === "scan" ? "Scanning..." : "Scan project",
-        onClick: () => void runSetupAction("scan"),
+        onClick: () => void requestSetupAction("scan"),
         disabled: setupAction !== null,
       }
     : !indexReady
       ? {
           label:
             setupAction === "index" ? "Building..." : "Build search context",
-          onClick: () => void runSetupAction("index"),
+          onClick: () => void requestSetupAction("index"),
           disabled: setupAction !== null,
         }
       : !localAIReady
@@ -456,7 +480,7 @@ function WorkspaceOnboardingGuide({
                 className="primary-action"
                 type="button"
                 disabled={setupAction !== null}
-                onClick={() => void runSetupAction("scan")}
+                onClick={() => void requestSetupAction("scan")}
               >
                 {setupAction === "scan" ? "Scanning..." : "Scan project"}
               </button>
@@ -474,7 +498,7 @@ function WorkspaceOnboardingGuide({
                 className="primary-action"
                 type="button"
                 disabled={setupAction !== null}
-                onClick={() => void runSetupAction("index")}
+                onClick={() => void requestSetupAction("index")}
               >
                 {setupAction === "index"
                   ? "Building..."
@@ -504,8 +528,7 @@ function WorkspaceOnboardingGuide({
         <div>
           <strong>File rules applied on scan</strong>
           <p>
-            Preview which local files match your browser-local include and
-            exclude rules before starting the scan job.
+            Preview saved workspace rules or the current browser draft before starting scan/index. Scan and context build use saved rules only.
           </p>
         </div>
         <div className="file-rules-plan-grid">
@@ -522,10 +545,18 @@ function WorkspaceOnboardingGuide({
           <button
             className="secondary-action"
             type="button"
-            onClick={() => void previewFilesBeforeScan()}
+            onClick={() => void previewFiles("saved")}
             disabled={filePreviewLoading}
           >
-            {filePreviewLoading ? "Previewing..." : "Preview files"}
+            {filePreviewLoading && filePreviewMode === "saved" ? "Previewing..." : "Preview saved rules"}
+          </button>
+          <button
+            className="secondary-action"
+            type="button"
+            onClick={() => void previewFiles("draft")}
+            disabled={filePreviewLoading}
+          >
+            {filePreviewLoading && filePreviewMode === "draft" ? "Previewing..." : "Preview draft rules"}
           </button>
           {filePreview ? (
             <button
@@ -544,7 +575,20 @@ function WorkspaceOnboardingGuide({
       ) : null}
 
       {filePreview && filePreviewOpen ? (
-        <FileSelectionPreviewPanel preview={filePreview} />
+        <FileSelectionPreviewPanel
+          preview={filePreview}
+          title={filePreviewMode === "draft" ? "Draft rules preview" : "Saved rules preview"}
+        />
+      ) : null}
+
+      {confirmationAction ? (
+        <JobConfirmationPanel
+          action={confirmationAction}
+          preview={filePreview}
+          loading={filePreviewLoading}
+          onCancel={clearSetupConfirmation}
+          onConfirm={() => void runSetupAction(confirmationAction)}
+        />
       ) : null}
 
       {setupJob && !["completed", "failed", "cancelled"].includes(setupJob.status) ? (
@@ -722,13 +766,81 @@ function formatJobTime(job: WorkspaceJob): string {
 }
 
 
+
+function JobConfirmationPanel({
+  action,
+  preview,
+  loading,
+  onCancel,
+  onConfirm,
+}: {
+  action: "scan" | "index";
+  preview: FileSelectionPreview | null;
+  loading: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const actionLabel = action === "scan" ? "Scan project" : "Build search context";
+  const description =
+    action === "scan"
+      ? "This will read matching local files through the backend and update detected project skills."
+      : "This will rebuild searchable context from the files selected by saved workspace rules.";
+
+  return (
+    <div className="job-confirmation-panel" role="alertdialog" aria-label={`Confirm ${actionLabel}`}>
+      <div>
+        <p className="eyebrow">Confirm manual action</p>
+        <h3>{actionLabel} with saved rules?</h3>
+        <p>{description}</p>
+        <span className="onboarding-safety-note">
+          Nothing starts automatically. Confirm only when the preview looks correct.
+        </span>
+      </div>
+      <div className="job-confirmation-stats">
+        <div>
+          <span>Included</span>
+          <strong>{loading ? "…" : preview?.included_files_count ?? "—"}</strong>
+        </div>
+        <div>
+          <span>Excluded</span>
+          <strong>{loading ? "…" : preview?.excluded_files_count ?? "—"}</strong>
+        </div>
+        <div>
+          <span>Rules</span>
+          <strong>
+            {loading
+              ? "…"
+              : preview
+                ? `${preview.include_rules_count}/${preview.exclude_rules_count}`
+                : "—"}
+          </strong>
+        </div>
+      </div>
+      <div className="job-confirmation-actions">
+        <button className="primary-action" type="button" onClick={onConfirm} disabled={loading || !preview}>
+          Confirm and start
+        </button>
+        <button className="secondary-action" type="button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function FileSelectionPreviewPanel({
   preview,
+  title = "File selection preview",
 }: {
   preview: FileSelectionPreview;
+  title?: string;
 }) {
   return (
     <div className="file-preview-panel">
+      <div className="file-preview-heading">
+        <strong>{title}</strong>
+        <span>{preview.profile} profile · saved workspace rules are used for scan/index unless you save a new draft.</span>
+      </div>
       <div className="file-preview-summary">
         <div>
           <span>Included</span>
