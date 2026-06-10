@@ -19,10 +19,13 @@ import { StatusBadge } from "./StatusBadge";
 import {
   DEFAULT_SKILL_PREFERENCES,
   SKILL_PRESETS,
+  SKILL_PROFILE_TEMPLATES,
+  applySkillProfileTemplate,
   normalizeSkillPreferences,
   toSkillProfileRequest,
   type SkillPresetId,
   type SkillPreferences,
+  type SkillProfileTemplateId,
 } from "./skillLibrary";
 
 interface SettingsPanelProps {
@@ -76,6 +79,8 @@ export function SettingsPanel({
   const [skillProfileMessage, setSkillProfileMessage] = useState("Saved workspace skill profile is used by Ask.");
   const [skillGuidancePreviewVisible, setSkillGuidancePreviewVisible] = useState(false);
   const [savingSkillProfile, setSavingSkillProfile] = useState(false);
+  const [selectedSkillTemplateId, setSelectedSkillTemplateId] = useState<SkillProfileTemplateId>("devops_review");
+  const [skillTemplatePreviewVisible, setSkillTemplatePreviewVisible] = useState(false);
   const [fileRulesDraft, setFileRulesDraft] = useState(() => ({
     includePatterns: preferences.fileIndexingPreferences.includePatterns,
     excludePatterns: preferences.fileIndexingPreferences.excludePatterns,
@@ -170,6 +175,19 @@ export function SettingsPanel({
       customInstructions: defaultInstruction,
     });
     setSavedSkillId(skillId);
+  }
+
+  function applySelectedSkillTemplateToDraft() {
+    const nextPreferences = applySkillProfileTemplate(
+      selectedSkillTemplateId,
+      preferences.skillPreferences,
+    );
+    setSavedSkillId(null);
+    setInstructionDrafts(buildInstructionDrafts(nextPreferences));
+    updatePreference("skillPreferences", nextPreferences);
+    setSkillProfileMessage(
+      "Template applied to draft only. Review the guidance, then save the workspace profile to use it in Ask.",
+    );
   }
 
   async function saveWorkspaceSkillProfile() {
@@ -745,6 +763,16 @@ export function SettingsPanel({
         </div>
         <p className="settings-helper-text">{skillProfileMessage}</p>
 
+        <SkillTemplatePicker
+          selectedTemplateId={selectedSkillTemplateId}
+          onTemplateChange={setSelectedSkillTemplateId}
+          onApplyTemplate={applySelectedSkillTemplateToDraft}
+          previewVisible={skillTemplatePreviewVisible}
+          onTogglePreview={() =>
+            setSkillTemplatePreviewVisible((isVisible) => !isVisible)
+          }
+        />
+
         <div className="skill-profile-state-grid">
           <article>
             <span>Saved profile</span>
@@ -1044,6 +1072,92 @@ export function SettingsPanel({
 }
 
 
+
+function SkillTemplatePicker({
+  selectedTemplateId,
+  onTemplateChange,
+  onApplyTemplate,
+  previewVisible,
+  onTogglePreview,
+}: {
+  selectedTemplateId: SkillProfileTemplateId;
+  onTemplateChange: (templateId: SkillProfileTemplateId) => void;
+  onApplyTemplate: () => void;
+  previewVisible: boolean;
+  onTogglePreview: () => void;
+}) {
+  const selectedTemplate =
+    SKILL_PROFILE_TEMPLATES.find((template) => template.id === selectedTemplateId) ??
+    SKILL_PROFILE_TEMPLATES[0];
+
+  return (
+    <section className="skill-template-panel" aria-label="Skill profile templates">
+      <div className="skill-template-heading">
+        <div>
+          <p className="eyebrow">Templates</p>
+          <h3>Safe skill profile switching</h3>
+          <p>
+            Templates change the draft Ask guidance only. They do not scan, index, rebuild context, restart models, or execute shell commands.
+          </p>
+        </div>
+        <div className="skill-template-actions">
+          <button type="button" className="ghost-button" onClick={onTogglePreview}>
+            {previewVisible ? "Hide template preview" : "Preview template"}
+          </button>
+          <button type="button" className="primary-button" onClick={onApplyTemplate}>
+            Apply template to draft
+          </button>
+        </div>
+      </div>
+
+      <div className="skill-template-grid">
+        {SKILL_PROFILE_TEMPLATES.map((template) => (
+          <button
+            type="button"
+            key={template.id}
+            className={`skill-template-card ${template.id === selectedTemplateId ? "is-selected" : ""}`}
+            onClick={() => onTemplateChange(template.id)}
+            aria-pressed={template.id === selectedTemplateId}
+          >
+            <span>{template.shortName}</span>
+            <strong>{template.name}</strong>
+            <small>{template.purpose}</small>
+          </button>
+        ))}
+      </div>
+
+      {previewVisible ? (
+        <div className="skill-template-preview">
+          <div>
+            <span>Selected template</span>
+            <strong>{selectedTemplate.name}</strong>
+            <p>{selectedTemplate.purpose}</p>
+          </div>
+          <div>
+            <span>Enabled skills</span>
+            <strong>
+              {selectedTemplate.activeSkillIds
+                .map((skillId) => SKILL_PRESETS.find((preset) => preset.id === skillId)?.name ?? skillId)
+                .join(" + ")}
+            </strong>
+            <p>Apply writes this into the draft. Save the workspace profile when the preview looks right.</p>
+          </div>
+          <div className="skill-template-guidance-list">
+            {selectedTemplate.activeSkillIds.map((skillId) => {
+              const preset = SKILL_PRESETS.find((item) => item.id === skillId);
+              return (
+                <article key={skillId}>
+                  <strong>{preset?.name ?? skillId}</strong>
+                  <pre>{selectedTemplate.guidance[skillId] ?? preset?.defaultInstructions ?? ""}</pre>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
 
 function SkillGuidancePreview({
   preferences,
