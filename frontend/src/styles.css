@@ -9775,3 +9775,96 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* Task 160: saved skill profile visibility and prompt guidance preview */
+.skill-profile-state-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.skill-profile-state-grid article,
+.skill-guidance-preview {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-subtle);
+  padding: 14px;
+}
+
+.skill-profile-state-grid span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.skill-profile-state-grid strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  letter-spacing: -0.02em;
+}
+
+.skill-profile-state-grid p,
+.skill-guidance-preview p {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.skill-guidance-preview {
+  display: grid;
+  gap: 12px;
+}
+
+.skill-guidance-preview h3 {
+  margin: 4px 0 0;
+  color: var(--color-text-primary);
+  font-size: 16px;
+  letter-spacing: -0.025em;
+}
+
+.skill-guidance-preview-list {
+  display: grid;
+  gap: 10px;
+}
+
+.skill-guidance-preview-list article {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.skill-guidance-preview-list strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+}
+
+.skill-guidance-preview-list pre {
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.ask-focus-compact-rows {
+  grid-template-columns: 1fr;
+}
+
+.ask-focus-compact-note {
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 900px) {
+  .skill-profile-state-grid {
+    grid-template-columns: 1fr;
+  }
+}

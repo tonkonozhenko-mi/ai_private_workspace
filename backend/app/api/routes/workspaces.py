@@ -185,6 +185,7 @@ from app.core.use_cases.analyze_terragrunt import (
 )
 from app.core.domain.rag_prompt import SkillPromptInstruction
 from app.core.domain.skill_profile import default_skill_profile, normalize_skill_profile
+from app.core.use_cases.add_timeline_event import AddTimelineEventInput, AddTimelineEventUseCase
 from app.core.use_cases.ask_workspace_question import (
     AskWorkspaceQuestionInput,
     AskWorkspaceQuestionNotFoundError,
@@ -1012,6 +1013,25 @@ def update_workspace_skill_profile(
         skills=[to_skill_profile_item(item) for item in request.skills],
     )
     saved = skill_profile_repository.save(profile)
+    enabled_skill_names = [skill.name for skill in saved.enabled_skills]
+    AddTimelineEventUseCase(timeline_repository).execute(
+        AddTimelineEventInput(
+            workspace_id=workspace_id,
+            event_type="skill_profile_saved",
+            title="Skill profile saved",
+            summary=(
+                "Saved workspace skill profile with "
+                f"{saved.enabled_skills_count} active skill"
+                f"{'s' if saved.enabled_skills_count != 1 else ''}."
+            ),
+            metadata={
+                "profile": saved.profile,
+                "enabled_skills_count": str(saved.enabled_skills_count),
+                "enabled_skills": ", ".join(enabled_skill_names) or "none",
+                "source": "saved",
+            },
+        )
+    )
     return to_workspace_skill_profile_response(saved, source="saved")
 
 

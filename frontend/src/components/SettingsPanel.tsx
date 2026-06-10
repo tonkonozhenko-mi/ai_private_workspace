@@ -33,6 +33,8 @@ interface SettingsPanelProps {
   onResetPreferences: () => void;
   onOpenModels: () => void;
   onIndexingRulesSaved?: () => void;
+  skillProfileSource?: string;
+  skillProfileUpdatedAt?: string | null;
   onSkillProfileSaved?: () => void;
 }
 
@@ -44,6 +46,8 @@ export function SettingsPanel({
   onResetPreferences,
   onOpenModels,
   onIndexingRulesSaved,
+  skillProfileSource = "default",
+  skillProfileUpdatedAt = null,
   onSkillProfileSaved,
 }: SettingsPanelProps) {
   const summary = dashboard.summary;
@@ -65,8 +69,12 @@ export function SettingsPanel({
   const [instructionDrafts, setInstructionDrafts] = useState<
     Record<SkillPresetId, string>
   >(() => buildInstructionDrafts(preferences.skillPreferences));
+  const [savedSkillPreferences, setSavedSkillPreferences] = useState<SkillPreferences>(
+    preferences.skillPreferences,
+  );
   const [savedSkillId, setSavedSkillId] = useState<SkillPresetId | null>(null);
   const [skillProfileMessage, setSkillProfileMessage] = useState("Saved workspace skill profile is used by Ask.");
+  const [skillGuidancePreviewVisible, setSkillGuidancePreviewVisible] = useState(false);
   const [savingSkillProfile, setSavingSkillProfile] = useState(false);
   const [fileRulesDraft, setFileRulesDraft] = useState(() => ({
     includePatterns: preferences.fileIndexingPreferences.includePatterns,
@@ -84,7 +92,8 @@ export function SettingsPanel({
 
   useEffect(() => {
     setInstructionDrafts(buildInstructionDrafts(preferences.skillPreferences));
-  }, [preferences.skillPreferences]);
+    setSavedSkillPreferences(preferences.skillPreferences);
+  }, [dashboard.workspace_id, skillProfileUpdatedAt]);
 
   useEffect(() => {
     setFileRulesDraft({
@@ -185,6 +194,7 @@ export function SettingsPanel({
       );
       updatePreference("skillPreferences", nextPreferences);
       setInstructionDrafts(buildInstructionDrafts(nextPreferences));
+      setSavedSkillPreferences(nextPreferences);
       setSavedSkillId(null);
       setSkillProfileMessage("Workspace skill profile saved. Ask will use this saved profile.");
       onSkillProfileSaved?.();
@@ -210,9 +220,15 @@ export function SettingsPanel({
   const hasUnsavedFileRules =
     fileRulesDraft.includePatterns !== preferences.fileIndexingPreferences.includePatterns ||
     fileRulesDraft.excludePatterns !== preferences.fileIndexingPreferences.excludePatterns;
-  const hasUnsavedSkillProfile = SKILL_PRESETS.some((preset) =>
-    (instructionDrafts[preset.id] ?? "") !== preferences.skillPreferences[preset.id]?.customInstructions,
-  );
+  const hasUnsavedSkillProfile = SKILL_PRESETS.some((preset) => {
+    const draftInstruction = instructionDrafts[preset.id] ?? "";
+    const savedPreference = savedSkillPreferences[preset.id];
+    const currentPreference = preferences.skillPreferences[preset.id];
+    return (
+      draftInstruction !== savedPreference?.customInstructions ||
+      Boolean(currentPreference?.enabled) !== Boolean(savedPreference?.enabled)
+    );
+  });
 
   async function previewFileRules(mode: "saved" | "draft") {
     setPreviewingFileRules(true);
@@ -712,6 +728,13 @@ export function SettingsPanel({
             />
             <button
               type="button"
+              className="ghost-button"
+              onClick={() => setSkillGuidancePreviewVisible((current) => !current)}
+            >
+              {skillGuidancePreviewVisible ? "Hide guidance" : "Preview prompt guidance"}
+            </button>
+            <button
+              type="button"
               className="primary-button"
               onClick={() => void saveWorkspaceSkillProfile()}
               disabled={savingSkillProfile}
@@ -721,6 +744,31 @@ export function SettingsPanel({
           </div>
         </div>
         <p className="settings-helper-text">{skillProfileMessage}</p>
+
+        <div className="skill-profile-state-grid">
+          <article>
+            <span>Saved profile</span>
+            <strong>{skillProfileSource === "saved" ? "Workspace saved profile" : "Default profile"}</strong>
+            <p>{skillProfileUpdatedAt ? `Last saved ${formatDateTime(skillProfileUpdatedAt)}` : "No workspace-specific profile saved yet."}</p>
+          </article>
+          <article>
+            <span>Draft changes</span>
+            <strong>{hasUnsavedSkillProfile ? "Unsaved draft" : "Matches saved profile"}</strong>
+            <p>Toggle skills or edit instructions, then save the workspace profile before relying on it in Ask.</p>
+          </article>
+          <article>
+            <span>Ask usage</span>
+            <strong>Guidance only</strong>
+            <p>Skills shape focus and wording. Facts still need retrieved source chunks.</p>
+          </article>
+        </div>
+
+        {skillGuidancePreviewVisible ? (
+          <SkillGuidancePreview
+            preferences={preferences.skillPreferences}
+            instructionDrafts={instructionDrafts}
+          />
+        ) : null}
 
         <div className="skill-library-settings-grid">
           {SKILL_PRESETS.map((preset) => {
@@ -995,6 +1043,51 @@ export function SettingsPanel({
   );
 }
 
+
+
+function SkillGuidancePreview({
+  preferences,
+  instructionDrafts,
+}: {
+  preferences: SkillPreferences;
+  instructionDrafts: Record<SkillPresetId, string>;
+}) {
+  const active = SKILL_PRESETS.filter((preset) => preferences[preset.id]?.enabled);
+
+  return (
+    <section className="skill-guidance-preview" aria-label="Prompt guidance preview">
+      <div>
+        <p className="eyebrow">Preview prompt guidance</p>
+        <h3>Guidance that Ask will receive after saving</h3>
+        <p>Only enabled skills are sent as guidance. Retrieved sources remain the authority for project-specific claims.</p>
+      </div>
+      {active.length > 0 ? (
+        <div className="skill-guidance-preview-list">
+          {active.map((preset) => {
+            const guidance = (instructionDrafts[preset.id] ?? preferences[preset.id]?.customInstructions ?? preset.defaultInstructions).trim();
+            return (
+              <article key={preset.id}>
+                <strong>{preset.name}</strong>
+                <pre>{guidance}</pre>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="settings-helper-note">No enabled skills. Ask will rely on the assistant mode and retrieved sources.</p>
+      )}
+    </section>
+  );
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
 
 function SettingsFilePreviewResult({
   preview,

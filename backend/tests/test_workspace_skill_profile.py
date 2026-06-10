@@ -63,3 +63,45 @@ def test_workspace_skill_profile_requires_existing_workspace() -> None:
         "/workspaces/missing/skill-profile",
         json={"profile": "workspace", "skills": []},
     ).status_code == 404
+
+
+def test_workspace_skill_profile_save_adds_activity_event() -> None:
+    client = TestClient(app)
+    created = client.post(
+        "/workspaces",
+        json={
+            "name": "Skill Profile Activity Project",
+            "project_path": "/tmp/skill-profile-activity-project",
+            "assistant_mode": "devops",
+            "privacy_mode": "local_only",
+        },
+    ).json()
+    workspace_id = created["id"]
+
+    response = client.put(
+        f"/workspaces/{workspace_id}/skill-profile",
+        json={
+            "profile": "workspace",
+            "skills": [
+                {
+                    "id": "devops",
+                    "name": "DevOps",
+                    "enabled": True,
+                    "custom_instructions": "Focus on infrastructure and deployment safety.",
+                },
+                {
+                    "id": "documentation",
+                    "name": "Documentation",
+                    "enabled": True,
+                    "custom_instructions": "Explain docs gaps clearly.",
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    timeline = client.get(f"/workspaces/{workspace_id}/timeline").json()
+    event = next(item for item in timeline if item["event_type"] == "skill_profile_saved")
+    assert event["title"] == "Skill profile saved"
+    assert event["metadata"]["enabled_skills_count"] == "2"
+    assert "DevOps" in event["metadata"]["enabled_skills"]
