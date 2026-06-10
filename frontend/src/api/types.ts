@@ -1224,3 +1224,36 @@ export interface MCPApprovalPreview {
   guardrails: string[];
   safety_note: string;
 }
+
+export interface GuidedModelSetupOption {
+  provider: string;
+  model: string;
+  model_type: "llm" | "embedding" | string;
+  display_name: string;
+  description: string;
+  recommendation_label: string;
+  recommended: boolean;
+  local_only: boolean;
+  quality_tier: string;
+  speed_tier: string;
+  notes: string[];
+}
+
+export interface GuidedModelSetupSection {
+  model_type: "llm" | "embedding" | string;
+  title: string;
+  purpose: string;
+  recommendation_summary: string;
+  custom_model_hint: string;
+  options: GuidedModelSetupOption[];
+}
+
+export interface GuidedModelSetupGuide {
+  workspace_id: string;
+  title: string;
+  summary: string;
+  llm: GuidedModelSetupSection;
+  embedding: GuidedModelSetupSection;
+  packaging_notes: string[];
+  safety_notes: string[];
+}

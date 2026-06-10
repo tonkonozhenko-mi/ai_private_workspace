@@ -112,6 +112,7 @@ models, run benchmarks, or change active runtime configuration.
 | `GET /workspaces/{workspace_id}/model-performance` | Aggregate saved experiment outcomes and manual ratings into deterministic model performance signals. | No | No | No | Model experiments/model selection |
 | `POST /workspaces/{workspace_id}/models/recommend` | Rank catalog models using static metadata plus historical workspace experiment and rating signals. | No | No | No | Model selection |
 | `POST /workspaces/{workspace_id}/models/explain` | Explain catalog fit, workspace history, switching impact, risks, and next actions for a model. | No | No | No | Model selection |
+| `GET /workspaces/{workspace_id}/models/setup-guide` | Return beginner-friendly local model setup guidance with recommended defaults, dropdown options, custom-model hints, packaging notes, and safety notes. | No | No | No | Model setup |
 | `GET /workspaces/{workspace_id}/models/selection` | Get persisted workspace LLM and embedding-model preference state plus runtime-configuration match notes. | No | No | No | Model selection |
 | `PUT /workspaces/{workspace_id}/models/selection` | Persist one workspace model preference while preserving the other model type. | Selection and timeline | No | No | Model selection |
 | `GET /workspaces/{workspace_id}/models/selection/status` | Compare selected models with active configuration and index status, then return readiness and next actions. | No | No | No | Model selection/readiness |

@@ -10,6 +10,7 @@ import {
   createWorkspaceMCPConfig,
   deleteWorkspaceMCPConfig,
   getAgentWorkflowExecutionReadiness,
+  getGuidedModelSetup,
   getWorkspaceMCPToolInventory,
   listWorkspaceMCPConfigs,
   previewWorkspaceMCPApproval,
@@ -41,6 +42,8 @@ import type {
   MCPApprovalPreview,
   MCPToolInventory,
   WorkspaceMCPServerConfig,
+  GuidedModelSetupGuide,
+  GuidedModelSetupSection,
   LocalAIActivationGuide,
   ModelExperimentPlan,
   ModelExperimentRating,
@@ -253,6 +256,19 @@ export function ModelsDetail({
         canSearch={usage.can_search_with_selected_embedding}
       />
 
+      <GuidedModelSetupPanel
+        workspaceId={workspaceId}
+        onApplySelection={async (modelType, provider, model) => {
+          await updateWorkspaceModelSelection(workspaceId, {
+            provider,
+            model,
+            model_type: modelType,
+            selected_reason: "Chosen from guided model setup.",
+          });
+          await onSelectionUpdated();
+        }}
+      />
+
       <ModelSelectionEditor
         workspaceId={workspaceId}
         selectedLlmProvider={dashboard.selected_llm_provider}
@@ -396,6 +412,211 @@ export function ModelsDetail({
   );
 }
 
+
+
+function GuidedModelSetupPanel({
+  workspaceId,
+  onApplySelection,
+}: {
+  workspaceId: string;
+  onApplySelection: (
+    modelType: "llm" | "embedding",
+    provider: string,
+    model: string,
+  ) => Promise<void> | void;
+}) {
+  const [guide, setGuide] = useState<GuidedModelSetupGuide | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [llmChoice, setLlmChoice] = useState("");
+  const [embeddingChoice, setEmbeddingChoice] = useState("");
+  const [customLlm, setCustomLlm] = useState("");
+  const [customEmbedding, setCustomEmbedding] = useState("");
+  const [saving, setSaving] = useState<"llm" | "embedding" | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getGuidedModelSetup(workspaceId)
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+        setGuide(result);
+        setError(null);
+        setLlmChoice(toSetupChoiceValue(result.llm.options[0]?.provider, result.llm.options[0]?.model));
+        setEmbeddingChoice(toSetupChoiceValue(result.embedding.options[0]?.provider, result.embedding.options[0]?.model));
+      })
+      .catch((loadError) => {
+        if (!cancelled) {
+          setError(errorMessage(loadError));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId]);
+
+  async function saveGuidedSelection(modelType: "llm" | "embedding") {
+    const value = modelType === "llm" ? llmChoice : embeddingChoice;
+    const parsed = parseSetupChoiceValue(value);
+    const customModel = (modelType === "llm" ? customLlm : customEmbedding).trim();
+    const provider = parsed?.provider ?? "ollama";
+    const model = parsed?.model === "__custom__" ? customModel : parsed?.model;
+    if (!model) {
+      setError("Choose a model or enter a custom model name.");
+      return;
+    }
+
+    setSaving(modelType);
+    setError(null);
+    setMessage(null);
+    try {
+      await onApplySelection(modelType, provider, model);
+      setMessage(`${modelType === "llm" ? "AI answer model" : "Search context model"} saved as ${provider}/${model}.`);
+    } catch (saveError) {
+      setError(errorMessage(saveError));
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  if (error && !guide) {
+    return (
+      <section className="panel guided-model-setup-panel">
+        <PanelHeading eyebrow="Guided setup" title="Choose local models" />
+        <p className="model-selection-error">{error}</p>
+      </section>
+    );
+  }
+
+  if (!guide) {
+    return (
+      <section className="panel guided-model-setup-panel">
+        <PanelHeading eyebrow="Guided setup" title="Choose local models" />
+        <p className="panel-intro">Loading local model setup guidance…</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="panel guided-model-setup-panel">
+      <PanelHeading eyebrow="Guided setup" title={guide.title} />
+      <p className="panel-intro">{guide.summary}</p>
+      <div className="guided-model-grid">
+        <GuidedModelSetupControl
+          section={guide.llm}
+          value={llmChoice}
+          customValue={customLlm}
+          disabled={saving !== null}
+          isSaving={saving === "llm"}
+          onChange={setLlmChoice}
+          onCustomChange={setCustomLlm}
+          onSave={() => void saveGuidedSelection("llm")}
+        />
+        <GuidedModelSetupControl
+          section={guide.embedding}
+          value={embeddingChoice}
+          customValue={customEmbedding}
+          disabled={saving !== null}
+          isSaving={saving === "embedding"}
+          onChange={setEmbeddingChoice}
+          onCustomChange={setCustomEmbedding}
+          onSave={() => void saveGuidedSelection("embedding")}
+        />
+      </div>
+      <div className="guided-model-note-grid">
+        <GuidedModelNotes title="Packaging ready" notes={guide.packaging_notes} />
+        <GuidedModelNotes title="Safety" notes={guide.safety_notes} />
+      </div>
+      {message ? <p className="model-selection-message">{message}</p> : null}
+      {error ? <p className="model-selection-error">{error}</p> : null}
+    </section>
+  );
+}
+
+function GuidedModelSetupControl({
+  section,
+  value,
+  customValue,
+  disabled,
+  isSaving,
+  onChange,
+  onCustomChange,
+  onSave,
+}: {
+  section: GuidedModelSetupSection;
+  value: string;
+  customValue: string;
+  disabled: boolean;
+  isSaving: boolean;
+  onChange: (value: string) => void;
+  onCustomChange: (value: string) => void;
+  onSave: () => void;
+}) {
+  const isCustom = parseSetupChoiceValue(value)?.model === "__custom__";
+  return (
+    <article className="guided-model-card">
+      <div className="guided-model-card-heading">
+        <div>
+          <span>{section.model_type}</span>
+          <strong>{section.title}</strong>
+        </div>
+        <StatusBadge label="recommended defaults" />
+      </div>
+      <p>{section.purpose}</p>
+      <small>{section.recommendation_summary}</small>
+      <label>
+        <span>Choose model</span>
+        <select value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
+          {section.options.map((option) => (
+            <option key={`${option.provider}/${option.model}`} value={toSetupChoiceValue(option.provider, option.model)}>
+              {option.recommendation_label}: {option.display_name} ({option.provider}/{option.model})
+            </option>
+          ))}
+          <option value="ollama||__custom__">Custom Ollama model…</option>
+        </select>
+      </label>
+      {isCustom ? (
+        <label>
+          <span>Custom model name</span>
+          <input
+            value={customValue}
+            disabled={disabled}
+            placeholder={section.model_type === "llm" ? "qwen2.5-coder:7b" : "nomic-embed-text"}
+            onChange={(event) => onCustomChange(event.target.value)}
+          />
+        </label>
+      ) : null}
+      <p className="guided-model-custom-hint">{section.custom_model_hint}</p>
+      <button className="model-selection-save-button" type="button" disabled={disabled} onClick={onSave}>
+        {isSaving ? "Saving…" : `Use this ${section.title}`}
+      </button>
+    </article>
+  );
+}
+
+function GuidedModelNotes({ title, notes }: { title: string; notes: string[] }) {
+  return (
+    <div className="guided-model-notes">
+      <strong>{title}</strong>
+      {notes.map((note) => (
+        <span key={note}>{note}</span>
+      ))}
+    </div>
+  );
+}
+
+function toSetupChoiceValue(provider: string | undefined, model: string | undefined): string {
+  return provider && model ? `${provider}||${model}` : "";
+}
+
+function parseSetupChoiceValue(value: string): { provider: string; model: string } | null {
+  const [provider, model] = value.split("||");
+  if (!provider || !model) {
+    return null;
+  }
+  return { provider, model };
+}
 
 function SimpleModelCard({
   label,
