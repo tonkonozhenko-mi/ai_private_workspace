@@ -12673,3 +12673,647 @@ pre {
     min-width: max-content;
   }
 }
+
+/* Task 186 — strict visual QA pass: dark/light parity, alignment, typography */
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Inter, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --text-xs: 0.6875rem;
+  --text-sm: 0.75rem;
+  --text-md: 0.875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.25rem;
+  --text-2xl: clamp(1.75rem, 2.6vw, 2.25rem);
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --visual-card-padding: clamp(1rem, 1.4vw, 1.35rem);
+  --visual-grid-gap: clamp(0.75rem, 1.1vw, 1rem);
+}
+
+html,
+body,
+button,
+input,
+textarea,
+select {
+  font-family: var(--font-sans);
+}
+
+body {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+strong,
+button,
+.status-badge,
+.copy-button,
+.workspace-tabs button {
+  letter-spacing: -0.018em;
+}
+
+.eyebrow,
+.panel-label,
+.settings-section-heading .eyebrow,
+.startup-checklist-item-header span,
+.startup-checklist-command span,
+.local-data-grid span,
+.migration-table-item span {
+  font-size: 0.6875rem !important;
+  letter-spacing: 0.08em !important;
+  line-height: 1.2;
+}
+
+.panel,
+.settings-section,
+.settings-section-card,
+.workspace-hero,
+.models-native-hero,
+.models-simple-panel,
+.models-state-panel,
+.conversation-history-panel,
+.settings-local-data-panel,
+.settings-startup-checklist-panel,
+.settings-desktop-startup-panel,
+.settings-backup-panel,
+.settings-migration-panel,
+.settings-troubleshooting-panel,
+.settings-production-readiness-panel {
+  padding: clamp(1.25rem, 2vw, 1.75rem) !important;
+  border-radius: 24px !important;
+}
+
+.settings-grid,
+.workspace-dashboard-grid,
+.models-simple-grid,
+.model-runtime-grid,
+.local-data-grid,
+.startup-checklist-grid,
+.production-readiness-grid,
+.migration-table-grid,
+.settings-command-stack,
+.conversation-detail-grid {
+  gap: var(--visual-grid-gap) !important;
+  align-items: stretch !important;
+}
+
+.models-simple-grid,
+.model-runtime-grid,
+.local-data-grid,
+.startup-checklist-grid,
+.production-readiness-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
+}
+
+.models-simple-grid > *,
+.model-runtime-grid > *,
+.local-data-grid > *,
+.startup-checklist-grid > *,
+.production-readiness-grid > *,
+.migration-table-grid > *,
+.conversation-history-item,
+.report-card,
+.saved-report-card,
+.note-card {
+  min-width: 0 !important;
+}
+
+.simple-model-card,
+.model-runtime-grid article,
+.local-data-grid > div,
+.startup-checklist-item,
+.production-readiness-item,
+.migration-table-item,
+.runtime-check,
+.conversation-history-item,
+.backup-list-item,
+.troubleshooting-issue,
+.model-ranking-row,
+.model-selection-card,
+.model-experiment-candidate-card {
+  display: grid !important;
+  align-content: start !important;
+  gap: 0.75rem !important;
+  min-height: 0 !important;
+  padding: var(--visual-card-padding) !important;
+  border-radius: 18px !important;
+}
+
+.simple-model-card strong,
+.model-runtime-grid strong,
+.local-data-grid strong,
+.startup-checklist-item-header strong,
+.conversation-history-item strong,
+.models-native-hero h2,
+.panel-heading h2,
+.settings-section-heading h2 {
+  overflow-wrap: anywhere;
+}
+
+.simple-model-card p,
+.model-runtime-grid p,
+.local-data-grid small,
+.startup-checklist-item p,
+.conversation-history-item span,
+.conversation-history-item em,
+.settings-helper-note,
+.panel-intro,
+.technical-caption {
+  color: var(--color-text-muted) !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+}
+
+.workspace-tabs {
+  justify-content: flex-start !important;
+  padding: 0 !important;
+}
+
+.workspace-tabs > div {
+  display: grid !important;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(104px, max-content);
+  align-items: center;
+  gap: 0.25rem !important;
+  min-height: 56px !important;
+  padding: 0.375rem !important;
+  border-radius: 22px !important;
+}
+
+.workspace-tabs button {
+  display: inline-grid !important;
+  place-items: center;
+  min-width: 104px !important;
+  min-height: 44px !important;
+  padding: 0 1rem !important;
+  border-radius: 18px !important;
+  font-size: 0.875rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+}
+
+.workspace-tabs button span {
+  display: inline-grid !important;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 0.35rem;
+  font-size: 0.6875rem !important;
+}
+
+.workspace-navigation-shell {
+  align-items: center !important;
+  gap: 1rem !important;
+  min-height: 78px;
+  padding: 0.65rem 0.8rem !important;
+}
+
+.workspace-context-chip {
+  justify-self: end;
+  align-self: center;
+  min-height: 36px;
+}
+
+.conversation-history-heading,
+.settings-section-heading,
+.panel-heading {
+  align-items: flex-start !important;
+}
+
+.conversation-history-tools {
+  display: grid !important;
+  grid-template-columns: minmax(280px, 1fr) auto auto !important;
+  align-items: end !important;
+  gap: 0.75rem !important;
+}
+
+.conversation-history-tools input[type="search"] {
+  height: 44px !important;
+}
+
+.inline-toggle,
+.conversation-history-tools .inline-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.55rem !important;
+  min-height: 44px !important;
+  padding: 0 1rem !important;
+  border-radius: 999px !important;
+  white-space: nowrap;
+}
+
+.conversation-history-item {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 1rem !important;
+}
+
+.conversation-history-item > button:first-child {
+  min-width: 0 !important;
+  text-align: left !important;
+}
+
+.conversation-history-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.conversation-history-actions button,
+.action-row button,
+.report-action-row button,
+.saved-report-actions button,
+.note-card-actions button,
+.text-button,
+.primary-button,
+.copy-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 36px !important;
+  padding: 0 0.9rem !important;
+  border-radius: 999px !important;
+  font-size: 0.8125rem !important;
+  line-height: 1 !important;
+  white-space: nowrap;
+}
+
+.instruction-command-row,
+.startup-checklist-command,
+.settings-command-stack > div,
+.reindex-command-row,
+.local-data-details code,
+.command-box {
+  border-radius: 18px !important;
+}
+
+.instruction-command-row,
+.startup-checklist-command,
+.settings-command-stack > div,
+.reindex-command-row {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  padding: 0.75rem !important;
+}
+
+.instruction-command-row code,
+.startup-checklist-command code,
+.settings-command-stack code,
+.reindex-command-row code,
+.command-box,
+.local-data-details code,
+.restore-plan-card code {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  padding: 0.8rem 0.95rem !important;
+  border-radius: 14px !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.55 !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere !important;
+}
+
+.startup-checklist-command .copy-button,
+.instruction-command-row .copy-button,
+.settings-command-stack .copy-button,
+.reindex-command-row .copy-button {
+  align-self: stretch !important;
+  min-width: 76px !important;
+}
+
+/* Explicit dark theme: remove accidental light-gray slabs and keep cards readable. */
+:root[data-theme="dark"] {
+  --color-page: #0a1116;
+  --color-surface: #111c23;
+  --color-surface-soft: #0d171d;
+  --color-surface-raised: #16242c;
+  --color-border: rgba(143, 166, 180, 0.28);
+  --color-border-soft: rgba(143, 166, 180, 0.18);
+  --color-text: #e8eff5;
+  --color-text-strong: #f7fafc;
+  --color-text-muted: #aab8c4;
+  --color-text-subtle: #82919e;
+  --apple-hairline: rgba(148, 170, 184, 0.24);
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .main-content {
+  background: radial-gradient(circle at 18% -10%, rgba(91, 126, 147, 0.14), transparent 34%), var(--color-page) !important;
+  color: var(--color-text) !important;
+}
+
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .settings-section,
+:root[data-theme="dark"] .settings-section-card,
+:root[data-theme="dark"] .workspace-navigation-shell,
+:root[data-theme="dark"] .workspace-hero,
+:root[data-theme="dark"] .workspace-summary-card,
+:root[data-theme="dark"] .models-native-hero,
+:root[data-theme="dark"] .models-simple-panel,
+:root[data-theme="dark"] .models-state-panel,
+:root[data-theme="dark"] .simple-model-card,
+:root[data-theme="dark"] .model-runtime-grid article,
+:root[data-theme="dark"] .local-data-grid > div,
+:root[data-theme="dark"] .startup-checklist-item,
+:root[data-theme="dark"] .production-readiness-item,
+:root[data-theme="dark"] .migration-table-item,
+:root[data-theme="dark"] .runtime-check,
+:root[data-theme="dark"] .conversation-history-item,
+:root[data-theme="dark"] .backup-list-item,
+:root[data-theme="dark"] .troubleshooting-issue,
+:root[data-theme="dark"] .model-selection-card,
+:root[data-theme="dark"] .model-ranking-row,
+:root[data-theme="dark"] .report-card,
+:root[data-theme="dark"] .saved-report-card,
+:root[data-theme="dark"] .note-card {
+  color: var(--color-text) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)), var(--color-surface) !important;
+  border: 1px solid var(--apple-hairline) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.045) inset, 0 18px 54px rgba(0, 0, 0, 0.22) !important;
+}
+
+:root[data-theme="dark"] .simple-model-card,
+:root[data-theme="dark"] .model-runtime-grid article,
+:root[data-theme="dark"] .local-data-grid > div,
+:root[data-theme="dark"] .startup-checklist-item,
+:root[data-theme="dark"] .production-readiness-item,
+:root[data-theme="dark"] .migration-table-item,
+:root[data-theme="dark"] .conversation-history-item {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.028)), #12202a !important;
+}
+
+:root[data-theme="dark"] .simple-model-card *,
+:root[data-theme="dark"] .model-runtime-grid article *,
+:root[data-theme="dark"] .local-data-grid > div *,
+:root[data-theme="dark"] .startup-checklist-item *,
+:root[data-theme="dark"] .production-readiness-item *,
+:root[data-theme="dark"] .migration-table-item *,
+:root[data-theme="dark"] .conversation-history-item * {
+  color: inherit;
+}
+
+:root[data-theme="dark"] .simple-model-card strong,
+:root[data-theme="dark"] .model-runtime-grid strong,
+:root[data-theme="dark"] .local-data-grid strong,
+:root[data-theme="dark"] .startup-checklist-item-header strong,
+:root[data-theme="dark"] .conversation-history-item strong,
+:root[data-theme="dark"] .settings-section-heading h2,
+:root[data-theme="dark"] .panel-heading h2 {
+  color: var(--color-text-strong) !important;
+}
+
+:root[data-theme="dark"] .conversation-history-item.is-active {
+  background: linear-gradient(180deg, rgba(180, 145, 226, 0.20), rgba(255, 255, 255, 0.035)), #162330 !important;
+  border-color: rgba(190, 160, 232, 0.44) !important;
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] .text-input,
+:root[data-theme="dark"] .settings-json-box {
+  color: var(--color-text-strong) !important;
+  background: #0b151c !important;
+  border: 1px solid rgba(148, 170, 184, 0.26) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.035) inset !important;
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: #7e8d99 !important;
+}
+
+:root[data-theme="dark"] .workspace-tabs > div {
+  background: rgba(255, 255, 255, 0.045) !important;
+  border-color: rgba(148, 170, 184, 0.22) !important;
+}
+
+:root[data-theme="dark"] .workspace-tabs button {
+  color: var(--color-text-muted) !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+:root[data-theme="dark"] .workspace-tabs button.is-selected {
+  color: var(--color-text-strong) !important;
+  background: rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 10px 24px rgba(0, 0, 0, 0.22) !important;
+}
+
+:root[data-theme="dark"] .instruction-command-row,
+:root[data-theme="dark"] .startup-checklist-command,
+:root[data-theme="dark"] .settings-command-stack > div,
+:root[data-theme="dark"] .reindex-command-row {
+  background: rgba(204, 244, 222, 0.055) !important;
+  border-color: rgba(158, 218, 185, 0.20) !important;
+}
+
+:root[data-theme="dark"] .instruction-command-row code,
+:root[data-theme="dark"] .startup-checklist-command code,
+:root[data-theme="dark"] .settings-command-stack code,
+:root[data-theme="dark"] .reindex-command-row code,
+:root[data-theme="dark"] .command-box,
+:root[data-theme="dark"] .local-data-details code,
+:root[data-theme="dark"] .restore-plan-card code,
+:root[data-theme="dark"] pre,
+:root[data-theme="dark"] .code-block {
+  color: #d9e6ee !important;
+  background: #071018 !important;
+  border: 1px solid rgba(150, 174, 190, 0.22) !important;
+}
+
+:root[data-theme="dark"] .copy-button,
+:root[data-theme="dark"] .text-button,
+:root[data-theme="dark"] .conversation-history-actions button,
+:root[data-theme="dark"] .action-row button,
+:root[data-theme="dark"] .report-action-row button,
+:root[data-theme="dark"] .saved-report-actions button,
+:root[data-theme="dark"] .note-card-actions button {
+  color: #cfe0ea !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  border: 1px solid rgba(148, 170, 184, 0.28) !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme="dark"] .copy-button:hover,
+:root[data-theme="dark"] .text-button:hover,
+:root[data-theme="dark"] .conversation-history-actions button:hover,
+:root[data-theme="dark"] .action-row button:hover,
+:root[data-theme="dark"] .report-action-row button:hover,
+:root[data-theme="dark"] .saved-report-actions button:hover,
+:root[data-theme="dark"] .note-card-actions button:hover {
+  color: var(--color-text-strong) !important;
+  background: rgba(255, 255, 255, 0.095) !important;
+  border-color: rgba(178, 204, 218, 0.38) !important;
+}
+
+:root[data-theme="dark"] .primary-button {
+  color: #102018 !important;
+  background: linear-gradient(180deg, #b99aed, #9e7dd9) !important;
+  border-color: rgba(224, 206, 255, 0.4) !important;
+}
+
+:root[data-theme="dark"] .status-badge,
+:root[data-theme="dark"] .panel-count,
+:root[data-theme="dark"] .usage-metric,
+:root[data-theme="dark"] .source-chip,
+:root[data-theme="dark"] .report-quality-pill,
+:root[data-theme="dark"] .runtime-check,
+:root[data-theme="dark"] .note-source-pill {
+  color: var(--color-text) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(148, 170, 184, 0.22) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-page: #0a1116;
+    --color-surface: #111c23;
+    --color-surface-soft: #0d171d;
+    --color-surface-raised: #16242c;
+    --color-border: rgba(143, 166, 180, 0.28);
+    --color-border-soft: rgba(143, 166, 180, 0.18);
+    --color-text: #e8eff5;
+    --color-text-strong: #f7fafc;
+    --color-text-muted: #aab8c4;
+    --color-text-subtle: #82919e;
+    --apple-hairline: rgba(148, 170, 184, 0.24);
+    color-scheme: dark;
+  }
+
+  :root:not([data-theme="light"]) body,
+  :root:not([data-theme="light"]) .main-content {
+    background: radial-gradient(circle at 18% -10%, rgba(91, 126, 147, 0.14), transparent 34%), var(--color-page) !important;
+    color: var(--color-text) !important;
+  }
+
+  :root:not([data-theme="light"]) .panel,
+  :root:not([data-theme="light"]) .settings-section,
+  :root:not([data-theme="light"]) .settings-section-card,
+  :root:not([data-theme="light"]) .workspace-navigation-shell,
+  :root:not([data-theme="light"]) .workspace-hero,
+  :root:not([data-theme="light"]) .workspace-summary-card,
+  :root:not([data-theme="light"]) .models-native-hero,
+  :root:not([data-theme="light"]) .models-simple-panel,
+  :root:not([data-theme="light"]) .models-state-panel,
+  :root:not([data-theme="light"]) .simple-model-card,
+  :root:not([data-theme="light"]) .model-runtime-grid article,
+  :root:not([data-theme="light"]) .local-data-grid > div,
+  :root:not([data-theme="light"]) .startup-checklist-item,
+  :root:not([data-theme="light"]) .production-readiness-item,
+  :root:not([data-theme="light"]) .migration-table-item,
+  :root:not([data-theme="light"]) .runtime-check,
+  :root:not([data-theme="light"]) .conversation-history-item,
+  :root:not([data-theme="light"]) .backup-list-item,
+  :root:not([data-theme="light"]) .troubleshooting-issue,
+  :root:not([data-theme="light"]) .model-selection-card,
+  :root:not([data-theme="light"]) .model-ranking-row,
+  :root:not([data-theme="light"]) .report-card,
+  :root:not([data-theme="light"]) .saved-report-card,
+  :root:not([data-theme="light"]) .note-card {
+    color: var(--color-text) !important;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)), var(--color-surface) !important;
+    border: 1px solid var(--apple-hairline) !important;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.045) inset, 0 18px 54px rgba(0, 0, 0, 0.22) !important;
+  }
+
+  :root:not([data-theme="light"]) .simple-model-card,
+  :root:not([data-theme="light"]) .model-runtime-grid article,
+  :root:not([data-theme="light"]) .local-data-grid > div,
+  :root:not([data-theme="light"]) .startup-checklist-item,
+  :root:not([data-theme="light"]) .production-readiness-item,
+  :root:not([data-theme="light"]) .migration-table-item,
+  :root:not([data-theme="light"]) .conversation-history-item {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.028)), #12202a !important;
+  }
+
+  :root:not([data-theme="light"]) input,
+  :root:not([data-theme="light"]) textarea,
+  :root:not([data-theme="light"]) select,
+  :root:not([data-theme="light"]) .text-input,
+  :root:not([data-theme="light"]) .settings-json-box {
+    color: var(--color-text-strong) !important;
+    background: #0b151c !important;
+    border: 1px solid rgba(148, 170, 184, 0.26) !important;
+  }
+
+  :root:not([data-theme="light"]) .workspace-tabs > div {
+    background: rgba(255, 255, 255, 0.045) !important;
+    border-color: rgba(148, 170, 184, 0.22) !important;
+  }
+
+  :root:not([data-theme="light"]) .workspace-tabs button {
+    color: var(--color-text-muted) !important;
+    background: transparent !important;
+    border: 0 !important;
+  }
+
+  :root:not([data-theme="light"]) .workspace-tabs button.is-selected {
+    color: var(--color-text-strong) !important;
+    background: rgba(255, 255, 255, 0.10) !important;
+  }
+
+  :root:not([data-theme="light"]) .instruction-command-row,
+  :root:not([data-theme="light"]) .startup-checklist-command,
+  :root:not([data-theme="light"]) .settings-command-stack > div,
+  :root:not([data-theme="light"]) .reindex-command-row {
+    background: rgba(204, 244, 222, 0.055) !important;
+    border-color: rgba(158, 218, 185, 0.20) !important;
+  }
+
+  :root:not([data-theme="light"]) .instruction-command-row code,
+  :root:not([data-theme="light"]) .startup-checklist-command code,
+  :root:not([data-theme="light"]) .settings-command-stack code,
+  :root:not([data-theme="light"]) .reindex-command-row code,
+  :root:not([data-theme="light"]) .command-box,
+  :root:not([data-theme="light"]) .local-data-details code,
+  :root:not([data-theme="light"]) .restore-plan-card code,
+  :root:not([data-theme="light"]) pre,
+  :root:not([data-theme="light"]) .code-block {
+    color: #d9e6ee !important;
+    background: #071018 !important;
+    border: 1px solid rgba(150, 174, 190, 0.22) !important;
+  }
+
+  :root:not([data-theme="light"]) .copy-button,
+  :root:not([data-theme="light"]) .text-button,
+  :root:not([data-theme="light"]) .conversation-history-actions button,
+  :root:not([data-theme="light"]) .action-row button,
+  :root:not([data-theme="light"]) .report-action-row button,
+  :root:not([data-theme="light"]) .saved-report-actions button,
+  :root:not([data-theme="light"]) .note-card-actions button {
+    color: #cfe0ea !important;
+    background: rgba(255, 255, 255, 0.055) !important;
+    border: 1px solid rgba(148, 170, 184, 0.28) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .conversation-history-tools,
+  .conversation-history-item {
+    grid-template-columns: 1fr !important;
+  }
+
+  .conversation-history-actions {
+    justify-content: flex-start !important;
+  }
+
+  .workspace-tabs > div {
+    grid-auto-columns: minmax(90px, max-content);
+    overflow-x: auto;
+  }
+
+  .workspace-tabs button {
+    min-width: 90px !important;
+  }
+}
