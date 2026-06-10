@@ -6,6 +6,8 @@ import {
   deleteWorkspaceConversation,
   getWorkspaceConversation,
   listWorkspaceConversations,
+  updateWorkspaceConversationArchived,
+  updateWorkspaceConversationPinned,
   updateWorkspaceConversationTitle,
 } from "../api/client";
 import { CopyButton } from "./CopyButton";
@@ -103,6 +105,9 @@ export function AskWorkspace({
   const [conversations, setConversations] = useState<WorkspaceConversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [conversationLoading, setConversationLoading] = useState(false);
+  const [conversationSearch, setConversationSearch] = useState("");
+  const [showArchivedConversations, setShowArchivedConversations] = useState(false);
+  const [pinnedOnlyConversations, setPinnedOnlyConversations] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [cancelMessage, setCancelMessage] = useState<string | null>(null);
@@ -117,12 +122,28 @@ export function AskWorkspace({
   useEffect(() => {
     setHistory([]);
     setActiveConversationId(null);
-    void refreshConversations();
+    setConversationSearch("");
+    setShowArchivedConversations(false);
+    setPinnedOnlyConversations(false);
+    void refreshConversations({ search: "", includeArchived: false, pinnedOnly: false });
   }, [workspaceId]);
 
-  async function refreshConversations() {
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      void refreshConversations();
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [conversationSearch, showArchivedConversations, pinnedOnlyConversations]);
+
+  async function refreshConversations(
+    options: { search?: string; includeArchived?: boolean; pinnedOnly?: boolean } = {},
+  ) {
     try {
-      const items = await listWorkspaceConversations(workspaceId);
+      const items = await listWorkspaceConversations(workspaceId, {
+        search: options.search ?? conversationSearch,
+        includeArchived: options.includeArchived ?? showArchivedConversations,
+        pinnedOnly: options.pinnedOnly ?? pinnedOnlyConversations,
+      });
       setConversations(items);
     } catch {
       setConversations([]);
@@ -170,6 +191,37 @@ export function AskWorkspace({
       setHistory(conversationToHistory(conversation));
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not open conversation.");
+    } finally {
+      setConversationLoading(false);
+    }
+  }
+
+
+  async function toggleConversationPinned(conversationId: string, pinned: boolean) {
+    setConversationLoading(true);
+    setError(null);
+    try {
+      await updateWorkspaceConversationPinned(workspaceId, conversationId, pinned);
+      await refreshConversations();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not update conversation pin state.");
+    } finally {
+      setConversationLoading(false);
+    }
+  }
+
+  async function toggleConversationArchived(conversationId: string, archived: boolean) {
+    setConversationLoading(true);
+    setError(null);
+    try {
+      await updateWorkspaceConversationArchived(workspaceId, conversationId, archived);
+      if (archived && activeConversationId === conversationId) {
+        setActiveConversationId(null);
+        setHistory([]);
+      }
+      await refreshConversations();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not update conversation archive state.");
     } finally {
       setConversationLoading(false);
     }
@@ -275,6 +327,9 @@ export function AskWorkspace({
           conversations={conversations}
           activeConversationId={activeConversationId}
           conversationLoading={conversationLoading}
+          conversationSearch={conversationSearch}
+          showArchivedConversations={showArchivedConversations}
+          pinnedOnlyConversations={pinnedOnlyConversations}
           onAskAgain={(questionText) => void askQuestion(questionText)}
           onClear={() => setHistory([])}
           onEditQuestion={editQuestion}
@@ -283,6 +338,11 @@ export function AskWorkspace({
           onOpenConversation={(conversationId) => void openConversation(conversationId)}
           onRenameConversation={(conversationId, currentTitle) => void renameConversation(conversationId, currentTitle)}
           onDeleteConversation={(conversationId) => void removeConversation(conversationId)}
+          onTogglePinned={(conversationId, pinned) => void toggleConversationPinned(conversationId, pinned)}
+          onToggleArchived={(conversationId, archived) => void toggleConversationArchived(conversationId, archived)}
+          onSearch={setConversationSearch}
+          onToggleShowArchived={setShowArchivedConversations}
+          onTogglePinnedOnly={setPinnedOnlyConversations}
         />
 
         {cancelMessage ? (
@@ -378,6 +438,9 @@ function ConversationPanel({
   conversations,
   activeConversationId,
   conversationLoading,
+  conversationSearch,
+  showArchivedConversations,
+  pinnedOnlyConversations,
   onAskAgain,
   onClear,
   onEditQuestion,
@@ -386,12 +449,20 @@ function ConversationPanel({
   onOpenConversation,
   onRenameConversation,
   onDeleteConversation,
+  onTogglePinned,
+  onToggleArchived,
+  onSearch,
+  onToggleShowArchived,
+  onTogglePinnedOnly,
 }: {
   history: AskHistoryItem[];
   loading: boolean;
   conversations: WorkspaceConversation[];
   activeConversationId: string | null;
   conversationLoading: boolean;
+  conversationSearch: string;
+  showArchivedConversations: boolean;
+  pinnedOnlyConversations: boolean;
   onAskAgain: (question: string) => void;
   onClear: () => void;
   onEditQuestion: (question: string) => void;
@@ -400,6 +471,11 @@ function ConversationPanel({
   onOpenConversation: (conversationId: string) => void;
   onRenameConversation: (conversationId: string, currentTitle: string) => void;
   onDeleteConversation: (conversationId: string) => void;
+  onTogglePinned: (conversationId: string, pinned: boolean) => void;
+  onToggleArchived: (conversationId: string, archived: boolean) => void;
+  onSearch: (search: string) => void;
+  onToggleShowArchived: (showArchived: boolean) => void;
+  onTogglePinnedOnly: (pinnedOnly: boolean) => void;
 }) {
   const chronologicalHistory = [...history].reverse();
 
@@ -410,10 +486,18 @@ function ConversationPanel({
           conversations={conversations}
           activeConversationId={activeConversationId}
           loading={conversationLoading}
+          search={conversationSearch}
+          showArchived={showArchivedConversations}
+          pinnedOnly={pinnedOnlyConversations}
           onNewConversation={onNewConversation}
           onOpenConversation={onOpenConversation}
           onRenameConversation={onRenameConversation}
           onDeleteConversation={onDeleteConversation}
+          onTogglePinned={onTogglePinned}
+          onToggleArchived={onToggleArchived}
+          onSearch={onSearch}
+          onToggleShowArchived={onToggleShowArchived}
+          onTogglePinnedOnly={onTogglePinnedOnly}
         />
         <AskEmptyState />
       </section>
@@ -426,10 +510,18 @@ function ConversationPanel({
         conversations={conversations}
         activeConversationId={activeConversationId}
         loading={conversationLoading}
+        search={conversationSearch}
+        showArchived={showArchivedConversations}
+        pinnedOnly={pinnedOnlyConversations}
         onNewConversation={onNewConversation}
         onOpenConversation={onOpenConversation}
         onRenameConversation={onRenameConversation}
         onDeleteConversation={onDeleteConversation}
+        onTogglePinned={onTogglePinned}
+        onToggleArchived={onToggleArchived}
+        onSearch={onSearch}
+        onToggleShowArchived={onToggleShowArchived}
+        onTogglePinnedOnly={onTogglePinnedOnly}
       />
       <div className="panel ask-conversation-header">
         <div>
@@ -475,18 +567,34 @@ function ConversationHistoryBar({
   conversations,
   activeConversationId,
   loading,
+  search,
+  showArchived,
+  pinnedOnly,
   onNewConversation,
   onOpenConversation,
   onRenameConversation,
   onDeleteConversation,
+  onTogglePinned,
+  onToggleArchived,
+  onSearch,
+  onToggleShowArchived,
+  onTogglePinnedOnly,
 }: {
   conversations: WorkspaceConversation[];
   activeConversationId: string | null;
   loading: boolean;
+  search: string;
+  showArchived: boolean;
+  pinnedOnly: boolean;
   onNewConversation: () => void;
   onOpenConversation: (conversationId: string) => void;
   onRenameConversation: (conversationId: string, currentTitle: string) => void;
   onDeleteConversation: (conversationId: string) => void;
+  onTogglePinned: (conversationId: string, pinned: boolean) => void;
+  onToggleArchived: (conversationId: string, archived: boolean) => void;
+  onSearch: (search: string) => void;
+  onToggleShowArchived: (showArchived: boolean) => void;
+  onTogglePinnedOnly: (pinnedOnly: boolean) => void;
 }) {
   const activeConversation = conversations.find((conversation) => conversation.id === activeConversationId) ?? null;
 
@@ -503,6 +611,34 @@ function ConversationHistoryBar({
         </button>
       </div>
 
+      <div className="conversation-history-tools">
+        <label>
+          Search history
+          <input
+            type="search"
+            value={search}
+            placeholder="Search title, questions, or answers..."
+            onChange={(event) => onSearch(event.target.value)}
+          />
+        </label>
+        <label className="inline-toggle">
+          <input
+            type="checkbox"
+            checked={pinnedOnly}
+            onChange={(event) => onTogglePinnedOnly(event.target.checked)}
+          />
+          Pinned only
+        </label>
+        <label className="inline-toggle">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(event) => onToggleShowArchived(event.target.checked)}
+          />
+          Show archived
+        </label>
+      </div>
+
       {conversations.length === 0 ? (
         <p className="conversation-history-empty">No saved conversations yet. Ask a question to create one.</p>
       ) : (
@@ -512,9 +648,10 @@ function ConversationHistoryBar({
             return (
               <article className={`conversation-history-item ${isActive ? "is-active" : ""}`} key={conversation.id}>
                 <button type="button" onClick={() => onOpenConversation(conversation.id)} disabled={loading}>
-                  <strong>{conversation.title}</strong>
+                  <strong>{conversation.is_pinned ? "★ " : ""}{conversation.title}</strong>
                   <span>
                     {conversation.user_messages_count} question{conversation.user_messages_count === 1 ? "" : "s"} · {conversation.assistant_messages_count} answer{conversation.assistant_messages_count === 1 ? "" : "s"} · {formatDateTime(conversation.updated_at)}
+                    {conversation.is_archived ? " · archived" : ""}
                   </span>
                   {conversation.last_answer_preview ? (
                     <em>{conversation.last_answer_preview}</em>
@@ -525,9 +662,25 @@ function ConversationHistoryBar({
                     className="text-button"
                     type="button"
                     disabled={loading}
+                    onClick={() => onTogglePinned(conversation.id, !conversation.is_pinned)}
+                  >
+                    {conversation.is_pinned ? "Unpin" : "Pin"}
+                  </button>
+                  <button
+                    className="text-button"
+                    type="button"
+                    disabled={loading}
                     onClick={() => onRenameConversation(conversation.id, conversation.title)}
                   >
                     Rename
+                  </button>
+                  <button
+                    className="text-button"
+                    type="button"
+                    disabled={loading}
+                    onClick={() => onToggleArchived(conversation.id, !conversation.is_archived)}
+                  >
+                    {conversation.is_archived ? "Restore" : "Archive"}
                   </button>
                   <button
                     className="text-button danger-text-button"
@@ -563,13 +716,15 @@ function ConversationDetailsCard({ conversation }: { conversation: WorkspaceConv
     <article className="conversation-details-card" aria-label="Conversation details">
       <div>
         <p className="eyebrow">Conversation details</p>
-        <strong>{conversation.title}</strong>
+        <strong>{conversation.is_pinned ? "★ " : ""}{conversation.title}</strong>
       </div>
       <div className="conversation-detail-grid">
         <span><b>{conversation.user_messages_count}</b> questions</span>
         <span><b>{conversation.assistant_messages_count}</b> answers</span>
         <span><b>{formatMetricNumber(conversation.total_tokens)}</b> tokens</span>
         <span>{model}</span>
+        <span>{conversation.is_archived ? "Archived" : "Active"}</span>
+        <span>{conversation.is_pinned ? "Pinned" : "Not pinned"}</span>
       </div>
       {conversation.last_question ? (
         <p><strong>Last question:</strong> {conversation.last_question}</p>

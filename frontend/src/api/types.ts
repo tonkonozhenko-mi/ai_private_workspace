@@ -249,6 +249,10 @@ export interface WorkspaceConversation {
   last_llm_model?: string | null;
   last_skill_profile_source?: string | null;
   active_skills: string[];
+  pinned_at?: string | null;
+  archived_at?: string | null;
+  is_pinned: boolean;
+  is_archived: boolean;
 }
 
 export interface WorkspaceIndexStatus {

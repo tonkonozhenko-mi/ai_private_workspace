@@ -304,8 +304,20 @@ export function createWorkspaceConversation(
 
 export function listWorkspaceConversations(
   workspaceId: string,
+  options: { search?: string; includeArchived?: boolean; pinnedOnly?: boolean } = {},
 ): Promise<WorkspaceConversation[]> {
-  return getJson<WorkspaceConversation[]>(`/workspaces/${workspaceId}/conversations`);
+  const params = new URLSearchParams();
+  if (options.search?.trim()) {
+    params.set("search", options.search.trim());
+  }
+  if (options.includeArchived) {
+    params.set("include_archived", "true");
+  }
+  if (options.pinnedOnly) {
+    params.set("pinned_only", "true");
+  }
+  const query = params.toString();
+  return getJson<WorkspaceConversation[]>(`/workspaces/${workspaceId}/conversations${query ? `?${query}` : ""}`);
 }
 
 export function getWorkspaceConversation(
@@ -327,6 +339,36 @@ export function updateWorkspaceConversationTitle(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ title }),
+  });
+}
+
+export function updateWorkspaceConversationPinned(
+  workspaceId: string,
+  conversationId: string,
+  pinned: boolean,
+): Promise<WorkspaceConversation> {
+  return requestJson<WorkspaceConversation>(`/workspaces/${workspaceId}/conversations/${conversationId}/pin`, {
+    method: "PATCH",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ pinned }),
+  });
+}
+
+export function updateWorkspaceConversationArchived(
+  workspaceId: string,
+  conversationId: string,
+  archived: boolean,
+): Promise<WorkspaceConversation> {
+  return requestJson<WorkspaceConversation>(`/workspaces/${workspaceId}/conversations/${conversationId}/archive`, {
+    method: "PATCH",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ archived }),
   });
 }
 
