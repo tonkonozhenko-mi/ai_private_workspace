@@ -31,6 +31,7 @@ import type {
   ReportCatalog,
   WorkspaceReport,
   BuildCustomWorkspaceReportRequest,
+  SaveEditedWorkspaceReportRequest,
   SavedWorkspaceReport,
   UpdateSavedWorkspaceReportRequest,
 } from "./types";
@@ -305,6 +306,21 @@ export function saveCustomWorkspaceReport(
   return requestJson<SavedWorkspaceReport>(`/workspaces/${workspaceId}/reports/custom-save`, {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+}
+
+
+export function saveEditedWorkspaceReport(
+  workspaceId: string,
+  request: SaveEditedWorkspaceReportRequest,
+): Promise<SavedWorkspaceReport> {
+  return requestJson<SavedWorkspaceReport>(`/workspaces/${workspaceId}/reports/draft-save`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(request),
   });
 }

@@ -28,9 +28,13 @@ class ReportRepositoryPort(Protocol):
         *,
         title: str | None = None,
         summary: str | None = None,
+        export_markdown: str | None = None,
+        export_text: str | None = None,
+        report_json: dict[str, object] | None = None,
+        generated_from: list[str] | None = None,
         pinned: bool | None = None,
     ) -> SavedWorkspaceReport | None:
-        """Update report metadata."""
+        """Update report metadata or edited content."""
 
     def delete_report(self, workspace_id: str, report_id: str) -> bool:
         """Delete a saved report."""

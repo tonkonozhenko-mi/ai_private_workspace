@@ -334,6 +334,16 @@ export interface BuildCustomWorkspaceReportRequest {
   extra_context?: string | null;
 }
 
+export interface SaveEditedWorkspaceReportRequest {
+  title: string;
+  summary: string;
+  report_type: string;
+  sections: ReportSection[];
+  generated_from: string[];
+  export_markdown: string;
+  safety_note: string;
+}
+
 export interface SavedWorkspaceReport {
   id: string;
   workspace_id: string;
@@ -353,6 +363,10 @@ export interface SavedWorkspaceReport {
 export interface UpdateSavedWorkspaceReportRequest {
   title?: string;
   summary?: string;
+  export_markdown?: string;
+  export_text?: string;
+  report_json?: Record<string, unknown>;
+  generated_from?: string[];
 }
 
 export interface WorkspaceIndexStatus {

@@ -95,6 +95,16 @@ class BuildCustomWorkspaceReportRequest(BaseModel):
 class SaveCustomWorkspaceReportRequest(BuildCustomWorkspaceReportRequest):
     pass
 
+
+class SaveEditedWorkspaceReportRequest(BaseModel):
+    title: str
+    summary: str = ""
+    report_type: str = "edited_report"
+    sections: list[ReportSectionResponse] = []
+    generated_from: list[str] = []
+    export_markdown: str
+    safety_note: str = ""
+
 class SavedWorkspaceReportResponse(BaseModel):
     id: str
     workspace_id: str
@@ -114,6 +124,10 @@ class SavedWorkspaceReportResponse(BaseModel):
 class UpdateSavedWorkspaceReportRequest(BaseModel):
     title: str | None = None
     summary: str | None = None
+    export_markdown: str | None = None
+    export_text: str | None = None
+    report_json: dict[str, object] | None = None
+    generated_from: list[str] | None = None
 
 
 class SavedReportPinRequest(BaseModel):
