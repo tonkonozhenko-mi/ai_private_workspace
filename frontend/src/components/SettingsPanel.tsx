@@ -37,6 +37,52 @@ import {
   type SkillProfileTemplateId,
 } from "./skillLibrary";
 
+type BrandingPresetId = "default" | "company_coe" | "devops_lab" | "client_demo";
+
+interface BrandingPreset {
+  id: BrandingPresetId;
+  label: string;
+  description: string;
+  productName: string;
+  brandInitials: string;
+  accentColor: WorkbenchPreferences["accentColor"];
+}
+
+const BRANDING_PRESETS: BrandingPreset[] = [
+  {
+    id: "default",
+    label: "AI Private",
+    description: "Neutral product identity for local personal use.",
+    productName: "AI Private Workspace",
+    brandInitials: "AI",
+    accentColor: "green",
+  },
+  {
+    id: "company_coe",
+    label: "Company CoE",
+    description: "Calm blue preset for internal demos and enablement sessions.",
+    productName: "CoE AI Workspace",
+    brandInitials: "CoE",
+    accentColor: "blue",
+  },
+  {
+    id: "devops_lab",
+    label: "DevOps Lab",
+    description: "Purple technical workspace preset for engineering reviews.",
+    productName: "DevOps AI Workspace",
+    brandInitials: "DO",
+    accentColor: "purple",
+  },
+  {
+    id: "client_demo",
+    label: "Client Demo",
+    description: "Orange preset for temporary demo environments.",
+    productName: "Private Client Workspace",
+    brandInitials: "CD",
+    accentColor: "orange",
+  },
+];
+
 interface SettingsPanelProps {
   dashboard: WorkspaceDashboardData;
   modelsSummary: WorkspaceModelsDashboardSummary;
@@ -345,6 +391,16 @@ export function SettingsPanel({
   ) {
     setResetRequested(false);
     onPreferencesChange({ ...preferences, [key]: value });
+  }
+
+  function applyBrandingPreset(preset: BrandingPreset) {
+    setResetRequested(false);
+    onPreferencesChange({
+      ...preferences,
+      productName: normalizeProductName(preset.productName),
+      brandInitials: normalizeBrandInitials(preset.brandInitials),
+      accentColor: preset.accentColor,
+    });
   }
 
   function updateSkillPreference(
@@ -817,6 +873,41 @@ export function SettingsPanel({
           badge="Local"
           tone="info"
         >
+          <PreferenceGroup label="Brand presets">
+            <div className="branding-preset-grid">
+              {BRANDING_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={`branding-preset-card${
+                    preferences.productName === preset.productName &&
+                    preferences.brandInitials === preset.brandInitials &&
+                    preferences.accentColor === preset.accentColor
+                      ? " is-selected"
+                      : ""
+                  }`}
+                  onClick={() => applyBrandingPreset(preset)}
+                >
+                  <span className="brand-mark settings-brand-preview" aria-hidden="true">
+                    {preset.brandInitials}
+                  </span>
+                  <strong>{preset.label}</strong>
+                  <small>{preset.description}</small>
+                </button>
+              ))}
+            </div>
+          </PreferenceGroup>
+          <PreferenceGroup label="Product name">
+            <input
+              className="text-input"
+              value={preferences.productName}
+              onChange={(event) =>
+                updatePreference("productName", normalizeProductName(event.target.value))
+              }
+              maxLength={48}
+              aria-label="Product name"
+            />
+          </PreferenceGroup>
           <PreferenceGroup label="Logo initials">
             <div className="settings-brand-editor">
               <span
@@ -850,7 +941,7 @@ export function SettingsPanel({
               onChange={(value) => updatePreference("accentColor", value)}
             />
           </PreferenceGroup>
-          <SettingsRow label="Product name" value="AI Private Workspace" />
+          <SettingsRow label="Scope" value="Browser-local visual identity only" />
         </SettingsSection>
 
         <SettingsSection
@@ -1279,6 +1370,7 @@ export function SettingsPanel({
   "defaultSourceSnippets": 5,
   "landingTab": "overview",
   "apiBaseUrl": "http://127.0.0.1:8000",
+  "productName": "AI Private Workspace",
   "brandInitials": "AI",
   "accentColor": "green",
   "fileIndexingPreferences": {
@@ -2368,6 +2460,14 @@ function parseImportedPreferences(
       recognizedValueCount += 1;
     }
 
+    if (parsed.productName !== undefined) {
+      if (!isProductNamePreference(parsed.productName)) {
+        return null;
+      }
+      nextPreferences.productName = normalizeProductName(parsed.productName);
+      recognizedValueCount += 1;
+    }
+
     if (parsed.accentColor !== undefined) {
       if (!isAccentColorPreference(parsed.accentColor)) {
         return null;
@@ -2414,6 +2514,7 @@ function isLandingTabPreference(
     value === "overview" ||
     value === "ask" ||
     value === "models" ||
+    value === "reports" ||
     value === "actions" ||
     value === "activity" ||
     value === "settings"
@@ -2448,6 +2549,15 @@ function normalizeBrandInitials(value: string): string {
       .replace(/[^A-Z0-9]/g, "")
       .slice(0, 3) || "AI"
   );
+}
+
+function isProductNamePreference(value: unknown): value is string {
+  return typeof value === "string" && normalizeProductName(value).length > 0;
+}
+
+function normalizeProductName(value: string): string {
+  const normalized = value.trim().replace(/\s+/g, " ").slice(0, 48);
+  return normalized || "AI Private Workspace";
 }
 
 function isAccentColorPreference(

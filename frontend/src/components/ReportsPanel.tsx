@@ -591,6 +591,24 @@ function ReportPreview({
       </div>
       <div className="report-safety-note"><strong>Safety:</strong> {report.safety_note}</div>
       <ReportQualityCard quality={report.quality} compact={false} />
+      <ReportShareKit
+        title={draftTitle}
+        markdown={draftMarkdown}
+        documentationMarkdown={documentationMarkdown}
+        text={markdownToPlainText(draftMarkdown)}
+        json={JSON.stringify(
+          {
+            title: draftTitle,
+            summary: draftSummary,
+            report_type: report.report_type,
+            generated_from: report.generated_from,
+            sections: visibleSections,
+            quality: report.quality,
+          },
+          null,
+          2,
+        )}
+      />
       <div className="report-editor-grid">
         <label className="field-label">Report title
           <input className="text-input" value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
@@ -779,6 +797,13 @@ function SavedReportDetails({
         <StatusBadge label={report.is_pinned ? "Pinned" : "Saved"} />
       </div>
       <ReportQualityCard quality={report.quality} compact={false} />
+      <ReportShareKit
+        title={report.title}
+        markdown={report.export_markdown}
+        documentationMarkdown={renderDocumentationReadyMarkdown(report)}
+        text={report.export_text}
+        json={JSON.stringify(report.report_json, null, 2)}
+      />
       <dl className="report-template-details">
         <div><dt>Type</dt><dd>{report.report_type}</dd></div>
         <div><dt>Updated</dt><dd>{formatDate(report.updated_at)}</dd></div>
@@ -831,6 +856,49 @@ function SavedReportDetails({
   );
 }
 
+
+function ReportShareKit({
+  title,
+  markdown,
+  documentationMarkdown,
+  text,
+  json,
+}: {
+  title: string;
+  markdown: string;
+  documentationMarkdown: string;
+  text: string;
+  json: string;
+}) {
+  const shareSummary = [
+    `Report: ${title}`,
+    "",
+    "Available local exports:",
+    "- Editable Markdown",
+    "- Documentation-ready Markdown",
+    "- Plain text",
+    "- JSON manifest",
+    "",
+    "Safety: review sources before sharing outside the local workspace.",
+  ].join("\n");
+
+  return (
+    <section className="report-share-kit">
+      <div>
+        <p className="eyebrow">Share kit</p>
+        <strong>Documentation-ready copy actions</strong>
+        <span>Copy-only exports for README, Confluence, tickets, or handoff notes.</span>
+      </div>
+      <div className="report-share-actions">
+        <CopyButton text={markdown} label="editable md" />
+        <CopyButton text={documentationMarkdown} label="doc-ready md" />
+        <CopyButton text={text} label="plain text" />
+        <CopyButton text={json} label="json manifest" />
+        <CopyButton text={shareSummary} label="share summary" />
+      </div>
+    </section>
+  );
+}
 
 function ReportQualityCard({ quality, compact }: { quality: ReportQualitySummary; compact?: boolean }) {
   const failedChecks = quality.checks.filter((check) => check.status !== "pass");
