@@ -26,6 +26,7 @@ import type {
   WorkspaceOverviewItem,
   WorkspaceJob,
   FileSelectionPreview,
+  WorkspaceSkillProfile,
 } from "./api/types";
 import { AskWorkspace } from "./components/AskWorkspace";
 import { CreateWorkspacePanel } from "./components/CreateWorkspacePanel";
@@ -118,6 +119,7 @@ function App() {
   const [activityJobs, setActivityJobs] = useState<WorkspaceJob[]>([]);
   const [activityJobsLoading, setActivityJobsLoading] = useState(false);
   const [activityJobsError, setActivityJobsError] = useState<string | null>(null);
+  const [workspaceSkillProfile, setWorkspaceSkillProfile] = useState<WorkspaceSkillProfile | null>(null);
 
   const loadModelsDetail = useCallback(async (workspaceId: string) => {
     setModelsDetail(null);
@@ -158,6 +160,7 @@ function App() {
         getWorkspaceSkillProfile(workspaceId),
       ]);
       setDetail({ dashboard, actions, modelsSummary });
+      setWorkspaceSkillProfile(skillProfile);
       setPreferences((current) => ({
         ...current,
         skillPreferences: skillPreferencesFromProfile(skillProfile),
@@ -256,6 +259,7 @@ function App() {
       setModelsDetailError(null);
       setWorkspaces(overview.items);
       setTotalWorkspaces(overview.total_workspaces);
+      setWorkspaceSkillProfile(skillProfile);
       setPreferences((current) => ({
         ...current,
         fileIndexingPreferences: {
@@ -535,6 +539,8 @@ function App() {
                   assistantMode={detail.dashboard.assistant_mode}
                   defaultSourceSnippets={preferences.defaultSourceSnippets}
                   skillPreferences={preferences.skillPreferences}
+                  skillProfileSource={workspaceSkillProfile?.source ?? "default"}
+                  skillProfileUpdatedAt={workspaceSkillProfile?.updated_at ?? null}
                   onAsked={() => refreshAfterAsk(detail.dashboard.workspace_id)}
                 />
               </div>
@@ -607,6 +613,8 @@ function App() {
                   onResetPreferences={() => setPreferences(DEFAULT_PREFERENCES)}
                   onOpenModels={() => setActiveTab("models")}
                   onIndexingRulesSaved={() => refreshWorkspaceReadOnlyState(detail.dashboard.workspace_id)}
+                  skillProfileSource={workspaceSkillProfile?.source ?? "default"}
+                  skillProfileUpdatedAt={workspaceSkillProfile?.updated_at ?? null}
                   onSkillProfileSaved={() => refreshWorkspaceReadOnlyState(detail.dashboard.workspace_id)}
                 />
               ) : null}

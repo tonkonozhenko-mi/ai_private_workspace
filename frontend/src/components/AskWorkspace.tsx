@@ -19,6 +19,8 @@ interface AskWorkspaceProps {
   assistantMode: string;
   defaultSourceSnippets: SourceSnippetLimit;
   skillPreferences: SkillPreferences;
+  skillProfileSource?: string;
+  skillProfileUpdatedAt?: string | null;
   onAsked?: () => void | Promise<void>;
 }
 
@@ -83,6 +85,8 @@ export function AskWorkspace({
   assistantMode,
   defaultSourceSnippets,
   skillPreferences,
+  skillProfileSource = "default",
+  skillProfileUpdatedAt = null,
   onAsked,
 }: AskWorkspaceProps) {
   const [question, setQuestion] = useState("");
@@ -165,7 +169,12 @@ export function AskWorkspace({
   return (
     <div className="ask-workspace ask-workspace-chat ask-workspace-centered">
       <aside className="ask-context-sidebar">
-        <AssistantFocusHint assistantMode={assistantMode} skillPreferences={skillPreferences} />
+        <AssistantFocusHint
+          assistantMode={assistantMode}
+          skillPreferences={skillPreferences}
+          skillProfileSource={skillProfileSource}
+          skillProfileUpdatedAt={skillProfileUpdatedAt}
+        />
       </aside>
 
       <section className="ask-chat-column">
@@ -906,15 +915,23 @@ function buildSkillContext(skillPreferences: SkillPreferences): SkillContextRequ
 function AssistantFocusHint({
   assistantMode,
   skillPreferences,
+  skillProfileSource,
+  skillProfileUpdatedAt,
 }: {
   assistantMode: string;
   skillPreferences: SkillPreferences;
+  skillProfileSource: string;
+  skillProfileUpdatedAt: string | null;
 }) {
   const focus = getAskFocus(assistantMode);
   const activePresets = getEnabledSkillPresets(skillPreferences);
   const activeSkillLabel = activePresets.length > 0
     ? activePresets.map((preset) => preset.shortName).join(" + ")
     : "No extra skills";
+  const guidanceSummary = activePresets.length > 0
+    ? `${activePresets.length} saved guidance item${activePresets.length === 1 ? "" : "s"}`
+    : "No saved guidance enabled";
+  const profileLabel = skillProfileSource === "saved" ? "Workspace saved profile" : "Default workspace profile";
 
   return (
     <section className="panel ask-focus-hint ask-focus-hint-compact">
@@ -937,9 +954,20 @@ function AssistantFocusHint({
           <span>Active skills</span>
           <strong>{activeSkillLabel}</strong>
         </div>
+        <div>
+          <span>Profile source</span>
+          <strong>{profileLabel}</strong>
+        </div>
+        <div>
+          <span>Guidance</span>
+          <strong>{guidanceSummary}</strong>
+        </div>
       </div>
 
-      <p className="ask-focus-compact-note">Skills are applied to each Ask request.</p>
+      <p className="ask-focus-compact-note">
+        Saved skills guide the answer style and focus. Project claims still need retrieved sources.
+        {skillProfileUpdatedAt ? ` Last saved ${formatDateTime(skillProfileUpdatedAt)}.` : ""}
+      </p>
     </section>
   );
 }
@@ -1005,6 +1033,15 @@ function createHistoryItem(response: WorkspaceQuestionAnswer): AskHistoryItem {
     createdAt: new Date().toISOString(),
     response,
   };
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function formatTime(value: string) {
