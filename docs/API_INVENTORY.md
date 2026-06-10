@@ -10,6 +10,7 @@ filesystem, provider, or command-runner activity outside SQLite repositories.
 | --- | --- | --- | --- | --- | --- |
 | `GET /health` | Process liveness check. | No | No | No | App shell |
 | `GET /runtime/health` | Report configured Qdrant, Ollama, and command-runner health. | No | No | Lightweight Qdrant/Ollama checks when configured | Runtime status |
+| `GET /runtime/troubleshooting` | Build a read-only troubleshooting plan for Ollama, Qdrant, fake providers, memory vector store, and safe restart commands. | No | No | Runtime health checks only | Settings troubleshooting assistant |
 | `GET /runtime/local-data` | Report local workspace database path, counts, safety warnings, protected paths, and safe update excludes. | No | No | Local SQLite metadata read only | Runtime diagnostics |
 | `GET /runtime/startup-checklist` | Report local startup readiness for Python, database, model providers, vector store, and safe-update workflow. | No | No | Read-only runtime settings and SQLite diagnostics | Settings startup checklist |
 | `GET /runtime/database-backups` | List local workspace DB backup files stored next to the active database. | No | No | Local filesystem metadata read | Settings backup workflow |

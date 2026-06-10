@@ -212,6 +212,32 @@ export interface DatabaseMigrationSafety {
   safety_note: string;
 }
 
+
+export interface RuntimeTroubleshootingStep {
+  title: string;
+  detail: string;
+  copy_command: string | null;
+}
+
+export interface RuntimeTroubleshootingIssue {
+  id: string;
+  title: string;
+  severity: string;
+  component: string;
+  summary: string;
+  details: string;
+  steps: RuntimeTroubleshootingStep[];
+}
+
+export interface RuntimeTroubleshooting {
+  status: string;
+  summary: string;
+  issues: RuntimeTroubleshootingIssue[];
+  quick_checks: RuntimeTroubleshootingStep[];
+  safe_restart_commands: RuntimeTroubleshootingStep[];
+  safety_note: string;
+}
+
 export interface TimelineEvent {
   id: string;
   workspace_id: string;
