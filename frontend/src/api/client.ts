@@ -34,6 +34,10 @@ import type {
   SaveEditedWorkspaceReportRequest,
   SavedWorkspaceReport,
   UpdateSavedWorkspaceReportRequest,
+  CreateDatabaseBackupResponse,
+  DatabaseBackupList,
+  DatabaseMigrationSafety,
+  DatabaseRestorePlan,
   LocalDataSafety,
   StartupChecklist,
 } from "./types";
@@ -95,6 +99,29 @@ export function getLocalDataSafety(): Promise<LocalDataSafety> {
 
 export function getStartupChecklist(): Promise<StartupChecklist> {
   return getJson<StartupChecklist>("/runtime/startup-checklist");
+}
+
+
+export function getDatabaseBackups(): Promise<DatabaseBackupList> {
+  return getJson<DatabaseBackupList>("/runtime/database-backups");
+}
+
+export function createDatabaseBackup(): Promise<CreateDatabaseBackupResponse> {
+  return requestJson<CreateDatabaseBackupResponse>("/runtime/database-backups", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export function getDatabaseRestorePlan(backupFilename: string): Promise<DatabaseRestorePlan> {
+  return requestJson<DatabaseRestorePlan>("/runtime/database-restore-plan", {
+    method: "POST",
+    body: JSON.stringify({ backup_filename: backupFilename }),
+  });
+}
+
+export function getDatabaseMigrationSafety(): Promise<DatabaseMigrationSafety> {
+  return getJson<DatabaseMigrationSafety>("/runtime/database-migration-safety");
 }
 
 export function getWorkspacesOverview(

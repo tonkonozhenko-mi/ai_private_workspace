@@ -76,3 +76,20 @@ scripts/apply_generated_update.sh /path/to/unzipped/update ~/Documents/ai_worksp
 ```
 
 The script keeps generated source files in sync while preserving runtime data such as `backend/.ai-workbench/workspaces.db`.
+
+## Task 177 backup/restore workflow
+
+Additional read-only and explicit backup endpoints are available:
+
+```bash
+curl http://127.0.0.1:8000/runtime/database-backups
+curl http://127.0.0.1:8000/runtime/database-migration-safety
+```
+
+Creating a backup is an explicit backend action:
+
+```bash
+curl -X POST http://127.0.0.1:8000/runtime/database-backups
+```
+
+Restore remains manual. The restore-plan endpoint returns copy commands only and does not modify the active database.

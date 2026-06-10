@@ -2,11 +2,14 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { getLocalDataSafety, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getLocalDataSafety, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
   FileSelectionPreview,
+  DatabaseBackupList,
+  DatabaseMigrationSafety,
+  DatabaseRestorePlan,
   LocalDataSafety,
   StartupChecklist,
 } from "../api/types";
@@ -98,6 +101,16 @@ export function SettingsPanel({
   const [startupChecklist, setStartupChecklist] = useState<StartupChecklist | null>(null);
   const [startupChecklistError, setStartupChecklistError] = useState<string | null>(null);
   const [startupChecklistLoading, setStartupChecklistLoading] = useState(false);
+  const [databaseBackups, setDatabaseBackups] = useState<DatabaseBackupList | null>(null);
+  const [databaseBackupsError, setDatabaseBackupsError] = useState<string | null>(null);
+  const [databaseBackupsLoading, setDatabaseBackupsLoading] = useState(false);
+  const [creatingDatabaseBackup, setCreatingDatabaseBackup] = useState(false);
+  const [selectedBackupFilename, setSelectedBackupFilename] = useState("");
+  const [databaseRestorePlan, setDatabaseRestorePlan] = useState<DatabaseRestorePlan | null>(null);
+  const [databaseRestorePlanError, setDatabaseRestorePlanError] = useState<string | null>(null);
+  const [databaseMigrationSafety, setDatabaseMigrationSafety] = useState<DatabaseMigrationSafety | null>(null);
+  const [databaseMigrationSafetyError, setDatabaseMigrationSafetyError] = useState<string | null>(null);
+  const [databaseMigrationSafetyLoading, setDatabaseMigrationSafetyLoading] = useState(false);
 
 
   useEffect(() => {
@@ -146,6 +159,32 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setStartupChecklistLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    refreshDatabaseBackups();
+    let cancelled = false;
+    setDatabaseMigrationSafetyLoading(true);
+    setDatabaseMigrationSafetyError(null);
+    getDatabaseMigrationSafety()
+      .then((diagnostics) => {
+        if (!cancelled) {
+          setDatabaseMigrationSafety(diagnostics);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setDatabaseMigrationSafetyError(error instanceof Error ? error.message : "Could not load migration safety diagnostics");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setDatabaseMigrationSafetyLoading(false);
         }
       });
     return () => {
@@ -480,6 +519,51 @@ export function SettingsPanel({
     setImportDraft("");
     setTransferMessage("Preferences reset to defaults in this browser.");
     setResetRequested(false);
+  }
+
+
+  function refreshDatabaseBackups() {
+    setDatabaseBackupsLoading(true);
+    setDatabaseBackupsError(null);
+    getDatabaseBackups()
+      .then((backups) => {
+        setDatabaseBackups(backups);
+        setSelectedBackupFilename((current) => current || backups.backups[0]?.filename || "");
+      })
+      .catch((error) => {
+        setDatabaseBackupsError(error instanceof Error ? error.message : "Could not load database backups");
+      })
+      .finally(() => {
+        setDatabaseBackupsLoading(false);
+      });
+  }
+
+  function handleCreateDatabaseBackup() {
+    setCreatingDatabaseBackup(true);
+    setDatabaseBackupsError(null);
+    createDatabaseBackup()
+      .then(() => {
+        refreshDatabaseBackups();
+      })
+      .catch((error) => {
+        setDatabaseBackupsError(error instanceof Error ? error.message : "Could not create database backup");
+      })
+      .finally(() => {
+        setCreatingDatabaseBackup(false);
+      });
+  }
+
+  function handleBuildRestorePlan() {
+    if (!selectedBackupFilename) {
+      setDatabaseRestorePlanError("Select a backup first.");
+      return;
+    }
+    setDatabaseRestorePlanError(null);
+    getDatabaseRestorePlan(selectedBackupFilename)
+      .then(setDatabaseRestorePlan)
+      .catch((error) => {
+        setDatabaseRestorePlanError(error instanceof Error ? error.message : "Could not build restore plan");
+      });
   }
 
   return (
@@ -1289,6 +1373,158 @@ export function SettingsPanel({
                 </div>
               ) : null}
             </div>
+          </>
+        ) : null}
+      </section>
+
+
+      <section className="panel settings-backup-panel">
+        <div className="settings-section-heading">
+          <div>
+            <p className="eyebrow">Backup and restore</p>
+            <h2>Workspace DB backup workflow</h2>
+            <p>
+              Create explicit local backups and prepare manual restore commands. Restore is copy-only by design and is never executed by the frontend.
+            </p>
+          </div>
+          <StatusBadge
+            label={databaseBackupsLoading ? "Checking" : `${databaseBackups?.backups.length ?? 0} backups`}
+            tone={(databaseBackups?.backups.length ?? 0) > 0 ? "success" : "warning"}
+          />
+        </div>
+        {databaseBackupsError ? (
+          <p className="settings-transfer-message">Backup diagnostics error: {databaseBackupsError}</p>
+        ) : null}
+        <div className="settings-actions-row">
+          <button
+            className="primary-action"
+            type="button"
+            onClick={handleCreateDatabaseBackup}
+            disabled={creatingDatabaseBackup}
+          >
+            {creatingDatabaseBackup ? "Creating backup..." : "Create DB backup"}
+          </button>
+          <button className="secondary-action" type="button" onClick={refreshDatabaseBackups}>
+            Refresh backups
+          </button>
+        </div>
+        {databaseBackups ? (
+          <>
+            <div className="local-data-details">
+              <div>
+                <span>Active database</span>
+                <code>{databaseBackups.database_path}</code>
+              </div>
+              <div>
+                <span>Restore policy</span>
+                <small>{databaseBackups.restore_note}</small>
+              </div>
+            </div>
+            {databaseBackups.backups.length > 0 ? (
+              <div className="backup-list">
+                {databaseBackups.backups.slice(0, 6).map((backup) => (
+                  <label className="backup-list-item" key={backup.filename}>
+                    <input
+                      type="radio"
+                      name="database-backup"
+                      checked={selectedBackupFilename === backup.filename}
+                      onChange={() => setSelectedBackupFilename(backup.filename)}
+                    />
+                    <span>
+                      <strong>{backup.filename}</strong>
+                      <small>{formatBytes(backup.size_bytes)} · {formatDateTime(backup.created_at)}</small>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p className="settings-transfer-message">No backups found yet. Create one before applying generated updates.</p>
+            )}
+          </>
+        ) : null}
+        <div className="settings-actions-row">
+          <button
+            className="secondary-action"
+            type="button"
+            onClick={handleBuildRestorePlan}
+            disabled={!selectedBackupFilename}
+          >
+            Prepare restore plan
+          </button>
+        </div>
+        {databaseRestorePlanError ? (
+          <p className="settings-transfer-message">Restore plan error: {databaseRestorePlanError}</p>
+        ) : null}
+        {databaseRestorePlan ? (
+          <div className="restore-plan-card">
+            <div className="startup-checklist-summary">
+              <strong>Manual restore plan for {databaseRestorePlan.backup.filename}</strong>
+              <span>{databaseRestorePlan.safety_note}</span>
+            </div>
+            <ol>
+              {databaseRestorePlan.steps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+            <div className="startup-checklist-grid">
+              {databaseRestorePlan.copy_commands.map((command) => (
+                <div className="startup-checklist-command" key={command}>
+                  <code>{command}</code>
+                  <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(command)}>
+                    Copy
+                  </button>
+                </div>
+              ))}
+            </div>
+            {databaseRestorePlan.warnings.length > 0 ? (
+              <ul className="quality-warning-list">
+                {databaseRestorePlan.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+
+      <section className="panel settings-migration-panel">
+        <div className="settings-section-heading">
+          <div>
+            <p className="eyebrow">Migration safety</p>
+            <h2>SQLite schema readiness</h2>
+            <p>
+              Read-only check for known feature tables before and after generated updates.
+            </p>
+          </div>
+          <StatusBadge
+            label={databaseMigrationSafetyLoading ? "Checking" : databaseMigrationSafety?.status === "ok" ? "Ready" : "Review"}
+            tone={databaseMigrationSafety?.status === "ok" ? "success" : "warning"}
+          />
+        </div>
+        {databaseMigrationSafetyError ? (
+          <p className="settings-transfer-message">Migration diagnostics error: {databaseMigrationSafetyError}</p>
+        ) : null}
+        {databaseMigrationSafety ? (
+          <>
+            <div className="startup-checklist-summary">
+              <strong>{databaseMigrationSafety.schema_version}</strong>
+              <span>{databaseMigrationSafety.safety_note}</span>
+            </div>
+            <div className="migration-table-grid">
+              {databaseMigrationSafety.tables.map((table) => (
+                <div className={`migration-table-item ${table.exists ? "is-ok" : "is-missing"}`} key={table.name}>
+                  <span>{table.name}</span>
+                  <strong>{table.exists ? formatOptionalCount(table.row_count) : "missing"}</strong>
+                </div>
+              ))}
+            </div>
+            {databaseMigrationSafety.warnings.length > 0 ? (
+              <ul className="quality-warning-list">
+                {databaseMigrationSafety.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            ) : null}
           </>
         ) : null}
       </section>
