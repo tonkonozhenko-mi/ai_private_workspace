@@ -46,11 +46,13 @@ Last updated: Task 191
 - Task 183: Apple-style light/dark UI polish
 - Task 184: dark/light visual QA and consistency pass
 - Task 185: final UX QA, typography alignment, demo mode, and visual consistency
+- Task 186: strict dark/light visual QA and alignment
 - Task 187: safe agent capability awareness
 - Task 188: manual agent workflow tracking
 - Task 189: MCP server registry foundation
 - Task 190: workspace MCP configs, tool inventory, and approval gates foundation
 - Task 191: agent approval-gated execution plan UI and step approval tracking
+- Task 192: workflow evidence, MCP tool mapping, and execution readiness panel
 
 ## Current focus
 
@@ -64,6 +66,8 @@ Safe Agent and MCP workflow, while preserving local-first safety:
 - reviewed/approved MCP tool inventory;
 - approval gates before any future tool execution;
 - step approval preview with proposed tool, risk, evidence, and blocked actions;
+- workflow execution readiness maps steps to approved MCP tools and shows blockers;
+- workflow steps can store manual evidence status, summary, and sources;
 - workflow steps cannot be marked in progress/done until approved when confirmation is required;
 - no automatic shell/MCP/tool execution from the frontend.
 

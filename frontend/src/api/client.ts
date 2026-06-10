@@ -49,9 +49,11 @@ import type {
   AgentPlanningPreviewRequest,
   AgentWorkflow,
   AgentWorkflowList,
+  AgentWorkflowExecutionReadiness,
   AgentWorkflowStepApprovalPreview,
   CreateAgentWorkflowRequest,
   UpdateAgentWorkflowStepApprovalRequest,
+  UpdateAgentWorkflowStepEvidenceRequest,
   UpdateAgentWorkflowStepRequest,
   MCPServerCatalog,
   MCPConfigPreviewRequest,
@@ -533,6 +535,35 @@ export function updateAgentWorkflowStepApproval(
       },
       body: JSON.stringify(request),
     },
+  );
+}
+
+
+export function updateAgentWorkflowStepEvidence(
+  workspaceId: string,
+  workflowId: string,
+  stepId: string,
+  request: UpdateAgentWorkflowStepEvidenceRequest,
+): Promise<AgentWorkflow> {
+  return requestJson<AgentWorkflow>(
+    `/workspaces/${workspaceId}/agent-workflows/${workflowId}/steps/${stepId}/evidence`,
+    {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    },
+  );
+}
+
+export function getAgentWorkflowExecutionReadiness(
+  workspaceId: string,
+  workflowId: string,
+): Promise<AgentWorkflowExecutionReadiness> {
+  return getJson<AgentWorkflowExecutionReadiness>(
+    `/workspaces/${workspaceId}/agent-workflows/${workflowId}/execution-readiness`,
   );
 }
 

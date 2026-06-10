@@ -1048,6 +1048,9 @@ export interface AgentWorkflowStep {
   execution_hint: string | null;
   evidence_hint: string | null;
   approved_at: string | null;
+  evidence_status: string;
+  evidence_summary: string | null;
+  evidence_sources: string[];
   notes: string | null;
   updated_at: string | null;
 }
@@ -1101,6 +1104,12 @@ export interface UpdateAgentWorkflowStepApprovalRequest {
   approval_note?: string | null;
 }
 
+export interface UpdateAgentWorkflowStepEvidenceRequest {
+  evidence_status: "not_provided" | "provided" | "needs_review" | "verified";
+  evidence_summary?: string | null;
+  evidence_sources?: string[];
+}
+
 export interface AgentWorkflowStepApprovalPreview {
   workflow_id: string;
   step_id: string;
@@ -1114,6 +1123,33 @@ export interface AgentWorkflowStepApprovalPreview {
   evidence_hint: string;
   approval_checklist: string[];
   blocked_actions: string[];
+  safety_note: string;
+}
+
+
+export interface AgentWorkflowExecutionReadinessStep {
+  step_id: string;
+  title: string;
+  proposed_tool: string | null;
+  tool_status: string;
+  tool_risk: string;
+  approval_status: string;
+  evidence_status: string;
+  ready_for_manual_execution: boolean;
+  blockers: string[];
+  next_action: string;
+}
+
+export interface AgentWorkflowExecutionReadiness {
+  workspace_id: string;
+  workflow_id: string;
+  status: string;
+  approved_tools_count: number;
+  risky_tools_count: number;
+  ready_steps_count: number;
+  blocked_steps_count: number;
+  steps: AgentWorkflowExecutionReadinessStep[];
+  guardrails: string[];
   safety_note: string;
 }
 

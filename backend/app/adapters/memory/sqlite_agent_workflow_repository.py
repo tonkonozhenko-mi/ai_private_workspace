@@ -111,6 +111,9 @@ class SQLiteAgentWorkflowRepository:
             "execution_hint": step.execution_hint,
             "evidence_hint": step.evidence_hint,
             "approved_at": step.approved_at,
+            "evidence_status": step.evidence_status,
+            "evidence_summary": step.evidence_summary,
+            "evidence_sources": step.evidence_sources or [],
             "notes": step.notes,
             "updated_at": step.updated_at,
         }
@@ -132,6 +135,9 @@ class SQLiteAgentWorkflowRepository:
             execution_hint=item.get("execution_hint") if isinstance(item.get("execution_hint"), str) else None,
             evidence_hint=item.get("evidence_hint") if isinstance(item.get("evidence_hint"), str) else None,
             approved_at=item.get("approved_at") if isinstance(item.get("approved_at"), str) else None,
+            evidence_status=str(item.get("evidence_status") or "not_provided"),
+            evidence_summary=item.get("evidence_summary") if isinstance(item.get("evidence_summary"), str) else None,
+            evidence_sources=[str(source) for source in item.get("evidence_sources", [])] if isinstance(item.get("evidence_sources"), list) else [],
             notes=item.get("notes") if isinstance(item.get("notes"), str) else None,
             updated_at=item.get("updated_at") if isinstance(item.get("updated_at"), str) else None,
         )

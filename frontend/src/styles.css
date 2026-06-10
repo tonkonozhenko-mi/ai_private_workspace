@@ -13717,3 +13717,78 @@ button,
     grid-template-columns: 1fr;
   }
 }
+
+.agent-execution-readiness-card {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-soft);
+}
+
+.agent-readiness-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.agent-readiness-summary-grid span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+}
+
+.agent-readiness-summary-grid strong {
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.agent-readiness-steps {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.agent-readiness-steps > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.agent-readiness-steps div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.agent-readiness-steps span,
+.agent-readiness-steps small {
+  color: var(--text-muted);
+}
+
+.agent-readiness-steps ul {
+  margin: 0;
+  padding-left: 1rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 820px) {
+  .agent-readiness-summary-grid,
+  .agent-readiness-steps > li {
+    grid-template-columns: 1fr;
+  }
+}

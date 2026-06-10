@@ -3,6 +3,8 @@ from pydantic import BaseModel, Field
 from app.core.domain.agent_workflow import (
     AgentStepApprovalPreview,
     AgentWorkflowDraft,
+    AgentWorkflowExecutionReadiness,
+    AgentWorkflowExecutionReadinessStep,
     AgentWorkflowStep,
 )
 
@@ -21,6 +23,12 @@ class UpdateAgentWorkflowStepRequest(BaseModel):
 class UpdateAgentWorkflowStepApprovalRequest(BaseModel):
     approval_status: str = Field(..., pattern="^(not_required|pending|approved|rejected|revoked)$")
     approval_note: str | None = Field(default=None, max_length=2000)
+
+
+class UpdateAgentWorkflowStepEvidenceRequest(BaseModel):
+    evidence_status: str = Field(..., pattern="^(not_provided|provided|needs_review|verified)$")
+    evidence_summary: str | None = Field(default=None, max_length=2000)
+    evidence_sources: list[str] = Field(default_factory=list)
 
 
 class AgentWorkflowArchiveRequest(BaseModel):
@@ -59,6 +67,9 @@ class AgentWorkflowStepResponse(BaseModel):
     execution_hint: str | None
     evidence_hint: str | None
     approved_at: str | None
+    evidence_status: str
+    evidence_summary: str | None
+    evidence_sources: list[str]
     notes: str | None
     updated_at: str | None
 
@@ -96,6 +107,32 @@ class AgentWorkflowListResponse(BaseModel):
     safety_note: str
 
 
+class AgentWorkflowExecutionReadinessStepResponse(BaseModel):
+    step_id: str
+    title: str
+    proposed_tool: str | None
+    tool_status: str
+    tool_risk: str
+    approval_status: str
+    evidence_status: str
+    ready_for_manual_execution: bool
+    blockers: list[str]
+    next_action: str
+
+
+class AgentWorkflowExecutionReadinessResponse(BaseModel):
+    workspace_id: str
+    workflow_id: str
+    status: str
+    approved_tools_count: int
+    risky_tools_count: int
+    ready_steps_count: int
+    blocked_steps_count: int
+    steps: list[AgentWorkflowExecutionReadinessStepResponse]
+    guardrails: list[str]
+    safety_note: str
+
+
 def to_agent_workflow_step_response(step: AgentWorkflowStep) -> AgentWorkflowStepResponse:
     return AgentWorkflowStepResponse(
         id=step.id,
@@ -113,6 +150,9 @@ def to_agent_workflow_step_response(step: AgentWorkflowStep) -> AgentWorkflowSte
         execution_hint=step.execution_hint,
         evidence_hint=step.evidence_hint,
         approved_at=step.approved_at,
+        evidence_status=step.evidence_status,
+        evidence_summary=step.evidence_summary,
+        evidence_sources=step.evidence_sources or [],
         notes=step.notes,
         updated_at=step.updated_at,
     )
@@ -162,4 +202,27 @@ def to_agent_workflow_response(workflow: AgentWorkflowDraft) -> AgentWorkflowRes
         updated_at=workflow.updated_at,
         archived_at=workflow.archived_at,
         is_archived=workflow.archived_at is not None,
+    )
+
+
+def to_agent_workflow_execution_readiness_step_response(
+    step: AgentWorkflowExecutionReadinessStep,
+) -> AgentWorkflowExecutionReadinessStepResponse:
+    return AgentWorkflowExecutionReadinessStepResponse(**step.__dict__)
+
+
+def to_agent_workflow_execution_readiness_response(
+    readiness: AgentWorkflowExecutionReadiness,
+) -> AgentWorkflowExecutionReadinessResponse:
+    return AgentWorkflowExecutionReadinessResponse(
+        workspace_id=readiness.workspace_id,
+        workflow_id=readiness.workflow_id,
+        status=readiness.status,
+        approved_tools_count=readiness.approved_tools_count,
+        risky_tools_count=readiness.risky_tools_count,
+        ready_steps_count=readiness.ready_steps_count,
+        blocked_steps_count=readiness.blocked_steps_count,
+        steps=[to_agent_workflow_execution_readiness_step_response(step) for step in readiness.steps],
+        guardrails=readiness.guardrails,
+        safety_note=readiness.safety_note,
     )
