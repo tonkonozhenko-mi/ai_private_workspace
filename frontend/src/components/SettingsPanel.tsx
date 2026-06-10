@@ -613,24 +613,10 @@ export function SettingsPanel({
             <span>{fileRulesMessage}</span>
           </div>
           {fileRulesPreview ? (
-            <div className="settings-file-preview-result">
-              <div>
-                <strong>{fileRulesPreviewMode === "draft" ? "Draft preview" : "Saved preview"}</strong>
-                <span>{fileRulesPreview.profile} profile</span>
-              </div>
-              <div>
-                <span>Included</span>
-                <strong>{fileRulesPreview.included_files_count}</strong>
-              </div>
-              <div>
-                <span>Excluded</span>
-                <strong>{fileRulesPreview.excluded_files_count}</strong>
-              </div>
-              <div>
-                <span>Skipped</span>
-                <strong>{fileRulesPreview.skipped_files_count}</strong>
-              </div>
-            </div>
+            <SettingsFilePreviewResult
+              preview={fileRulesPreview}
+              mode={fileRulesPreviewMode ?? "saved"}
+            />
           ) : null}
           <p className="settings-helper-note">
             Flow: edit draft → preview draft → save rules → preview saved rules → scan/index manually. Nothing rebuilds automatically.
@@ -956,6 +942,73 @@ export function SettingsPanel({
           <span>Sources stay visible</span>
         </div>
       </section>
+    </div>
+  );
+}
+
+
+function SettingsFilePreviewResult({
+  preview,
+  mode,
+}: {
+  preview: FileSelectionPreview;
+  mode: "saved" | "draft";
+}) {
+  return (
+    <div className="settings-file-preview-result">
+      <div className="settings-file-preview-summary">
+        <div>
+          <strong>{mode === "draft" ? "Draft preview" : "Saved preview"}</strong>
+          <span>{preview.profile} profile</span>
+        </div>
+        <div>
+          <span>Included</span>
+          <strong>{preview.included_files_count}</strong>
+        </div>
+        <div>
+          <span>Excluded</span>
+          <strong>{preview.excluded_files_count}</strong>
+        </div>
+        <div>
+          <span>Skipped</span>
+          <strong>{preview.skipped_files_count}</strong>
+        </div>
+      </div>
+      <div className="settings-file-preview-explain">
+        <SettingsPreviewSamples title="Included examples" items={preview.included_samples} />
+        <SettingsPreviewSamples title="Excluded examples" items={preview.excluded_samples} />
+      </div>
+    </div>
+  );
+}
+
+function SettingsPreviewSamples({
+  title,
+  items,
+}: {
+  title: string;
+  items: FileSelectionPreview["included_samples"];
+}) {
+  const visibleItems = items.slice(0, 3);
+
+  return (
+    <div className="settings-preview-samples">
+      <span>{title}</span>
+      {visibleItems.length > 0 ? (
+        <ul>
+          {visibleItems.map((item) => (
+            <li key={`${title}-${item.path}`}>
+              <code>{item.path}</code>
+              <small>
+                {item.reason}
+                {item.matched_rule ? ` · ${item.matched_rule}` : ""}
+              </small>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No sample files for this decision.</p>
+      )}
     </div>
   );
 }
