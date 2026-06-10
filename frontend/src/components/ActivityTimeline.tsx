@@ -1,11 +1,15 @@
 import { useMemo, useState } from "react";
-import type { TimelineEvent } from "../api/types";
+import type { TimelineEvent, WorkspaceJob } from "../api/types";
 import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
 import type { StatusTone } from "./statusTone";
 
 interface ActivityTimelineProps {
   events: TimelineEvent[];
+  jobs: WorkspaceJob[];
+  jobsLoading: boolean;
+  jobsError: string | null;
+  onRefreshJobs: () => Promise<void> | void;
 }
 
 type EventCategory =
@@ -21,8 +25,15 @@ interface GroupedEvents {
   events: TimelineEvent[];
 }
 
-export function ActivityTimeline({ events }: ActivityTimelineProps) {
+export function ActivityTimeline({
+  events,
+  jobs,
+  jobsLoading,
+  jobsError,
+  onRefreshJobs,
+}: ActivityTimelineProps) {
   const groupedEvents = useMemo(() => groupEventsByDay(events), [events]);
+  const visibleJobs = jobs.slice(0, 8);
   const summary = useMemo(() => buildActivitySummary(events), [events]);
 
   return (
@@ -35,8 +46,16 @@ export function ActivityTimeline({ events }: ActivityTimelineProps) {
             Recent questions, model changes, context updates, and experiment feedback. Details stay hidden until you need them.
           </p>
         </div>
-        <span className="panel-count">{events.length}</span>
+        <span className="panel-count">{events.length + visibleJobs.length}</span>
       </div>
+
+
+      <JobActivitySection
+        jobs={visibleJobs}
+        loading={jobsLoading}
+        error={jobsError}
+        onRefresh={onRefreshJobs}
+      />
 
       {events.length > 0 ? (
         <>
@@ -65,11 +84,154 @@ export function ActivityTimeline({ events }: ActivityTimelineProps) {
       ) : (
         <EmptyState
           title="Workspace events will appear here"
-          message="Questions, context updates, AI model changes, experiment feedback, and command decisions appear after you explicitly invoke them."
+          message="Questions, scan/index jobs, context updates, AI model changes, experiment feedback, and command decisions appear after you explicitly invoke them."
           compact
         />
       )}
     </section>
+  );
+}
+
+
+function JobActivitySection({
+  jobs,
+  loading,
+  error,
+  onRefresh,
+}: {
+  jobs: WorkspaceJob[];
+  loading: boolean;
+  error: string | null;
+  onRefresh: () => Promise<void> | void;
+}) {
+  return (
+    <section className="job-activity-section" aria-label="Background job history">
+      <div className="job-activity-heading">
+        <div>
+          <p className="eyebrow">Background jobs</p>
+          <h3>Scan and indexing runs</h3>
+          <p>
+            See what ran, how long it took, and which file rules were applied.
+          </p>
+        </div>
+        <button className="text-button" type="button" onClick={() => void onRefresh()}>
+          {loading ? "Refreshing..." : "Refresh jobs"}
+        </button>
+      </div>
+      {error ? <p className="settings-message error">{error}</p> : null}
+      {jobs.length === 0 ? (
+        <p className="job-activity-empty">
+          No scan or indexing jobs are available in this app session yet.
+        </p>
+      ) : (
+        <div className="job-activity-list">
+          {jobs.map((job) => (
+            <JobActivityCard job={job} key={job.job_id} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function JobActivityCard({ job }: { job: WorkspaceJob }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const requestEntries = Object.entries(job.request_summary);
+  const resultEntries = Object.entries(job.result_summary);
+  const hasDetails = requestEntries.length > 0 || resultEntries.length > 0 || Boolean(job.error);
+
+  return (
+    <article className="job-activity-card">
+      <header>
+        <div>
+          <StatusBadge label={formatLabel(job.job_type)} tone={jobTone(job.status)} />
+          <h4>{job.title}</h4>
+        </div>
+        <div className="job-activity-meta">
+          <StatusBadge label={job.status} tone={jobTone(job.status)} />
+          <span>{formatJobDuration(job)}</span>
+        </div>
+      </header>
+      <p>{job.message ?? job.error ?? "No job message."}</p>
+      <dl className="timeline-metadata timeline-metadata-preview">
+        <div title={`Started: ${formatDateTime(job.started_at ?? job.created_at)}`}>
+          <dt>Started</dt>
+          <dd>{formatDateTime(job.started_at ?? job.created_at)}</dd>
+        </div>
+        <div title={`Completed: ${job.completed_at ? formatDateTime(job.completed_at) : "—"}`}>
+          <dt>Completed</dt>
+          <dd>{job.completed_at ? formatDateTime(job.completed_at) : "—"}</dd>
+        </div>
+        {job.request_summary.file_rules_profile ? (
+          <div title={`File rules profile: ${job.request_summary.file_rules_profile}`}>
+            <dt>File rules</dt>
+            <dd>{job.request_summary.file_rules_profile}</dd>
+          </div>
+        ) : null}
+        {job.result_summary.scanned_files ? (
+          <div title={`Scanned files: ${job.result_summary.scanned_files}`}>
+            <dt>Scanned</dt>
+            <dd>{job.result_summary.scanned_files}</dd>
+          </div>
+        ) : null}
+        {job.result_summary.chunks_count ? (
+          <div title={`Context chunks: ${job.result_summary.chunks_count}`}>
+            <dt>Chunks</dt>
+            <dd>{job.result_summary.chunks_count}</dd>
+          </div>
+        ) : null}
+      </dl>
+      {hasDetails ? (
+        <div className="timeline-details">
+          <button
+            className="secondary-button timeline-details-toggle"
+            type="button"
+            onClick={() => setIsExpanded((current) => !current)}
+            aria-expanded={isExpanded}
+          >
+            {isExpanded ? "Hide job details" : "View job details"}
+          </button>
+          {isExpanded ? (
+            <div className="job-activity-details-grid">
+              <JobMetadataList title="Applied request" entries={requestEntries} />
+              <JobMetadataList title="Result" entries={resultEntries} />
+              {job.error ? (
+                <div className="job-error-detail">
+                  <strong>Error</strong>
+                  <p>{job.error}</p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function JobMetadataList({
+  title,
+  entries,
+}: {
+  title: string;
+  entries: Array<[string, string]>;
+}) {
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return (
+    <div>
+      <strong>{title}</strong>
+      <dl className="timeline-metadata timeline-metadata-details">
+        {entries.map(([key, value]) => (
+          <div key={key} title={`${formatLabel(key)}: ${value}`}>
+            <dt>{formatLabel(key)}</dt>
+            <dd>{formatMetadataValue(value)}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
 
@@ -408,6 +570,45 @@ function formatMetadataValue(value: string) {
     return "No";
   }
   return value;
+}
+
+
+function jobTone(status: string): StatusTone {
+  const normalized = status.toLowerCase();
+  if (normalized === "completed") {
+    return "success";
+  }
+  if (normalized === "failed") {
+    return "danger";
+  }
+  if (normalized === "cancelled") {
+    return "warning";
+  }
+  if (normalized === "running" || normalized === "queued") {
+    return "info";
+  }
+  return "neutral";
+}
+
+function formatJobDuration(job: WorkspaceJob) {
+  if (job.duration_ms === null) {
+    return job.status === "running" ? "Running" : "—";
+  }
+  if (job.duration_ms < 1000) {
+    return `${job.duration_ms} ms`;
+  }
+  return `${(job.duration_ms / 1000).toFixed(1)}s`;
+}
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function formatTime(value: string) {

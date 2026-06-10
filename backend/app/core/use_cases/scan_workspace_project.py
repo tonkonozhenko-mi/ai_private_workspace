@@ -82,8 +82,14 @@ class ScanWorkspaceProjectUseCase:
                         ),
                         "include_rules_count": str(len(request.include_patterns)),
                         "exclude_rules_count": str(len(request.exclude_patterns)),
+                        "include_patterns": _join_patterns(request.include_patterns) or "All files",
+                        "exclude_patterns": _join_patterns(request.exclude_patterns) or "No exclusions",
                         "file_rules_profile": request.file_rules_profile or "none",
                     },
                 )
             )
         return scan_result
+
+
+def _join_patterns(patterns: tuple[str, ...]) -> str:
+    return " · ".join(pattern for pattern in patterns if pattern.strip())

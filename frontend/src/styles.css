@@ -9457,3 +9457,76 @@ button:focus-visible {
   background: var(--color-accent);
   transition: width 160ms ease;
 }
+
+/* Task 155 — Activity job history and applied file rules visibility */
+.job-activity-section {
+  margin: 18px 0 22px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 22px;
+  background: var(--color-surface-soft);
+}
+
+.job-activity-heading,
+.job-activity-card > header,
+.job-activity-meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.job-activity-heading h3,
+.job-activity-card h4 {
+  margin: 0;
+}
+
+.job-activity-heading p,
+.job-activity-card p,
+.job-activity-empty,
+.background-job-rules {
+  margin: 5px 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.job-activity-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.job-activity-card {
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface);
+}
+
+.job-activity-card .timeline-metadata {
+  margin-top: 10px;
+}
+
+.job-activity-meta {
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+}
+
+.job-activity-details-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.job-error-detail {
+  padding: 10px 12px;
+  border: 1px solid var(--color-danger-border);
+  border-radius: 14px;
+  background: var(--color-danger-soft);
+}
+
+.background-job-rules {
+  font-size: 0.78rem;
+}

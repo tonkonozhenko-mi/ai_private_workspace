@@ -636,10 +636,12 @@ function BackgroundJobsPanel({
               <div>
                 <strong>{job.title}</strong>
                 <p>{job.message ?? job.error ?? "No job message."}</p>
+                <JobRuleSummary job={job} />
                 <JobProgress job={job} compact />
               </div>
               <div className="background-job-meta">
                 <StatusBadge label={job.status} />
+                <span>{formatJobDuration(job)}</span>
                 <span>{formatJobTime(job)}</span>
               </div>
             </article>
@@ -647,6 +649,25 @@ function BackgroundJobsPanel({
         </div>
       )}
     </div>
+  );
+}
+
+
+function JobRuleSummary({ job }: { job: WorkspaceJob }) {
+  const profile = job.request_summary.file_rules_profile;
+  const includeCount = job.request_summary.include_rules_count;
+  const excludeCount = job.request_summary.exclude_rules_count;
+
+  if (!profile && !includeCount && !excludeCount) {
+    return null;
+  }
+
+  return (
+    <p className="background-job-rules">
+      Rules: {profile ?? "latest scan"}
+      {includeCount ? ` · include ${includeCount}` : ""}
+      {excludeCount ? ` · exclude ${excludeCount}` : ""}
+    </p>
   );
 }
 
@@ -683,6 +704,16 @@ function progressLabel(job: WorkspaceJob): string {
     parts.push(`${job.progress_percent}%`);
   }
   return parts.join(" · ") || "In progress";
+}
+
+function formatJobDuration(job: WorkspaceJob): string {
+  if (job.duration_ms === null) {
+    return job.status === "running" ? "Running" : "—";
+  }
+  if (job.duration_ms < 1000) {
+    return `${job.duration_ms} ms`;
+  }
+  return `${(job.duration_ms / 1000).toFixed(1)}s`;
 }
 
 function formatJobTime(job: WorkspaceJob): string {

@@ -509,6 +509,7 @@ def _to_workspace_job_response(job: WorkspaceJob) -> WorkspaceJobResponse:
         title=job.title,
         message=job.message,
         result_summary=job.result_summary,
+        request_summary=job.request_summary,
         error=job.error,
         cancellation_requested=job.cancellation_requested,
         progress_current=job.progress_current,
@@ -518,6 +519,7 @@ def _to_workspace_job_response(job: WorkspaceJob) -> WorkspaceJobResponse:
         created_at=job.created_at,
         started_at=job.started_at,
         completed_at=job.completed_at,
+        duration_ms=job.duration_ms,
     )
 
 
@@ -528,6 +530,25 @@ def _scan_workspace_result_summary(result) -> dict[str, str]:
         "skipped_files": str(result.skipped_files),
         "detected_skills_count": str(len(result.detected_skills)),
     }
+
+
+def _file_rules_request_summary(
+    *,
+    include_patterns: tuple[str, ...],
+    exclude_patterns: tuple[str, ...],
+    file_rules_profile: str | None,
+) -> dict[str, str]:
+    return {
+        "file_rules_profile": file_rules_profile or "balanced",
+        "include_rules_count": str(len(include_patterns)),
+        "exclude_rules_count": str(len(exclude_patterns)),
+        "include_patterns": _join_patterns(include_patterns) or "All files",
+        "exclude_patterns": _join_patterns(exclude_patterns) or "No exclusions",
+    }
+
+
+def _join_patterns(patterns: tuple[str, ...]) -> str:
+    return " · ".join(pattern for pattern in patterns if pattern.strip())
 
 
 def _index_workspace_result_summary(result) -> dict[str, str]:
@@ -630,6 +651,11 @@ def start_scan_workspace_job(
         title="Scan project",
         message="Queued project scan.",
         operation=operation,
+        request_summary=_file_rules_request_summary(
+            include_patterns=include_patterns,
+            exclude_patterns=exclude_patterns,
+            file_rules_profile=file_rules_profile,
+        ),
     )
     return _to_workspace_job_response(job)
 
@@ -680,6 +706,10 @@ def start_index_workspace_job(workspace_id: str) -> WorkspaceJobResponse:
         title="Build search context",
         message="Queued search context build.",
         operation=operation,
+        request_summary={
+            "source": "latest_scan",
+            "rules_source": "applied during latest scan",
+        },
     )
     return _to_workspace_job_response(job)
 
