@@ -68,3 +68,14 @@ The first packaging-ready launcher is now `scripts/launch_macos.command`.
 It is a conservative macOS `.command` file that checks prerequisites, asks for explicit confirmation, starts backend and frontend in Terminal, and opens the local UI. It does not install models, scan projects, rebuild indexes, run MCP tools, or execute agent workflows.
 
 See `docs/MACOS_LAUNCHER.md` for setup and Finder shortcut instructions.
+
+## macOS desktop shortcut status
+
+Task 197 adds a local `.app` wrapper generator for macOS:
+
+```bash
+cd ~/Documents/ai_workspace
+./scripts/create_macos_shortcut.sh
+```
+
+The generated app is a shortcut to `scripts/launch_macos.command`. It is packaging-friendly, but still conservative: it asks for confirmation and does not install models, scan, index, rebuild, execute MCP tools, or run agent workflow steps.

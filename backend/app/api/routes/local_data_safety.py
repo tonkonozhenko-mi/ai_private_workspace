@@ -517,6 +517,14 @@ def get_first_launch_readiness() -> FirstLaunchReadinessResponse:
             detail="The launcher is a user-started helper for backend/frontend only.",
             user_action=None if launcher_exists else "Run from the project root or verify scripts/launch_macos.command is packaged.",
         ),
+        FirstLaunchChecklistItemResponse(
+            id="desktop-shortcut",
+            title="Desktop shortcut",
+            status="review",
+            summary="Optional Finder/Dock shortcut is user-created",
+            detail="Use scripts/create_macos_shortcut.sh to create a local .app wrapper when you want a normal macOS app icon.",
+            user_action="Run the shortcut creation command only when you want a Dock/Application shortcut.",
+        ),
     ]
 
     blocked = any(item.status == "blocked" for item in checklist)
@@ -529,7 +537,8 @@ def get_first_launch_readiness() -> FirstLaunchReadinessResponse:
         summary="Ready for first launch" if status == "ok" else "Review first-launch checklist before daily use",
         checklist=checklist,
         recommended_flow=[
-            "Start the app with the macOS launcher or the backend/frontend scripts.",
+            "Optionally create a macOS .app shortcut once.",
+            "Start the app with the macOS launcher, Dock shortcut, or backend/frontend scripts.",
             "Open the last workspace or create a new local workspace.",
             "Review guided model setup and save preferences only when needed.",
             "Run scan and build search context only by explicit user click.",
@@ -540,6 +549,11 @@ def get_first_launch_readiness() -> FirstLaunchReadinessResponse:
                 label="macOS launcher",
                 command="cd ~/Documents/ai_workspace && ./scripts/launch_macos.command",
                 description="Starts the local app after explicit terminal confirmation.",
+            ),
+            DesktopStartupCommandResponse(
+                label="Create macOS app shortcut",
+                command="cd ~/Documents/ai_workspace && ./scripts/create_macos_shortcut.sh",
+                description="Creates ~/Applications/AI Private Workspace.app. It does not start services or run model/index actions.",
             ),
             DesktopStartupCommandResponse(
                 label="Runtime check",

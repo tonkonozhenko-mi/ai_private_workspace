@@ -38,4 +38,31 @@ def test_macos_launcher_documentation_exists() -> None:
     assert "scripts/launch_macos.command" in content
     assert "does not pull Ollama models" in content
     assert "does not scan or index projects" in content
-    assert "Finder shortcut" in content
+    assert "macOS app shortcut" in content
+    assert "Drag it to the Dock" in content
+
+
+def test_macos_shortcut_creator_exists_and_is_safe() -> None:
+    script = PROJECT_ROOT / "scripts" / "create_macos_shortcut.sh"
+
+    assert script.exists()
+    assert script.stat().st_mode & 0o111
+
+    content = script.read_text()
+    assert "AI Private Workspace.app" in content
+    assert "launch_macos.command" in content
+    assert "CFBundleExecutable" in content
+    assert "does not install models" in content
+    assert "does not start services" in content
+
+    forbidden_auto_actions = [
+        "ollama pull",
+        "/scan",
+        "/index",
+        "npm run dev",
+        "python -m uvicorn",
+        "start_backend.sh",
+        "start_frontend.sh",
+    ]
+    for forbidden in forbidden_auto_actions:
+        assert forbidden not in content

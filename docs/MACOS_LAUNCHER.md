@@ -1,26 +1,39 @@
-# macOS launcher
+# macOS launcher and desktop shortcut
 
-Task 194 adds a first desktop-like launcher for local development and future packaging.
+This project uses a conservative desktop-like launcher before introducing a real packaged app.
 
-## What it does
+The goal is simple: open AI Private Workspace like a normal local app while keeping all risky actions explicit.
 
-`scripts/launch_macos.command` starts the existing local backend and frontend scripts in separate Terminal windows and opens the app URL.
+## What is included
 
-It is intentionally conservative:
+- `scripts/launch_macos.command` — starts backend and frontend after terminal confirmation.
+- `scripts/create_macos_shortcut.sh` — creates a local `.app` wrapper in `~/Applications`.
+- First-launch checklist in the Models tab — shows readiness and copy-only commands.
 
-- it starts only the local backend and frontend servers after an explicit user confirmation;
-- it does not pull Ollama models;
-- it does not scan or index projects;
-- it does not rebuild search context;
-- it does not run MCP tools or agent execution steps;
-- it does not modify workspace runtime data.
+## Safety model
+
+The launcher and shortcut are intentionally limited.
+
+They do not:
+
+- install or pull Ollama models; it does not pull Ollama models automatically;
+- scan projects;
+- index files;
+- scan or index projects automatically; it does not scan or index projects automatically;
+- rebuild search context;
+- restart models;
+- execute MCP tools;
+- execute agent workflow steps;
+- change workspace runtime data.
+
+They only help the user start the already configured local backend/frontend servers.
 
 ## One-time preparation
 
 From the project root:
 
 ```bash
-chmod +x scripts/start_backend.sh scripts/start_frontend.sh scripts/launch_macos.command
+chmod +x scripts/start_backend.sh scripts/start_frontend.sh scripts/launch_macos.command scripts/create_macos_shortcut.sh
 
 cd backend
 python3 -m venv .venv
@@ -31,24 +44,74 @@ cd ../frontend
 npm ci
 ```
 
-## Launch
-
-Double-click:
-
-```text
-scripts/launch_macos.command
-```
-
-Or run from Terminal:
+## Launch from Terminal
 
 ```bash
+cd ~/Documents/ai_workspace
 ./scripts/launch_macos.command
 ```
 
-The launcher checks that `backend/.venv` and `frontend/node_modules` already exist. If they are missing, it prints the exact setup command and exits without starting anything.
+The launcher asks for confirmation before starting anything.
 
-## Optional Finder shortcut
+## Create a macOS app shortcut
 
-In Finder, create an alias for `scripts/launch_macos.command` and move the alias to Desktop or Applications.
+Run this once from the project root:
 
-The alias is only a shortcut to this script. The script still asks for confirmation before starting local servers.
+```bash
+cd ~/Documents/ai_workspace
+./scripts/create_macos_shortcut.sh
+```
+
+By default it creates:
+
+```text
+~/Applications/AI Private Workspace.app
+```
+
+The generated app is only a wrapper around `scripts/launch_macos.command`. It still asks for confirmation before starting local servers.
+
+## Add to Dock
+
+1. Open Finder.
+2. Go to `~/Applications`.
+3. Find `AI Private Workspace.app`.
+4. Drag it to the Dock.
+
+You can also run:
+
+```bash
+open ~/Applications
+```
+
+## Custom app name or output folder
+
+```bash
+APP_NAME="AI Workbench" OUTPUT_DIR="$HOME/Desktop" ./scripts/create_macos_shortcut.sh
+```
+
+This creates:
+
+```text
+~/Desktop/AI Workbench.app
+```
+
+## Updating the project
+
+Generated archives should not include runtime data. Before applying generated updates:
+
+```bash
+cd ~/Documents/ai_workspace
+./scripts/backup_workspace_db.sh
+```
+
+Then apply the updated root-preserving archive and rerun tests.
+
+## Troubleshooting
+
+If macOS blocks the app because it was locally generated:
+
+1. Right-click the app.
+2. Choose **Open**.
+3. Confirm that you want to open it.
+
+If dependencies are missing, the launcher exits and prints the exact setup command. It does not start partial services.

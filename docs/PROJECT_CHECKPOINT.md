@@ -99,3 +99,12 @@ Added the macOS launcher foundation for the packaging path:
 - The launcher performs prerequisite checks and exits with setup instructions if dependencies are missing.
 - No project scan, indexing, model pull, MCP execution, or agent execution is triggered by the launcher.
 - `docs/MACOS_LAUNCHER.md` documents setup and optional Finder alias usage.
+
+## Task 197 checkpoint — macOS shortcut foundation
+
+Added a macOS `.app` shortcut generator for desktop-like startup:
+
+- `scripts/create_macos_shortcut.sh` creates `~/Applications/AI Private Workspace.app` by default.
+- The generated app delegates to `scripts/launch_macos.command`.
+- First-launch readiness now includes an optional desktop shortcut item and copy-only command.
+- No automatic model pull, scan, index, rebuild, MCP execution, or agent execution was introduced.
