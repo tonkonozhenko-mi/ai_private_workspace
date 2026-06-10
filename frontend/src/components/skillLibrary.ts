@@ -23,6 +23,22 @@ export interface SkillPreference {
 
 export type SkillPreferences = Record<SkillPresetId, SkillPreference>;
 
+export type SkillProfileTemplateId =
+  | "devops_review"
+  | "code_review"
+  | "documentation_review"
+  | "incident_support"
+  | "manager_summary";
+
+export interface SkillProfileTemplateDefinition {
+  id: SkillProfileTemplateId;
+  name: string;
+  shortName: string;
+  purpose: string;
+  activeSkillIds: SkillPresetId[];
+  guidance: Partial<Record<SkillPresetId, string>>;
+}
+
 export const SKILL_PRESETS: SkillPresetDefinition[] = [
   {
     id: "devops",
@@ -95,6 +111,90 @@ export const SKILL_PRESETS: SkillPresetDefinition[] = [
     recommendedFiles: ["README*", "docs/**", "reports/**", "*.md"],
   },
 ];
+
+export const SKILL_PROFILE_TEMPLATES: SkillProfileTemplateDefinition[] = [
+  {
+    id: "devops_review",
+    name: "DevOps review",
+    shortName: "DevOps",
+    purpose: "Review infrastructure, CI/CD, deployments, runtime setup, and operational risks.",
+    activeSkillIds: ["devops"],
+    guidance: {
+      devops:
+        "Review this workspace as a DevOps/platform assistant. Focus on infrastructure, CI/CD, deployment flow, local runtime, automation safety, observability, and practical risks. Keep project-specific claims grounded in retrieved sources.",
+    },
+  },
+  {
+    id: "code_review",
+    name: "Code review",
+    shortName: "Code",
+    purpose: "Review application structure, tests, dependencies, code risks, and change impact.",
+    activeSkillIds: ["developer"],
+    guidance: {
+      developer:
+        "Review this workspace as a developer assistant. Focus on source code structure, key modules, dependencies, tests, change impact, and concrete next steps. Keep project-specific claims grounded in retrieved sources.",
+    },
+  },
+  {
+    id: "documentation_review",
+    name: "Documentation review",
+    shortName: "Docs",
+    purpose: "Review README, onboarding material, architecture notes, and missing documentation.",
+    activeSkillIds: ["documentation"],
+    guidance: {
+      documentation:
+        "Review this workspace as a documentation assistant. Focus on README quality, onboarding clarity, architecture explanation, missing docs, and concise summaries. Keep project-specific claims grounded in retrieved sources.",
+    },
+  },
+  {
+    id: "incident_support",
+    name: "Incident support",
+    shortName: "Support",
+    purpose: "Review troubleshooting paths, logs, operational checks, rollback risks, and runbook gaps.",
+    activeSkillIds: ["devops", "incident_support"],
+    guidance: {
+      devops:
+        "Use DevOps context to check deployment, runtime, CI/CD, configuration, and observability signals. Keep project-specific claims grounded in retrieved sources.",
+      incident_support:
+        "Review this workspace as an incident support assistant. Focus on symptoms, likely causes, safe checks, logs, rollback risks, and step-by-step troubleshooting. Keep project-specific claims grounded in retrieved sources.",
+    },
+  },
+  {
+    id: "manager_summary",
+    name: "Manager summary",
+    shortName: "Summary",
+    purpose: "Prepare concise status, risks, decisions, and stakeholder-friendly summaries.",
+    activeSkillIds: ["documentation", "manager_summary"],
+    guidance: {
+      documentation:
+        "Use documentation context to explain the workspace clearly and avoid unnecessary implementation detail. Keep project-specific claims grounded in retrieved sources.",
+      manager_summary:
+        "Review this workspace as a manager-summary assistant. Focus on concise progress, risks, decisions, business impact, and demo-ready wording. Keep project-specific claims grounded in retrieved sources.",
+    },
+  },
+];
+
+export function applySkillProfileTemplate(
+  templateId: SkillProfileTemplateId,
+  currentPreferences: SkillPreferences = DEFAULT_SKILL_PREFERENCES,
+): SkillPreferences {
+  const template = SKILL_PROFILE_TEMPLATES.find((item) => item.id === templateId);
+  if (!template) {
+    return normalizeSkillPreferences(currentPreferences);
+  }
+
+  return SKILL_PRESETS.reduce((preferences, preset) => {
+    const templateInstruction = template.guidance[preset.id];
+    preferences[preset.id] = {
+      enabled: template.activeSkillIds.includes(preset.id),
+      customInstructions:
+        templateInstruction ??
+        currentPreferences[preset.id]?.customInstructions ??
+        preset.defaultInstructions,
+    };
+    return preferences;
+  }, {} as SkillPreferences);
+}
 
 export const DEFAULT_SKILL_PREFERENCES: SkillPreferences = SKILL_PRESETS.reduce(
   (preferences, preset) => {
