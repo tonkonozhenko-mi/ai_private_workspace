@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from app.core.domain.rag import SkillProfileAudit
+from app.core.domain.rag import RagSource, SkillProfileAudit
 
 
 def utc_now_iso() -> str:
@@ -24,6 +24,7 @@ class ConversationAnswerNote:
     source_question: str | None
     created_at: str
     updated_at: str
+    source_paths: list[str] = field(default_factory=list)
 
 
 def normalize_note_title(title: str | None) -> str:
@@ -38,6 +39,7 @@ def create_conversation_answer_note(
     title: str | None,
     content: str,
     source_question: str | None = None,
+    source_paths: list[str] | None = None,
 ) -> ConversationAnswerNote:
     now = utc_now_iso()
     return ConversationAnswerNote(
@@ -48,6 +50,7 @@ def create_conversation_answer_note(
         title=normalize_note_title(title),
         content=content,
         source_question=source_question,
+        source_paths=list(source_paths or []),
         created_at=now,
         updated_at=now,
     )
@@ -70,6 +73,7 @@ class ConversationMessage:
     total_tokens: int | None = None
     latency_ms: int | None = None
     skill_profile: SkillProfileAudit | None = None
+    sources: list[RagSource] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -113,6 +117,7 @@ def create_conversation_message(
     total_tokens: int | None = None,
     latency_ms: int | None = None,
     skill_profile: SkillProfileAudit | None = None,
+    sources: list[RagSource] | None = None,
 ) -> ConversationMessage:
     return ConversationMessage(
         id=str(uuid4()),
@@ -130,4 +135,5 @@ def create_conversation_message(
         total_tokens=total_tokens,
         latency_ms=latency_ms,
         skill_profile=skill_profile,
+        sources=list(sources or []),
     )

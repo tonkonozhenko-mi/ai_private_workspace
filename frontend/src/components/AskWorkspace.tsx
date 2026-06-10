@@ -774,7 +774,23 @@ function ConversationHistoryBar({
                     disabled={loading}
                     onClick={() => onExportConversation(conversation.id, "markdown")}
                   >
-                    Export
+                    Export md
+                  </button>
+                  <button
+                    className="text-button"
+                    type="button"
+                    disabled={loading}
+                    onClick={() => onExportConversation(conversation.id, "text")}
+                  >
+                    txt
+                  </button>
+                  <button
+                    className="text-button"
+                    type="button"
+                    disabled={loading}
+                    onClick={() => onExportConversation(conversation.id, "json")}
+                  >
+                    json
                   </button>
                   <button
                     className="text-button"
@@ -844,6 +860,9 @@ function AnswerNotesPanel({
               <span>{formatDateTime(note.updated_at)}</span>
             </div>
             {note.source_question ? <p><b>Question:</b> {note.source_question}</p> : null}
+            {note.source_paths.length > 0 ? (
+              <p><b>Sources:</b> {note.source_paths.slice(0, 3).join(" · ")}{note.source_paths.length > 3 ? ` +${note.source_paths.length - 3} more` : ""}</p>
+            ) : null}
             <p>{truncateText(note.content, 220)}</p>
             <div className="answer-note-actions">
               <CopyButton text={note.content} label="note" />
@@ -1632,7 +1651,7 @@ function conversationToHistory(conversation: WorkspaceConversation): AskHistoryI
       conversation_message_id: assistantMessage.id,
       question: userMessage.content,
       answer: assistantMessage.content,
-      sources: [],
+      sources: assistantMessage.sources ?? [],
       used_context_chunks: assistantMessage.used_context_chunks,
       llm_provider: assistantMessage.llm_provider ?? "saved",
       llm_model: assistantMessage.llm_model ?? "history",

@@ -32,6 +32,8 @@ def test_ask_creates_persistent_conversation(tmp_path: Path) -> None:
     assert conversation["messages"][0]["role"] == "user"
     assert conversation["messages"][1]["role"] == "assistant"
     assert conversation["messages"][1]["total_tokens"] > 0
+    assert conversation["messages"][1]["sources"]
+    assert conversation["messages"][1]["sources"][0]["source_path"].endswith("README.md")
 
 
 def test_ask_appends_to_existing_conversation(tmp_path: Path) -> None:
@@ -207,6 +209,14 @@ def test_conversation_export_and_answer_notes(tmp_path: Path) -> None:
     assert exported["filename"].endswith(".md")
     assert "Explain exportnotetoken" in exported["content"]
     assert "Assistant" in exported["content"]
+    assert "### Sources" in exported["content"]
+    assert "README.md" in exported["content"]
+
+    text_export = client.get(
+        f"/workspaces/{workspace['id']}/conversations/{conversation_id}/export?format=text"
+    ).json()
+    assert "SOURCES" in text_export["content"]
+    assert "README.md" in text_export["content"]
 
     note_response = client.post(
         f"/workspaces/{workspace['id']}/conversations/{conversation_id}/messages/{message_id}/note",
@@ -216,6 +226,8 @@ def test_conversation_export_and_answer_notes(tmp_path: Path) -> None:
     note = note_response.json()
     assert note["title"] == "Useful export note"
     assert note["source_question"] == "Explain exportnotetoken"
+    assert note["source_paths"]
+    assert any(path.endswith("README.md") for path in note["source_paths"])
     assert note["content"]
 
     notes = client.get(f"/workspaces/{workspace['id']}/answer-notes?search=export").json()

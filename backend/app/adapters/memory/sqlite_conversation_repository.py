@@ -4,7 +4,7 @@ import sqlite3
 
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
 from app.core.domain.conversation import ConversationAnswerNote, ConversationMessage, WorkspaceConversation, normalize_conversation_title, utc_now_iso
-from app.core.domain.rag import SkillProfileAudit
+from app.core.domain.rag import RagSource, SkillProfileAudit
 
 
 class SQLiteConversationRepository:
@@ -118,8 +118,8 @@ class SQLiteConversationRepository:
                     id, conversation_id, workspace_id, role, content, created_at,
                     sources_count, used_context_chunks, llm_provider, llm_model,
                     prompt_tokens, completion_tokens, total_tokens, latency_ms,
-                    skill_profile_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    skill_profile_json, sources_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     message.id,
@@ -137,6 +137,7 @@ class SQLiteConversationRepository:
                     message.total_tokens,
                     message.latency_ms,
                     json.dumps(self._skill_profile_to_dict(message.skill_profile), sort_keys=True),
+                    json.dumps([self._source_to_dict(source) for source in message.sources], sort_keys=True),
                 ),
             )
             if message.role == "user":
@@ -265,8 +266,8 @@ class SQLiteConversationRepository:
                 """
                 INSERT INTO workspace_answer_notes (
                     id, workspace_id, conversation_id, message_id, title, content,
-                    source_question, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    source_question, source_paths_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     note.id,
@@ -276,6 +277,7 @@ class SQLiteConversationRepository:
                     note.title,
                     note.content,
                     note.source_question,
+                    json.dumps(note.source_paths, sort_keys=True),
                     note.created_at,
                     note.updated_at,
                 ),
@@ -302,7 +304,7 @@ class SQLiteConversationRepository:
             rows = connection.execute(
                 f"""
                 SELECT id, workspace_id, conversation_id, message_id, title, content,
-                       source_question, created_at, updated_at
+                       source_question, source_paths_json, created_at, updated_at
                 FROM workspace_answer_notes
                 WHERE {' AND '.join(clauses)}
                 ORDER BY updated_at DESC, rowid DESC
@@ -336,6 +338,7 @@ class SQLiteConversationRepository:
             title=row["title"],
             content=row["content"],
             source_question=row["source_question"],
+            source_paths=self._source_paths_from_json(row["source_paths_json"]),
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
@@ -357,7 +360,47 @@ class SQLiteConversationRepository:
             total_tokens=row["total_tokens"],
             latency_ms=row["latency_ms"],
             skill_profile=self._skill_profile_from_json(row["skill_profile_json"]),
+            sources=self._sources_from_json(row["sources_json"]),
         )
+
+
+    def _source_to_dict(self, source: RagSource) -> dict[str, object]:
+        return {
+            "chunk_id": source.chunk_id,
+            "source_path": source.source_path,
+            "score": source.score,
+            "preview": source.preview,
+        }
+
+    def _sources_from_json(self, value: str | None) -> list[RagSource]:
+        if not value:
+            return []
+        try:
+            data = json.loads(value)
+        except json.JSONDecodeError:
+            return []
+        sources = []
+        for item in data if isinstance(data, list) else []:
+            if not isinstance(item, dict):
+                continue
+            sources.append(
+                RagSource(
+                    chunk_id=str(item.get("chunk_id", "")),
+                    source_path=str(item.get("source_path", "")),
+                    score=float(item.get("score", 0.0)),
+                    preview=str(item.get("preview", "")),
+                )
+            )
+        return sources
+
+    def _source_paths_from_json(self, value: str | None) -> list[str]:
+        if not value:
+            return []
+        try:
+            data = json.loads(value)
+        except json.JSONDecodeError:
+            return []
+        return [str(item) for item in data] if isinstance(data, list) else []
 
     def _skill_profile_to_dict(self, profile: SkillProfileAudit | None) -> dict[str, object] | None:
         if profile is None:
