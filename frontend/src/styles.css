@@ -10049,3 +10049,74 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* Task 164 — persistent conversation history */
+.conversation-history-panel {
+  margin-bottom: 1rem;
+}
+
+.conversation-history-heading {
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.conversation-history-heading p {
+  margin: 0.2rem 0 0;
+  color: var(--muted-text);
+  font-size: 0.88rem;
+}
+
+.conversation-history-empty {
+  margin: 0.75rem 0 0;
+  color: var(--muted-text);
+  font-size: 0.9rem;
+}
+
+.conversation-history-list {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.9rem;
+}
+
+.conversation-history-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 14px;
+  padding: 0.55rem 0.65rem;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.conversation-history-item.is-active {
+  border-color: rgba(59, 130, 246, 0.45);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.conversation-history-item > button:first-child {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.conversation-history-item strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.92rem;
+}
+
+.conversation-history-item span {
+  color: var(--muted-text);
+  font-size: 0.78rem;
+}
+
+.danger-text-button {
+  color: #b91c1c;
+}

@@ -1,12 +1,19 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 
-import { askSelectedWorkspace } from "../api/client";
+import {
+  askSelectedWorkspace,
+  createWorkspaceConversation,
+  deleteWorkspaceConversation,
+  getWorkspaceConversation,
+  listWorkspaceConversations,
+} from "../api/client";
 import { CopyButton } from "./CopyButton";
 import type {
   RagQualityWarning,
   RagSource,
   WorkspaceQuestionAnswer,
   SkillContextRequest,
+  WorkspaceConversation,
 } from "../api/types";
 import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
@@ -92,6 +99,9 @@ export function AskWorkspace({
   const [question, setQuestion] = useState("");
   const [limit, setLimit] = useState(defaultSourceSnippets);
   const [history, setHistory] = useState<AskHistoryItem[]>([]);
+  const [conversations, setConversations] = useState<WorkspaceConversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [conversationLoading, setConversationLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [cancelMessage, setCancelMessage] = useState<string | null>(null);
@@ -102,6 +112,67 @@ export function AskWorkspace({
   useEffect(() => {
     setLimit(defaultSourceSnippets);
   }, [workspaceId, defaultSourceSnippets]);
+
+  useEffect(() => {
+    setHistory([]);
+    setActiveConversationId(null);
+    void refreshConversations();
+  }, [workspaceId]);
+
+  async function refreshConversations() {
+    try {
+      const items = await listWorkspaceConversations(workspaceId);
+      setConversations(items);
+    } catch {
+      setConversations([]);
+    }
+  }
+
+  async function startNewConversation() {
+    setConversationLoading(true);
+    setError(null);
+    try {
+      const conversation = await createWorkspaceConversation(workspaceId, "New conversation");
+      setActiveConversationId(conversation.id);
+      setHistory([]);
+      await refreshConversations();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not create conversation.");
+    } finally {
+      setConversationLoading(false);
+    }
+  }
+
+  async function openConversation(conversationId: string) {
+    setConversationLoading(true);
+    setError(null);
+    try {
+      const conversation = await getWorkspaceConversation(workspaceId, conversationId);
+      setActiveConversationId(conversation.id);
+      setHistory(conversationToHistory(conversation));
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not open conversation.");
+    } finally {
+      setConversationLoading(false);
+    }
+  }
+
+  async function removeConversation(conversationId: string) {
+    setConversationLoading(true);
+    setError(null);
+    try {
+      await deleteWorkspaceConversation(workspaceId, conversationId);
+      if (activeConversationId === conversationId) {
+        setActiveConversationId(null);
+        setHistory([]);
+      }
+      await refreshConversations();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not delete conversation.");
+    } finally {
+      setConversationLoading(false);
+    }
+  }
 
   async function askQuestion(questionText: string, options: { clearComposer?: boolean } = {}) {
     const trimmedQuestion = questionText.trim();
@@ -122,10 +193,12 @@ export function AskWorkspace({
         trimmedQuestion,
         limit,
         buildSkillContext(skillPreferences),
-        { signal: abortController.signal },
+        { signal: abortController.signal, conversationId: activeConversationId },
       );
       const historyItem = createHistoryItem(result);
-      setHistory((current) => [historyItem, ...current].slice(0, 12));
+      setActiveConversationId(result.conversation_id ?? activeConversationId);
+      setHistory((current) => [historyItem, ...current].slice(0, 50));
+      await refreshConversations();
       if (options.clearComposer) {
         setQuestion("");
       }
@@ -181,10 +254,16 @@ export function AskWorkspace({
         <ConversationPanel
           history={history}
           loading={loading}
+          conversations={conversations}
+          activeConversationId={activeConversationId}
+          conversationLoading={conversationLoading}
           onAskAgain={(questionText) => void askQuestion(questionText)}
           onClear={() => setHistory([])}
           onEditQuestion={editQuestion}
           onStopWaiting={stopWaitingForAnswer}
+          onNewConversation={() => void startNewConversation()}
+          onOpenConversation={(conversationId) => void openConversation(conversationId)}
+          onDeleteConversation={(conversationId) => void removeConversation(conversationId)}
         />
 
         {cancelMessage ? (
@@ -277,23 +356,43 @@ export function AskWorkspace({
 function ConversationPanel({
   history,
   loading,
+  conversations,
+  activeConversationId,
+  conversationLoading,
   onAskAgain,
   onClear,
   onEditQuestion,
   onStopWaiting,
+  onNewConversation,
+  onOpenConversation,
+  onDeleteConversation,
 }: {
   history: AskHistoryItem[];
   loading: boolean;
+  conversations: WorkspaceConversation[];
+  activeConversationId: string | null;
+  conversationLoading: boolean;
   onAskAgain: (question: string) => void;
   onClear: () => void;
   onEditQuestion: (question: string) => void;
   onStopWaiting: () => void;
+  onNewConversation: () => void;
+  onOpenConversation: (conversationId: string) => void;
+  onDeleteConversation: (conversationId: string) => void;
 }) {
   const chronologicalHistory = [...history].reverse();
 
   if (history.length === 0) {
     return (
       <section className="ask-conversation-panel">
+        <ConversationHistoryBar
+          conversations={conversations}
+          activeConversationId={activeConversationId}
+          loading={conversationLoading}
+          onNewConversation={onNewConversation}
+          onOpenConversation={onOpenConversation}
+          onDeleteConversation={onDeleteConversation}
+        />
         <AskEmptyState />
       </section>
     );
@@ -301,12 +400,20 @@ function ConversationPanel({
 
   return (
     <section className="ask-conversation-panel" aria-live="polite">
+      <ConversationHistoryBar
+        conversations={conversations}
+        activeConversationId={activeConversationId}
+        loading={conversationLoading}
+        onNewConversation={onNewConversation}
+        onOpenConversation={onOpenConversation}
+        onDeleteConversation={onDeleteConversation}
+      />
       <div className="panel ask-conversation-header">
         <div>
           <p className="eyebrow">Current conversation</p>
           <h2>Workspace chat</h2>
           <p>
-            Questions and answers stay in this browser tab. Copy answers, edit a
+            Questions and answers are saved with this workspace. Copy answers, edit a
             question, or ask again without changing workspace setup.
           </p>
         </div>
@@ -336,6 +443,66 @@ function ConversationPanel({
           </article>
         ) : null}
       </div>
+    </section>
+  );
+}
+
+
+function ConversationHistoryBar({
+  conversations,
+  activeConversationId,
+  loading,
+  onNewConversation,
+  onOpenConversation,
+  onDeleteConversation,
+}: {
+  conversations: WorkspaceConversation[];
+  activeConversationId: string | null;
+  loading: boolean;
+  onNewConversation: () => void;
+  onOpenConversation: (conversationId: string) => void;
+  onDeleteConversation: (conversationId: string) => void;
+}) {
+  return (
+    <section className="panel conversation-history-panel" aria-label="Saved conversations">
+      <div className="panel-heading conversation-history-heading">
+        <div>
+          <p className="eyebrow">Saved conversations</p>
+          <h2>Workspace answer history</h2>
+          <p>Conversations persist in the local workspace database and can be reopened later.</p>
+        </div>
+        <button className="secondary-button" type="button" disabled={loading} onClick={onNewConversation}>
+          New conversation
+        </button>
+      </div>
+
+      {conversations.length === 0 ? (
+        <p className="conversation-history-empty">No saved conversations yet. Ask a question to create one.</p>
+      ) : (
+        <div className="conversation-history-list">
+          {conversations.slice(0, 8).map((conversation) => {
+            const isActive = conversation.id === activeConversationId;
+            return (
+              <article className={`conversation-history-item ${isActive ? "is-active" : ""}`} key={conversation.id}>
+                <button type="button" onClick={() => onOpenConversation(conversation.id)} disabled={loading}>
+                  <strong>{conversation.title}</strong>
+                  <span>
+                    {conversation.messages_count} message{conversation.messages_count === 1 ? "" : "s"} · {formatDateTime(conversation.updated_at)}
+                  </span>
+                </button>
+                <button
+                  className="text-button danger-text-button"
+                  type="button"
+                  disabled={loading}
+                  onClick={() => onDeleteConversation(conversation.id)}
+                >
+                  Delete
+                </button>
+              </article>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
@@ -1048,6 +1215,59 @@ function AskEmptyState() {
 
 function formatLabel(value: string) {
   return value.replaceAll("_", " ");
+}
+
+
+function conversationToHistory(conversation: WorkspaceConversation): AskHistoryItem[] {
+  const items: AskHistoryItem[] = [];
+  for (let index = 0; index < conversation.messages.length; index += 1) {
+    const userMessage = conversation.messages[index];
+    const assistantMessage = conversation.messages[index + 1];
+    if (!userMessage || !assistantMessage || userMessage.role !== "user" || assistantMessage.role !== "assistant") {
+      continue;
+    }
+    const response: WorkspaceQuestionAnswer = {
+      workspace_id: conversation.workspace_id,
+      conversation_id: conversation.id,
+      question: userMessage.content,
+      answer: assistantMessage.content,
+      sources: [],
+      used_context_chunks: assistantMessage.used_context_chunks,
+      llm_provider: assistantMessage.llm_provider ?? "saved",
+      llm_model: assistantMessage.llm_model ?? "history",
+      diagnostic_code: null,
+      diagnostic_message: null,
+      quality_warnings: [],
+      usage: {
+        prompt_tokens: assistantMessage.prompt_tokens,
+        completion_tokens: assistantMessage.completion_tokens,
+        total_tokens: assistantMessage.total_tokens,
+        latency_ms: assistantMessage.latency_ms,
+        provider: assistantMessage.llm_provider,
+        model: assistantMessage.llm_model,
+        estimated: true,
+      },
+      skill_profile: assistantMessage.skill_profile_source
+        ? {
+            source: assistantMessage.skill_profile_source,
+            profile: assistantMessage.skill_profile ?? "workspace",
+            active_skills: assistantMessage.active_skills,
+            guidance_count: assistantMessage.guidance_count,
+          }
+        : null,
+    };
+    items.unshift({
+      id: assistantMessage.id,
+      question: userMessage.content,
+      answer: assistantMessage.content,
+      llmLabel: `${response.llm_provider}/${response.llm_model ?? "default"}`,
+      sourcesCount: assistantMessage.sources_count,
+      warningsCount: 0,
+      createdAt: assistantMessage.created_at,
+      response,
+    });
+  }
+  return items;
 }
 
 function createHistoryItem(response: WorkspaceQuestionAnswer): AskHistoryItem {

@@ -78,6 +78,40 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             )
             """
         )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS workspace_conversations (
+                id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS workspace_conversation_messages (
+                id TEXT PRIMARY KEY,
+                conversation_id TEXT NOT NULL,
+                workspace_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                sources_count INTEGER NOT NULL,
+                used_context_chunks INTEGER NOT NULL,
+                llm_provider TEXT NULL,
+                llm_model TEXT NULL,
+                prompt_tokens INTEGER NULL,
+                completion_tokens INTEGER NULL,
+                total_tokens INTEGER NULL,
+                latency_ms INTEGER NULL,
+                skill_profile_json TEXT NOT NULL
+            )
+            """
+        )
+
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS workspace_model_experiments (

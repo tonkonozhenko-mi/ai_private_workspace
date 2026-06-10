@@ -19,6 +19,7 @@ import type {
   WorkspaceModelSelection,
   WorkspaceModelsDashboardSummary,
   WorkspaceQuestionAnswer,
+  WorkspaceConversation,
   SkillContextRequest,
   WorkspaceSkillProfile,
   WorkspaceSkillProfileRequest,
@@ -286,12 +287,50 @@ export function getLocalAIActivationGuide(
   );
 }
 
+
+export function createWorkspaceConversation(
+  workspaceId: string,
+  title?: string,
+): Promise<WorkspaceConversation> {
+  return requestJson<WorkspaceConversation>(`/workspaces/${workspaceId}/conversations`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ title }),
+  });
+}
+
+export function listWorkspaceConversations(
+  workspaceId: string,
+): Promise<WorkspaceConversation[]> {
+  return getJson<WorkspaceConversation[]>(`/workspaces/${workspaceId}/conversations`);
+}
+
+export function getWorkspaceConversation(
+  workspaceId: string,
+  conversationId: string,
+): Promise<WorkspaceConversation> {
+  return getJson<WorkspaceConversation>(`/workspaces/${workspaceId}/conversations/${conversationId}`);
+}
+
+export function deleteWorkspaceConversation(
+  workspaceId: string,
+  conversationId: string,
+): Promise<void> {
+  return requestWithoutBody(`/workspaces/${workspaceId}/conversations/${conversationId}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+}
+
 export function askSelectedWorkspace(
   workspaceId: string,
   question: string,
   limit: number,
   skillContext: SkillContextRequest[] = [],
-  options: { signal?: AbortSignal } = {},
+  options: { signal?: AbortSignal; conversationId?: string | null } = {},
 ): Promise<WorkspaceQuestionAnswer> {
   return requestJson<WorkspaceQuestionAnswer>(
     `/workspaces/${workspaceId}/ask-selected`,
@@ -301,7 +340,12 @@ export function askSelectedWorkspace(
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ question, limit, skill_context: skillContext }),
+      body: JSON.stringify({
+        question,
+        limit,
+        skill_context: skillContext,
+        conversation_id: options.conversationId ?? null,
+      }),
       signal: options.signal,
     },
   );

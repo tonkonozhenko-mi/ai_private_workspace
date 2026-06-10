@@ -11,6 +11,7 @@ class SkillContextItemRequest(BaseModel):
 
 class AskWorkspaceQuestionRequest(BaseModel):
     question: str = Field(..., min_length=1)
+    conversation_id: str | None = Field(default=None, min_length=1)
     limit: int = Field(default=5, ge=1, le=50)
     llm_provider: str | None = None
     llm_model: str | None = None
@@ -19,6 +20,7 @@ class AskWorkspaceQuestionRequest(BaseModel):
 
 class AskWorkspaceQuestionWithSelectedLLMRequest(BaseModel):
     question: str = Field(..., min_length=1)
+    conversation_id: str | None = Field(default=None, min_length=1)
     limit: int = Field(default=5, ge=1, le=50)
     skill_context: list[SkillContextItemRequest] = Field(default_factory=list, max_length=5)
 
@@ -58,6 +60,7 @@ class SkillProfileAuditResponse(BaseModel):
 
 class WorkspaceQuestionAnswerResponse(BaseModel):
     workspace_id: str
+    conversation_id: str | None = None
     question: str
     answer: str
     sources: list[RagSourceResponse]
@@ -123,6 +126,7 @@ def to_workspace_question_answer_response(
 ) -> WorkspaceQuestionAnswerResponse:
     return WorkspaceQuestionAnswerResponse(
         workspace_id=result.workspace_id,
+        conversation_id=result.conversation_id,
         question=result.question,
         answer=result.answer,
         sources=[to_rag_source_response(source) for source in result.sources],
