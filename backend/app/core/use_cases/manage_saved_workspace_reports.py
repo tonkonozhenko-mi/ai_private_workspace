@@ -30,6 +30,10 @@ class UpdateSavedWorkspaceReportInput:
     report_id: str
     title: str | None = None
     summary: str | None = None
+    export_markdown: str | None = None
+    export_text: str | None = None
+    report_json: dict[str, object] | None = None
+    generated_from: list[str] | None = None
     pinned: bool | None = None
 
 
@@ -89,6 +93,10 @@ class UpdateSavedWorkspaceReportUseCase:
             request.report_id,
             title=request.title,
             summary=request.summary,
+            export_markdown=request.export_markdown,
+            export_text=request.export_text,
+            report_json=request.report_json,
+            generated_from=request.generated_from,
             pinned=request.pinned,
         )
         if report is None:

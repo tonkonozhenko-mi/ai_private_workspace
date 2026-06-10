@@ -10609,3 +10609,91 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* Task 173 — report sections editor and documentation-ready exports */
+.report-editor-grid,
+.saved-report-editor {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1rem 0;
+}
+
+.report-editor-textarea {
+  width: 100%;
+  min-height: 92px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font: inherit;
+  line-height: 1.45;
+  padding: 0.75rem 0.85rem;
+}
+
+.report-editor-textarea.compact {
+  min-height: 72px;
+}
+
+.report-section-editor {
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  background: var(--surface-muted);
+  margin: 1rem 0;
+  padding: 1rem;
+}
+
+.report-section-toggle-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.report-section-toggle {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.7rem;
+}
+
+.report-section-toggle-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.tiny-button {
+  font-size: 0.72rem;
+  min-height: 28px;
+  padding: 0.25rem 0.55rem;
+}
+
+.report-markdown-editor-block {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.report-markdown-editor {
+  width: 100%;
+  min-height: 320px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  padding: 0.9rem;
+}
+
+.report-export-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.compact-preview {
+  max-height: 280px;
+}

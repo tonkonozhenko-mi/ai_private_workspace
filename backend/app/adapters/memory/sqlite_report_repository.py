@@ -91,20 +91,45 @@ class SQLiteReportRepository:
         *,
         title: str | None = None,
         summary: str | None = None,
+        export_markdown: str | None = None,
+        export_text: str | None = None,
+        report_json: dict[str, object] | None = None,
+        generated_from: list[str] | None = None,
         pinned: bool | None = None,
     ) -> SavedWorkspaceReport | None:
         current = self.get_report(workspace_id, report_id)
         if current is None:
             return None
-        updated = update_saved_workspace_report(current, title=title, summary=summary, pinned=pinned)
+        updated = update_saved_workspace_report(
+            current,
+            title=title,
+            summary=summary,
+            export_markdown=export_markdown,
+            export_text=export_text,
+            report_json=report_json,
+            generated_from=generated_from,
+            pinned=pinned,
+        )
         with self._connect() as connection:
             connection.execute(
                 """
                 UPDATE workspace_saved_reports
-                SET title = ?, summary = ?, updated_at = ?, pinned_at = ?
+                SET title = ?, summary = ?, export_markdown = ?, export_text = ?,
+                    report_json = ?, generated_from_json = ?, updated_at = ?, pinned_at = ?
                 WHERE id = ? AND workspace_id = ?
                 """,
-                (updated.title, updated.summary, updated.updated_at, updated.pinned_at, report_id, workspace_id),
+                (
+                    updated.title,
+                    updated.summary,
+                    updated.export_markdown,
+                    updated.export_text,
+                    json.dumps(updated.report_json, sort_keys=True),
+                    json.dumps(updated.generated_from, sort_keys=True),
+                    updated.updated_at,
+                    updated.pinned_at,
+                    report_id,
+                    workspace_id,
+                ),
             )
             connection.commit()
         return updated

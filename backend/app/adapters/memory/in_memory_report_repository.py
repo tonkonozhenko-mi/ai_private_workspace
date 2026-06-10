@@ -48,12 +48,25 @@ class InMemoryReportRepository:
         *,
         title: str | None = None,
         summary: str | None = None,
+        export_markdown: str | None = None,
+        export_text: str | None = None,
+        report_json: dict[str, object] | None = None,
+        generated_from: list[str] | None = None,
         pinned: bool | None = None,
     ) -> SavedWorkspaceReport | None:
         current = self.get_report(workspace_id, report_id)
         if current is None:
             return None
-        updated = update_saved_workspace_report(current, title=title, summary=summary, pinned=pinned)
+        updated = update_saved_workspace_report(
+            current,
+            title=title,
+            summary=summary,
+            export_markdown=export_markdown,
+            export_text=export_text,
+            report_json=report_json,
+            generated_from=generated_from,
+            pinned=pinned,
+        )
         self._reports[report_id] = updated
         return updated
 

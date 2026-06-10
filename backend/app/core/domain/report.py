@@ -90,6 +90,10 @@ def update_saved_workspace_report(
     *,
     title: str | None = None,
     summary: str | None = None,
+    export_markdown: str | None = None,
+    export_text: str | None = None,
+    report_json: dict[str, object] | None = None,
+    generated_from: list[str] | None = None,
     pinned: bool | None = None,
 ) -> SavedWorkspaceReport:
     pinned_at = saved.pinned_at
@@ -103,15 +107,67 @@ def update_saved_workspace_report(
         report_type=saved.report_type,
         title=(title if title is not None else saved.title).strip()[:180] or "Workspace report",
         summary=(summary if summary is not None else saved.summary).strip(),
-        export_markdown=saved.export_markdown,
-        export_text=saved.export_text,
-        report_json=dict(saved.report_json),
-        generated_from=list(saved.generated_from),
+        export_markdown=export_markdown if export_markdown is not None else saved.export_markdown,
+        export_text=export_text if export_text is not None else saved.export_text,
+        report_json=dict(report_json) if report_json is not None else dict(saved.report_json),
+        generated_from=list(generated_from) if generated_from is not None else list(saved.generated_from),
         created_at=saved.created_at,
         updated_at=utc_now_iso(),
         pinned_at=pinned_at,
     )
 
+
+
+def markdown_to_plain_text(markdown: str) -> str:
+    lines: list[str] = []
+    for raw_line in markdown.splitlines():
+        line = raw_line.strip()
+        if line.startswith("#"):
+            line = line.lstrip("#").strip()
+        if line.startswith(">"):
+            line = line.lstrip(">").strip()
+        line = line.replace("**", "").replace("`", "")
+        lines.append(line)
+    return "\n".join(lines).strip() + ("\n" if lines else "")
+
+
+def create_saved_workspace_report_from_draft(
+    *,
+    workspace_id: str,
+    report_type: str,
+    title: str,
+    summary: str,
+    sections: list[ReportSection],
+    generated_from: list[str],
+    export_markdown: str,
+    safety_note: str,
+) -> SavedWorkspaceReport:
+    now = utc_now_iso()
+    normalized_type = report_type.strip().lower().replace("-", "_") or "custom_report"
+    draft = ProjectOverviewReport(
+        workspace_id=workspace_id,
+        title=title.strip()[:180] or "Workspace report",
+        summary=summary.strip(),
+        sections=sections,
+        generated_from=list(generated_from),
+        report_type=normalized_type,
+        export_markdown=export_markdown.strip() + ("\n" if export_markdown.strip() else ""),
+        safety_note=safety_note.strip() or ProjectOverviewReport.safety_note,
+    )
+    return SavedWorkspaceReport(
+        id=str(uuid4()),
+        workspace_id=workspace_id,
+        report_type=draft.report_type,
+        title=draft.title,
+        summary=draft.summary,
+        export_markdown=draft.export_markdown or render_report_markdown(draft),
+        export_text=markdown_to_plain_text(draft.export_markdown or render_report_markdown(draft)),
+        report_json=report_to_dict(draft),
+        generated_from=list(draft.generated_from),
+        created_at=now,
+        updated_at=now,
+        pinned_at=None,
+    )
 
 def report_to_dict(report: ProjectOverviewReport) -> dict[str, object]:
     return {

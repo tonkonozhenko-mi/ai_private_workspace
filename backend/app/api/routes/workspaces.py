@@ -115,6 +115,7 @@ from app.api.schemas.report_schemas import (
     SavedReportPinRequest,
     SavedWorkspaceReportResponse,
     SaveCustomWorkspaceReportRequest,
+    SaveEditedWorkspaceReportRequest,
     UpdateSavedWorkspaceReportRequest,
     to_project_overview_report_response,
     to_report_catalog_response,
@@ -296,7 +297,7 @@ from app.core.use_cases.generate_workspace_report import (
     WorkspaceReportTypeNotFoundError,
 )
 from app.core.use_cases.save_workspace_report import SaveWorkspaceReportInput, SaveWorkspaceReportUseCase
-from app.core.domain.report import ProjectOverviewReport, ReportSection, create_saved_workspace_report, render_report_markdown
+from app.core.domain.report import ProjectOverviewReport, ReportSection, create_saved_workspace_report, create_saved_workspace_report_from_draft, markdown_to_plain_text, render_report_markdown
 from app.core.use_cases.manage_saved_workspace_reports import (
     DeleteSavedWorkspaceReportInput,
     DeleteSavedWorkspaceReportUseCase,
@@ -1921,6 +1922,39 @@ def save_custom_workspace_report(
     return to_saved_workspace_report_response(saved)
 
 
+@router.post(
+    "/{workspace_id}/reports/draft-save",
+    response_model=SavedWorkspaceReportResponse,
+)
+def save_edited_workspace_report(
+    workspace_id: str,
+    request: SaveEditedWorkspaceReportRequest,
+) -> SavedWorkspaceReportResponse:
+    if workspace_repository.get(workspace_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+    sections = [
+        ReportSection(
+            title=section.title,
+            content=section.content,
+            bullets=list(section.bullets),
+        )
+        for section in request.sections
+    ]
+    saved = report_repository.add_report(
+        create_saved_workspace_report_from_draft(
+            workspace_id=workspace_id,
+            report_type=request.report_type,
+            title=request.title,
+            summary=request.summary,
+            sections=sections,
+            generated_from=request.generated_from,
+            export_markdown=request.export_markdown,
+            safety_note=request.safety_note,
+        )
+    )
+    return to_saved_workspace_report_response(saved)
+
+
 def _build_custom_workspace_report(
     workspace_id: str,
     request: BuildCustomWorkspaceReportRequest,
@@ -2101,6 +2135,10 @@ def update_saved_workspace_report(
                 report_id=report_id,
                 title=request.title,
                 summary=request.summary,
+                export_markdown=request.export_markdown,
+                export_text=request.export_text or (markdown_to_plain_text(request.export_markdown) if request.export_markdown else None),
+                report_json=request.report_json,
+                generated_from=request.generated_from,
             )
         )
     except SavedWorkspaceReportNotFoundError as exc:

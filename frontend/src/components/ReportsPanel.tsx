@@ -10,10 +10,10 @@ import {
   listSavedWorkspaceReports,
   pinSavedWorkspaceReport,
   saveCustomWorkspaceReport,
-  saveWorkspaceReport,
+  saveEditedWorkspaceReport,
   updateSavedWorkspaceReport,
 } from "../api/client";
-import type { ConversationAnswerNote, ReportCatalog, ReportTemplate, SavedWorkspaceReport, WorkspaceConversation, WorkspaceReport } from "../api/types";
+import type { ConversationAnswerNote, ReportCatalog, ReportSection, ReportTemplate, SavedWorkspaceReport, WorkspaceConversation, WorkspaceReport } from "../api/types";
 import { CopyButton } from "./CopyButton";
 import { EmptyState } from "./EmptyState";
 import { ErrorState } from "./ErrorState";
@@ -133,12 +133,19 @@ export function ReportsPanel({ workspaceId, hasScan }: ReportsPanelProps) {
     }
   }
 
-  async function handleSaveGeneratedReport() {
-    if (!report) return;
+  async function handleSaveGeneratedReport(editedReport: WorkspaceReport, markdown: string) {
     setSavingReport(true);
     setSavedReportError(null);
     try {
-      const saved = await saveWorkspaceReport(workspaceId, report.report_type);
+      const saved = await saveEditedWorkspaceReport(workspaceId, {
+        title: editedReport.title,
+        summary: editedReport.summary,
+        report_type: editedReport.report_type,
+        sections: editedReport.sections,
+        generated_from: editedReport.generated_from,
+        export_markdown: markdown,
+        safety_note: editedReport.safety_note,
+      });
       setSelectedSavedReport(saved);
       setReport(null);
       await refreshSavedReports();
@@ -219,6 +226,28 @@ export function ReportsPanel({ workspaceId, hasScan }: ReportsPanelProps) {
     try {
       const updated = await updateSavedWorkspaceReport(workspaceId, savedReport.id, { title: nextTitle.trim() });
       setSelectedSavedReport((current) => (current?.id === updated.id ? updated : current));
+      await refreshSavedReports();
+    } catch (error) {
+      setSavedReportError(errorMessage(error));
+    }
+  }
+
+  async function handleUpdateReportContent(savedReport: SavedWorkspaceReport, request: { title: string; summary: string; export_markdown: string }) {
+    setSavedReportError(null);
+    try {
+      const updated = await updateSavedWorkspaceReport(workspaceId, savedReport.id, {
+        title: request.title,
+        summary: request.summary,
+        export_markdown: request.export_markdown,
+        report_json: {
+          ...savedReport.report_json,
+          title: request.title,
+          summary: request.summary,
+          export_markdown: request.export_markdown,
+          edited_in_workspace: true,
+        },
+      });
+      setSelectedSavedReport(updated);
       await refreshSavedReports();
     } catch (error) {
       setSavedReportError(errorMessage(error));
@@ -356,6 +385,7 @@ export function ReportsPanel({ workspaceId, hasScan }: ReportsPanelProps) {
         onPin={handlePinReport}
         onDelete={handleDeleteReport}
         onRename={handleRenameReport}
+        onUpdate={handleUpdateReportContent}
       />
     </section>
   );
@@ -477,29 +507,142 @@ function CustomReportBuilder({
   );
 }
 
-function ReportPreview({ report, onSave, saving }: { report: WorkspaceReport; onSave: () => void; saving: boolean }) {
+function ReportPreview({
+  report,
+  onSave,
+  saving,
+}: {
+  report: WorkspaceReport;
+  onSave: (report: WorkspaceReport, markdown: string) => void;
+  saving: boolean;
+}) {
   const [showMarkdown, setShowMarkdown] = useState(false);
+  const [selectedSections, setSelectedSections] = useState<string[]>(report.sections.map((section) => section.title));
+  const [sectionOrder, setSectionOrder] = useState<string[]>(report.sections.map((section) => section.title));
+  const [draftTitle, setDraftTitle] = useState(report.title);
+  const [draftSummary, setDraftSummary] = useState(report.summary);
+  const [draftMarkdown, setDraftMarkdown] = useState(report.export_markdown || renderFallbackMarkdown(report));
+
+  const visibleSections = sectionOrder
+    .map((title) => report.sections.find((section) => section.title === title))
+    .filter((section): section is ReportSection => Boolean(section))
+    .filter((section) => selectedSections.includes(section.title));
+  const documentationMarkdown = renderDocumentationMarkdown({
+    ...report,
+    title: draftTitle,
+    summary: draftSummary,
+    sections: visibleSections,
+    export_markdown: draftMarkdown,
+  });
+
+  function toggleSection(title: string) {
+    setSelectedSections((current) => (
+      current.includes(title)
+        ? current.filter((item) => item !== title)
+        : [...current, title]
+    ));
+  }
+
+  function moveSection(title: string, direction: -1 | 1) {
+    setSectionOrder((current) => {
+      const index = current.indexOf(title);
+      const nextIndex = index + direction;
+      if (index < 0 || nextIndex < 0 || nextIndex >= current.length) return current;
+      const next = [...current];
+      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+      return next;
+    });
+  }
+
+  function saveEditedDraft() {
+    onSave(
+      {
+        ...report,
+        title: draftTitle,
+        summary: draftSummary,
+        sections: visibleSections,
+        export_markdown: draftMarkdown,
+      },
+      draftMarkdown,
+    );
+  }
+
   return (
     <article className="panel report-preview-panel">
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">Generated draft</p>
-          <h2>{report.title}</h2>
-          <p className="panel-intro">{report.summary}</p>
+          <p className="eyebrow">Editable generated draft</p>
+          <h2>{draftTitle}</h2>
+          <p className="panel-intro">Review, trim, reorder, and edit the markdown before saving a documentation-ready report.</p>
         </div>
         <div className="report-preview-actions">
-          <button className="primary-action" type="button" onClick={onSave} disabled={saving}>
-            {saving ? "Saving…" : "Save report"}
+          <button className="primary-action" type="button" onClick={saveEditedDraft} disabled={saving || selectedSections.length === 0}>
+            {saving ? "Saving…" : "Save edited report"}
           </button>
-          <CopyButton text={report.export_markdown || renderFallbackMarkdown(report)} label="report markdown" />
+          <CopyButton text={draftMarkdown} label="editable markdown" />
+          <CopyButton text={documentationMarkdown} label="documentation-ready markdown" />
+          <button className="secondary-button" type="button" onClick={() => setDraftMarkdown(documentationMarkdown)}>
+            Use doc-ready markdown
+          </button>
           <button className="secondary-button" type="button" onClick={() => setShowMarkdown((value) => !value)}>
-            {showMarkdown ? "Hide markdown" : "Show markdown"}
+            {showMarkdown ? "Hide editor" : "Show editor"}
           </button>
         </div>
       </div>
       <div className="report-safety-note"><strong>Safety:</strong> {report.safety_note}</div>
-      <ReportSections report={report} />
-      {showMarkdown ? <pre className="report-markdown-preview">{report.export_markdown}</pre> : null}
+      <div className="report-editor-grid">
+        <label className="field-label">Report title
+          <input className="text-input" value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
+        </label>
+        <label className="field-label">Summary
+          <textarea className="report-editor-textarea compact" value={draftSummary} onChange={(event) => setDraftSummary(event.target.value)} />
+        </label>
+      </div>
+      <div className="report-section-editor">
+        <div className="panel-heading compact-heading">
+          <div>
+            <p className="eyebrow">Sections</p>
+            <h3>Choose and order sections</h3>
+          </div>
+          <StatusBadge label={`${selectedSections.length}/${report.sections.length} included`} />
+        </div>
+        <div className="report-section-toggle-list">
+          {sectionOrder.map((title, index) => {
+            const section = report.sections.find((item) => item.title === title);
+            if (!section) return null;
+            return (
+              <div className="report-section-toggle" key={section.title}>
+                <label className="checkbox-row compact-checkbox">
+                  <input type="checkbox" checked={selectedSections.includes(section.title)} onChange={() => toggleSection(section.title)} />
+                  <span>{section.title}</span>
+                </label>
+                <div className="report-section-toggle-actions">
+                  <button className="secondary-button tiny-button" type="button" disabled={index === 0} onClick={() => moveSection(section.title, -1)}>Up</button>
+                  <button className="secondary-button tiny-button" type="button" disabled={index === sectionOrder.length - 1} onClick={() => moveSection(section.title, 1)}>Down</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <ReportSections report={{ ...report, title: draftTitle, summary: draftSummary, sections: visibleSections }} />
+      {showMarkdown ? (
+        <div className="report-markdown-editor-block">
+          <label className="field-label">Editable markdown
+            <textarea className="report-markdown-editor" value={draftMarkdown} onChange={(event) => setDraftMarkdown(event.target.value)} />
+          </label>
+          <div className="report-export-grid">
+            <div>
+              <strong>Documentation-ready Markdown</strong>
+              <pre className="report-markdown-preview compact-preview">{documentationMarkdown}</pre>
+            </div>
+            <div>
+              <strong>Plain text export</strong>
+              <pre className="report-markdown-preview compact-preview">{markdownToPlainText(draftMarkdown)}</pre>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -517,6 +660,7 @@ function SavedReportsPanel({
   onPin,
   onDelete,
   onRename,
+  onUpdate,
 }: {
   reports: SavedWorkspaceReport[];
   loading: boolean;
@@ -530,6 +674,7 @@ function SavedReportsPanel({
   onPin: (report: SavedWorkspaceReport) => void;
   onDelete: (report: SavedWorkspaceReport) => void;
   onRename: (report: SavedWorkspaceReport) => void;
+  onUpdate: (report: SavedWorkspaceReport, request: { title: string; summary: string; export_markdown: string }) => void;
 }) {
   return (
     <div className="reports-layout saved-reports-layout">
@@ -585,6 +730,7 @@ function SavedReportsPanel({
             onPin={onPin}
             onDelete={onDelete}
             onRename={onRename}
+            onUpdate={onUpdate}
           />
         ) : (
           <EmptyState title="Select a saved report" message="Open a report to copy, export, pin, rename, or delete it." compact />
@@ -599,14 +745,28 @@ function SavedReportDetails({
   onPin,
   onDelete,
   onRename,
+  onUpdate,
 }: {
   report: SavedWorkspaceReport;
   onPin: (report: SavedWorkspaceReport) => void;
   onDelete: (report: SavedWorkspaceReport) => void;
   onRename: (report: SavedWorkspaceReport) => void;
+  onUpdate: (report: SavedWorkspaceReport, request: { title: string; summary: string; export_markdown: string }) => void;
 }) {
   const [showMarkdown, setShowMarkdown] = useState(false);
   const [showText, setShowText] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(report.title);
+  const [draftSummary, setDraftSummary] = useState(report.summary);
+  const [draftMarkdown, setDraftMarkdown] = useState(report.export_markdown);
+
+  useEffect(() => {
+    setDraftTitle(report.title);
+    setDraftSummary(report.summary);
+    setDraftMarkdown(report.export_markdown);
+    setEditing(false);
+  }, [report.id, report.title, report.summary, report.export_markdown]);
+
   return (
     <article className="saved-report-details">
       <div className="panel-heading compact-heading">
@@ -627,9 +787,13 @@ function SavedReportDetails({
           {report.is_pinned ? "Unpin" : "Pin"}
         </button>
         <button className="secondary-button" type="button" onClick={() => onRename(report)}>Rename</button>
+        <button className="secondary-button" type="button" onClick={() => setEditing((value) => !value)}>
+          {editing ? "Close editor" : "Edit saved report"}
+        </button>
         <CopyButton text={report.export_markdown} label="markdown" />
         <CopyButton text={report.export_text} label="text" />
         <CopyButton text={JSON.stringify(report.report_json, null, 2)} label="json" />
+        <CopyButton text={renderDocumentationReadyMarkdown(report)} label="doc-ready md" />
         <button className="secondary-button" type="button" onClick={() => setShowMarkdown((value) => !value)}>
           {showMarkdown ? "Hide md" : "Show md"}
         </button>
@@ -638,6 +802,27 @@ function SavedReportDetails({
         </button>
         <button className="danger-button" type="button" onClick={() => onDelete(report)}>Delete</button>
       </div>
+      {editing ? (
+        <div className="saved-report-editor">
+          <label className="field-label">Title
+            <input className="text-input" value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
+          </label>
+          <label className="field-label">Summary
+            <textarea className="report-editor-textarea compact" value={draftSummary} onChange={(event) => setDraftSummary(event.target.value)} />
+          </label>
+          <label className="field-label">Markdown
+            <textarea className="report-markdown-editor" value={draftMarkdown} onChange={(event) => setDraftMarkdown(event.target.value)} />
+          </label>
+          <div className="report-preview-actions">
+            <button className="primary-action" type="button" onClick={() => onUpdate(report, { title: draftTitle, summary: draftSummary, export_markdown: draftMarkdown })}>
+              Save edits
+            </button>
+            <button className="secondary-button" type="button" onClick={() => setDraftMarkdown(renderDocumentationReadyMarkdown(report))}>
+              Reset to doc-ready format
+            </button>
+          </div>
+        </div>
+      ) : null}
       {showMarkdown ? <pre className="report-markdown-preview">{report.export_markdown}</pre> : null}
       {showText ? <pre className="report-markdown-preview">{report.export_text}</pre> : null}
     </article>
@@ -673,6 +858,61 @@ function renderFallbackMarkdown(report: WorkspaceReport): string {
     lines.push("");
   }
   return lines.join("\n");
+}
+
+
+function renderDocumentationMarkdown(report: WorkspaceReport): string {
+  const lines = [
+    `# ${report.title}`,
+    "",
+    report.summary,
+    "",
+    `> Safety: ${report.safety_note}`,
+    "",
+  ];
+  for (const section of report.sections) {
+    lines.push(`## ${section.title}`, "", section.content, "");
+    for (const bullet of section.bullets) lines.push(`- ${bullet}`);
+    lines.push("");
+  }
+  lines.push("## Generated from", "");
+  for (const source of report.generated_from) lines.push(`- ${source}`);
+  lines.push("", "---", "", "Generated locally by AI Private Workspace. Review before sharing.", "");
+  return lines.join("\n");
+}
+
+function renderDocumentationReadyMarkdown(report: SavedWorkspaceReport): string {
+  const sections = Array.isArray(report.report_json.sections) ? report.report_json.sections : [];
+  const lines = [
+    `# ${report.title}`,
+    "",
+    report.summary,
+    "",
+    "> Safety: Saved report generated from local workspace evidence. Review before sharing.",
+    "",
+  ];
+  for (const rawSection of sections) {
+    if (!rawSection || typeof rawSection !== "object") continue;
+    const section = rawSection as { title?: unknown; content?: unknown; bullets?: unknown };
+    const title = typeof section.title === "string" ? section.title : "Section";
+    const content = typeof section.content === "string" ? section.content : "";
+    const bullets = Array.isArray(section.bullets) ? section.bullets : [];
+    lines.push(`## ${title}`, "", content, "");
+    for (const bullet of bullets) lines.push(`- ${String(bullet)}`);
+    lines.push("");
+  }
+  lines.push("## Generated from", "");
+  for (const source of report.generated_from) lines.push(`- ${source}`);
+  lines.push("", "---", "", "Generated locally by AI Private Workspace. Review before sharing.", "");
+  return lines.join("\n");
+}
+
+function markdownToPlainText(markdown: string): string {
+  return markdown
+    .split("\n")
+    .map((line) => line.replace(/^#{1,6}\s*/, "").replace(/^>\s*/, "").replace(/`/g, "").replace(/\*\*/g, ""))
+    .join("\n")
+    .trim();
 }
 
 function formatDate(value: string | null | undefined): string {
