@@ -13797,6 +13797,7 @@ button,
 .guided-model-setup-panel {
   display: grid;
   gap: 18px;
+  overflow: hidden;
 }
 
 .guided-model-grid {
@@ -13806,6 +13807,7 @@ button,
 }
 
 .guided-model-card {
+  min-width: 0;
   border: 1px solid var(--color-border-soft);
   border-radius: 22px;
   padding: 18px;
@@ -13815,6 +13817,7 @@ button,
 }
 
 .guided-model-card-heading {
+  min-width: 0;
   align-items: flex-start;
   display: flex;
   justify-content: space-between;
@@ -13839,6 +13842,8 @@ button,
 .guided-model-card p,
 .guided-model-card small,
 .guided-model-custom-hint {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--color-text-muted);
   line-height: 1.5;
 }
@@ -13856,6 +13861,9 @@ button,
 
 .guided-model-card select,
 .guided-model-card input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   border: 1px solid var(--color-border-soft);
   border-radius: 14px;
   background: var(--color-surface);
@@ -13870,6 +13878,7 @@ button,
 }
 
 .guided-model-notes {
+  min-width: 0;
   border: 1px solid var(--color-border-soft);
   border-radius: 18px;
   padding: 14px;
