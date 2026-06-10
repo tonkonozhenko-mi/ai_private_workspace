@@ -16,6 +16,9 @@ from app.core.use_cases.scan_project import ScanProjectInput, ScanProjectUseCase
 @dataclass(frozen=True)
 class ScanWorkspaceProjectInput:
     workspace_id: str
+    include_patterns: tuple[str, ...] = ()
+    exclude_patterns: tuple[str, ...] = ()
+    file_rules_profile: str | None = None
 
 
 class WorkspaceNotFoundError(ValueError):
@@ -45,7 +48,13 @@ class ScanWorkspaceProjectUseCase:
         scan_result = ScanProjectUseCase(
             file_system=self.file_system,
             skill_registry=self.skill_registry,
-        ).execute(ScanProjectInput(project_path=workspace.project_path))
+        ).execute(
+            ScanProjectInput(
+                project_path=workspace.project_path,
+                include_patterns=request.include_patterns,
+                exclude_patterns=request.exclude_patterns,
+            )
+        )
 
         self.project_scan_repository.save_latest_scan(
             workspace_id=request.workspace_id,
@@ -66,6 +75,9 @@ class ScanWorkspaceProjectUseCase:
                         "detected_skills_count": str(
                             len(scan_result.detected_skills)
                         ),
+                        "include_rules_count": str(len(request.include_patterns)),
+                        "exclude_rules_count": str(len(request.exclude_patterns)),
+                        "file_rules_profile": request.file_rules_profile or "none",
                     },
                 )
             )

@@ -34,6 +34,7 @@ import { WorkspaceList } from "./components/WorkspaceList";
 import {
   DEFAULT_FILE_INDEXING_PREFERENCES,
   normalizeFileIndexingPreferences,
+  toFileSelectionRulesRequest,
   type FileIndexingPreferences,
 } from "./components/fileIndexingPreferences";
 import { DEFAULT_SKILL_PREFERENCES, normalizeSkillPreferences, type SkillPreferences } from "./components/skillLibrary";
@@ -255,9 +256,12 @@ function App() {
 
 
   const handleScanWorkspace = useCallback(async (workspaceId: string) => {
-    await scanWorkspace(workspaceId);
+    await scanWorkspace(
+      workspaceId,
+      toFileSelectionRulesRequest(preferences.fileIndexingPreferences),
+    );
     await refreshWorkspaceReadOnlyState(workspaceId);
-  }, [refreshWorkspaceReadOnlyState]);
+  }, [preferences.fileIndexingPreferences, refreshWorkspaceReadOnlyState]);
 
   const handleIndexWorkspace = useCallback(async (workspaceId: string) => {
     await indexWorkspace(workspaceId);

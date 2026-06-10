@@ -108,3 +108,30 @@ def _create_workspace(project_path: Path) -> dict:
 def _write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+def test_scan_workspace_applies_file_selection_rules(tmp_path) -> None:
+    _write_text(tmp_path / "src" / "app.py", "print('hello')")
+    _write_text(tmp_path / "docs" / "README.md", "# Docs")
+    _write_text(tmp_path / "build" / "generated.py", "print('generated')")
+
+    workspace = _create_workspace(tmp_path)
+
+    response = client.post(
+        f"/workspaces/{workspace['id']}/scan",
+        json={
+            "file_rules": {
+                "profile": "source-first",
+                "include_patterns": ["src/**", "docs/**"],
+                "exclude_patterns": ["docs/**"],
+            }
+        },
+    )
+
+    assert response.status_code == 200
+    scan_result = response.json()
+    assert [project_file["path"] for project_file in scan_result["files"]] == [
+        "src/app.py"
+    ]
+    assert scan_result["scanned_files"] == 1
+    assert scan_result["skipped_files"] >= 1

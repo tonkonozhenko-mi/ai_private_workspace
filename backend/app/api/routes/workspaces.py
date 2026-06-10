@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Body, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
@@ -21,7 +21,11 @@ from app.api.dependencies import (
     workspace_model_selection_repository,
     workspace_repository,
 )
-from app.api.project_scan_schemas import ProjectScanResponse, to_project_scan_response
+from app.api.project_scan_schemas import (
+    ProjectScanResponse,
+    ScanWorkspaceProjectRequest,
+    to_project_scan_response,
+)
 from app.api.schemas.analysis_schemas import (
     AnalysisSummaryResponse,
     GitHubActionsAnalysisResponse,
@@ -478,7 +482,10 @@ def restore_workspace(workspace_id: str) -> WorkspaceResponse:
 
 
 @router.post("/{workspace_id}/scan", response_model=ProjectScanResponse)
-def scan_workspace_project(workspace_id: str) -> ProjectScanResponse:
+def scan_workspace_project(
+    workspace_id: str,
+    request: ScanWorkspaceProjectRequest | None = Body(default=None),
+) -> ProjectScanResponse:
     use_case = ScanWorkspaceProjectUseCase(
         workspace_repository=workspace_repository,
         file_system=file_system,
@@ -487,7 +494,19 @@ def scan_workspace_project(workspace_id: str) -> ProjectScanResponse:
     )
 
     try:
-        result = use_case.execute(ScanWorkspaceProjectInput(workspace_id=workspace_id))
+        file_rules = request.file_rules if request is not None else None
+        result = use_case.execute(
+            ScanWorkspaceProjectInput(
+                workspace_id=workspace_id,
+                include_patterns=tuple(file_rules.include_patterns)
+                if file_rules is not None
+                else (),
+                exclude_patterns=tuple(file_rules.exclude_patterns)
+                if file_rules is not None
+                else (),
+                file_rules_profile=file_rules.profile if file_rules is not None else None,
+            )
+        )
     except WorkspaceNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
