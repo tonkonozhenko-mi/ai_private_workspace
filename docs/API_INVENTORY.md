@@ -151,7 +151,10 @@ models, and commands. This document provides the finer product-oriented grouping
 - `PATCH /workspaces/{workspace_id}/conversations/{conversation_id}/pin` — pin or unpin one saved conversation. This changes local conversation metadata only.
 - `PATCH /workspaces/{workspace_id}/conversations/{conversation_id}/archive` — archive or restore one saved conversation without deleting its messages.
 - `GET /workspaces/{workspace_id}/conversations/{conversation_id}/export` — export a saved conversation as markdown, text, or JSON content for local reuse, including captured source paths/previews where available. No network upload or shell execution.
-- `GET /workspaces/{workspace_id}/answer-notes` — list reusable answer notes saved from assistant messages, with optional search.
+- `GET /workspaces/{workspace_id}/conversations/{conversation_id}/context-preview` — prepare a reusable local context preview from one saved conversation, its notes, and captured source paths. This does not inject history into Ask automatically.
+- `GET /workspaces/{workspace_id}/answer-notes` — list reusable answer notes saved from assistant messages, with optional search, pinned-only, and source-path filters.
 - `POST /workspaces/{workspace_id}/conversations/{conversation_id}/messages/{message_id}/note` — save an assistant answer as a reusable local note with its source question and captured source paths.
+- `PATCH /workspaces/{workspace_id}/answer-notes/{note_id}` — edit a reusable answer note title/content and optionally pin/unpin it.
+- `PATCH /workspaces/{workspace_id}/answer-notes/{note_id}/pin` — pin or unpin a reusable answer note.
 - `DELETE /workspaces/{workspace_id}/answer-notes/{note_id}` — delete a reusable answer note.
 - `DELETE /workspaces/{workspace_id}/conversations/{conversation_id}` — delete one saved conversation and its messages.

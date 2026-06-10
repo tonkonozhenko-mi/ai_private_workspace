@@ -25,6 +25,7 @@ class ConversationAnswerNote:
     created_at: str
     updated_at: str
     source_paths: list[str] = field(default_factory=list)
+    pinned_at: str | None = None
 
 
 def normalize_note_title(title: str | None) -> str:
@@ -53,6 +54,7 @@ def create_conversation_answer_note(
         source_paths=list(source_paths or []),
         created_at=now,
         updated_at=now,
+        pinned_at=None,
     )
 
 
@@ -136,4 +138,31 @@ def create_conversation_message(
         latency_ms=latency_ms,
         skill_profile=skill_profile,
         sources=list(sources or []),
+    )
+
+
+def update_conversation_answer_note(
+    note: ConversationAnswerNote,
+    *,
+    title: str | None = None,
+    content: str | None = None,
+    pinned: bool | None = None,
+) -> ConversationAnswerNote:
+    pinned_at = note.pinned_at
+    if pinned is True and pinned_at is None:
+        pinned_at = utc_now_iso()
+    elif pinned is False:
+        pinned_at = None
+    return ConversationAnswerNote(
+        id=note.id,
+        workspace_id=note.workspace_id,
+        conversation_id=note.conversation_id,
+        message_id=note.message_id,
+        title=normalize_note_title(title if title is not None else note.title),
+        content=(content if content is not None else note.content).strip(),
+        source_question=note.source_question,
+        source_paths=list(note.source_paths),
+        created_at=note.created_at,
+        updated_at=utc_now_iso(),
+        pinned_at=pinned_at,
     )

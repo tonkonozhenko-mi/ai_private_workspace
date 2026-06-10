@@ -123,6 +123,9 @@ from app.api.schemas.conversation_schemas import (
     ConversationPinRequest,
     CreateConversationRequest,
     SaveAnswerNoteRequest,
+    UpdateAnswerNoteRequest,
+    AnswerNotePinRequest,
+    ConversationContextPreviewResponse,
     UpdateConversationRequest,
     WorkspaceConversationResponse,
     ConversationAnswerNoteResponse,
@@ -1315,12 +1318,20 @@ def list_workspace_answer_notes(
     workspace_id: str,
     limit: int = 30,
     search: str | None = None,
+    pinned_only: bool = False,
+    source_path: str | None = None,
 ) -> list[ConversationAnswerNoteResponse]:
     if workspace_repository.get(workspace_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
     return [
         to_answer_note_response(note)
-        for note in conversation_repository.list_answer_notes(workspace_id, limit=limit, search=search)
+        for note in conversation_repository.list_answer_notes(
+            workspace_id,
+            limit=limit,
+            search=search,
+            pinned_only=pinned_only,
+            source_path=source_path,
+        )
     ]
 
 
@@ -1356,6 +1367,95 @@ def save_conversation_answer_note(
     )
     return to_answer_note_response(note)
 
+
+
+
+@router.patch("/{workspace_id}/answer-notes/{note_id}", response_model=ConversationAnswerNoteResponse)
+def update_workspace_answer_note(
+    workspace_id: str,
+    note_id: str,
+    request: UpdateAnswerNoteRequest,
+) -> ConversationAnswerNoteResponse:
+    note = conversation_repository.update_answer_note(
+        workspace_id,
+        note_id,
+        title=request.title,
+        content=request.content,
+        pinned=request.pinned,
+    )
+    if note is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Answer note not found")
+    return to_answer_note_response(note)
+
+
+@router.patch("/{workspace_id}/answer-notes/{note_id}/pin", response_model=ConversationAnswerNoteResponse)
+def pin_workspace_answer_note(
+    workspace_id: str,
+    note_id: str,
+    request: AnswerNotePinRequest,
+) -> ConversationAnswerNoteResponse:
+    note = conversation_repository.update_answer_note(
+        workspace_id,
+        note_id,
+        pinned=request.pinned,
+    )
+    if note is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Answer note not found")
+    return to_answer_note_response(note)
+
+
+@router.get(
+    "/{workspace_id}/conversations/{conversation_id}/context-preview",
+    response_model=ConversationContextPreviewResponse,
+)
+def get_conversation_context_preview(
+    workspace_id: str,
+    conversation_id: str,
+) -> ConversationContextPreviewResponse:
+    conversation = conversation_repository.get_conversation(workspace_id, conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+    notes = conversation_repository.list_answer_notes(workspace_id, limit=50, search=None)
+    conversation_notes = [note for note in notes if note.conversation_id == conversation.id]
+    questions = [message.content for message in conversation.messages if message.role == "user"]
+    answers = [message.content for message in conversation.messages if message.role == "assistant"]
+    source_paths = sorted({
+        source.source_path
+        for message in conversation.messages
+        for source in message.sources
+        if source.source_path
+    } | {
+        source_path
+        for note in conversation_notes
+        for source_path in note.source_paths
+        if source_path
+    })
+    latest_questions = questions[-3:]
+    latest_notes = conversation_notes[:5]
+    reusable_lines = [
+        f"Conversation: {conversation.title}",
+        f"Questions: {len(questions)}",
+        f"Answers: {len(answers)}",
+    ]
+    if latest_questions:
+        reusable_lines.extend(["", "Recent questions:"])
+        reusable_lines.extend(f"- {question}" for question in latest_questions)
+    if latest_notes:
+        reusable_lines.extend(["", "Saved notes:"])
+        reusable_lines.extend(f"- {note.title}: {note.content[:220]}" for note in latest_notes)
+    if source_paths:
+        reusable_lines.extend(["", "Source paths:"])
+        reusable_lines.extend(f"- {source_path}" for source_path in source_paths[:12])
+    return ConversationContextPreviewResponse(
+        conversation_id=conversation.id,
+        title=conversation.title,
+        questions_count=len(questions),
+        answers_count=len(answers),
+        notes_count=len(conversation_notes),
+        source_paths=source_paths,
+        reusable_context="\n".join(reusable_lines),
+        safety_note="This is a preparation preview only. It does not automatically inject conversation history into Ask.",
+    )
 
 @router.delete("/{workspace_id}/answer-notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_workspace_answer_note(workspace_id: str, note_id: str) -> None:

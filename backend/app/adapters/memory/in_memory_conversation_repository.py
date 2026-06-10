@@ -1,4 +1,4 @@
-from app.core.domain.conversation import ConversationAnswerNote, ConversationMessage, WorkspaceConversation, normalize_conversation_title, utc_now_iso
+from app.core.domain.conversation import ConversationAnswerNote, ConversationMessage, WorkspaceConversation, normalize_conversation_title, update_conversation_answer_note, utc_now_iso
 
 
 class InMemoryConversationRepository:
@@ -172,15 +172,43 @@ class InMemoryConversationRepository:
         limit: int = 30,
         *,
         search: str | None = None,
+        pinned_only: bool = False,
+        source_path: str | None = None,
     ) -> list[ConversationAnswerNote]:
         normalized_search = (search or "").strip().lower()
+        normalized_source_path = (source_path or "").strip().lower()
         notes = [note for note in self._notes.values() if note.workspace_id == workspace_id]
+        if pinned_only:
+            notes = [note for note in notes if note.pinned_at is not None]
+        if normalized_source_path:
+            notes = [
+                note for note in notes
+                if any(normalized_source_path in source.lower() for source in note.source_paths)
+            ]
         if normalized_search:
             notes = [
                 note for note in notes
-                if normalized_search in " ".join([note.title, note.content, note.source_question or ""]).lower()
+                if normalized_search in " ".join([note.title, note.content, note.source_question or "", " ".join(note.source_paths)]).lower()
             ]
-        return sorted(notes, key=lambda note: note.updated_at, reverse=True)[: max(0, limit)]
+        return sorted(notes, key=lambda note: (note.pinned_at is not None, note.updated_at), reverse=True)[: max(0, limit)]
+
+    def update_answer_note(
+        self,
+        workspace_id: str,
+        note_id: str,
+        *,
+        title: str | None = None,
+        content: str | None = None,
+        pinned: bool | None = None,
+    ) -> ConversationAnswerNote | None:
+        note = self._notes.get(note_id)
+        if note is None or note.workspace_id != workspace_id:
+            return None
+        updated = update_conversation_answer_note(note, title=title, content=content, pinned=pinned)
+        if not updated.content:
+            return None
+        self._notes[note_id] = updated
+        return updated
 
     def delete_answer_note(self, workspace_id: str, note_id: str) -> bool:
         note = self._notes.get(note_id)

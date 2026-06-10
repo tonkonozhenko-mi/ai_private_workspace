@@ -3,7 +3,7 @@ from pathlib import Path
 import sqlite3
 
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
-from app.core.domain.conversation import ConversationAnswerNote, ConversationMessage, WorkspaceConversation, normalize_conversation_title, utc_now_iso
+from app.core.domain.conversation import ConversationAnswerNote, ConversationMessage, WorkspaceConversation, normalize_conversation_title, update_conversation_answer_note, utc_now_iso
 from app.core.domain.rag import RagSource, SkillProfileAudit
 
 
@@ -266,8 +266,8 @@ class SQLiteConversationRepository:
                 """
                 INSERT INTO workspace_answer_notes (
                     id, workspace_id, conversation_id, message_id, title, content,
-                    source_question, source_paths_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    source_question, source_paths_json, created_at, updated_at, pinned_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     note.id,
@@ -280,6 +280,7 @@ class SQLiteConversationRepository:
                     json.dumps(note.source_paths, sort_keys=True),
                     note.created_at,
                     note.updated_at,
+                    note.pinned_at,
                 ),
             )
             connection.commit()
@@ -291,28 +292,76 @@ class SQLiteConversationRepository:
         limit: int = 30,
         *,
         search: str | None = None,
+        pinned_only: bool = False,
+        source_path: str | None = None,
     ) -> list[ConversationAnswerNote]:
         clauses = ["workspace_id = ?"]
         parameters: list[object] = [workspace_id]
         normalized_search = (search or "").strip().lower()
+        normalized_source_path = (source_path or "").strip().lower()
+        if pinned_only:
+            clauses.append("pinned_at IS NOT NULL")
+        if normalized_source_path:
+            clauses.append("LOWER(source_paths_json) LIKE ?")
+            parameters.append(f"%{normalized_source_path}%")
         if normalized_search:
-            clauses.append("(LOWER(title) LIKE ? OR LOWER(content) LIKE ? OR LOWER(COALESCE(source_question, '')) LIKE ?)")
+            clauses.append("(LOWER(title) LIKE ? OR LOWER(content) LIKE ? OR LOWER(COALESCE(source_question, '')) LIKE ? OR LOWER(source_paths_json) LIKE ?)")
             like_value = f"%{normalized_search}%"
-            parameters.extend([like_value, like_value, like_value])
+            parameters.extend([like_value, like_value, like_value, like_value])
         parameters.append(max(0, limit))
         with self._connect() as connection:
             rows = connection.execute(
                 f"""
                 SELECT id, workspace_id, conversation_id, message_id, title, content,
-                       source_question, source_paths_json, created_at, updated_at
+                       source_question, source_paths_json, created_at, updated_at, pinned_at
                 FROM workspace_answer_notes
                 WHERE {' AND '.join(clauses)}
-                ORDER BY updated_at DESC, rowid DESC
+                ORDER BY CASE WHEN pinned_at IS NULL THEN 0 ELSE 1 END DESC, updated_at DESC, rowid DESC
                 LIMIT ?
                 """,
                 tuple(parameters),
             ).fetchall()
         return [self._answer_note_from_row(row) for row in rows]
+
+    def update_answer_note(
+        self,
+        workspace_id: str,
+        note_id: str,
+        *,
+        title: str | None = None,
+        content: str | None = None,
+        pinned: bool | None = None,
+    ) -> ConversationAnswerNote | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT id, workspace_id, conversation_id, message_id, title, content,
+                       source_question, source_paths_json, created_at, updated_at, pinned_at
+                FROM workspace_answer_notes
+                WHERE id = ? AND workspace_id = ?
+                """,
+                (note_id, workspace_id),
+            ).fetchone()
+            if row is None:
+                return None
+            updated = update_conversation_answer_note(
+                self._answer_note_from_row(row),
+                title=title,
+                content=content,
+                pinned=pinned,
+            )
+            if not updated.content:
+                return None
+            connection.execute(
+                """
+                UPDATE workspace_answer_notes
+                SET title = ?, content = ?, updated_at = ?, pinned_at = ?
+                WHERE id = ? AND workspace_id = ?
+                """,
+                (updated.title, updated.content, updated.updated_at, updated.pinned_at, note_id, workspace_id),
+            )
+            connection.commit()
+        return updated
 
     def delete_answer_note(self, workspace_id: str, note_id: str) -> bool:
         with self._connect() as connection:
@@ -341,6 +390,7 @@ class SQLiteConversationRepository:
             source_paths=self._source_paths_from_json(row["source_paths_json"]),
             created_at=row["created_at"],
             updated_at=row["updated_at"],
+            pinned_at=row["pinned_at"] if "pinned_at" in row.keys() else None,
         )
 
     def _message_from_row(self, row: sqlite3.Row) -> ConversationMessage:

@@ -105,7 +105,8 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
                 source_question TEXT NULL,
                 source_paths_json TEXT NOT NULL DEFAULT '[]',
                 created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL
+                updated_at TEXT NOT NULL,
+                pinned_at TEXT NULL
             )
             """
         )
@@ -220,6 +221,12 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             table_name="workspace_answer_notes",
             column_name="source_paths_json",
             column_definition="source_paths_json TEXT NOT NULL DEFAULT '[]'",
+        )
+        _add_column_if_missing(
+            connection,
+            table_name="workspace_answer_notes",
+            column_name="pinned_at",
+            column_definition="pinned_at TEXT NULL",
         )
         _add_column_if_missing(
             connection,

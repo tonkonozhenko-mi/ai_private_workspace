@@ -166,6 +166,16 @@ class SaveAnswerNoteRequest(BaseModel):
     content: str | None = None
 
 
+class UpdateAnswerNoteRequest(BaseModel):
+    title: str | None = Field(default=None, max_length=120)
+    content: str | None = None
+    pinned: bool | None = None
+
+
+class AnswerNotePinRequest(BaseModel):
+    pinned: bool
+
+
 class ConversationAnswerNoteResponse(BaseModel):
     id: str
     workspace_id: str
@@ -177,6 +187,8 @@ class ConversationAnswerNoteResponse(BaseModel):
     source_paths: list[str] = Field(default_factory=list)
     created_at: str
     updated_at: str
+    pinned_at: str | None = None
+    is_pinned: bool = False
 
 
 def to_answer_note_response(note) -> ConversationAnswerNoteResponse:
@@ -191,4 +203,17 @@ def to_answer_note_response(note) -> ConversationAnswerNoteResponse:
         source_paths=note.source_paths,
         created_at=note.created_at,
         updated_at=note.updated_at,
+        pinned_at=note.pinned_at,
+        is_pinned=note.pinned_at is not None,
     )
+
+
+class ConversationContextPreviewResponse(BaseModel):
+    conversation_id: str
+    title: str
+    questions_count: int
+    answers_count: int
+    notes_count: int
+    source_paths: list[str] = Field(default_factory=list)
+    reusable_context: str
+    safety_note: str

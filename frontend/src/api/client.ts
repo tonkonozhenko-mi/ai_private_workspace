@@ -20,6 +20,7 @@ import type {
   WorkspaceModelsDashboardSummary,
   WorkspaceQuestionAnswer,
   ConversationAnswerNote,
+  ConversationContextPreview,
   ConversationExport,
   WorkspaceConversation,
   SkillContextRequest,
@@ -387,11 +388,17 @@ export function exportWorkspaceConversation(
 
 export function listWorkspaceAnswerNotes(
   workspaceId: string,
-  options: { search?: string } = {},
+  options: { search?: string; pinnedOnly?: boolean; sourcePath?: string } = {},
 ): Promise<ConversationAnswerNote[]> {
   const params = new URLSearchParams();
   if (options.search?.trim()) {
     params.set("search", options.search.trim());
+  }
+  if (options.pinnedOnly) {
+    params.set("pinned_only", "true");
+  }
+  if (options.sourcePath?.trim()) {
+    params.set("source_path", options.sourcePath.trim());
   }
   const query = params.toString();
   return getJson<ConversationAnswerNote[]>(`/workspaces/${workspaceId}/answer-notes${query ? `?${query}` : ""}`);
@@ -414,6 +421,43 @@ export function saveConversationAnswerNote(
       body: JSON.stringify(request),
     },
   );
+}
+
+export function updateWorkspaceAnswerNote(
+  workspaceId: string,
+  noteId: string,
+  request: { title?: string | null; content?: string | null; pinned?: boolean | null },
+): Promise<ConversationAnswerNote> {
+  return requestJson<ConversationAnswerNote>(`/workspaces/${workspaceId}/answer-notes/${noteId}`, {
+    method: "PATCH",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+export function updateWorkspaceAnswerNotePinned(
+  workspaceId: string,
+  noteId: string,
+  pinned: boolean,
+): Promise<ConversationAnswerNote> {
+  return requestJson<ConversationAnswerNote>(`/workspaces/${workspaceId}/answer-notes/${noteId}/pin`, {
+    method: "PATCH",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ pinned }),
+  });
+}
+
+export function getConversationContextPreview(
+  workspaceId: string,
+  conversationId: string,
+): Promise<ConversationContextPreview> {
+  return getJson<ConversationContextPreview>(`/workspaces/${workspaceId}/conversations/${conversationId}/context-preview`);
 }
 
 export function deleteWorkspaceAnswerNote(
