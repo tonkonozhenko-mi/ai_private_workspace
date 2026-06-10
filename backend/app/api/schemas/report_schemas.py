@@ -81,6 +81,20 @@ def to_report_catalog_response(catalog: ReportCatalog) -> ReportCatalogResponse:
     )
 
 
+
+
+class BuildCustomWorkspaceReportRequest(BaseModel):
+    title: str | None = None
+    summary: str | None = None
+    report_type: str = "custom_report"
+    note_ids: list[str] = []
+    conversation_ids: list[str] = []
+    extra_context: str | None = None
+
+
+class SaveCustomWorkspaceReportRequest(BuildCustomWorkspaceReportRequest):
+    pass
+
 class SavedWorkspaceReportResponse(BaseModel):
     id: str
     workspace_id: str
