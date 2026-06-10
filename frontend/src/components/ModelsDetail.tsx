@@ -10,6 +10,7 @@ import {
   createWorkspaceMCPConfig,
   deleteWorkspaceMCPConfig,
   getAgentWorkflowExecutionReadiness,
+  getFirstLaunchReadiness,
   getGuidedModelSetup,
   getWorkspaceMCPToolInventory,
   listWorkspaceMCPConfigs,
@@ -42,6 +43,7 @@ import type {
   MCPApprovalPreview,
   MCPToolInventory,
   WorkspaceMCPServerConfig,
+  FirstLaunchReadiness,
   GuidedModelSetupGuide,
   GuidedModelSetupSection,
   LocalAIActivationGuide,
@@ -138,6 +140,9 @@ export function ModelsDetail({
           />
         </div>
       </section>
+
+
+      <FirstLaunchSetupPanel />
 
       <section className="panel models-simple-panel">
         <PanelHeading
@@ -412,6 +417,95 @@ export function ModelsDetail({
   );
 }
 
+
+
+
+function FirstLaunchSetupPanel() {
+  const [readiness, setReadiness] = useState<FirstLaunchReadiness | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    getFirstLaunchReadiness()
+      .then((result) => {
+        if (!cancelled) {
+          setReadiness(result);
+          setError(null);
+        }
+      })
+      .catch((readinessError) => {
+        if (!cancelled) {
+          setError(errorMessage(readinessError));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="panel first-launch-panel">
+        <PanelHeading eyebrow="Desktop setup" title="First launch checklist" />
+        <p className="panel-intro">Loading packaging readiness checks…</p>
+      </section>
+    );
+  }
+
+  if (error || !readiness) {
+    return (
+      <section className="panel first-launch-panel">
+        <PanelHeading eyebrow="Desktop setup" title="First launch checklist" />
+        <p className="model-selection-error">{error ?? "Could not load first-launch readiness."}</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="panel first-launch-panel">
+      <PanelHeading eyebrow="Desktop setup" title={readiness.title} status={readiness.status} />
+      <p className="panel-intro">{readiness.summary}</p>
+      <div className="first-launch-grid">
+        {readiness.checklist.map((item) => (
+          <article className="first-launch-card" key={item.id}>
+            <div>
+              <span>{item.title}</span>
+              <StatusBadge label={item.status} />
+            </div>
+            <strong>{item.summary}</strong>
+            <p>{item.detail}</p>
+            {item.user_action ? <small>{item.user_action}</small> : null}
+          </article>
+        ))}
+      </div>
+      <details className="first-launch-details">
+        <summary>Recommended first-launch flow</summary>
+        <ol>
+          {readiness.recommended_flow.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+        <div className="first-launch-command-list">
+          {readiness.copy_commands.map((command) => (
+            <div key={command.label}>
+              <strong>{command.label}</strong>
+              <p>{command.description}</p>
+              <CopyButton text={command.command} label="Copy command" />
+            </div>
+          ))}
+        </div>
+      </details>
+      <p className="settings-message info">{readiness.safety_note}</p>
+    </section>
+  );
+}
 
 
 function GuidedModelSetupPanel({

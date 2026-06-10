@@ -272,6 +272,26 @@ export interface RuntimeTroubleshooting {
 }
 
 
+
+export interface FirstLaunchChecklistItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  detail: string;
+  user_action: string | null;
+}
+
+export interface FirstLaunchReadiness {
+  status: string;
+  title: string;
+  summary: string;
+  checklist: FirstLaunchChecklistItem[];
+  recommended_flow: string[];
+  copy_commands: DesktopStartupCommand[];
+  safety_note: string;
+}
+
 export interface ProductionReadinessItem {
   id: string;
   title: string;
