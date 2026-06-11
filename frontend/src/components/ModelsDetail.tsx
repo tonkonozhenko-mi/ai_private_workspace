@@ -2610,6 +2610,9 @@ function MCPServerRegistryPanel({ workspaceId }: { workspaceId: string }) {
     [catalog, selectedTemplateId],
   );
 
+  const hasSavedConfigs = savedConfigs.length > 0;
+  const hasApprovedTools = Boolean(inventory?.approved_tools_count);
+
   async function refreshWorkspaceMCPState() {
     const [configResult, inventoryResult] = await Promise.all([
       listWorkspaceMCPConfigs(workspaceId),
@@ -2655,12 +2658,7 @@ function MCPServerRegistryPanel({ workspaceId }: { workspaceId: string }) {
       const approval = await previewWorkspaceMCPApproval(
         workspaceId,
         created.id,
-        {
-          approved_tools:
-            created.risk_level === "read_only"
-              ? created.available_tools.slice(0, 2)
-              : [],
-        },
+        { approved_tools: created.approved_tools },
       );
       setApprovalPreview(approval);
     } catch (saveError) {
@@ -2673,24 +2671,23 @@ function MCPServerRegistryPanel({ workspaceId }: { workspaceId: string }) {
   async function handleApproveReadOnly(config: WorkspaceMCPServerConfig) {
     setError(null);
     try {
-      const approvedTools =
-        config.risk_level === "read_only" ? config.available_tools : [];
+      const readOnlyTools = config.available_tools.filter((tool) =>
+        tool.toLowerCase().includes("read"),
+      );
       const previewResult = await previewWorkspaceMCPApproval(
         workspaceId,
         config.id,
-        {
-          approved_tools: approvedTools,
-        },
+        { approved_tools: readOnlyTools },
       );
-      setApprovalPreview(previewResult);
       await updateWorkspaceMCPConfig(workspaceId, config.id, {
-        enabled: approvedTools.length > 0,
+        approved_tools: readOnlyTools,
         reviewed: true,
-        approved_tools: approvedTools,
+        enabled: false,
       });
+      setApprovalPreview(previewResult);
       await refreshWorkspaceMCPState();
-    } catch (approvalError) {
-      setError(errorMessage(approvalError));
+    } catch (approveError) {
+      setError(errorMessage(approveError));
     }
   }
 
@@ -2699,8 +2696,6 @@ function MCPServerRegistryPanel({ workspaceId }: { workspaceId: string }) {
     try {
       await updateWorkspaceMCPConfig(workspaceId, config.id, {
         enabled: false,
-        reviewed: config.reviewed,
-        approved_tools: config.approved_tools,
       });
       await refreshWorkspaceMCPState();
     } catch (disableError) {
@@ -2719,50 +2714,59 @@ function MCPServerRegistryPanel({ workspaceId }: { workspaceId: string }) {
   }
 
   return (
-    <section className="panel mcp-registry-panel">
-      <div className="panel-heading-row compact">
+    <section className="panel mcp-registry-panel mcp-calm-panel">
+      <div className="mcp-calm-hero">
         <div>
           <p className="eyebrow">MCP tools</p>
-          <h2>MCP server registry and safe setup</h2>
+          <h2>Connect tools only when you need them.</h2>
           <p>
-            Prepare local MCP servers for Claude/Codex-style workflows. Servers
-            are saved per workspace, tools are approved explicitly, and
-            execution stays manual-gated.
+            MCP lets future agent plans see approved local tools. For now this
+            screen is a safe setup area: review templates, save disabled
+            configs, and approve the smallest read-only tool set.
           </p>
         </div>
         <StatusBadge label={inventory?.agent_readiness ?? "planning only"} />
       </div>
 
-      {isLoading ? <p className="muted-text">Loading MCP templates…</p> : null}
+      {isLoading ? <p className="muted-text">Loading MCP setup…</p> : null}
       {error ? <p className="form-error">{error}</p> : null}
 
-      {inventory ? (
-        <div className="mcp-inventory-strip">
-          <span>
-            <strong>{inventory.configs_count}</strong> configs
-          </span>
-          <span>
-            <strong>{inventory.enabled_configs_count}</strong> enabled
-          </span>
-          <span>
-            <strong>{inventory.approved_tools_count}</strong> approved tools
-          </span>
-          <span>
-            <strong>{inventory.read_only_tools_count}</strong> read-only
-          </span>
-        </div>
-      ) : null}
+      <div className="mcp-calm-summary-grid">
+        <MCPMetricCard
+          label="Saved configs"
+          value={String(inventory?.configs_count ?? 0)}
+          detail="Disabled by default"
+        />
+        <MCPMetricCard
+          label="Approved tools"
+          value={String(inventory?.approved_tools_count ?? 0)}
+          detail={hasApprovedTools ? "Visible to plans" : "None approved yet"}
+        />
+        <MCPMetricCard
+          label="Safety mode"
+          value="Manual"
+          detail="No server auto-start"
+        />
+      </div>
+
+      <div className="mcp-calm-flow">
+        <span>1. Choose a template</span>
+        <span>2. Preview config</span>
+        <span>3. Save disabled</span>
+        <span>4. Approve read-only tools</span>
+      </div>
 
       {catalog ? (
-        <>
-          <div className="mcp-flow-strip">
-            {catalog.recommended_flow.map((step, index) => (
-              <span key={step}>
-                {index + 1}. {step}
-              </span>
-            ))}
-          </div>
-          <div className="mcp-template-grid">
+        <details className="mcp-calm-section" open={!hasSavedConfigs}>
+          <summary>
+            <div>
+              <p className="eyebrow">Setup</p>
+              <h3>Prepare a workspace MCP config</h3>
+              <span>Safe preview first. Nothing starts automatically.</span>
+            </div>
+          </summary>
+
+          <div className="mcp-template-grid calm">
             <label>
               <span>Server template</span>
               <select
@@ -2777,17 +2781,17 @@ function MCPServerRegistryPanel({ workspaceId }: { workspaceId: string }) {
               </select>
             </label>
             <label>
-              <span>Project path/env value</span>
+              <span>Project path or env value</span>
               <input
                 value={projectPath}
                 onChange={(event) => setProjectPath(event.target.value)}
-                placeholder="Optional path, for example /Users/maks/project"
+                placeholder="Optional, for example /Users/me/project"
               />
             </label>
           </div>
 
           {selectedTemplate ? (
-            <div className="mcp-template-card">
+            <article className="mcp-template-card calm">
               <div>
                 <p className="eyebrow">
                   {formatLabel(selectedTemplate.category)}
@@ -2801,27 +2805,29 @@ function MCPServerRegistryPanel({ workspaceId }: { workspaceId: string }) {
                 <StatusBadge label={selectedTemplate.default_scope} />
               </div>
               <div className="mcp-tools-list">
-                {selectedTemplate.example_tools.map((tool) => (
+                {selectedTemplate.example_tools.slice(0, 8).map((tool) => (
                   <span key={tool}>{tool}</span>
                 ))}
               </div>
-            </div>
+            </article>
           ) : null}
 
-          <div className="agent-guardrail-strip">
-            <strong>MCP safety</strong>
-            <span>Saved configs start disabled.</span>
-            <span>Approve read-only tools first.</span>
-            <span>Write/shell tools require future sandbox gates.</span>
+          <div className="mcp-safety-note">
+            <strong>Safe by default.</strong>
+            <span>Configs are saved disabled.</span>
+            <span>Read-only tools should be approved first.</span>
+            <span>
+              Write or shell tools stay blocked for future sandbox work.
+            </span>
           </div>
 
-          <div className="agent-plan-actions">
+          <div className="agent-plan-actions mcp-calm-actions">
             <button
               type="button"
               onClick={handlePreviewConfig}
               disabled={isPreviewing || !selectedTemplateId}
             >
-              {isPreviewing ? "Preparing MCP config…" : "Preview MCP config"}
+              {isPreviewing ? "Preparing preview…" : "Preview config"}
             </button>
             <button
               type="button"
@@ -2829,84 +2835,103 @@ function MCPServerRegistryPanel({ workspaceId }: { workspaceId: string }) {
               onClick={handleSaveWorkspaceConfig}
               disabled={isSavingConfig || !selectedTemplateId}
             >
-              {isSavingConfig ? "Saving…" : "Save disabled workspace config"}
+              {isSavingConfig ? "Saving…" : "Save disabled config"}
             </button>
           </div>
-        </>
+        </details>
       ) : null}
 
       {preview ? (
-        <div className="mcp-preview-grid">
-          <article className="mcp-preview-card">
-            <div className="panel-heading-row compact">
-              <div>
-                <p className="eyebrow">Config preview</p>
-                <h3>{preview.name}</h3>
-              </div>
-              <StatusBadge
-                label={
-                  preview.allowed_by_default ? "enabled" : "disabled by default"
-                }
-              />
+        <details className="mcp-calm-section" open>
+          <summary>
+            <div>
+              <p className="eyebrow">Preview</p>
+              <h3>Generated config and manual check</h3>
+              <span>Copy-only output. No MCP process is started.</span>
             </div>
-            <pre className="copyable-code-block">
-              {JSON.stringify(preview.config_json, null, 2)}
-            </pre>
-            <CopyButton
-              text={JSON.stringify(preview.config_json, null, 2)}
-              label="Copy config"
-            />
-          </article>
-          <article className="mcp-preview-card">
-            <p className="eyebrow">Manual connection plan</p>
-            <h3>
-              {check?.status ? formatLabel(check.status) : "Manual check"}
-            </h3>
-            <ul>
-              {(check?.checks ?? preview.test_plan).map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-            {check?.copy_commands.length ? (
-              <div className="command-list compact">
-                {check.copy_commands.map((command) => (
-                  <div className="command-card" key={command}>
-                    <code>{command}</code>
-                    <CopyButton text={command} label="Copy" />
-                  </div>
-                ))}
+          </summary>
+          <div className="mcp-preview-grid calm">
+            <article className="mcp-preview-card">
+              <div className="panel-heading-row compact">
+                <div>
+                  <p className="eyebrow">Config preview</p>
+                  <h3>{preview.name}</h3>
+                </div>
+                <StatusBadge
+                  label={
+                    preview.allowed_by_default
+                      ? "enabled"
+                      : "disabled by default"
+                  }
+                />
               </div>
-            ) : null}
-            <p className="muted-text">
-              {check?.safety_note ?? "No process is started by the UI."}
-            </p>
-          </article>
-        </div>
+              <pre className="copyable-code-block">
+                {JSON.stringify(preview.config_json, null, 2)}
+              </pre>
+              <CopyButton
+                text={JSON.stringify(preview.config_json, null, 2)}
+                label="Copy config"
+              />
+            </article>
+            <article className="mcp-preview-card">
+              <p className="eyebrow">Manual check</p>
+              <h3>
+                {check?.status ? formatLabel(check.status) : "Review locally"}
+              </h3>
+              <ul>
+                {(check?.checks ?? preview.test_plan)
+                  .slice(0, 5)
+                  .map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+              </ul>
+              {check?.copy_commands.length ? (
+                <div className="command-list compact">
+                  {check.copy_commands.map((command) => (
+                    <div className="command-card" key={command}>
+                      <code>{command}</code>
+                      <CopyButton text={command} label="Copy" />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              <p className="muted-text">
+                {check?.safety_note ?? "No process is started by the UI."}
+              </p>
+            </article>
+          </div>
+        </details>
       ) : null}
 
-      <div className="agent-workflow-history">
-        <div className="panel-heading-row compact">
+      <details className="mcp-calm-section" open={hasSavedConfigs}>
+        <summary>
           <div>
-            <p className="eyebrow">Workspace MCP configs</p>
-            <h3>Approved tools visible to future agent plans</h3>
+            <p className="eyebrow">Workspace configs</p>
+            <h3>Approved tools visible to future plans</h3>
+            <span>
+              Keep this small. Approve only tools the agent should know about.
+            </span>
           </div>
           <button
             type="button"
-            className="secondary-button"
-            onClick={() => void refreshWorkspaceMCPState()}
+            className="secondary-button inline-summary-action"
+            onClick={(event) => {
+              event.preventDefault();
+              void refreshWorkspaceMCPState();
+            }}
           >
             Refresh
           </button>
-        </div>
+        </summary>
         {savedConfigs.length === 0 ? (
           <p className="muted-text">
-            No workspace MCP configs yet. Save a disabled config, review tools,
-            then approve the smallest read-only set.
+            No workspace MCP configs yet. Start with a read-only template, save
+            it disabled, then approve only the tools you trust.
           </p>
         ) : (
-          <div className="mcp-config-list">
+          <div className="mcp-config-list calm">
             {savedConfigs.map((config) => (
-              <article key={config.id} className="mcp-config-card">
+              <article key={config.id} className="mcp-config-card calm">
                 <div>
                   <p className="eyebrow">
                     {formatLabel(config.status)} ·{" "}
@@ -2918,7 +2943,7 @@ function MCPServerRegistryPanel({ workspaceId }: { workspaceId: string }) {
                     tools approved · {config.enabled ? "Enabled" : "Disabled"}
                   </p>
                   <div className="mcp-tools-list">
-                    {config.available_tools.map((tool) => (
+                    {config.available_tools.slice(0, 12).map((tool) => (
                       <span
                         key={tool}
                         className={
@@ -2956,37 +2981,66 @@ function MCPServerRegistryPanel({ workspaceId }: { workspaceId: string }) {
             ))}
           </div>
         )}
-      </div>
+      </details>
 
       {approvalPreview ? (
-        <div className="agent-guardrail-strip">
+        <div className="mcp-safety-note approval">
           <strong>Approval preview</strong>
           <span>{formatLabel(approvalPreview.status)}</span>
           <span>{approvalPreview.approved_tools.length} approved</span>
           <span>{approvalPreview.denied_tools.length} denied</span>
-          {approvalPreview.warnings.map((warning) => (
+          {approvalPreview.warnings.slice(0, 3).map((warning) => (
             <span key={warning}>{warning}</span>
           ))}
         </div>
       ) : null}
 
-      {inventory?.tools.length ? (
-        <div className="mcp-tool-inventory">
-          <p className="eyebrow">Tool inventory</p>
-          <div className="mcp-tools-list">
-            {inventory.tools.slice(0, 16).map((tool) => (
-              <span
-                key={`${tool.config_id}-${tool.tool}`}
-                className={tool.status === "approved" ? "approved" : ""}
-              >
-                {tool.tool} · {formatLabel(tool.status)}
-              </span>
-            ))}
+      <details className="mcp-calm-section">
+        <summary>
+          <div>
+            <p className="eyebrow">Tool inventory</p>
+            <h3>What future agent plans can see</h3>
+            <span>{inventory?.safety_note ?? catalog?.safety_note}</span>
           </div>
-          <p className="muted-text">{inventory.safety_note}</p>
-        </div>
-      ) : null}
+        </summary>
+        {inventory?.tools.length ? (
+          <div className="mcp-tool-inventory calm">
+            <div className="mcp-tools-list">
+              {inventory.tools.slice(0, 16).map((tool) => (
+                <span
+                  key={`${tool.config_id}-${tool.tool}`}
+                  className={tool.status === "approved" ? "approved" : ""}
+                >
+                  {tool.tool} · {formatLabel(tool.status)}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="muted-text">
+            No MCP tools are visible to agent plans yet.
+          </p>
+        )}
+      </details>
     </section>
+  );
+}
+
+function MCPMetricCard({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <article className="mcp-metric-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{detail}</small>
+    </article>
   );
 }
 
