@@ -336,6 +336,8 @@ export function ModelsDetail({
         onSelectionUpdated={onSelectionUpdated}
       />
 
+      <AgentMCPReadinessOverview />
+
       <AgentModeReadinessPanel
         workspaceId={workspaceId}
         selectedProvider={
@@ -1867,6 +1869,37 @@ function ModelsWorkflowSteps({
   );
 }
 
+function AgentMCPReadinessOverview() {
+  return (
+    <section className="panel agent-mcp-overview-panel">
+      <div className="agent-mcp-hero">
+        <div>
+          <p className="eyebrow">Safe automation</p>
+          <h2>Agent plans first. Tools come later.</h2>
+          <p>
+            This area is the bridge from a local AI assistant to a safe
+            agent-style workflow: plan the task, choose visible tools, approve
+            risky steps, then verify the result. It is intentionally calm and
+            non-automatic.
+          </p>
+        </div>
+        <StatusBadge label="planning only" />
+      </div>
+      <div className="agent-mcp-path">
+        <span>1. Describe the goal</span>
+        <span>2. Preview the plan</span>
+        <span>3. Review MCP tools</span>
+        <span>4. Approve & verify manually</span>
+      </div>
+      <div className="agent-mcp-safety-row">
+        <span>No browser shell</span>
+        <span>No auto MCP start</span>
+        <span>No file edits without future sandbox gates</span>
+      </div>
+    </section>
+  );
+}
+
 function AgentModeReadinessPanel({
   workspaceId,
   selectedProvider,
@@ -2116,13 +2149,12 @@ function AgentModeReadinessPanel({
     <section className="panel agent-mode-panel">
       <div className="panel-heading-row">
         <div>
-          <p className="eyebrow">Agent capability</p>
-          <h2>Safe agent planning mode</h2>
+          <p className="eyebrow">Agent planner</p>
+          <h2>Create a safe work plan</h2>
           <p className="panel-intro">
-            This is the bridge toward Claude Code/Codex-style work: the model
-            can plan a task, map steps to approved tools, and track manual
-            progress. It still never executes commands, edits files, scans,
-            indexes, rebuilds, or restarts by itself.
+            Turn a broad request into a reviewable checklist. The assistant can
+            suggest steps and tool gates, but it does not execute commands or
+            change project files from the browser.
           </p>
         </div>
         <StatusBadge label={selectedCapability?.readiness ?? "Checking"} />
@@ -2130,6 +2162,13 @@ function AgentModeReadinessPanel({
 
       {catalogError ? <p className="form-error">{catalogError}</p> : null}
 
+      <details className="mcp-calm-section agent-calm-section">
+        <summary>
+          <div>
+            <h3>Model readiness and safety rules</h3>
+            <span>Open when you want to inspect model capability and guardrails.</span>
+          </div>
+        </summary>
       <div className="agent-readiness-grid">
         <div className="agent-readiness-card is-selected">
           <span className="eyebrow">Current AI model</span>
@@ -2205,6 +2244,8 @@ function AgentModeReadinessPanel({
         <span>Facts still need retrieved sources.</span>
       </div>
 
+      </details>
+
       <div className="agent-planner-card">
         <label>
           Try a multi-step agent-style request
@@ -2264,7 +2305,13 @@ function AgentModeReadinessPanel({
         </div>
       ) : null}
 
-      <div className="agent-workflow-history">
+      <details className="mcp-calm-section agent-workflow-history" open={workflows.length > 0}>
+        <summary>
+          <div>
+            <h3>Saved manual workflows</h3>
+            <span>Track approved plans only when you need them.</span>
+          </div>
+        </summary>
         <div className="panel-heading-row compact">
           <div>
             <p className="eyebrow">Manual workflow drafts</p>
@@ -2463,7 +2510,7 @@ function AgentModeReadinessPanel({
             ))}
           </div>
         )}
-      </div>
+      </details>
 
       {executionReadiness ? (
         <div className="agent-execution-readiness-card">

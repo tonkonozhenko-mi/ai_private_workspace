@@ -16843,3 +16843,147 @@ select,
     grid-template-columns: 1fr;
   }
 }
+
+/* Task 213 — final agent + MCP readiness cleanup */
+.agent-mcp-overview-panel {
+  display: grid;
+  gap: var(--space-4);
+  overflow: hidden;
+}
+
+.agent-mcp-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.agent-mcp-hero h2 {
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+
+.agent-mcp-hero p {
+  max-width: 62rem;
+  margin: var(--space-2) 0 0;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.agent-mcp-path,
+.agent-mcp-safety-row {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.agent-mcp-path {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.agent-mcp-safety-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.agent-mcp-path span,
+.agent-mcp-safety-row span {
+  min-height: 3.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.agent-mcp-safety-row span {
+  background: color-mix(in srgb, var(--success) 7%, var(--surface-muted));
+}
+
+.agent-calm-section > .agent-readiness-grid,
+.agent-calm-section > .agent-execution-ladder,
+.agent-calm-section > .agent-guardrail-strip {
+  margin-inline: var(--space-4);
+}
+
+.agent-calm-section > .agent-readiness-grid {
+  margin-top: var(--space-4);
+}
+
+.agent-calm-section > .agent-guardrail-strip {
+  margin-bottom: var(--space-4);
+}
+
+.agent-planner-card {
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-panel);
+}
+
+.agent-planner-card textarea {
+  min-height: 8rem;
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+}
+
+.agent-workflow-history > .panel-heading-row,
+.agent-workflow-history > .muted-text,
+.agent-workflow-history > .form-error,
+.agent-workflow-history > .agent-workflow-list {
+  margin-inline: var(--space-4);
+}
+
+.agent-workflow-history > .panel-heading-row {
+  margin-top: var(--space-4);
+}
+
+.agent-workflow-history > .agent-workflow-list,
+.agent-workflow-history > .muted-text {
+  margin-bottom: var(--space-4);
+}
+
+:root[data-theme="dark"] .agent-mcp-overview-panel,
+:root[data-theme="dark"] .agent-readiness-card,
+:root[data-theme="dark"] .agent-planner-card,
+:root[data-theme="dark"] .agent-plan-preview,
+:root[data-theme="dark"] .agent-workflow-card,
+:root[data-theme="dark"] .agent-execution-readiness-card,
+:root[data-theme="dark"] .agent-approval-preview-card {
+  background: color-mix(in srgb, var(--surface-elevated) 88%, black);
+  border-color: color-mix(in srgb, var(--border-subtle) 78%, white 8%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .agent-mcp-overview-panel,
+  :root[data-theme="system"] .agent-readiness-card,
+  :root[data-theme="system"] .agent-planner-card,
+  :root[data-theme="system"] .agent-plan-preview,
+  :root[data-theme="system"] .agent-workflow-card,
+  :root[data-theme="system"] .agent-execution-readiness-card,
+  :root[data-theme="system"] .agent-approval-preview-card {
+    background: color-mix(in srgb, var(--surface-elevated) 88%, black);
+    border-color: color-mix(in srgb, var(--border-subtle) 78%, white 8%);
+  }
+}
+
+@media (max-width: 860px) {
+  .agent-mcp-hero,
+  .agent-mcp-path,
+  .agent-mcp-safety-row {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-calm-section > .agent-readiness-grid,
+  .agent-calm-section > .agent-execution-ladder,
+  .agent-calm-section > .agent-guardrail-strip,
+  .agent-workflow-history > .panel-heading-row,
+  .agent-workflow-history > .muted-text,
+  .agent-workflow-history > .form-error,
+  .agent-workflow-history > .agent-workflow-list {
+    margin-inline: var(--space-3);
+  }
+}

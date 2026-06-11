@@ -127,3 +127,10 @@ Added approved local model download execution foundation. The backend can run an
 ## Task 207 update
 
 Added model download job foundation endpoints: `POST /models/local-install-drafts/{command_id}/jobs` and `GET /models/local-download-jobs/{job_id}`. Jobs are backend-owned status records for approved Ollama downloads. The frontend can start and refresh a job, but still never runs shell commands. Execution remains opt-in and allowlisted.
+
+## Task 213 — Agent + MCP readiness cleanup
+
+- Added a calm Agent + MCP overview panel.
+- Simplified Agent screen hierarchy around the main action: preview a safe plan.
+- Collapsed secondary capability/guardrail/workflow details to reduce visual noise.
+- Kept MCP as safe tool visibility only; no automatic server start or tool execution.
