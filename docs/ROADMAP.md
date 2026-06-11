@@ -241,3 +241,5 @@ The project is now ready for v0.1 source review and GitHub publication. The rema
 ## Task 227 — Model context indexing clarity
 
 Clarified the difference between selecting an embedding/search model and building workspace context with it. The UI now says `Needs context build` when the selected search model is active but the workspace has not been indexed yet.
+
+- Task 228 — Model context build action ✅

@@ -50,3 +50,5 @@ Move from source handoff to installer-grade desktop app:
 ## Task 227 — Model context indexing clarity
 
 Clarified the difference between selecting an embedding/search model and building workspace context with it. The UI now says `Needs context build` when the selected search model is active but the workspace has not been indexed yet.
+
+- Task 228 clarifies the final model setup step by adding an explicit Build context action in Models.

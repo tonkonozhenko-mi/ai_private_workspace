@@ -74,6 +74,7 @@ import type {
   UpdateWorkspaceModelSelectionRequest,
   WorkspaceModelRecommendation,
   WorkspaceModelsDashboard,
+  WorkspaceJob,
 } from "../api/types";
 import { CopyButton } from "./CopyButton";
 import { EmptyState } from "./EmptyState";
@@ -85,6 +86,8 @@ interface ModelsDetailProps {
   dashboard: WorkspaceModelsDashboard;
   activationGuide: LocalAIActivationGuide;
   onSelectionUpdated: () => Promise<void> | void;
+  onStartIndexJob: () => Promise<WorkspaceJob>;
+  onGetWorkspaceJob: (jobId: string) => Promise<WorkspaceJob>;
 }
 
 interface ModelOption {
@@ -100,6 +103,8 @@ export function ModelsDetail({
   dashboard,
   activationGuide,
   onSelectionUpdated,
+  onStartIndexJob,
+  onGetWorkspaceJob,
 }: ModelsDetailProps) {
   const usage = dashboard.usage_plan;
   const llmOptions = useMemo(
@@ -142,6 +147,39 @@ export function ModelsDetail({
   const llmDiffersFromBackendDefault =
     Boolean(dashboard.selected_llm_provider && dashboard.selected_llm_model) &&
     !dashboard.selection_status.llm_status.matches_active_runtime;
+  const needsContextBuild = dashboard.overall_status === "needs_context_index";
+  const [contextBuildJob, setContextBuildJob] = useState<WorkspaceJob | null>(null);
+  const [contextBuildError, setContextBuildError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!contextBuildJob || !["queued", "running"].includes(contextBuildJob.status)) {
+      return;
+    }
+
+    const timeout = window.setTimeout(async () => {
+      try {
+        const refreshedJob = await onGetWorkspaceJob(contextBuildJob.job_id);
+        setContextBuildJob(refreshedJob);
+        if (["completed", "failed", "cancelled"].includes(refreshedJob.status)) {
+          await onSelectionUpdated();
+        }
+      } catch (error) {
+        setContextBuildError(errorMessage(error));
+      }
+    }, 1800);
+
+    return () => window.clearTimeout(timeout);
+  }, [contextBuildJob, onGetWorkspaceJob, onSelectionUpdated]);
+
+  async function handleBuildContext() {
+    setContextBuildError(null);
+    try {
+      const job = await onStartIndexJob();
+      setContextBuildJob(job);
+    } catch (error) {
+      setContextBuildError(errorMessage(error));
+    }
+  }
 
   return (
     <div className="models-detail">
@@ -217,6 +255,14 @@ export function ModelsDetail({
           <span>{getModelWorkspaceStatusMessage(dashboard)}</span>
         </div>
       </section>
+
+      {needsContextBuild ? (
+        <ContextBuildCallout
+          job={contextBuildJob}
+          error={contextBuildError}
+          onBuildContext={handleBuildContext}
+        />
+      ) : null}
 
       <ModelUsageFlowPanel />
 
@@ -517,6 +563,51 @@ function DesktopPackagingRealityPanel() {
         </article>
       </div>
     </div>
+  );
+}
+
+function ContextBuildCallout({
+  job,
+  error,
+  onBuildContext,
+}: {
+  job: WorkspaceJob | null;
+  error: string | null;
+  onBuildContext: () => Promise<void> | void;
+}) {
+  const isRunning = job ? ["queued", "running"].includes(job.status) : false;
+  const isDone = job?.status === "completed";
+
+  return (
+    <section className="panel context-build-callout-panel">
+      <div className="context-build-callout-copy">
+        <p className="eyebrow">Search context</p>
+        <h2>Build context with the selected search model.</h2>
+        <p>
+          Your AI and search models are selected. Build the workspace context once
+          so Ask can use local project files as sources.
+        </p>
+      </div>
+      <div className="context-build-callout-action">
+        {job ? (
+          <StatusBadge
+            label={isDone ? "Context built" : friendlyStatus(job.status)}
+          />
+        ) : null}
+        <button
+          className="primary-button"
+          type="button"
+          onClick={onBuildContext}
+          disabled={isRunning || isDone}
+        >
+          {isRunning ? "Building context…" : isDone ? "Context built" : "Build context"}
+        </button>
+      </div>
+      {job?.message ? (
+        <p className="context-build-callout-note">{job.message}</p>
+      ) : null}
+      {error ? <p className="form-error">{error}</p> : null}
+    </section>
   );
 }
 

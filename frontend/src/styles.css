@@ -17610,3 +17610,81 @@ details.settings-disclosure {
   color: var(--text-muted);
   line-height: 1.6;
 }
+
+.context-build-callout-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  border-color: rgba(203, 155, 45, 0.24);
+  background: linear-gradient(135deg, rgba(255, 250, 239, 0.92), rgba(255, 255, 255, 0.88));
+}
+
+.context-build-callout-copy h2 {
+  margin: 0;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+}
+
+.context-build-callout-copy p:not(.eyebrow) {
+  max-width: 760px;
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.context-build-callout-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: 260px;
+}
+
+.context-build-callout-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.context-build-callout-panel .form-error {
+  grid-column: 1 / -1;
+}
+
+:root[data-theme="dark"] .context-build-callout-panel {
+  border-color: rgba(244, 190, 92, 0.22);
+  background: linear-gradient(135deg, rgba(80, 61, 26, 0.42), rgba(18, 27, 32, 0.88));
+}
+
+:root[data-theme="dark"] .context-build-callout-note {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .context-build-callout-panel {
+    border-color: rgba(244, 190, 92, 0.22);
+    background: linear-gradient(135deg, rgba(80, 61, 26, 0.42), rgba(18, 27, 32, 0.88));
+  }
+
+  :root[data-theme="system"] .context-build-callout-note {
+    border-color: rgba(255, 255, 255, 0.09);
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+@media (max-width: 900px) {
+  .context-build-callout-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .context-build-callout-action {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+}
