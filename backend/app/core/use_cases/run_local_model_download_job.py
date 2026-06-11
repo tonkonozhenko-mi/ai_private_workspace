@@ -2,6 +2,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from uuid import uuid4
 import shlex
+import threading
 
 from app.core.domain.local_model_download_job import (
     LocalModelDownloadJob,
@@ -54,6 +55,12 @@ class RunLocalModelDownloadJobUseCase:
         execution_enabled: bool,
         command_runner_name: str,
     ) -> LocalModelDownloadJob:
+        """Create a backend-owned job and return immediately.
+
+        The previous foundation executed the pull inside the request/response cycle.
+        From Task 209 onward, the request only records the approved intent and starts
+        a background worker thread. The frontend polls GET /local-download-jobs/{id}.
+        """
         if not execution_enabled:
             raise LocalModelDownloadExecutionDisabledError(
                 "Backend model download execution is disabled. Enable it only in a trusted local desktop runtime."
@@ -87,53 +94,110 @@ class RunLocalModelDownloadJobUseCase:
                 command_proposal=proposal,
             )
         )
-        running = self.job_repository.update(
-            replace(
-                job,
-                status="running",
-                progress_percent=15,
-                progress_message=f"Downloading {model.display_name} with backend-controlled Ollama worker…",
-                started_at=datetime.now(UTC).isoformat(),
-            )
-        )
 
         approved = replace(
             proposal,
             status=CommandStatus.APPROVED.value,
             approved_at=proposal.approved_at or datetime.now(UTC).isoformat(),
             policy_allowed=True,
-            policy_mode="model_download_worker_job",
+            policy_mode="model_download_background_job",
             policy_reason=(
-                "Allowed only by the dedicated backend model download job after catalog validation."
+                "Allowed only by the dedicated backend model download background worker after catalog validation."
             ),
         )
         self.command_repository.update(approved)
+        self.job_repository.update(
+            replace(
+                job,
+                command_proposal=approved,
+                progress_message=(
+                    "Download job queued. The backend worker will run it in the background; "
+                    "the UI should poll job status."
+                ),
+            )
+        )
 
-        result = self.command_runner.run(
-            command=approved.command,
-            cwd=workspace.project_path,
-            allowed_root=workspace.project_path,
+        worker = threading.Thread(
+            target=self._run_background_job,
+            args=(job.id, approved.id, workspace.project_path, model),
+            name=f"model-download-{job.id[:8]}",
+            daemon=True,
         )
-        executed = replace(
-            approved,
-            status=CommandStatus.EXECUTED.value if result.exit_code == 0 else CommandStatus.FAILED.value,
-            executed_at=datetime.now(UTC).isoformat(),
-            stdout=result.stdout,
-            stderr=result.stderr,
-            exit_code=result.exit_code,
+        worker.start()
+        # Return the queued snapshot immediately. The job repository may already have
+        # moved to running/succeeded by the time the client polls.
+        return self.job_repository.get(job.id) or job
+
+    def get(self, job_id: str) -> LocalModelDownloadJob:
+        job = self.job_repository.get(job_id)
+        if job is None:
+            raise LocalModelDownloadJobNotFoundError("Model download job not found")
+        return job
+
+    def _run_background_job(
+        self,
+        job_id: str,
+        command_id: str,
+        workspace_path: str,
+        model: LocalModelDefinition,
+    ) -> None:
+        job = self.job_repository.get(job_id)
+        proposal = self.command_repository.get(command_id)
+        if job is None or proposal is None:
+            return
+
+        running_job = self.job_repository.update(
+            replace(
+                job,
+                status="running",
+                progress_percent=25,
+                progress_message=f"Downloading {model.display_name} with backend-controlled Ollama worker…",
+                started_at=datetime.now(UTC).isoformat(),
+                command_proposal=proposal,
+            )
         )
-        updated_command = self.command_repository.update(executed)
-        finished_status = "succeeded" if updated_command.status == CommandStatus.EXECUTED.value else "failed"
+
+        try:
+            result = self.command_runner.run(
+                command=proposal.command,
+                cwd=workspace_path,
+                allowed_root=workspace_path,
+            )
+            executed = replace(
+                proposal,
+                status=CommandStatus.EXECUTED.value if result.exit_code == 0 else CommandStatus.FAILED.value,
+                executed_at=datetime.now(UTC).isoformat(),
+                stdout=result.stdout,
+                stderr=result.stderr,
+                exit_code=result.exit_code,
+            )
+            updated_command = self.command_repository.update(executed)
+            finished_status = "succeeded" if updated_command.status == CommandStatus.EXECUTED.value else "failed"
+            progress_message = (
+                f"{model.display_name} download finished. Re-check installed models."
+                if finished_status == "succeeded"
+                else f"{model.display_name} download failed. Review backend output."
+            )
+        except Exception as exc:  # noqa: BLE001 - background jobs must persist failures instead of crashing silently.
+            updated_command = self.command_repository.update(
+                replace(
+                    proposal,
+                    status=CommandStatus.FAILED.value,
+                    executed_at=datetime.now(UTC).isoformat(),
+                    stdout=proposal.stdout,
+                    stderr=f"Background model download worker failed: {exc}",
+                    exit_code=1,
+                )
+            )
+            finished_status = "failed"
+            progress_message = f"{model.display_name} download failed before completion. Review backend output."
+
         finished_job = self.job_repository.update(
             replace(
-                running,
+                running_job,
                 status=finished_status,
                 progress_percent=100,
-                progress_message=(
-                    f"{model.display_name} download finished. Re-check installed models."
-                    if finished_status == "succeeded"
-                    else f"{model.display_name} download failed. Review backend output."
-                ),
+                progress_message=progress_message,
                 finished_at=datetime.now(UTC).isoformat(),
                 command_proposal=updated_command,
                 stdout_preview=_preview(updated_command.stdout),
@@ -163,14 +227,6 @@ class RunLocalModelDownloadJobUseCase:
                     },
                 )
             )
-
-        return finished_job
-
-    def get(self, job_id: str) -> LocalModelDownloadJob:
-        job = self.job_repository.get(job_id)
-        if job is None:
-            raise LocalModelDownloadJobNotFoundError("Model download job not found")
-        return job
 
     def _validate_exact_ollama_pull(self, proposal) -> LocalModelDefinition:
         try:
