@@ -207,3 +207,9 @@ The target UX remains downloaded package -> double click -> app-owned localhost 
 ## Task 222 — release candidate audit
 
 Added a read-only release candidate audit endpoint, source archive policy, validation script, UI audit block, and docs for v0.1 handoff readiness.
+
+## Task 223 — v0.1 demo and GitHub handoff
+
+The project now has a GitHub-ready README, v0.1 demo handoff, release notes, repository guide, and a read-only `/runtime/v0.1-handoff` endpoint. Settings includes a final v0.1 handoff block with demo steps, important repository files, validation commands, release notes, limitations, and next steps.
+
+Current status: v0.1 release candidate source handoff is ready. Final signed desktop installers are still future packaging work.

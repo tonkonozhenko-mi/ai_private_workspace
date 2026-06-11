@@ -294,3 +294,7 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 ### Release candidate audit
 
 - `GET /runtime/release-candidate-audit` — read-only v0.1 release candidate audit for source structure, no-runtime-data policy, docs, safety boundaries, and packaging readiness.
+
+## Task 223 — v0.1 demo and GitHub handoff
+
+- `GET /runtime/v0.1-handoff` — read-only v0.1 handoff guide for demo flow, GitHub repository highlights, important docs, validation commands, release notes, limitations, next steps, and safety boundaries.

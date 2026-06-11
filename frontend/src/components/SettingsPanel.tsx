@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getReleaseCandidateAudit, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -24,6 +24,7 @@ import type {
   TauriSupervisorBridge,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
+  V01Handoff,
   ProductionReadiness,
 } from "../api/types";
 import {
@@ -210,6 +211,9 @@ export function SettingsPanel({
   const [releaseCandidateAudit, setReleaseCandidateAudit] = useState<ReleaseCandidateAudit | null>(null);
   const [releaseCandidateAuditError, setReleaseCandidateAuditError] = useState<string | null>(null);
   const [releaseCandidateAuditLoading, setReleaseCandidateAuditLoading] = useState(false);
+  const [v01Handoff, setV01Handoff] = useState<V01Handoff | null>(null);
+  const [v01HandoffError, setV01HandoffError] = useState<string | null>(null);
+  const [v01HandoffLoading, setV01HandoffLoading] = useState(false);
 
 
   useEffect(() => {
@@ -437,6 +441,31 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setReleaseCandidateAuditLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setV01HandoffLoading(true);
+    setV01HandoffError(null);
+    getV01Handoff()
+      .then((handoff) => {
+        if (!cancelled) {
+          setV01Handoff(handoff);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setV01HandoffError(error instanceof Error ? error.message : "Could not load v0.1 handoff");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setV01HandoffLoading(false);
         }
       });
     return () => {
@@ -2388,6 +2417,107 @@ export function SettingsPanel({
               ) : null}
             </details>
 
+
+
+            <details className="settings-disclosure" open>
+              <summary>v0.1 demo and GitHub handoff</summary>
+              {v01HandoffError ? (
+                <p className="settings-transfer-message">Could not load v0.1 handoff: {v01HandoffError}</p>
+              ) : null}
+              {v01HandoffLoading ? (
+                <p className="settings-transfer-message">Loading v0.1 handoff…</p>
+              ) : v01Handoff ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{v01Handoff.title}</strong>
+                    <span>{v01Handoff.summary}</span>
+                    <span>{v01Handoff.demo_story}</span>
+                  </div>
+                  <div className="local-data-grid packaging-design-grid">
+                    <div>
+                      <span>Status</span>
+                      <strong>{v01Handoff.status}</strong>
+                      <small>{v01Handoff.release_label}</small>
+                    </div>
+                    <div>
+                      <span>GitHub</span>
+                      <strong>{v01Handoff.github_ready ? "ready" : "review"}</strong>
+                      <small>source handoff</small>
+                    </div>
+                    <div>
+                      <span>Demo flow</span>
+                      <strong>{v01Handoff.demo_steps.length} steps</strong>
+                      <small>workspace to agent plan</small>
+                    </div>
+                    <div>
+                      <span>Release</span>
+                      <strong>v0.1</strong>
+                      <small>MVP candidate</small>
+                    </div>
+                  </div>
+                  <details className="settings-disclosure" open>
+                    <summary>Demo path</summary>
+                    <div className="startup-checklist-grid">
+                      {v01Handoff.demo_steps.map((step) => (
+                        <div className="startup-checklist-item is-ok" key={step.id}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{step.title}</strong>
+                            <StatusBadge label={step.ui_location} tone="info" />
+                          </div>
+                          <p>{step.summary}</p>
+                          <small>{step.expected_result}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>GitHub repository highlights</summary>
+                    <div className="settings-safety-list">
+                      {v01Handoff.repository_highlights.map((highlight) => <span key={highlight}>{highlight}</span>)}
+                    </div>
+                    <div className="startup-checklist-grid">
+                      {v01Handoff.important_files.map((file) => (
+                        <div className="startup-checklist-item is-review" key={file.path}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{file.path}</strong>
+                            <StatusBadge label="repo" tone="info" />
+                          </div>
+                          <p>{file.purpose}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Release notes and next steps</summary>
+                    <ol className="settings-preflight-list">
+                      {v01Handoff.release_notes.map((note) => <li key={note}>{note}</li>)}
+                    </ol>
+                    <p className="settings-transfer-message">Known limitations: {v01Handoff.known_limitations.join(" · ")}</p>
+                    <ol className="settings-preflight-list">
+                      {v01Handoff.next_after_v01.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Validation and safety</summary>
+                    <div className="settings-command-stack">
+                      {v01Handoff.validation_commands.map((command) => (
+                        <div className="startup-checklist-command" key={command.label}>
+                          <span>{command.label}</span>
+                          <code>{command.command}</code>
+                          <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(command.command)}>
+                            Copy
+                          </button>
+                          <small>{command.purpose}</small>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="settings-safety-list">
+                      {v01Handoff.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                  </details>
+                </div>
+              ) : null}
+            </details>
 
             <details className="settings-disclosure" open>
               <summary>Release candidate audit</summary>

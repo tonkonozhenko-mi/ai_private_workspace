@@ -2,6 +2,17 @@
 
 This file is the outside-the-app entry point. The app UI can explain what to do after it is open, but it cannot be the only place that explains how to start it.
 
+
+## v0.1 handoff docs
+
+For GitHub/demo review, read:
+
+- `README.md` — repository landing page.
+- `docs/V01_DEMO_HANDOFF.md` — demo scenario.
+- `docs/V01_RELEASE_NOTES.md` — release notes and limitations.
+- `docs/GITHUB_REPOSITORY_GUIDE.md` — repository cleanliness guide.
+- `docs/RELEASE_CANDIDATE_AUDIT.md` — release audit policy.
+
 ## Current developer-safe startup
 
 Until a real `.app` / `.exe` package is built, use one of these options from the project root.

@@ -201,3 +201,16 @@ Windows packaging foundation is now present. Phase 20 now has macOS foundation, 
 ## Task 222 — release candidate audit
 
 Added a read-only release candidate audit endpoint, source archive policy, validation script, UI audit block, and docs for v0.1 handoff readiness.
+
+## Task 223 — v0.1 demo and GitHub handoff ✅
+
+Added the final source-handoff layer for v0.1:
+
+- GitHub-ready `README.md`.
+- `docs/V01_DEMO_HANDOFF.md`.
+- `docs/V01_RELEASE_NOTES.md`.
+- `docs/GITHUB_REPOSITORY_GUIDE.md`.
+- `GET /runtime/v0.1-handoff`.
+- Settings UI block for demo flow and handoff validation.
+
+The project is now ready for v0.1 source review and GitHub publication. The remaining work after v0.1 is installer-grade desktop packaging: finalized Tauri backend supervisor, bundled backend runtime, signed macOS package, Windows installer, and later sandboxed Agent/MCP execution.
