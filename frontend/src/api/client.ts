@@ -72,6 +72,7 @@ import type {
   CreateLocalModelInstallDraftRequest,
   LocalModelInstallDraft,
   LocalModelInstallGuide,
+  LocalModelDownloadWorkerPlan,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -1037,6 +1038,10 @@ export function getGuidedModelSetup(
 
 export function getLocalModelInstallGuide(): Promise<LocalModelInstallGuide> {
   return getJson<LocalModelInstallGuide>("/models/local-install-guide");
+}
+
+export function getLocalModelDownloadWorkerPlan(): Promise<LocalModelDownloadWorkerPlan> {
+  return getJson<LocalModelDownloadWorkerPlan>("/models/local-download-worker-plan");
 }
 
 export function createLocalModelInstallDraft(

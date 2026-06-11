@@ -58,12 +58,19 @@ from app.api.schemas.local_model_install_draft_schemas import (
     LocalModelInstallDraftResponse,
     to_local_model_install_draft_response,
 )
+from app.api.schemas.local_model_download_worker_plan_schemas import (
+    LocalModelDownloadWorkerPlanResponse,
+    to_local_model_download_worker_plan_response,
+)
 from app.api.schemas.model_switching_schemas import (
     CreateModelSwitchingPlanRequest,
     ModelSwitchingPlanResponse,
     to_model_switching_plan_response,
 )
 from app.core.domain.local_model_install_guide import build_local_model_install_guide
+from app.core.domain.local_model_download_worker_plan import (
+    build_local_model_download_worker_plan,
+)
 from app.core.use_cases.create_local_model_install_draft import (
     CreateLocalModelInstallDraftInput,
     CreateLocalModelInstallDraftUseCase,
@@ -172,6 +179,14 @@ def get_local_model_install_guide() -> LocalModelInstallGuideResponse:
     guide = build_local_model_install_guide(model_catalog_registry.list_models())
     return to_local_model_install_guide_response(guide)
 
+
+@router.get(
+    "/local-download-worker-plan",
+    response_model=LocalModelDownloadWorkerPlanResponse,
+)
+def get_local_model_download_worker_plan() -> LocalModelDownloadWorkerPlanResponse:
+    plan = build_local_model_download_worker_plan()
+    return to_local_model_download_worker_plan_response(plan)
 
 
 
