@@ -1300,3 +1300,48 @@ export interface LocalModelInstallGuide {
   safety_notes: string[];
   next_steps: string[];
 }
+
+
+export interface CommandProposal {
+  id: string;
+  workspace_id: string;
+  command: string;
+  cwd: string;
+  reason: string;
+  risk: string;
+  status: string;
+  created_at: string;
+  approved_at: string | null;
+  rejected_at: string | null;
+  executed_at: string | null;
+  stdout: string | null;
+  stderr: string | null;
+  exit_code: number | null;
+  policy_allowed: boolean | null;
+  policy_mode: string | null;
+  policy_reason: string | null;
+}
+
+export interface CreateLocalModelInstallDraftRequest {
+  workspace_id: string;
+  provider: string;
+  model: string;
+  model_type?: string | null;
+}
+
+export interface LocalModelInstallDraft {
+  workspace_id: string;
+  provider: string;
+  model: string;
+  model_type: string;
+  display_name: string;
+  purpose: string;
+  estimated_size: string | null;
+  command: string;
+  status: string;
+  safety_summary: string;
+  approval_required: boolean;
+  execution_supported: boolean;
+  next_steps: string[];
+  command_proposal: CommandProposal;
+}
