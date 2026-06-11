@@ -292,6 +292,40 @@ export interface FirstLaunchReadiness {
   safety_note: string;
 }
 
+
+export interface DesktopPackagingDecision {
+  id: string;
+  title: string;
+  decision: string;
+  rationale: string;
+}
+
+export interface DesktopPackagingPhase {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  deliverables: string[];
+}
+
+export interface DesktopPackagingDesign {
+  status: string;
+  title: string;
+  summary: string;
+  chosen_shell: string;
+  backend_strategy: string;
+  frontend_strategy: string;
+  local_data_strategy: string;
+  port_strategy: string;
+  logging_strategy: string;
+  lifecycle_strategy: string;
+  decisions: DesktopPackagingDecision[];
+  phases: DesktopPackagingPhase[];
+  user_experience: string[];
+  safety_rules: string[];
+  not_in_scope_now: string[];
+}
+
 export interface ProductionReadinessItem {
   id: string;
   title: string;

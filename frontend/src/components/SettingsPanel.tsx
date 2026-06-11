@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -15,6 +15,7 @@ import type {
   RuntimeTroubleshooting,
   SafeUpdateWorkflow,
   DesktopStartupExperience,
+  DesktopPackagingDesign,
   ProductionReadiness,
 } from "../api/types";
 import {
@@ -174,12 +175,41 @@ export function SettingsPanel({
   const [productionReadiness, setProductionReadiness] = useState<ProductionReadiness | null>(null);
   const [productionReadinessError, setProductionReadinessError] = useState<string | null>(null);
   const [productionReadinessLoading, setProductionReadinessLoading] = useState(false);
+  const [desktopPackagingDesign, setDesktopPackagingDesign] = useState<DesktopPackagingDesign | null>(null);
+  const [desktopPackagingDesignError, setDesktopPackagingDesignError] = useState<string | null>(null);
+  const [desktopPackagingDesignLoading, setDesktopPackagingDesignLoading] = useState(false);
 
 
   useEffect(() => {
     setBackendUrlDraft(preferences.apiBaseUrl);
   }, [preferences.apiBaseUrl]);
 
+
+
+  useEffect(() => {
+    let cancelled = false;
+    setDesktopPackagingDesignLoading(true);
+    setDesktopPackagingDesignError(null);
+    getDesktopPackagingDesign()
+      .then((design) => {
+        if (!cancelled) {
+          setDesktopPackagingDesign(design);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setDesktopPackagingDesignError(error instanceof Error ? error.message : "Could not load desktop packaging design");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setDesktopPackagingDesignLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1543,6 +1573,99 @@ export function SettingsPanel({
       </section>
 
 
+
+      <section className="panel settings-desktop-packaging-design-panel">
+        <div className="settings-section-heading">
+          <div>
+            <p className="eyebrow">Desktop packaging</p>
+            <h2>Two-click app architecture</h2>
+            <p>
+              This locks the real product direction: downloaded package, double-click launch, local backend supervision, and no repo/script burden for the final user.
+            </p>
+          </div>
+          <StatusBadge
+            label={desktopPackagingDesignLoading ? "Checking" : desktopPackagingDesign?.status === "locked" ? "Locked" : "Review"}
+            tone={desktopPackagingDesign?.status === "locked" ? "success" : "warning"}
+          />
+        </div>
+        {desktopPackagingDesignError ? (
+          <p className="settings-transfer-message">Could not load desktop packaging design: {desktopPackagingDesignError}</p>
+        ) : null}
+        {desktopPackagingDesign ? (
+          <>
+            <div className="startup-checklist-summary">
+              <strong>{desktopPackagingDesign.title}</strong>
+              <span>{desktopPackagingDesign.summary}</span>
+            </div>
+            <div className="local-data-grid packaging-design-grid">
+              <div>
+                <span>Shell</span>
+                <strong>{desktopPackagingDesign.chosen_shell}</strong>
+                <small>Native-first app wrapper</small>
+              </div>
+              <div>
+                <span>Backend</span>
+                <strong>Supervised local API</strong>
+                <small>Started by the app, not by the user</small>
+              </div>
+              <div>
+                <span>Data</span>
+                <strong>Protected local state</strong>
+                <small>No runtime DB overwrite during updates</small>
+              </div>
+              <div>
+                <span>Network</span>
+                <strong>localhost only</strong>
+                <small>No remote exposure by default</small>
+              </div>
+            </div>
+            <div className="settings-quiet-flow">
+              {desktopPackagingDesign.user_experience.map((step, index) => (
+                <div className="settings-quiet-flow-step" key={step}>
+                  <span>{index + 1}</span>
+                  <p>{step}</p>
+                </div>
+              ))}
+            </div>
+            <details className="settings-disclosure">
+              <summary>Architecture decisions</summary>
+              <div className="startup-checklist-grid">
+                {desktopPackagingDesign.decisions.map((decision) => (
+                  <div className="startup-checklist-item is-ok" key={decision.id}>
+                    <div className="startup-checklist-item-header">
+                      <strong>{decision.title}</strong>
+                      <StatusBadge label="locked" tone="success" />
+                    </div>
+                    <p>{decision.decision}</p>
+                    <small>{decision.rationale}</small>
+                  </div>
+                ))}
+              </div>
+            </details>
+            <details className="settings-disclosure">
+              <summary>Implementation phases</summary>
+              <div className="settings-command-stack">
+                {desktopPackagingDesign.phases.map((phase) => (
+                  <div className="startup-checklist-command" key={phase.id}>
+                    <span>{phase.title} · {phase.status}</span>
+                    <small>{phase.summary}</small>
+                    <ol className="settings-preflight-list">
+                      {phase.deliverables.map((deliverable) => <li key={deliverable}>{deliverable}</li>)}
+                    </ol>
+                  </div>
+                ))}
+              </div>
+            </details>
+            <details className="settings-disclosure">
+              <summary>Safety boundaries</summary>
+              <div className="settings-safety-list">
+                {desktopPackagingDesign.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+              </div>
+              <p className="settings-transfer-message">Not in scope now: {desktopPackagingDesign.not_in_scope_now.join(" · ")}</p>
+            </details>
+          </>
+        ) : null}
+      </section>
 
       <section className="panel settings-production-readiness-panel">
         <div className="settings-section-heading">

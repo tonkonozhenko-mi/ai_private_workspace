@@ -16987,3 +16987,95 @@ select,
     margin-inline: var(--space-3);
   }
 }
+
+/* Task 214 — desktop packaging design lock */
+.settings-desktop-packaging-design-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+}
+
+.packaging-design-grid > div {
+  min-height: 112px;
+}
+
+.settings-quiet-flow {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.settings-quiet-flow-step {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle, rgba(120, 120, 128, 0.2));
+  border-radius: 18px;
+  background: var(--surface-soft, rgba(120, 120, 128, 0.08));
+}
+
+.settings-quiet-flow-step span {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--surface-raised, rgba(255, 255, 255, 0.82));
+  color: var(--text-primary, #1d1d1f);
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-soft, 0 6px 18px rgba(0, 0, 0, 0.06));
+}
+
+.settings-quiet-flow-step p {
+  margin: 3px 0 0;
+  color: var(--text-primary, #1d1d1f);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.settings-disclosure {
+  border: 1px solid var(--border-subtle, rgba(120, 120, 128, 0.2));
+  border-radius: 20px;
+  background: var(--surface-soft, rgba(120, 120, 128, 0.06));
+  padding: 0;
+  overflow: hidden;
+}
+
+.settings-disclosure > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 16px 18px;
+  color: var(--text-primary, #1d1d1f);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.settings-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-disclosure > summary::after {
+  content: "⌄";
+  float: right;
+  color: var(--text-tertiary, #86868b);
+}
+
+.settings-disclosure[open] > summary::after {
+  content: "⌃";
+}
+
+.settings-disclosure > div,
+.settings-disclosure > p {
+  margin: 0 18px 18px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .settings-quiet-flow-step span {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.92);
+  }
+}
