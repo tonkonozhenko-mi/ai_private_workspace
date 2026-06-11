@@ -1,3 +1,4 @@
+import httpx
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.dependencies import (
@@ -62,12 +63,21 @@ from app.api.schemas.local_model_download_worker_plan_schemas import (
     LocalModelDownloadWorkerPlanResponse,
     to_local_model_download_worker_plan_response,
 )
+from app.api.schemas.local_model_install_status_schemas import (
+    LocalModelInstallStatusResponse,
+    to_local_model_install_status_response,
+)
 from app.api.schemas.model_switching_schemas import (
     CreateModelSwitchingPlanRequest,
     ModelSwitchingPlanResponse,
     to_model_switching_plan_response,
 )
+from app.config.settings import get_settings
 from app.core.domain.local_model_install_guide import build_local_model_install_guide
+from app.core.domain.local_model_install_status import (
+    build_local_model_install_status,
+    parse_ollama_installed_models,
+)
 from app.core.domain.local_model_download_worker_plan import (
     build_local_model_download_worker_plan,
 )
@@ -178,6 +188,37 @@ def reload_model_catalog() -> ModelCatalogReloadResponse:
 def get_local_model_install_guide() -> LocalModelInstallGuideResponse:
     guide = build_local_model_install_guide(model_catalog_registry.list_models())
     return to_local_model_install_guide_response(guide)
+
+
+
+
+@router.get("/local-install-status", response_model=LocalModelInstallStatusResponse)
+def get_local_model_install_status() -> LocalModelInstallStatusResponse:
+    settings = get_settings()
+    runtime_url = settings.ollama_base_url.rstrip("/")
+    try:
+        response = httpx.get(
+            f"{runtime_url}/api/tags",
+            timeout=settings.runtime_health_timeout_seconds,
+        )
+        response.raise_for_status()
+        installed_models = parse_ollama_installed_models(response.json())
+        status_result = build_local_model_install_status(
+            catalog_models=model_catalog_registry.list_models(),
+            installed_models=installed_models,
+            runtime_reachable=True,
+            runtime_url=runtime_url,
+        )
+    except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPError, ValueError) as exc:
+        status_result = build_local_model_install_status(
+            catalog_models=model_catalog_registry.list_models(),
+            installed_models=[],
+            runtime_reachable=False,
+            runtime_url=runtime_url,
+            error=f"Ollama model list is unavailable at {runtime_url}: {exc}",
+        )
+
+    return to_local_model_install_status_response(status_result)
 
 
 @router.get(

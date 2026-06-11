@@ -72,6 +72,7 @@ import type {
   CreateLocalModelInstallDraftRequest,
   LocalModelInstallDraft,
   LocalModelInstallGuide,
+  LocalModelInstallStatus,
   LocalModelDownloadWorkerPlan,
 } from "./types";
 
@@ -1038,6 +1039,10 @@ export function getGuidedModelSetup(
 
 export function getLocalModelInstallGuide(): Promise<LocalModelInstallGuide> {
   return getJson<LocalModelInstallGuide>("/models/local-install-guide");
+}
+
+export function getLocalModelInstallStatus(): Promise<LocalModelInstallStatus> {
+  return getJson<LocalModelInstallStatus>("/models/local-install-status");
 }
 
 export function getLocalModelDownloadWorkerPlan(): Promise<LocalModelDownloadWorkerPlan> {
