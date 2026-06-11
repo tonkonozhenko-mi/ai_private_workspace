@@ -12,6 +12,7 @@ import {
   getAgentWorkflowExecutionReadiness,
   getFirstLaunchReadiness,
   getGuidedModelSetup,
+  getLocalModelInstallGuide,
   getWorkspaceMCPToolInventory,
   listWorkspaceMCPConfigs,
   previewWorkspaceMCPApproval,
@@ -47,6 +48,7 @@ import type {
   GuidedModelSetupGuide,
   GuidedModelSetupSection,
   LocalAIActivationGuide,
+  LocalModelInstallGuide,
   ModelExperimentPlan,
   ModelExperimentRating,
   ModelExperimentRun,
@@ -197,6 +199,8 @@ export function ModelsDetail({
           </span>
         </div>
       </section>
+
+      <LocalModelInstallPanel />
 
       <details className="panel models-state-panel models-disclosure-panel">
         <summary>
@@ -482,6 +486,96 @@ function DesktopPackagingRealityPanel() {
     </div>
   );
 }
+
+
+function LocalModelInstallPanel() {
+  const [guide, setGuide] = useState<LocalModelInstallGuide | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    getLocalModelInstallGuide()
+      .then((result) => {
+        if (!cancelled) {
+          setGuide(result);
+          setError(null);
+        }
+      })
+      .catch((installError) => {
+        if (!cancelled) {
+          setError(errorMessage(installError));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="panel model-install-panel">
+        <PanelHeading eyebrow="Model install" title="Local model download plan" />
+        <p className="panel-intro">Loading recommended local model install options…</p>
+      </section>
+    );
+  }
+
+  if (error || !guide) {
+    return (
+      <section className="panel model-install-panel">
+        <PanelHeading eyebrow="Model install" title="Local model download plan" />
+        <p className="model-selection-error">{error ?? "Could not load model install guide."}</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="panel model-install-panel">
+      <PanelHeading eyebrow="Model install" title="Download local models" status={guide.status} />
+      <p className="panel-intro model-install-summary">{guide.summary}</p>
+      <div className="model-install-grid" aria-label="Recommended local model downloads">
+        {guide.options.map((option) => (
+          <article className="model-install-card" key={`${option.provider}-${option.model}`}>
+            <div className="model-install-card-heading">
+              <span className="model-install-type">{option.model_type}</span>
+              {option.recommended ? <StatusBadge label="Recommended" /> : null}
+            </div>
+            <strong>{option.display_name}</strong>
+            <p>{option.purpose}</p>
+            <dl>
+              <div>
+                <dt>Model</dt>
+                <dd>{option.provider}/{option.model}</dd>
+              </div>
+              <div>
+                <dt>Size</dt>
+                <dd>{option.estimated_size ?? "Check Ollama"}</dd>
+              </div>
+            </dl>
+            <CopyButton text={option.install_command} label="Copy pull command" />
+          </article>
+        ))}
+      </div>
+      <details className="model-install-details">
+        <summary>How this will become an in-app download manager</summary>
+        <ol>
+          {guide.next_steps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+        <p>{guide.safety_notes.join(" ")}</p>
+      </details>
+    </section>
+  );
+}
+
 
 function FirstLaunchSetupPanel() {
   const [readiness, setReadiness] = useState<FirstLaunchReadiness | null>(null);

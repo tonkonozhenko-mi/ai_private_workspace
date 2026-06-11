@@ -15391,3 +15391,154 @@ select,
     grid-template-columns: 1fr;
   }
 }
+
+/* Task 202: calm model install manager foundation. */
+.model-install-panel {
+  display: grid;
+  gap: var(--ui-section-gap, 22px);
+}
+
+.model-install-summary {
+  max-width: 820px;
+}
+
+.model-install-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--ui-block-gap, 18px);
+}
+
+.model-install-card {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 20px;
+  background: color-mix(in srgb, var(--color-surface-raised) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-soft) 82%, transparent);
+  border-radius: var(--ui-radius-section, 24px);
+}
+
+.model-install-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.model-install-type {
+  color: var(--color-text-subtle);
+  font-size: var(--ui-label-size, 0.72rem);
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.model-install-card strong {
+  color: var(--color-text-strong);
+  font-size: 1.04rem;
+  line-height: 1.25;
+}
+
+.model-install-card p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--ui-body-size, 0.95rem);
+  line-height: 1.55;
+}
+
+.model-install-card dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.model-install-card dl div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.model-install-card dt {
+  color: var(--color-text-subtle);
+  font-size: var(--ui-label-size, 0.72rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.model-install-card dd {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-size: var(--ui-body-small, 0.86rem);
+  overflow-wrap: anywhere;
+}
+
+.model-install-details {
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--color-border-soft) 76%, transparent);
+  border-radius: var(--ui-radius-section, 24px);
+  overflow: hidden;
+}
+
+.model-install-details summary {
+  min-height: var(--ui-control-height, 48px);
+  padding: 0 18px;
+  color: var(--color-text-strong);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.model-install-details ol,
+.model-install-details p {
+  margin: 0;
+  padding: 0 20px 18px;
+  color: var(--color-text-muted);
+  font-size: var(--ui-body-small, 0.86rem);
+  line-height: 1.55;
+}
+
+.model-install-details ol {
+  padding-left: 38px;
+}
+
+:root[data-theme="dark"] .model-install-card,
+:root[data-theme="dark"] .model-install-details {
+  background: var(--ui-dark-soft, #101d25);
+  border-color: var(--ui-dark-border, #2c3f49);
+}
+
+:root[data-theme="dark"] .model-install-card strong,
+:root[data-theme="dark"] .model-install-card dd,
+:root[data-theme="dark"] .model-install-details summary {
+  color: #f2f6f8;
+}
+
+:root[data-theme="dark"] .model-install-card p,
+:root[data-theme="dark"] .model-install-card dt,
+:root[data-theme="dark"] .model-install-type,
+:root[data-theme="dark"] .model-install-details ol,
+:root[data-theme="dark"] .model-install-details p {
+  color: var(--ui-dark-muted, #a8b7c0);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .model-install-card,
+  :root[data-theme="system"] .model-install-details {
+    background: var(--ui-dark-soft, #101d25);
+    border-color: var(--ui-dark-border, #2c3f49);
+  }
+
+  :root[data-theme="system"] .model-install-card strong,
+  :root[data-theme="system"] .model-install-card dd,
+  :root[data-theme="system"] .model-install-details summary {
+    color: #f2f6f8;
+  }
+
+  :root[data-theme="system"] .model-install-card p,
+  :root[data-theme="system"] .model-install-card dt,
+  :root[data-theme="system"] .model-install-type,
+  :root[data-theme="system"] .model-install-details ol,
+  :root[data-theme="system"] .model-install-details p {
+    color: var(--ui-dark-muted, #a8b7c0);
+  }
+}

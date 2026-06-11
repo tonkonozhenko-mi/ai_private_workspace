@@ -1277,3 +1277,26 @@ export interface GuidedModelSetupGuide {
   packaging_notes: string[];
   safety_notes: string[];
 }
+
+
+export interface LocalModelInstallOption {
+  provider: string;
+  model: string;
+  model_type: "llm" | "embedding" | string;
+  display_name: string;
+  purpose: string;
+  estimated_size: string | null;
+  recommended: boolean;
+  install_command: string;
+  verify_command: string;
+  notes: string[];
+}
+
+export interface LocalModelInstallGuide {
+  title: string;
+  summary: string;
+  status: string;
+  options: LocalModelInstallOption[];
+  safety_notes: string[];
+  next_steps: string[];
+}
