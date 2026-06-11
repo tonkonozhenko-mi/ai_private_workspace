@@ -282,3 +282,4 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 ## Task 218 — backend runtime bundle readiness
 
 - `GET /runtime/backend-runtime-bundle-plan` — read-only macOS backend runtime bundling plan. It documents how to move from local `python3` dependency to an app-owned backend runtime, the runtime manifest, build sequence, validation checks, safety rules, and known limitations. It does not execute packaging commands.
+- `GET /runtime/tauri-shell-scaffold` — read-only Tauri desktop shell scaffold summary. It documents the source-controlled shell files, supervisor mapping, validation script, safety boundaries, current limitations, and next packaging steps. It does not install Tauri, start backend processes, execute shell commands, download models, or run MCP/agent workflows.

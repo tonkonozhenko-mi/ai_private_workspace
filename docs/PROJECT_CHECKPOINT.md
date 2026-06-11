@@ -175,3 +175,7 @@ Important safety boundaries:
 - macOS package script now generates/copies the runtime manifest into app resources.
 - This is still a foundation: the app is not signed and backend is not frozen into a standalone binary yet.
 - Safety preserved: runtime preparation does not start scan/index/rebuild/MCP/agent/model downloads and does not package runtime databases or local state.
+
+## Task 219 — Tauri shell scaffold/foundation
+
+Added `frontend/src-tauri` as the first source-controlled desktop shell scaffold and `scripts/prepare_tauri_shell_scaffold.sh` as a safe validation helper. This is still a scaffold, not a final signed installer. Frontend still does not execute shell commands; backend supervision must remain app-owned and explicit.

@@ -28,6 +28,9 @@ from app.api.schemas.local_data_safety_schemas import (
     BackendRuntimeBundleItemResponse,
     BackendRuntimeBundlePlanResponse,
     BackendRuntimeBundleStepResponse,
+    TauriShellScaffoldFileResponse,
+    TauriShellScaffoldPhaseResponse,
+    TauriShellScaffoldResponse,
     FirstLaunchChecklistItemResponse,
     FirstLaunchReadinessResponse,
     DatabaseBackupResponse,
@@ -888,6 +891,110 @@ def get_macos_app_supervisor_wiring() -> MacOSAppSupervisorWiringResponse:
             "Replace launcher stub with Tauri supervisor shell.",
             "Add signed macOS distribution path.",
             "Create Windows packaging foundation with the same supervisor rules.",
+        ],
+    )
+
+
+@router.get("/tauri-shell-scaffold", response_model=TauriShellScaffoldResponse)
+def get_tauri_shell_scaffold() -> TauriShellScaffoldResponse:
+    return TauriShellScaffoldResponse(
+        status="scaffolded",
+        title="Tauri shell scaffold",
+        summary="First source-controlled desktop shell foundation. It maps the existing supervisor contract into a future Tauri app without enabling frontend shell execution or automatic risky actions.",
+        package_goal="Tauri shell starts -> supervisor starts app-owned localhost backend -> /health ready -> packaged UI opens.",
+        shell_path="frontend/src-tauri",
+        scaffold_script="scripts/prepare_tauri_shell_scaffold.sh",
+        chosen_stack="Tauri first, with FastAPI as supervised localhost backend and Vite static assets as the UI.",
+        supervisor_mapping=[
+            "Tauri manages app window lifecycle; backend lifecycle remains app-owned and supervised.",
+            "The UI calls localhost backend APIs only after health readiness.",
+            "Startup states map to preparing, starting backend, waiting for health, ready, and failed.",
+            "Logs stay under the app data directory, outside the app bundle and outside generated source zips.",
+            "Model downloads remain backend-approved jobs; Tauri never runs ollama pull directly from the web UI.",
+        ],
+        generated_files=[
+            TauriShellScaffoldFileResponse(
+                path="frontend/src-tauri/tauri.conf.json",
+                purpose="Tauri app metadata, window defaults, and build pointers for the Vite frontend.",
+                generated=False,
+            ),
+            TauriShellScaffoldFileResponse(
+                path="frontend/src-tauri/Cargo.toml",
+                purpose="Minimal Rust package definition for the desktop shell scaffold.",
+                generated=False,
+            ),
+            TauriShellScaffoldFileResponse(
+                path="frontend/src-tauri/src/main.rs",
+                purpose="Safe shell entrypoint placeholder. It opens the app window but does not execute project commands yet.",
+                generated=False,
+            ),
+            TauriShellScaffoldFileResponse(
+                path="scripts/prepare_tauri_shell_scaffold.sh",
+                purpose="Read-only validation helper for the scaffold and expected frontend/backend packaging resources.",
+                generated=False,
+            ),
+        ],
+        implementation_phases=[
+            TauriShellScaffoldPhaseResponse(
+                id="scaffold",
+                title="Shell scaffold",
+                status="current",
+                summary="Keep the initial Tauri files small, readable, and safe.",
+                deliverables=[
+                    "Commit frontend/src-tauri with minimal config and entrypoint.",
+                    "Document how Tauri maps to backend supervisor states.",
+                    "Do not add command execution from the frontend layer.",
+                ],
+            ),
+            TauriShellScaffoldPhaseResponse(
+                id="supervisor-bridge",
+                title="Supervisor bridge",
+                status="next",
+                summary="Replace bash launcher behavior with Tauri-owned process lifecycle after the contract is stable.",
+                deliverables=[
+                    "Start the bundled backend from Tauri, not from browser UI code.",
+                    "Poll /health before marking the app ready.",
+                    "Show calm startup errors with links to local logs.",
+                ],
+            ),
+            TauriShellScaffoldPhaseResponse(
+                id="signed-package",
+                title="Installer-grade package",
+                status="later",
+                summary="Move from developer scaffold to signed app distribution.",
+                deliverables=[
+                    "Bundle or freeze backend runtime.",
+                    "Create macOS distribution artifact.",
+                    "Keep runtime data outside app updates.",
+                ],
+            ),
+        ],
+        safety_rules=[
+            "Frontend React code still never executes shell commands.",
+            "Tauri shell may start only app-owned local processes after explicit packaging implementation.",
+            "No scan, index, rebuild, MCP, agent workflow, or model download starts on app launch.",
+            "Model downloads remain backend-side, allowlisted, explicit jobs.",
+            "MCP execution stays disabled until sandbox/allowlist execution exists.",
+            "Runtime data, databases, caches, and build artifacts are excluded from generated source archives.",
+        ],
+        validation_steps=[
+            "Run npm build for the frontend.",
+            "Run scripts/prepare_tauri_shell_scaffold.sh from project root.",
+            "Verify frontend/src-tauri contains config, Cargo.toml, and src/main.rs.",
+            "Verify the scaffold does not add shell execution to React code.",
+            "Verify generated source zip excludes build/, node_modules, runtime DBs, and caches.",
+        ],
+        known_limitations=[
+            "This task adds a Tauri scaffold, not a final signed .app/.dmg.",
+            "The Tauri shell does not yet supervise a frozen backend binary.",
+            "Rust/Tauri toolchain installation is not automated here.",
+            "Windows packaging is still a separate foundation task.",
+        ],
+        next_steps=[
+            "Implement the Tauri supervisor bridge for backend startup/readiness.",
+            "Finish backend runtime bundling strategy.",
+            "Create Windows packaging foundation with the same safety rules.",
+            "Run a final release candidate audit after packaging paths are clear.",
         ],
     )
 
