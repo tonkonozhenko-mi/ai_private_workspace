@@ -209,6 +209,7 @@ models, and commands. This document provides the finer product-oriented grouping
 ## Task 202 — local model install guide
 
 - `GET /models/local-install-guide`
+- `GET /models/ollama-recommendations`
   - Returns a manual, copy-only local model install plan.
   - Does not download models.
   - Does not execute shell commands.

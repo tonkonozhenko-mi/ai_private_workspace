@@ -14,6 +14,7 @@ import {
   getFirstLaunchReadiness,
   getGuidedModelSetup,
   getLocalModelInstallGuide,
+  getOllamaModelRecommendations,
   getLocalModelInstallStatus,
   getLocalModelDownloadWorkerPlan,
   getLocalModelDownloadExecutionCapability,
@@ -58,6 +59,7 @@ import type {
   LocalAIActivationGuide,
   LocalModelInstallDraft,
   LocalModelInstallGuide,
+  OllamaModelRecommendationGuide,
   LocalModelInstallStatus,
   LocalModelDownloadWorkerPlan,
   LocalModelDownloadExecutionCapability,
@@ -231,6 +233,8 @@ export function ModelsDetail({
       </section>
 
       <ModelUsageFlowPanel />
+
+      <OllamaRecommendationPanel />
 
       <LocalModelInstallPanel workspaceId={workspaceId} />
 
@@ -570,6 +574,115 @@ function ModelUsageFlowPanel() {
   );
 }
 
+
+function OllamaRecommendationPanel() {
+  const [guide, setGuide] = useState<OllamaModelRecommendationGuide | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    getOllamaModelRecommendations()
+      .then((result) => {
+        if (!cancelled) {
+          setGuide(result);
+          setError(null);
+        }
+      })
+      .catch((loadError) => {
+        if (!cancelled) {
+          setError(errorMessage(loadError));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="panel model-hardware-panel">
+        <PanelHeading eyebrow="Ollama guide" title="Model recommendations" />
+        <p className="panel-intro">Loading recommended local model profiles…</p>
+      </section>
+    );
+  }
+
+  if (error || !guide) {
+    return (
+      <section className="panel model-hardware-panel">
+        <PanelHeading eyebrow="Ollama guide" title="Model recommendations" />
+        <p className="model-selection-error">
+          {error ?? "Could not load Ollama recommendations."}
+        </p>
+      </section>
+    );
+  }
+
+  const defaultProfile =
+    asArray(guide.profiles).find((profile) => profile.id === guide.default_profile_id) ??
+    asArray(guide.profiles)[0];
+
+  return (
+    <section className="panel model-hardware-panel">
+      <PanelHeading
+        eyebrow="Ollama guide"
+        title="Which models should I use?"
+        status={defaultProfile ? "Balanced default" : "Guide"}
+      />
+      <p className="panel-intro">{guide.summary}</p>
+
+      <div className="model-role-grid">
+        {asArray(guide.roles).map((role) => (
+          <article key={role.id}>
+            <span>{role.title}</span>
+            <strong>{role.default_model}</strong>
+            <p>{role.purpose}</p>
+            <small>{role.why_it_matters}</small>
+          </article>
+        ))}
+      </div>
+
+      <details className="models-disclosure-panel model-hardware-details" open>
+        <summary>Recommended Mac profiles</summary>
+        <div className="model-profile-grid">
+          {asArray(guide.profiles).map((profile) => (
+            <article
+              key={profile.id}
+              className={
+                profile.id === guide.default_profile_id ? "is-recommended" : undefined
+              }
+            >
+              <span>{profile.title}</span>
+              <strong>{profile.recommended_llm}</strong>
+              <p>{profile.summary}</p>
+              <small>Search model: {profile.recommended_embedding}</small>
+            </article>
+          ))}
+        </div>
+      </details>
+
+      <details className="models-disclosure-panel model-hardware-details">
+        <summary>Safety and next steps</summary>
+        <div className="model-safe-list">
+          {asArray(guide.safety_notes).map((note) => (
+            <p key={note}>{note}</p>
+          ))}
+          {asArray(guide.next_steps).map((step) => (
+            <p key={step}>{step}</p>
+          ))}
+        </div>
+      </details>
+    </section>
+  );
+}
+
 function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   const [guide, setGuide] = useState<LocalModelInstallGuide | null>(null);
   const [installStatus, setInstallStatus] =
@@ -638,33 +751,6 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
     };
   }, [workspaceId]);
 
-  if (loading) {
-    return (
-      <section className="panel model-install-panel">
-        <PanelHeading
-          eyebrow="Model install"
-          title="Local model download plan"
-        />
-        <p className="panel-intro">
-          Loading recommended local model install options…
-        </p>
-      </section>
-    );
-  }
-
-  if (error || !guide) {
-    return (
-      <section className="panel model-install-panel">
-        <PanelHeading
-          eyebrow="Model install"
-          title="Local model download plan"
-        />
-        <p className="model-selection-error">
-          {error ?? "Could not load model install guide."}
-        </p>
-      </section>
-    );
-  }
 
   const createDraft = async (option: LocalModelInstallOption) => {
     const key = `${option.provider}-${option.model}`;
@@ -779,6 +865,34 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
     }, 1800);
     return () => window.clearTimeout(timer);
   }, [downloadJob?.id, downloadJob?.status]);
+
+  if (loading) {
+    return (
+      <section className="panel model-install-panel">
+        <PanelHeading
+          eyebrow="Model install"
+          title="Local model download plan"
+        />
+        <p className="panel-intro">
+          Loading recommended local model install options…
+        </p>
+      </section>
+    );
+  }
+
+  if (error || !guide) {
+    return (
+      <section className="panel model-install-panel">
+        <PanelHeading
+          eyebrow="Model install"
+          title="Local model download plan"
+        />
+        <p className="model-selection-error">
+          {error ?? "Could not load model install guide."}
+        </p>
+      </section>
+    );
+  }
 
   const guideOptions = asArray(guide.options);
   const installItems = asArray(installStatus?.items);

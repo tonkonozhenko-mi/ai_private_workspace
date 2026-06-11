@@ -23,3 +23,17 @@ This task fixes the Models screen as a release blocker and makes the model workf
 - No frontend shell execution.
 - Backend model jobs remain opt-in and allowlisted.
 - Installing an embedding/search model does not automatically rebuild the index.
+
+
+## Task 226 update
+
+The recommended real-world flow is now visible in the Models tab:
+
+1. Choose a hardware profile.
+2. Use the recommended answer model for questions.
+3. Use the recommended embedding model for search context.
+4. Download missing models manually or through the approved backend job flow.
+5. Refresh installed models.
+6. Save one answer model and one search model for the workspace.
+
+The frontend still never runs `ollama pull` directly.

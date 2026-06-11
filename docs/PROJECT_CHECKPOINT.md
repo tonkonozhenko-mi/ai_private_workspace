@@ -227,3 +227,8 @@ Current status: v0.1 release candidate source handoff is ready. Final signed des
 - Fixed Models screen render resilience.
 - Added a clear Choose → Download → Verify → Use model workflow.
 - Kept frontend shell execution disabled.
+
+
+## Task 226 checkpoint
+
+Models tab crash was fixed by moving hooks before conditional loading/error returns in the local model install panel. The UI now includes an Ollama recommendation guide that explains which model answers questions, which model powers search context, and which Mac profile to start with.

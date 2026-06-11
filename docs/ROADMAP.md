@@ -228,3 +228,11 @@ The project is now ready for v0.1 source review and GitHub publication. The rema
 - Fixed Models screen render resilience.
 - Added a clear Choose → Download → Verify → Use model workflow.
 - Kept frontend shell execution disabled.
+
+
+## Task 226 — Models screen fix and Ollama recommendation guide
+
+- Fixed the Models tab hook-order crash caused by conditional rendering before all hooks were registered.
+- Added a human-readable Ollama recommendation guide: answer model vs search model, starter/balanced/power user Mac profiles, safe next steps.
+- Added `GET /models/ollama-recommendations` for the UI and future onboarding/packaging flows.
+- Kept model downloads explicit, backend-owned, and opt-in.
