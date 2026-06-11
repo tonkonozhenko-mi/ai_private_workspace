@@ -14,3 +14,12 @@ frontend/dist/
 
 # Generated desktop package artifacts
 build/
+# Virtual environments and caches
+.venv/
+backend/.venv/
+frontend/.vite/
+*.tsbuildinfo
+.DS_Store
+
+# Release archives are generated artifacts
+build/release/

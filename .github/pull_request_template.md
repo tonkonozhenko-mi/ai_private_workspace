@@ -2,15 +2,17 @@
 
 -
 
-## Checks
-
-- [ ] Backend tests were run or are not affected.
-- [ ] Frontend build was run or is not affected.
-- [ ] Release audit was considered for source/package changes.
-- [ ] No runtime data, local database, dependency folder, or build artifact is included.
-
-## Safety review
+## Safety checklist
 
 - [ ] Frontend does not execute shell commands.
-- [ ] Scan/index/rebuild/model/MCP/agent actions remain explicit.
-- [ ] Any risky backend action is allowlisted and user-approved.
+- [ ] No automatic scan/index/rebuild/restart/model-download/MCP/Agent execution was added.
+- [ ] Runtime data and build artifacts are not committed.
+- [ ] Docs were updated when user-facing behavior changed.
+
+## Validation
+
+```bash
+./scripts/audit_release_candidate.sh
+cd backend && pytest -q tests/test_health.py tests/test_api_inventory.py
+cd ../frontend && npm ci && npm run build
+```

@@ -1,90 +1,112 @@
 # AI Private Workspace
 
-![AI Private Workspace local-first flow](docs/assets/product-flow.svg)
+AI Private Workspace is a local-first AI workspace for understanding private codebases without uploading project data to external services by default.
 
-AI Private Workspace is a local-first assistant for understanding private codebases and project folders. It helps you scan a workspace, build local context, ask questions with source-grounded answers, generate project reports, and prepare safe agent plans without sending your project data to external services.
+It combines project scanning, local context indexing, workspace Q&A, report generation, model management, and safe Agent/MCP planning in one desktop-oriented product foundation.
 
-> v0.1 is a source release candidate. Desktop packaging foundations for macOS and Windows are included, but final signed installers are still a roadmap item.
+![AI Private Workspace product flow](docs/assets/product-flow.svg)
 
-## Why it exists
+## What this repository contains
 
-Many teams want AI assistance for onboarding, documentation, DevOps analysis, and project understanding, but cannot upload private repositories to external tools. This project is designed around explicit user actions, local runtime data, and safe boundaries.
+This repository is a **v0.1 source release candidate**. It is ready for local development, demos, and GitHub review. It is not yet a signed commercial `.dmg`, `.msi`, or fully frozen desktop installer.
 
-## Current capabilities
+| Area | Status |
+| --- | --- |
+| Backend + frontend MVP | Ready |
+| Local workspace scan/index/Ask/report flow | Ready |
+| Ollama model manager foundation | Ready |
+| Safe Agent + MCP planning foundation | Ready |
+| macOS/Windows packaging foundation | Ready |
+| Signed desktop installers | Future |
+| Sandboxed Agent/MCP execution | Future |
 
-- Workspace onboarding for local folders.
-- File scanning and indexing only after explicit user action.
-- Local AI flow with Ollama/Qdrant integration foundations.
-- Persistent conversations and answer history.
-- Project reports and documentation generation.
-- Model manager with install drafts, allowlisted downloads, jobs, history, and safe cancel semantics.
-- Safe Agent + MCP readiness flow: planning and manual tracking first, execution later.
-- macOS and Windows desktop packaging foundations.
-- Release candidate audit script for GitHub/source hygiene.
-
-## Safety model
-
-AI Private Workspace keeps the frontend as a UI only. It does not execute shell commands, start scans, rebuild indexes, launch MCP tools, or download models automatically.
-
-Risky operations are designed to be explicit, backend-owned, allowlisted, and auditable. Model download execution is disabled by default.
-
-## Quick start for developers
+## Quick start
 
 ```bash
 cd backend
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-pytest -q
+uvicorn app.main:app --reload
 ```
+
+In another terminal:
 
 ```bash
 cd frontend
 npm ci
-npm run build
+npm run dev
 ```
 
-Run the release audit before pushing a release candidate:
+Then open the frontend URL shown by Vite.
+
+## Local model flow
+
+1. Start Ollama locally.
+2. Open **Models**.
+3. Choose the AI answer model and the search context model.
+4. Download missing models with copy-only commands or trusted backend-approved jobs.
+5. Verify installed models.
+6. Build workspace context with the selected search model.
+7. Ask questions using local project context.
+
+Risky actions stay explicit. The browser frontend never executes shell commands.
+
+## Safety boundaries
+
+- Frontend never runs shell commands.
+- App startup does not scan, index, rebuild, download models, start MCP servers, or run Agent tools.
+- Model downloads are backend-owned, opt-in, allowlisted jobs.
+- MCP and Agent workflows are planning/manual tracking until sandboxed execution is implemented.
+- Runtime data is excluded from Git and release archives.
+
+## Repository map
+
+```text
+backend/    FastAPI backend, domain/use-cases/adapters, tests
+frontend/   React UI and Tauri scaffold
+docs/       Product, architecture, runtime, packaging, and release docs
+scripts/    Safe local helper scripts and release audit tools
+.github/    CI, packaging checks, issue templates, and PR template
+```
+
+## Important docs
+
+- [Start here](docs/START_HERE.md)
+- [v0.1 demo handoff](docs/V01_DEMO_HANDOFF.md)
+- [v0.1 release notes](docs/V01_RELEASE_NOTES.md)
+- [Roadmap](docs/ROADMAP.md)
+- [v1 product completion roadmap](docs/V1_PRODUCT_COMPLETION_ROADMAP.md)
+- [GitHub publication checklist](docs/GITHUB_PUBLICATION_CHECKLIST.md)
+- [Release candidate audit](docs/RELEASE_CANDIDATE_AUDIT.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [API inventory](docs/API_INVENTORY.md)
+
+## Validate before pushing
 
 ```bash
 ./scripts/audit_release_candidate.sh
+cd backend && pytest -q tests/test_health.py tests/test_api_inventory.py
+cd ../frontend && npm ci && npm run build
 ```
 
-## Desktop direction
+Create a clean source archive:
 
-The final target is:
-
-```text
-download package -> double click -> local backend starts -> UI opens -> work locally
+```bash
+./scripts/prepare_source_release_archive.sh
 ```
 
-Current packaging status:
-
-- Tauri-first direction is locked.
-- macOS `.app` foundation exists.
-- Windows packaging foundation exists.
-- Backend supervisor contract exists.
-- Final signed `.app`, `.dmg`, `.exe`, and `.msi` installers are not finished yet.
-
-## Repository guide
-
-Start here:
-
-- [Start here](docs/START_HERE.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Release candidate audit](docs/RELEASE_CANDIDATE_AUDIT.md)
-- [v0.1 demo handoff](docs/V01_DEMO_HANDOFF.md)
-- [GitHub repository guide](docs/GITHUB_REPOSITORY_GUIDE.md)
+Generated archives are written under `build/release/` and must not be committed.
 
 ## Do not commit
-
-Keep local runtime and build data out of Git:
 
 - `backend/.ai-workbench/`
 - `*.db`, `*.sqlite`, `*.sqlite3`
 - `frontend/node_modules/`
 - `frontend/dist/`
 - `build/`
-- `.pytest_cache/`
-- `__pycache__/`
+- caches and virtual environments
 
-The `.ai-workbench` directory is a legacy internal runtime path. The product name is AI Private Workspace.
+## License
+
+Add a license before public distribution if this repository will be shared outside private/internal use.

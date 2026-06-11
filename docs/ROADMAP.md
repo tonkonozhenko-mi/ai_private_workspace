@@ -243,3 +243,10 @@ The project is now ready for v0.1 source review and GitHub publication. The rema
 Clarified the difference between selecting an embedding/search model and building workspace context with it. The UI now says `Needs context build` when the selected search model is active but the workspace has not been indexed yet.
 
 - Task 228 — Model context build action ✅
+
+## Current Completion Reality
+
+AI Private Workspace is currently a **v0.1 source release candidate**, not a finished v1.0 installer-grade product. The repository is ready for GitHub publication and local demos, while the remaining v1 work is tracked in [`docs/V1_PRODUCT_COMPLETION_ROADMAP.md`](V1_PRODUCT_COMPLETION_ROADMAP.md).
+
+The next practical milestone is **v0.2 desktop runtime**: frozen backend runtime, stronger supervisor lifecycle, persistent local jobs, and a clearer path to signed macOS/Windows installers.
+
