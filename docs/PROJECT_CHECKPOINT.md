@@ -276,3 +276,7 @@ Added or confirmed:
 - `docs/TASK231_FINAL_REPOSITORY_PUBLICATION_PASS.md`
 
 The release target remains source-RC quality, not a signed installer. Runtime/build data must remain excluded from GitHub and release archives.
+
+## Task 232 update — final status and v1 runway
+
+Task 232 adds `GET /runtime/final-product-status` and a Settings UI section named **Where we are now**. It makes the status explicit: the project is a GitHub-ready v0.1 source release candidate after local validation, not a finished v1.0 desktop installer. The remaining estimate is 0-2 large tasks for source-RC cleanup and roughly 15-25 large tasks for a polished v1.0 product.

@@ -1,26 +1,18 @@
 # Security Policy
 
-AI Private Workspace is designed as a local-first application. Security issues usually matter most around local files, model downloads, MCP tools, agents, and desktop process supervision.
+AI Private Workspace is designed as a local-first tool. The default posture is to avoid external uploads and prevent frontend shell execution.
 
 ## Supported version
 
-The current supported line is the v0.1 source release candidate.
-
-## Safety boundaries
-
-- The frontend must not execute shell commands.
-- Model downloads must be backend-side, opt-in, allowlisted, and explicitly approved.
-- MCP servers and tools must not start automatically.
-- Agent workflows must not execute tools without explicit future sandbox/allowlist controls.
-- Desktop launch must not start scan, index, rebuild, MCP, agent, or model-download actions automatically.
+This repository currently publishes a v0.1 source release candidate.
 
 ## Reporting issues
 
-Please open a private security report or contact the repository owner with:
+Please open a private security report or contact the repository owner before publishing sensitive findings.
 
-- affected component;
-- reproduction steps;
-- expected and actual behavior;
-- any logs with private paths or secrets removed.
+## Security boundaries
 
-Do not include private source code, credentials, tokens, API keys, or company data in public issues.
+- Frontend must not execute shell commands.
+- Model downloads must remain backend-owned, opt-in, and allowlisted.
+- MCP/Agent execution must remain disabled until sandboxing, approval, and audit logging exist.
+- Runtime databases and local project data must not be committed.

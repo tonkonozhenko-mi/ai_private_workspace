@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -25,6 +25,7 @@ import type {
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
+  FinalProductStatus,
   ProductionReadiness,
 } from "../api/types";
 import {
@@ -214,6 +215,9 @@ export function SettingsPanel({
   const [v01Handoff, setV01Handoff] = useState<V01Handoff | null>(null);
   const [v01HandoffError, setV01HandoffError] = useState<string | null>(null);
   const [v01HandoffLoading, setV01HandoffLoading] = useState(false);
+  const [finalProductStatus, setFinalProductStatus] = useState<FinalProductStatus | null>(null);
+  const [finalProductStatusError, setFinalProductStatusError] = useState<string | null>(null);
+  const [finalProductStatusLoading, setFinalProductStatusLoading] = useState(false);
 
 
   useEffect(() => {
@@ -2418,6 +2422,92 @@ export function SettingsPanel({
             </details>
 
 
+
+            <details className="settings-disclosure" open>
+              <summary>Where we are now</summary>
+              {finalProductStatusError ? (
+                <p className="settings-transfer-message">Could not load final product status: {finalProductStatusError}</p>
+              ) : null}
+              {finalProductStatusLoading ? (
+                <p className="settings-transfer-message">Loading final product status…</p>
+              ) : finalProductStatus ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{finalProductStatus.title}</strong>
+                    <span>{finalProductStatus.summary}</span>
+                    <span>{finalProductStatus.current_stage_completion}</span>
+                  </div>
+                  <div className="local-data-grid packaging-design-grid">
+                    <div>
+                      <span>Current milestone</span>
+                      <strong>{finalProductStatus.current_milestone}</strong>
+                      <small>{finalProductStatus.status}</small>
+                    </div>
+                    <div>
+                      <span>Source RC</span>
+                      <strong>ready</strong>
+                      <small>{finalProductStatus.source_rc_verdict}</small>
+                    </div>
+                    <div>
+                      <span>Current stage left</span>
+                      <strong>0-2 tasks</strong>
+                      <small>verification and screenshots</small>
+                    </div>
+                    <div>
+                      <span>v1.0 left</span>
+                      <strong>15-25 tasks</strong>
+                      <small>installer + safe execution</small>
+                    </div>
+                  </div>
+                  <details className="settings-disclosure" open>
+                    <summary>Remaining before GitHub/source RC</summary>
+                    <ol className="settings-preflight-list">
+                      {finalProductStatus.remaining_current_stage_tasks.map((item) => <li key={item}>{item}</li>)}
+                    </ol>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Road to the real v1.0 product</summary>
+                    <div className="startup-checklist-grid">
+                      {finalProductStatus.stages.map((stage) => (
+                        <div className="startup-checklist-item is-review" key={stage.id}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{stage.title}</strong>
+                            <StatusBadge label={stage.status} tone={stage.status === "current" ? "success" : "info"} />
+                          </div>
+                          <p>{stage.summary}</p>
+                          <small>Remaining large tasks: {stage.remaining_large_tasks}</small>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="settings-transfer-message">{finalProductStatus.honest_v1_estimate}</p>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Validation commands</summary>
+                    <div className="settings-command-stack">
+                      {finalProductStatus.publication_checks.map((command) => (
+                        <div className="startup-checklist-command" key={command.label}>
+                          <span>{command.label}</span>
+                          <code>{command.command}</code>
+                          <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(command.command)}>
+                            Copy
+                          </button>
+                          <small>{command.purpose}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>What is not v1 yet</summary>
+                    <ol className="settings-preflight-list">
+                      {finalProductStatus.not_v1_yet.map((item) => <li key={item}>{item}</li>)}
+                    </ol>
+                    <div className="settings-safety-list">
+                      {finalProductStatus.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                  </details>
+                </div>
+              ) : null}
+            </details>
 
             <details className="settings-disclosure" open>
               <summary>v0.1 demo and GitHub handoff</summary>

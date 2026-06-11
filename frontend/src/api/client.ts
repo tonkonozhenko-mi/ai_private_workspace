@@ -53,6 +53,7 @@ import type {
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
+  FinalProductStatus,
   FirstLaunchReadiness,
   ProductionReadiness,
   AgentCapabilityCatalog,
@@ -204,6 +205,10 @@ export function getReleaseCandidateAudit(): Promise<ReleaseCandidateAudit> {
 
 export function getV01Handoff(): Promise<V01Handoff> {
   return getJson<V01Handoff>("/runtime/v0.1-handoff");
+}
+
+export function getFinalProductStatus(): Promise<FinalProductStatus> {
+  return getJson<FinalProductStatus>("/runtime/final-product-status");
 }
 
 export function getFirstLaunchReadiness(): Promise<FirstLaunchReadiness> {

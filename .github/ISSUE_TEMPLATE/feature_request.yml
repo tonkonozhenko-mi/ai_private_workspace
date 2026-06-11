@@ -1,27 +1,24 @@
 name: Feature request
 description: Suggest an improvement for AI Private Workspace
-title: "[Feature]: "
+title: "Feature: "
 labels: [enhancement]
 body:
   - type: textarea
     id: problem
     attributes:
-      label: Problem
-      description: What user problem should this solve?
+      label: Problem or user need
+      description: What should be easier, safer, or clearer?
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
-      label: Proposal
+      label: Proposed solution
       description: Describe the desired behavior.
-    validations:
-      required: true
   - type: checkboxes
     id: safety
     attributes:
-      label: Safety expectations
+      label: Safety impact
       options:
-        - label: This should not require frontend shell execution.
-        - label: This should keep risky actions explicit and user-approved.
-        - label: This should avoid committing runtime/build data.
+        - label: This does not require frontend shell execution.
+        - label: This keeps risky actions explicit and user-approved.

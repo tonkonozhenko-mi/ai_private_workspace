@@ -1,39 +1,22 @@
 name: Bug report
-description: Report a reproducible problem in AI Private Workspace
-title: "[Bug]: "
+description: Report a problem with AI Private Workspace
+title: "Bug: "
 labels: [bug]
 body:
   - type: textarea
     id: what-happened
     attributes:
       label: What happened?
-      description: Describe the issue and the expected behavior.
+      description: Describe the bug and the expected behavior.
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
       label: Steps to reproduce
-      value: |
-        1.
-        2.
-        3.
-    validations:
-      required: true
+      description: List the steps that reproduce the issue.
   - type: textarea
     id: logs
     attributes:
       label: Logs or screenshots
-      description: Remove private paths, secrets, tokens, and company data before posting.
-  - type: dropdown
-    id: area
-    attributes:
-      label: Area
-      options:
-        - Frontend/UI
-        - Backend/API
-        - Models/Ollama
-        - RAG/context indexing
-        - Agent/MCP
-        - Desktop packaging
-        - Docs/GitHub
+      description: Paste relevant logs or attach screenshots.

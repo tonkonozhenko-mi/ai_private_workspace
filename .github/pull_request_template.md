@@ -1,22 +1,15 @@
 ## Summary
 
--
-
-## Safety impact
-
-- [ ] Frontend does not execute shell commands.
-- [ ] Scan/index/rebuild/model/MCP/agent actions remain explicit.
-- [ ] Runtime/build data is not included.
-- [ ] New backend behavior has tests or documented reason if not applicable.
+Describe the change and why it is needed.
 
 ## Validation
 
-```bash
-./scripts/audit_release_candidate.sh
-cd backend && pytest -q
-cd ../frontend && npm ci && npm run build
-```
+- [ ] `./scripts/audit_release_candidate.sh`
+- [ ] backend targeted tests
+- [ ] `cd frontend && npm ci && npm run build`
 
-## Screenshots
+## Safety checklist
 
-Add screenshots for UI changes when helpful.
+- [ ] No frontend shell execution added
+- [ ] No automatic scan/index/rebuild/model download/MCP/Agent execution
+- [ ] No runtime databases or build artifacts committed
