@@ -1,15 +1,19 @@
 # Security Policy
 
-AI Private Workspace is designed for local-first project analysis. The default posture is conservative: no automatic shell execution, no automatic model downloads, no automatic indexing, and no automatic MCP/tool execution.
+AI Private Workspace is designed for private, local-first project analysis. Treat all workspace data as sensitive.
+
+## Supported status
+
+This repository is currently a v0.1 source release candidate. It is suitable for local demos and development, not yet a signed commercial desktop release.
 
 ## Safety boundaries
 
-- Frontend is UI-only and must not run shell commands.
-- Backend execution features must be explicit, allowlisted, and disabled by default where possible.
-- Model download execution is opt-in and restricted to catalog models.
-- MCP/Agent execution remains planning/manual tracking until sandbox and allowlist controls are implemented.
-- Runtime data and local databases must never be committed.
+- The frontend must not execute shell commands.
+- Model downloads must remain backend-owned, explicit, opt-in, and allowlisted.
+- MCP servers and Agent tools must not execute automatically.
+- Runtime data must stay out of Git and release archives.
+- Desktop launch must not scan, index, rebuild, download, or run tools automatically.
 
 ## Reporting issues
 
-For now, open a private issue or discuss directly with the repository owner before sharing sensitive details publicly.
+For private/internal use, report security issues through the repository owner or private issue channel. Do not include private project files, logs with secrets, or runtime databases in public issues.

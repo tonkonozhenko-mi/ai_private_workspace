@@ -239,3 +239,11 @@ Models tab crash was fixed by moving hooks before conditional loading/error retu
 Clarified the difference between selecting an embedding/search model and building workspace context with it. The UI now says `Needs context build` when the selected search model is active but the workspace has not been indexed yet.
 
 - Task 228 — Model context build action ✅
+
+## Task 229 — Source release packaging and completion roadmap
+
+- Restored/added GitHub-facing repository files: README, CONTRIBUTING, SECURITY, GitHub Actions, PR template, and issue templates.
+- Added `scripts/prepare_source_release_archive.sh` for a clean root-preserving source archive.
+- Added `docs/GITHUB_PUBLICATION_CHECKLIST.md`, `docs/SOURCE_RELEASE_CHECKLIST.md`, and `docs/V1_PRODUCT_COMPLETION_ROADMAP.md`.
+- Added `GET /runtime/product-completion-roadmap` to clearly distinguish v0.1 source RC from a future v1.0 product.
+- Updated release audit checks to include README/.github and `*.sqlite3`.

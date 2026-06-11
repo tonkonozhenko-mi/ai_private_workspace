@@ -299,3 +299,5 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 ## Task 223 — v0.1 demo and GitHub handoff
 
 - `GET /runtime/v0.1-handoff` — read-only v0.1 handoff guide for demo flow, GitHub repository highlights, important docs, validation commands, release notes, limitations, next steps, and safety boundaries.
+
+| `GET /runtime/product-completion-roadmap` | Return an honest v0.1-to-v1 completion roadmap, remaining large work packages, and safety boundaries. | No | No | No | Settings / GitHub handoff |

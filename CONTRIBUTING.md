@@ -1,41 +1,30 @@
 # Contributing
 
-AI Private Workspace is built around a local-first and safety-first product model. Contributions should keep the interface calm, explicit, and easy to understand.
+AI Private Workspace is local-first and safety-first. Contributions should preserve those boundaries.
 
-## Development checks
-
-Backend:
-
-```bash
-cd backend
-pip install -r requirements.txt
-pytest -q
-```
-
-Frontend:
-
-```bash
-cd frontend
-npm ci
-npm run build
-```
-
-Release audit:
+## Local checks
 
 ```bash
 ./scripts/audit_release_candidate.sh
+cd backend && pytest -q tests/test_health.py tests/test_api_inventory.py
+cd ../frontend && npm ci && npm run build
 ```
 
-## UX principles
+## Development principles
 
-- Prefer one clear primary action per screen.
-- Put advanced or risky details behind disclosure sections.
-- Use short, human-readable copy instead of internal implementation names.
-- Keep dark mode readable and calm.
-- Do not make the frontend execute shell commands.
+- Keep frontend actions explicit and user-triggered.
+- Do not add browser-side shell execution.
+- Keep backend core/domain code free from FastAPI and SQLite details.
+- Put runtime, filesystem, provider, and process integrations behind adapters.
+- Prefer calm, human-readable UI flows over dense admin dashboards.
+- Document safety boundaries when adding model, MCP, agent, or packaging behavior.
 
-## Safety principles
+## Pull requests
 
-- Scans, indexing, rebuilds, model downloads, MCP tools, and agent actions must be explicit user-click actions.
-- Risky execution belongs to backend-owned, allowlisted, auditable flows.
-- Do not commit runtime data, local databases, dependency folders, build output, or package artifacts.
+A good PR should include:
+
+- what changed;
+- what safety boundary was preserved;
+- how it was tested;
+- screenshots for UI changes when useful;
+- docs updates for user-facing or operator-facing behavior.

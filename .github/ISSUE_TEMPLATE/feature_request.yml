@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest an improvement for the local-first workspace
+title: "feature: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should the product do?
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety expectations
+      options:
+        - label: This should not require frontend shell execution.
+        - label: This should remain explicit and user-approved when it touches local runtime, files, models, MCP, or Agent tools.

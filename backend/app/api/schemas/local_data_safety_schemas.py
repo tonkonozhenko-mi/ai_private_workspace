@@ -417,6 +417,27 @@ class V01HandoffResponse(BaseModel):
     next_after_v01: list[str]
     safety_rules: list[str]
 
+
+
+class ProductCompletionStageResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    remaining_large_tasks: int
+
+
+class ProductCompletionRoadmapResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    current_stage: str
+    honest_completion_estimate: str
+    stages: list[ProductCompletionStageResponse]
+    next_recommended_tasks: list[str]
+    not_done_yet: list[str]
+    safety_rules: list[str]
+
 class DatabaseBackupResponse(BaseModel):
     filename: str
     path: str

@@ -43,6 +43,8 @@ from app.api.schemas.local_data_safety_schemas import (
     V01DemoStepResponse,
     V01HandoffResponse,
     V01RepositoryFileResponse,
+    ProductCompletionStageResponse,
+    ProductCompletionRoadmapResponse,
     FirstLaunchChecklistItemResponse,
     FirstLaunchReadinessResponse,
     DatabaseBackupResponse,
@@ -1541,7 +1543,7 @@ def get_database_migration_safety() -> DatabaseMigrationSafetyResponse:
 def get_release_candidate_audit() -> ReleaseCandidateAuditResponse:
     settings = get_settings()
     project_root = Path(__file__).resolve().parents[4]
-    required_paths = ["backend", "frontend", "docs", "scripts", "pytest.ini", ".gitignore"]
+    required_paths = ["backend", "frontend", "docs", "scripts", "pytest.ini", ".gitignore", "README.md", ".github"]
     required_docs = [
         "docs/START_HERE.md",
         "docs/ROADMAP.md",
@@ -1570,7 +1572,7 @@ def get_release_candidate_audit() -> ReleaseCandidateAuditResponse:
     if missing_required:
         add_item(blocked, "required-root-structure", "Root structure", "Required release paths are missing.", ", ".join(missing_required), "Restore the root-preserving project structure before packaging.")
     else:
-        add_item(passed, "required-root-structure", "Root structure", "Required release paths are present.", "backend/, frontend/, docs/, scripts/, pytest.ini, and .gitignore are available.")
+        add_item(passed, "required-root-structure", "Root structure", "Required release paths are present.", "backend/, frontend/, docs/, scripts/, README.md, .github/, pytest.ini, and .gitignore are available.")
 
     missing_docs = [path for path in required_docs if not (project_root / path).exists()]
     if missing_docs:
@@ -1584,11 +1586,11 @@ def get_release_candidate_audit() -> ReleaseCandidateAuditResponse:
     else:
         add_item(passed, "local-artifacts", "Local build/runtime artifacts", "No common runtime/build artifact directories found.", "Source tree looks clean for zip generation.")
 
-    db_files = [str(path.relative_to(project_root)) for path in project_root.rglob("*") if path.is_file() and path.suffix in {".db", ".sqlite"} and ".git" not in path.parts]
+    db_files = [str(path.relative_to(project_root)) for path in project_root.rglob("*") if path.is_file() and path.suffix in {".db", ".sqlite", ".sqlite3"} and ".git" not in path.parts]
     if db_files:
         add_item(blocked, "database-files", "Runtime database files", "Database files were found in the source tree.", ", ".join(db_files[:10]), "Remove DB files from the source archive and keep runtime data under app data paths.")
     else:
-        add_item(passed, "database-files", "Runtime database files", "No *.db or *.sqlite files found in source tree.", "Runtime data is not present in the release source tree.")
+        add_item(passed, "database-files", "Runtime database files", "No *.db, *.sqlite, or *.sqlite3 files found in source tree.", "Runtime data is not present in the release source tree.")
 
     safety_docs = ["docs/MODEL_DOWNLOAD_JOBS.md", "docs/MCP_SETUP_UX_TASK212.md", "docs/AGENT_MCP_READINESS_TASK213.md"]
     missing_safety = [path for path in safety_docs if not (project_root / path).exists()]
@@ -1616,7 +1618,7 @@ def get_release_candidate_audit() -> ReleaseCandidateAuditResponse:
         audit_script="scripts/audit_release_candidate.sh",
         source_archive_policy=[
             "Keep root-preserving structure: backend/, frontend/, docs/, scripts/, pytest.ini, .gitignore.",
-            "Exclude backend/.ai-workbench, *.db, *.sqlite, node_modules, dist, build, caches, and __pycache__.",
+            "Exclude backend/.ai-workbench, *.db, *.sqlite, *.sqlite3, node_modules, dist, build, caches, and __pycache__.",
             "Generated .app/.exe/.msi artifacts are build outputs, not source archive contents.",
         ],
         blocked_items=blocked,
@@ -1712,6 +1714,46 @@ def get_v01_handoff() -> V01HandoffResponse:
             "Model download execution is disabled by default and requires backend opt-in plus allowlist validation.",
             "Agent and MCP are planning/readiness workflows until sandboxed execution exists.",
             "Runtime data and build artifacts are excluded from source release archives.",
+        ],
+    )
+
+
+@router.get("/product-completion-roadmap", response_model=ProductCompletionRoadmapResponse)
+def get_product_completion_roadmap() -> ProductCompletionRoadmapResponse:
+    """Return an honest product-completion map without implying v0.1 is v1.0."""
+    return ProductCompletionRoadmapResponse(
+        status="v0.1-source-rc",
+        title="Product completion roadmap",
+        summary="AI Private Workspace is a GitHub-ready v0.1 source release candidate. A fully packaged v1.0 desktop product still needs runtime bundling, installers, persistent jobs, and sandboxed Agent/MCP execution.",
+        current_stage="v0.1 source release candidate",
+        honest_completion_estimate="Roughly 15-25 large tasks remain for a polished v1.0 product, depending on installer quality and Agent/MCP execution depth.",
+        stages=[
+            ProductCompletionStageResponse(id="source-rc", title="v0.1 source release candidate", status="current", summary="Source repo, local demo, safety, docs, model manager foundation, desktop packaging foundation, and GitHub readiness.", remaining_large_tasks=2),
+            ProductCompletionStageResponse(id="desktop-runtime", title="v0.2 desktop runtime", status="next", summary="Frozen backend runtime, stronger supervisor lifecycle, app-owned logs/data, and persistent local jobs.", remaining_large_tasks=5),
+            ProductCompletionStageResponse(id="installers", title="v0.3 installers", status="planned", summary="macOS signed package, Windows installer, icons, shortcuts, uninstall/update behavior, and packaging QA.", remaining_large_tasks=7),
+            ProductCompletionStageResponse(id="agent-mcp-readonly", title="v0.4 read-only Agent/MCP execution", status="planned", summary="Sandboxed read-only tool execution with allowlists, approvals, evidence, and audit logs.", remaining_large_tasks=7),
+            ProductCompletionStageResponse(id="v1", title="v1.0 polished product", status="target", summary="Installer-grade desktop product with stable local runtime, polished onboarding, safe execution model, and user-facing troubleshooting.", remaining_large_tasks=4),
+        ],
+        next_recommended_tasks=[
+            "Task 230 — final source RC verification and GitHub publication checklist.",
+            "Task 231 — persistent job storage plan for model downloads and indexing jobs.",
+            "Task 232 — frozen backend runtime proof of concept.",
+            "Task 233 — real macOS package iteration with app icon, logs, and packaged backend runtime.",
+        ],
+        not_done_yet=[
+            "Final frozen backend binary/runtime bundle.",
+            "Signed/notarized macOS DMG and Windows installer.",
+            "Persistent background jobs that survive app restart.",
+            "MCP server install/run lifecycle.",
+            "Sandboxed Agent/MCP read-only execution.",
+            "Controlled write execution with rollback/verification design.",
+        ],
+        safety_rules=[
+            "Do not call the source release candidate a finished v1.0 product.",
+            "Keep frontend shell execution forbidden.",
+            "Keep model downloads backend-owned, opt-in, and allowlisted.",
+            "Keep MCP and Agent execution disabled until sandbox/allowlist/audit logs are implemented.",
+            "Do not include runtime databases or build artifacts in GitHub or source release archives.",
         ],
     )
 

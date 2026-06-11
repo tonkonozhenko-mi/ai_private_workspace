@@ -11,5 +11,5 @@ indent_size = 2
 [*.py]
 indent_size = 4
 
-[*.{ps1,md}]
+[*.md]
 trim_trailing_whitespace = false
