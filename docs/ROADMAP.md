@@ -183,3 +183,12 @@ Next packaging work:
 ### Task 219 — Tauri shell scaffold/foundation ✅
 
 The project now contains a minimal `frontend/src-tauri` scaffold and a validation helper. Next packaging work should implement the Tauri supervisor bridge, then Windows packaging foundation and final release audit.
+
+### Task 220 — Tauri supervisor bridge ✅
+
+Added the source-controlled bridge between Tauri shell and the desktop supervisor lifecycle. The bridge currently exposes read-only supervisor status/log path commands and documents the future app-owned backend startup flow. It does not start backend processes yet.
+
+Next packaging work:
+1. Windows packaging foundation.
+2. Release candidate audit for source archives, docs, tests, safety, and generated artifacts.
+3. Final v0.1 demo/release handoff.

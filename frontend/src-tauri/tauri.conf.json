@@ -18,7 +18,7 @@
         "minWidth": 1024,
         "minHeight": 720,
         "resizable": true,
-        "center": true
+        "fullscreen": false
       }
     ],
     "security": {
@@ -26,10 +26,10 @@
     }
   },
   "bundle": {
-    "active": true,
+    "active": false,
     "targets": "all",
     "category": "DeveloperTool",
-    "shortDescription": "Local-first private AI workspace",
-    "longDescription": "AI Private Workspace runs a local desktop shell, a localhost backend, and user-approved local model workflows."
+    "shortDescription": "Local-first AI workspace for private project onboarding.",
+    "longDescription": "AI Private Workspace runs local project analysis, local model setup, and safe agent planning without uploading private project data."
   }
 }

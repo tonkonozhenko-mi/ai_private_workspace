@@ -283,6 +283,39 @@ class TauriShellScaffoldResponse(BaseModel):
     next_steps: list[str]
 
 
+class TauriSupervisorBridgeStateResponse(BaseModel):
+    id: str
+    title: str
+    user_message: str
+    shell_behavior: str
+    backend_check: str | None = None
+
+
+class TauriSupervisorBridgeCommandResponse(BaseModel):
+    name: str
+    purpose: str
+    execution: str
+
+
+class TauriSupervisorBridgeResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    package_goal: str
+    bridge_file: str
+    tauri_command_strategy: str
+    backend_start_strategy: str
+    readiness_strategy: str
+    log_strategy: str
+    startup_states: list[TauriSupervisorBridgeStateResponse]
+    tauri_commands: list[TauriSupervisorBridgeCommandResponse]
+    implementation_steps: list[str]
+    validation_steps: list[str]
+    safety_rules: list[str]
+    known_limitations: list[str]
+    next_steps: list[str]
+
+
 class DatabaseBackupResponse(BaseModel):
     filename: str
     path: str

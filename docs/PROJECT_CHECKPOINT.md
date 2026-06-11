@@ -179,3 +179,14 @@ Important safety boundaries:
 ## Task 219 — Tauri shell scaffold/foundation
 
 Added `frontend/src-tauri` as the first source-controlled desktop shell scaffold and `scripts/prepare_tauri_shell_scaffold.sh` as a safe validation helper. This is still a scaffold, not a final signed installer. Frontend still does not execute shell commands; backend supervision must remain app-owned and explicit.
+
+## Task 220 checkpoint — Tauri supervisor bridge
+
+The project now has a Tauri supervisor bridge foundation:
+
+- `GET /runtime/tauri-supervisor-bridge`
+- read-only Tauri commands for supervisor status/log paths
+- scaffold validation for the bridge commands
+- Settings UI panel for bridge states and safety
+
+The bridge remains safe: no frontend shell execution, no backend process startup from Tauri yet, and no automatic scan/index/rebuild/MCP/agent/model-download actions on launch.

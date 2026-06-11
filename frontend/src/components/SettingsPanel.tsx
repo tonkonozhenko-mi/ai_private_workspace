@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getTauriSupervisorBridge, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -21,6 +21,7 @@ import type {
   MacOSAppSupervisorWiring,
   BackendRuntimeBundlePlan,
   TauriShellScaffold,
+  TauriSupervisorBridge,
   ProductionReadiness,
 } from "../api/types";
 import {
@@ -198,6 +199,9 @@ export function SettingsPanel({
   const [tauriShellScaffold, setTauriShellScaffold] = useState<TauriShellScaffold | null>(null);
   const [tauriShellScaffoldError, setTauriShellScaffoldError] = useState<string | null>(null);
   const [tauriShellScaffoldLoading, setTauriShellScaffoldLoading] = useState(false);
+  const [tauriSupervisorBridge, setTauriSupervisorBridge] = useState<TauriSupervisorBridge | null>(null);
+  const [tauriSupervisorBridgeError, setTauriSupervisorBridgeError] = useState<string | null>(null);
+  const [tauriSupervisorBridgeLoading, setTauriSupervisorBridgeLoading] = useState(false);
 
 
   useEffect(() => {
@@ -330,6 +334,58 @@ export function SettingsPanel({
       cancelled = true;
     };
   }, [dashboard.workspace_id]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    setTauriShellScaffoldLoading(true);
+    setTauriShellScaffoldError(null);
+    getTauriShellScaffold()
+      .then((scaffold) => {
+        if (!cancelled) {
+          setTauriShellScaffold(scaffold);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setTauriShellScaffoldError(error instanceof Error ? error.message : "Could not load Tauri shell scaffold");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setTauriShellScaffoldLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setTauriSupervisorBridgeLoading(true);
+    setTauriSupervisorBridgeError(null);
+    getTauriSupervisorBridge()
+      .then((bridge) => {
+        if (!cancelled) {
+          setTauriSupervisorBridge(bridge);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setTauriSupervisorBridgeError(error instanceof Error ? error.message : "Could not load Tauri supervisor bridge");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setTauriSupervisorBridgeLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
 
 
   useEffect(() => {
@@ -2112,6 +2168,79 @@ export function SettingsPanel({
                     <ol className="settings-preflight-list">
                       {tauriShellScaffold.next_steps.map((step) => <li key={step}>{step}</li>)}
                     </ol>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
+
+            <details className="settings-disclosure" open>
+              <summary>Tauri supervisor bridge</summary>
+              {tauriSupervisorBridgeError ? (
+                <p className="settings-transfer-message">Could not load Tauri supervisor bridge: {tauriSupervisorBridgeError}</p>
+              ) : null}
+              {tauriSupervisorBridgeLoading ? (
+                <p className="settings-transfer-message">Loading Tauri supervisor bridge…</p>
+              ) : tauriSupervisorBridge ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{tauriSupervisorBridge.title}</strong>
+                    <span>{tauriSupervisorBridge.summary}</span>
+                    <span>Bridge file: <code>{tauriSupervisorBridge.bridge_file}</code></span>
+                  </div>
+                  <div className="local-data-grid packaging-design-grid">
+                    <div>
+                      <span>Status</span>
+                      <strong>{tauriSupervisorBridge.status}</strong>
+                      <small>Native shell bridge contract</small>
+                    </div>
+                    <div>
+                      <span>Readiness</span>
+                      <strong>Health first</strong>
+                      <small>{tauriSupervisorBridge.readiness_strategy}</small>
+                    </div>
+                    <div>
+                      <span>Logs</span>
+                      <strong>App data</strong>
+                      <small>{tauriSupervisorBridge.log_strategy}</small>
+                    </div>
+                    <div>
+                      <span>Backend start</span>
+                      <strong>Shell-owned</strong>
+                      <small>Future app-owned process only</small>
+                    </div>
+                  </div>
+                  <div className="settings-safety-list">
+                    {tauriSupervisorBridge.startup_states.map((state) => (
+                      <span key={state.id}><strong>{state.title}:</strong> {state.user_message}</span>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Tauri commands and implementation</summary>
+                    <div className="startup-checklist-grid">
+                      {tauriSupervisorBridge.tauri_commands.map((command) => (
+                        <div className="startup-checklist-item is-review" key={command.name}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{command.name}</strong>
+                            <StatusBadge label={command.execution} tone={command.execution.includes("read-only") ? "success" : "info"} />
+                          </div>
+                          <p>{command.purpose}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <ol className="settings-preflight-list">
+                      {tauriSupervisorBridge.implementation_steps.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Validation, safety, and limitations</summary>
+                    <ol className="settings-preflight-list">
+                      {tauriSupervisorBridge.validation_steps.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
+                    <div className="settings-safety-list">
+                      {tauriSupervisorBridge.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                    <p className="settings-transfer-message">Known limitations: {tauriSupervisorBridge.known_limitations.join(" · ")}</p>
                   </details>
                 </div>
               ) : null}
