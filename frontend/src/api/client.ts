@@ -43,6 +43,7 @@ import type {
   RuntimeTroubleshooting,
   SafeUpdateWorkflow,
   DesktopStartupExperience,
+  DesktopPackagingDesign,
   FirstLaunchReadiness,
   ProductionReadiness,
   AgentCapabilityCatalog,
@@ -153,6 +154,10 @@ export function getDesktopStartupExperience(): Promise<DesktopStartupExperience>
 
 export function getProductionReadiness(): Promise<ProductionReadiness> {
   return getJson<ProductionReadiness>("/runtime/production-readiness");
+}
+
+export function getDesktopPackagingDesign(): Promise<DesktopPackagingDesign> {
+  return getJson<DesktopPackagingDesign>("/runtime/desktop-packaging-design");
 }
 
 export function getFirstLaunchReadiness(): Promise<FirstLaunchReadiness> {

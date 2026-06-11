@@ -267,3 +267,8 @@ Added model download job foundation endpoints: `POST /models/local-install-draft
 - `POST /models/local-download-jobs/{job_id}/cancel` — request cancel using safe semantics.
 
 Cancel semantics are intentionally conservative: queued jobs can become `cancelled`; running jobs record a cancel request and finish safely instead of force-killing Ollama.
+
+
+## Task 214 — Desktop packaging design lock
+
+- `GET /runtime/desktop-packaging-design` — read-only packaging architecture target for the real two-click desktop app. It documents Tauri-first shell, supervised local backend, localhost-only API, protected local data, logging, lifecycle, implementation phases, and safety boundaries.

@@ -13,6 +13,9 @@ from app.api.schemas.local_data_safety_schemas import (
     DatabaseBackupListResponse,
     DesktopStartupCommandResponse,
     DesktopStartupExperienceResponse,
+    DesktopPackagingDecisionResponse,
+    DesktopPackagingDesignResponse,
+    DesktopPackagingPhaseResponse,
     FirstLaunchChecklistItemResponse,
     FirstLaunchReadinessResponse,
     DatabaseBackupResponse,
@@ -457,6 +460,105 @@ def get_production_readiness() -> ProductionReadinessResponse:
             "Only consider a desktop wrapper after scripts and backup/restore are reliable.",
         ],
         safety_note="This readiness report is read-only. The frontend only displays or copies commands and never executes shell commands.",
+    )
+
+
+@router.get("/desktop-packaging-design", response_model=DesktopPackagingDesignResponse)
+def get_desktop_packaging_design() -> DesktopPackagingDesignResponse:
+    return DesktopPackagingDesignResponse(
+        status="locked",
+        title="Real desktop app design lock",
+        summary="Target architecture for a two-click local desktop app. Current scripts remain the safe bridge until the package is built.",
+        chosen_shell="Tauri first",
+        backend_strategy="Run the FastAPI backend as a supervised local child process owned by the desktop app, with a health check before opening the UI.",
+        frontend_strategy="Build the Vite frontend into static assets and serve them inside the desktop shell instead of requiring npm run dev.",
+        local_data_strategy="Keep runtime data in an app-owned local data directory and never overwrite backend/.ai-workbench, *.db, or *.sqlite during updates.",
+        port_strategy="Use localhost only. Prefer a configured local port first, then a safe fallback if the port is busy. Never expose the API on the network by default.",
+        logging_strategy="Write backend, frontend-shell, and model-download logs to a local logs directory with a visible troubleshooting path.",
+        lifecycle_strategy="Double-click starts the desktop shell, starts/checks backend, opens the UI, restores last workspace, and shuts down only app-owned processes on exit.",
+        decisions=[
+            DesktopPackagingDecisionResponse(
+                id="shell",
+                title="Desktop shell",
+                decision="Use Tauri first; keep Electron as fallback.",
+                rationale="Tauri is lighter and closer to native desktop UX. Electron remains a practical fallback if Python/backend bundling becomes simpler there.",
+            ),
+            DesktopPackagingDecisionResponse(
+                id="backend-supervisor",
+                title="Backend supervisor",
+                decision="Desktop shell owns backend lifecycle.",
+                rationale="The user should not run backend scripts manually in the final product. The app should start, health-check, and stop the local backend safely.",
+            ),
+            DesktopPackagingDecisionResponse(
+                id="model-downloads",
+                title="Model downloads",
+                decision="Backend-only, approved, allowlisted jobs.",
+                rationale="Model downloads are long-running and shell-adjacent. They must stay behind explicit approval and backend-side validation.",
+            ),
+            DesktopPackagingDecisionResponse(
+                id="mcp",
+                title="MCP tools",
+                decision="Registry/config first; execution later.",
+                rationale="MCP tools can touch files or commands, so packaged app must keep them disabled until sandbox/allowlist execution exists.",
+            ),
+        ],
+        phases=[
+            DesktopPackagingPhaseResponse(
+                id="phase-1-design",
+                title="Design lock",
+                status="current",
+                summary="Freeze packaging architecture before adding app shell code.",
+                deliverables=[
+                    "Document shell/backend/data/logging decisions.",
+                    "Keep script launcher as development bridge.",
+                    "Make UI wording clear that repo scripts are temporary.",
+                ],
+            ),
+            DesktopPackagingPhaseResponse(
+                id="phase-2-macos",
+                title="macOS app foundation",
+                status="next",
+                summary="Create first real .app wrapper with static frontend and supervised backend.",
+                deliverables=[
+                    "Build frontend assets for desktop shell.",
+                    "Start backend from app-owned supervisor.",
+                    "Open UI only after backend health is ready.",
+                    "Write logs to local app data path.",
+                ],
+            ),
+            DesktopPackagingPhaseResponse(
+                id="phase-3-installer",
+                title="Installer-grade packaging",
+                status="later",
+                summary="Move from developer package to downloadable app distribution.",
+                deliverables=[
+                    "macOS .dmg or signed .app direction.",
+                    "Windows .exe/.msi direction.",
+                    "Safe update and backup behavior.",
+                ],
+            ),
+        ],
+        user_experience=[
+            "User downloads the app package.",
+            "User double-clicks AI Private Workspace.",
+            "App starts the local backend and checks health automatically.",
+            "UI opens on a calm start screen with last workspace restored when possible.",
+            "User chooses models and downloads them only after explicit approval.",
+        ],
+        safety_rules=[
+            "Frontend never executes shell commands.",
+            "Desktop shell may start only app-owned local processes.",
+            "Backend API binds to localhost only by default.",
+            "Runtime data is never overwritten by generated updates.",
+            "Model downloads stay opt-in, allowlisted, backend-side jobs.",
+            "MCP/tool execution stays disabled until sandbox/allowlist gates exist.",
+        ],
+        not_in_scope_now=[
+            "Automatic MCP server execution.",
+            "Remote/cloud sync.",
+            "Silent model downloads during startup.",
+            "Auto-updates that can touch workspace databases.",
+        ],
     )
 
 

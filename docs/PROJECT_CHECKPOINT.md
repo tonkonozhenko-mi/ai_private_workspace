@@ -134,3 +134,8 @@ Added model download job foundation endpoints: `POST /models/local-install-draft
 - Simplified Agent screen hierarchy around the main action: preview a safe plan.
 - Collapsed secondary capability/guardrail/workflow details to reduce visual noise.
 - Kept MCP as safe tool visibility only; no automatic server start or tool execution.
+
+
+## Task 214 — Desktop packaging design lock
+
+Locked the target architecture for the real desktop app: Tauri-first shell, supervised FastAPI backend, static frontend assets, localhost-only API, protected local data, logs, lifecycle rules, and explicit safety boundaries. Current scripts remain a temporary developer-safe bridge.

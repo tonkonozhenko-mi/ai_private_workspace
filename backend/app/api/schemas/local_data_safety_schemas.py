@@ -82,6 +82,39 @@ class FirstLaunchReadinessResponse(BaseModel):
     safety_note: str
 
 
+class DesktopPackagingDecisionResponse(BaseModel):
+    id: str
+    title: str
+    decision: str
+    rationale: str
+
+
+class DesktopPackagingPhaseResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    deliverables: list[str]
+
+
+class DesktopPackagingDesignResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    chosen_shell: str
+    backend_strategy: str
+    frontend_strategy: str
+    local_data_strategy: str
+    port_strategy: str
+    logging_strategy: str
+    lifecycle_strategy: str
+    decisions: list[DesktopPackagingDecisionResponse]
+    phases: list[DesktopPackagingPhaseResponse]
+    user_experience: list[str]
+    safety_rules: list[str]
+    not_in_scope_now: list[str]
+
+
 class DatabaseBackupResponse(BaseModel):
     filename: str
     path: str
