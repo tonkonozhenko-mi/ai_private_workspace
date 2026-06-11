@@ -283,3 +283,7 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 
 - `GET /runtime/backend-runtime-bundle-plan` — read-only macOS backend runtime bundling plan. It documents how to move from local `python3` dependency to an app-owned backend runtime, the runtime manifest, build sequence, validation checks, safety rules, and known limitations. It does not execute packaging commands.
 - `GET /runtime/tauri-shell-scaffold` — read-only Tauri desktop shell scaffold summary. It documents the source-controlled shell files, supervisor mapping, validation script, safety boundaries, current limitations, and next packaging steps. It does not install Tauri, start backend processes, execute shell commands, download models, or run MCP/agent workflows.
+
+## Task 220 — Tauri supervisor bridge
+
+- `GET /runtime/tauri-supervisor-bridge` — read-only Tauri supervisor bridge contract. It documents startup states, Tauri command strategy, health readiness, log paths, validation steps, safety rules, and limitations. It does not start backend processes, install Tauri, run shell commands, download models, run MCP servers, or execute agent workflows.

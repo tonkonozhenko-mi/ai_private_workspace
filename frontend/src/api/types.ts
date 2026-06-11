@@ -282,6 +282,41 @@ export interface FirstLaunchChecklistItem {
   user_action: string | null;
 }
 
+export interface TauriSupervisorBridgeState {
+  id: string;
+  title: string;
+  user_message: string;
+  shell_behavior: string;
+  backend_check: string | null;
+}
+
+export interface TauriSupervisorBridgeCommand {
+  name: string;
+  purpose: string;
+  execution: string;
+}
+
+export interface TauriSupervisorBridge {
+  status: string;
+  title: string;
+  summary: string;
+  package_goal: string;
+  bridge_file: string;
+  tauri_command_strategy: string;
+  backend_start_strategy: string;
+  readiness_strategy: string;
+  log_strategy: string;
+  startup_states: TauriSupervisorBridgeState[];
+  tauri_commands: TauriSupervisorBridgeCommand[];
+  implementation_steps: string[];
+  validation_steps: string[];
+  safety_rules: string[];
+  known_limitations: string[];
+  next_steps: string[];
+}
+
+
+
 export interface FirstLaunchReadiness {
   status: string;
   title: string;

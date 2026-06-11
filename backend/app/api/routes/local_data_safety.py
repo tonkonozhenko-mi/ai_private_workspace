@@ -31,6 +31,9 @@ from app.api.schemas.local_data_safety_schemas import (
     TauriShellScaffoldFileResponse,
     TauriShellScaffoldPhaseResponse,
     TauriShellScaffoldResponse,
+    TauriSupervisorBridgeCommandResponse,
+    TauriSupervisorBridgeResponse,
+    TauriSupervisorBridgeStateResponse,
     FirstLaunchChecklistItemResponse,
     FirstLaunchReadinessResponse,
     DatabaseBackupResponse,
@@ -995,6 +998,114 @@ def get_tauri_shell_scaffold() -> TauriShellScaffoldResponse:
             "Finish backend runtime bundling strategy.",
             "Create Windows packaging foundation with the same safety rules.",
             "Run a final release candidate audit after packaging paths are clear.",
+        ],
+    )
+
+
+@router.get("/tauri-supervisor-bridge", response_model=TauriSupervisorBridgeResponse)
+def get_tauri_supervisor_bridge() -> TauriSupervisorBridgeResponse:
+    settings = get_settings()
+    logs_dir = settings.app_data_dir / "logs"
+    return TauriSupervisorBridgeResponse(
+        status="foundation",
+        title="Tauri supervisor bridge",
+        summary="Maps the real desktop shell to the backend supervisor lifecycle: start app-owned backend, wait for health, open the UI, and show friendly errors without letting React execute shell commands.",
+        package_goal="Double click the packaged app -> Tauri shell starts -> app-owned backend starts on localhost -> /health succeeds -> UI becomes ready.",
+        bridge_file="frontend/src-tauri/src/main.rs",
+        tauri_command_strategy="Expose small Tauri commands for startup status and log paths only. Process startup belongs to the native shell layer, never to React UI code.",
+        backend_start_strategy="Future implementation starts the bundled backend executable/source from the Tauri process using app-owned paths and a localhost-only bind. Current scaffold records the contract but does not start processes yet.",
+        readiness_strategy="Tauri polls http://127.0.0.1:8000/health and marks the app ready only after a successful response. If an unknown service owns the port, it fails calmly and points to logs.",
+        log_strategy=f"Write launcher/backend logs under {_display_path(logs_dir)} and keep them outside source archives and app updates.",
+        startup_states=[
+            TauriSupervisorBridgeStateResponse(
+                id="preflight",
+                title="Preflight",
+                user_message="Preparing your private workspace…",
+                shell_behavior="Validate packaged frontend/backend resources, app data directory, log directory, and runtime manifest.",
+            ),
+            TauriSupervisorBridgeStateResponse(
+                id="port-check",
+                title="Safe port check",
+                user_message="Checking the local workspace engine…",
+                shell_behavior="Check localhost backend port without killing unknown processes.",
+                backend_check="GET /health when a service answers on the expected port.",
+            ),
+            TauriSupervisorBridgeStateResponse(
+                id="start-backend",
+                title="Start app-owned backend",
+                user_message="Starting the private local engine…",
+                shell_behavior="Start only the backend packaged with this app and store its PID/log paths in app data.",
+            ),
+            TauriSupervisorBridgeStateResponse(
+                id="wait-health",
+                title="Wait for backend health",
+                user_message="Almost ready…",
+                shell_behavior="Poll health with timeout and produce a friendly error if startup fails.",
+                backend_check="GET http://127.0.0.1:8000/health",
+            ),
+            TauriSupervisorBridgeStateResponse(
+                id="ready",
+                title="Ready",
+                user_message="AI Private Workspace is ready.",
+                shell_behavior="Show the packaged UI and let the user explicitly choose workspace/model actions.",
+            ),
+            TauriSupervisorBridgeStateResponse(
+                id="failed",
+                title="Friendly failure",
+                user_message="The local engine could not start. Open logs for details.",
+                shell_behavior="Do not hide errors in a terminal. Show log path, port guidance, and safe retry advice.",
+            ),
+        ],
+        tauri_commands=[
+            TauriSupervisorBridgeCommandResponse(
+                name="get_supervisor_status",
+                purpose="Return startup state, health URL, data/log directories, and user-facing message.",
+                execution="read-only scaffold command",
+            ),
+            TauriSupervisorBridgeCommandResponse(
+                name="get_supervisor_log_paths",
+                purpose="Expose local log paths for troubleshooting without reading or uploading log contents.",
+                execution="read-only scaffold command",
+            ),
+            TauriSupervisorBridgeCommandResponse(
+                name="request_backend_start",
+                purpose="Future native shell bridge to start only app-owned backend after packaging runtime is ready.",
+                execution="not implemented in this task",
+            ),
+        ],
+        implementation_steps=[
+            "Keep React UI as a client of backend APIs only.",
+            "Add Tauri-side startup status commands that are read-only first.",
+            "Move backend process startup into native shell code after runtime bundling is stable.",
+            "Poll /health before marking app ready.",
+            "Surface calm startup errors and log paths in the desktop shell.",
+        ],
+        validation_steps=[
+            "Run scripts/prepare_tauri_shell_scaffold.sh from the project root.",
+            "Verify frontend/src-tauri/src/main.rs contains supervisor state commands but no arbitrary shell bridge.",
+            "Verify React code does not call Tauri process APIs or shell commands.",
+            "Verify app launch does not start scan/index/rebuild/MCP/agent/model downloads.",
+            "Verify generated source zip excludes build/, dist/, node_modules, runtime DBs, caches, and app data.",
+        ],
+        safety_rules=[
+            "React frontend never executes shell commands.",
+            "Tauri shell may start only app-owned local backend processes after the runtime is bundled.",
+            "Never kill unknown processes that happen to use the expected port.",
+            "Backend binds to 127.0.0.1 by default.",
+            "No scan, index, rebuild, MCP, agent workflow, or model download starts on app launch.",
+            "Model downloads remain backend-side approved jobs with allowlisted models.",
+        ],
+        known_limitations=[
+            "This task adds the Tauri supervisor bridge contract and read-only shell commands, not a signed installer.",
+            "The backend process is not started by Tauri yet; that comes after runtime bundling/freeze is stable.",
+            "Rust/Tauri toolchain installation is still manual for developers.",
+            "Windows packaging remains a separate foundation task.",
+        ],
+        next_steps=[
+            "Implement native backend process startup after runtime bundle is frozen or staged reliably.",
+            "Add desktop startup screen that reads Tauri supervisor status before showing the full app.",
+            "Create Windows packaging foundation with equivalent supervisor states and log rules.",
+            "Run release candidate audit after macOS and Windows packaging paths are documented.",
         ],
     )
 
