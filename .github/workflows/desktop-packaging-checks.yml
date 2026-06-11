@@ -1,0 +1,35 @@
+name: Desktop packaging checks
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/src-tauri/**'
+      - 'scripts/package_*'
+      - 'scripts/prepare_*'
+      - 'scripts/*supervisor*'
+      - 'docs/*PACKAGING*'
+      - 'docs/*TAURI*'
+      - '.github/workflows/desktop-packaging-checks.yml'
+  workflow_dispatch:
+
+jobs:
+  validate-packaging-scripts:
+    name: Validate packaging scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate shell syntax
+        run: |
+          bash -n scripts/package_macos_app_foundation.sh
+          bash -n scripts/desktop_supervisor_contract.sh
+          bash -n scripts/prepare_macos_backend_runtime.sh
+          bash -n scripts/prepare_tauri_shell_scaffold.sh
+          bash -n scripts/prepare_windows_packaging_foundation.sh
+
+      - name: Validate Tauri scaffold contract
+        run: ./scripts/prepare_tauri_shell_scaffold.sh
+
+      - name: Validate Windows packaging foundation
+        run: ./scripts/prepare_windows_packaging_foundation.sh

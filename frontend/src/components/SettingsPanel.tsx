@@ -1134,7 +1134,7 @@ export function SettingsPanel({
         <SettingsSection
           eyebrow="Appearance"
           title="Display"
-          description="Choose how the workbench looks on this computer. These choices are stored only in this browser."
+          description="Choose how AI Private Workspace looks on this computer. These choices are stored only in this browser."
           badge="Local"
           tone="info"
         >

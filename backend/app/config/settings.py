@@ -5,21 +5,28 @@ from pathlib import Path
 from pydantic import BaseModel
 
 
+PRODUCT_NAME = "AI Private Workspace"
+# Keep the legacy hidden runtime directory for backward compatibility with
+# existing local installations. It is not a product-facing name.
+DEFAULT_APP_DATA_DIR = Path(".ai-workbench")
+DEFAULT_QDRANT_COLLECTION = "ai_workbench_chunks"
+
+
 class Settings(BaseModel):
-    app_name: str = "Private Project AI Workbench"
+    app_name: str = PRODUCT_NAME
     CORS_ALLOWED_ORIGINS: list[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
-    APP_DATA_DIR: Path = Path(".ai-workbench")
-    WORKSPACE_DB_PATH: Path = Path(".ai-workbench/workspaces.db")
+    APP_DATA_DIR: Path = DEFAULT_APP_DATA_DIR
+    WORKSPACE_DB_PATH: Path = DEFAULT_APP_DATA_DIR / "workspaces.db"
     WORKSPACE_REPOSITORY: str = "sqlite"
     COMMAND_RUNNER: str = "fake"
     COMMAND_TIMEOUT_SECONDS: int = 30
     COMMAND_OUTPUT_LIMIT_CHARS: int = 20000
     VECTOR_STORE: str = "memory"
     QDRANT_URL: str = "http://localhost:6333"
-    QDRANT_COLLECTION: str = "ai_workbench_chunks"
+    QDRANT_COLLECTION: str = DEFAULT_QDRANT_COLLECTION
     EMBEDDING_PROVIDER: str = "fake"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_EMBEDDING_MODEL: str = "nomic-embed-text"
@@ -114,7 +121,7 @@ class Settings(BaseModel):
 
 @lru_cache
 def get_settings() -> Settings:
-    app_data_dir = Path(os.getenv("APP_DATA_DIR", ".ai-workbench"))
+    app_data_dir = Path(os.getenv("APP_DATA_DIR", str(DEFAULT_APP_DATA_DIR)))
     workspace_db_path = Path(
         os.getenv("WORKSPACE_DB_PATH", str(app_data_dir / "workspaces.db"))
     )
@@ -137,7 +144,7 @@ def get_settings() -> Settings:
         COMMAND_OUTPUT_LIMIT_CHARS=int(os.getenv("COMMAND_OUTPUT_LIMIT_CHARS", "20000")),
         VECTOR_STORE=os.getenv("VECTOR_STORE", "memory"),
         QDRANT_URL=os.getenv("QDRANT_URL", "http://localhost:6333"),
-        QDRANT_COLLECTION=os.getenv("QDRANT_COLLECTION", "ai_workbench_chunks"),
+        QDRANT_COLLECTION=os.getenv("QDRANT_COLLECTION", DEFAULT_QDRANT_COLLECTION),
         EMBEDDING_PROVIDER=os.getenv("EMBEDDING_PROVIDER", "fake"),
         OLLAMA_BASE_URL=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
         OLLAMA_EMBEDDING_MODEL=os.getenv(

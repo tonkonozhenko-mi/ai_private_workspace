@@ -1,0 +1,38 @@
+<svg width="960" height="360" viewBox="0 0 960 360" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">AI Private Workspace local-first flow</title>
+  <desc id="desc">A simple flow showing local project selection, safe indexing, local AI answers, reports, and approval-gated agent planning.</desc>
+  <rect width="960" height="360" rx="32" fill="#F5F7F9"/>
+  <rect x="34" y="34" width="892" height="292" rx="28" fill="white" stroke="#DCE4EA"/>
+  <text x="72" y="84" fill="#17202A" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="28" font-weight="700">AI Private Workspace</text>
+  <text x="72" y="115" fill="#66747D" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15">Local-first assistant for understanding private projects without sending source code outside your machine.</text>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <rect x="72" y="160" width="136" height="92" rx="20" fill="#EEF6F2" stroke="#B8D7C5"/>
+    <text x="100" y="196" fill="#245B45" font-size="16" font-weight="700">Choose</text>
+    <text x="96" y="221" fill="#4F655D" font-size="13">workspace</text>
+
+    <path d="M226 206H272" stroke="#B8C5CC" stroke-width="3" stroke-linecap="round"/>
+    <path d="M263 196L275 206L263 216" stroke="#B8C5CC" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="294" y="160" width="136" height="92" rx="20" fill="#F7F9FA" stroke="#DCE4EA"/>
+    <text x="333" y="196" fill="#17202A" font-size="16" font-weight="700">Scan</text>
+    <text x="323" y="221" fill="#66747D" font-size="13">on click only</text>
+
+    <path d="M448 206H494" stroke="#B8C5CC" stroke-width="3" stroke-linecap="round"/>
+    <path d="M485 196L497 206L485 216" stroke="#B8C5CC" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="516" y="160" width="136" height="92" rx="20" fill="#F7F9FA" stroke="#DCE4EA"/>
+    <text x="551" y="196" fill="#17202A" font-size="16" font-weight="700">Index</text>
+    <text x="544" y="221" fill="#66747D" font-size="13">safe context</text>
+
+    <path d="M670 206H716" stroke="#B8C5CC" stroke-width="3" stroke-linecap="round"/>
+    <path d="M707 196L719 206L707 216" stroke="#B8C5CC" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="738" y="160" width="136" height="92" rx="20" fill="#EEF7FB" stroke="#BDD7E7"/>
+    <text x="783" y="196" fill="#42647D" font-size="16" font-weight="700">Ask</text>
+    <text x="768" y="221" fill="#526B7D" font-size="13">cite sources</text>
+  </g>
+
+  <rect x="72" y="278" width="802" height="1" fill="#E5EBEE"/>
+  <text x="72" y="306" fill="#849099" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">Reports and agent plans are generated from retrieved local context. Risky actions stay approval-gated and backend-owned.</text>
+</svg>

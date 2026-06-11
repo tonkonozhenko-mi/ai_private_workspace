@@ -36,3 +36,10 @@ cd backend && pytest -q tests/test_v01_handoff.py tests/test_release_candidate_a
 ## Suggested GitHub description
 
 Local-first AI workspace for private project onboarding, local RAG, model management, reports, and safe Agent/MCP planning.
+## Task 224 final product-quality pass
+
+- Repository now includes GitHub-ready README, contribution guide, security policy, issue templates, PR template, and CI workflows.
+- Frontend received a final Apple-style normalization layer for spacing, typography, controls, card rhythm, and dark mode.
+- Product-facing copy now consistently uses AI Private Workspace.
+- `docs/assets/product-flow.svg` explains the local-first flow on the GitHub landing page.
+
