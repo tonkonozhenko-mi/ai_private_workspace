@@ -214,3 +214,10 @@ Added the final source-handoff layer for v0.1:
 - Settings UI block for demo flow and handoff validation.
 
 The project is now ready for v0.1 source review and GitHub publication. The remaining work after v0.1 is installer-grade desktop packaging: finalized Tauri backend supervisor, bundled backend runtime, signed macOS package, Windows installer, and later sandboxed Agent/MCP execution.
+## Task 224 final product-quality pass
+
+- Repository now includes GitHub-ready README, contribution guide, security policy, issue templates, PR template, and CI workflows.
+- Frontend received a final Apple-style normalization layer for spacing, typography, controls, card rhythm, and dark mode.
+- Product-facing copy now consistently uses AI Private Workspace.
+- `docs/assets/product-flow.svg` explains the local-first flow on the GitHub landing page.
+

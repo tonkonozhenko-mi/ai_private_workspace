@@ -86,13 +86,13 @@ open ~/Applications
 ## Custom app name or output folder
 
 ```bash
-APP_NAME="AI Workbench" OUTPUT_DIR="$HOME/Desktop" ./scripts/create_macos_shortcut.sh
+APP_NAME="AI Private Workspace" OUTPUT_DIR="$HOME/Desktop" ./scripts/create_macos_shortcut.sh
 ```
 
 This creates:
 
 ```text
-~/Desktop/AI Workbench.app
+~/Desktop/AI Private Workspace.app
 ```
 
 ## Updating the project

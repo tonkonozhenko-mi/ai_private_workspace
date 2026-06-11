@@ -213,3 +213,10 @@ Added a read-only release candidate audit endpoint, source archive policy, valid
 The project now has a GitHub-ready README, v0.1 demo handoff, release notes, repository guide, and a read-only `/runtime/v0.1-handoff` endpoint. Settings includes a final v0.1 handoff block with demo steps, important repository files, validation commands, release notes, limitations, and next steps.
 
 Current status: v0.1 release candidate source handoff is ready. Final signed desktop installers are still future packaging work.
+## Task 224 final product-quality pass
+
+- Repository now includes GitHub-ready README, contribution guide, security policy, issue templates, PR template, and CI workflows.
+- Frontend received a final Apple-style normalization layer for spacing, typography, controls, card rhythm, and dark mode.
+- Product-facing copy now consistently uses AI Private Workspace.
+- `docs/assets/product-flow.svg` explains the local-first flow on the GitHub landing page.
+
