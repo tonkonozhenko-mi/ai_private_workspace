@@ -222,3 +222,11 @@ models, and commands. This document provides the finer product-oriented grouping
   - Does not download the model.
   - Does not execute shell commands from the frontend or backend.
   - Marks the draft as `manual_only` so it is not auto-executable by the command policy.
+
+## Task 204 — controlled backend model download worker design
+
+- `GET /models/local-download-worker-plan`
+  - Returns the backend-only worker design for future approved Ollama downloads.
+  - Makes the current execution state explicit with `worker_enabled=false`.
+  - Documents guardrails: no frontend shell, catalog allowlist, exact backend-generated commands, observable status, and no hidden index rebuilds.
+  - Does not download models or execute shell commands.

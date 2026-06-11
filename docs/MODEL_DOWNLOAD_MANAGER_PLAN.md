@@ -24,3 +24,7 @@ Guardrails:
 - No model is downloaded from the frontend.
 - No scan, index, rebuild, MCP server, or agent workflow starts because a model was downloaded.
 - Embedding changes must be treated as context-impacting changes.
+
+## Task 204 update — backend worker design
+
+The project now exposes `GET /models/local-download-worker-plan` to describe the next safe execution stage. It keeps `worker_enabled=false` and documents the intended guardrails before adding real `ollama pull` execution.

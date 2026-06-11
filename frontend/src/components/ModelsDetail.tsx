@@ -14,6 +14,7 @@ import {
   getFirstLaunchReadiness,
   getGuidedModelSetup,
   getLocalModelInstallGuide,
+  getLocalModelDownloadWorkerPlan,
   getWorkspaceMCPToolInventory,
   listWorkspaceMCPConfigs,
   previewWorkspaceMCPApproval,
@@ -51,6 +52,7 @@ import type {
   LocalAIActivationGuide,
   LocalModelInstallDraft,
   LocalModelInstallGuide,
+  LocalModelDownloadWorkerPlan,
   LocalModelInstallOption,
   ModelExperimentPlan,
   ModelExperimentRating,
@@ -493,6 +495,7 @@ function DesktopPackagingRealityPanel() {
 
 function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   const [guide, setGuide] = useState<LocalModelInstallGuide | null>(null);
+  const [workerPlan, setWorkerPlan] = useState<LocalModelDownloadWorkerPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<LocalModelInstallDraft | null>(null);
@@ -502,10 +505,11 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    getLocalModelInstallGuide()
-      .then((result) => {
+    Promise.all([getLocalModelInstallGuide(), getLocalModelDownloadWorkerPlan()])
+      .then(([installGuide, downloadWorkerPlan]) => {
         if (!cancelled) {
-          setGuide(result);
+          setGuide(installGuide);
+          setWorkerPlan(downloadWorkerPlan);
           setError(null);
         }
       })
@@ -625,8 +629,9 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
           </dl>
         </div>
       ) : null}
+      {workerPlan ? <ModelDownloadWorkerPlanPanel plan={workerPlan} /> : null}
       <details className="model-install-details">
-        <summary>How this will become an in-app download manager</summary>
+        <summary>Manual install notes</summary>
         <ol>
           {guide.next_steps.map((step) => (
             <li key={step}>{step}</li>
@@ -635,6 +640,37 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
         <p>{guide.safety_notes.join(" ")}</p>
       </details>
     </section>
+  );
+}
+
+
+function ModelDownloadWorkerPlanPanel({ plan }: { plan: LocalModelDownloadWorkerPlan }) {
+  return (
+    <details className="model-worker-plan">
+      <summary>Backend download worker plan</summary>
+      <div className="model-worker-plan-body">
+        <div className="model-worker-plan-summary">
+          <StatusBadge label={plan.worker_enabled ? "Enabled" : "Design only"} />
+          <p>{plan.summary}</p>
+        </div>
+        <div className="model-worker-flow" aria-label="Future model download worker flow">
+          {plan.user_flow.slice(0, 4).map((step, index) => (
+            <div key={step}>
+              <span>{index + 1}</span>
+              <p>{step}</p>
+            </div>
+          ))}
+        </div>
+        <div className="model-worker-guardrails">
+          {plan.guardrails.slice(0, 3).map((guardrail) => (
+            <article key={guardrail.id}>
+              <strong>{guardrail.label}</strong>
+              <p>{guardrail.detail}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </details>
   );
 }
 

@@ -1302,6 +1302,34 @@ export interface LocalModelInstallGuide {
 }
 
 
+export interface LocalModelDownloadWorkerStep {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+}
+
+export interface LocalModelDownloadWorkerGuardrail {
+  id: string;
+  label: string;
+  detail: string;
+}
+
+export interface LocalModelDownloadWorkerPlan {
+  title: string;
+  summary: string;
+  status: string;
+  worker_enabled: boolean;
+  execution_mode: string;
+  approved_command_pattern: string;
+  allowed_provider: string;
+  steps: LocalModelDownloadWorkerStep[];
+  guardrails: LocalModelDownloadWorkerGuardrail[];
+  future_endpoints: string[];
+  user_flow: string[];
+}
+
+
 export interface CommandProposal {
   id: string;
   workspace_id: string;
