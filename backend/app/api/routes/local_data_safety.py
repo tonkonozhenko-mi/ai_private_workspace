@@ -16,6 +16,10 @@ from app.api.schemas.local_data_safety_schemas import (
     DesktopPackagingDecisionResponse,
     DesktopPackagingDesignResponse,
     DesktopPackagingPhaseResponse,
+    DesktopSupervisorContractResponse,
+    DesktopSupervisorLogResponse,
+    DesktopSupervisorPortResponse,
+    DesktopSupervisorStateResponse,
     MacOSAppPackageArtifactResponse,
     MacOSAppPackageFoundationResponse,
     FirstLaunchChecklistItemResponse,
@@ -645,6 +649,129 @@ def get_macos_app_package_foundation() -> MacOSAppPackageFoundationResponse:
             "The skeleton proves the bundle shape and local lifecycle contract.",
             "Next task replaces the temporary launcher stub with real app shell/supervisor work.",
             "Final target remains a normal macOS app opened by double click.",
+        ],
+    )
+
+
+@router.get("/desktop-supervisor-contract", response_model=DesktopSupervisorContractResponse)
+def get_desktop_supervisor_contract() -> DesktopSupervisorContractResponse:
+    settings = get_settings()
+    logs_dir = settings.app_data_dir / "logs"
+    return DesktopSupervisorContractResponse(
+        status="contract-ready",
+        title="Desktop app supervisor contract",
+        summary="Defines how the packaged desktop app starts, observes, and stops its app-owned local backend without exposing shell control to the frontend.",
+        package_goal="Double click AI Private Workspace.app -> supervisor starts the local backend -> waits for /health -> opens the UI -> writes readable logs.",
+        supervisor_script="scripts/desktop_supervisor_contract.sh",
+        default_backend_port=8000,
+        health_endpoint="http://127.0.0.1:8000/health",
+        logs_directory=_display_path(logs_dir),
+        data_directory=_display_path(settings.app_data_dir),
+        port_rules=[
+            DesktopSupervisorPortResponse(
+                id="localhost-only",
+                title="Bind locally",
+                rule="Backend listens on 127.0.0.1 only.",
+                reason="The packaged app is a private local workspace, not a LAN service.",
+            ),
+            DesktopSupervisorPortResponse(
+                id="no-port-kill",
+                title="Never kill by port",
+                rule="If port 8000 is busy, the supervisor reports a friendly error instead of killing the process.",
+                reason="Another app or dev backend may already own the port; the desktop shell must not destroy unrelated processes.",
+            ),
+            DesktopSupervisorPortResponse(
+                id="future-port-selection",
+                title="Future port selection",
+                rule="Installer-grade packaging may allocate an app-owned port and pass it to the frontend via environment/config.",
+                reason="This keeps multi-instance and corporate endpoint policies possible later.",
+            ),
+        ],
+        startup_states=[
+            DesktopSupervisorStateResponse(
+                id="preflight",
+                title="Preparing local runtime",
+                user_message="Checking local app files and data paths…",
+                technical_behavior="Create logs directory, validate backend entrypoint, and preserve existing runtime data.",
+            ),
+            DesktopSupervisorStateResponse(
+                id="starting-backend",
+                title="Starting private backend",
+                user_message="Starting the local AI workspace engine…",
+                technical_behavior="Start only the app-owned backend process with localhost binding and known environment variables.",
+            ),
+            DesktopSupervisorStateResponse(
+                id="waiting-health",
+                title="Waiting until ready",
+                user_message="Almost ready. Waiting for the local backend health check…",
+                technical_behavior="Poll /health with timeout and show logs path on failure.",
+            ),
+            DesktopSupervisorStateResponse(
+                id="ready",
+                title="Ready",
+                user_message="AI Private Workspace is ready.",
+                technical_behavior="Open the packaged UI after backend readiness is confirmed.",
+            ),
+            DesktopSupervisorStateResponse(
+                id="failed",
+                title="Could not start",
+                user_message="The app could not start safely. Check the logs and try again.",
+                technical_behavior="Do not hide startup errors; preserve logs and avoid killing unrelated processes.",
+            ),
+        ],
+        log_streams=[
+            DesktopSupervisorLogResponse(
+                id="supervisor",
+                title="Supervisor log",
+                path=_display_path(logs_dir / "desktop-supervisor.log"),
+                purpose="App lifecycle, preflight, startup states, and shutdown notes.",
+            ),
+            DesktopSupervisorLogResponse(
+                id="backend",
+                title="Backend log",
+                path=_display_path(logs_dir / "backend.log"),
+                purpose="FastAPI startup, health, and runtime errors.",
+            ),
+            DesktopSupervisorLogResponse(
+                id="model-downloads",
+                title="Model download log",
+                path=_display_path(logs_dir / "model-downloads.log"),
+                purpose="Approved backend model download jobs only.",
+            ),
+        ],
+        environment_contract=[
+            "APP_ENV=desktop",
+            "HOST=127.0.0.1",
+            "PORT=8000",
+            "AI_WORKSPACE_APP_DATA_DIR points to the app-owned local data directory.",
+            "MODEL_DOWNLOAD_EXECUTION_ENABLED remains false unless the trusted local runtime explicitly enables it.",
+        ],
+        shutdown_contract=[
+            "Track only the backend PID started by the supervisor.",
+            "On app exit, ask that PID to stop gracefully first.",
+            "Never kill processes discovered only by port number.",
+            "Leave workspace database and vector data untouched.",
+        ],
+        safety_rules=[
+            "Frontend never executes shell commands.",
+            "Desktop supervisor starts only app-owned local processes.",
+            "No scan, index, rebuild, MCP, agent, or model download starts on app launch.",
+            "Model downloads remain backend-approved allowlisted jobs.",
+            "MCP execution remains disabled until sandbox/allowlist execution is implemented.",
+            "Runtime data and databases are never packaged into generated source zips.",
+        ],
+        validation_steps=[
+            "Run the supervisor contract script from project root in development mode.",
+            "Verify logs are written under the app data logs directory.",
+            "Verify /health is polled before opening the UI.",
+            "Verify a busy port produces a friendly error and does not kill anything.",
+            "Verify app exit stops only the PID started by the supervisor.",
+        ],
+        next_packaging_steps=[
+            "Wire this contract into the macOS .app skeleton.",
+            "Add a packaged UI startup screen for preparing/starting/ready/failed states.",
+            "Freeze backend runtime/dependencies for installer-grade distribution.",
+            "Repeat the supervisor contract for Windows service/process lifecycle.",
         ],
     )
 

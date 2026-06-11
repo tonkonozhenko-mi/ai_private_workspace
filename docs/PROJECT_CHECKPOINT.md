@@ -156,3 +156,4 @@ Important safety boundaries:
 - Runtime data is excluded from packaged backend files.
 - The script does not download models, start MCP servers, run agent tools, scan, index, rebuild, or restart user workflows.
 - This is not the final signed Tauri app yet; it is a packaging skeleton and lifecycle contract.
+- Task 216: desktop supervisor contract implemented as a read-only backend endpoint, UI section, and safe development supervisor script.

@@ -276,3 +276,4 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 ## Task 215 — macOS app package foundation
 
 - `GET /runtime/macos-app-package-foundation` — read-only macOS package foundation contract. It describes the `.app` skeleton, build script, expected artifacts, launch/supervisor contract, validation steps, safety rules, and items not yet included in the final package.
+- `GET /runtime/desktop-supervisor-contract` — read-only desktop supervisor lifecycle contract. It describes local backend startup states, localhost/port rules, log streams, shutdown behavior, validation steps, and safety boundaries for the future packaged app.

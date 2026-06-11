@@ -353,6 +353,48 @@ export interface MacOSAppPackageFoundation {
   user_experience: string[];
 }
 
+
+export interface DesktopSupervisorPortRule {
+  id: string;
+  title: string;
+  rule: string;
+  reason: string;
+}
+
+export interface DesktopSupervisorLogStream {
+  id: string;
+  title: string;
+  path: string;
+  purpose: string;
+}
+
+export interface DesktopSupervisorState {
+  id: string;
+  title: string;
+  user_message: string;
+  technical_behavior: string;
+}
+
+export interface DesktopSupervisorContract {
+  status: string;
+  title: string;
+  summary: string;
+  package_goal: string;
+  supervisor_script: string;
+  default_backend_port: number;
+  health_endpoint: string;
+  logs_directory: string;
+  data_directory: string;
+  port_rules: DesktopSupervisorPortRule[];
+  startup_states: DesktopSupervisorState[];
+  log_streams: DesktopSupervisorLogStream[];
+  environment_contract: string[];
+  shutdown_contract: string[];
+  safety_rules: string[];
+  validation_steps: string[];
+  next_packaging_steps: string[];
+}
+
 export interface ProductionReadinessItem {
   id: string;
   title: string;

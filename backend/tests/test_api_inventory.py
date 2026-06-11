@@ -12,6 +12,7 @@ IMPORTANT_PATHS = {
     "/health",
     "/runtime/health",
     "/runtime/setup-guide",
+    "/runtime/desktop-supervisor-contract",
     "/assistant-profiles",
     "/models/catalog",
     "/models/catalog/details",
