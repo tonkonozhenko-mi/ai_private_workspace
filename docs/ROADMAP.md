@@ -179,3 +179,7 @@ Next packaging work:
 2. Backend runtime freeze decision: PyInstaller, Nuitka, or packaged Python runtime.
 3. macOS release candidate packaging audit.
 4. Windows package foundation.
+
+### Task 219 — Tauri shell scaffold/foundation ✅
+
+The project now contains a minimal `frontend/src-tauri` scaffold and a validation helper. Next packaging work should implement the Tauri supervisor bridge, then Windows packaging foundation and final release audit.

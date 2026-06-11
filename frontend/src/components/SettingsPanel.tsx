@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -20,6 +20,7 @@ import type {
   DesktopSupervisorContract,
   MacOSAppSupervisorWiring,
   BackendRuntimeBundlePlan,
+  TauriShellScaffold,
   ProductionReadiness,
 } from "../api/types";
 import {
@@ -194,6 +195,9 @@ export function SettingsPanel({
   const [backendRuntimeBundlePlan, setBackendRuntimeBundlePlan] = useState<BackendRuntimeBundlePlan | null>(null);
   const [backendRuntimeBundlePlanError, setBackendRuntimeBundlePlanError] = useState<string | null>(null);
   const [backendRuntimeBundlePlanLoading, setBackendRuntimeBundlePlanLoading] = useState(false);
+  const [tauriShellScaffold, setTauriShellScaffold] = useState<TauriShellScaffold | null>(null);
+  const [tauriShellScaffoldError, setTauriShellScaffoldError] = useState<string | null>(null);
+  const [tauriShellScaffoldLoading, setTauriShellScaffoldLoading] = useState(false);
 
 
   useEffect(() => {
@@ -2016,6 +2020,103 @@ export function SettingsPanel({
                 </div>
               ) : null}
             </details>
+
+
+            <details className="settings-disclosure" open>
+              <summary>Tauri shell scaffold</summary>
+              {tauriShellScaffoldError ? (
+                <p className="settings-transfer-message">Could not load Tauri shell scaffold: {tauriShellScaffoldError}</p>
+              ) : null}
+              {tauriShellScaffoldLoading ? (
+                <p className="settings-transfer-message">Loading Tauri shell scaffold…</p>
+              ) : tauriShellScaffold ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{tauriShellScaffold.title}</strong>
+                    <span>{tauriShellScaffold.summary}</span>
+                    <span>Shell path: <code>{tauriShellScaffold.shell_path}</code></span>
+                  </div>
+                  <div className="local-data-grid packaging-design-grid">
+                    <div>
+                      <span>Stack</span>
+                      <strong>Tauri first</strong>
+                      <small>{tauriShellScaffold.chosen_stack}</small>
+                    </div>
+                    <div>
+                      <span>Script</span>
+                      <strong>{tauriShellScaffold.scaffold_script}</strong>
+                      <small>Validates scaffold only</small>
+                    </div>
+                    <div>
+                      <span>Status</span>
+                      <strong>{tauriShellScaffold.status}</strong>
+                      <small>Desktop shell foundation</small>
+                    </div>
+                    <div>
+                      <span>Goal</span>
+                      <strong>Two-click app</strong>
+                      <small>Supervisor-backed local runtime</small>
+                    </div>
+                  </div>
+                  <div className="settings-safety-list">
+                    {tauriShellScaffold.supervisor_mapping.map((item) => <span key={item}>{item}</span>)}
+                  </div>
+                  <details className="settings-disclosure" open>
+                    <summary>Scaffold validation</summary>
+                    <div className="settings-command-stack">
+                      <div className="startup-checklist-command">
+                        <span>Validate Tauri scaffold</span>
+                        <code>{tauriShellScaffold.scaffold_script}</code>
+                        <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(tauriShellScaffold.scaffold_script)}>
+                          Copy
+                        </button>
+                        <small>Run from project root. It does not install Rust/Tauri or start the app.</small>
+                      </div>
+                    </div>
+                    <ol className="settings-preflight-list">
+                      {tauriShellScaffold.validation_steps.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Source files and phases</summary>
+                    <div className="startup-checklist-grid">
+                      {tauriShellScaffold.generated_files.map((file) => (
+                        <div className="startup-checklist-item is-review" key={file.path}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{file.path}</strong>
+                            <StatusBadge label={file.generated ? "generated" : "source"} tone={file.generated ? "warning" : "info"} />
+                          </div>
+                          <p>{file.purpose}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="startup-checklist-grid">
+                      {tauriShellScaffold.implementation_phases.map((phase) => (
+                        <div className="startup-checklist-item is-review" key={phase.id}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{phase.title}</strong>
+                            <StatusBadge label={phase.status} tone={phase.status === "current" ? "success" : "info"} />
+                          </div>
+                          <p>{phase.summary}</p>
+                          <small>{phase.deliverables.join(" · ")}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Safety, limitations, and next steps</summary>
+                    <div className="settings-safety-list">
+                      {tauriShellScaffold.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                    <p className="settings-transfer-message">Known limitations: {tauriShellScaffold.known_limitations.join(" · ")}</p>
+                    <ol className="settings-preflight-list">
+                      {tauriShellScaffold.next_steps.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
 
 
             <details className="settings-disclosure" open>

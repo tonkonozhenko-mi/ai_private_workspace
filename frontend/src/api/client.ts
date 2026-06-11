@@ -48,6 +48,7 @@ import type {
   DesktopSupervisorContract,
   MacOSAppSupervisorWiring,
   BackendRuntimeBundlePlan,
+  TauriShellScaffold,
   FirstLaunchReadiness,
   ProductionReadiness,
   AgentCapabilityCatalog,
@@ -178,6 +179,10 @@ export function getMacOSAppSupervisorWiring(): Promise<MacOSAppSupervisorWiring>
 
 export function getBackendRuntimeBundlePlan(): Promise<BackendRuntimeBundlePlan> {
   return getJson<BackendRuntimeBundlePlan>("/runtime/backend-runtime-bundle-plan");
+}
+
+export function getTauriShellScaffold(): Promise<TauriShellScaffold> {
+  return getJson<TauriShellScaffold>("/runtime/tauri-shell-scaffold");
 }
 
 export function getFirstLaunchReadiness(): Promise<FirstLaunchReadiness> {

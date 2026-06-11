@@ -420,6 +420,38 @@ export interface BackendRuntimeBundlePlan {
 }
 
 
+export interface TauriShellScaffoldFile {
+  path: string;
+  purpose: string;
+  generated: boolean;
+}
+
+export interface TauriShellScaffoldPhase {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  deliverables: string[];
+}
+
+export interface TauriShellScaffold {
+  status: string;
+  title: string;
+  summary: string;
+  package_goal: string;
+  shell_path: string;
+  scaffold_script: string;
+  chosen_stack: string;
+  supervisor_mapping: string[];
+  generated_files: TauriShellScaffoldFile[];
+  implementation_phases: TauriShellScaffoldPhase[];
+  safety_rules: string[];
+  validation_steps: string[];
+  known_limitations: string[];
+  next_steps: string[];
+}
+
+
 export interface DesktopSupervisorPortRule {
   id: string;
   title: string;

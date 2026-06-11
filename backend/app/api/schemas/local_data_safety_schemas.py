@@ -252,6 +252,37 @@ class BackendRuntimeBundlePlanResponse(BaseModel):
     next_steps: list[str]
 
 
+class TauriShellScaffoldFileResponse(BaseModel):
+    path: str
+    purpose: str
+    generated: bool
+
+
+class TauriShellScaffoldPhaseResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    deliverables: list[str]
+
+
+class TauriShellScaffoldResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    package_goal: str
+    shell_path: str
+    scaffold_script: str
+    chosen_stack: str
+    supervisor_mapping: list[str]
+    generated_files: list[TauriShellScaffoldFileResponse]
+    implementation_phases: list[TauriShellScaffoldPhaseResponse]
+    safety_rules: list[str]
+    validation_steps: list[str]
+    known_limitations: list[str]
+    next_steps: list[str]
+
+
 class DatabaseBackupResponse(BaseModel):
     filename: str
     path: str
