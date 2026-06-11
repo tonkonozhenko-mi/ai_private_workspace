@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getTauriSupervisorBridge, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -22,6 +22,7 @@ import type {
   BackendRuntimeBundlePlan,
   TauriShellScaffold,
   TauriSupervisorBridge,
+  WindowsPackagingFoundation,
   ProductionReadiness,
 } from "../api/types";
 import {
@@ -202,6 +203,9 @@ export function SettingsPanel({
   const [tauriSupervisorBridge, setTauriSupervisorBridge] = useState<TauriSupervisorBridge | null>(null);
   const [tauriSupervisorBridgeError, setTauriSupervisorBridgeError] = useState<string | null>(null);
   const [tauriSupervisorBridgeLoading, setTauriSupervisorBridgeLoading] = useState(false);
+  const [windowsPackagingFoundation, setWindowsPackagingFoundation] = useState<WindowsPackagingFoundation | null>(null);
+  const [windowsPackagingFoundationError, setWindowsPackagingFoundationError] = useState<string | null>(null);
+  const [windowsPackagingFoundationLoading, setWindowsPackagingFoundationLoading] = useState(false);
 
 
   useEffect(() => {
@@ -385,6 +389,32 @@ export function SettingsPanel({
       cancelled = true;
     };
   }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setWindowsPackagingFoundationLoading(true);
+    setWindowsPackagingFoundationError(null);
+    getWindowsPackagingFoundation()
+      .then((foundation) => {
+        if (!cancelled) {
+          setWindowsPackagingFoundation(foundation);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setWindowsPackagingFoundationError(error instanceof Error ? error.message : "Could not load Windows packaging foundation");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setWindowsPackagingFoundationLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
 
 
 
@@ -2241,6 +2271,89 @@ export function SettingsPanel({
                       {tauriSupervisorBridge.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
                     </div>
                     <p className="settings-transfer-message">Known limitations: {tauriSupervisorBridge.known_limitations.join(" · ")}</p>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
+
+            <details className="settings-disclosure" open>
+              <summary>Windows packaging foundation</summary>
+              {windowsPackagingFoundationError ? (
+                <p className="settings-transfer-message">Could not load Windows packaging foundation: {windowsPackagingFoundationError}</p>
+              ) : null}
+              {windowsPackagingFoundationLoading ? (
+                <p className="settings-transfer-message">Loading Windows packaging foundation…</p>
+              ) : windowsPackagingFoundation ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{windowsPackagingFoundation.title}</strong>
+                    <span>{windowsPackagingFoundation.summary}</span>
+                    <span>App data: <code>{windowsPackagingFoundation.app_data_directory}</code></span>
+                  </div>
+                  <div className="local-data-grid packaging-design-grid">
+                    <div>
+                      <span>Status</span>
+                      <strong>{windowsPackagingFoundation.status}</strong>
+                      <small>Windows desktop path</small>
+                    </div>
+                    <div>
+                      <span>Shell</span>
+                      <strong>Tauri Windows</strong>
+                      <small>{windowsPackagingFoundation.shell_choice}</small>
+                    </div>
+                    <div>
+                      <span>Logs</span>
+                      <strong>LocalAppData</strong>
+                      <small>{windowsPackagingFoundation.logs_directory}</small>
+                    </div>
+                    <div>
+                      <span>Health</span>
+                      <strong>localhost</strong>
+                      <small>{windowsPackagingFoundation.backend_health_url}</small>
+                    </div>
+                  </div>
+                  <div className="settings-safety-list">
+                    {windowsPackagingFoundation.lifecycle_flow.map((step) => <span key={step}>{step}</span>)}
+                  </div>
+                  <details className="settings-disclosure" open>
+                    <summary>Windows scripts and validation</summary>
+                    <div className="startup-checklist-grid">
+                      {windowsPackagingFoundation.scripts.map((script) => (
+                        <div className="startup-checklist-item is-review" key={script.path}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{script.path}</strong>
+                            <StatusBadge label={script.generated ? "generated" : "source"} tone={script.generated ? "warning" : "info"} />
+                          </div>
+                          <p>{script.purpose}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <ol className="settings-preflight-list">
+                      {windowsPackagingFoundation.validation_steps.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Phases, safety, and limitations</summary>
+                    <div className="startup-checklist-grid">
+                      {windowsPackagingFoundation.implementation_phases.map((phase) => (
+                        <div className="startup-checklist-item is-review" key={phase.id}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{phase.title}</strong>
+                            <StatusBadge label={phase.status} tone={phase.status === "current" ? "success" : "info"} />
+                          </div>
+                          <p>{phase.summary}</p>
+                          <small>{phase.deliverables.join(" · ")}</small>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="settings-safety-list">
+                      {windowsPackagingFoundation.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                    <p className="settings-transfer-message">Known limitations: {windowsPackagingFoundation.known_limitations.join(" · ")}</p>
+                    <ol className="settings-preflight-list">
+                      {windowsPackagingFoundation.next_steps.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
                   </details>
                 </div>
               ) : null}

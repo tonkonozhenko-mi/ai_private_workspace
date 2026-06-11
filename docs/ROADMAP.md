@@ -192,3 +192,7 @@ Next packaging work:
 1. Windows packaging foundation.
 2. Release candidate audit for source archives, docs, tests, safety, and generated artifacts.
 3. Final v0.1 demo/release handoff.
+
+## Task 221 update
+
+Windows packaging foundation is now present. Phase 20 now has macOS foundation, Tauri scaffold/bridge, backend runtime readiness, and Windows lifecycle/installer direction. Remaining v0.1 work should focus on release candidate audit and final handoff/demo package unless new packaging implementation work is intentionally added.

@@ -50,6 +50,7 @@ import type {
   BackendRuntimeBundlePlan,
   TauriShellScaffold,
   TauriSupervisorBridge,
+  WindowsPackagingFoundation,
   FirstLaunchReadiness,
   ProductionReadiness,
   AgentCapabilityCatalog,
@@ -188,6 +189,10 @@ export function getTauriShellScaffold(): Promise<TauriShellScaffold> {
 
 export function getTauriSupervisorBridge(): Promise<TauriSupervisorBridge> {
   return getJson<TauriSupervisorBridge>("/runtime/tauri-supervisor-bridge");
+}
+
+export function getWindowsPackagingFoundation(): Promise<WindowsPackagingFoundation> {
+  return getJson<WindowsPackagingFoundation>("/runtime/windows-packaging-foundation");
 }
 
 export function getFirstLaunchReadiness(): Promise<FirstLaunchReadiness> {

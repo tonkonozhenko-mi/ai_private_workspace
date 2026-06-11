@@ -317,6 +317,43 @@ export interface TauriSupervisorBridge {
 
 
 
+export interface WindowsPackagingArtifact {
+  path: string;
+  purpose: string;
+  generated: boolean;
+}
+
+export interface WindowsPackagingPhase {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  deliverables: string[];
+}
+
+export interface WindowsPackagingFoundation {
+  status: string;
+  title: string;
+  summary: string;
+  package_goal: string;
+  shell_choice: string;
+  app_name: string;
+  app_data_directory: string;
+  logs_directory: string;
+  backend_health_url: string;
+  packaging_strategy: string;
+  supervisor_strategy: string;
+  installer_strategy: string;
+  scripts: WindowsPackagingArtifact[];
+  lifecycle_flow: string[];
+  implementation_phases: WindowsPackagingPhase[];
+  validation_steps: string[];
+  safety_rules: string[];
+  known_limitations: string[];
+  next_steps: string[];
+}
+
+
 export interface FirstLaunchReadiness {
   status: string;
   title: string;
