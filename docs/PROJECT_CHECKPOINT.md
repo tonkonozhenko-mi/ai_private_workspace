@@ -232,3 +232,8 @@ Current status: v0.1 release candidate source handoff is ready. Final signed des
 ## Task 226 checkpoint
 
 Models tab crash was fixed by moving hooks before conditional loading/error returns in the local model install panel. The UI now includes an Ollama recommendation guide that explains which model answers questions, which model powers search context, and which Mac profile to start with.
+
+
+## Task 227 — Model context indexing clarity
+
+Clarified the difference between selecting an embedding/search model and building workspace context with it. The UI now says `Needs context build` when the selected search model is active but the workspace has not been indexed yet.

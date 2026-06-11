@@ -149,8 +149,10 @@ class GetWorkspaceModelsDashboardUseCase:
             return "ready"
         if selection.selected_llm is None or selection.selected_embedding is None:
             return "needs_model_selection"
-        if embedding_plan.plan_status in {"runtime_mismatch", "needs_index"}:
-            return "needs_embedding_setup"
+        if embedding_plan.plan_status == "runtime_mismatch":
+            return "needs_embedding_runtime"
+        if embedding_plan.plan_status == "needs_index":
+            return "needs_context_index"
         if usage_plan.can_ask_with_selected_llm:
             return "usable_with_selected_llm"
         return "needs_attention"
@@ -164,10 +166,10 @@ class GetWorkspaceModelsDashboardUseCase:
         if embedding_plan.plan_status == "runtime_mismatch":
             return (
                 "restart_backend_for_embedding",
-                "Restart backend for selected embedding",
+                "Restart backend for selected search model",
             )
         if embedding_plan.plan_status == "needs_index":
-            return "reindex_workspace", "Index workspace with selected embedding"
+            return "reindex_workspace", "Build context with selected search model"
         if usage_plan.can_ask_with_selected_llm:
             return "ask_with_selected_llm", "Ask using selected LLM"
         return "review_model_selection", "Review model selection"

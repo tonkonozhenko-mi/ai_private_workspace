@@ -27,6 +27,9 @@ def test_summary_returns_compact_fields_and_top_recommendation(tmp_path) -> None
     assert summary["active_embedding"] == "fake/fake-embedding"
     assert summary["can_ask_with_selected_llm"] is False
     assert summary["can_search_with_selected_embedding"] is False
+    assert summary["selected_embedding_matches_active_runtime"] is False
+    assert summary["embedding_index_status"] == "not_indexed"
+    assert summary["embedding_plan_status"] == "not_selected"
     assert summary["top_recommended_model"] == "ollama/qwen2.5-coder"
     assert isinstance(summary["top_recommended_model_score"], int)
     assert summary["performance_models_count"] == 0
@@ -56,6 +59,34 @@ def test_summary_formats_selected_models_and_ready_state(tmp_path) -> None:
     assert summary["selected_embedding"] == "fake/fake-embedding"
     assert summary["can_ask_with_selected_llm"] is True
     assert summary["can_search_with_selected_embedding"] is True
+    assert summary["selected_embedding_matches_active_runtime"] is True
+    assert summary["embedding_index_status"] == "indexed"
+    assert summary["embedding_plan_status"] == "ready"
+
+
+def test_summary_distinguishes_selected_embedding_from_unbuilt_context(tmp_path) -> None:
+    workspace = _create_workspace(tmp_path)
+    assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
+    assert _select(
+        workspace["id"],
+        "fake",
+        "fake-embedding",
+        "embedding",
+    ).status_code == 200
+
+    summary = client.get(
+        f"/workspaces/{workspace['id']}/models/dashboard/summary"
+    ).json()
+
+    assert summary["overall_status"] == "needs_context_index"
+    assert summary["primary_next_action_id"] == "reindex_workspace"
+    assert (
+        summary["primary_next_action_title"]
+        == "Build context with selected search model"
+    )
+    assert summary["selected_embedding_matches_active_runtime"] is True
+    assert summary["embedding_index_status"] == "not_indexed"
+    assert summary["embedding_plan_status"] == "needs_index"
 
 
 def test_warnings_count_is_derived_from_detailed_dashboard(tmp_path) -> None:

@@ -45,3 +45,8 @@ Move from source handoff to installer-grade desktop app:
 3. Produce signed macOS package.
 4. Produce Windows installer.
 5. Add sandboxed Agent/MCP execution only after strict safety gates.
+
+
+## Task 227 — Model context indexing clarity
+
+Clarified the difference between selecting an embedding/search model and building workspace context with it. The UI now says `Needs context build` when the selected search model is active but the workspace has not been indexed yet.
