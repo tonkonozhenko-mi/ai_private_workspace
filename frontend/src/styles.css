@@ -16432,3 +16432,215 @@ select,
     width: 100%;
   }
 }
+
+/* Task 211: model manager consolidation — calm, Apple-like, progressive disclosure. */
+.model-manager-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.model-manager-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.model-manager-summary-grid article {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.05);
+}
+
+.model-manager-summary-grid span {
+  display: block;
+  margin-bottom: 8px;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.model-manager-summary-grid strong {
+  display: block;
+  color: #0f172a;
+  font-size: 1rem;
+  letter-spacing: -0.015em;
+}
+
+.model-manager-summary-grid p {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.model-manager-active-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.model-manager-section {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 26px;
+  background: rgba(248, 250, 252, 0.72);
+  overflow: hidden;
+}
+
+.model-manager-section > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.model-manager-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.model-manager-section > summary::after {
+  content: "⌄";
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: #475569;
+  font-weight: 800;
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.model-manager-section[open] > summary::after {
+  transform: rotate(180deg);
+}
+
+.model-manager-section > summary strong {
+  display: block;
+  color: #0f172a;
+  font-size: 1.05rem;
+  letter-spacing: -0.018em;
+}
+
+.model-manager-section > summary p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.model-manager-section[open] {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.model-manager-section[open] > :not(summary) {
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+.model-manager-section[open] > :last-child {
+  margin-bottom: 20px;
+}
+
+.model-manager-section.is-quiet {
+  background: rgba(248, 250, 252, 0.48);
+}
+
+.model-manager-section .installed-models-panel,
+.model-manager-section .model-download-execution-capability,
+.model-manager-section .model-worker-plan,
+.model-manager-section .model-install-details {
+  margin-top: 0;
+}
+
+.model-manager-section .model-install-grid {
+  margin-top: 14px;
+}
+
+.model-manager-panel .model-download-history {
+  margin-top: 0;
+}
+
+.model-manager-panel .model-download-history:not([open]) {
+  background: rgba(248, 250, 252, 0.56);
+}
+
+.model-manager-panel .model-install-card,
+.model-manager-panel .installed-model-card,
+.model-manager-panel .model-download-history-row {
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .model-manager-summary-grid article,
+:root[data-theme="dark"] .model-manager-section {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.68);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .model-manager-section[open] {
+  background: rgba(15, 23, 42, 0.82);
+}
+
+:root[data-theme="dark"] .model-manager-summary-grid strong,
+:root[data-theme="dark"] .model-manager-section > summary strong {
+  color: #f8fafc;
+}
+
+:root[data-theme="dark"] .model-manager-summary-grid span,
+:root[data-theme="dark"] .model-manager-summary-grid p,
+:root[data-theme="dark"] .model-manager-section > summary p {
+  color: #94a3b8;
+}
+
+:root[data-theme="dark"] .model-manager-section > summary::after {
+  background: rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .model-manager-summary-grid article,
+  :root[data-theme="system"] .model-manager-section {
+    border-color: rgba(148, 163, 184, 0.18);
+    background: rgba(15, 23, 42, 0.68);
+    box-shadow: none;
+  }
+
+  :root[data-theme="system"] .model-manager-section[open] {
+    background: rgba(15, 23, 42, 0.82);
+  }
+
+  :root[data-theme="system"] .model-manager-summary-grid strong,
+  :root[data-theme="system"] .model-manager-section > summary strong {
+    color: #f8fafc;
+  }
+
+  :root[data-theme="system"] .model-manager-summary-grid span,
+  :root[data-theme="system"] .model-manager-summary-grid p,
+  :root[data-theme="system"] .model-manager-section > summary p {
+    color: #94a3b8;
+  }
+
+  :root[data-theme="system"] .model-manager-section > summary::after {
+    background: rgba(148, 163, 184, 0.16);
+    color: #cbd5e1;
+  }
+}
+
+@media (max-width: 920px) {
+  .model-manager-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .model-manager-section > summary {
+    align-items: flex-start;
+  }
+}
