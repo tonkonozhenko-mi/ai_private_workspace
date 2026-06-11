@@ -190,3 +190,15 @@ The project now has a Tauri supervisor bridge foundation:
 - Settings UI panel for bridge states and safety
 
 The bridge remains safe: no frontend shell execution, no backend process startup from Tauri yet, and no automatic scan/index/rebuild/MCP/agent/model-download actions on launch.
+
+## Task 221 — Windows packaging foundation
+
+Added the Windows equivalent of the desktop packaging path:
+
+- `GET /runtime/windows-packaging-foundation`
+- `scripts/windows_supervisor_contract.ps1`
+- `scripts/package_windows_app_foundation.ps1`
+- `scripts/prepare_windows_packaging_foundation.sh`
+- `docs/WINDOWS_PACKAGING_FOUNDATION.md`
+
+The target UX remains downloaded package -> double click -> app-owned localhost backend -> UI opens. Windows runtime data is planned under `%LOCALAPPDATA%\AI Private Workspace`. Frontend still never executes shell commands.

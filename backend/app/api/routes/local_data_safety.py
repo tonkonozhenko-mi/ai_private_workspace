@@ -34,6 +34,9 @@ from app.api.schemas.local_data_safety_schemas import (
     TauriSupervisorBridgeCommandResponse,
     TauriSupervisorBridgeResponse,
     TauriSupervisorBridgeStateResponse,
+    WindowsPackagingArtifactResponse,
+    WindowsPackagingFoundationResponse,
+    WindowsPackagingPhaseResponse,
     FirstLaunchChecklistItemResponse,
     FirstLaunchReadinessResponse,
     DatabaseBackupResponse,
@@ -1106,6 +1109,113 @@ def get_tauri_supervisor_bridge() -> TauriSupervisorBridgeResponse:
             "Add desktop startup screen that reads Tauri supervisor status before showing the full app.",
             "Create Windows packaging foundation with equivalent supervisor states and log rules.",
             "Run release candidate audit after macOS and Windows packaging paths are documented.",
+        ],
+    )
+
+
+@router.get("/windows-packaging-foundation", response_model=WindowsPackagingFoundationResponse)
+def get_windows_packaging_foundation() -> WindowsPackagingFoundationResponse:
+    return WindowsPackagingFoundationResponse(
+        status="foundation",
+        title="Windows packaging foundation",
+        summary="Defines the Windows equivalent of the desktop app packaging path: double-click app, app-owned localhost backend, readable logs, safe port handling, and no automatic risky actions on launch.",
+        package_goal="Install or open AI Private Workspace on Windows, double-click it, and let the app start its own local backend before showing the UI.",
+        shell_choice="Tauri-first Windows shell, sharing the same React UI and supervisor contract as macOS.",
+        app_name="AI Private Workspace",
+        app_data_directory=r"%LOCALAPPDATA%\AI Private Workspace",
+        logs_directory=r"%LOCALAPPDATA%\AI Private Workspace\logs",
+        backend_health_url="http://127.0.0.1:8000/health",
+        packaging_strategy="Use Tauri Windows bundling as the primary path, with an app-owned backend runtime staged beside the shell before moving to installer-grade MSI/NSIS packaging.",
+        supervisor_strategy="The Windows shell starts only the packaged app-owned backend, waits for /health, writes logs to LocalAppData, and stops only the PID it started.",
+        installer_strategy="Start with a developer-verifiable package foundation, then move to signed MSI/NSIS artifacts after backend runtime bundling is stable.",
+        scripts=[
+            WindowsPackagingArtifactResponse(
+                path="scripts/windows_supervisor_contract.ps1",
+                purpose="PowerShell contract for Windows supervisor lifecycle, log paths, localhost backend, and safe port checks.",
+                generated=False,
+            ),
+            WindowsPackagingArtifactResponse(
+                path="scripts/package_windows_app_foundation.ps1",
+                purpose="Developer packaging foundation script that validates frontend/Tauri/backend resources and creates a build manifest without bundling runtime data.",
+                generated=False,
+            ),
+            WindowsPackagingArtifactResponse(
+                path="scripts/prepare_windows_packaging_foundation.sh",
+                purpose="Cross-platform validation helper for CI/sandbox checks. It validates the Windows scripts without executing PowerShell packaging.",
+                generated=False,
+            ),
+        ],
+        lifecycle_flow=[
+            "User launches AI Private Workspace from Start Menu, Desktop shortcut, or installer-created app entry.",
+            "Desktop shell prepares %LOCALAPPDATA% app data and logs directories.",
+            "Supervisor checks whether the configured localhost port is free without killing unknown processes.",
+            "Supervisor starts only the app-owned backend runtime and records its PID.",
+            "Shell waits for /health before showing the main UI.",
+            "If startup fails, the app shows a calm error and points to local logs.",
+            "On exit, the app stops only the backend PID it owns.",
+        ],
+        implementation_phases=[
+            WindowsPackagingPhaseResponse(
+                id="foundation",
+                title="Windows foundation",
+                status="current",
+                summary="Document and validate Windows lifecycle, data paths, logs, scripts, and safe startup rules.",
+                deliverables=[
+                    "Add PowerShell supervisor contract.",
+                    "Add package foundation manifest script.",
+                    "Expose read-only backend/UI packaging guidance.",
+                ],
+            ),
+            WindowsPackagingPhaseResponse(
+                id="tauri-bundle",
+                title="Tauri Windows bundle",
+                status="next",
+                summary="Map Tauri shell startup to the Windows supervisor lifecycle after backend runtime bundling is reliable.",
+                deliverables=[
+                    "Package React static UI.",
+                    "Stage backend runtime next to app resources.",
+                    "Start backend through native shell lifecycle, not frontend code.",
+                ],
+            ),
+            WindowsPackagingPhaseResponse(
+                id="installer",
+                title="Installer-grade artifact",
+                status="later",
+                summary="Produce signed/distributable Windows installer artifacts after the v0.1 runtime path is stable.",
+                deliverables=[
+                    "MSI or NSIS installer direction.",
+                    "Start Menu/Desktop shortcuts.",
+                    "Update-safe app data policy.",
+                ],
+            ),
+        ],
+        validation_steps=[
+            "Run scripts/prepare_windows_packaging_foundation.sh from the project root.",
+            "Confirm Windows scripts use %LOCALAPPDATA%/LocalAppData for logs and app data.",
+            "Confirm scripts document safe port behavior and never kill unknown processes.",
+            "Confirm package manifests exclude runtime DBs, build outputs, node_modules, caches, and app data.",
+            "Confirm frontend still does not execute shell commands.",
+        ],
+        safety_rules=[
+            "React/frontend never executes PowerShell, cmd.exe, or shell commands.",
+            "Windows desktop shell may start only packaged app-owned backend processes.",
+            "Never kill unknown processes that happen to use the expected port.",
+            "Backend binds to 127.0.0.1 by default.",
+            "No scan, index, rebuild, MCP server, agent workflow, or model download starts on app launch.",
+            "Model downloads remain backend-side approved jobs with allowlisted models.",
+            "Runtime data lives under LocalAppData and is not overwritten by app updates.",
+        ],
+        known_limitations=[
+            "This is a Windows packaging foundation, not a signed installer yet.",
+            "The backend runtime is not frozen into a Windows executable yet.",
+            "Tauri Windows build requires developer toolchain setup outside this app.",
+            "Installer signing, auto-update, and enterprise deployment are later release concerns.",
+        ],
+        next_steps=[
+            "Add release candidate audit across macOS, Windows, model manager, MCP, and safety docs.",
+            "Decide whether v0.1 ships as source-controlled foundation or a generated local package artifact.",
+            "Freeze/stage backend runtime for macOS first, then mirror the approach on Windows.",
+            "Create final v0.1 demo flow and handoff package.",
         ],
     )
 

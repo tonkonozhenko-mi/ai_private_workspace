@@ -316,6 +316,44 @@ class TauriSupervisorBridgeResponse(BaseModel):
     next_steps: list[str]
 
 
+
+
+class WindowsPackagingArtifactResponse(BaseModel):
+    path: str
+    purpose: str
+    generated: bool
+
+
+class WindowsPackagingPhaseResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    deliverables: list[str]
+
+
+class WindowsPackagingFoundationResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    package_goal: str
+    shell_choice: str
+    app_name: str
+    app_data_directory: str
+    logs_directory: str
+    backend_health_url: str
+    packaging_strategy: str
+    supervisor_strategy: str
+    installer_strategy: str
+    scripts: list[WindowsPackagingArtifactResponse]
+    lifecycle_flow: list[str]
+    implementation_phases: list[WindowsPackagingPhaseResponse]
+    validation_steps: list[str]
+    safety_rules: list[str]
+    known_limitations: list[str]
+    next_steps: list[str]
+
+
 class DatabaseBackupResponse(BaseModel):
     filename: str
     path: str
