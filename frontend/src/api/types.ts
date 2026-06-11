@@ -1302,6 +1302,32 @@ export interface LocalModelInstallGuide {
 }
 
 
+export interface LocalModelStatusItem {
+  provider: string;
+  model: string;
+  model_type: "llm" | "embedding" | string;
+  display_name: string;
+  recommended: boolean;
+  status: "installed" | "missing" | "unknown" | string;
+  detail: string;
+  installed_as: string | null;
+  size_bytes: number | null;
+  install_command: string;
+}
+
+export interface LocalModelInstallStatus {
+  title: string;
+  summary: string;
+  status: string;
+  provider: string;
+  runtime_reachable: boolean;
+  runtime_url: string;
+  installed_count: number;
+  items: LocalModelStatusItem[];
+  safety_notes: string[];
+}
+
+
 export interface LocalModelDownloadWorkerStep {
   id: string;
   title: string;

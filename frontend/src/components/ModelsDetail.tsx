@@ -14,6 +14,7 @@ import {
   getFirstLaunchReadiness,
   getGuidedModelSetup,
   getLocalModelInstallGuide,
+  getLocalModelInstallStatus,
   getLocalModelDownloadWorkerPlan,
   getWorkspaceMCPToolInventory,
   listWorkspaceMCPConfigs,
@@ -52,6 +53,7 @@ import type {
   LocalAIActivationGuide,
   LocalModelInstallDraft,
   LocalModelInstallGuide,
+  LocalModelInstallStatus,
   LocalModelDownloadWorkerPlan,
   LocalModelInstallOption,
   ModelExperimentPlan,
@@ -495,6 +497,7 @@ function DesktopPackagingRealityPanel() {
 
 function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   const [guide, setGuide] = useState<LocalModelInstallGuide | null>(null);
+  const [installStatus, setInstallStatus] = useState<LocalModelInstallStatus | null>(null);
   const [workerPlan, setWorkerPlan] = useState<LocalModelDownloadWorkerPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -505,10 +508,15 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([getLocalModelInstallGuide(), getLocalModelDownloadWorkerPlan()])
-      .then(([installGuide, downloadWorkerPlan]) => {
+    Promise.all([
+      getLocalModelInstallGuide(),
+      getLocalModelInstallStatus(),
+      getLocalModelDownloadWorkerPlan(),
+    ])
+      .then(([installGuide, installedStatus, downloadWorkerPlan]) => {
         if (!cancelled) {
           setGuide(installGuide);
+          setInstallStatus(installedStatus);
           setWorkerPlan(downloadWorkerPlan);
           setError(null);
         }
@@ -569,6 +577,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
     <section className="panel model-install-panel">
       <PanelHeading eyebrow="Model install" title="Download local models" status={guide.status} />
       <p className="panel-intro model-install-summary">{guide.summary}</p>
+      {installStatus ? <InstalledModelsStatusPanel status={installStatus} /> : null}
       <div className="model-install-grid" aria-label="Recommended local model downloads">
         {guide.options.map((option) => (
           <article className="model-install-card" key={`${option.provider}-${option.model}`}>
@@ -640,6 +649,44 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
         <p>{guide.safety_notes.join(" ")}</p>
       </details>
     </section>
+  );
+}
+
+
+function InstalledModelsStatusPanel({ status }: { status: LocalModelInstallStatus }) {
+  return (
+    <div className="installed-models-panel">
+      <div className="installed-models-header">
+        <div>
+          <span className="eyebrow">Read-only check</span>
+          <strong>{status.title}</strong>
+          <p>{status.summary}</p>
+        </div>
+        <StatusBadge label={status.runtime_reachable ? status.status : "Ollama offline"} />
+      </div>
+      <div className="installed-models-grid" aria-label="Installed local model status">
+        {status.items.map((item) => (
+          <article className="installed-model-card" key={`${item.provider}-${item.model}`}>
+            <div>
+              <span className="model-install-type">{item.model_type}</span>
+              <strong>{item.display_name}</strong>
+              <p>{item.detail}</p>
+            </div>
+            <span className={`model-status-pill model-status-${item.status}`}>
+              {item.status}
+            </span>
+            <small>
+              {item.installed_as
+                ? `Installed as ${item.installed_as}`
+                : `${item.provider}/${item.model}`}
+            </small>
+          </article>
+        ))}
+      </div>
+      <p className="installed-models-note">
+        This reads {status.runtime_url}/api/tags only. It does not pull, remove, or start models.
+      </p>
+    </div>
   );
 }
 

@@ -230,3 +230,10 @@ models, and commands. This document provides the finer product-oriented grouping
   - Makes the current execution state explicit with `worker_enabled=false`.
   - Documents guardrails: no frontend shell, catalog allowlist, exact backend-generated commands, observable status, and no hidden index rebuilds.
   - Does not download models or execute shell commands.
+
+## Task 205 — installed model detection
+
+- `GET /models/local-install-status`
+  - Read-only Ollama model detection via `/api/tags`.
+  - Returns recommended model status: `installed`, `missing`, or `unknown`.
+  - Does not pull, delete, rebuild, execute MCP tools, or run frontend shell commands.
