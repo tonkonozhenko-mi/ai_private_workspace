@@ -44,6 +44,7 @@ import type {
   SafeUpdateWorkflow,
   DesktopStartupExperience,
   DesktopPackagingDesign,
+  MacOSAppPackageFoundation,
   FirstLaunchReadiness,
   ProductionReadiness,
   AgentCapabilityCatalog,
@@ -158,6 +159,10 @@ export function getProductionReadiness(): Promise<ProductionReadiness> {
 
 export function getDesktopPackagingDesign(): Promise<DesktopPackagingDesign> {
   return getJson<DesktopPackagingDesign>("/runtime/desktop-packaging-design");
+}
+
+export function getMacOSAppPackageFoundation(): Promise<MacOSAppPackageFoundation> {
+  return getJson<MacOSAppPackageFoundation>("/runtime/macos-app-package-foundation");
 }
 
 export function getFirstLaunchReadiness(): Promise<FirstLaunchReadiness> {

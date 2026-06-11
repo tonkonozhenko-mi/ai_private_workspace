@@ -16,6 +16,8 @@ from app.api.schemas.local_data_safety_schemas import (
     DesktopPackagingDecisionResponse,
     DesktopPackagingDesignResponse,
     DesktopPackagingPhaseResponse,
+    MacOSAppPackageArtifactResponse,
+    MacOSAppPackageFoundationResponse,
     FirstLaunchChecklistItemResponse,
     FirstLaunchReadinessResponse,
     DatabaseBackupResponse,
@@ -558,6 +560,91 @@ def get_desktop_packaging_design() -> DesktopPackagingDesignResponse:
             "Remote/cloud sync.",
             "Silent model downloads during startup.",
             "Auto-updates that can touch workspace databases.",
+        ],
+    )
+
+
+@router.get("/macos-app-package-foundation", response_model=MacOSAppPackageFoundationResponse)
+def get_macos_app_package_foundation() -> MacOSAppPackageFoundationResponse:
+    return MacOSAppPackageFoundationResponse(
+        status="foundation",
+        title="macOS app package foundation",
+        summary="First concrete packaging foundation for a real double-click macOS app. It defines the app bundle skeleton, supervisor contract, build steps, and safe boundaries before introducing full Tauri code.",
+        package_goal="Downloaded package -> double click AI Private Workspace.app -> app starts local backend -> UI opens after health is ready.",
+        shell_choice="Tauri-first desktop shell; shell code comes after this packaging contract is stable.",
+        build_script="scripts/package_macos_app_foundation.sh",
+        app_bundle_name="AI Private Workspace.app",
+        expected_output_path="build/macos/AI Private Workspace.app",
+        launch_contract=[
+            "The desktop shell owns app startup; the user should not run backend or frontend scripts in the final package.",
+            "Frontend assets are built once and opened by the desktop shell as app content, not by npm run dev.",
+            "Backend starts as an app-owned localhost-only process and must pass /health before the UI is considered ready.",
+            "The last workspace may be restored only after the backend is healthy and local data path is confirmed.",
+        ],
+        supervisor_contract=[
+            "Start only app-owned local processes.",
+            "Bind backend to 127.0.0.1 by default and avoid network exposure.",
+            "Write backend, shell, and model-download logs to a local logs directory.",
+            "Stop only processes started by the app on exit; never kill unrelated user processes by port alone.",
+            "Keep model downloads as backend-approved jobs, not shell commands from the frontend.",
+        ],
+        artifacts=[
+            MacOSAppPackageArtifactResponse(
+                name="Info.plist",
+                purpose="macOS bundle metadata for the app skeleton.",
+                path="build/macos/AI Private Workspace.app/Contents/Info.plist",
+                included_in_generated_zip=False,
+            ),
+            MacOSAppPackageArtifactResponse(
+                name="MacOS/AI Private Workspace",
+                purpose="Temporary safe launcher stub for the bundle foundation; future Tauri binary replaces it.",
+                path="build/macos/AI Private Workspace.app/Contents/MacOS/AI Private Workspace",
+                included_in_generated_zip=False,
+            ),
+            MacOSAppPackageArtifactResponse(
+                name="Resources/app/frontend",
+                purpose="Static frontend build staged for app-shell consumption.",
+                path="build/macos/AI Private Workspace.app/Contents/Resources/app/frontend",
+                included_in_generated_zip=False,
+            ),
+            MacOSAppPackageArtifactResponse(
+                name="Resources/app/backend",
+                purpose="Backend source staged for the next supervisor/bundling step; runtime data is excluded.",
+                path="build/macos/AI Private Workspace.app/Contents/Resources/app/backend",
+                included_in_generated_zip=False,
+            ),
+        ],
+        build_steps=[
+            "Run frontend npm ci and npm run build to create frontend/dist.",
+            "Run scripts/package_macos_app_foundation.sh from the project root.",
+            "Inspect build/macos/AI Private Workspace.app before opening it.",
+            "Use the bundle as a packaging skeleton, not as the final signed installer.",
+        ],
+        validation_steps=[
+            "Verify frontend/dist exists before packaging.",
+            "Verify backend/.ai-workbench, *.db, *.sqlite, node_modules, dist, and caches are not copied as runtime data.",
+            "Verify the app bundle contains Info.plist, MacOS launcher stub, staged frontend assets, and staged backend source.",
+            "Verify the launcher binds only to localhost and prints log locations instead of hiding failures.",
+        ],
+        safety_rules=[
+            "Packaging script does not execute model downloads.",
+            "Packaging script does not run scan, index, rebuild, restart, MCP, or agent tools.",
+            "Generated app bundle lives under build/ and must not be committed into normal source archives.",
+            "Runtime data is excluded from staged backend files.",
+            "This foundation does not replace the backend approval gates or model download allowlist.",
+        ],
+        not_yet_included=[
+            "Signed .app or .dmg distribution.",
+            "Real Tauri backend supervisor implementation.",
+            "Bundled Python runtime and dependency freezing.",
+            "Auto-update system.",
+            "Windows .exe/.msi package.",
+        ],
+        user_experience=[
+            "Developer builds the package skeleton from source.",
+            "The skeleton proves the bundle shape and local lifecycle contract.",
+            "Next task replaces the temporary launcher stub with real app shell/supervisor work.",
+            "Final target remains a normal macOS app opened by double click.",
         ],
     )
 

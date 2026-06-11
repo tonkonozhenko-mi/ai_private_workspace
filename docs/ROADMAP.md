@@ -147,3 +147,19 @@ The current macOS launcher is a bridge for developer-safe testing, not the final
 
 Model downloads and MCP server setup should be implemented as explicit, user-approved product flows before the final installer: model manager first, MCP install/config/checks second, sandboxed execution later.
 
+
+## Packaging update after Task 215
+
+- Task 214 locked the real desktop app architecture.
+- Task 215 adds the first macOS `.app` package foundation:
+  - app bundle skeleton
+  - staged frontend assets
+  - staged backend source without runtime data
+  - temporary launcher stub
+  - packaging validation docs
+
+Next larger packaging tasks:
+1. App supervisor contract implementation.
+2. Tauri shell foundation.
+3. macOS release candidate packaging audit.
+4. Windows package foundation.
