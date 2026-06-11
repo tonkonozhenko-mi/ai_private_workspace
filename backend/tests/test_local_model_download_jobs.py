@@ -1,3 +1,5 @@
+from time import sleep
+
 from fastapi.testclient import TestClient
 
 from app.config.settings import get_settings
@@ -19,7 +21,7 @@ def test_model_download_job_is_blocked_when_execution_disabled(tmp_path) -> None
     assert "disabled" in response.json()["detail"]
 
 
-def test_model_download_job_records_status_and_progress(tmp_path) -> None:
+def test_model_download_job_starts_background_status_and_finishes(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     draft = _create_draft(workspace["id"])
 
@@ -39,15 +41,15 @@ def test_model_download_job_records_status_and_progress(tmp_path) -> None:
     assert response.status_code == 202
     job = response.json()
     assert job["command_id"] == draft["command_proposal"]["id"]
-    assert job["status"] == "succeeded"
-    assert job["progress_percent"] == 100
-    assert "Re-check installed models" in job["progress_message"]
-    assert job["command_proposal"]["policy_mode"] == "model_download_worker_job"
-    assert job["command_proposal"]["status"] == "executed"
+    assert job["status"] in {"queued", "running", "succeeded"}
+    assert job["command_proposal"]["policy_mode"] == "model_download_background_job"
+    assert job["command_proposal"]["status"] == "approved"
 
-    read_response = client.get(f"/models/local-download-jobs/{job['id']}")
-    assert read_response.status_code == 200
-    assert read_response.json()["id"] == job["id"]
+    finished = _wait_for_job(job["id"])
+    assert finished["status"] == "succeeded"
+    assert finished["progress_percent"] == 100
+    assert "Re-check installed models" in finished["progress_message"]
+    assert finished["command_proposal"]["status"] == "executed"
 
 
 def test_model_download_job_read_rejects_unknown_job() -> None:
@@ -55,6 +57,18 @@ def test_model_download_job_read_rejects_unknown_job() -> None:
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Model download job not found"
+
+
+def _wait_for_job(job_id: str):
+    last = None
+    for _ in range(30):
+        read_response = client.get(f"/models/local-download-jobs/{job_id}")
+        assert read_response.status_code == 200
+        last = read_response.json()
+        if last["status"] in {"succeeded", "failed"}:
+            return last
+        sleep(0.05)
+    raise AssertionError(f"job did not finish: {last}")
 
 
 def _create_draft(workspace_id: str):

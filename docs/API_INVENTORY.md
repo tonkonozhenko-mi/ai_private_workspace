@@ -253,3 +253,9 @@ models, and commands. This document provides the finer product-oriented grouping
 ## Task 207 update
 
 Added model download job foundation endpoints: `POST /models/local-install-drafts/{command_id}/jobs` and `GET /models/local-download-jobs/{job_id}`. Jobs are backend-owned status records for approved Ollama downloads. The frontend can start and refresh a job, but still never runs shell commands. Execution remains opt-in and allowlisted.
+
+
+### Background model download worker
+
+- `POST /models/local-install-drafts/{command_id}/jobs` starts a backend-owned background model download job and returns `202 Accepted` quickly.
+- `GET /models/local-download-jobs/{job_id}` reads queued/running/succeeded/failed status for polling UI.

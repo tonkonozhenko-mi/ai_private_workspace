@@ -38,3 +38,8 @@ The job API remains the same, but the UI now treats the job status as a human wo
 - failed jobs hide backend output behind a troubleshooting disclosure;
 - running jobs can be refreshed without exposing shell execution details;
 - installed model detection is refreshable from the same panel.
+
+
+## Task 209 update
+
+Model download jobs now return quickly and run in a backend background worker. The frontend should poll `GET /models/local-download-jobs/{job_id}` for `queued`, `running`, `succeeded`, or `failed`. The initial POST no longer waits for the full `ollama pull` to finish.

@@ -639,7 +639,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   };
 
   useEffect(() => {
-    if (!downloadJob || downloadJob.status !== "running") {
+    if (!downloadJob || (downloadJob.status !== "queued" && downloadJob.status !== "running")) {
       return;
     }
     const timer = window.setTimeout(() => {
@@ -651,7 +651,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   return (
     <section className="panel model-install-panel">
       <PanelHeading eyebrow="Model install" title="Download local models" status={guide.status} />
-      <p className="panel-intro model-install-summary">Pick only the models you need. Nothing downloads until you explicitly create and run an approved backend job.</p>
+      <p className="panel-intro model-install-summary">Pick only the models you need. Nothing downloads until you explicitly create and start an approved backend job. The backend works in the background while this screen shows progress.</p>
       {installStatus ? (
         <InstalledModelsStatusPanel
           status={installStatus}
@@ -779,7 +779,7 @@ function ModelDownloadJobStatusCard({
     <div className={`model-download-job-card model-download-job-card--${job.status}`}>
       <div className="model-download-job-header">
         <div>
-          <span className="eyebrow">Download status</span>
+          <span className="eyebrow">Download progress</span>
           <strong>{friendlyStatus.title}</strong>
           <p>{friendlyStatus.message}</p>
         </div>
