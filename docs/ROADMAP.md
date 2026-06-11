@@ -163,3 +163,4 @@ Next larger packaging tasks:
 2. Tauri shell foundation.
 3. macOS release candidate packaging audit.
 4. Windows package foundation.
+- Task 216 — Desktop supervisor contract: startup states, localhost-only backend lifecycle, logs, safe shutdown, and no kill-by-port behavior. ✅

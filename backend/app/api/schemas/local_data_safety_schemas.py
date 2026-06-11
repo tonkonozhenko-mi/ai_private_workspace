@@ -143,6 +143,49 @@ class MacOSAppPackageFoundationResponse(BaseModel):
     user_experience: list[str]
 
 
+
+
+class DesktopSupervisorPortResponse(BaseModel):
+    id: str
+    title: str
+    rule: str
+    reason: str
+
+
+class DesktopSupervisorLogResponse(BaseModel):
+    id: str
+    title: str
+    path: str
+    purpose: str
+
+
+class DesktopSupervisorStateResponse(BaseModel):
+    id: str
+    title: str
+    user_message: str
+    technical_behavior: str
+
+
+class DesktopSupervisorContractResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    package_goal: str
+    supervisor_script: str
+    default_backend_port: int
+    health_endpoint: str
+    logs_directory: str
+    data_directory: str
+    port_rules: list[DesktopSupervisorPortResponse]
+    startup_states: list[DesktopSupervisorStateResponse]
+    log_streams: list[DesktopSupervisorLogResponse]
+    environment_contract: list[str]
+    shutdown_contract: list[str]
+    safety_rules: list[str]
+    validation_steps: list[str]
+    next_packaging_steps: list[str]
+
+
 class DatabaseBackupResponse(BaseModel):
     filename: str
     path: str

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -17,6 +17,7 @@ import type {
   DesktopStartupExperience,
   DesktopPackagingDesign,
   MacOSAppPackageFoundation,
+  DesktopSupervisorContract,
   ProductionReadiness,
 } from "../api/types";
 import {
@@ -182,6 +183,9 @@ export function SettingsPanel({
   const [macOSAppPackageFoundation, setMacOSAppPackageFoundation] = useState<MacOSAppPackageFoundation | null>(null);
   const [macOSAppPackageFoundationError, setMacOSAppPackageFoundationError] = useState<string | null>(null);
   const [macOSAppPackageFoundationLoading, setMacOSAppPackageFoundationLoading] = useState(false);
+  const [desktopSupervisorContract, setDesktopSupervisorContract] = useState<DesktopSupervisorContract | null>(null);
+  const [desktopSupervisorContractError, setDesktopSupervisorContractError] = useState<string | null>(null);
+  const [desktopSupervisorContractLoading, setDesktopSupervisorContractLoading] = useState(false);
 
 
   useEffect(() => {
@@ -233,6 +237,31 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setMacOSAppPackageFoundationLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDesktopSupervisorContractLoading(true);
+    setDesktopSupervisorContractError(null);
+    getDesktopSupervisorContract()
+      .then((contract) => {
+        if (!cancelled) {
+          setDesktopSupervisorContract(contract);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setDesktopSupervisorContractError(error instanceof Error ? error.message : "Could not load desktop supervisor contract");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setDesktopSupervisorContractLoading(false);
         }
       });
     return () => {
@@ -1744,6 +1773,107 @@ export function SettingsPanel({
                       {macOSAppPackageFoundation.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
                     </div>
                     <p className="settings-transfer-message">Not yet included: {macOSAppPackageFoundation.not_yet_included.join(" · ")}</p>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
+            <details className="settings-disclosure" open>
+              <summary>Desktop supervisor contract</summary>
+              {desktopSupervisorContractError ? (
+                <p className="settings-transfer-message">Could not load desktop supervisor contract: {desktopSupervisorContractError}</p>
+              ) : null}
+              {desktopSupervisorContractLoading ? (
+                <p className="settings-transfer-message">Loading desktop supervisor contract…</p>
+              ) : desktopSupervisorContract ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{desktopSupervisorContract.title}</strong>
+                    <span>{desktopSupervisorContract.package_goal}</span>
+                    <span>Contract script: <code>{desktopSupervisorContract.supervisor_script}</code></span>
+                  </div>
+                  <div className="local-data-grid packaging-design-grid">
+                    <div>
+                      <span>Health</span>
+                      <strong>{desktopSupervisorContract.health_endpoint}</strong>
+                      <small>UI opens only after readiness</small>
+                    </div>
+                    <div>
+                      <span>Port</span>
+                      <strong>{desktopSupervisorContract.default_backend_port}</strong>
+                      <small>No killing unknown processes</small>
+                    </div>
+                    <div>
+                      <span>Logs</span>
+                      <strong>Readable files</strong>
+                      <small>{desktopSupervisorContract.logs_directory}</small>
+                    </div>
+                    <div>
+                      <span>Status</span>
+                      <strong>{desktopSupervisorContract.status}</strong>
+                      <small>Ready for app-shell wiring</small>
+                    </div>
+                  </div>
+                  <div className="settings-quiet-flow">
+                    {desktopSupervisorContract.startup_states.map((state, index) => (
+                      <div className="settings-quiet-flow-step" key={state.id}>
+                        <span>{index + 1}</span>
+                        <p><strong>{state.title}</strong><br />{state.user_message}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Run development supervisor contract</summary>
+                    <div className="settings-command-stack">
+                      <div className="startup-checklist-command">
+                        <span>Development contract script</span>
+                        <code>{desktopSupervisorContract.supervisor_script}</code>
+                        <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(desktopSupervisorContract.supervisor_script)}>
+                          Copy
+                        </button>
+                        <small>Runs from project root. This is a bridge to the packaged app supervisor, not final user UX.</small>
+                      </div>
+                    </div>
+                    <ol className="settings-preflight-list">
+                      {desktopSupervisorContract.validation_steps.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Ports, logs, and shutdown</summary>
+                    <div className="startup-checklist-grid">
+                      {desktopSupervisorContract.port_rules.map((rule) => (
+                        <div className="startup-checklist-item is-review" key={rule.id}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{rule.title}</strong>
+                            <StatusBadge label="safe" tone="success" />
+                          </div>
+                          <p>{rule.rule}</p>
+                          <small>{rule.reason}</small>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="settings-command-stack">
+                      {desktopSupervisorContract.log_streams.map((logStream) => (
+                        <div className="startup-checklist-command" key={logStream.id}>
+                          <span>{logStream.title}</span>
+                          <code>{logStream.path}</code>
+                          <small>{logStream.purpose}</small>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="settings-safety-list">
+                      {desktopSupervisorContract.shutdown_contract.map((item) => <span key={item}>{item}</span>)}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Environment, safety, and next packaging steps</summary>
+                    <div className="settings-safety-list">
+                      {desktopSupervisorContract.environment_contract.map((item) => <span key={item}>{item}</span>)}
+                      {desktopSupervisorContract.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                    <ol className="settings-preflight-list">
+                      {desktopSupervisorContract.next_packaging_steps.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
                   </details>
                 </div>
               ) : null}

@@ -45,6 +45,7 @@ import type {
   DesktopStartupExperience,
   DesktopPackagingDesign,
   MacOSAppPackageFoundation,
+  DesktopSupervisorContract,
   FirstLaunchReadiness,
   ProductionReadiness,
   AgentCapabilityCatalog,
@@ -163,6 +164,10 @@ export function getDesktopPackagingDesign(): Promise<DesktopPackagingDesign> {
 
 export function getMacOSAppPackageFoundation(): Promise<MacOSAppPackageFoundation> {
   return getJson<MacOSAppPackageFoundation>("/runtime/macos-app-package-foundation");
+}
+
+export function getDesktopSupervisorContract(): Promise<DesktopSupervisorContract> {
+  return getJson<DesktopSupervisorContract>("/runtime/desktop-supervisor-contract");
 }
 
 export function getFirstLaunchReadiness(): Promise<FirstLaunchReadiness> {
