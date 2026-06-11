@@ -17,7 +17,6 @@ import {
   getLocalModelInstallStatus,
   getLocalModelDownloadWorkerPlan,
   getLocalModelDownloadExecutionCapability,
-  runLocalModelInstallDraft,
   startLocalModelDownloadJob,
   getLocalModelDownloadJob,
   getWorkspaceMCPToolInventory,
@@ -60,7 +59,6 @@ import type {
   LocalModelInstallStatus,
   LocalModelDownloadWorkerPlan,
   LocalModelDownloadExecutionCapability,
-  LocalModelDownloadExecutionResult,
   LocalModelDownloadJob,
   LocalModelInstallOption,
   ModelExperimentPlan,
@@ -512,10 +510,10 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   const [draft, setDraft] = useState<LocalModelInstallDraft | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
   const [draftingKey, setDraftingKey] = useState<string | null>(null);
-  const [executionResult, setExecutionResult] = useState<LocalModelDownloadExecutionResult | null>(null);
   const [downloadJob, setDownloadJob] = useState<LocalModelDownloadJob | null>(null);
   const [runningDraft, setRunningDraft] = useState(false);
   const [refreshingJob, setRefreshingJob] = useState(false);
+  const [refreshingInstallStatus, setRefreshingInstallStatus] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -580,7 +578,6 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
         model_type: option.model_type,
       });
       setDraft(result);
-      setExecutionResult(null);
       setDownloadJob(null);
     } catch (installDraftError) {
       setDraftError(errorMessage(installDraftError));
@@ -600,7 +597,9 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
     try {
       const job = await startLocalModelDownloadJob(draft.command_proposal.id);
       setDownloadJob(job);
-      setExecutionResult(null);
+      if (job.status === "succeeded") {
+        void refreshInstallStatus();
+      }
     } catch (downloadError) {
       setDraftError(errorMessage(downloadError));
     } finally {
@@ -617,6 +616,9 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
     try {
       const job = await getLocalModelDownloadJob(downloadJob.id);
       setDownloadJob(job);
+      if (job.status === "succeeded") {
+        void refreshInstallStatus();
+      }
     } catch (downloadError) {
       setDraftError(errorMessage(downloadError));
     } finally {
@@ -624,12 +626,47 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
     }
   };
 
+  const refreshInstallStatus = async () => {
+    setRefreshingInstallStatus(true);
+    try {
+      const status = await getLocalModelInstallStatus();
+      setInstallStatus(status);
+    } catch (installStatusError) {
+      setDraftError(errorMessage(installStatusError));
+    } finally {
+      setRefreshingInstallStatus(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!downloadJob || downloadJob.status !== "running") {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void refreshDownloadJob();
+    }, 1800);
+    return () => window.clearTimeout(timer);
+  }, [downloadJob?.id, downloadJob?.status]);
+
   return (
     <section className="panel model-install-panel">
       <PanelHeading eyebrow="Model install" title="Download local models" status={guide.status} />
-      <p className="panel-intro model-install-summary">{guide.summary}</p>
-      {installStatus ? <InstalledModelsStatusPanel status={installStatus} /> : null}
+      <p className="panel-intro model-install-summary">Pick only the models you need. Nothing downloads until you explicitly create and run an approved backend job.</p>
+      {installStatus ? (
+        <InstalledModelsStatusPanel
+          status={installStatus}
+          isRefreshing={refreshingInstallStatus}
+          onRefresh={() => void refreshInstallStatus()}
+        />
+      ) : null}
       {executionCapability ? <ModelDownloadExecutionCapabilityPanel capability={executionCapability} /> : null}
+      <div className="model-install-section-heading">
+        <div>
+          <span className="eyebrow">Choose</span>
+          <strong>Recommended downloads</strong>
+          <p>Answer models generate replies. Search models build local context for RAG.</p>
+        </div>
+      </div>
       <div className="model-install-grid" aria-label="Recommended local model downloads">
         {guide.options.map((option) => (
           <article className="model-install-card" key={`${option.provider}-${option.model}`}>
@@ -682,7 +719,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
               onClick={() => void startDownloadJob()}
               title={executionCapability?.disabled_reason ?? undefined}
             >
-              {runningDraft ? "Downloading…" : "Run approved download"}
+              {runningDraft ? "Starting…" : "Run approved download"}
             </button>
           </div>
           <dl>
@@ -695,8 +732,8 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
               <dd>{draft.execution_supported ? "Supported" : "Manual only"}</dd>
             </div>
             <div>
-              <dt>Policy</dt>
-              <dd>{draft.command_proposal.policy_mode ?? "manual_only"}</dd>
+              <dt>Safety</dt>
+              <dd>{draft.command_proposal.policy_mode ?? "manual only"}</dd>
             </div>
           </dl>
         </div>
@@ -706,26 +743,8 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
           job={downloadJob}
           isRefreshing={refreshingJob}
           onRefresh={() => void refreshDownloadJob()}
+          onRefreshInstalled={() => void refreshInstallStatus()}
         />
-      ) : null}
-      {executionResult ? (
-        <div className="model-install-draft-summary model-install-execution-result">
-          <div>
-            <span className="eyebrow">Execution result</span>
-            <strong>{executionResult.display_name}</strong>
-            <p>{executionResult.safety_summary}</p>
-          </div>
-          <dl>
-            <div>
-              <dt>Status</dt>
-              <dd>{executionResult.execution_status}</dd>
-            </div>
-            <div>
-              <dt>Exit code</dt>
-              <dd>{executionResult.command_proposal.exit_code ?? "unknown"}</dd>
-            </div>
-          </dl>
-        </div>
       ) : null}
       {workerPlan ? <ModelDownloadWorkerPlanPanel plan={workerPlan} /> : null}
       <details className="model-install-details">
@@ -746,39 +765,45 @@ function ModelDownloadJobStatusCard({
   job,
   isRefreshing,
   onRefresh,
+  onRefreshInstalled,
 }: {
   job: LocalModelDownloadJob;
   isRefreshing: boolean;
   onRefresh: () => void;
+  onRefreshInstalled: () => void;
 }) {
+  const isFinished = job.status === "succeeded" || job.status === "failed";
+  const friendlyStatus = getFriendlyDownloadJobStatus(job);
+
   return (
-    <div className="model-download-job-card">
+    <div className={`model-download-job-card model-download-job-card--${job.status}`}>
       <div className="model-download-job-header">
         <div>
-          <span className="eyebrow">Download job</span>
-          <strong>{job.display_name}</strong>
-          <p>{job.progress_message}</p>
+          <span className="eyebrow">Download status</span>
+          <strong>{friendlyStatus.title}</strong>
+          <p>{friendlyStatus.message}</p>
         </div>
-        <StatusBadge label={job.status} />
+        <StatusBadge label={friendlyStatus.badge} />
       </div>
       <div className="model-download-progress" aria-label="Model download progress">
         <span style={{ width: `${Math.max(0, Math.min(100, job.progress_percent))}%` }} />
       </div>
-      <dl>
-        <div>
-          <dt>Progress</dt>
-          <dd>{job.progress_percent}%</dd>
+      <div className="model-download-job-meta">
+        <span>{job.display_name}</span>
+        <span>{job.progress_percent}%</span>
+      </div>
+      {job.status === "succeeded" ? (
+        <div className="model-download-success-note">
+          <strong>Model download finished.</strong>
+          <p>Refresh the installed models list, then save this model as a workspace preference if you want to use it.</p>
         </div>
-        <div>
-          <dt>Command status</dt>
-          <dd>{job.command_proposal.status}</dd>
-        </div>
-        <div>
-          <dt>Exit code</dt>
-          <dd>{job.exit_code ?? "pending"}</dd>
-        </div>
-      </dl>
-      {job.stderr_preview ? <pre>{job.stderr_preview}</pre> : null}
+      ) : null}
+      {job.status === "failed" ? (
+        <details className="model-download-output">
+          <summary>Show backend output</summary>
+          {job.stderr_preview ? <pre>{job.stderr_preview}</pre> : <p>No stderr output was returned.</p>}
+        </details>
+      ) : null}
       <div className="model-download-job-actions">
         <button
           className="secondary-button model-install-draft-button"
@@ -786,24 +811,79 @@ function ModelDownloadJobStatusCard({
           disabled={isRefreshing}
           onClick={onRefresh}
         >
-          {isRefreshing ? "Refreshing…" : "Refresh status"}
+          {isRefreshing ? "Refreshing…" : isFinished ? "Refresh job" : "Refresh status"}
         </button>
+        {job.status === "succeeded" ? (
+          <button
+            className="primary-button model-install-draft-button"
+            type="button"
+            onClick={onRefreshInstalled}
+          >
+            Re-check installed models
+          </button>
+        ) : null}
       </div>
     </div>
   );
 }
 
+function getFriendlyDownloadJobStatus(job: LocalModelDownloadJob): {
+  title: string;
+  message: string;
+  badge: string;
+} {
+  if (job.status === "succeeded") {
+    return {
+      title: "Download complete",
+      message: `${job.display_name} is ready to verify in the installed models list.`,
+      badge: "Complete",
+    };
+  }
+  if (job.status === "failed") {
+    return {
+      title: "Download needs attention",
+      message: job.progress_message || "The backend worker could not finish the download.",
+      badge: "Failed",
+    };
+  }
+  if (job.status === "running") {
+    return {
+      title: "Downloading model",
+      message: job.progress_message,
+      badge: "Running",
+    };
+  }
+  return {
+    title: "Download queued",
+    message: job.progress_message,
+    badge: "Queued",
+  };
+}
 
-function InstalledModelsStatusPanel({ status }: { status: LocalModelInstallStatus }) {
+
+function InstalledModelsStatusPanel({
+  status,
+  isRefreshing,
+  onRefresh,
+}: {
+  status: LocalModelInstallStatus;
+  isRefreshing: boolean;
+  onRefresh: () => void;
+}) {
   return (
     <div className="installed-models-panel">
       <div className="installed-models-header">
         <div>
-          <span className="eyebrow">Read-only check</span>
-          <strong>{status.title}</strong>
-          <p>{status.summary}</p>
+          <span className="eyebrow">Installed models</span>
+          <strong>{status.runtime_reachable ? "Local Ollama models" : "Ollama is offline"}</strong>
+          <p>{status.runtime_reachable ? status.summary : "Start Ollama, then refresh this read-only check."}</p>
         </div>
-        <StatusBadge label={status.runtime_reachable ? status.status : "Ollama offline"} />
+        <div className="installed-models-header-actions">
+          <StatusBadge label={status.runtime_reachable ? status.status : "Offline"} />
+          <button className="secondary-button" type="button" onClick={onRefresh} disabled={isRefreshing}>
+            {isRefreshing ? "Checking…" : "Refresh"}
+          </button>
+        </div>
       </div>
       <div className="installed-models-grid" aria-label="Installed local model status">
         {status.items.map((item) => (
@@ -825,7 +905,7 @@ function InstalledModelsStatusPanel({ status }: { status: LocalModelInstallStatu
         ))}
       </div>
       <p className="installed-models-note">
-        This reads {status.runtime_url}/api/tags only. It does not pull, remove, or start models.
+        Read-only check: this only reads {status.runtime_url}/api/tags. It never pulls, removes, starts, or changes models.
       </p>
     </div>
   );

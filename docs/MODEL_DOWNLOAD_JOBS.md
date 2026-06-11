@@ -29,3 +29,12 @@ This is a foundation step. The job runner records queued/running/final states, b
 - Only `ollama pull <catalog-model-name>` is allowed.
 - The model must exist in the local allowlist catalog.
 - Installing an embedding model does not rebuild indexes automatically.
+
+## Task 208 UX refinement
+
+The job API remains the same, but the UI now treats the job status as a human workflow instead of a raw command screen:
+
+- successful jobs show a completion note and a direct installed-model refresh action;
+- failed jobs hide backend output behind a troubleshooting disclosure;
+- running jobs can be refreshed without exposing shell execution details;
+- installed model detection is refreshable from the same panel.

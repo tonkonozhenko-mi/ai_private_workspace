@@ -16059,3 +16059,200 @@ select,
     width: 100%;
   }
 }
+
+/* Task 208: calmer model download jobs and installed-model refresh UX. */
+.model-install-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 2px 0;
+}
+
+.model-install-section-heading strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text-strong);
+  font-size: 1.02rem;
+  letter-spacing: -0.01em;
+}
+
+.model-install-section-heading p {
+  margin: 5px 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--ui-body-small, 0.88rem);
+  line-height: 1.5;
+}
+
+.installed-models-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.installed-models-header-actions .secondary-button {
+  min-height: 36px;
+  padding-inline: 14px;
+}
+
+.model-download-job-card {
+  border-color: color-mix(in srgb, var(--color-border-soft) 76%, transparent);
+  background: color-mix(in srgb, var(--color-surface-raised) 82%, transparent);
+  box-shadow: none;
+}
+
+.model-download-job-card--succeeded {
+  border-color: color-mix(in srgb, var(--color-success) 28%, var(--color-border-soft));
+  background: color-mix(in srgb, var(--color-success) 7%, var(--color-surface-raised));
+}
+
+.model-download-job-card--failed {
+  border-color: color-mix(in srgb, var(--color-danger) 28%, var(--color-border-soft));
+  background: color-mix(in srgb, var(--color-danger) 6%, var(--color-surface-raised));
+}
+
+.model-download-job-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--color-text-muted);
+  font-size: var(--ui-body-small, 0.86rem);
+  line-height: 1.4;
+}
+
+.model-download-success-note {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--color-success) 28%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+}
+
+.model-download-success-note strong {
+  color: var(--color-text-strong);
+  font-size: var(--ui-body-size, 0.95rem);
+}
+
+.model-download-success-note p,
+.model-download-output p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--ui-body-small, 0.86rem);
+  line-height: 1.5;
+}
+
+.model-download-output {
+  border: 1px solid color-mix(in srgb, var(--color-border-soft) 72%, transparent);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.model-download-output summary {
+  min-height: 44px;
+  padding: 0 14px;
+  color: var(--color-text-strong);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.model-download-output p,
+.model-download-output pre {
+  margin: 0;
+  padding: 0 14px 14px;
+}
+
+.model-download-job-actions {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.model-download-job-actions .primary-button,
+.model-download-job-actions .secondary-button {
+  min-height: 40px;
+}
+
+:root[data-theme="dark"] .model-install-section-heading strong,
+:root[data-theme="dark"] .model-download-success-note strong,
+:root[data-theme="dark"] .model-download-output summary {
+  color: #f2f6f8;
+}
+
+:root[data-theme="dark"] .model-install-section-heading p,
+:root[data-theme="dark"] .model-download-job-meta,
+:root[data-theme="dark"] .model-download-success-note p,
+:root[data-theme="dark"] .model-download-output p {
+  color: var(--ui-dark-muted, #a8b7c0);
+}
+
+:root[data-theme="dark"] .model-download-job-card {
+  background: var(--ui-dark-soft, #101d25);
+  border-color: var(--ui-dark-border, #2c3f49);
+}
+
+:root[data-theme="dark"] .model-download-job-card--succeeded {
+  background: color-mix(in srgb, #214f39 16%, var(--ui-dark-soft, #101d25));
+  border-color: color-mix(in srgb, #5ad491 30%, var(--ui-dark-border, #2c3f49));
+}
+
+:root[data-theme="dark"] .model-download-job-card--failed {
+  background: color-mix(in srgb, #6c2a2a 18%, var(--ui-dark-soft, #101d25));
+  border-color: color-mix(in srgb, #ff8a8a 28%, var(--ui-dark-border, #2c3f49));
+}
+
+:root[data-theme="dark"] .model-download-success-note,
+:root[data-theme="dark"] .model-download-output {
+  background: color-mix(in srgb, var(--ui-dark-panel, #14242d) 78%, transparent);
+  border-color: var(--ui-dark-border, #2c3f49);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .model-install-section-heading strong,
+  :root[data-theme="system"] .model-download-success-note strong,
+  :root[data-theme="system"] .model-download-output summary {
+    color: #f2f6f8;
+  }
+
+  :root[data-theme="system"] .model-install-section-heading p,
+  :root[data-theme="system"] .model-download-job-meta,
+  :root[data-theme="system"] .model-download-success-note p,
+  :root[data-theme="system"] .model-download-output p {
+    color: var(--ui-dark-muted, #a8b7c0);
+  }
+
+  :root[data-theme="system"] .model-download-job-card {
+    background: var(--ui-dark-soft, #101d25);
+    border-color: var(--ui-dark-border, #2c3f49);
+  }
+
+  :root[data-theme="system"] .model-download-job-card--succeeded {
+    background: color-mix(in srgb, #214f39 16%, var(--ui-dark-soft, #101d25));
+    border-color: color-mix(in srgb, #5ad491 30%, var(--ui-dark-border, #2c3f49));
+  }
+
+  :root[data-theme="system"] .model-download-job-card--failed {
+    background: color-mix(in srgb, #6c2a2a 18%, var(--ui-dark-soft, #101d25));
+    border-color: color-mix(in srgb, #ff8a8a 28%, var(--ui-dark-border, #2c3f49));
+  }
+
+  :root[data-theme="system"] .model-download-success-note,
+  :root[data-theme="system"] .model-download-output {
+    background: color-mix(in srgb, var(--ui-dark-panel, #14242d) 78%, transparent);
+    border-color: var(--ui-dark-border, #2c3f49);
+  }
+}
+
+@media (max-width: 720px) {
+  .installed-models-header-actions,
+  .model-download-job-actions {
+    justify-content: stretch;
+  }
+
+  .installed-models-header-actions button,
+  .model-download-job-actions button {
+    width: 100%;
+  }
+}
