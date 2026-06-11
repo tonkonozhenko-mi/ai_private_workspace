@@ -15542,3 +15542,113 @@ select,
     color: var(--ui-dark-muted, #a8b7c0);
   }
 }
+
+/* Task 203: model download intent drafts stay calm and manual-only. */
+.model-install-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.model-install-draft-button {
+  min-height: var(--ui-control-height, 44px);
+  white-space: normal;
+}
+
+.model-install-draft-summary {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 32%, var(--color-border-soft));
+  border-radius: var(--ui-radius-section, 24px);
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface-raised));
+}
+
+.model-install-draft-summary strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text-strong);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.model-install-draft-summary p {
+  margin: 6px 0 0;
+  max-width: 840px;
+  color: var(--color-text-muted);
+  font-size: var(--ui-body-size, 0.95rem);
+  line-height: 1.55;
+}
+
+.model-install-draft-summary dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.model-install-draft-summary dl div {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-border-soft) 76%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+}
+
+.model-install-draft-summary dt {
+  color: var(--color-text-subtle);
+  font-size: var(--ui-label-size, 0.72rem);
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.model-install-draft-summary dd {
+  margin: 4px 0 0;
+  color: var(--color-text-strong);
+  font-size: var(--ui-body-small, 0.86rem);
+  overflow-wrap: anywhere;
+}
+
+:root[data-theme="dark"] .model-install-draft-summary {
+  background: color-mix(in srgb, #214f39 18%, var(--ui-dark-soft, #101d25));
+  border-color: color-mix(in srgb, #5ad491 32%, var(--ui-dark-border, #2c3f49));
+}
+
+:root[data-theme="dark"] .model-install-draft-summary strong,
+:root[data-theme="dark"] .model-install-draft-summary dd {
+  color: #f2f6f8;
+}
+
+:root[data-theme="dark"] .model-install-draft-summary p,
+:root[data-theme="dark"] .model-install-draft-summary dt {
+  color: var(--ui-dark-muted, #a8b7c0);
+}
+
+:root[data-theme="dark"] .model-install-draft-summary dl div {
+  background: color-mix(in srgb, var(--ui-dark-panel, #14242d) 76%, transparent);
+  border-color: var(--ui-dark-border, #2c3f49);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .model-install-draft-summary {
+    background: color-mix(in srgb, #214f39 18%, var(--ui-dark-soft, #101d25));
+    border-color: color-mix(in srgb, #5ad491 32%, var(--ui-dark-border, #2c3f49));
+  }
+
+  :root[data-theme="system"] .model-install-draft-summary strong,
+  :root[data-theme="system"] .model-install-draft-summary dd {
+    color: #f2f6f8;
+  }
+
+  :root[data-theme="system"] .model-install-draft-summary p,
+  :root[data-theme="system"] .model-install-draft-summary dt {
+    color: var(--ui-dark-muted, #a8b7c0);
+  }
+
+  :root[data-theme="system"] .model-install-draft-summary dl div {
+    background: color-mix(in srgb, var(--ui-dark-panel, #14242d) 76%, transparent);
+    border-color: var(--ui-dark-border, #2c3f49);
+  }
+}

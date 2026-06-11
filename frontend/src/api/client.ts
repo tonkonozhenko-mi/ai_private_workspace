@@ -69,6 +69,8 @@ import type {
   MCPApprovalPreviewRequest,
   MCPApprovalPreview,
   GuidedModelSetupGuide,
+  CreateLocalModelInstallDraftRequest,
+  LocalModelInstallDraft,
   LocalModelInstallGuide,
 } from "./types";
 
@@ -1035,4 +1037,17 @@ export function getGuidedModelSetup(
 
 export function getLocalModelInstallGuide(): Promise<LocalModelInstallGuide> {
   return getJson<LocalModelInstallGuide>("/models/local-install-guide");
+}
+
+export function createLocalModelInstallDraft(
+  request: CreateLocalModelInstallDraftRequest,
+): Promise<LocalModelInstallDraft> {
+  return requestJson<LocalModelInstallDraft>("/models/local-install-drafts", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
 }

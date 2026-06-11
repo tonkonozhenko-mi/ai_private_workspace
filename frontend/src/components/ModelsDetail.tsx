@@ -4,6 +4,7 @@ import {
   archiveAgentWorkflow,
   createAgentPlanningPreview,
   createAgentWorkflow,
+  createLocalModelInstallDraft,
   deleteAgentWorkflow,
   createMCPConfigPreview,
   createMCPConnectionCheck,
@@ -48,7 +49,9 @@ import type {
   GuidedModelSetupGuide,
   GuidedModelSetupSection,
   LocalAIActivationGuide,
+  LocalModelInstallDraft,
   LocalModelInstallGuide,
+  LocalModelInstallOption,
   ModelExperimentPlan,
   ModelExperimentRating,
   ModelExperimentRun,
@@ -200,7 +203,7 @@ export function ModelsDetail({
         </div>
       </section>
 
-      <LocalModelInstallPanel />
+      <LocalModelInstallPanel workspaceId={workspaceId} />
 
       <details className="panel models-state-panel models-disclosure-panel">
         <summary>
@@ -488,10 +491,13 @@ function DesktopPackagingRealityPanel() {
 }
 
 
-function LocalModelInstallPanel() {
+function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   const [guide, setGuide] = useState<LocalModelInstallGuide | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [draft, setDraft] = useState<LocalModelInstallDraft | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const [draftingKey, setDraftingKey] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -536,6 +542,25 @@ function LocalModelInstallPanel() {
     );
   }
 
+  const createDraft = async (option: LocalModelInstallOption) => {
+    const key = `${option.provider}-${option.model}`;
+    setDraftingKey(key);
+    setDraftError(null);
+    try {
+      const result = await createLocalModelInstallDraft({
+        workspace_id: workspaceId,
+        provider: option.provider,
+        model: option.model,
+        model_type: option.model_type,
+      });
+      setDraft(result);
+    } catch (installDraftError) {
+      setDraftError(errorMessage(installDraftError));
+    } finally {
+      setDraftingKey(null);
+    }
+  };
+
   return (
     <section className="panel model-install-panel">
       <PanelHeading eyebrow="Model install" title="Download local models" status={guide.status} />
@@ -559,10 +584,47 @@ function LocalModelInstallPanel() {
                 <dd>{option.estimated_size ?? "Check Ollama"}</dd>
               </div>
             </dl>
-            <CopyButton text={option.install_command} label="Copy pull command" />
+            <div className="model-install-actions">
+              <CopyButton text={option.install_command} label="Copy pull command" />
+              <button
+                className="secondary-button model-install-draft-button"
+                type="button"
+                onClick={() => void createDraft(option)}
+                disabled={draftingKey === `${option.provider}-${option.model}`}
+              >
+                {draftingKey === `${option.provider}-${option.model}`
+                  ? "Preparing…"
+                  : "Create download draft"}
+              </button>
+            </div>
           </article>
         ))}
       </div>
+      {draftError ? <p className="model-selection-error">{draftError}</p> : null}
+      {draft ? (
+        <div className="model-install-draft-summary">
+          <div>
+            <span className="eyebrow">Download draft</span>
+            <strong>{draft.display_name}</strong>
+            <p>{draft.safety_summary}</p>
+          </div>
+          <CopyButton text={draft.command} label="Copy command" />
+          <dl>
+            <div>
+              <dt>Status</dt>
+              <dd>{draft.status}</dd>
+            </div>
+            <div>
+              <dt>Execution</dt>
+              <dd>{draft.execution_supported ? "Supported" : "Manual only"}</dd>
+            </div>
+            <div>
+              <dt>Policy</dt>
+              <dd>{draft.command_proposal.policy_mode ?? "manual_only"}</dd>
+            </div>
+          </dl>
+        </div>
+      ) : null}
       <details className="model-install-details">
         <summary>How this will become an in-app download manager</summary>
         <ol>

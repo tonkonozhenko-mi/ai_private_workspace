@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.dependencies import (
+    command_repository,
     embedding_provider,
     index_status_repository,
     llm_provider_factory,
@@ -52,12 +53,23 @@ from app.api.schemas.local_model_install_guide_schemas import (
     LocalModelInstallGuideResponse,
     to_local_model_install_guide_response,
 )
+from app.api.schemas.local_model_install_draft_schemas import (
+    CreateLocalModelInstallDraftRequest,
+    LocalModelInstallDraftResponse,
+    to_local_model_install_draft_response,
+)
 from app.api.schemas.model_switching_schemas import (
     CreateModelSwitchingPlanRequest,
     ModelSwitchingPlanResponse,
     to_model_switching_plan_response,
 )
 from app.core.domain.local_model_install_guide import build_local_model_install_guide
+from app.core.use_cases.create_local_model_install_draft import (
+    CreateLocalModelInstallDraftInput,
+    CreateLocalModelInstallDraftUseCase,
+    LocalModelInstallDraftValidationError,
+    LocalModelInstallDraftWorkspaceNotFoundError,
+)
 from app.core.use_cases.create_model_switching_plan import (
     CreateModelSwitchingPlanInput,
     CreateModelSwitchingPlanUseCase,
@@ -159,6 +171,44 @@ def reload_model_catalog() -> ModelCatalogReloadResponse:
 def get_local_model_install_guide() -> LocalModelInstallGuideResponse:
     guide = build_local_model_install_guide(model_catalog_registry.list_models())
     return to_local_model_install_guide_response(guide)
+
+
+
+
+@router.post(
+    "/local-install-drafts",
+    response_model=LocalModelInstallDraftResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_local_model_install_draft(
+    request: CreateLocalModelInstallDraftRequest,
+) -> LocalModelInstallDraftResponse:
+    try:
+        draft = CreateLocalModelInstallDraftUseCase(
+            workspace_repository=workspace_repository,
+            command_repository=command_repository,
+            model_catalog_registry=model_catalog_registry,
+            timeline_repository=timeline_repository,
+        ).execute(
+            CreateLocalModelInstallDraftInput(
+                workspace_id=request.workspace_id,
+                provider=request.provider,
+                model=request.model,
+                model_type=request.model_type,
+            )
+        )
+    except LocalModelInstallDraftWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except LocalModelInstallDraftValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return to_local_model_install_draft_response(draft)
 
 
 @router.get("/agent-capabilities", response_model=AgentCapabilityCatalogResponse)

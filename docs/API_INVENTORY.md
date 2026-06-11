@@ -213,3 +213,12 @@ models, and commands. This document provides the finer product-oriented grouping
   - Does not download models.
   - Does not execute shell commands.
   - Intended as the safe foundation for a future desktop-packaged model download manager.
+
+## Task 203 — local model install draft approval
+
+- `POST /models/local-install-drafts`
+  - Creates a reviewable manual-only download draft for an Ollama model.
+  - Records user intent as a pending command proposal.
+  - Does not download the model.
+  - Does not execute shell commands from the frontend or backend.
+  - Marks the draft as `manual_only` so it is not auto-executable by the command policy.
