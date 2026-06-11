@@ -48,11 +48,16 @@ from app.api.schemas.model_experiment_rating_schemas import (
     RateModelExperimentCandidateRequest,
     to_model_experiment_candidate_rating_response,
 )
+from app.api.schemas.local_model_install_guide_schemas import (
+    LocalModelInstallGuideResponse,
+    to_local_model_install_guide_response,
+)
 from app.api.schemas.model_switching_schemas import (
     CreateModelSwitchingPlanRequest,
     ModelSwitchingPlanResponse,
     to_model_switching_plan_response,
 )
+from app.core.domain.local_model_install_guide import build_local_model_install_guide
 from app.core.use_cases.create_model_switching_plan import (
     CreateModelSwitchingPlanInput,
     CreateModelSwitchingPlanUseCase,
@@ -148,6 +153,12 @@ def get_model_catalog_details(
 def reload_model_catalog() -> ModelCatalogReloadResponse:
     result = ReloadModelCatalogUseCase(model_catalog_registry).execute()
     return to_model_catalog_reload_response(result)
+
+
+@router.get("/local-install-guide", response_model=LocalModelInstallGuideResponse)
+def get_local_model_install_guide() -> LocalModelInstallGuideResponse:
+    guide = build_local_model_install_guide(model_catalog_registry.list_models())
+    return to_local_model_install_guide_response(guide)
 
 
 @router.get("/agent-capabilities", response_model=AgentCapabilityCatalogResponse)

@@ -205,3 +205,11 @@ models, and commands. This document provides the finer product-oriented grouping
 - `DELETE /mcp/workspaces/{workspace_id}/configs/{config_id}` — remove a saved workspace MCP config.
 - `GET /mcp/workspaces/{workspace_id}/tool-inventory` — summarize enabled MCP configs and approved tools visible to future agent planning. No tool execution.
 - `POST /mcp/workspaces/{workspace_id}/configs/{config_id}/approval-preview` — preview which tools would be approved/denied for one MCP config before saving review state.
+
+## Task 202 — local model install guide
+
+- `GET /models/local-install-guide`
+  - Returns a manual, copy-only local model install plan.
+  - Does not download models.
+  - Does not execute shell commands.
+  - Intended as the safe foundation for a future desktop-packaged model download manager.

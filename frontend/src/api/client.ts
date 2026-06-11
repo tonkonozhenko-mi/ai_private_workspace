@@ -69,6 +69,7 @@ import type {
   MCPApprovalPreviewRequest,
   MCPApprovalPreview,
   GuidedModelSetupGuide,
+  LocalModelInstallGuide,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -1029,4 +1030,9 @@ export function getGuidedModelSetup(
   workspaceId: string,
 ): Promise<GuidedModelSetupGuide> {
   return getJson<GuidedModelSetupGuide>(`/workspaces/${workspaceId}/models/setup-guide`);
+}
+
+
+export function getLocalModelInstallGuide(): Promise<LocalModelInstallGuide> {
+  return getJson<LocalModelInstallGuide>("/models/local-install-guide");
 }
