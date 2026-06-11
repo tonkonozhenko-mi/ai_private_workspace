@@ -148,16 +148,20 @@ export function ModelsDetail({
           <p className="eyebrow">Model workspace</p>
           <h2>Models for local answers.</h2>
           <p>
-            See which local AI model answers questions and which search model prepares project context.
+            See which local AI model answers questions and which search model
+            prepares project context.
           </p>
         </div>
         <div className="models-native-hero-badges">
           <StatusBadge
-            label={dashboard.usage_plan.can_use_selected_models_fully ? "Ready" : "Needs review"}
+            label={
+              dashboard.usage_plan.can_use_selected_models_fully
+                ? "Ready"
+                : "Needs review"
+            }
           />
         </div>
       </section>
-
 
       <FirstLaunchSetupPanel />
 
@@ -166,7 +170,9 @@ export function ModelsDetail({
           <div>
             <p className="eyebrow">Product packaging</p>
             <h2>Desktop app direction</h2>
-            <span>Planned path from developer-safe build to double-click app.</span>
+            <span>
+              Planned path from developer-safe build to double-click app.
+            </span>
           </div>
         </summary>
         <DesktopPackagingRealityPanel />
@@ -184,7 +190,9 @@ export function ModelsDetail({
         <div className="models-simple-grid">
           <SimpleModelCard
             label="AI answer model"
-            provider={dashboard.selected_llm_provider ?? usage.active_llm_provider}
+            provider={
+              dashboard.selected_llm_provider ?? usage.active_llm_provider
+            }
             model={dashboard.selected_llm_model ?? usage.active_llm_model}
             description="Used when you ask questions about this workspace."
             status={usage.can_ask_with_selected_llm ? "Ready" : "Needs setup"}
@@ -192,11 +200,18 @@ export function ModelsDetail({
           <SimpleModelCard
             label="Search context model"
             provider={
-              dashboard.selected_embedding_provider ?? usage.active_embedding_provider
+              dashboard.selected_embedding_provider ??
+              usage.active_embedding_provider
             }
-            model={dashboard.selected_embedding_model ?? usage.active_embedding_model}
+            model={
+              dashboard.selected_embedding_model ?? usage.active_embedding_model
+            }
             description="Used to build and search the local project context."
-            status={usage.can_search_with_selected_embedding ? "Ready" : "Needs attention"}
+            status={
+              usage.can_search_with_selected_embedding
+                ? "Ready"
+                : "Needs attention"
+            }
           />
         </div>
         <div className="models-simple-status">
@@ -232,7 +247,11 @@ export function ModelsDetail({
             label="Chosen AI model"
             provider={dashboard.selected_llm_provider}
             model={dashboard.selected_llm_model}
-            status={llmDiffersFromBackendDefault ? "per-request override" : dashboard.selection_status.llm_status.status}
+            status={
+              llmDiffersFromBackendDefault
+                ? "per-request override"
+                : dashboard.selection_status.llm_status.status
+            }
             title={
               llmDiffersFromBackendDefault
                 ? "This workspace preference differs from the backend default AI model. Ask can still request it per question when the model is supported by the provider."
@@ -277,9 +296,9 @@ export function ModelsDetail({
             <div>
               <strong>Chosen AI model is a per-request preference.</strong>
               <p>
-                The chosen AI model differs from the backend default. This
-                does not require rebuilding search context. Ask can still use the chosen AI model
-                per question when the model is available.
+                The chosen AI model differs from the backend default. This does
+                not require rebuilding search context. Ask can still use the
+                chosen AI model per question when the model is available.
               </p>
             </div>
           </div>
@@ -319,13 +338,13 @@ export function ModelsDetail({
 
       <AgentModeReadinessPanel
         workspaceId={workspaceId}
-        selectedProvider={dashboard.selected_llm_provider ?? usage.active_llm_provider}
+        selectedProvider={
+          dashboard.selected_llm_provider ?? usage.active_llm_provider
+        }
         selectedModel={dashboard.selected_llm_model ?? usage.active_llm_model}
       />
 
-      <MCPServerRegistryPanel
-        workspaceId={workspaceId}
-      />
+      <MCPServerRegistryPanel workspaceId={workspaceId} />
 
       <ModelExperimentPlanner
         workspaceId={workspaceId}
@@ -339,10 +358,7 @@ export function ModelsDetail({
 
       <div className="models-secondary-grid">
         <section className="panel model-readiness-panel">
-          <PanelHeading
-            eyebrow="Status"
-            title="Ready now"
-          />
+          <PanelHeading eyebrow="Status" title="Ready now" />
           <div className="readiness-list">
             <ReadinessRow
               label="Ask with chosen AI model"
@@ -360,14 +376,17 @@ export function ModelsDetail({
           <div className="next-action-strip">
             <span>Recommended next action</span>
             <strong>
-              {formatModelActionTitle(dashboard.primary_next_action_title) ?? "Review model selection"}
+              {formatModelActionTitle(dashboard.primary_next_action_title) ??
+                "Review model selection"}
             </strong>
           </div>
         </section>
 
         <section className="panel recommendations-panel">
           <PanelHeading eyebrow="Suggestions" title="Recommended models" />
-          <p className="model-ranking-hint">Fit score is an advisory ranking; higher is better.</p>
+          <p className="model-ranking-hint">
+            Fit score is an advisory ranking; higher is better.
+          </p>
           {dashboard.recommendations.recommendations.length > 0 ? (
             <div className="model-ranking-list">
               {dashboard.recommendations.recommendations
@@ -389,7 +408,9 @@ export function ModelsDetail({
 
         <section className="panel performance-panel">
           <PanelHeading eyebrow="History" title="Past model results" />
-          <p className="model-ranking-hint">Past ratings help the workspace suggest better local models.</p>
+          <p className="model-ranking-hint">
+            Past ratings help the workspace suggest better local models.
+          </p>
           {dashboard.performance_summary.items.length > 0 ? (
             <div className="model-ranking-list">
               {dashboard.performance_summary.items.slice(0, 3).map((item) => (
@@ -413,7 +434,9 @@ export function ModelsDetail({
           <div>
             <p className="eyebrow">Instructions only</p>
             <h2>Local AI setup commands</h2>
-            <span>Copy-only commands for Ollama, Qdrant, and backend settings.</span>
+            <span>
+              Copy-only commands for Ollama, Qdrant, and backend settings.
+            </span>
           </div>
         </summary>
         <p className="panel-intro">
@@ -447,10 +470,6 @@ export function ModelsDetail({
   );
 }
 
-
-
-
-
 function DesktopPackagingRealityPanel() {
   return (
     <div className="desktop-packaging-inner">
@@ -460,41 +479,46 @@ function DesktopPackagingRealityPanel() {
         status="planned"
       />
       <p className="panel-intro">
-        This screen is not the real startup instruction. It documents the product target: a real
-        macOS/Windows app where the user downloads a package, double-clicks it, and continues
-        without cloning the repo or running scripts manually.
+        This screen is not the real startup instruction. It documents the
+        product target: a real macOS/Windows app where the user downloads a
+        package, double-clicks it, and continues without cloning the repo or
+        running scripts manually.
       </p>
       <div className="packaging-roadmap-grid">
         <article>
           <span>Current build</span>
           <strong>Developer-safe bridge</strong>
           <p>
-            Backend, frontend, runtime checks, guided models, and local data safety are wired.
-            Scripts still exist only because this is not the final packaged app yet.
+            Backend, frontend, runtime checks, guided models, and local data
+            safety are wired. Scripts still exist only because this is not the
+            final packaged app yet.
           </p>
         </article>
         <article>
           <span>Packaging target</span>
           <strong>Double-click app</strong>
           <p>
-            Package a desktop shell that supervises the local backend, opens the UI, stores
-            runtime data locally, and recovers gracefully when something is not ready.
+            Package a desktop shell that supervises the local backend, opens the
+            UI, stores runtime data locally, and recovers gracefully when
+            something is not ready.
           </p>
         </article>
         <article>
           <span>Models</span>
           <strong>Explicit download manager</strong>
           <p>
-            Model downloads should be a user-approved flow: choose model, see size/purpose, copy
-            or approve pull, then verify availability. No hidden downloads.
+            Model downloads should be a user-approved flow: choose model, see
+            size/purpose, copy or approve pull, then verify availability. No
+            hidden downloads.
           </p>
         </article>
         <article>
           <span>MCP</span>
           <strong>Registry before execution</strong>
           <p>
-            MCP servers should be configured, explained, checked, and approval-gated before any
-            real tool execution. Current work stays planning/manual by design.
+            MCP servers should be configured, explained, checked, and
+            approval-gated before any real tool execution. Current work stays
+            planning/manual by design.
           </p>
         </article>
       </div>
@@ -502,19 +526,25 @@ function DesktopPackagingRealityPanel() {
   );
 }
 
-
 function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   const [guide, setGuide] = useState<LocalModelInstallGuide | null>(null);
-  const [installStatus, setInstallStatus] = useState<LocalModelInstallStatus | null>(null);
-  const [workerPlan, setWorkerPlan] = useState<LocalModelDownloadWorkerPlan | null>(null);
-  const [executionCapability, setExecutionCapability] = useState<LocalModelDownloadExecutionCapability | null>(null);
+  const [installStatus, setInstallStatus] =
+    useState<LocalModelInstallStatus | null>(null);
+  const [workerPlan, setWorkerPlan] =
+    useState<LocalModelDownloadWorkerPlan | null>(null);
+  const [executionCapability, setExecutionCapability] =
+    useState<LocalModelDownloadExecutionCapability | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<LocalModelInstallDraft | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
   const [draftingKey, setDraftingKey] = useState<string | null>(null);
-  const [downloadJob, setDownloadJob] = useState<LocalModelDownloadJob | null>(null);
-  const [jobList, setJobList] = useState<LocalModelDownloadJobList | null>(null);
+  const [downloadJob, setDownloadJob] = useState<LocalModelDownloadJob | null>(
+    null,
+  );
+  const [jobList, setJobList] = useState<LocalModelDownloadJobList | null>(
+    null,
+  );
   const [runningDraft, setRunningDraft] = useState(false);
   const [refreshingJob, setRefreshingJob] = useState(false);
   const [refreshingJobs, setRefreshingJobs] = useState(false);
@@ -531,16 +561,24 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
       getLocalModelDownloadExecutionCapability(),
       listLocalModelDownloadJobs(workspaceId),
     ])
-      .then(([installGuide, installedStatus, downloadWorkerPlan, downloadCapability, downloadJobs]) => {
-        if (!cancelled) {
-          setGuide(installGuide);
-          setInstallStatus(installedStatus);
-          setWorkerPlan(downloadWorkerPlan);
-          setExecutionCapability(downloadCapability);
-          setJobList(downloadJobs);
-          setError(null);
-        }
-      })
+      .then(
+        ([
+          installGuide,
+          installedStatus,
+          downloadWorkerPlan,
+          downloadCapability,
+          downloadJobs,
+        ]) => {
+          if (!cancelled) {
+            setGuide(installGuide);
+            setInstallStatus(installedStatus);
+            setWorkerPlan(downloadWorkerPlan);
+            setExecutionCapability(downloadCapability);
+            setJobList(downloadJobs);
+            setError(null);
+          }
+        },
+      )
       .catch((installError) => {
         if (!cancelled) {
           setError(errorMessage(installError));
@@ -559,8 +597,13 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   if (loading) {
     return (
       <section className="panel model-install-panel">
-        <PanelHeading eyebrow="Model install" title="Local model download plan" />
-        <p className="panel-intro">Loading recommended local model install options…</p>
+        <PanelHeading
+          eyebrow="Model install"
+          title="Local model download plan"
+        />
+        <p className="panel-intro">
+          Loading recommended local model install options…
+        </p>
       </section>
     );
   }
@@ -568,8 +611,13 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   if (error || !guide) {
     return (
       <section className="panel model-install-panel">
-        <PanelHeading eyebrow="Model install" title="Local model download plan" />
-        <p className="model-selection-error">{error ?? "Could not load model install guide."}</p>
+        <PanelHeading
+          eyebrow="Model install"
+          title="Local model download plan"
+        />
+        <p className="model-selection-error">
+          {error ?? "Could not load model install guide."}
+        </p>
       </section>
     );
   }
@@ -594,8 +642,6 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
       setDraftingKey(null);
     }
   };
-
-
 
   const startDownloadJob = async () => {
     if (!draft) {
@@ -636,7 +682,6 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
       setRefreshingJob(false);
     }
   };
-
 
   const refreshDownloadJobs = async () => {
     setRefreshingJobs(true);
@@ -679,7 +724,10 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   };
 
   useEffect(() => {
-    if (!downloadJob || (downloadJob.status !== "queued" && downloadJob.status !== "running")) {
+    if (
+      !downloadJob ||
+      (downloadJob.status !== "queued" && downloadJob.status !== "running")
+    ) {
       return;
     }
     const timer = window.setTimeout(() => {
@@ -688,97 +736,111 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
     return () => window.clearTimeout(timer);
   }, [downloadJob?.id, downloadJob?.status]);
 
+  const activeJobs =
+    jobList?.jobs.filter(
+      (job) => job.status === "queued" || job.status === "running",
+    ) ?? [];
+  const missingRecommended =
+    installStatus?.items.filter(
+      (item) => item.recommended && item.status !== "installed",
+    ) ?? [];
+  const installedRecommendedCount =
+    installStatus?.items.filter(
+      (item) => item.recommended && item.status === "installed",
+    ).length ?? 0;
+  const openDownloads =
+    missingRecommended.length > 0 || Boolean(draft) || Boolean(downloadJob);
+
   return (
-    <section className="panel model-install-panel">
-      <PanelHeading eyebrow="Model install" title="Download local models" status={guide.status} />
-      <p className="panel-intro model-install-summary">Pick only the models you need. Nothing downloads until you explicitly create and start an approved backend job. The backend works in the background while this screen shows progress.</p>
-      {installStatus ? (
-        <InstalledModelsStatusPanel
-          status={installStatus}
-          isRefreshing={refreshingInstallStatus}
-          onRefresh={() => void refreshInstallStatus()}
-        />
-      ) : null}
-      {executionCapability ? <ModelDownloadExecutionCapabilityPanel capability={executionCapability} /> : null}
-      <div className="model-install-section-heading">
-        <div>
-          <span className="eyebrow">Choose</span>
-          <strong>Recommended downloads</strong>
-          <p>Answer models generate replies. Search models build local context for RAG.</p>
-        </div>
+    <section className="panel model-install-panel model-manager-panel">
+      <PanelHeading
+        eyebrow="Local model manager"
+        title="Install and verify local models"
+        status={getModelManagerStatus(
+          installStatus,
+          jobList,
+          executionCapability,
+        )}
+      />
+      <p className="panel-intro model-install-summary">
+        A calm place to check what is installed, download missing recommended
+        models, and keep every action explicit.
+      </p>
+
+      <div
+        className="model-manager-summary-grid"
+        aria-label="Local model manager summary"
+      >
+        <article>
+          <span>Installed</span>
+          <strong>
+            {installStatus?.runtime_reachable
+              ? `${installedRecommendedCount}/${installStatus.items.filter((item) => item.recommended).length} recommended`
+              : "Ollama offline"}
+          </strong>
+          <p>
+            {installStatus?.runtime_reachable
+              ? installStatus.summary
+              : "Start Ollama, then refresh this read-only check."}
+          </p>
+        </article>
+        <article>
+          <span>Downloads</span>
+          <strong>
+            {activeJobs.length > 0
+              ? `${activeJobs.length} active`
+              : "No active downloads"}
+          </strong>
+          <p>
+            {jobList?.summary ??
+              "Download history will appear after you start a backend job."}
+          </p>
+        </article>
+        <article>
+          <span>Safety</span>
+          <strong>
+            {executionCapability?.execution_enabled
+              ? "Backend execution enabled"
+              : "Manual by default"}
+          </strong>
+          <p>
+            {executionCapability?.execution_enabled
+              ? "Only allowlisted Ollama pulls can run."
+              : "Commands are copy-only unless trusted local execution is enabled."}
+          </p>
+        </article>
       </div>
-      <div className="model-install-grid" aria-label="Recommended local model downloads">
-        {guide.options.map((option) => (
-          <article className="model-install-card" key={`${option.provider}-${option.model}`}>
-            <div className="model-install-card-heading">
-              <span className="model-install-type">{option.model_type}</span>
-              {option.recommended ? <StatusBadge label="Recommended" /> : null}
-            </div>
-            <strong>{option.display_name}</strong>
-            <p>{option.purpose}</p>
-            <dl>
-              <div>
-                <dt>Model</dt>
-                <dd>{option.provider}/{option.model}</dd>
-              </div>
-              <div>
-                <dt>Size</dt>
-                <dd>{option.estimated_size ?? "Check Ollama"}</dd>
-              </div>
-            </dl>
-            <div className="model-install-actions">
-              <CopyButton text={option.install_command} label="Copy pull command" />
-              <button
-                className="secondary-button model-install-draft-button"
-                type="button"
-                onClick={() => void createDraft(option)}
-                disabled={draftingKey === `${option.provider}-${option.model}`}
-              >
-                {draftingKey === `${option.provider}-${option.model}`
-                  ? "Preparing…"
-                  : "Create download draft"}
-              </button>
-            </div>
-          </article>
-        ))}
-      </div>
-      {draftError ? <p className="model-selection-error">{draftError}</p> : null}
-      {draft ? (
-        <div className="model-install-draft-summary">
-          <div>
-            <span className="eyebrow">Download draft</span>
-            <strong>{draft.display_name}</strong>
-            <p>{draft.safety_summary}</p>
-          </div>
-          <div className="model-install-draft-actions">
-            <CopyButton text={draft.command} label="Copy command" />
-            <button
-              className="secondary-button model-install-draft-button"
-              type="button"
-              disabled={!executionCapability?.execution_enabled || runningDraft}
-              onClick={() => void startDownloadJob()}
-              title={executionCapability?.disabled_reason ?? undefined}
-            >
-              {runningDraft ? "Starting…" : "Run approved download"}
-            </button>
-          </div>
-          <dl>
-            <div>
-              <dt>Status</dt>
-              <dd>{draft.status}</dd>
-            </div>
-            <div>
-              <dt>Execution</dt>
-              <dd>{draft.execution_supported ? "Supported" : "Manual only"}</dd>
-            </div>
-            <div>
-              <dt>Safety</dt>
-              <dd>{draft.command_proposal.policy_mode ?? "manual only"}</dd>
-            </div>
-          </dl>
+
+      {activeJobs.length > 0 ? (
+        <div className="model-manager-active-stack">
+          {activeJobs.slice(0, 2).map((job) => (
+            <ModelDownloadJobStatusCard
+              key={job.id}
+              job={downloadJob?.id === job.id ? downloadJob : job}
+              isRefreshing={refreshingJob}
+              onRefresh={() => {
+                setDownloadJob(job);
+                void getLocalModelDownloadJob(job.id)
+                  .then((latest) => {
+                    setDownloadJob(latest);
+                    void refreshDownloadJobs();
+                    if (latest.status === "succeeded") {
+                      void refreshInstallStatus();
+                    }
+                  })
+                  .catch((downloadError) =>
+                    setDraftError(errorMessage(downloadError)),
+                  );
+              }}
+              onRefreshInstalled={() => void refreshInstallStatus()}
+              onCancel={() => void requestCancelJob(job.id)}
+              isCancelling={cancellingJobId === job.id}
+            />
+          ))}
         </div>
       ) : null}
-      {downloadJob ? (
+
+      {downloadJob && activeJobs.every((job) => job.id !== downloadJob.id) ? (
         <ModelDownloadJobStatusCard
           job={downloadJob}
           isRefreshing={refreshingJob}
@@ -788,6 +850,164 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
           isCancelling={cancellingJobId === downloadJob.id}
         />
       ) : null}
+
+      <details className="model-manager-section" open={openDownloads}>
+        <summary>
+          <div>
+            <span className="eyebrow">Download</span>
+            <strong>
+              {missingRecommended.length > 0
+                ? "Recommended models need attention"
+                : "Choose or download a model"}
+            </strong>
+            <p>
+              {missingRecommended.length > 0
+                ? `${missingRecommended.length} recommended model(s) are not installed yet.`
+                : "Open only when you want to add or change local models."}
+            </p>
+          </div>
+        </summary>
+        <div className="model-install-section-heading">
+          <div>
+            <span className="eyebrow">Choose</span>
+            <strong>Recommended downloads</strong>
+            <p>
+              Answer models generate replies. Search models build local context
+              for RAG.
+            </p>
+          </div>
+        </div>
+        <div
+          className="model-install-grid"
+          aria-label="Recommended local model downloads"
+        >
+          {guide.options.map((option) => {
+            const installedItem = installStatus?.items.find(
+              (item) =>
+                item.provider === option.provider &&
+                item.model === option.model,
+            );
+            const isInstalled = installedItem?.status === "installed";
+            return (
+              <article
+                className="model-install-card"
+                key={`${option.provider}-${option.model}`}
+              >
+                <div className="model-install-card-heading">
+                  <span className="model-install-type">
+                    {option.model_type === "llm"
+                      ? "AI answers"
+                      : "Search context"}
+                  </span>
+                  {isInstalled ? (
+                    <StatusBadge label="Installed" />
+                  ) : option.recommended ? (
+                    <StatusBadge label="Recommended" />
+                  ) : null}
+                </div>
+                <strong>{option.display_name}</strong>
+                <p>{option.purpose}</p>
+                <dl>
+                  <div>
+                    <dt>Model</dt>
+                    <dd>
+                      {option.provider}/{option.model}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Size</dt>
+                    <dd>{option.estimated_size ?? "Check Ollama"}</dd>
+                  </div>
+                </dl>
+                <div className="model-install-actions">
+                  <CopyButton
+                    text={option.install_command}
+                    label="Copy pull command"
+                  />
+                  <button
+                    className="secondary-button model-install-draft-button"
+                    type="button"
+                    onClick={() => void createDraft(option)}
+                    disabled={
+                      draftingKey === `${option.provider}-${option.model}` ||
+                      isInstalled
+                    }
+                  >
+                    {isInstalled
+                      ? "Installed"
+                      : draftingKey === `${option.provider}-${option.model}`
+                        ? "Preparing…"
+                        : "Create download draft"}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+        {draftError ? (
+          <p className="model-selection-error">{draftError}</p>
+        ) : null}
+        {draft ? (
+          <div className="model-install-draft-summary">
+            <div>
+              <span className="eyebrow">Download draft</span>
+              <strong>{draft.display_name}</strong>
+              <p>{draft.safety_summary}</p>
+            </div>
+            <div className="model-install-draft-actions">
+              <CopyButton text={draft.command} label="Copy command" />
+              <button
+                className="secondary-button model-install-draft-button"
+                type="button"
+                disabled={
+                  !executionCapability?.execution_enabled || runningDraft
+                }
+                onClick={() => void startDownloadJob()}
+                title={executionCapability?.disabled_reason ?? undefined}
+              >
+                {runningDraft ? "Starting…" : "Run approved download"}
+              </button>
+            </div>
+            <dl>
+              <div>
+                <dt>Status</dt>
+                <dd>{draft.status}</dd>
+              </div>
+              <div>
+                <dt>Execution</dt>
+                <dd>
+                  {draft.execution_supported ? "Supported" : "Manual only"}
+                </dd>
+              </div>
+              <div>
+                <dt>Safety</dt>
+                <dd>{draft.command_proposal.policy_mode ?? "manual only"}</dd>
+              </div>
+            </dl>
+          </div>
+        ) : null}
+      </details>
+
+      <details
+        className="model-manager-section"
+        open={!installStatus?.runtime_reachable}
+      >
+        <summary>
+          <div>
+            <span className="eyebrow">Verify</span>
+            <strong>Installed models</strong>
+            <p>Read-only check against Ollama. No model changes happen here.</p>
+          </div>
+        </summary>
+        {installStatus ? (
+          <InstalledModelsStatusPanel
+            status={installStatus}
+            isRefreshing={refreshingInstallStatus}
+            onRefresh={() => void refreshInstallStatus()}
+          />
+        ) : null}
+      </details>
+
       {jobList ? (
         <ModelDownloadJobsPanel
           jobs={jobList}
@@ -797,20 +1017,56 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
           onCancel={(jobId) => void requestCancelJob(jobId)}
         />
       ) : null}
-      {workerPlan ? <ModelDownloadWorkerPlanPanel plan={workerPlan} /> : null}
-      <details className="model-install-details">
-        <summary>Manual install notes</summary>
-        <ol>
-          {guide.next_steps.map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
-        <p>{guide.safety_notes.join(" ")}</p>
+
+      <details className="model-manager-section is-quiet">
+        <summary>
+          <div>
+            <span className="eyebrow">Safety</span>
+            <strong>How downloads are controlled</strong>
+            <p>
+              Open this when you need implementation details or manual install
+              notes.
+            </p>
+          </div>
+        </summary>
+        {executionCapability ? (
+          <ModelDownloadExecutionCapabilityPanel
+            capability={executionCapability}
+          />
+        ) : null}
+        {workerPlan ? <ModelDownloadWorkerPlanPanel plan={workerPlan} /> : null}
+        <details className="model-install-details">
+          <summary>Manual install notes</summary>
+          <ol>
+            {guide.next_steps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+          <p>{guide.safety_notes.join(" ")}</p>
+        </details>
       </details>
     </section>
   );
 }
 
+function getModelManagerStatus(
+  installStatus: LocalModelInstallStatus | null,
+  jobList: LocalModelDownloadJobList | null,
+  capability: LocalModelDownloadExecutionCapability | null,
+): string {
+  if (jobList?.running_count && jobList.running_count > 0) {
+    return "downloading";
+  }
+  if (!installStatus?.runtime_reachable) {
+    return "offline";
+  }
+  const recommended = installStatus.items.filter((item) => item.recommended);
+  const missing = recommended.filter((item) => item.status !== "installed");
+  if (missing.length === 0 && recommended.length > 0) {
+    return "ready";
+  }
+  return capability?.execution_enabled ? "ready to download" : "manual setup";
+}
 
 function ModelDownloadJobStatusCard({
   job,
@@ -831,7 +1087,9 @@ function ModelDownloadJobStatusCard({
   const friendlyStatus = getFriendlyDownloadJobStatus(job);
 
   return (
-    <div className={`model-download-job-card model-download-job-card--${job.status}`}>
+    <div
+      className={`model-download-job-card model-download-job-card--${job.status}`}
+    >
       <div className="model-download-job-header">
         <div>
           <span className="eyebrow">Download progress</span>
@@ -840,8 +1098,15 @@ function ModelDownloadJobStatusCard({
         </div>
         <StatusBadge label={friendlyStatus.badge} />
       </div>
-      <div className="model-download-progress" aria-label="Model download progress">
-        <span style={{ width: `${Math.max(0, Math.min(100, job.progress_percent))}%` }} />
+      <div
+        className="model-download-progress"
+        aria-label="Model download progress"
+      >
+        <span
+          style={{
+            width: `${Math.max(0, Math.min(100, job.progress_percent))}%`,
+          }}
+        />
       </div>
       <div className="model-download-job-meta">
         <span>{job.display_name}</span>
@@ -856,13 +1121,20 @@ function ModelDownloadJobStatusCard({
       {job.status === "succeeded" ? (
         <div className="model-download-success-note">
           <strong>Model download finished.</strong>
-          <p>Refresh the installed models list, then save this model as a workspace preference if you want to use it.</p>
+          <p>
+            Refresh the installed models list, then save this model as a
+            workspace preference if you want to use it.
+          </p>
         </div>
       ) : null}
       {job.status === "failed" ? (
         <details className="model-download-output">
           <summary>Show backend output</summary>
-          {job.stderr_preview ? <pre>{job.stderr_preview}</pre> : <p>No stderr output was returned.</p>}
+          {job.stderr_preview ? (
+            <pre>{job.stderr_preview}</pre>
+          ) : (
+            <p>No stderr output was returned.</p>
+          )}
         </details>
       ) : null}
       <div className="model-download-job-actions">
@@ -872,16 +1144,25 @@ function ModelDownloadJobStatusCard({
           disabled={isRefreshing}
           onClick={onRefresh}
         >
-          {isRefreshing ? "Refreshing…" : isFinished ? "Refresh job" : "Refresh status"}
+          {isRefreshing
+            ? "Refreshing…"
+            : isFinished
+              ? "Refresh job"
+              : "Refresh status"}
         </button>
-        {job.cancellable && (job.status === "queued" || job.status === "running") ? (
+        {job.cancellable &&
+        (job.status === "queued" || job.status === "running") ? (
           <button
             className="secondary-button model-install-draft-button"
             type="button"
             disabled={isCancelling}
             onClick={onCancel}
           >
-            {isCancelling ? "Requesting…" : job.status === "queued" ? "Cancel download" : "Request safe cancel"}
+            {isCancelling
+              ? "Requesting…"
+              : job.status === "queued"
+                ? "Cancel download"
+                : "Request safe cancel"}
           </button>
         ) : null}
         {job.status === "succeeded" ? (
@@ -897,7 +1178,6 @@ function ModelDownloadJobStatusCard({
     </div>
   );
 }
-
 
 function ModelDownloadJobsPanel({
   jobs,
@@ -919,18 +1199,30 @@ function ModelDownloadJobsPanel({
       <summary>
         <div>
           <span className="eyebrow">Download history</span>
-          <strong>{jobs.running_count > 0 ? "Active model downloads" : "Recent model downloads"}</strong>
+          <strong>
+            {jobs.running_count > 0
+              ? "Active model downloads"
+              : "Recent model downloads"}
+          </strong>
           <p>{jobs.summary}</p>
         </div>
       </summary>
       <div className="model-download-history-body">
         <div className="model-download-history-actions">
-          <button className="secondary-button" type="button" disabled={isRefreshing} onClick={onRefresh}>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={isRefreshing}
+            onClick={onRefresh}
+          >
             {isRefreshing ? "Refreshing…" : "Refresh downloads"}
           </button>
         </div>
         {visibleJobs.length === 0 ? (
-          <p className="panel-intro">No download jobs yet. Create a draft and start a backend job when you are ready.</p>
+          <p className="panel-intro">
+            No download jobs yet. Create a draft and start a backend job when
+            you are ready.
+          </p>
         ) : (
           <div className="model-download-history-list">
             {visibleJobs.map((job) => (
@@ -938,11 +1230,16 @@ function ModelDownloadJobsPanel({
                 <div>
                   <strong>{job.display_name}</strong>
                   <p>{getFriendlyDownloadJobStatus(job).message}</p>
-                  {job.cancel_requested_at ? <small>{job.cancellation_summary}</small> : null}
+                  {job.cancel_requested_at ? (
+                    <small>{job.cancellation_summary}</small>
+                  ) : null}
                 </div>
                 <div className="model-download-history-row-actions">
-                  <StatusBadge label={getFriendlyDownloadJobStatus(job).badge} />
-                  {job.cancellable && (job.status === "queued" || job.status === "running") ? (
+                  <StatusBadge
+                    label={getFriendlyDownloadJobStatus(job).badge}
+                  />
+                  {job.cancellable &&
+                  (job.status === "queued" || job.status === "running") ? (
                     <button
                       className="secondary-button"
                       type="button"
@@ -970,7 +1267,8 @@ function getFriendlyDownloadJobStatus(job: LocalModelDownloadJob): {
   if (job.status === "cancelled") {
     return {
       title: "Download cancelled",
-      message: job.progress_message || "The download was cancelled before execution.",
+      message:
+        job.progress_message || "The download was cancelled before execution.",
       badge: "Cancelled",
     };
   }
@@ -984,7 +1282,9 @@ function getFriendlyDownloadJobStatus(job: LocalModelDownloadJob): {
   if (job.status === "failed") {
     return {
       title: "Download needs attention",
-      message: job.progress_message || "The backend worker could not finish the download.",
+      message:
+        job.progress_message ||
+        "The backend worker could not finish the download.",
       badge: "Failed",
     };
   }
@@ -1002,7 +1302,6 @@ function getFriendlyDownloadJobStatus(job: LocalModelDownloadJob): {
   };
 }
 
-
 function InstalledModelsStatusPanel({
   status,
   isRefreshing,
@@ -1017,19 +1316,40 @@ function InstalledModelsStatusPanel({
       <div className="installed-models-header">
         <div>
           <span className="eyebrow">Installed models</span>
-          <strong>{status.runtime_reachable ? "Local Ollama models" : "Ollama is offline"}</strong>
-          <p>{status.runtime_reachable ? status.summary : "Start Ollama, then refresh this read-only check."}</p>
+          <strong>
+            {status.runtime_reachable
+              ? "Local Ollama models"
+              : "Ollama is offline"}
+          </strong>
+          <p>
+            {status.runtime_reachable
+              ? status.summary
+              : "Start Ollama, then refresh this read-only check."}
+          </p>
         </div>
         <div className="installed-models-header-actions">
-          <StatusBadge label={status.runtime_reachable ? status.status : "Offline"} />
-          <button className="secondary-button" type="button" onClick={onRefresh} disabled={isRefreshing}>
+          <StatusBadge
+            label={status.runtime_reachable ? status.status : "Offline"}
+          />
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+          >
             {isRefreshing ? "Checking…" : "Refresh"}
           </button>
         </div>
       </div>
-      <div className="installed-models-grid" aria-label="Installed local model status">
+      <div
+        className="installed-models-grid"
+        aria-label="Installed local model status"
+      >
         {status.items.map((item) => (
-          <article className="installed-model-card" key={`${item.provider}-${item.model}`}>
+          <article
+            className="installed-model-card"
+            key={`${item.provider}-${item.model}`}
+          >
             <div>
               <span className="model-install-type">{item.model_type}</span>
               <strong>{item.display_name}</strong>
@@ -1047,12 +1367,12 @@ function InstalledModelsStatusPanel({
         ))}
       </div>
       <p className="installed-models-note">
-        Read-only check: this only reads {status.runtime_url}/api/tags. It never pulls, removes, starts, or changes models.
+        Read-only check: this only reads {status.runtime_url}/api/tags. It never
+        pulls, removes, starts, or changes models.
       </p>
     </div>
   );
 }
-
 
 function ModelDownloadExecutionCapabilityPanel({
   capability,
@@ -1065,24 +1385,36 @@ function ModelDownloadExecutionCapabilityPanel({
         <span className="eyebrow">Backend execution</span>
         <strong>{capability.title}</strong>
         <p>{capability.safety_summary}</p>
-        {capability.disabled_reason ? <small>{capability.disabled_reason}</small> : null}
+        {capability.disabled_reason ? (
+          <small>{capability.disabled_reason}</small>
+        ) : null}
       </div>
-      <StatusBadge label={capability.execution_enabled ? "Enabled" : "Disabled"} />
+      <StatusBadge
+        label={capability.execution_enabled ? "Enabled" : "Disabled"}
+      />
     </div>
   );
 }
 
-
-function ModelDownloadWorkerPlanPanel({ plan }: { plan: LocalModelDownloadWorkerPlan }) {
+function ModelDownloadWorkerPlanPanel({
+  plan,
+}: {
+  plan: LocalModelDownloadWorkerPlan;
+}) {
   return (
     <details className="model-worker-plan">
       <summary>Backend download worker plan</summary>
       <div className="model-worker-plan-body">
         <div className="model-worker-plan-summary">
-          <StatusBadge label={plan.worker_enabled ? "Enabled" : "Design only"} />
+          <StatusBadge
+            label={plan.worker_enabled ? "Enabled" : "Design only"}
+          />
           <p>{plan.summary}</p>
         </div>
-        <div className="model-worker-flow" aria-label="Future model download worker flow">
+        <div
+          className="model-worker-flow"
+          aria-label="Future model download worker flow"
+        >
           {plan.user_flow.slice(0, 4).map((step, index) => (
             <div key={step}>
               <span>{index + 1}</span>
@@ -1102,7 +1434,6 @@ function ModelDownloadWorkerPlanPanel({ plan }: { plan: LocalModelDownloadWorker
     </details>
   );
 }
-
 
 function FirstLaunchSetupPanel() {
   const [readiness, setReadiness] = useState<FirstLaunchReadiness | null>(null);
@@ -1137,7 +1468,10 @@ function FirstLaunchSetupPanel() {
   if (loading) {
     return (
       <section className="panel first-launch-panel">
-        <PanelHeading eyebrow="After launch" title="Workspace setup checklist" />
+        <PanelHeading
+          eyebrow="After launch"
+          title="Workspace setup checklist"
+        />
         <p className="panel-intro">Loading post-launch readiness checks…</p>
       </section>
     );
@@ -1146,17 +1480,29 @@ function FirstLaunchSetupPanel() {
   if (error || !readiness) {
     return (
       <section className="panel first-launch-panel">
-        <PanelHeading eyebrow="After launch" title="Workspace setup checklist" />
-        <p className="model-selection-error">{error ?? "Could not load first-launch readiness."}</p>
+        <PanelHeading
+          eyebrow="After launch"
+          title="Workspace setup checklist"
+        />
+        <p className="model-selection-error">
+          {error ?? "Could not load first-launch readiness."}
+        </p>
       </section>
     );
   }
 
   return (
     <section className="panel first-launch-panel">
-      <PanelHeading eyebrow="Start here" title="Workspace setup" status={readiness.status} />
+      <PanelHeading
+        eyebrow="Start here"
+        title="Workspace setup"
+        status={readiness.status}
+      />
       <p className="panel-intro first-launch-summary">{readiness.summary}</p>
-      <div className="first-launch-flow" aria-label="Recommended workspace setup flow">
+      <div
+        className="first-launch-flow"
+        aria-label="Recommended workspace setup flow"
+      >
         {readiness.recommended_flow.slice(0, 6).map((step, index) => (
           <article className="first-launch-flow-step" key={step}>
             <span>{index + 1}</span>
@@ -1197,7 +1543,6 @@ function FirstLaunchSetupPanel() {
   );
 }
 
-
 function GuidedModelSetupPanel({
   workspaceId,
   onApplySelection,
@@ -1227,8 +1572,18 @@ function GuidedModelSetupPanel({
         }
         setGuide(result);
         setError(null);
-        setLlmChoice(toSetupChoiceValue(result.llm.options[0]?.provider, result.llm.options[0]?.model));
-        setEmbeddingChoice(toSetupChoiceValue(result.embedding.options[0]?.provider, result.embedding.options[0]?.model));
+        setLlmChoice(
+          toSetupChoiceValue(
+            result.llm.options[0]?.provider,
+            result.llm.options[0]?.model,
+          ),
+        );
+        setEmbeddingChoice(
+          toSetupChoiceValue(
+            result.embedding.options[0]?.provider,
+            result.embedding.options[0]?.model,
+          ),
+        );
       })
       .catch((loadError) => {
         if (!cancelled) {
@@ -1243,7 +1598,9 @@ function GuidedModelSetupPanel({
   async function saveGuidedSelection(modelType: "llm" | "embedding") {
     const value = modelType === "llm" ? llmChoice : embeddingChoice;
     const parsed = parseSetupChoiceValue(value);
-    const customModel = (modelType === "llm" ? customLlm : customEmbedding).trim();
+    const customModel = (
+      modelType === "llm" ? customLlm : customEmbedding
+    ).trim();
     const provider = parsed?.provider ?? "ollama";
     const model = parsed?.model === "__custom__" ? customModel : parsed?.model;
     if (!model) {
@@ -1256,7 +1613,9 @@ function GuidedModelSetupPanel({
     setMessage(null);
     try {
       await onApplySelection(modelType, provider, model);
-      setMessage(`${modelType === "llm" ? "AI answer model" : "Search context model"} saved as ${provider}/${model}.`);
+      setMessage(
+        `${modelType === "llm" ? "AI answer model" : "Search context model"} saved as ${provider}/${model}.`,
+      );
     } catch (saveError) {
       setError(errorMessage(saveError));
     } finally {
@@ -1309,7 +1668,10 @@ function GuidedModelSetupPanel({
         />
       </div>
       <div className="guided-model-note-grid">
-        <GuidedModelNotes title="Packaging ready" notes={guide.packaging_notes} />
+        <GuidedModelNotes
+          title="Packaging ready"
+          notes={guide.packaging_notes}
+        />
         <GuidedModelNotes title="Safety" notes={guide.safety_notes} />
       </div>
       {message ? <p className="model-selection-message">{message}</p> : null}
@@ -1351,10 +1713,18 @@ function GuidedModelSetupControl({
       <small>{section.recommendation_summary}</small>
       <label>
         <span>Choose model</span>
-        <select value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
+        <select
+          value={value}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+        >
           {section.options.map((option) => (
-            <option key={`${option.provider}/${option.model}`} value={toSetupChoiceValue(option.provider, option.model)}>
-              {option.recommendation_label}: {option.display_name} ({option.provider}/{option.model})
+            <option
+              key={`${option.provider}/${option.model}`}
+              value={toSetupChoiceValue(option.provider, option.model)}
+            >
+              {option.recommendation_label}: {option.display_name} (
+              {option.provider}/{option.model})
             </option>
           ))}
           <option value="ollama||__custom__">Custom Ollama model…</option>
@@ -1366,20 +1736,35 @@ function GuidedModelSetupControl({
           <input
             value={customValue}
             disabled={disabled}
-            placeholder={section.model_type === "llm" ? "qwen2.5-coder:7b" : "nomic-embed-text"}
+            placeholder={
+              section.model_type === "llm"
+                ? "qwen2.5-coder:7b"
+                : "nomic-embed-text"
+            }
             onChange={(event) => onCustomChange(event.target.value)}
           />
         </label>
       ) : null}
       <p className="guided-model-custom-hint">{section.custom_model_hint}</p>
-      <button className="model-selection-save-button" type="button" disabled={disabled} onClick={onSave}>
+      <button
+        className="model-selection-save-button"
+        type="button"
+        disabled={disabled}
+        onClick={onSave}
+      >
         {isSaving ? "Saving…" : `Use this ${section.title}`}
       </button>
     </article>
   );
 }
 
-function GuidedModelNotes({ title, notes }: { title: string; notes: string[] }) {
+function GuidedModelNotes({
+  title,
+  notes,
+}: {
+  title: string;
+  notes: string[];
+}) {
   return (
     <div className="guided-model-notes">
       <strong>{title}</strong>
@@ -1390,11 +1775,16 @@ function GuidedModelNotes({ title, notes }: { title: string; notes: string[] }) 
   );
 }
 
-function toSetupChoiceValue(provider: string | undefined, model: string | undefined): string {
+function toSetupChoiceValue(
+  provider: string | undefined,
+  model: string | undefined,
+): string {
   return provider && model ? `${provider}||${model}` : "";
 }
 
-function parseSetupChoiceValue(value: string): { provider: string; model: string } | null {
+function parseSetupChoiceValue(
+  value: string,
+): { provider: string; model: string } | null {
   const [provider, model] = value.split("||");
   if (!provider || !model) {
     return null;
@@ -1415,7 +1805,9 @@ function SimpleModelCard({
   description: string;
   status: string;
 }) {
-  const displayModel = model ? `${provider ?? "unknown"}/${model}` : "Not selected";
+  const displayModel = model
+    ? `${provider ?? "unknown"}/${model}`
+    : "Not selected";
 
   return (
     <article className="simple-model-card">
@@ -1428,7 +1820,6 @@ function SimpleModelCard({
     </article>
   );
 }
-
 
 function ModelsWorkflowSteps({
   canAsk,
@@ -1476,7 +1867,6 @@ function ModelsWorkflowSteps({
   );
 }
 
-
 function AgentModeReadinessPanel({
   workspaceId,
   selectedProvider,
@@ -1497,8 +1887,10 @@ function AgentModeReadinessPanel({
   const [workflows, setWorkflows] = useState<AgentWorkflow[]>([]);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
   const [isSavingWorkflow, setIsSavingWorkflow] = useState(false);
-  const [stepApprovalPreview, setStepApprovalPreview] = useState<AgentWorkflowStepApprovalPreview | null>(null);
-  const [executionReadiness, setExecutionReadiness] = useState<AgentWorkflowExecutionReadiness | null>(null);
+  const [stepApprovalPreview, setStepApprovalPreview] =
+    useState<AgentWorkflowStepApprovalPreview | null>(null);
+  const [executionReadiness, setExecutionReadiness] =
+    useState<AgentWorkflowExecutionReadiness | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -1542,9 +1934,12 @@ function AgentModeReadinessPanel({
     [catalog?.models, selectedModel, selectedProvider],
   );
 
-  const recommendedModels = catalog?.models.filter(
-    (model) => model.model_type === "llm" && ["agent_ready", "planning_ready"].includes(model.readiness),
-  ) ?? [];
+  const recommendedModels =
+    catalog?.models.filter(
+      (model) =>
+        model.model_type === "llm" &&
+        ["agent_ready", "planning_ready"].includes(model.readiness),
+    ) ?? [];
 
   async function handlePreviewPlan() {
     setIsPlanning(true);
@@ -1572,7 +1967,10 @@ function AgentModeReadinessPanel({
         provider: selectedProvider,
         model: selectedModel,
       });
-      setWorkflows((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
+      setWorkflows((current) => [
+        saved,
+        ...current.filter((item) => item.id !== saved.id),
+      ]);
     } catch (error) {
       setWorkflowError(errorMessage(error));
     } finally {
@@ -1583,59 +1981,104 @@ function AgentModeReadinessPanel({
   async function handleExecutionReadiness(workflow: AgentWorkflow) {
     setWorkflowError(null);
     try {
-      const result = await getAgentWorkflowExecutionReadiness(workspaceId, workflow.id);
+      const result = await getAgentWorkflowExecutionReadiness(
+        workspaceId,
+        workflow.id,
+      );
       setExecutionReadiness(result);
     } catch (error) {
       setWorkflowError(errorMessage(error));
     }
   }
 
-  async function handleStepEvidence(workflow: AgentWorkflow, stepId: string, evidenceStatus: "provided" | "verified" | "needs_review") {
+  async function handleStepEvidence(
+    workflow: AgentWorkflow,
+    stepId: string,
+    evidenceStatus: "provided" | "verified" | "needs_review",
+  ) {
     setWorkflowError(null);
     try {
-      const updated = await updateAgentWorkflowStepEvidence(workspaceId, workflow.id, stepId, {
-        evidence_status: evidenceStatus,
-        evidence_summary: evidenceStatus === "verified"
-          ? "Manual evidence was reviewed and marked as verified."
-          : "Manual evidence should be checked outside the browser UI.",
-        evidence_sources: [],
-      });
-      setWorkflows((current) => current.map((item) => item.id === updated.id ? updated : item));
+      const updated = await updateAgentWorkflowStepEvidence(
+        workspaceId,
+        workflow.id,
+        stepId,
+        {
+          evidence_status: evidenceStatus,
+          evidence_summary:
+            evidenceStatus === "verified"
+              ? "Manual evidence was reviewed and marked as verified."
+              : "Manual evidence should be checked outside the browser UI.",
+          evidence_sources: [],
+        },
+      );
+      setWorkflows((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
     } catch (error) {
       setWorkflowError(errorMessage(error));
     }
   }
 
-  async function handleStepStatus(workflow: AgentWorkflow, stepId: string, status: "todo" | "in_progress" | "done" | "skipped" | "needs_review") {
+  async function handleStepStatus(
+    workflow: AgentWorkflow,
+    stepId: string,
+    status: "todo" | "in_progress" | "done" | "skipped" | "needs_review",
+  ) {
     setWorkflowError(null);
     try {
-      const updated = await updateAgentWorkflowStep(workspaceId, workflow.id, stepId, { status });
-      setWorkflows((current) => current.map((item) => item.id === updated.id ? updated : item));
+      const updated = await updateAgentWorkflowStep(
+        workspaceId,
+        workflow.id,
+        stepId,
+        { status },
+      );
+      setWorkflows((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
     } catch (error) {
       setWorkflowError(errorMessage(error));
     }
   }
 
-  async function handleApprovalPreview(workflow: AgentWorkflow, stepId: string) {
+  async function handleApprovalPreview(
+    workflow: AgentWorkflow,
+    stepId: string,
+  ) {
     setWorkflowError(null);
     try {
-      const result = await previewAgentWorkflowStepApproval(workspaceId, workflow.id, stepId);
+      const result = await previewAgentWorkflowStepApproval(
+        workspaceId,
+        workflow.id,
+        stepId,
+      );
       setStepApprovalPreview(result);
     } catch (error) {
       setWorkflowError(errorMessage(error));
     }
   }
 
-  async function handleStepApproval(workflow: AgentWorkflow, stepId: string, approvalStatus: "approved" | "rejected" | "revoked") {
+  async function handleStepApproval(
+    workflow: AgentWorkflow,
+    stepId: string,
+    approvalStatus: "approved" | "rejected" | "revoked",
+  ) {
     setWorkflowError(null);
     try {
-      const updated = await updateAgentWorkflowStepApproval(workspaceId, workflow.id, stepId, {
-        approval_status: approvalStatus,
-        approval_note: approvalStatus === "approved"
-          ? "Approved for manual tracking. No automatic execution was performed."
-          : "Marked by user in the manual approval gate.",
-      });
-      setWorkflows((current) => current.map((item) => item.id === updated.id ? updated : item));
+      const updated = await updateAgentWorkflowStepApproval(
+        workspaceId,
+        workflow.id,
+        stepId,
+        {
+          approval_status: approvalStatus,
+          approval_note:
+            approvalStatus === "approved"
+              ? "Approved for manual tracking. No automatic execution was performed."
+              : "Marked by user in the manual approval gate.",
+        },
+      );
+      setWorkflows((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
     } catch (error) {
       setWorkflowError(errorMessage(error));
     }
@@ -1644,8 +2087,14 @@ function AgentModeReadinessPanel({
   async function handleArchiveWorkflow(workflow: AgentWorkflow) {
     setWorkflowError(null);
     try {
-      const updated = await archiveAgentWorkflow(workspaceId, workflow.id, true);
-      setWorkflows((current) => current.filter((item) => item.id !== updated.id));
+      const updated = await archiveAgentWorkflow(
+        workspaceId,
+        workflow.id,
+        true,
+      );
+      setWorkflows((current) =>
+        current.filter((item) => item.id !== updated.id),
+      );
     } catch (error) {
       setWorkflowError(errorMessage(error));
     }
@@ -1655,7 +2104,9 @@ function AgentModeReadinessPanel({
     setWorkflowError(null);
     try {
       await deleteAgentWorkflow(workspaceId, workflow.id);
-      setWorkflows((current) => current.filter((item) => item.id !== workflow.id));
+      setWorkflows((current) =>
+        current.filter((item) => item.id !== workflow.id),
+      );
     } catch (error) {
       setWorkflowError(errorMessage(error));
     }
@@ -1668,7 +2119,10 @@ function AgentModeReadinessPanel({
           <p className="eyebrow">Agent capability</p>
           <h2>Safe agent planning mode</h2>
           <p className="panel-intro">
-            This is the bridge toward Claude Code/Codex-style work: the model can plan a task, map steps to approved tools, and track manual progress. It still never executes commands, edits files, scans, indexes, rebuilds, or restarts by itself.
+            This is the bridge toward Claude Code/Codex-style work: the model
+            can plan a task, map steps to approved tools, and track manual
+            progress. It still never executes commands, edits files, scans,
+            indexes, rebuilds, or restarts by itself.
           </p>
         </div>
         <StatusBadge label={selectedCapability?.readiness ?? "Checking"} />
@@ -1679,12 +2133,33 @@ function AgentModeReadinessPanel({
       <div className="agent-readiness-grid">
         <div className="agent-readiness-card is-selected">
           <span className="eyebrow">Current AI model</span>
-          <strong>{selectedProvider}/{selectedModel}</strong>
-          <p>{selectedCapability?.recommended_use ?? "Loading model capability metadata."}</p>
+          <strong>
+            {selectedProvider}/{selectedModel}
+          </strong>
+          <p>
+            {selectedCapability?.recommended_use ??
+              "Loading model capability metadata."}
+          </p>
           <div className="agent-capability-flags">
-            <StatusBadge label={selectedCapability?.planning_supported ? "Planning" : "Ask only"} />
-            <StatusBadge label={selectedCapability?.tool_calling_supported ? "Tool calling declared" : "No declared tools"} />
-            <StatusBadge label={selectedCapability?.json_mode_supported ? "Structured output" : "Free text"} />
+            <StatusBadge
+              label={
+                selectedCapability?.planning_supported ? "Planning" : "Ask only"
+              }
+            />
+            <StatusBadge
+              label={
+                selectedCapability?.tool_calling_supported
+                  ? "Tool calling declared"
+                  : "No declared tools"
+              }
+            />
+            <StatusBadge
+              label={
+                selectedCapability?.json_mode_supported
+                  ? "Structured output"
+                  : "Free text"
+              }
+            />
           </div>
         </div>
         <div className="agent-readiness-card">
@@ -1693,7 +2168,8 @@ function AgentModeReadinessPanel({
             <div className="agent-model-list">
               {recommendedModels.slice(0, 4).map((model) => (
                 <span key={`${model.provider}/${model.model}`}>
-                  {model.provider}/{model.model} · {formatLabel(model.readiness)}
+                  {model.provider}/{model.model} ·{" "}
+                  {formatLabel(model.readiness)}
                 </span>
               ))}
             </div>
@@ -1704,10 +2180,22 @@ function AgentModeReadinessPanel({
       </div>
 
       <div className="agent-execution-ladder">
-        <div><strong>1. Plan</strong><span>LLM creates a step-by-step draft.</span></div>
-        <div><strong>2. Approve</strong><span>User reviews tool gates and risk.</span></div>
-        <div><strong>3. Run manually</strong><span>Commands stay outside the browser UI.</span></div>
-        <div><strong>4. Verify</strong><span>Paste evidence and mark step status.</span></div>
+        <div>
+          <strong>1. Plan</strong>
+          <span>LLM creates a step-by-step draft.</span>
+        </div>
+        <div>
+          <strong>2. Approve</strong>
+          <span>User reviews tool gates and risk.</span>
+        </div>
+        <div>
+          <strong>3. Run manually</strong>
+          <span>Commands stay outside the browser UI.</span>
+        </div>
+        <div>
+          <strong>4. Verify</strong>
+          <span>Paste evidence and mark step status.</span>
+        </div>
       </div>
 
       <div className="agent-guardrail-strip">
@@ -1726,7 +2214,11 @@ function AgentModeReadinessPanel({
             rows={3}
           />
         </label>
-        <button type="button" onClick={handlePreviewPlan} disabled={isPlanning || goal.trim().length < 3}>
+        <button
+          type="button"
+          onClick={handlePreviewPlan}
+          disabled={isPlanning || goal.trim().length < 3}
+        >
           {isPlanning ? "Preparing…" : "Preview safe plan"}
         </button>
         {previewError ? <p className="form-error">{previewError}</p> : null}
@@ -1746,15 +2238,27 @@ function AgentModeReadinessPanel({
               <li key={step.order}>
                 <strong>{step.title}</strong>
                 <p>{step.description}</p>
-                <span>{step.requires_user_confirmation ? "Requires confirmation" : "Read-only"} · {formatLabel(step.allowed_execution)}</span>
+                <span>
+                  {step.requires_user_confirmation
+                    ? "Requires confirmation"
+                    : "Read-only"}{" "}
+                  · {formatLabel(step.allowed_execution)}
+                </span>
               </li>
             ))}
           </ol>
           <div className="agent-plan-actions">
-            <button type="button" onClick={handleSaveWorkflowDraft} disabled={isSavingWorkflow}>
+            <button
+              type="button"
+              onClick={handleSaveWorkflowDraft}
+              disabled={isSavingWorkflow}
+            >
               {isSavingWorkflow ? "Saving…" : "Save as manual workflow"}
             </button>
-            <span>Saved workflows add approval gates and step tracking. Nothing runs automatically.</span>
+            <span>
+              Saved workflows add approval gates and step tracking. Nothing runs
+              automatically.
+            </span>
           </div>
           <p className="muted-text">{preview.safety_note}</p>
         </div>
@@ -1766,57 +2270,191 @@ function AgentModeReadinessPanel({
             <p className="eyebrow">Manual workflow drafts</p>
             <h3>Approval-gated agent plans</h3>
           </div>
-          <button type="button" className="secondary-button" onClick={() => void loadAgentWorkflows()}>Refresh</button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => void loadAgentWorkflows()}
+          >
+            Refresh
+          </button>
         </div>
         {workflowError ? <p className="form-error">{workflowError}</p> : null}
         {workflows.length === 0 ? (
-          <p className="muted-text">No saved agent workflow drafts yet. Preview a plan, then save it for approval-gated tracking.</p>
+          <p className="muted-text">
+            No saved agent workflow drafts yet. Preview a plan, then save it for
+            approval-gated tracking.
+          </p>
         ) : (
           <div className="agent-workflow-list">
             {workflows.map((workflow) => (
               <article key={workflow.id} className="agent-workflow-card">
                 <div className="agent-workflow-header">
                   <div>
-                    <span className="eyebrow">{formatLabel(workflow.status)} · {workflow.progress_percent}% · {formatLabel(workflow.approval_readiness)}</span>
+                    <span className="eyebrow">
+                      {formatLabel(workflow.status)} ·{" "}
+                      {workflow.progress_percent}% ·{" "}
+                      {formatLabel(workflow.approval_readiness)}
+                    </span>
                     <h4>{workflow.title}</h4>
-                    <p>{workflow.provider}/{workflow.model} · approvals {workflow.approved_steps_count}/{workflow.approval_required_steps_count}</p>
+                    <p>
+                      {workflow.provider}/{workflow.model} · approvals{" "}
+                      {workflow.approved_steps_count}/
+                      {workflow.approval_required_steps_count}
+                    </p>
                   </div>
                   <div className="agent-workflow-actions">
-                    <button type="button" className="secondary-button" onClick={() => void handleExecutionReadiness(workflow)}>Readiness</button>
-                    <button type="button" className="secondary-button" onClick={() => void handleArchiveWorkflow(workflow)}>Archive</button>
-                    <button type="button" className="danger-button" onClick={() => void handleDeleteWorkflow(workflow)}>Delete</button>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => void handleExecutionReadiness(workflow)}
+                    >
+                      Readiness
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => void handleArchiveWorkflow(workflow)}
+                    >
+                      Archive
+                    </button>
+                    <button
+                      type="button"
+                      className="danger-button"
+                      onClick={() => void handleDeleteWorkflow(workflow)}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
-                <div className="agent-workflow-progress"><span style={{ width: `${workflow.progress_percent}%` }} /></div>
+                <div className="agent-workflow-progress">
+                  <span style={{ width: `${workflow.progress_percent}%` }} />
+                </div>
                 <ol className="agent-workflow-steps">
                   {workflow.steps.map((step) => {
-                    const blockedByApproval = step.requires_user_confirmation && step.approval_status !== "approved";
+                    const blockedByApproval =
+                      step.requires_user_confirmation &&
+                      step.approval_status !== "approved";
                     return (
-                    <li key={step.id}>
-                      <div>
-                        <strong>{step.title}</strong>
-                        <p>{step.description}</p>
-                        <span>
-                          {formatLabel(step.status)} · approval {formatLabel(step.approval_status)} · {step.proposed_tool ?? "manual checkpoint"} · {formatLabel(step.tool_risk)}
-                        </span>
-                        {step.execution_hint ? <small>{step.execution_hint}</small> : null}
-                        <small>Evidence: {formatLabel(step.evidence_status)}{step.evidence_summary ? ` · ${step.evidence_summary}` : ""}</small>
-                      </div>
-                      <div className="agent-step-actions">
-                        <button type="button" className="secondary-button" onClick={() => void handleApprovalPreview(workflow, step.id)}>Gate</button>
-                        {step.requires_user_confirmation ? (
-                          <>
-                            <button type="button" onClick={() => void handleStepApproval(workflow, step.id, "approved")}>Approve</button>
-                            <button type="button" className="secondary-button" onClick={() => void handleStepApproval(workflow, step.id, "rejected")}>Reject</button>
-                          </>
-                        ) : null}
-                        <button type="button" className="secondary-button" onClick={() => void handleStepEvidence(workflow, step.id, "provided")}>Evidence</button>
-                        <button type="button" className="secondary-button" onClick={() => void handleStepEvidence(workflow, step.id, "verified")}>Verified</button>
-                        <button type="button" onClick={() => void handleStepStatus(workflow, step.id, "done")} disabled={blockedByApproval}>Done</button>
-                        <button type="button" onClick={() => void handleStepStatus(workflow, step.id, "needs_review")}>Review</button>
-                        <button type="button" onClick={() => void handleStepStatus(workflow, step.id, "skipped")}>Skip</button>
-                      </div>
-                    </li>
+                      <li key={step.id}>
+                        <div>
+                          <strong>{step.title}</strong>
+                          <p>{step.description}</p>
+                          <span>
+                            {formatLabel(step.status)} · approval{" "}
+                            {formatLabel(step.approval_status)} ·{" "}
+                            {step.proposed_tool ?? "manual checkpoint"} ·{" "}
+                            {formatLabel(step.tool_risk)}
+                          </span>
+                          {step.execution_hint ? (
+                            <small>{step.execution_hint}</small>
+                          ) : null}
+                          <small>
+                            Evidence: {formatLabel(step.evidence_status)}
+                            {step.evidence_summary
+                              ? ` · ${step.evidence_summary}`
+                              : ""}
+                          </small>
+                        </div>
+                        <div className="agent-step-actions">
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() =>
+                              void handleApprovalPreview(workflow, step.id)
+                            }
+                          >
+                            Gate
+                          </button>
+                          {step.requires_user_confirmation ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void handleStepApproval(
+                                    workflow,
+                                    step.id,
+                                    "approved",
+                                  )
+                                }
+                              >
+                                Approve
+                              </button>
+                              <button
+                                type="button"
+                                className="secondary-button"
+                                onClick={() =>
+                                  void handleStepApproval(
+                                    workflow,
+                                    step.id,
+                                    "rejected",
+                                  )
+                                }
+                              >
+                                Reject
+                              </button>
+                            </>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() =>
+                              void handleStepEvidence(
+                                workflow,
+                                step.id,
+                                "provided",
+                              )
+                            }
+                          >
+                            Evidence
+                          </button>
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() =>
+                              void handleStepEvidence(
+                                workflow,
+                                step.id,
+                                "verified",
+                              )
+                            }
+                          >
+                            Verified
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void handleStepStatus(workflow, step.id, "done")
+                            }
+                            disabled={blockedByApproval}
+                          >
+                            Done
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void handleStepStatus(
+                                workflow,
+                                step.id,
+                                "needs_review",
+                              )
+                            }
+                          >
+                            Review
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void handleStepStatus(
+                                workflow,
+                                step.id,
+                                "skipped",
+                              )
+                            }
+                          >
+                            Skip
+                          </button>
+                        </div>
+                      </li>
                     );
                   })}
                 </ol>
@@ -1834,22 +2472,45 @@ function AgentModeReadinessPanel({
               <p className="eyebrow">Execution readiness</p>
               <h3>{formatLabel(executionReadiness.status)}</h3>
             </div>
-            <StatusBadge label={`${executionReadiness.ready_steps_count}/${executionReadiness.steps.length} ready`} />
+            <StatusBadge
+              label={`${executionReadiness.ready_steps_count}/${executionReadiness.steps.length} ready`}
+            />
           </div>
           <div className="agent-readiness-summary-grid">
-            <span>Approved tools: <strong>{executionReadiness.approved_tools_count}</strong></span>
-            <span>Risky tools: <strong>{executionReadiness.risky_tools_count}</strong></span>
-            <span>Blocked steps: <strong>{executionReadiness.blocked_steps_count}</strong></span>
+            <span>
+              Approved tools:{" "}
+              <strong>{executionReadiness.approved_tools_count}</strong>
+            </span>
+            <span>
+              Risky tools:{" "}
+              <strong>{executionReadiness.risky_tools_count}</strong>
+            </span>
+            <span>
+              Blocked steps:{" "}
+              <strong>{executionReadiness.blocked_steps_count}</strong>
+            </span>
           </div>
           <ol className="agent-readiness-steps">
             {executionReadiness.steps.map((step) => (
               <li key={step.step_id}>
                 <div>
                   <strong>{step.title}</strong>
-                  <span>{step.proposed_tool ?? "manual checkpoint"} · {formatLabel(step.tool_status)} · evidence {formatLabel(step.evidence_status)}</span>
+                  <span>
+                    {step.proposed_tool ?? "manual checkpoint"} ·{" "}
+                    {formatLabel(step.tool_status)} · evidence{" "}
+                    {formatLabel(step.evidence_status)}
+                  </span>
                   <small>{step.next_action}</small>
                 </div>
-                {step.blockers.length > 0 ? <ul>{step.blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul> : <StatusBadge label="Ready" />}
+                {step.blockers.length > 0 ? (
+                  <ul>
+                    {step.blockers.map((blocker) => (
+                      <li key={blocker}>{blocker}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <StatusBadge label="Ready" />
+                )}
               </li>
             ))}
           </ol>
@@ -1866,17 +2527,32 @@ function AgentModeReadinessPanel({
             </div>
             <StatusBadge label={stepApprovalPreview.tool_risk} />
           </div>
-          <p><strong>Proposed tool:</strong> {stepApprovalPreview.proposed_tool ?? "Manual checkpoint"}</p>
-          <p><strong>Execution:</strong> {stepApprovalPreview.execution_hint}</p>
-          <p><strong>Evidence:</strong> {stepApprovalPreview.evidence_hint}</p>
+          <p>
+            <strong>Proposed tool:</strong>{" "}
+            {stepApprovalPreview.proposed_tool ?? "Manual checkpoint"}
+          </p>
+          <p>
+            <strong>Execution:</strong> {stepApprovalPreview.execution_hint}
+          </p>
+          <p>
+            <strong>Evidence:</strong> {stepApprovalPreview.evidence_hint}
+          </p>
           <div className="agent-approval-grid">
             <div>
               <strong>Approval checklist</strong>
-              <ul>{stepApprovalPreview.approval_checklist.map((item) => <li key={item}>{item}</li>)}</ul>
+              <ul>
+                {stepApprovalPreview.approval_checklist.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
             </div>
             <div>
               <strong>Blocked actions</strong>
-              <ul>{stepApprovalPreview.blocked_actions.map((item) => <li key={item}>{item}</li>)}</ul>
+              <ul>
+                {stepApprovalPreview.blocked_actions.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
             </div>
           </div>
           <p className="muted-text">{stepApprovalPreview.safety_note}</p>
@@ -1886,20 +2562,20 @@ function AgentModeReadinessPanel({
   );
 }
 
-
-function MCPServerRegistryPanel({
-  workspaceId,
-}: {
-  workspaceId: string;
-}) {
+function MCPServerRegistryPanel({ workspaceId }: { workspaceId: string }) {
   const [catalog, setCatalog] = useState<MCPServerCatalog | null>(null);
-  const [selectedTemplateId, setSelectedTemplateId] = useState("filesystem-readonly");
+  const [selectedTemplateId, setSelectedTemplateId] = useState(
+    "filesystem-readonly",
+  );
   const [projectPath, setProjectPath] = useState("");
   const [preview, setPreview] = useState<MCPServerConfigPreview | null>(null);
   const [check, setCheck] = useState<MCPServerConnectionCheck | null>(null);
-  const [savedConfigs, setSavedConfigs] = useState<WorkspaceMCPServerConfig[]>([]);
+  const [savedConfigs, setSavedConfigs] = useState<WorkspaceMCPServerConfig[]>(
+    [],
+  );
   const [inventory, setInventory] = useState<MCPToolInventory | null>(null);
-  const [approvalPreview, setApprovalPreview] = useState<MCPApprovalPreview | null>(null);
+  const [approvalPreview, setApprovalPreview] =
+    useState<MCPApprovalPreview | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
@@ -1907,13 +2583,19 @@ function MCPServerRegistryPanel({
 
   useEffect(() => {
     setIsLoading(true);
-    Promise.all([getMCPServerCatalog(), listWorkspaceMCPConfigs(workspaceId), getWorkspaceMCPToolInventory(workspaceId)])
+    Promise.all([
+      getMCPServerCatalog(),
+      listWorkspaceMCPConfigs(workspaceId),
+      getWorkspaceMCPToolInventory(workspaceId),
+    ])
       .then(([catalogResult, configResult, inventoryResult]) => {
         setCatalog(catalogResult);
         setSavedConfigs(configResult.items);
         setInventory(inventoryResult);
         if (catalogResult.templates.length > 0) {
-          setSelectedTemplateId((current) => current || catalogResult.templates[0].id);
+          setSelectedTemplateId(
+            (current) => current || catalogResult.templates[0].id,
+          );
         }
       })
       .catch((loadError) => setError(errorMessage(loadError)))
@@ -1921,7 +2603,10 @@ function MCPServerRegistryPanel({
   }, [workspaceId]);
 
   const selectedTemplate = useMemo(
-    () => catalog?.templates.find((template) => template.id === selectedTemplateId) ?? null,
+    () =>
+      catalog?.templates.find(
+        (template) => template.id === selectedTemplateId,
+      ) ?? null,
     [catalog, selectedTemplateId],
   );
 
@@ -1945,7 +2630,9 @@ function MCPServerRegistryPanel({
         project_path: projectPath.trim() || null,
       });
       setPreview(result);
-      const checkResult = await createMCPConnectionCheck({ template_id: selectedTemplateId });
+      const checkResult = await createMCPConnectionCheck({
+        template_id: selectedTemplateId,
+      });
       setCheck(checkResult);
     } catch (previewError) {
       setError(errorMessage(previewError));
@@ -1965,9 +2652,16 @@ function MCPServerRegistryPanel({
       setPreview(null);
       setApprovalPreview(null);
       await refreshWorkspaceMCPState();
-      const approval = await previewWorkspaceMCPApproval(workspaceId, created.id, {
-        approved_tools: created.risk_level === "read_only" ? created.available_tools.slice(0, 2) : [],
-      });
+      const approval = await previewWorkspaceMCPApproval(
+        workspaceId,
+        created.id,
+        {
+          approved_tools:
+            created.risk_level === "read_only"
+              ? created.available_tools.slice(0, 2)
+              : [],
+        },
+      );
       setApprovalPreview(approval);
     } catch (saveError) {
       setError(errorMessage(saveError));
@@ -1979,10 +2673,15 @@ function MCPServerRegistryPanel({
   async function handleApproveReadOnly(config: WorkspaceMCPServerConfig) {
     setError(null);
     try {
-      const approvedTools = config.risk_level === "read_only" ? config.available_tools : [];
-      const previewResult = await previewWorkspaceMCPApproval(workspaceId, config.id, {
-        approved_tools: approvedTools,
-      });
+      const approvedTools =
+        config.risk_level === "read_only" ? config.available_tools : [];
+      const previewResult = await previewWorkspaceMCPApproval(
+        workspaceId,
+        config.id,
+        {
+          approved_tools: approvedTools,
+        },
+      );
       setApprovalPreview(previewResult);
       await updateWorkspaceMCPConfig(workspaceId, config.id, {
         enabled: approvedTools.length > 0,
@@ -2026,7 +2725,9 @@ function MCPServerRegistryPanel({
           <p className="eyebrow">MCP tools</p>
           <h2>MCP server registry and safe setup</h2>
           <p>
-            Prepare local MCP servers for Claude/Codex-style workflows. Servers are saved per workspace, tools are approved explicitly, and execution stays manual-gated.
+            Prepare local MCP servers for Claude/Codex-style workflows. Servers
+            are saved per workspace, tools are approved explicitly, and
+            execution stays manual-gated.
           </p>
         </div>
         <StatusBadge label={inventory?.agent_readiness ?? "planning only"} />
@@ -2037,10 +2738,18 @@ function MCPServerRegistryPanel({
 
       {inventory ? (
         <div className="mcp-inventory-strip">
-          <span><strong>{inventory.configs_count}</strong> configs</span>
-          <span><strong>{inventory.enabled_configs_count}</strong> enabled</span>
-          <span><strong>{inventory.approved_tools_count}</strong> approved tools</span>
-          <span><strong>{inventory.read_only_tools_count}</strong> read-only</span>
+          <span>
+            <strong>{inventory.configs_count}</strong> configs
+          </span>
+          <span>
+            <strong>{inventory.enabled_configs_count}</strong> enabled
+          </span>
+          <span>
+            <strong>{inventory.approved_tools_count}</strong> approved tools
+          </span>
+          <span>
+            <strong>{inventory.read_only_tools_count}</strong> read-only
+          </span>
         </div>
       ) : null}
 
@@ -2048,15 +2757,22 @@ function MCPServerRegistryPanel({
         <>
           <div className="mcp-flow-strip">
             {catalog.recommended_flow.map((step, index) => (
-              <span key={step}>{index + 1}. {step}</span>
+              <span key={step}>
+                {index + 1}. {step}
+              </span>
             ))}
           </div>
           <div className="mcp-template-grid">
             <label>
               <span>Server template</span>
-              <select value={selectedTemplateId} onChange={(event) => setSelectedTemplateId(event.target.value)}>
+              <select
+                value={selectedTemplateId}
+                onChange={(event) => setSelectedTemplateId(event.target.value)}
+              >
                 {catalog.templates.map((template) => (
-                  <option key={template.id} value={template.id}>{template.name}</option>
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
                 ))}
               </select>
             </label>
@@ -2073,7 +2789,9 @@ function MCPServerRegistryPanel({
           {selectedTemplate ? (
             <div className="mcp-template-card">
               <div>
-                <p className="eyebrow">{formatLabel(selectedTemplate.category)}</p>
+                <p className="eyebrow">
+                  {formatLabel(selectedTemplate.category)}
+                </p>
                 <h3>{selectedTemplate.name}</h3>
                 <p>{selectedTemplate.description}</p>
               </div>
@@ -2083,7 +2801,9 @@ function MCPServerRegistryPanel({
                 <StatusBadge label={selectedTemplate.default_scope} />
               </div>
               <div className="mcp-tools-list">
-                {selectedTemplate.example_tools.map((tool) => <span key={tool}>{tool}</span>)}
+                {selectedTemplate.example_tools.map((tool) => (
+                  <span key={tool}>{tool}</span>
+                ))}
               </div>
             </div>
           ) : null}
@@ -2096,10 +2816,19 @@ function MCPServerRegistryPanel({
           </div>
 
           <div className="agent-plan-actions">
-            <button type="button" onClick={handlePreviewConfig} disabled={isPreviewing || !selectedTemplateId}>
+            <button
+              type="button"
+              onClick={handlePreviewConfig}
+              disabled={isPreviewing || !selectedTemplateId}
+            >
               {isPreviewing ? "Preparing MCP config…" : "Preview MCP config"}
             </button>
-            <button type="button" className="secondary-button" onClick={handleSaveWorkspaceConfig} disabled={isSavingConfig || !selectedTemplateId}>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleSaveWorkspaceConfig}
+              disabled={isSavingConfig || !selectedTemplateId}
+            >
               {isSavingConfig ? "Saving…" : "Save disabled workspace config"}
             </button>
           </div>
@@ -2114,16 +2843,29 @@ function MCPServerRegistryPanel({
                 <p className="eyebrow">Config preview</p>
                 <h3>{preview.name}</h3>
               </div>
-              <StatusBadge label={preview.allowed_by_default ? "enabled" : "disabled by default"} />
+              <StatusBadge
+                label={
+                  preview.allowed_by_default ? "enabled" : "disabled by default"
+                }
+              />
             </div>
-            <pre className="copyable-code-block">{JSON.stringify(preview.config_json, null, 2)}</pre>
-            <CopyButton text={JSON.stringify(preview.config_json, null, 2)} label="Copy config" />
+            <pre className="copyable-code-block">
+              {JSON.stringify(preview.config_json, null, 2)}
+            </pre>
+            <CopyButton
+              text={JSON.stringify(preview.config_json, null, 2)}
+              label="Copy config"
+            />
           </article>
           <article className="mcp-preview-card">
             <p className="eyebrow">Manual connection plan</p>
-            <h3>{check?.status ? formatLabel(check.status) : "Manual check"}</h3>
+            <h3>
+              {check?.status ? formatLabel(check.status) : "Manual check"}
+            </h3>
             <ul>
-              {(check?.checks ?? preview.test_plan).map((item) => <li key={item}>{item}</li>)}
+              {(check?.checks ?? preview.test_plan).map((item) => (
+                <li key={item}>{item}</li>
+              ))}
             </ul>
             {check?.copy_commands.length ? (
               <div className="command-list compact">
@@ -2135,7 +2877,9 @@ function MCPServerRegistryPanel({
                 ))}
               </div>
             ) : null}
-            <p className="muted-text">{check?.safety_note ?? "No process is started by the UI."}</p>
+            <p className="muted-text">
+              {check?.safety_note ?? "No process is started by the UI."}
+            </p>
           </article>
         </div>
       ) : null}
@@ -2146,32 +2890,65 @@ function MCPServerRegistryPanel({
             <p className="eyebrow">Workspace MCP configs</p>
             <h3>Approved tools visible to future agent plans</h3>
           </div>
-          <button type="button" className="secondary-button" onClick={() => void refreshWorkspaceMCPState()}>Refresh</button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => void refreshWorkspaceMCPState()}
+          >
+            Refresh
+          </button>
         </div>
         {savedConfigs.length === 0 ? (
-          <p className="muted-text">No workspace MCP configs yet. Save a disabled config, review tools, then approve the smallest read-only set.</p>
+          <p className="muted-text">
+            No workspace MCP configs yet. Save a disabled config, review tools,
+            then approve the smallest read-only set.
+          </p>
         ) : (
           <div className="mcp-config-list">
             {savedConfigs.map((config) => (
               <article key={config.id} className="mcp-config-card">
                 <div>
-                  <p className="eyebrow">{formatLabel(config.status)} · {formatLabel(config.risk_level)}</p>
+                  <p className="eyebrow">
+                    {formatLabel(config.status)} ·{" "}
+                    {formatLabel(config.risk_level)}
+                  </p>
                   <h4>{config.name}</h4>
-                  <p>{config.approved_tools_count}/{config.available_tools_count} tools approved · {config.enabled ? "Enabled" : "Disabled"}</p>
+                  <p>
+                    {config.approved_tools_count}/{config.available_tools_count}{" "}
+                    tools approved · {config.enabled ? "Enabled" : "Disabled"}
+                  </p>
                   <div className="mcp-tools-list">
                     {config.available_tools.map((tool) => (
-                      <span key={tool} className={config.approved_tools.includes(tool) ? "approved" : ""}>{tool}</span>
+                      <span
+                        key={tool}
+                        className={
+                          config.approved_tools.includes(tool) ? "approved" : ""
+                        }
+                      >
+                        {tool}
+                      </span>
                     ))}
                   </div>
                 </div>
                 <div className="agent-workflow-actions">
-                  <button type="button" onClick={() => void handleApproveReadOnly(config)}>
+                  <button
+                    type="button"
+                    onClick={() => void handleApproveReadOnly(config)}
+                  >
                     Approve read-only
                   </button>
-                  <button type="button" className="secondary-button" onClick={() => void handleDisableConfig(config)}>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => void handleDisableConfig(config)}
+                  >
                     Disable
                   </button>
-                  <button type="button" className="danger-button" onClick={() => void handleDeleteConfig(config)}>
+                  <button
+                    type="button"
+                    className="danger-button"
+                    onClick={() => void handleDeleteConfig(config)}
+                  >
                     Delete
                   </button>
                 </div>
@@ -2187,7 +2964,9 @@ function MCPServerRegistryPanel({
           <span>{formatLabel(approvalPreview.status)}</span>
           <span>{approvalPreview.approved_tools.length} approved</span>
           <span>{approvalPreview.denied_tools.length} denied</span>
-          {approvalPreview.warnings.map((warning) => <span key={warning}>{warning}</span>)}
+          {approvalPreview.warnings.map((warning) => (
+            <span key={warning}>{warning}</span>
+          ))}
         </div>
       ) : null}
 
@@ -2196,7 +2975,10 @@ function MCPServerRegistryPanel({
           <p className="eyebrow">Tool inventory</p>
           <div className="mcp-tools-list">
             {inventory.tools.slice(0, 16).map((tool) => (
-              <span key={`${tool.config_id}-${tool.tool}`} className={tool.status === "approved" ? "approved" : ""}>
+              <span
+                key={`${tool.config_id}-${tool.tool}`}
+                className={tool.status === "approved" ? "approved" : ""}
+              >
                 {tool.tool} · {formatLabel(tool.status)}
               </span>
             ))}
@@ -2243,7 +3025,9 @@ function ModelExperimentPlanner({
   const [isRunning, setIsRunning] = useState(false);
   const [plan, setPlan] = useState<ModelExperimentPlan | null>(null);
   const [runResult, setRunResult] = useState<ModelExperimentRun | null>(null);
-  const [experimentHistory, setExperimentHistory] = useState<ModelExperimentRun[]>([]);
+  const [experimentHistory, setExperimentHistory] = useState<
+    ModelExperimentRun[]
+  >([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -2347,7 +3131,9 @@ function ModelExperimentPlanner({
         })),
       });
       setRunResult(result);
-      setExperimentHistory((current) => upsertExperimentHistory(current, result));
+      setExperimentHistory((current) =>
+        upsertExperimentHistory(current, result),
+      );
     } catch (experimentError) {
       setRunError(errorMessage(experimentError));
       setRunResult(null);
@@ -2362,12 +3148,16 @@ function ModelExperimentPlanner({
         <div>
           <p className="eyebrow">Optional</p>
           <h2>Compare models</h2>
-          <span>Try two local AI models on one question when you want to improve answer quality.</span>
+          <span>
+            Try two local AI models on one question when you want to improve
+            answer quality.
+          </span>
         </div>
       </summary>
       <p className="panel-intro">
         Prepare a safe comparison before running a local model test. This does
-        not change workspace models, restart the backend, or rebuild search context.
+        not change workspace models, restart the backend, or rebuild search
+        context.
       </p>
       <div className="model-experiment-form">
         <label className="model-experiment-question">
@@ -2404,7 +3194,8 @@ function ModelExperimentPlanner({
       <div className="model-selection-safety-note">
         <StatusBadge label="planning only" />
         <span>
-          Planning is advisory. Run the comparison only after you explicitly confirm it below.
+          Planning is advisory. Run the comparison only after you explicitly
+          confirm it below.
         </span>
       </div>
       {error ? <p className="model-selection-error">{error}</p> : null}
@@ -2416,7 +3207,10 @@ function ModelExperimentPlanner({
             <div>
               <strong>Run local model comparison</strong>
               <p>
-                This asks both selected local AI models through the backend. It may take time and can use CPU/RAM, but it does not execute shell commands, change workspace models, restart the backend, or rebuild search context.
+                This asks both selected local AI models through the backend. It
+                may take time and can use CPU/RAM, but it does not execute shell
+                commands, change workspace models, restart the backend, or
+                rebuild search context.
               </p>
             </div>
           </div>
@@ -2491,7 +3285,11 @@ function ModelExperimentPlanResult({ plan }: { plan: ModelExperimentPlan }) {
     <article className="model-experiment-plan-result">
       <div className="model-experiment-plan-summary">
         <StatusBadge
-          label={plan.can_compare_without_reindex ? "No rebuild needed" : "Rebuild needed"}
+          label={
+            plan.can_compare_without_reindex
+              ? "No rebuild needed"
+              : "Rebuild needed"
+          }
         />
         <StatusBadge
           label={plan.requires_reindex ? "Requires rebuild" : "Shared context"}
@@ -2523,7 +3321,11 @@ function ModelExperimentPlanResult({ plan }: { plan: ModelExperimentPlan }) {
                 }
               />
               <StatusBadge
-                label={candidate.requires_reindex ? "Rebuild needed" : "No rebuild needed"}
+                label={
+                  candidate.requires_reindex
+                    ? "Rebuild needed"
+                    : "No rebuild needed"
+                }
               />
             </div>
             {candidate.warnings.length > 0 ? (
@@ -2542,7 +3344,6 @@ function ModelExperimentPlanResult({ plan }: { plan: ModelExperimentPlan }) {
   );
 }
 
-
 function ModelExperimentRunResult({
   result,
   workspaceId,
@@ -2556,7 +3357,9 @@ function ModelExperimentRunResult({
     <article className="model-experiment-run-result">
       <div className="model-experiment-plan-summary">
         <StatusBadge label={result.status} />
-        <StatusBadge label={`${result.shared_context_sources_count} shared sources`} />
+        <StatusBadge
+          label={`${result.shared_context_sources_count} shared sources`}
+        />
         <strong>Comparison result</strong>
       </div>
       <div className="model-experiment-run-meta">
@@ -2564,7 +3367,9 @@ function ModelExperimentRunResult({
           Comparison ID <code>{result.id}</code>
         </span>
         <span>Created {formatDateTime(result.created_at)}</span>
-        {result.completed_at ? <span>Completed {formatDateTime(result.completed_at)}</span> : null}
+        {result.completed_at ? (
+          <span>Completed {formatDateTime(result.completed_at)}</span>
+        ) : null}
       </div>
       <div className="model-experiment-candidate-list">
         {result.candidates.map((candidate) => (
@@ -2582,13 +3387,17 @@ function ModelExperimentRunResult({
               <StatusBadge label={candidate.status} />
               <StatusBadge label={`${candidate.latency_ms ?? 0} ms`} />
               <StatusBadge label={`${candidate.sources_count} sources`} />
-              <StatusBadge label={`${candidate.quality_warnings_count} notes`} />
+              <StatusBadge
+                label={`${candidate.quality_warnings_count} notes`}
+              />
             </div>
             {candidate.error ? (
               <p className="model-selection-error">{candidate.error}</p>
             ) : (
               <p className="model-experiment-answer-preview">
-                {candidate.answer ? truncateText(candidate.answer, 560) : "No answer returned."}
+                {candidate.answer
+                  ? truncateText(candidate.answer, 560)
+                  : "No answer returned."}
               </p>
             )}
           </article>
@@ -2614,7 +3423,9 @@ function ExperimentRunHeuristics({ result }: { result: ModelExperimentRun }) {
   }
 
   const fastest = [...completed].sort(
-    (left, right) => (left.latency_ms ?? Number.MAX_SAFE_INTEGER) - (right.latency_ms ?? Number.MAX_SAFE_INTEGER),
+    (left, right) =>
+      (left.latency_ms ?? Number.MAX_SAFE_INTEGER) -
+      (right.latency_ms ?? Number.MAX_SAFE_INTEGER),
   )[0];
   const fewestWarnings = [...completed].sort(
     (left, right) => left.quality_warnings_count - right.quality_warnings_count,
@@ -2628,23 +3439,25 @@ function ExperimentRunHeuristics({ result }: { result: ModelExperimentRun }) {
       <strong>Quick comparison hints</strong>
       <ul>
         <li>
-          Fastest: {fastest.provider}/{fastest.model} ({fastest.latency_ms ?? "unknown"} ms)
+          Fastest: {fastest.provider}/{fastest.model} (
+          {fastest.latency_ms ?? "unknown"} ms)
         </li>
         <li>
-          Fewest verification notes: {fewestWarnings.provider}/{fewestWarnings.model} ({fewestWarnings.quality_warnings_count})
+          Fewest verification notes: {fewestWarnings.provider}/
+          {fewestWarnings.model} ({fewestWarnings.quality_warnings_count})
         </li>
         <li>
-          Most sources used: {mostSources.provider}/{mostSources.model} ({mostSources.sources_count})
+          Most sources used: {mostSources.provider}/{mostSources.model} (
+          {mostSources.sources_count})
         </li>
       </ul>
       <small>
-        These are simple hints, not an automatic winner. Review answer quality and source grounding manually before changing the chosen AI model.
+        These are simple hints, not an automatic winner. Review answer quality
+        and source grounding manually before changing the chosen AI model.
       </small>
     </div>
   );
 }
-
-
 
 function ModelExperimentHistoryPanel({
   experiments,
@@ -2668,8 +3481,8 @@ function ModelExperimentHistoryPanel({
           <StatusBadge label="history" />
           <strong>Comparison history</strong>
           <p>
-            Review previous local model comparisons for this workspace. Selecting
-            a run only opens its saved details and ratings UI.
+            Review previous local model comparisons for this workspace.
+            Selecting a run only opens its saved details and ratings UI.
           </p>
         </div>
         <button type="button" className="secondary-button" onClick={onRefresh}>
@@ -2678,7 +3491,9 @@ function ModelExperimentHistoryPanel({
       </div>
       {error ? <p className="model-selection-error">{error}</p> : null}
       {isLoading && experiments.length === 0 ? (
-        <p className="model-experiment-rating-muted">Loading experiment history…</p>
+        <p className="model-experiment-rating-muted">
+          Loading experiment history…
+        </p>
       ) : null}
       {!isLoading && experiments.length === 0 ? (
         <EmptyState
@@ -2706,13 +3521,19 @@ function ModelExperimentHistoryPanel({
               </div>
               <div className="model-experiment-history-meta">
                 <StatusBadge label={experiment.status} />
-                <StatusBadge label={`${experiment.shared_context_sources_count} sources`} />
+                <StatusBadge
+                  label={`${experiment.shared_context_sources_count} sources`}
+                />
                 <StatusBadge label={`${experiment.candidates.length} models`} />
               </div>
               <div className="model-experiment-history-candidates">
                 {experiment.candidates.slice(0, 3).map((candidate) => (
-                  <span key={`${experiment.id}/${candidate.provider}/${candidate.model}`}>
-                    {candidate.provider}/{candidate.model} · {candidate.latency_ms ?? "?"} ms · {candidate.quality_warnings_count} notes
+                  <span
+                    key={`${experiment.id}/${candidate.provider}/${candidate.model}`}
+                  >
+                    {candidate.provider}/{candidate.model} ·{" "}
+                    {candidate.latency_ms ?? "?"} ms ·{" "}
+                    {candidate.quality_warnings_count} notes
                   </span>
                 ))}
               </div>
@@ -2738,7 +3559,9 @@ function ExperimentRatingPanel({
   );
   const defaultCandidate = completedCandidates[0];
   const [selectedCandidate, setSelectedCandidate] = useState(
-    defaultCandidate ? toOptionValue(defaultCandidate.provider, defaultCandidate.model) ?? "" : "",
+    defaultCandidate
+      ? (toOptionValue(defaultCandidate.provider, defaultCandidate.model) ?? "")
+      : "",
   );
   const [rating, setRating] = useState(5);
   const [isPreferred, setIsPreferred] = useState(true);
@@ -2751,12 +3574,16 @@ function ExperimentRatingPanel({
   const [isSavingRating, setIsSavingRating] = useState(false);
   const [ratingError, setRatingError] = useState<string | null>(null);
   const [ratingMessage, setRatingMessage] = useState<string | null>(null);
-  const [applyCandidate, setApplyCandidate] = useState<ModelExperimentRating | null>(null);
+  const [applyCandidate, setApplyCandidate] =
+    useState<ModelExperimentRating | null>(null);
   const [isApplyingSelection, setIsApplyingSelection] = useState(false);
 
   useEffect(() => {
     setSelectedCandidate(
-      defaultCandidate ? toOptionValue(defaultCandidate.provider, defaultCandidate.model) ?? "" : "",
+      defaultCandidate
+        ? (toOptionValue(defaultCandidate.provider, defaultCandidate.model) ??
+            "")
+        : "",
     );
   }, [defaultCandidate?.provider, defaultCandidate?.model, result.id]);
 
@@ -2811,7 +3638,9 @@ function ExperimentRatingPanel({
         comment: comment.trim().length > 0 ? comment.trim() : undefined,
       });
       setRatings((current) => [savedRating, ...current]);
-      setRatingMessage("Experiment rating saved. Chosen model was not changed.");
+      setRatingMessage(
+        "Experiment rating saved. Chosen model was not changed.",
+      );
     } catch (saveError) {
       setRatingError(errorMessage(saveError));
     } finally {
@@ -2849,7 +3678,8 @@ function ExperimentRatingPanel({
         <div>
           <strong>Rate this comparison</strong>
           <p>
-            Save human feedback for model performance tracking. This does not change the chosen AI model or rerun the comparison.
+            Save human feedback for model performance tracking. This does not
+            change the chosen AI model or rerun the comparison.
           </p>
         </div>
       </div>
@@ -2910,8 +3740,12 @@ function ExperimentRatingPanel({
       >
         {isSavingRating ? "Saving rating…" : "Save rating"}
       </button>
-      {ratingMessage ? <p className="model-selection-message">{ratingMessage}</p> : null}
-      {ratingError ? <p className="model-selection-error">{ratingError}</p> : null}
+      {ratingMessage ? (
+        <p className="model-selection-message">{ratingMessage}</p>
+      ) : null}
+      {ratingError ? (
+        <p className="model-selection-error">{ratingError}</p>
+      ) : null}
       <SavedRatingsList
         ratings={ratings}
         isLoading={isLoadingRatings}
@@ -2919,7 +3753,9 @@ function ExperimentRatingPanel({
         isApplyingSelection={isApplyingSelection}
         onRequestApply={setApplyCandidate}
         onCancelApply={() => setApplyCandidate(null)}
-        onConfirmApply={(ratingToApply) => void applyPreferredRating(ratingToApply)}
+        onConfirmApply={(ratingToApply) =>
+          void applyPreferredRating(ratingToApply)
+        }
       />
     </div>
   );
@@ -2983,7 +3819,9 @@ function SavedRatingsList({
   onConfirmApply: (rating: ModelExperimentRating) => void;
 }) {
   if (isLoading) {
-    return <p className="model-experiment-rating-muted">Loading saved ratings…</p>;
+    return (
+      <p className="model-experiment-rating-muted">Loading saved ratings…</p>
+    );
   }
 
   if (ratings.length === 0) {
@@ -3058,8 +3896,9 @@ function PreferredModelApplyControl({
           Use as chosen AI model
         </button>
         <small>
-          This only updates workspace AI model preference. It does not restart the
-          backend, rebuild search context, rerun experiments, or change search model settings.
+          This only updates workspace AI model preference. It does not restart
+          the backend, rebuild search context, rerun experiments, or change
+          search model settings.
         </small>
       </div>
     );
@@ -3249,56 +4088,61 @@ function ModelSelectionEditor({
         <div>
           <p className="eyebrow">Optional settings</p>
           <h2>Change workspace models</h2>
-          <span>Most users do not need this. Open it only to choose a different AI or search model.</span>
+          <span>
+            Most users do not need this. Open it only to choose a different AI
+            or search model.
+          </span>
         </div>
       </summary>
       <div className="model-selection-editor-body">
         <p className="panel-intro">
-          Saving only updates this workspace preference. It does not restart the backend, rebuild search context, or execute commands.
+          Saving only updates this workspace preference. It does not restart the
+          backend, rebuild search context, or execute commands.
         </p>
 
-      <div className="model-selection-grid">
-        <ModelSelectionControl
-          label="AI answer model"
-          description="Used when you ask questions. Most users can keep the recommended model."
-          value={llmValue}
-          options={llmOptions}
-          selectedProvider={selectedLlmProvider}
-          selectedModel={selectedLlmModel}
-          disabled={savingType !== null}
-          onChange={setLlmValue}
-          onSave={() => void saveSelection("llm")}
-          isSaving={savingType === "llm"}
-        />
-        <ModelSelectionControl
-          label="Search context model"
-          description="Used to build and search local project context. Change this only when you know the backend uses the same search model."
-          value={embeddingValue}
-          options={embeddingOptions}
-          selectedProvider={selectedEmbeddingProvider}
-          selectedModel={selectedEmbeddingModel}
-          disabled={savingType !== null}
-          onChange={setEmbeddingValue}
-          onSave={() => void saveSelection("embedding")}
-          isSaving={savingType === "embedding"}
-        />
-      </div>
+        <div className="model-selection-grid">
+          <ModelSelectionControl
+            label="AI answer model"
+            description="Used when you ask questions. Most users can keep the recommended model."
+            value={llmValue}
+            options={llmOptions}
+            selectedProvider={selectedLlmProvider}
+            selectedModel={selectedLlmModel}
+            disabled={savingType !== null}
+            onChange={setLlmValue}
+            onSave={() => void saveSelection("llm")}
+            isSaving={savingType === "llm"}
+          />
+          <ModelSelectionControl
+            label="Search context model"
+            description="Used to build and search local project context. Change this only when you know the backend uses the same search model."
+            value={embeddingValue}
+            options={embeddingOptions}
+            selectedProvider={selectedEmbeddingProvider}
+            selectedModel={selectedEmbeddingModel}
+            disabled={savingType !== null}
+            onChange={setEmbeddingValue}
+            onSave={() => void saveSelection("embedding")}
+            isSaving={savingType === "embedding"}
+          />
+        </div>
 
-      <div className="model-selection-safety-note">
-        <StatusBadge label="instructions only" />
-        <span>
-          Backend setup and search-context rebuild steps stay manual. Changing an AI model
-          preference does not require rebuilding; changing the search model may require the guidance below.
-        </span>
-      </div>
+        <div className="model-selection-safety-note">
+          <StatusBadge label="instructions only" />
+          <span>
+            Backend setup and search-context rebuild steps stay manual. Changing
+            an AI model preference does not require rebuilding; changing the
+            search model may require the guidance below.
+          </span>
+        </div>
 
-      {reindexReason ? (
-        <ModelReindexGuidance
-          workspaceId={workspaceId}
-          reason={reindexReason}
-          hasScan={hasScan}
-        />
-      ) : null}
+        {reindexReason ? (
+          <ModelReindexGuidance
+            workspaceId={workspaceId}
+            reason={reindexReason}
+            hasScan={hasScan}
+          />
+        ) : null}
 
         {message ? <p className="model-selection-message">{message}</p> : null}
         {error ? <p className="model-selection-error">{error}</p> : null}
@@ -3400,7 +4244,9 @@ function ModelReindexGuidance({
     <article className="reindex-guidance model-reindex-guidance">
       <div>
         <StatusBadge label="copy only" />
-        <strong>{hasScan ? "Rebuild search context" : "Scan and build search context"}</strong>
+        <strong>
+          {hasScan ? "Rebuild search context" : "Scan and build search context"}
+        </strong>
       </div>
       <p>{reason}</p>
       {!hasScan ? (
@@ -3410,7 +4256,9 @@ function ModelReindexGuidance({
         />
       ) : null}
       <CommandGuidanceRow
-        label={hasScan ? "Rebuild search context" : "Step 2 · build search context"}
+        label={
+          hasScan ? "Rebuild search context" : "Step 2 · build search context"
+        }
         command={indexCommand}
       />
       <small>
@@ -3524,7 +4372,9 @@ function RuntimeModel({
   );
 }
 
-function formatModelActionTitle(title: string | null | undefined): string | null {
+function formatModelActionTitle(
+  title: string | null | undefined,
+): string | null {
   if (!title) {
     return null;
   }
@@ -3708,7 +4558,9 @@ function parseOptionValue(value: string) {
 }
 
 function truncateText(value: string, maxLength: number): string {
-  return value.length > maxLength ? `${value.slice(0, maxLength).trimEnd()}…` : value;
+  return value.length > maxLength
+    ? `${value.slice(0, maxLength).trimEnd()}…`
+    : value;
 }
 
 function formatDateTime(value: string): string {
