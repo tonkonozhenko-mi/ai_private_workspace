@@ -289,3 +289,8 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 - `GET /runtime/tauri-supervisor-bridge` — read-only Tauri supervisor bridge contract. It documents startup states, Tauri command strategy, health readiness, log paths, validation steps, safety rules, and limitations. It does not start backend processes, install Tauri, run shell commands, download models, run MCP servers, or execute agent workflows.
 
 - `GET /runtime/windows-packaging-foundation` — read-only Windows packaging foundation. It documents Windows app data/log paths, supervisor lifecycle, Tauri/installer direction, validation scripts, safety rules, and current limitations. It does not build an installer, start backend processes, execute PowerShell, download models, run MCP servers, or execute agent workflows.
+
+
+### Release candidate audit
+
+- `GET /runtime/release-candidate-audit` — read-only v0.1 release candidate audit for source structure, no-runtime-data policy, docs, safety boundaries, and packaging readiness.

@@ -202,3 +202,8 @@ Added the Windows equivalent of the desktop packaging path:
 - `docs/WINDOWS_PACKAGING_FOUNDATION.md`
 
 The target UX remains downloaded package -> double click -> app-owned localhost backend -> UI opens. Windows runtime data is planned under `%LOCALAPPDATA%\AI Private Workspace`. Frontend still never executes shell commands.
+
+
+## Task 222 — release candidate audit
+
+Added a read-only release candidate audit endpoint, source archive policy, validation script, UI audit block, and docs for v0.1 handoff readiness.

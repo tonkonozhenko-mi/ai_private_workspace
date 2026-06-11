@@ -51,6 +51,7 @@ import type {
   TauriShellScaffold,
   TauriSupervisorBridge,
   WindowsPackagingFoundation,
+  ReleaseCandidateAudit,
   FirstLaunchReadiness,
   ProductionReadiness,
   AgentCapabilityCatalog,
@@ -193,6 +194,10 @@ export function getTauriSupervisorBridge(): Promise<TauriSupervisorBridge> {
 
 export function getWindowsPackagingFoundation(): Promise<WindowsPackagingFoundation> {
   return getJson<WindowsPackagingFoundation>("/runtime/windows-packaging-foundation");
+}
+
+export function getReleaseCandidateAudit(): Promise<ReleaseCandidateAudit> {
+  return getJson<ReleaseCandidateAudit>("/runtime/release-candidate-audit");
 }
 
 export function getFirstLaunchReadiness(): Promise<FirstLaunchReadiness> {

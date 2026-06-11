@@ -354,6 +354,38 @@ class WindowsPackagingFoundationResponse(BaseModel):
     next_steps: list[str]
 
 
+class ReleaseCandidateAuditItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    detail: str
+    recommended_action: str | None = None
+
+
+class ReleaseCandidateAuditCommandResponse(BaseModel):
+    label: str
+    command: str
+    purpose: str
+
+
+class ReleaseCandidateAuditResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    release_label: str
+    readiness_score: int
+    audit_script: str
+    source_archive_policy: list[str]
+    blocked_items: list[ReleaseCandidateAuditItemResponse]
+    review_items: list[ReleaseCandidateAuditItemResponse]
+    passed_items: list[ReleaseCandidateAuditItemResponse]
+    validation_commands: list[ReleaseCandidateAuditCommandResponse]
+    final_handoff_steps: list[str]
+    safety_rules: list[str]
+    known_limitations: list[str]
+
+
 class DatabaseBackupResponse(BaseModel):
     filename: str
     path: str
