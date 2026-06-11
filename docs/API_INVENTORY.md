@@ -249,3 +249,7 @@ models, and commands. This document provides the finer product-oriented grouping
   - Runs one approved model download draft through the backend worker only when execution is explicitly enabled.
   - Accepts only exact `ollama pull <catalog-model-name>` commands generated from the local model catalog.
   - Does not allow arbitrary shell text, frontend shell execution, MCP execution, scan/index/rebuild, or automatic embedding reindexing.
+
+## Task 207 update
+
+Added model download job foundation endpoints: `POST /models/local-install-drafts/{command_id}/jobs` and `GET /models/local-download-jobs/{job_id}`. Jobs are backend-owned status records for approved Ollama downloads. The frontend can start and refresh a job, but still never runs shell commands. Execution remains opt-in and allowlisted.

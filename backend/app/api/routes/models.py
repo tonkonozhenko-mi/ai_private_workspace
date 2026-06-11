@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.api.dependencies import (
     command_repository,
+    local_model_download_job_repository,
     command_runner,
     embedding_provider,
     index_status_repository,
@@ -68,6 +69,10 @@ from app.api.schemas.local_model_install_status_schemas import (
     LocalModelInstallStatusResponse,
     to_local_model_install_status_response,
 )
+from app.api.schemas.local_model_download_job_schemas import (
+    LocalModelDownloadJobResponse,
+    to_local_model_download_job_response,
+)
 from app.api.schemas.local_model_download_execution_schemas import (
     LocalModelDownloadExecutionCapabilityResponse,
     LocalModelDownloadExecutionResultResponse,
@@ -96,6 +101,10 @@ from app.core.use_cases.create_local_model_install_draft import (
     CreateLocalModelInstallDraftUseCase,
     LocalModelInstallDraftValidationError,
     LocalModelInstallDraftWorkspaceNotFoundError,
+)
+from app.core.use_cases.run_local_model_download_job import (
+    LocalModelDownloadJobNotFoundError,
+    RunLocalModelDownloadJobUseCase,
 )
 from app.core.use_cases.run_local_model_download import (
     LocalModelDownloadExecutionDisabledError,
@@ -297,6 +306,59 @@ def run_local_model_install_draft(command_id: str) -> LocalModelDownloadExecutio
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
     return to_local_model_download_execution_result_response(result)
+
+
+@router.post(
+    "/local-install-drafts/{command_id}/jobs",
+    response_model=LocalModelDownloadJobResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def start_local_model_download_job(command_id: str) -> LocalModelDownloadJobResponse:
+    settings = get_settings()
+    try:
+        job = RunLocalModelDownloadJobUseCase(
+            command_repository=command_repository,
+            command_runner=command_runner,
+            workspace_repository=workspace_repository,
+            model_catalog_registry=model_catalog_registry,
+            job_repository=local_model_download_job_repository,
+            timeline_repository=timeline_repository,
+        ).start(
+            command_id=command_id,
+            execution_enabled=settings.model_download_execution_enabled,
+            command_runner_name=settings.command_runner,
+        )
+    except CommandNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except (
+        LocalModelDownloadExecutionDisabledError,
+        CommandInvalidStatusError,
+    ) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except CommandWorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    return to_local_model_download_job_response(job)
+
+
+@router.get(
+    "/local-download-jobs/{job_id}",
+    response_model=LocalModelDownloadJobResponse,
+)
+def get_local_model_download_job(job_id: str) -> LocalModelDownloadJobResponse:
+    try:
+        job = RunLocalModelDownloadJobUseCase(
+            command_repository=command_repository,
+            command_runner=command_runner,
+            workspace_repository=workspace_repository,
+            model_catalog_registry=model_catalog_registry,
+            job_repository=local_model_download_job_repository,
+            timeline_repository=timeline_repository,
+        ).get(job_id)
+    except LocalModelDownloadJobNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    return to_local_model_download_job_response(job)
 
 
 @router.post(

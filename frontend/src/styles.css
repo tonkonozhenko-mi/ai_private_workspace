@@ -15949,3 +15949,113 @@ select,
     flex-direction: column;
   }
 }
+
+.model-download-job-card {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 22px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.model-download-job-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.model-download-job-header strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.model-download-job-header p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.model-download-progress {
+  overflow: hidden;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.model-download-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-soft));
+  transition: width 180ms ease;
+}
+
+.model-download-job-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.model-download-job-card dl div {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--surface-muted);
+}
+
+.model-download-job-card dt {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.model-download-job-card dd {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+
+.model-download-job-card pre {
+  overflow: auto;
+  margin: 0;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--surface-muted);
+  color: var(--text-strong);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.model-download-job-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 760px) {
+  .model-download-job-header {
+    flex-direction: column;
+  }
+
+  .model-download-job-card dl {
+    grid-template-columns: 1fr;
+  }
+
+  .model-download-job-actions {
+    justify-content: stretch;
+  }
+
+  .model-download-job-actions button {
+    width: 100%;
+  }
+}
