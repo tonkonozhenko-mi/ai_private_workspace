@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -18,6 +18,7 @@ import type {
   DesktopPackagingDesign,
   MacOSAppPackageFoundation,
   DesktopSupervisorContract,
+  MacOSAppSupervisorWiring,
   ProductionReadiness,
 } from "../api/types";
 import {
@@ -186,6 +187,9 @@ export function SettingsPanel({
   const [desktopSupervisorContract, setDesktopSupervisorContract] = useState<DesktopSupervisorContract | null>(null);
   const [desktopSupervisorContractError, setDesktopSupervisorContractError] = useState<string | null>(null);
   const [desktopSupervisorContractLoading, setDesktopSupervisorContractLoading] = useState(false);
+  const [macOSAppSupervisorWiring, setMacOSAppSupervisorWiring] = useState<MacOSAppSupervisorWiring | null>(null);
+  const [macOSAppSupervisorWiringError, setMacOSAppSupervisorWiringError] = useState<string | null>(null);
+  const [macOSAppSupervisorWiringLoading, setMacOSAppSupervisorWiringLoading] = useState(false);
 
 
   useEffect(() => {
@@ -262,6 +266,31 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setDesktopSupervisorContractLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setMacOSAppSupervisorWiringLoading(true);
+    setMacOSAppSupervisorWiringError(null);
+    getMacOSAppSupervisorWiring()
+      .then((wiring) => {
+        if (!cancelled) {
+          setMacOSAppSupervisorWiring(wiring);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setMacOSAppSupervisorWiringError(error instanceof Error ? error.message : "Could not load macOS app supervisor wiring");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setMacOSAppSupervisorWiringLoading(false);
         }
       });
     return () => {
@@ -1773,6 +1802,104 @@ export function SettingsPanel({
                       {macOSAppPackageFoundation.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
                     </div>
                     <p className="settings-transfer-message">Not yet included: {macOSAppPackageFoundation.not_yet_included.join(" · ")}</p>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
+
+            <details className="settings-disclosure" open>
+              <summary>macOS app supervisor wiring</summary>
+              {macOSAppSupervisorWiringError ? (
+                <p className="settings-transfer-message">Could not load macOS supervisor wiring: {macOSAppSupervisorWiringError}</p>
+              ) : null}
+              {macOSAppSupervisorWiringLoading ? (
+                <p className="settings-transfer-message">Loading macOS supervisor wiring…</p>
+              ) : macOSAppSupervisorWiring ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{macOSAppSupervisorWiring.title}</strong>
+                    <span>{macOSAppSupervisorWiring.summary}</span>
+                    <span>Build script: <code>{macOSAppSupervisorWiring.build_script}</code></span>
+                  </div>
+                  <div className="local-data-grid packaging-design-grid">
+                    <div>
+                      <span>App bundle</span>
+                      <strong>Wired foundation</strong>
+                      <small>{macOSAppSupervisorWiring.app_bundle_path}</small>
+                    </div>
+                    <div>
+                      <span>Launcher</span>
+                      <strong>Supervisor-backed</strong>
+                      <small>{macOSAppSupervisorWiring.launcher_path}</small>
+                    </div>
+                    <div>
+                      <span>Health</span>
+                      <strong>{macOSAppSupervisorWiring.backend_health_url}</strong>
+                      <small>UI opens after readiness</small>
+                    </div>
+                    <div>
+                      <span>Logs</span>
+                      <strong>Outside app bundle</strong>
+                      <small>{macOSAppSupervisorWiring.logs_directory}</small>
+                    </div>
+                  </div>
+                  <div className="settings-quiet-flow">
+                    {macOSAppSupervisorWiring.startup_flow.map((step, index) => (
+                      <div className="settings-quiet-flow-step" key={step.id}>
+                        <span>{index + 1}</span>
+                        <p><strong>{step.title}</strong><br />{step.user_message}<br /><small>{step.summary}</small></p>
+                      </div>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Build, open, and validate</summary>
+                    <div className="settings-command-stack">
+                      <div className="startup-checklist-command">
+                        <span>Build wired macOS app foundation</span>
+                        <code>{macOSAppSupervisorWiring.build_script}</code>
+                        <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(macOSAppSupervisorWiring.build_script)}>
+                          Copy
+                        </button>
+                        <small>Creates build artifacts only. Final signed installer comes later.</small>
+                      </div>
+                      <div className="startup-checklist-command">
+                        <span>Open app foundation</span>
+                        <code>open "{macOSAppSupervisorWiring.app_bundle_path}"</code>
+                        <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(`open "${macOSAppSupervisorWiring.app_bundle_path}"`)}>
+                          Copy
+                        </button>
+                        <small>Double-click target for validating the lifecycle contract.</small>
+                      </div>
+                    </div>
+                    <ol className="settings-preflight-list">
+                      {macOSAppSupervisorWiring.validation_steps.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Generated files and guarantees</summary>
+                    <div className="startup-checklist-grid">
+                      {macOSAppSupervisorWiring.generated_files.map((file) => (
+                        <div className="startup-checklist-item is-review" key={file.path}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{file.generated ? "Generated" : "Runtime"}</strong>
+                            <StatusBadge label={file.generated ? "build" : "local"} tone={file.generated ? "warning" : "success"} />
+                          </div>
+                          <p>{file.purpose}</p>
+                          <small>{file.path}</small>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="settings-safety-list">
+                      {macOSAppSupervisorWiring.supervisor_guarantees.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Limitations and next steps</summary>
+                    <p className="settings-transfer-message">Known limitations: {macOSAppSupervisorWiring.known_limitations.join(" · ")}</p>
+                    <ol className="settings-preflight-list">
+                      {macOSAppSupervisorWiring.next_steps.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
                   </details>
                 </div>
               ) : null}

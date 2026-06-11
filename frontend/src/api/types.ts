@@ -354,6 +354,40 @@ export interface MacOSAppPackageFoundation {
 }
 
 
+export interface MacOSAppSupervisorWiringStep {
+  id: string;
+  title: string;
+  summary: string;
+  user_message: string;
+}
+
+export interface MacOSAppSupervisorWiringFile {
+  path: string;
+  purpose: string;
+  generated: boolean;
+}
+
+export interface MacOSAppSupervisorWiring {
+  status: string;
+  title: string;
+  summary: string;
+  package_goal: string;
+  build_script: string;
+  app_bundle_path: string;
+  launcher_path: string;
+  app_data_directory: string;
+  logs_directory: string;
+  backend_health_url: string;
+  startup_flow: MacOSAppSupervisorWiringStep[];
+  generated_files: MacOSAppSupervisorWiringFile[];
+  supervisor_guarantees: string[];
+  user_experience: string[];
+  validation_steps: string[];
+  known_limitations: string[];
+  next_steps: string[];
+}
+
+
 export interface DesktopSupervisorPortRule {
   id: string;
   title: string;

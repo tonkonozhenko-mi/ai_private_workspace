@@ -186,6 +186,41 @@ class DesktopSupervisorContractResponse(BaseModel):
     next_packaging_steps: list[str]
 
 
+
+
+class MacOSAppSupervisorWiringStepResponse(BaseModel):
+    id: str
+    title: str
+    summary: str
+    user_message: str
+
+
+class MacOSAppSupervisorWiringFileResponse(BaseModel):
+    path: str
+    purpose: str
+    generated: bool
+
+
+class MacOSAppSupervisorWiringResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    package_goal: str
+    build_script: str
+    app_bundle_path: str
+    launcher_path: str
+    app_data_directory: str
+    logs_directory: str
+    backend_health_url: str
+    startup_flow: list[MacOSAppSupervisorWiringStepResponse]
+    generated_files: list[MacOSAppSupervisorWiringFileResponse]
+    supervisor_guarantees: list[str]
+    user_experience: list[str]
+    validation_steps: list[str]
+    known_limitations: list[str]
+    next_steps: list[str]
+
+
 class DatabaseBackupResponse(BaseModel):
     filename: str
     path: str

@@ -22,6 +22,9 @@ from app.api.schemas.local_data_safety_schemas import (
     DesktopSupervisorStateResponse,
     MacOSAppPackageArtifactResponse,
     MacOSAppPackageFoundationResponse,
+    MacOSAppSupervisorWiringFileResponse,
+    MacOSAppSupervisorWiringResponse,
+    MacOSAppSupervisorWiringStepResponse,
     FirstLaunchChecklistItemResponse,
     FirstLaunchReadinessResponse,
     DatabaseBackupResponse,
@@ -772,6 +775,116 @@ def get_desktop_supervisor_contract() -> DesktopSupervisorContractResponse:
             "Add a packaged UI startup screen for preparing/starting/ready/failed states.",
             "Freeze backend runtime/dependencies for installer-grade distribution.",
             "Repeat the supervisor contract for Windows service/process lifecycle.",
+        ],
+    )
+
+
+@router.get("/macos-app-supervisor-wiring", response_model=MacOSAppSupervisorWiringResponse)
+def get_macos_app_supervisor_wiring() -> MacOSAppSupervisorWiringResponse:
+    settings = get_settings()
+    logs_dir = settings.app_data_dir / "logs"
+    return MacOSAppSupervisorWiringResponse(
+        status="wired-foundation",
+        title="macOS app wired to desktop supervisor",
+        summary="Connects the generated .app bundle to the desktop supervisor contract: double-click starts an app-owned local backend, waits for /health, writes readable logs, and opens the packaged UI only after readiness.",
+        package_goal="Double click AI Private Workspace.app -> supervisor preflight -> app-owned backend -> /health ready -> packaged UI opens.",
+        build_script="scripts/package_macos_app_foundation.sh",
+        app_bundle_path="build/macos/AI Private Workspace.app",
+        launcher_path="build/macos/AI Private Workspace.app/Contents/MacOS/AI Private Workspace",
+        app_data_directory=_display_path(settings.app_data_dir),
+        logs_directory=_display_path(logs_dir),
+        backend_health_url="http://127.0.0.1:8000/health",
+        startup_flow=[
+            MacOSAppSupervisorWiringStepResponse(
+                id="preflight",
+                title="Preflight",
+                summary="Validate packaged backend/frontend resources and create local app data/log paths.",
+                user_message="Preparing AI Private Workspace…",
+            ),
+            MacOSAppSupervisorWiringStepResponse(
+                id="port-check",
+                title="Safe port check",
+                summary="If localhost:8000 already answers /health, reuse it; if the port is busy with something else, stop with a friendly error.",
+                user_message="Checking the local workspace engine…",
+            ),
+            MacOSAppSupervisorWiringStepResponse(
+                id="start-backend",
+                title="Start app-owned backend",
+                summary="Start FastAPI from the packaged backend source with localhost-only binding and app-owned data path.",
+                user_message="Starting the private local engine…",
+            ),
+            MacOSAppSupervisorWiringStepResponse(
+                id="wait-health",
+                title="Wait for health",
+                summary="Poll /health before opening UI; failures point to launch/backend logs instead of hiding errors.",
+                user_message="Almost ready…",
+            ),
+            MacOSAppSupervisorWiringStepResponse(
+                id="open-ui",
+                title="Open packaged UI",
+                summary="Open static frontend assets after backend readiness is confirmed.",
+                user_message="Opening AI Private Workspace…",
+            ),
+        ],
+        generated_files=[
+            MacOSAppSupervisorWiringFileResponse(
+                path="build/macos/AI Private Workspace.app/Contents/MacOS/AI Private Workspace",
+                purpose="Executable launcher stub wired to the supervisor contract.",
+                generated=True,
+            ),
+            MacOSAppSupervisorWiringFileResponse(
+                path="build/macos/AI Private Workspace.app/Contents/Resources/app/frontend",
+                purpose="Packaged static UI assets from frontend/dist.",
+                generated=True,
+            ),
+            MacOSAppSupervisorWiringFileResponse(
+                path="build/macos/AI Private Workspace.app/Contents/Resources/app/backend",
+                purpose="Packaged backend source without runtime data, caches, databases, or virtual environments.",
+                generated=True,
+            ),
+            MacOSAppSupervisorWiringFileResponse(
+                path=_display_path(logs_dir / "macos-app-launcher.log"),
+                purpose="Readable launcher lifecycle log in app data, outside the app bundle.",
+                generated=False,
+            ),
+            MacOSAppSupervisorWiringFileResponse(
+                path=_display_path(logs_dir / "backend.log"),
+                purpose="Backend runtime log in app data, outside the app bundle.",
+                generated=False,
+            ),
+        ],
+        supervisor_guarantees=[
+            "The .app launcher starts only the app-owned backend process.",
+            "Backend binds to 127.0.0.1 by default.",
+            "The UI opens only after /health succeeds.",
+            "If the port is occupied by an unknown process, the launcher refuses to kill it.",
+            "Logs are written outside the .app bundle so updates do not erase diagnostics.",
+            "No scan, index, rebuild, MCP, agent workflow, or model download starts on launch.",
+        ],
+        user_experience=[
+            "Developer builds the app foundation from source while packaging is still being finalized.",
+            "User-facing target remains a normal double-click macOS app.",
+            "Startup errors should be readable, calm, and actionable instead of silent terminal failures.",
+            "Final signed package should remove the need to understand repo scripts.",
+        ],
+        validation_steps=[
+            "Run frontend build before packaging.",
+            "Run scripts/package_macos_app_foundation.sh from the project root.",
+            "Open build/macos/AI Private Workspace.app and verify it waits for backend health before opening UI.",
+            "Check logs under the app data logs directory if launch fails.",
+            "Verify runtime data is not copied into the app bundle.",
+        ],
+        known_limitations=[
+            "This is still a foundation bundle, not a signed .dmg installer.",
+            "It still depends on local python3 and installed backend dependencies.",
+            "It opens static frontend assets directly; the future Tauri shell should host them natively.",
+            "Windows packaging is not implemented in this task.",
+        ],
+        next_steps=[
+            "Freeze/bundle backend runtime dependencies for macOS.",
+            "Replace launcher stub with Tauri supervisor shell.",
+            "Add signed macOS distribution path.",
+            "Create Windows packaging foundation with the same supervisor rules.",
         ],
     )
 
