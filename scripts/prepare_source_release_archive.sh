@@ -18,22 +18,27 @@ fi
 mkdir -p "$RELEASE_DIR"
 rm -f "$ARCHIVE_PATH"
 
-if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git archive --format=zip --output="$ARCHIVE_PATH" HEAD
-else
-  zip -r "$ARCHIVE_PATH" . \
-    -x './backend/.ai-workbench/*' \
-    -x './frontend/node_modules/*' \
-    -x './frontend/dist/*' \
-    -x './build/*' \
-    -x './.pytest_cache/*' \
-    -x './.git/*' \
-    -x './*.db' \
-    -x './*.sqlite' \
-    -x './*.sqlite3' \
-    -x '*/__pycache__/*' \
-    -x '*/.venv/*'
-fi
+# Use the current working tree instead of git archive so the script is useful before
+# the release commit exists. Excludes mirror the runtime/build policy in .gitignore.
+zip -r "$ARCHIVE_PATH" . \
+  -x './.git/*' \
+  -x './backend/.ai-workbench/*' \
+  -x './backend/.venv/*' \
+  -x './frontend/node_modules/*' \
+  -x './frontend/dist/*' \
+  -x './frontend/.vite/*' \
+  -x './build/*' \
+  -x './.pytest_cache/*' \
+  -x './.venv/*' \
+  -x './*.db' \
+  -x './*.sqlite' \
+  -x './*.sqlite3' \
+  -x '*/__pycache__/*' \
+  -x '*/.pytest_cache/*' \
+  -x '*/.venv/*' \
+  -x '*.pyc' \
+  -x '*.tsbuildinfo' \
+  -x '.DS_Store'
 
 printf 'Source release archive created: %s\n' "$ARCHIVE_PATH"
 printf 'Archive is a build artifact. Do not commit build/release/.\n'

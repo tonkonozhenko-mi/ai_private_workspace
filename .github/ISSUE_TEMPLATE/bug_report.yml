@@ -1,31 +1,36 @@
 name: Bug report
-description: Report a reproducible problem in AI Private Workspace
-title: "bug: "
+description: Report a problem with AI Private Workspace
+title: "[Bug] "
 labels: [bug]
 body:
-  - type: textarea
-    id: summary
+  - type: markdown
     attributes:
-      label: Summary
-      description: What went wrong?
+      value: |
+        Thanks for reporting a problem. Do not include private source code, credentials, or runtime databases.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the issue and what you expected instead.
     validations:
       required: true
   - type: textarea
-    id: steps
+    id: reproduce
     attributes:
       label: Steps to reproduce
-      description: Keep private project data out of the issue.
-      placeholder: "1. Open...\n2. Click...\n3. See..."
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. See ...
     validations:
       required: true
-  - type: textarea
-    id: expected
+  - type: input
+    id: os
     attributes:
-      label: Expected behavior
-    validations:
-      required: true
+      label: OS
+      placeholder: macOS, Windows, Linux
   - type: textarea
-    id: environment
+    id: logs
     attributes:
-      label: Environment
-      placeholder: macOS/Windows, Python, Node, Ollama, browser
+      label: Logs or screenshots
+      description: Remove private paths, tokens, credentials, and source code before sharing.

@@ -1,36 +1,76 @@
 # AI Private Workspace
 
-AI Private Workspace is a local-first AI workspace for understanding private codebases without uploading project data to external services by default.
+**AI Private Workspace** is a local-first assistant workspace for understanding private projects without sending source code to external AI services.
 
-It combines project scanning, local context indexing, workspace Q&A, report generation, model management, and safe Agent/MCP planning in one desktop-oriented product foundation.
+It combines a FastAPI backend, a React desktop-style frontend, local model support through Ollama, project scanning, local context indexing, model management, reports, and a safe Agent/MCP foundation.
 
 ![AI Private Workspace product flow](docs/assets/product-flow.svg)
 
-## What this repository contains
+## Why this exists
 
-This repository is a **v0.1 source release candidate**. It is ready for local development, demos, and GitHub review. It is not yet a signed commercial `.dmg`, `.msi`, or fully frozen desktop installer.
+Teams often want AI help with project onboarding, DevOps analysis, documentation, and codebase understanding, but cannot upload private repositories to external tools. AI Private Workspace is designed around a simple rule:
+
+> Your project stays local. The app only uses explicit user actions, local services, and safety gates.
+
+## Current status
+
+This repository is a **v0.1 source release candidate**.
+
+It is ready for local development, demos, and continued product work. It is **not yet** a signed commercial desktop installer.
 
 | Area | Status |
-| --- | --- |
-| Backend + frontend MVP | Ready |
-| Local workspace scan/index/Ask/report flow | Ready |
-| Ollama model manager foundation | Ready |
-| Safe Agent + MCP planning foundation | Ready |
-| macOS/Windows packaging foundation | Ready |
-| Signed desktop installers | Future |
-| Sandboxed Agent/MCP execution | Future |
+|---|---|
+| Backend foundation | Ready |
+| Frontend MVP | Ready |
+| Local RAG / context flow | Ready foundation |
+| Ollama model manager | Ready foundation |
+| Agent + MCP workflow | Safe planning foundation |
+| macOS/Windows packaging | Foundation ready |
+| Signed `.dmg` / `.msi` installers | Future v1 work |
+| Sandboxed Agent execution | Future v1 work |
 
-## Quick start
+## Product flow
+
+1. Create or select a workspace.
+2. Scan local project files.
+3. Choose AI and search-context models.
+4. Build local context.
+5. Ask questions, generate summaries, and create reports.
+6. Use Agent/MCP planning safely before future controlled execution.
+
+## Safety principles
+
+- The frontend never runs shell commands.
+- Scan, index, rebuild, restart, model download, MCP, and Agent execution never start automatically.
+- Risky operations require explicit user intent.
+- Model downloads are backend-side, opt-in, allowlisted, and approval-based.
+- Agent workflows are currently planning/manual tracking only.
+- MCP servers/tools are not started automatically.
+- Runtime data must not be committed.
+
+## Repository layout
+
+```text
+backend/     FastAPI backend, domain services, adapters, tests
+frontend/    React + Vite UI, Tauri scaffold foundation
+docs/        Architecture, release, packaging, model, Agent/MCP documentation
+scripts/     Local run, audit, packaging, backup, and release helper scripts
+.github/     CI, desktop packaging checks, issue and PR templates
+```
+
+## Quick start for local development
+
+### Backend
 
 ```bash
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-In another terminal:
+### Frontend
 
 ```bash
 cd frontend
@@ -38,75 +78,56 @@ npm ci
 npm run dev
 ```
 
-Then open the frontend URL shown by Vite.
+Then open the URL printed by Vite.
 
-## Local model flow
-
-1. Start Ollama locally.
-2. Open **Models**.
-3. Choose the AI answer model and the search context model.
-4. Download missing models with copy-only commands or trusted backend-approved jobs.
-5. Verify installed models.
-6. Build workspace context with the selected search model.
-7. Ask questions using local project context.
-
-Risky actions stay explicit. The browser frontend never executes shell commands.
-
-## Safety boundaries
-
-- Frontend never runs shell commands.
-- App startup does not scan, index, rebuild, download models, start MCP servers, or run Agent tools.
-- Model downloads are backend-owned, opt-in, allowlisted jobs.
-- MCP and Agent workflows are planning/manual tracking until sandboxed execution is implemented.
-- Runtime data is excluded from Git and release archives.
-
-## Repository map
-
-```text
-backend/    FastAPI backend, domain/use-cases/adapters, tests
-frontend/   React UI and Tauri scaffold
-docs/       Product, architecture, runtime, packaging, and release docs
-scripts/    Safe local helper scripts and release audit tools
-.github/    CI, packaging checks, issue templates, and PR template
-```
-
-## Important docs
-
-- [Start here](docs/START_HERE.md)
-- [v0.1 demo handoff](docs/V01_DEMO_HANDOFF.md)
-- [v0.1 release notes](docs/V01_RELEASE_NOTES.md)
-- [Roadmap](docs/ROADMAP.md)
-- [v1 product completion roadmap](docs/V1_PRODUCT_COMPLETION_ROADMAP.md)
-- [GitHub publication checklist](docs/GITHUB_PUBLICATION_CHECKLIST.md)
-- [Release candidate audit](docs/RELEASE_CANDIDATE_AUDIT.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [API inventory](docs/API_INVENTORY.md)
-
-## Validate before pushing
+## Recommended validation
 
 ```bash
 ./scripts/audit_release_candidate.sh
-cd backend && pytest -q tests/test_health.py tests/test_api_inventory.py
-cd ../frontend && npm ci && npm run build
+
+cd backend
+pytest -q tests/test_health.py tests/test_api_inventory.py tests/test_release_candidate_audit.py
+
+cd ../frontend
+npm ci
+npm run build
 ```
 
-Create a clean source archive:
+## Create a clean source archive
 
 ```bash
 ./scripts/prepare_source_release_archive.sh
 ```
 
-Generated archives are written under `build/release/` and must not be committed.
+The archive is written to `build/release/`. Do not commit generated release archives.
 
-## Do not commit
+## Important docs
 
-- `backend/.ai-workbench/`
-- `*.db`, `*.sqlite`, `*.sqlite3`
-- `frontend/node_modules/`
-- `frontend/dist/`
-- `build/`
-- caches and virtual environments
+- [Start here](docs/START_HERE.md)
+- [Roadmap](docs/ROADMAP.md)
+- [v0.1 demo handoff](docs/V01_DEMO_HANDOFF.md)
+- [v0.1 release notes](docs/V01_RELEASE_NOTES.md)
+- [GitHub publication checklist](docs/GITHUB_PUBLICATION_CHECKLIST.md)
+- [v1 product completion roadmap](docs/V1_PRODUCT_COMPLETION_ROADMAP.md)
+- [Release candidate audit](docs/RELEASE_CANDIDATE_AUDIT.md)
+- [Desktop packaging design lock](docs/DESKTOP_PACKAGING_DESIGN_LOCK.md)
+
+## Runtime data policy
+
+Do not commit runtime or generated data:
+
+```text
+backend/.ai-workbench/
+*.db
+*.sqlite
+*.sqlite3
+frontend/node_modules/
+frontend/dist/
+build/
+.pytest_cache/
+__pycache__/
+```
 
 ## License
 
-Add a license before public distribution if this repository will be shared outside private/internal use.
+No license has been selected yet. Add one before public/open-source distribution.

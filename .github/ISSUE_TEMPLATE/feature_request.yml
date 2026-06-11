@@ -1,6 +1,6 @@
 name: Feature request
-description: Suggest an improvement for the local-first workspace
-title: "feature: "
+description: Suggest an improvement
+title: "[Feature] "
 labels: [enhancement]
 body:
   - type: textarea
@@ -11,16 +11,21 @@ body:
     validations:
       required: true
   - type: textarea
-    id: proposal
+    id: flow
     attributes:
-      label: Proposal
-      description: What should the product do?
+      label: Proposed user flow
+      description: Describe the desired flow in simple steps.
     validations:
       required: true
   - type: checkboxes
     id: safety
     attributes:
-      label: Safety expectations
+      label: Safety considerations
       options:
-        - label: This should not require frontend shell execution.
-        - label: This should remain explicit and user-approved when it touches local runtime, files, models, MCP, or Agent tools.
+        - label: This does not add frontend shell execution.
+        - label: This does not start scan/index/rebuild/restart/model download/MCP/Agent actions automatically.
+        - label: Risky operations remain explicit and backend-side.
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes

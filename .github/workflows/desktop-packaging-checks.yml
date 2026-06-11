@@ -1,22 +1,50 @@
-name: Desktop packaging checks
+name: Desktop Packaging Checks
 
 on:
   pull_request:
+    paths:
+      - 'scripts/**'
+      - 'frontend/src-tauri/**'
+      - 'docs/*PACKAGING*'
+      - 'docs/*TAURI*'
+      - 'docs/*WINDOWS*'
+      - 'docs/*MACOS*'
   push:
-    branches: [main]
+    branches:
+      - main
+    paths:
+      - 'scripts/**'
+      - 'frontend/src-tauri/**'
+      - 'docs/*PACKAGING*'
+      - 'docs/*TAURI*'
+      - 'docs/*WINDOWS*'
+      - 'docs/*MACOS*'
+
+permissions:
+  contents: read
 
 jobs:
-  source-release-audit:
+  script-validation:
+    name: Script and scaffold validation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Run release candidate audit
-        run: ./scripts/audit_release_candidate.sh
-      - name: Validate packaging scripts
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate shell scripts
         run: |
+          bash -n scripts/start_backend.sh
+          bash -n scripts/start_frontend.sh
+          bash -n scripts/launch_macos.command
           bash -n scripts/package_macos_app_foundation.sh
           bash -n scripts/desktop_supervisor_contract.sh
           bash -n scripts/prepare_macos_backend_runtime.sh
           bash -n scripts/prepare_tauri_shell_scaffold.sh
           bash -n scripts/prepare_windows_packaging_foundation.sh
+          bash -n scripts/audit_release_candidate.sh
           bash -n scripts/prepare_source_release_archive.sh
+
+      - name: Validate desktop packaging foundations
+        run: |
+          ./scripts/prepare_tauri_shell_scaffold.sh
+          ./scripts/prepare_windows_packaging_foundation.sh

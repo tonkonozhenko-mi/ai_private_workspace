@@ -247,3 +247,12 @@ Clarified the difference between selecting an embedding/search model and buildin
 - Added `docs/GITHUB_PUBLICATION_CHECKLIST.md`, `docs/SOURCE_RELEASE_CHECKLIST.md`, and `docs/V1_PRODUCT_COMPLETION_ROADMAP.md`.
 - Added `GET /runtime/product-completion-roadmap` to clearly distinguish v0.1 source RC from a future v1.0 product.
 - Updated release audit checks to include README/.github and `*.sqlite3`.
+
+## Task 230 — Source release stabilization
+
+- Restored missing GitHub-facing root files and `.github` templates/workflows in the source tree.
+- Hardened `scripts/audit_release_candidate.sh` so local runtime/build folders are warnings, while source-tree database files outside ignored paths still fail audit.
+- Hardened `scripts/prepare_source_release_archive.sh` to build from the current working tree with explicit excludes, making it useful before the final release commit exists.
+- Added `docs/TASK230_SOURCE_RELEASE_STABILIZATION.md` and refreshed publication/source release checklists.
+
+Current status: v0.1 source RC is ready for GitHub publication checks after local validation.
