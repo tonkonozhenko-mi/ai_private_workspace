@@ -1,6 +1,6 @@
 name: Feature request
-description: Suggest an improvement
-title: "[Feature] "
+description: Suggest an improvement for AI Private Workspace
+title: "[Feature]: "
 labels: [enhancement]
 body:
   - type: textarea
@@ -11,21 +11,17 @@ body:
     validations:
       required: true
   - type: textarea
-    id: flow
+    id: proposal
     attributes:
-      label: Proposed user flow
-      description: Describe the desired flow in simple steps.
+      label: Proposal
+      description: Describe the desired behavior.
     validations:
       required: true
   - type: checkboxes
     id: safety
     attributes:
-      label: Safety considerations
+      label: Safety expectations
       options:
-        - label: This does not add frontend shell execution.
-        - label: This does not start scan/index/rebuild/restart/model download/MCP/Agent actions automatically.
-        - label: Risky operations remain explicit and backend-side.
-  - type: textarea
-    id: notes
-    attributes:
-      label: Notes
+        - label: This should not require frontend shell execution.
+        - label: This should keep risky actions explicit and user-approved.
+        - label: This should avoid committing runtime/build data.
