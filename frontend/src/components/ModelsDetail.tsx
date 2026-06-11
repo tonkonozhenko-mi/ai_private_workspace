@@ -16,6 +16,8 @@ import {
   getLocalModelInstallGuide,
   getLocalModelInstallStatus,
   getLocalModelDownloadWorkerPlan,
+  getLocalModelDownloadExecutionCapability,
+  runLocalModelInstallDraft,
   getWorkspaceMCPToolInventory,
   listWorkspaceMCPConfigs,
   previewWorkspaceMCPApproval,
@@ -55,6 +57,8 @@ import type {
   LocalModelInstallGuide,
   LocalModelInstallStatus,
   LocalModelDownloadWorkerPlan,
+  LocalModelDownloadExecutionCapability,
+  LocalModelDownloadExecutionResult,
   LocalModelInstallOption,
   ModelExperimentPlan,
   ModelExperimentRating,
@@ -499,11 +503,14 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   const [guide, setGuide] = useState<LocalModelInstallGuide | null>(null);
   const [installStatus, setInstallStatus] = useState<LocalModelInstallStatus | null>(null);
   const [workerPlan, setWorkerPlan] = useState<LocalModelDownloadWorkerPlan | null>(null);
+  const [executionCapability, setExecutionCapability] = useState<LocalModelDownloadExecutionCapability | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<LocalModelInstallDraft | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
   const [draftingKey, setDraftingKey] = useState<string | null>(null);
+  const [executionResult, setExecutionResult] = useState<LocalModelDownloadExecutionResult | null>(null);
+  const [runningDraft, setRunningDraft] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -512,12 +519,14 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
       getLocalModelInstallGuide(),
       getLocalModelInstallStatus(),
       getLocalModelDownloadWorkerPlan(),
+      getLocalModelDownloadExecutionCapability(),
     ])
-      .then(([installGuide, installedStatus, downloadWorkerPlan]) => {
+      .then(([installGuide, installedStatus, downloadWorkerPlan, downloadCapability]) => {
         if (!cancelled) {
           setGuide(installGuide);
           setInstallStatus(installedStatus);
           setWorkerPlan(downloadWorkerPlan);
+          setExecutionCapability(downloadCapability);
           setError(null);
         }
       })
@@ -566,10 +575,29 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
         model_type: option.model_type,
       });
       setDraft(result);
+      setExecutionResult(null);
     } catch (installDraftError) {
       setDraftError(errorMessage(installDraftError));
     } finally {
       setDraftingKey(null);
+    }
+  };
+
+
+
+  const runDraft = async () => {
+    if (!draft) {
+      return;
+    }
+    setRunningDraft(true);
+    setDraftError(null);
+    try {
+      const result = await runLocalModelInstallDraft(draft.command_proposal.id);
+      setExecutionResult(result);
+    } catch (downloadError) {
+      setDraftError(errorMessage(downloadError));
+    } finally {
+      setRunningDraft(false);
     }
   };
 
@@ -578,6 +606,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
       <PanelHeading eyebrow="Model install" title="Download local models" status={guide.status} />
       <p className="panel-intro model-install-summary">{guide.summary}</p>
       {installStatus ? <InstalledModelsStatusPanel status={installStatus} /> : null}
+      {executionCapability ? <ModelDownloadExecutionCapabilityPanel capability={executionCapability} /> : null}
       <div className="model-install-grid" aria-label="Recommended local model downloads">
         {guide.options.map((option) => (
           <article className="model-install-card" key={`${option.provider}-${option.model}`}>
@@ -621,7 +650,18 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
             <strong>{draft.display_name}</strong>
             <p>{draft.safety_summary}</p>
           </div>
-          <CopyButton text={draft.command} label="Copy command" />
+          <div className="model-install-draft-actions">
+            <CopyButton text={draft.command} label="Copy command" />
+            <button
+              className="secondary-button model-install-draft-button"
+              type="button"
+              disabled={!executionCapability?.execution_enabled || runningDraft}
+              onClick={() => void runDraft()}
+              title={executionCapability?.disabled_reason ?? undefined}
+            >
+              {runningDraft ? "Downloading…" : "Run approved download"}
+            </button>
+          </div>
           <dl>
             <div>
               <dt>Status</dt>
@@ -634,6 +674,25 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
             <div>
               <dt>Policy</dt>
               <dd>{draft.command_proposal.policy_mode ?? "manual_only"}</dd>
+            </div>
+          </dl>
+        </div>
+      ) : null}
+      {executionResult ? (
+        <div className="model-install-draft-summary model-install-execution-result">
+          <div>
+            <span className="eyebrow">Execution result</span>
+            <strong>{executionResult.display_name}</strong>
+            <p>{executionResult.safety_summary}</p>
+          </div>
+          <dl>
+            <div>
+              <dt>Status</dt>
+              <dd>{executionResult.execution_status}</dd>
+            </div>
+            <div>
+              <dt>Exit code</dt>
+              <dd>{executionResult.command_proposal.exit_code ?? "unknown"}</dd>
             </div>
           </dl>
         </div>
@@ -686,6 +745,25 @@ function InstalledModelsStatusPanel({ status }: { status: LocalModelInstallStatu
       <p className="installed-models-note">
         This reads {status.runtime_url}/api/tags only. It does not pull, remove, or start models.
       </p>
+    </div>
+  );
+}
+
+
+function ModelDownloadExecutionCapabilityPanel({
+  capability,
+}: {
+  capability: LocalModelDownloadExecutionCapability;
+}) {
+  return (
+    <div className="model-download-execution-capability">
+      <div>
+        <span className="eyebrow">Backend execution</span>
+        <strong>{capability.title}</strong>
+        <p>{capability.safety_summary}</p>
+        {capability.disabled_reason ? <small>{capability.disabled_reason}</small> : null}
+      </div>
+      <StatusBadge label={capability.execution_enabled ? "Enabled" : "Disabled"} />
     </div>
   );
 }

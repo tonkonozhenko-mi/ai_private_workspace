@@ -29,6 +29,7 @@ class Settings(BaseModel):
     OLLAMA_LLM_TIMEOUT_SECONDS: int = 120
     RUNTIME_HEALTH_TIMEOUT_SECONDS: int = 3
     USER_MODEL_CATALOG_PATH: str = ""
+    MODEL_DOWNLOAD_EXECUTION_ENABLED: bool = False
 
     @property
     def app_data_dir(self) -> Path:
@@ -106,6 +107,10 @@ class Settings(BaseModel):
     def user_model_catalog_path(self) -> str:
         return self.USER_MODEL_CATALOG_PATH
 
+    @property
+    def model_download_execution_enabled(self) -> bool:
+        return self.MODEL_DOWNLOAD_EXECUTION_ENABLED
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -149,6 +154,8 @@ def get_settings() -> Settings:
             os.getenv("RUNTIME_HEALTH_TIMEOUT_SECONDS", "3")
         ),
         USER_MODEL_CATALOG_PATH=os.getenv("USER_MODEL_CATALOG_PATH", ""),
+        MODEL_DOWNLOAD_EXECUTION_ENABLED=os.getenv("MODEL_DOWNLOAD_EXECUTION_ENABLED", "false").lower()
+        in {"1", "true", "yes", "on"},
     )
     settings.app_data_dir.mkdir(parents=True, exist_ok=True)
     settings.workspace_db_path.parent.mkdir(parents=True, exist_ok=True)

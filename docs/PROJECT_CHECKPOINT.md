@@ -119,3 +119,7 @@ Model downloads and MCP server setup should be implemented as explicit, user-app
 ## Task 200 — Release candidate UI review
 
 Completed a full UI/UX consistency pass focused on calm Apple-like layout, reduced cognitive load, clearer first-run logic, and one-primary-action sections. Advanced file rules and packaging roadmap details are now progressively disclosed instead of competing with the main setup flow.
+
+## Task 206 checkpoint
+
+Added approved local model download execution foundation. The backend can run an exact allowlisted `ollama pull <catalog-model-name>` draft only when explicitly enabled for a trusted local runtime. Frontend shell execution remains forbidden.
