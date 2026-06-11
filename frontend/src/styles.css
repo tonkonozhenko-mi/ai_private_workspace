@@ -17442,3 +17442,109 @@ details.settings-disclosure {
 :root[data-theme="dark"] .primary-button {
   color: #07130e;
 }
+
+.model-usage-flow-panel,
+.render-crash-panel {
+  overflow: hidden;
+}
+
+.model-usage-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.model-usage-flow-grid article {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 18px 46px rgba(15, 23, 42, 0.055);
+}
+
+.model-usage-flow-grid span {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  background: rgba(0, 122, 255, 0.11);
+  color: #0758b6;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.model-usage-flow-grid strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 0.98rem;
+  letter-spacing: -0.01em;
+}
+
+.model-usage-flow-grid p {
+  margin: 7px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.render-crash-panel code {
+  display: block;
+  max-width: 100%;
+  margin-top: 14px;
+  padding: 12px 14px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  border-radius: 16px;
+  background: rgba(255, 59, 48, 0.08);
+  color: #9f1f18;
+}
+
+:root[data-theme="dark"] .model-usage-flow-grid article {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.2);
+}
+
+:root[data-theme="dark"] .model-usage-flow-grid span {
+  background: rgba(10, 132, 255, 0.18);
+  color: #9fcbff;
+}
+
+:root[data-theme="dark"] .render-crash-panel code {
+  background: rgba(255, 69, 58, 0.14);
+  color: #ffb4ae;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .model-usage-flow-grid article {
+    border-color: rgba(255, 255, 255, 0.09);
+    background: rgba(255, 255, 255, 0.055);
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.2);
+  }
+
+  :root[data-theme="system"] .model-usage-flow-grid span {
+    background: rgba(10, 132, 255, 0.18);
+    color: #9fcbff;
+  }
+
+  :root[data-theme="system"] .render-crash-panel code {
+    background: rgba(255, 69, 58, 0.14);
+    color: #ffb4ae;
+  }
+}
+
+@media (max-width: 980px) {
+  .model-usage-flow-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .model-usage-flow-grid {
+    grid-template-columns: 1fr;
+  }
+}

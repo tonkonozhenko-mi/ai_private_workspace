@@ -221,3 +221,10 @@ The project is now ready for v0.1 source review and GitHub publication. The rema
 - Product-facing copy now consistently uses AI Private Workspace.
 - `docs/assets/product-flow.svg` explains the local-first flow on the GitHub landing page.
 
+
+
+## Task 225 — Model Manager real usage flow and render recovery
+
+- Fixed Models screen render resilience.
+- Added a clear Choose → Download → Verify → Use model workflow.
+- Kept frontend shell execution disabled.
