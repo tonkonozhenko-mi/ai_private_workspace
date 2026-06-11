@@ -1286,24 +1286,27 @@ function LocalAISetupWarning({
   summary: WorkspaceModelsDashboardSummary;
   onOpenModels: () => void;
 }) {
+  const guidance = getLocalAISetupGuidance(summary);
+
   return (
     <section className="panel local-ai-setup-warning">
       <div className="local-ai-setup-warning-heading">
         <div>
           <p className="eyebrow">AI setup</p>
-          <h2>Local AI setup needs attention</h2>
+          <h2>{guidance.title}</h2>
+          <p>{guidance.description}</p>
         </div>
-        <StatusBadge label={summary.overall_status} size="md" />
+        <StatusBadge label={guidance.badge} size="md" />
       </div>
 
       <div className="local-ai-runtime-comparison">
         <ModelComparisonRow
-          label="AI model"
+          label="AI answer model"
           selected={summary.selected_llm}
           active={summary.active_llm}
         />
         <ModelComparisonRow
-          label="Search model"
+          label="Search context model"
           selected={summary.selected_embedding}
           active={summary.active_embedding}
         />
@@ -1315,22 +1318,18 @@ function LocalAISetupWarning({
             Chosen AI model can already be used for Ask.
           </p>
         ) : null}
-        {!summary.can_search_with_selected_embedding ? (
-          <p className="is-warning">
-            Chosen search model is not active for search yet.
-          </p>
+        {guidance.message ? (
+          <p className="is-warning">{guidance.message}</p>
         ) : null}
       </div>
 
       <div className="local-ai-setup-next">
         <div>
           <span>Recommended AI setup action</span>
-          <strong>
-            {summary.primary_next_action_title ?? "Review AI setup"}
-          </strong>
+          <strong>{guidance.actionTitle}</strong>
         </div>
         <div className="local-ai-setup-navigation">
-          <p>Open Models to review setup steps.</p>
+          <p>{guidance.navigationHint}</p>
           <button
             className="local-ai-models-button"
             type="button"
@@ -1342,6 +1341,51 @@ function LocalAISetupWarning({
       </div>
     </section>
   );
+}
+
+function getLocalAISetupGuidance(summary: WorkspaceModelsDashboardSummary) {
+  if (summary.overall_status === "needs_context_index") {
+    return {
+      title: "Build context for this workspace",
+      description:
+        "The search model is selected and matches the backend. Build searchable context once so Ask can use local sources.",
+      badge: "Needs context build",
+      message:
+        summary.embedding_index_status === "not_indexed"
+          ? "Search context has not been indexed yet."
+          : `Search context status is ${summary.embedding_index_status}.`,
+      actionTitle:
+        summary.primary_next_action_title ??
+        "Build context with selected search model",
+      navigationHint: "Open Models for model setup or use Overview to build context.",
+    };
+  }
+
+  if (summary.overall_status === "needs_embedding_runtime") {
+    return {
+      title: "Search model needs backend runtime review",
+      description:
+        "The workspace preference differs from the active backend search model. Restart with the selected embedding model before rebuilding context.",
+      badge: "Needs runtime review",
+      message: "Chosen search model is not active in the backend runtime yet.",
+      actionTitle:
+        summary.primary_next_action_title ??
+        "Restart backend for selected search model",
+      navigationHint: "Open Models to review selected and backend search models.",
+    };
+  }
+
+  return {
+    title: "Local AI setup needs attention",
+    description:
+      "Review the selected AI and search models before relying on source-backed answers.",
+    badge: summary.overall_status,
+    message: !summary.can_search_with_selected_embedding
+      ? "Search context is not ready yet."
+      : null,
+    actionTitle: summary.primary_next_action_title ?? "Review AI setup",
+    navigationHint: "Open Models to review setup steps.",
+  };
 }
 
 function ModelComparisonRow({

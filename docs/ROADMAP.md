@@ -236,3 +236,8 @@ The project is now ready for v0.1 source review and GitHub publication. The rema
 - Added a human-readable Ollama recommendation guide: answer model vs search model, starter/balanced/power user Mac profiles, safe next steps.
 - Added `GET /models/ollama-recommendations` for the UI and future onboarding/packaging flows.
 - Kept model downloads explicit, backend-owned, and opt-in.
+
+
+## Task 227 — Model context indexing clarity
+
+Clarified the difference between selecting an embedding/search model and building workspace context with it. The UI now says `Needs context build` when the selected search model is active but the workspace has not been indexed yet.

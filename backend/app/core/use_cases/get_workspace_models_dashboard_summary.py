@@ -75,6 +75,11 @@ class GetWorkspaceModelsDashboardSummaryUseCase:
             can_search_with_selected_embedding=(
                 dashboard.usage_plan.can_search_with_selected_embedding
             ),
+            selected_embedding_matches_active_runtime=(
+                dashboard.selection_status.embedding_status.matches_active_runtime
+            ),
+            embedding_index_status=dashboard.embedding_indexing_plan.index_status,
+            embedding_plan_status=dashboard.embedding_indexing_plan.plan_status,
             top_recommended_model=(
                 self._active_identity(
                     top_recommendation.model.provider,

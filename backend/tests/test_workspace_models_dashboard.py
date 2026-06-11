@@ -54,7 +54,7 @@ def test_selected_llm_only_prompts_embedding_selection(tmp_path) -> None:
     assert dashboard["primary_next_action_title"] == "Select an embedding model"
 
 
-def test_embedding_mismatch_requires_embedding_setup_and_restart(tmp_path) -> None:
+def test_embedding_mismatch_requires_runtime_review_and_restart(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
     assert _select(
@@ -68,13 +68,13 @@ def test_embedding_mismatch_requires_embedding_setup_and_restart(tmp_path) -> No
         f"/workspaces/{workspace['id']}/models/dashboard"
     ).json()
 
-    assert dashboard["overall_status"] == "needs_embedding_setup"
+    assert dashboard["overall_status"] == "needs_embedding_runtime"
     assert dashboard["usage_plan"]["can_ask_with_selected_llm"] is True
     assert dashboard["embedding_indexing_plan"]["plan_status"] == "runtime_mismatch"
     assert dashboard["primary_next_action_id"] == "restart_backend_for_embedding"
     assert (
         dashboard["primary_next_action_title"]
-        == "Restart backend for selected embedding"
+        == "Restart backend for selected search model"
     )
 
 
@@ -95,11 +95,11 @@ def test_selected_llm_usable_but_matching_embedding_needs_index(tmp_path) -> Non
     assert dashboard["usage_plan"]["can_ask_with_selected_llm"] is True
     assert dashboard["usage_plan"]["can_search_with_selected_embedding"] is False
     assert dashboard["embedding_indexing_plan"]["plan_status"] == "needs_index"
-    assert dashboard["overall_status"] == "needs_embedding_setup"
+    assert dashboard["overall_status"] == "needs_context_index"
     assert dashboard["primary_next_action_id"] == "reindex_workspace"
     assert (
         dashboard["primary_next_action_title"]
-        == "Index workspace with selected embedding"
+        == "Build context with selected search model"
     )
 
 

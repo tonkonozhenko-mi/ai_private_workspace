@@ -209,26 +209,12 @@ export function ModelsDetail({
               dashboard.selected_embedding_model ?? usage.active_embedding_model
             }
             description="Used to build and search the local project context."
-            status={
-              usage.can_search_with_selected_embedding
-                ? "Ready"
-                : "Needs attention"
-            }
+            status={getSearchContextStatusLabel(dashboard)}
           />
         </div>
         <div className="models-simple-status">
-          <StatusBadge
-            label={
-              dashboard.usage_plan.can_use_selected_models_fully
-                ? "Ready"
-                : "Needs attention"
-            }
-          />
-          <span>
-            {dashboard.usage_plan.can_use_selected_models_fully
-              ? "Ready to ask questions with the current workspace models."
-              : "Review the setup guidance below before relying on this workspace."}
-          </span>
+          <StatusBadge label={getModelWorkspaceStatusLabel(dashboard)} />
+          <span>{getModelWorkspaceStatusMessage(dashboard)}</span>
         </div>
       </section>
 
@@ -1952,6 +1938,48 @@ function parseSetupChoiceValue(
     return null;
   }
   return { provider, model };
+}
+
+function getSearchContextStatusLabel(dashboard: WorkspaceModelsDashboard): string {
+  if (dashboard.usage_plan.can_search_with_selected_embedding) {
+    return "Ready";
+  }
+  if (dashboard.embedding_indexing_plan.plan_status === "needs_index") {
+    return "Needs context build";
+  }
+  if (dashboard.embedding_indexing_plan.plan_status === "runtime_mismatch") {
+    return "Needs runtime review";
+  }
+  if (dashboard.selected_embedding_model === null) {
+    return "Needs setup";
+  }
+  return "Needs attention";
+}
+
+function getModelWorkspaceStatusLabel(dashboard: WorkspaceModelsDashboard): string {
+  if (dashboard.usage_plan.can_use_selected_models_fully) {
+    return "Ready";
+  }
+  if (dashboard.embedding_indexing_plan.plan_status === "needs_index") {
+    return "Needs context build";
+  }
+  if (dashboard.embedding_indexing_plan.plan_status === "runtime_mismatch") {
+    return "Needs runtime review";
+  }
+  return "Needs attention";
+}
+
+function getModelWorkspaceStatusMessage(dashboard: WorkspaceModelsDashboard): string {
+  if (dashboard.usage_plan.can_use_selected_models_fully) {
+    return "Ready to ask questions with the current workspace models.";
+  }
+  if (dashboard.embedding_indexing_plan.plan_status === "needs_index") {
+    return "The search model is selected. Build workspace context once so Ask can use local sources.";
+  }
+  if (dashboard.embedding_indexing_plan.plan_status === "runtime_mismatch") {
+    return "The selected search model differs from the backend runtime. Restart with that model before rebuilding context.";
+  }
+  return "Review the setup guidance below before relying on this workspace.";
 }
 
 function SimpleModelCard({

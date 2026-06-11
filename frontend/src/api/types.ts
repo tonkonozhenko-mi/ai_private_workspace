@@ -956,6 +956,9 @@ export interface WorkspaceModelsDashboardSummary {
   active_embedding: string;
   can_ask_with_selected_llm: boolean;
   can_search_with_selected_embedding: boolean;
+  selected_embedding_matches_active_runtime: boolean;
+  embedding_index_status: string;
+  embedding_plan_status: string;
   top_recommended_model: string | null;
   top_recommended_model_score: number | null;
   performance_models_count: number;
@@ -1086,7 +1089,18 @@ export interface WorkspaceModelsDashboard {
   };
   usage_plan: SelectedModelUsagePlan;
   embedding_indexing_plan: {
+    selected_provider: string | null;
+    selected_model: string | null;
+    active_provider: string;
+    active_model: string;
+    index_status: string;
+    can_index_now: boolean;
+    can_search_now: boolean;
+    requires_backend_restart: boolean;
+    requires_reindex: boolean;
+    requires_new_vector_collection: boolean;
     plan_status: string;
+    recommended_actions: string[];
     warnings: string[];
     notes: string[];
   };
