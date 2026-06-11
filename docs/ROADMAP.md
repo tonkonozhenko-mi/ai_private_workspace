@@ -169,3 +169,13 @@ Next larger packaging tasks:
 ### Task 217 — macOS app wiring to supervisor contract ✅
 
 The macOS `.app` foundation is now wired to the supervisor contract: app-owned backend startup, health polling, safe port behavior, logs, and packaged UI open.
+
+### Task 218 — backend runtime bundle readiness ✅
+
+Added a backend runtime manifest and package readiness plan so the macOS `.app` foundation can move toward an app-owned backend runtime instead of relying forever on a developer-managed local Python setup.
+
+Next packaging work:
+1. Tauri shell scaffold/foundation.
+2. Backend runtime freeze decision: PyInstaller, Nuitka, or packaged Python runtime.
+3. macOS release candidate packaging audit.
+4. Windows package foundation.

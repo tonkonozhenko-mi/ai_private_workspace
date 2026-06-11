@@ -278,3 +278,7 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 - `GET /runtime/macos-app-package-foundation` — read-only macOS package foundation contract. It describes the `.app` skeleton, build script, expected artifacts, launch/supervisor contract, validation steps, safety rules, and items not yet included in the final package.
 - `GET /runtime/macos-app-supervisor-wiring` — read-only macOS app supervisor wiring contract. It describes how the generated `.app` launcher is connected to supervisor lifecycle rules, app-owned backend startup, health polling, logs, safe port behavior, generated files, limitations, and next packaging steps.
 - `GET /runtime/desktop-supervisor-contract` — read-only desktop supervisor lifecycle contract. It describes local backend startup states, localhost/port rules, log streams, shutdown behavior, validation steps, and safety boundaries for the future packaged app.
+
+## Task 218 — backend runtime bundle readiness
+
+- `GET /runtime/backend-runtime-bundle-plan` — read-only macOS backend runtime bundling plan. It documents how to move from local `python3` dependency to an app-owned backend runtime, the runtime manifest, build sequence, validation checks, safety rules, and known limitations. It does not execute packaging commands.

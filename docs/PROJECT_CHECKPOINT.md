@@ -166,3 +166,12 @@ Important safety boundaries:
 - Generated `.app` now performs preflight, safe port check, app-owned backend startup, `/health` polling, and packaged UI open.
 - Logs are written outside the `.app` bundle under app data.
 - Frontend still never executes shell, and no scan/index/rebuild/MCP/agent/model download starts on launch.
+
+## Task 218 — backend runtime bundle readiness
+
+- Added `/runtime/backend-runtime-bundle-plan`.
+- Added `scripts/prepare_macos_backend_runtime.sh`.
+- Runtime manifest is generated under `build/macos/backend-runtime/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt`.
+- macOS package script now generates/copies the runtime manifest into app resources.
+- This is still a foundation: the app is not signed and backend is not frozen into a standalone binary yet.
+- Safety preserved: runtime preparation does not start scan/index/rebuild/MCP/agent/model downloads and does not package runtime databases or local state.

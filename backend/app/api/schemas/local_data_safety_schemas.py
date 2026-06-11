@@ -221,6 +221,37 @@ class MacOSAppSupervisorWiringResponse(BaseModel):
     next_steps: list[str]
 
 
+class BackendRuntimeBundleItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    path: str | None = None
+
+
+class BackendRuntimeBundleStepResponse(BaseModel):
+    id: str
+    title: str
+    summary: str
+    command: str | None = None
+
+
+class BackendRuntimeBundlePlanResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    package_goal: str
+    recommended_strategy: str
+    build_script: str
+    runtime_manifest_path: str
+    bundle_items: list[BackendRuntimeBundleItemResponse]
+    build_steps: list[BackendRuntimeBundleStepResponse]
+    validation_steps: list[str]
+    safety_rules: list[str]
+    known_limitations: list[str]
+    next_steps: list[str]
+
+
 class DatabaseBackupResponse(BaseModel):
     filename: str
     path: str
