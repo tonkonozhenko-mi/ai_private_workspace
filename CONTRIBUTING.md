@@ -2,45 +2,35 @@
 
 Thanks for helping improve AI Private Workspace.
 
-## Development principles
+## Development checks
 
-- Keep the product local-first and privacy-preserving.
-- Keep frontend actions explicit and safe.
-- Do not add frontend shell execution.
-- Keep backend domain/core code independent from FastAPI, SQLite, or local process details.
-- Prefer small reusable services over duplicated endpoint logic.
-- Add tests for backend behavior and scripts when behavior changes.
-- Keep UI calm, readable, and human-friendly.
-
-## Local checks
+Run these before opening a pull request:
 
 ```bash
 ./scripts/audit_release_candidate.sh
 
 cd backend
-pytest -q
+pytest -q tests/test_health.py tests/test_api_inventory.py
 
 cd ../frontend
 npm ci
 npm run build
 ```
 
-## Runtime data policy
+## Safety rules
 
-Do not commit local runtime/build data:
+- Do not add frontend shell execution.
+- Do not start scan/index/rebuild/model downloads/MCP/Agent automatically.
+- Keep runtime data out of source archives and commits.
+- Keep risky actions explicit, user-approved, and backend-owned.
+
+## Repository hygiene
+
+Do not commit:
 
 - `backend/.ai-workbench/`
 - `*.db`, `*.sqlite`, `*.sqlite3`
 - `frontend/node_modules/`
 - `frontend/dist/`
 - `build/`
-- `.pytest_cache/`
-
-## Pull requests
-
-A good pull request should include:
-
-- a short product-oriented summary;
-- safety impact, especially if touching models, MCP, agents, packaging, or local processes;
-- test commands that were run;
-- screenshots for UI changes when possible.
+- caches such as `.pytest_cache/` and `__pycache__/`

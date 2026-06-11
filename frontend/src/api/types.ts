@@ -418,6 +418,32 @@ export interface V01Handoff {
 }
 
 
+export interface FinalProductStage {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  remaining_large_tasks: string;
+}
+
+export interface FinalProductStatus {
+  status: string;
+  title: string;
+  summary: string;
+  current_milestone: string;
+  current_stage_completion: string;
+  honest_v1_estimate: string;
+  source_rc_verdict: string;
+  remaining_current_stage_tasks: string[];
+  stages: FinalProductStage[];
+  next_recommended_tasks: string[];
+  publication_checks: ReleaseCandidateAuditCommand[];
+  stop_condition_for_v01: string[];
+  not_v1_yet: string[];
+  safety_rules: string[];
+}
+
+
 export interface FirstLaunchReadiness {
   status: string;
   title: string;

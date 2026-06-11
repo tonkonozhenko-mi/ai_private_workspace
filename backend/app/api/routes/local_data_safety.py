@@ -45,6 +45,8 @@ from app.api.schemas.local_data_safety_schemas import (
     V01RepositoryFileResponse,
     ProductCompletionStageResponse,
     ProductCompletionRoadmapResponse,
+    FinalProductStageResponse,
+    FinalProductStatusResponse,
     FirstLaunchChecklistItemResponse,
     FirstLaunchReadinessResponse,
     DatabaseBackupResponse,
@@ -1735,10 +1737,10 @@ def get_product_completion_roadmap() -> ProductCompletionRoadmapResponse:
             ProductCompletionStageResponse(id="v1", title="v1.0 polished product", status="target", summary="Installer-grade desktop product with stable local runtime, polished onboarding, safe execution model, and user-facing troubleshooting.", remaining_large_tasks=4),
         ],
         next_recommended_tasks=[
-            "Task 230 — final source RC verification and GitHub publication checklist.",
-            "Task 231 — persistent job storage plan for model downloads and indexing jobs.",
-            "Task 232 — frozen backend runtime proof of concept.",
-            "Task 233 — real macOS package iteration with app icon, logs, and packaged backend runtime.",
+            "Task 232 — final product status and v1 runway clarity.",
+            "Task 233 — final screenshot/UI smoke review from a real local run.",
+            "Task 234 — first GitHub push checklist and repository hygiene verification.",
+            "Task 235 — v0.2 planning kickoff: frozen backend runtime and Tauri supervisor implementation.",
         ],
         not_done_yet=[
             "Final frozen backend binary/runtime bundle.",
@@ -1757,6 +1759,66 @@ def get_product_completion_roadmap() -> ProductCompletionRoadmapResponse:
         ],
     )
 
+
+
+@router.get("/final-product-status", response_model=FinalProductStatusResponse)
+def get_final_product_status() -> FinalProductStatusResponse:
+    """Return a clear source-RC versus v1 product status for the final handoff."""
+    return FinalProductStatusResponse(
+        status="v0.1-source-rc-ready",
+        title="Final product status",
+        summary="AI Private Workspace is ready as a polished v0.1 source release candidate for GitHub publication and local demos. It is not yet a signed, installer-grade v1.0 desktop product.",
+        current_milestone="v0.1 source release candidate",
+        current_stage_completion="About 95% of the source-RC stage is complete; remaining work is local verification, screenshots, and first GitHub push hygiene.",
+        honest_v1_estimate="A polished v1.0 product still needs roughly 15-25 large tasks: packaged runtime, signed installers, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.",
+        source_rc_verdict="Ready to publish after local audit/build/test pass and after runtime/build artifacts are excluded.",
+        remaining_current_stage_tasks=[
+            "Run the release audit and fix any real source-tree failures.",
+            "Run targeted backend tests and frontend build on the local machine.",
+            "Create the clean source archive or push the clean repository to GitHub.",
+            "Optionally capture final screenshots for README/docs after real UI review.",
+        ],
+        stages=[
+            FinalProductStageResponse(id="source-rc", title="v0.1 source RC", status="current", summary="GitHub-ready source repository, local demo, safety docs, model manager foundation, Agent/MCP planning, and packaging foundations.", remaining_large_tasks="0-2"),
+            FinalProductStageResponse(id="desktop-runtime", title="v0.2 desktop runtime", status="next", summary="Frozen backend runtime, real Tauri supervisor startup, app-owned logs/data, and persistent local background jobs.", remaining_large_tasks="5-8"),
+            FinalProductStageResponse(id="installers", title="v0.3 installers", status="planned", summary="Signed/notarized macOS package, Windows installer, icons, shortcuts, update/uninstall behavior, and packaging QA.", remaining_large_tasks="5-8"),
+            FinalProductStageResponse(id="agent-mcp", title="v0.4 safe Agent + MCP execution", status="planned", summary="MCP server lifecycle, read-only sandbox, tool allowlists, approvals, audit logs, and later controlled write execution.", remaining_large_tasks="6-10"),
+            FinalProductStageResponse(id="v1", title="v1.0 polished product", status="target", summary="Installer-grade local desktop product with stable runtime, clear onboarding, safe execution, recovery, and polished UI.", remaining_large_tasks="4-6"),
+        ],
+        next_recommended_tasks=[
+            "Task 233 — final screenshot/UI smoke review from a real local run.",
+            "Task 234 — first GitHub push checklist and repository hygiene verification.",
+            "Task 235 — v0.2 planning kickoff: frozen backend runtime and Tauri supervisor implementation.",
+        ],
+        publication_checks=[
+            ReleaseCandidateAuditCommandResponse(label="Release audit", command="./scripts/audit_release_candidate.sh", purpose="Verify source layout, docs, safety rules, and no runtime database leakage."),
+            ReleaseCandidateAuditCommandResponse(label="Backend targeted tests", command="cd backend && pytest -q tests/test_health.py tests/test_release_candidate_audit.py tests/test_api_inventory.py", purpose="Validate core API and release audit coverage before publication."),
+            ReleaseCandidateAuditCommandResponse(label="Frontend build", command="cd frontend && npm ci && npm run build", purpose="Validate the production frontend bundle."),
+            ReleaseCandidateAuditCommandResponse(label="Clean source archive", command="./scripts/prepare_source_release_archive.sh", purpose="Create a root-preserving archive excluding runtime/build/cache data."),
+        ],
+        stop_condition_for_v01=[
+            "Audit passes with only expected local warnings.",
+            "Frontend build passes.",
+            "Backend targeted tests pass.",
+            "Git status contains only intended source/docs/config changes.",
+            "No runtime databases, build outputs, node_modules, or cache folders are committed.",
+        ],
+        not_v1_yet=[
+            "No final frozen backend binary yet.",
+            "No signed/notarized macOS DMG or Windows MSI yet.",
+            "Tauri bridge is still foundation/read-only, not the final process supervisor.",
+            "MCP servers are not installed or executed automatically.",
+            "Agent execution is planning/manual tracking, not sandboxed tool execution.",
+            "Background jobs are not persisted across app restarts yet.",
+        ],
+        safety_rules=[
+            "Do not describe v0.1 source RC as a finished v1.0 product.",
+            "Frontend must never run shell commands.",
+            "Desktop startup must not trigger scan, index, rebuild, MCP, Agent, or model downloads.",
+            "Model downloads remain backend-owned, opt-in, and allowlisted.",
+            "MCP/Agent execution stays disabled until sandbox, approvals, and audit logs exist.",
+        ],
+    )
 
 def _read_counts(
     db_path: Path,

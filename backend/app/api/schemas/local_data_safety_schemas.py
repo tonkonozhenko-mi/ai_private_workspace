@@ -438,6 +438,32 @@ class ProductCompletionRoadmapResponse(BaseModel):
     not_done_yet: list[str]
     safety_rules: list[str]
 
+
+
+class FinalProductStageResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    remaining_large_tasks: str
+
+
+class FinalProductStatusResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    current_milestone: str
+    current_stage_completion: str
+    honest_v1_estimate: str
+    source_rc_verdict: str
+    remaining_current_stage_tasks: list[str]
+    stages: list[FinalProductStageResponse]
+    next_recommended_tasks: list[str]
+    publication_checks: list[ReleaseCandidateAuditCommandResponse]
+    stop_condition_for_v01: list[str]
+    not_v1_yet: list[str]
+    safety_rules: list[str]
+
 class DatabaseBackupResponse(BaseModel):
     filename: str
     path: str

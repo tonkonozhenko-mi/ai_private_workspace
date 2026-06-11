@@ -276,3 +276,7 @@ Remaining v1 work is intentionally separate from the source RC:
 - persistent background job storage;
 - real sandboxed Agent + MCP execution;
 - installer/update lifecycle.
+
+## Task 232 — final status and v1 runway clarity
+
+Added a final status endpoint and Settings UI section so the app clearly says where the project is: v0.1 source RC is ready after local validation, while a true v1.0 installer-grade product still requires roughly 15-25 large tasks across runtime bundling, installers, persistent jobs, and sandboxed Agent/MCP execution.
