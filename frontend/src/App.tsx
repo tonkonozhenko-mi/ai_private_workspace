@@ -624,6 +624,10 @@ function App() {
                         onSelectionUpdated={() =>
                           refreshWorkspaceReadOnlyState(detail.dashboard.workspace_id)
                         }
+                        onStartIndexJob={() => handleStartIndexJob(detail.dashboard.workspace_id)}
+                        onGetWorkspaceJob={(jobId) =>
+                          handleGetWorkspaceJob(detail.dashboard.workspace_id, jobId)
+                        }
                       />
                     </RenderCrashBoundary>
                   ) : (
