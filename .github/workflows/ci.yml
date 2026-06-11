@@ -3,35 +3,67 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
 
 jobs:
-  backend-targeted-tests:
+  backend:
+    name: Backend tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
       - name: Install backend dependencies
         working-directory: backend
-        run: pip install -r requirements.txt
-      - name: Run targeted backend tests
-        working-directory: backend
-        run: pytest -q tests/test_health.py tests/test_api_inventory.py tests/test_release_candidate_audit.py
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-  frontend-build:
+      - name: Run focused backend tests
+        working-directory: backend
+        run: |
+          pytest -q tests/test_health.py tests/test_api_inventory.py tests/test_release_candidate_audit.py tests/test_workspace_models_dashboard.py
+
+  frontend:
+    name: Frontend build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+
       - name: Build frontend
         working-directory: frontend
         run: npm run build
+
+  release-audit:
+    name: Release audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run release audit
+        run: ./scripts/audit_release_candidate.sh

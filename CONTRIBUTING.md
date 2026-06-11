@@ -1,30 +1,37 @@
 # Contributing
 
-AI Private Workspace is local-first and safety-first. Contributions should preserve those boundaries.
+Thanks for improving AI Private Workspace.
 
-## Local checks
+## Development rules
+
+- Keep the app local-first and privacy-preserving.
+- Do not add frontend shell execution.
+- Do not make scan/index/rebuild/restart/model download/MCP/Agent actions automatic.
+- Keep backend domain/core code free from FastAPI and sqlite-specific concerns where possible.
+- Add tests for backend behavior and keep UI changes buildable with `npm run build`.
+- Do not commit runtime data, local databases, build output, or caches.
+
+## Local validation
 
 ```bash
 ./scripts/audit_release_candidate.sh
-cd backend && pytest -q tests/test_health.py tests/test_api_inventory.py
-cd ../frontend && npm ci && npm run build
+
+cd backend
+pytest -q
+
+cd ../frontend
+npm ci
+npm run build
 ```
 
-## Development principles
-
-- Keep frontend actions explicit and user-triggered.
-- Do not add browser-side shell execution.
-- Keep backend core/domain code free from FastAPI and SQLite details.
-- Put runtime, filesystem, provider, and process integrations behind adapters.
-- Prefer calm, human-readable UI flows over dense admin dashboards.
-- Document safety boundaries when adding model, MCP, agent, or packaging behavior.
+For large changes, update the relevant docs under `docs/` and `docs/API_INVENTORY.md`.
 
 ## Pull requests
 
-A good PR should include:
+A good PR includes:
 
-- what changed;
-- what safety boundary was preserved;
-- how it was tested;
-- screenshots for UI changes when useful;
-- docs updates for user-facing or operator-facing behavior.
+- clear summary;
+- safety impact;
+- tests run;
+- screenshots for UI changes;
+- docs updates when behavior changes.

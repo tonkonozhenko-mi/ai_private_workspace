@@ -250,3 +250,16 @@ AI Private Workspace is currently a **v0.1 source release candidate**, not a fin
 
 The next practical milestone is **v0.2 desktop runtime**: frozen backend runtime, stronger supervisor lifecycle, persistent local jobs, and a clearer path to signed macOS/Windows installers.
 
+
+## Task 230 — Source release stabilization ✅
+
+The GitHub publication surface and source archive flow were stabilized:
+
+- README, CONTRIBUTING, SECURITY, `.editorconfig`, `.gitattributes`, GitHub Actions, PR template, and issue forms are present at source root.
+- Release audit now treats local runtime/build directories as warnings and fails only on source-tree database files outside ignored paths.
+- Source release archive script now archives the current working tree with explicit runtime/build/cache excludes.
+
+Next practical work:
+1. Run one full local UI pass after applying the Task 230 archive.
+2. Push the v0.1 source RC to GitHub when audit/build checks pass.
+3. Continue into v0.2 desktop runtime only after the source RC is stable.

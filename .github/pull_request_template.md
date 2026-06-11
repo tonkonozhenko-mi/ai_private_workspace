@@ -5,14 +5,16 @@
 ## Safety checklist
 
 - [ ] Frontend does not execute shell commands.
-- [ ] No automatic scan/index/rebuild/restart/model-download/MCP/Agent execution was added.
-- [ ] Runtime data and build artifacts are not committed.
-- [ ] Docs were updated when user-facing behavior changed.
+- [ ] No automatic scan/index/rebuild/restart/model download/MCP/Agent execution was added.
+- [ ] Risky operations remain explicit and backend-side.
+- [ ] Runtime/build data was not committed.
 
 ## Validation
 
-```bash
-./scripts/audit_release_candidate.sh
-cd backend && pytest -q tests/test_health.py tests/test_api_inventory.py
-cd ../frontend && npm ci && npm run build
-```
+- [ ] `./scripts/audit_release_candidate.sh`
+- [ ] backend tests:
+- [ ] frontend build:
+
+## Screenshots
+
+Add screenshots for UI changes.
