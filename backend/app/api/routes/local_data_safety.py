@@ -25,6 +25,9 @@ from app.api.schemas.local_data_safety_schemas import (
     MacOSAppSupervisorWiringFileResponse,
     MacOSAppSupervisorWiringResponse,
     MacOSAppSupervisorWiringStepResponse,
+    BackendRuntimeBundleItemResponse,
+    BackendRuntimeBundlePlanResponse,
+    BackendRuntimeBundleStepResponse,
     FirstLaunchChecklistItemResponse,
     FirstLaunchReadinessResponse,
     DatabaseBackupResponse,
@@ -885,6 +888,101 @@ def get_macos_app_supervisor_wiring() -> MacOSAppSupervisorWiringResponse:
             "Replace launcher stub with Tauri supervisor shell.",
             "Add signed macOS distribution path.",
             "Create Windows packaging foundation with the same supervisor rules.",
+        ],
+    )
+
+
+@router.get("/backend-runtime-bundle-plan", response_model=BackendRuntimeBundlePlanResponse)
+def get_backend_runtime_bundle_plan() -> BackendRuntimeBundlePlanResponse:
+    return BackendRuntimeBundlePlanResponse(
+        status="planned-foundation",
+        title="Backend runtime bundle plan",
+        summary="Defines how the macOS app should move from relying on the user's local python3 setup to an app-owned backend runtime with pinned dependencies and a repeatable manifest.",
+        package_goal="Double click AI Private Workspace.app without asking the user to create a venv, install requirements, or understand backend scripts.",
+        recommended_strategy="Bundle a pinned backend runtime first as a staged app resource, then replace it with a frozen executable when installer-grade packaging is introduced. Keep PyInstaller/Nuitka as packaging candidates, but do not lock them until dependency/runtime checks are repeatable.",
+        build_script="scripts/prepare_macos_backend_runtime.sh",
+        runtime_manifest_path="build/macos/backend-runtime/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt",
+        bundle_items=[
+            BackendRuntimeBundleItemResponse(
+                id="requirements",
+                title="Pinned backend dependencies",
+                status="source",
+                summary="requirements.txt remains the source of truth for FastAPI, uvicorn, httpx, qdrant-client, and test/runtime dependencies.",
+                path="backend/requirements.txt",
+            ),
+            BackendRuntimeBundleItemResponse(
+                id="runtime-manifest",
+                title="Runtime manifest",
+                status="generated",
+                summary="A build-time manifest records Python version, requirements hash, source paths, excludes, and the next freeze candidate.",
+                path="build/macos/backend-runtime/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt",
+            ),
+            BackendRuntimeBundleItemResponse(
+                id="backend-source",
+                title="Backend source bundle",
+                status="staged",
+                summary="Backend source is copied into the app bundle without runtime databases, caches, venvs, or generated state.",
+                path="build/macos/AI Private Workspace.app/Contents/Resources/app/backend",
+            ),
+            BackendRuntimeBundleItemResponse(
+                id="app-data",
+                title="App-owned runtime data",
+                status="external",
+                summary="Workspace DB, logs, and runtime state stay outside the app bundle so updates cannot erase user data.",
+                path="~/Library/Application Support/AI Private Workspace",
+            ),
+        ],
+        build_steps=[
+            BackendRuntimeBundleStepResponse(
+                id="frontend-build",
+                title="Build packaged UI assets",
+                summary="Create frontend/dist before building the macOS app foundation.",
+                command="cd frontend && npm ci && npm run build",
+            ),
+            BackendRuntimeBundleStepResponse(
+                id="runtime-manifest",
+                title="Generate backend runtime manifest",
+                summary="Validate backend requirements and write a repeatable runtime manifest without copying runtime data.",
+                command="scripts/prepare_macos_backend_runtime.sh",
+            ),
+            BackendRuntimeBundleStepResponse(
+                id="app-foundation",
+                title="Build macOS app foundation",
+                summary="Stage frontend assets, backend source, launcher, and supervisor wiring into build/macos.",
+                command="scripts/package_macos_app_foundation.sh",
+            ),
+            BackendRuntimeBundleStepResponse(
+                id="open-app",
+                title="Open generated app foundation",
+                summary="Validate the double-click lifecycle after the manifest and app bundle are generated.",
+                command="open \"build/macos/AI Private Workspace.app\"",
+            ),
+        ],
+        validation_steps=[
+            "Runtime manifest exists and contains a requirements hash.",
+            "App bundle contains backend source but not backend/.ai-workbench, *.db, *.sqlite, .venv, __pycache__, or .pytest_cache.",
+            "Launcher writes logs outside the app bundle under the app data directory.",
+            "Opening the app waits for /health before showing UI.",
+            "Packaging still works after deleting build/ and rebuilding from source.",
+        ],
+        safety_rules=[
+            "Frontend never executes shell commands.",
+            "Runtime preparation scripts are explicit developer/packager commands, not UI actions.",
+            "No scan, index, rebuild, MCP, agent, or model download starts during runtime preparation or launch.",
+            "Generated archives must not include build/, frontend/dist, node_modules, backend/.ai-workbench, databases, or virtual environments.",
+            "The app should never overwrite user runtime data when the package is rebuilt or updated.",
+        ],
+        known_limitations=[
+            "The current foundation still depends on local python3 and installed backend dependencies.",
+            "This task does not create a signed .dmg or notarized app.",
+            "This task does not yet freeze the backend into a standalone binary.",
+            "Windows runtime packaging remains a separate packaging foundation task.",
+        ],
+        next_steps=[
+            "Choose the backend freeze tool after the manifest is stable: PyInstaller, Nuitka, or a packaged Python runtime.",
+            "Wire the runtime manifest into the macOS package script as a preflight requirement.",
+            "Add Tauri shell scaffold and map supervisor states to native startup UI.",
+            "Create Windows packaging foundation with equivalent runtime/data/log rules.",
         ],
     )
 

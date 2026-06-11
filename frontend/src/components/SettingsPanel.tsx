@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -19,6 +19,7 @@ import type {
   MacOSAppPackageFoundation,
   DesktopSupervisorContract,
   MacOSAppSupervisorWiring,
+  BackendRuntimeBundlePlan,
   ProductionReadiness,
 } from "../api/types";
 import {
@@ -190,6 +191,9 @@ export function SettingsPanel({
   const [macOSAppSupervisorWiring, setMacOSAppSupervisorWiring] = useState<MacOSAppSupervisorWiring | null>(null);
   const [macOSAppSupervisorWiringError, setMacOSAppSupervisorWiringError] = useState<string | null>(null);
   const [macOSAppSupervisorWiringLoading, setMacOSAppSupervisorWiringLoading] = useState(false);
+  const [backendRuntimeBundlePlan, setBackendRuntimeBundlePlan] = useState<BackendRuntimeBundlePlan | null>(null);
+  const [backendRuntimeBundlePlanError, setBackendRuntimeBundlePlanError] = useState<string | null>(null);
+  const [backendRuntimeBundlePlanLoading, setBackendRuntimeBundlePlanLoading] = useState(false);
 
 
   useEffect(() => {
@@ -297,6 +301,32 @@ export function SettingsPanel({
       cancelled = true;
     };
   }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setBackendRuntimeBundlePlanLoading(true);
+    setBackendRuntimeBundlePlanError(null);
+    getBackendRuntimeBundlePlan()
+      .then((plan) => {
+        if (!cancelled) {
+          setBackendRuntimeBundlePlan(plan);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setBackendRuntimeBundlePlanError(error instanceof Error ? error.message : "Could not load backend runtime bundle plan");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setBackendRuntimeBundlePlanLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -1904,6 +1934,89 @@ export function SettingsPanel({
                 </div>
               ) : null}
             </details>
+
+            <details className="settings-disclosure" open>
+              <summary>Backend runtime bundle readiness</summary>
+              {backendRuntimeBundlePlanError ? (
+                <p className="settings-transfer-message">Could not load backend runtime bundle plan: {backendRuntimeBundlePlanError}</p>
+              ) : null}
+              {backendRuntimeBundlePlanLoading ? (
+                <p className="settings-transfer-message">Loading backend runtime bundle plan…</p>
+              ) : backendRuntimeBundlePlan ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{backendRuntimeBundlePlan.title}</strong>
+                    <span>{backendRuntimeBundlePlan.summary}</span>
+                    <span>Runtime manifest: <code>{backendRuntimeBundlePlan.runtime_manifest_path}</code></span>
+                  </div>
+                  <div className="local-data-grid packaging-design-grid">
+                    <div>
+                      <span>Strategy</span>
+                      <strong>Manifest first</strong>
+                      <small>{backendRuntimeBundlePlan.recommended_strategy}</small>
+                    </div>
+                    <div>
+                      <span>Build script</span>
+                      <strong>{backendRuntimeBundlePlan.build_script}</strong>
+                      <small>Explicit packager command</small>
+                    </div>
+                    <div>
+                      <span>Status</span>
+                      <strong>{backendRuntimeBundlePlan.status}</strong>
+                      <small>Runtime freeze not final yet</small>
+                    </div>
+                    <div>
+                      <span>User goal</span>
+                      <strong>No manual venv</strong>
+                      <small>Final app should own backend runtime</small>
+                    </div>
+                  </div>
+                  <details className="settings-disclosure" open>
+                    <summary>Build sequence</summary>
+                    <div className="settings-command-stack">
+                      {backendRuntimeBundlePlan.build_steps.map((step) => (
+                        <div className="startup-checklist-command" key={step.id}>
+                          <span>{step.title}</span>
+                          {step.command ? <code>{step.command}</code> : null}
+                          {step.command ? (
+                            <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(step.command ?? "")}>
+                              Copy
+                            </button>
+                          ) : null}
+                          <small>{step.summary}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Runtime bundle items</summary>
+                    <div className="startup-checklist-grid">
+                      {backendRuntimeBundlePlan.bundle_items.map((item) => (
+                        <div className="startup-checklist-item is-review" key={item.id}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{item.title}</strong>
+                            <StatusBadge label={item.status} tone={item.status === "external" ? "success" : "info"} />
+                          </div>
+                          <p>{item.summary}</p>
+                          {item.path ? <small>{item.path}</small> : null}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Validation and safety</summary>
+                    <ol className="settings-preflight-list">
+                      {backendRuntimeBundlePlan.validation_steps.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
+                    <div className="settings-safety-list">
+                      {backendRuntimeBundlePlan.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                    <p className="settings-transfer-message">Known limitations: {backendRuntimeBundlePlan.known_limitations.join(" · ")}</p>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
 
             <details className="settings-disclosure" open>
               <summary>Desktop supervisor contract</summary>

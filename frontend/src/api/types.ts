@@ -388,6 +388,38 @@ export interface MacOSAppSupervisorWiring {
 }
 
 
+export interface BackendRuntimeBundleItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  path: string | null;
+}
+
+export interface BackendRuntimeBundleStep {
+  id: string;
+  title: string;
+  summary: string;
+  command: string | null;
+}
+
+export interface BackendRuntimeBundlePlan {
+  status: string;
+  title: string;
+  summary: string;
+  package_goal: string;
+  recommended_strategy: string;
+  build_script: string;
+  runtime_manifest_path: string;
+  bundle_items: BackendRuntimeBundleItem[];
+  build_steps: BackendRuntimeBundleStep[];
+  validation_steps: string[];
+  safety_rules: string[];
+  known_limitations: string[];
+  next_steps: string[];
+}
+
+
 export interface DesktopSupervisorPortRule {
   id: string;
   title: string;
