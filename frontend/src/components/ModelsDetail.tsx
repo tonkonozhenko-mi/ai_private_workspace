@@ -18,6 +18,8 @@ import {
   getLocalModelDownloadWorkerPlan,
   getLocalModelDownloadExecutionCapability,
   runLocalModelInstallDraft,
+  startLocalModelDownloadJob,
+  getLocalModelDownloadJob,
   getWorkspaceMCPToolInventory,
   listWorkspaceMCPConfigs,
   previewWorkspaceMCPApproval,
@@ -59,6 +61,7 @@ import type {
   LocalModelDownloadWorkerPlan,
   LocalModelDownloadExecutionCapability,
   LocalModelDownloadExecutionResult,
+  LocalModelDownloadJob,
   LocalModelInstallOption,
   ModelExperimentPlan,
   ModelExperimentRating,
@@ -510,7 +513,9 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   const [draftError, setDraftError] = useState<string | null>(null);
   const [draftingKey, setDraftingKey] = useState<string | null>(null);
   const [executionResult, setExecutionResult] = useState<LocalModelDownloadExecutionResult | null>(null);
+  const [downloadJob, setDownloadJob] = useState<LocalModelDownloadJob | null>(null);
   const [runningDraft, setRunningDraft] = useState(false);
+  const [refreshingJob, setRefreshingJob] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -576,6 +581,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
       });
       setDraft(result);
       setExecutionResult(null);
+      setDownloadJob(null);
     } catch (installDraftError) {
       setDraftError(errorMessage(installDraftError));
     } finally {
@@ -585,19 +591,36 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
 
 
 
-  const runDraft = async () => {
+  const startDownloadJob = async () => {
     if (!draft) {
       return;
     }
     setRunningDraft(true);
     setDraftError(null);
     try {
-      const result = await runLocalModelInstallDraft(draft.command_proposal.id);
-      setExecutionResult(result);
+      const job = await startLocalModelDownloadJob(draft.command_proposal.id);
+      setDownloadJob(job);
+      setExecutionResult(null);
     } catch (downloadError) {
       setDraftError(errorMessage(downloadError));
     } finally {
       setRunningDraft(false);
+    }
+  };
+
+  const refreshDownloadJob = async () => {
+    if (!downloadJob) {
+      return;
+    }
+    setRefreshingJob(true);
+    setDraftError(null);
+    try {
+      const job = await getLocalModelDownloadJob(downloadJob.id);
+      setDownloadJob(job);
+    } catch (downloadError) {
+      setDraftError(errorMessage(downloadError));
+    } finally {
+      setRefreshingJob(false);
     }
   };
 
@@ -656,7 +679,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
               className="secondary-button model-install-draft-button"
               type="button"
               disabled={!executionCapability?.execution_enabled || runningDraft}
-              onClick={() => void runDraft()}
+              onClick={() => void startDownloadJob()}
               title={executionCapability?.disabled_reason ?? undefined}
             >
               {runningDraft ? "Downloading…" : "Run approved download"}
@@ -677,6 +700,13 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
             </div>
           </dl>
         </div>
+      ) : null}
+      {downloadJob ? (
+        <ModelDownloadJobStatusCard
+          job={downloadJob}
+          isRefreshing={refreshingJob}
+          onRefresh={() => void refreshDownloadJob()}
+        />
       ) : null}
       {executionResult ? (
         <div className="model-install-draft-summary model-install-execution-result">
@@ -708,6 +738,58 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
         <p>{guide.safety_notes.join(" ")}</p>
       </details>
     </section>
+  );
+}
+
+
+function ModelDownloadJobStatusCard({
+  job,
+  isRefreshing,
+  onRefresh,
+}: {
+  job: LocalModelDownloadJob;
+  isRefreshing: boolean;
+  onRefresh: () => void;
+}) {
+  return (
+    <div className="model-download-job-card">
+      <div className="model-download-job-header">
+        <div>
+          <span className="eyebrow">Download job</span>
+          <strong>{job.display_name}</strong>
+          <p>{job.progress_message}</p>
+        </div>
+        <StatusBadge label={job.status} />
+      </div>
+      <div className="model-download-progress" aria-label="Model download progress">
+        <span style={{ width: `${Math.max(0, Math.min(100, job.progress_percent))}%` }} />
+      </div>
+      <dl>
+        <div>
+          <dt>Progress</dt>
+          <dd>{job.progress_percent}%</dd>
+        </div>
+        <div>
+          <dt>Command status</dt>
+          <dd>{job.command_proposal.status}</dd>
+        </div>
+        <div>
+          <dt>Exit code</dt>
+          <dd>{job.exit_code ?? "pending"}</dd>
+        </div>
+      </dl>
+      {job.stderr_preview ? <pre>{job.stderr_preview}</pre> : null}
+      <div className="model-download-job-actions">
+        <button
+          className="secondary-button model-install-draft-button"
+          type="button"
+          disabled={isRefreshing}
+          onClick={onRefresh}
+        >
+          {isRefreshing ? "Refreshing…" : "Refresh status"}
+        </button>
+      </div>
+    </div>
   );
 }
 

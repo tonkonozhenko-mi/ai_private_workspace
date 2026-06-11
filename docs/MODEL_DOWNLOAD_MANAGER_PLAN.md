@@ -37,3 +37,7 @@ The backend now has an opt-in execution foundation for approved model download d
 - `POST /models/local-install-drafts/{command_id}/run`
 
 Execution remains disabled by default. It is intended for a trusted local desktop runtime and requires `MODEL_DOWNLOAD_EXECUTION_ENABLED=true` plus `COMMAND_RUNNER=local`.
+
+## Task 207 update
+
+Added model download job foundation endpoints: `POST /models/local-install-drafts/{command_id}/jobs` and `GET /models/local-download-jobs/{job_id}`. Jobs are backend-owned status records for approved Ollama downloads. The frontend can start and refresh a job, but still never runs shell commands. Execution remains opt-in and allowlisted.

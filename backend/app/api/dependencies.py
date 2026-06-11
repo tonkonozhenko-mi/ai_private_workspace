@@ -17,6 +17,9 @@ from app.adapters.memory.in_memory_model_experiment_repository import (
     InMemoryModelExperimentRepository,
 )
 from app.adapters.memory.in_memory_mcp_repository import InMemoryMCPRepository
+from app.adapters.memory.in_memory_local_model_download_job_repository import (
+    InMemoryLocalModelDownloadJobRepository,
+)
 from app.adapters.memory.in_memory_model_experiment_rating_repository import (
     InMemoryModelExperimentRatingRepository,
 )
@@ -64,6 +67,9 @@ from app.adapters.vector_store.in_memory_vector_store import InMemoryVectorStore
 from app.config.settings import get_settings
 from app.core.ports.agent_workflow_repository import AgentWorkflowRepositoryPort
 from app.core.ports.command_repository import CommandRepositoryPort
+from app.core.ports.local_model_download_job_repository import (
+    LocalModelDownloadJobRepositoryPort,
+)
 from app.core.ports.conversation_repository import ConversationRepositoryPort
 from app.core.ports.command_runner import CommandRunnerPort
 from app.core.ports.embedding_provider import EmbeddingProviderPort
@@ -159,6 +165,13 @@ def build_command_repository() -> CommandRepositoryPort:
         return SQLiteCommandRepository(settings.workspace_db_path)
 
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+
+def build_local_model_download_job_repository() -> LocalModelDownloadJobRepositoryPort:
+    # Model download jobs are runtime orchestration state for the trusted local backend.
+    # They are intentionally kept in memory for this foundation step.
+    return InMemoryLocalModelDownloadJobRepository()
 
 
 def build_index_status_repository() -> IndexStatusRepositoryPort:
@@ -400,6 +413,7 @@ report_repository = build_report_repository()
 agent_workflow_repository = build_agent_workflow_repository()
 mcp_repository = build_mcp_repository()
 command_repository = build_command_repository()
+local_model_download_job_repository = build_local_model_download_job_repository()
 index_status_repository = build_index_status_repository()
 indexing_rules_repository = build_indexing_rules_repository()
 skill_profile_repository = build_skill_profile_repository()

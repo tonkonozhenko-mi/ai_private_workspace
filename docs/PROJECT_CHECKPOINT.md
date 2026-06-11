@@ -123,3 +123,7 @@ Completed a full UI/UX consistency pass focused on calm Apple-like layout, reduc
 ## Task 206 checkpoint
 
 Added approved local model download execution foundation. The backend can run an exact allowlisted `ollama pull <catalog-model-name>` draft only when explicitly enabled for a trusted local runtime. Frontend shell execution remains forbidden.
+
+## Task 207 update
+
+Added model download job foundation endpoints: `POST /models/local-install-drafts/{command_id}/jobs` and `GET /models/local-download-jobs/{job_id}`. Jobs are backend-owned status records for approved Ollama downloads. The frontend can start and refresh a job, but still never runs shell commands. Execution remains opt-in and allowlisted.

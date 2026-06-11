@@ -1400,6 +1400,27 @@ export interface LocalModelInstallDraft {
   command_proposal: CommandProposal;
 }
 
+export interface LocalModelDownloadJob {
+  id: string;
+  command_id: string;
+  workspace_id: string;
+  provider: string;
+  model: string;
+  display_name: string;
+  status: string;
+  progress_percent: number;
+  progress_message: string;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  command_proposal: CommandProposal;
+  stdout_preview: string | null;
+  stderr_preview: string | null;
+  exit_code: number | null;
+  safety_summary: string;
+  next_steps: string[];
+}
+
 export interface LocalModelDownloadExecutionCapability {
   title: string;
   status: string;
