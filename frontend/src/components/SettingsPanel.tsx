@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getReleaseCandidateAudit, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -23,6 +23,7 @@ import type {
   TauriShellScaffold,
   TauriSupervisorBridge,
   WindowsPackagingFoundation,
+  ReleaseCandidateAudit,
   ProductionReadiness,
 } from "../api/types";
 import {
@@ -206,6 +207,9 @@ export function SettingsPanel({
   const [windowsPackagingFoundation, setWindowsPackagingFoundation] = useState<WindowsPackagingFoundation | null>(null);
   const [windowsPackagingFoundationError, setWindowsPackagingFoundationError] = useState<string | null>(null);
   const [windowsPackagingFoundationLoading, setWindowsPackagingFoundationLoading] = useState(false);
+  const [releaseCandidateAudit, setReleaseCandidateAudit] = useState<ReleaseCandidateAudit | null>(null);
+  const [releaseCandidateAuditError, setReleaseCandidateAuditError] = useState<string | null>(null);
+  const [releaseCandidateAuditLoading, setReleaseCandidateAuditLoading] = useState(false);
 
 
   useEffect(() => {
@@ -408,6 +412,31 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setWindowsPackagingFoundationLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setReleaseCandidateAuditLoading(true);
+    setReleaseCandidateAuditError(null);
+    getReleaseCandidateAudit()
+      .then((audit) => {
+        if (!cancelled) {
+          setReleaseCandidateAudit(audit);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setReleaseCandidateAuditError(error instanceof Error ? error.message : "Could not load release candidate audit");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setReleaseCandidateAuditLoading(false);
         }
       });
     return () => {
@@ -2354,6 +2383,116 @@ export function SettingsPanel({
                     <ol className="settings-preflight-list">
                       {windowsPackagingFoundation.next_steps.map((step) => <li key={step}>{step}</li>)}
                     </ol>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
+
+            <details className="settings-disclosure" open>
+              <summary>Release candidate audit</summary>
+              {releaseCandidateAuditError ? (
+                <p className="settings-transfer-message">Could not load release candidate audit: {releaseCandidateAuditError}</p>
+              ) : null}
+              {releaseCandidateAuditLoading ? (
+                <p className="settings-transfer-message">Loading release candidate audit…</p>
+              ) : releaseCandidateAudit ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{releaseCandidateAudit.title}</strong>
+                    <span>{releaseCandidateAudit.summary}</span>
+                    <span>Audit script: <code>{releaseCandidateAudit.audit_script}</code></span>
+                  </div>
+                  <div className="local-data-grid packaging-design-grid">
+                    <div>
+                      <span>Status</span>
+                      <strong>{releaseCandidateAudit.status}</strong>
+                      <small>{releaseCandidateAudit.release_label}</small>
+                    </div>
+                    <div>
+                      <span>Score</span>
+                      <strong>{releaseCandidateAudit.readiness_score}%</strong>
+                      <small>Read-only audit</small>
+                    </div>
+                    <div>
+                      <span>Blocked</span>
+                      <strong>{releaseCandidateAudit.blocked_items.length}</strong>
+                      <small>Must fix before handoff</small>
+                    </div>
+                    <div>
+                      <span>Review</span>
+                      <strong>{releaseCandidateAudit.review_items.length}</strong>
+                      <small>Allowed with notes</small>
+                    </div>
+                  </div>
+                  {releaseCandidateAudit.blocked_items.length > 0 ? (
+                    <div className="startup-checklist-grid">
+                      {releaseCandidateAudit.blocked_items.map((item) => (
+                        <div className="startup-checklist-item is-blocked" key={item.id}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{item.title}</strong>
+                            <StatusBadge label="blocked" tone="danger" />
+                          </div>
+                          <p>{item.summary}</p>
+                          <small>{item.detail}</small>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="settings-transfer-message">No blocked release candidate items detected by the backend audit.</p>
+                  )}
+                  <details className="settings-disclosure">
+                    <summary>Validation commands</summary>
+                    <div className="settings-command-stack">
+                      {releaseCandidateAudit.validation_commands.map((command) => (
+                        <div className="startup-checklist-command" key={command.label}>
+                          <span>{command.label}</span>
+                          <code>{command.command}</code>
+                          <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(command.command)}>
+                            Copy
+                          </button>
+                          <small>{command.purpose}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Archive policy and handoff steps</summary>
+                    <div className="settings-safety-list">
+                      {releaseCandidateAudit.source_archive_policy.map((policy) => <span key={policy}>{policy}</span>)}
+                    </div>
+                    <ol className="settings-preflight-list">
+                      {releaseCandidateAudit.final_handoff_steps.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Review, passed, safety, and limitations</summary>
+                    <div className="startup-checklist-grid">
+                      {releaseCandidateAudit.review_items.map((item) => (
+                        <div className="startup-checklist-item is-review" key={item.id}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{item.title}</strong>
+                            <StatusBadge label="review" tone="warning" />
+                          </div>
+                          <p>{item.summary}</p>
+                          <small>{item.detail}</small>
+                        </div>
+                      ))}
+                      {releaseCandidateAudit.passed_items.map((item) => (
+                        <div className="startup-checklist-item is-ok" key={item.id}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{item.title}</strong>
+                            <StatusBadge label="ok" tone="success" />
+                          </div>
+                          <p>{item.summary}</p>
+                          <small>{item.detail}</small>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="settings-safety-list">
+                      {releaseCandidateAudit.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                    <p className="settings-transfer-message">Known limitations: {releaseCandidateAudit.known_limitations.join(" · ")}</p>
                   </details>
                 </div>
               ) : null}

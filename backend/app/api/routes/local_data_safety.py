@@ -37,6 +37,9 @@ from app.api.schemas.local_data_safety_schemas import (
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
+    ReleaseCandidateAuditCommandResponse,
+    ReleaseCandidateAuditItemResponse,
+    ReleaseCandidateAuditResponse,
     FirstLaunchChecklistItemResponse,
     FirstLaunchReadinessResponse,
     DatabaseBackupResponse,
@@ -1529,6 +1532,117 @@ def get_database_migration_safety() -> DatabaseMigrationSafetyResponse:
         safety_note="Migration safety diagnostics are read-only and do not modify the database.",
     )
 
+
+
+@router.get("/release-candidate-audit", response_model=ReleaseCandidateAuditResponse)
+def get_release_candidate_audit() -> ReleaseCandidateAuditResponse:
+    settings = get_settings()
+    project_root = Path(__file__).resolve().parents[4]
+    required_paths = ["backend", "frontend", "docs", "scripts", "pytest.ini", ".gitignore"]
+    required_docs = [
+        "docs/START_HERE.md",
+        "docs/ROADMAP.md",
+        "docs/API_INVENTORY.md",
+        "docs/PROJECT_CHECKPOINT.md",
+        "docs/DESKTOP_PACKAGING_DESIGN_LOCK.md",
+        "docs/WINDOWS_PACKAGING_FOUNDATION.md",
+        "docs/RELEASE_CANDIDATE_AUDIT.md",
+    ]
+    forbidden_paths = [
+        "backend/.ai-workbench",
+        "frontend/node_modules",
+        "frontend/dist",
+        "build",
+        ".pytest_cache",
+    ]
+
+    passed: list[ReleaseCandidateAuditItemResponse] = []
+    review: list[ReleaseCandidateAuditItemResponse] = []
+    blocked: list[ReleaseCandidateAuditItemResponse] = []
+
+    def add_item(target: list[ReleaseCandidateAuditItemResponse], id: str, title: str, summary: str, detail: str, action: str | None = None) -> None:
+        target.append(ReleaseCandidateAuditItemResponse(id=id, title=title, status="blocked" if target is blocked else "review" if target is review else "ok", summary=summary, detail=detail, recommended_action=action))
+
+    missing_required = [path for path in required_paths if not (project_root / path).exists()]
+    if missing_required:
+        add_item(blocked, "required-root-structure", "Root structure", "Required release paths are missing.", ", ".join(missing_required), "Restore the root-preserving project structure before packaging.")
+    else:
+        add_item(passed, "required-root-structure", "Root structure", "Required release paths are present.", "backend/, frontend/, docs/, scripts/, pytest.ini, and .gitignore are available.")
+
+    missing_docs = [path for path in required_docs if not (project_root / path).exists()]
+    if missing_docs:
+        add_item(review, "release-docs", "Release docs", "Some release/operator docs are missing.", ", ".join(missing_docs), "Add or restore missing docs before final handoff.")
+    else:
+        add_item(passed, "release-docs", "Release docs", "Release and packaging docs are present.", "The handoff has start, roadmap, API, checkpoint, packaging, and audit docs.")
+
+    local_artifacts = [path for path in forbidden_paths if (project_root / path).exists()]
+    if local_artifacts:
+        add_item(review, "local-artifacts", "Local build/runtime artifacts", "Local artifacts exist in the working tree.", ", ".join(local_artifacts), "They may exist locally, but must be excluded from generated release zip.")
+    else:
+        add_item(passed, "local-artifacts", "Local build/runtime artifacts", "No common runtime/build artifact directories found.", "Source tree looks clean for zip generation.")
+
+    db_files = [str(path.relative_to(project_root)) for path in project_root.rglob("*") if path.is_file() and path.suffix in {".db", ".sqlite"} and ".git" not in path.parts]
+    if db_files:
+        add_item(blocked, "database-files", "Runtime database files", "Database files were found in the source tree.", ", ".join(db_files[:10]), "Remove DB files from the source archive and keep runtime data under app data paths.")
+    else:
+        add_item(passed, "database-files", "Runtime database files", "No *.db or *.sqlite files found in source tree.", "Runtime data is not present in the release source tree.")
+
+    safety_docs = ["docs/MODEL_DOWNLOAD_JOBS.md", "docs/MCP_SETUP_UX_TASK212.md", "docs/AGENT_MCP_READINESS_TASK213.md"]
+    missing_safety = [path for path in safety_docs if not (project_root / path).exists()]
+    if missing_safety:
+        add_item(review, "safety-docs", "Model/MCP/Agent safety docs", "Some safety docs are missing.", ", ".join(missing_safety), "Restore safety docs before final release notes.")
+    else:
+        add_item(passed, "safety-docs", "Model/MCP/Agent safety docs", "Safety docs are present.", "Model downloads, MCP setup, and Agent workflow boundaries are documented.")
+
+    if settings.model_download_execution_enabled:
+        add_item(review, "model-execution-enabled", "Model download execution", "Model download execution is enabled in this runtime.", "This is allowed only for trusted local runtime, not default release demos.", "Use MODEL_DOWNLOAD_EXECUTION_ENABLED=false for default safe demos.")
+    else:
+        add_item(passed, "model-execution-disabled", "Model download execution", "Model download execution is disabled by default.", "Downloads require explicit opt-in and backend allowlist execution.")
+
+    ok_count = len(passed)
+    total = len(passed) + len(review) + len(blocked)
+    status = "blocked" if blocked else "review" if review else "ready"
+    score = round((ok_count / total) * 100) if total else 0
+
+    return ReleaseCandidateAuditResponse(
+        status=status,
+        title="Release candidate audit",
+        summary="Final read-only audit for v0.1 source handoff, safety boundaries, packaging readiness, and no-runtime-data policy.",
+        release_label="v0.1 release candidate",
+        readiness_score=score,
+        audit_script="scripts/audit_release_candidate.sh",
+        source_archive_policy=[
+            "Keep root-preserving structure: backend/, frontend/, docs/, scripts/, pytest.ini, .gitignore.",
+            "Exclude backend/.ai-workbench, *.db, *.sqlite, node_modules, dist, build, caches, and __pycache__.",
+            "Generated .app/.exe/.msi artifacts are build outputs, not source archive contents.",
+        ],
+        blocked_items=blocked,
+        review_items=review,
+        passed_items=passed,
+        validation_commands=[
+            ReleaseCandidateAuditCommandResponse(label="Run release audit", command="./scripts/audit_release_candidate.sh", purpose="Checks source structure, docs, runtime-data exclusions, and script syntax."),
+            ReleaseCandidateAuditCommandResponse(label="Frontend build", command="cd frontend && npm ci && npm run build", purpose="Validates React/TypeScript production build."),
+            ReleaseCandidateAuditCommandResponse(label="Backend targeted tests", command="cd backend && pytest -q tests/test_api_inventory.py tests/test_windows_packaging_foundation.py tests/test_tauri_supervisor_bridge.py", purpose="Runs packaging/API safety coverage without requiring the full long test suite."),
+        ],
+        final_handoff_steps=[
+            "Run the audit script and targeted tests.",
+            "Open Overview, Ask, Models, Agent, MCP, and Settings once in light and dark mode.",
+            "Create a clean root-preserving zip that excludes runtime/build data.",
+            "Prepare final demo flow: create/select workspace -> scan -> index -> ask -> report -> model manager -> safe agent plan.",
+        ],
+        safety_rules=[
+            "Frontend never executes shell commands.",
+            "App launch never starts scan, index, rebuild, MCP, agent execution, or model downloads.",
+            "Model downloads remain backend-side approved jobs with allowlisted models only.",
+            "MCP and Agent execution stay disabled until sandbox/allowlist execution exists.",
+            "Desktop shell may start only app-owned local backend processes and must not kill unknown processes by port.",
+        ],
+        known_limitations=[
+            "Tauri shell is scaffolded but not a final signed installer.",
+            "Backend runtime freezing/bundling is planned but not final.",
+            "Windows packaging foundation is documented and scaffolded, not final MSI/NSIS distribution.",
+        ],
+    )
 
 def _read_counts(
     db_path: Path,

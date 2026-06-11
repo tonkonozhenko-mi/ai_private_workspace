@@ -354,6 +354,39 @@ export interface WindowsPackagingFoundation {
 }
 
 
+export interface ReleaseCandidateAuditItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  detail: string;
+  recommended_action: string | null;
+}
+
+export interface ReleaseCandidateAuditCommand {
+  label: string;
+  command: string;
+  purpose: string;
+}
+
+export interface ReleaseCandidateAudit {
+  status: string;
+  title: string;
+  summary: string;
+  release_label: string;
+  readiness_score: number;
+  audit_script: string;
+  source_archive_policy: string[];
+  blocked_items: ReleaseCandidateAuditItem[];
+  review_items: ReleaseCandidateAuditItem[];
+  passed_items: ReleaseCandidateAuditItem[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  final_handoff_steps: string[];
+  safety_rules: string[];
+  known_limitations: string[];
+}
+
+
 export interface FirstLaunchReadiness {
   status: string;
   title: string;
