@@ -256,3 +256,23 @@ Clarified the difference between selecting an embedding/search model and buildin
 - Added `docs/TASK230_SOURCE_RELEASE_STABILIZATION.md` and refreshed publication/source release checklists.
 
 Current status: v0.1 source RC is ready for GitHub publication checks after local validation.
+
+## Task 231 update — final repository publication pass
+
+Task 231 restored and stabilized GitHub-facing repository files so the project is ready to be published as a polished v0.1 source release candidate.
+
+Added or confirmed:
+
+- `README.md`
+- `CONTRIBUTING.md`
+- `SECURITY.md`
+- `.editorconfig`
+- `.gitattributes`
+- `.github/workflows/ci.yml`
+- `.github/workflows/desktop-packaging-checks.yml`
+- `.github/pull_request_template.md`
+- `.github/ISSUE_TEMPLATE/bug_report.yml`
+- `.github/ISSUE_TEMPLATE/feature_request.yml`
+- `docs/TASK231_FINAL_REPOSITORY_PUBLICATION_PASS.md`
+
+The release target remains source-RC quality, not a signed installer. Runtime/build data must remain excluded from GitHub and release archives.

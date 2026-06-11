@@ -263,3 +263,16 @@ Next practical work:
 1. Run one full local UI pass after applying the Task 230 archive.
 2. Push the v0.1 source RC to GitHub when audit/build checks pass.
 3. Continue into v0.2 desktop runtime only after the source RC is stable.
+
+## Task 231 status note
+
+The v0.1 source release candidate now has GitHub publication basics in place: README, contribution/security docs, CI workflows, PR template, issue templates, release audit, source archive script, and repository hygiene docs.
+
+Remaining v1 work is intentionally separate from the source RC:
+
+- frozen backend runtime;
+- signed macOS package;
+- Windows installer;
+- persistent background job storage;
+- real sandboxed Agent + MCP execution;
+- installer/update lifecycle.
