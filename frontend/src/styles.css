@@ -15901,3 +15901,51 @@ select,
     flex-direction: column;
   }
 }
+
+.model-download-execution-capability {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  background: var(--surface-subtle);
+  margin: 18px 0;
+}
+
+.model-download-execution-capability strong {
+  display: block;
+  margin: 4px 0 6px;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.model-download-execution-capability p,
+.model-download-execution-capability small {
+  display: block;
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.model-download-execution-capability small {
+  margin-top: 8px;
+}
+
+.model-install-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.model-install-execution-result {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border-soft));
+}
+
+@media (max-width: 760px) {
+  .model-download-execution-capability {
+    flex-direction: column;
+  }
+}

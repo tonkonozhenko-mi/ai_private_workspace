@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.api.dependencies import (
     command_repository,
+    command_runner,
     embedding_provider,
     index_status_repository,
     llm_provider_factory,
@@ -67,6 +68,12 @@ from app.api.schemas.local_model_install_status_schemas import (
     LocalModelInstallStatusResponse,
     to_local_model_install_status_response,
 )
+from app.api.schemas.local_model_download_execution_schemas import (
+    LocalModelDownloadExecutionCapabilityResponse,
+    LocalModelDownloadExecutionResultResponse,
+    to_local_model_download_execution_capability_response,
+    to_local_model_download_execution_result_response,
+)
 from app.api.schemas.model_switching_schemas import (
     CreateModelSwitchingPlanRequest,
     ModelSwitchingPlanResponse,
@@ -81,11 +88,24 @@ from app.core.domain.local_model_install_status import (
 from app.core.domain.local_model_download_worker_plan import (
     build_local_model_download_worker_plan,
 )
+from app.core.domain.local_model_download_execution import (
+    build_local_model_download_execution_capability,
+)
 from app.core.use_cases.create_local_model_install_draft import (
     CreateLocalModelInstallDraftInput,
     CreateLocalModelInstallDraftUseCase,
     LocalModelInstallDraftValidationError,
     LocalModelInstallDraftWorkspaceNotFoundError,
+)
+from app.core.use_cases.run_local_model_download import (
+    LocalModelDownloadExecutionDisabledError,
+    RunLocalModelDownloadInput,
+    RunLocalModelDownloadUseCase,
+)
+from app.core.use_cases.command_errors import (
+    CommandInvalidStatusError,
+    CommandNotFoundError,
+    CommandWorkspaceNotFoundError,
 )
 from app.core.use_cases.create_model_switching_plan import (
     CreateModelSwitchingPlanInput,
@@ -229,6 +249,54 @@ def get_local_model_download_worker_plan() -> LocalModelDownloadWorkerPlanRespon
     plan = build_local_model_download_worker_plan()
     return to_local_model_download_worker_plan_response(plan)
 
+
+
+
+
+@router.get(
+    "/local-download-execution-capability",
+    response_model=LocalModelDownloadExecutionCapabilityResponse,
+)
+def get_local_model_download_execution_capability() -> LocalModelDownloadExecutionCapabilityResponse:
+    settings = get_settings()
+    capability = build_local_model_download_execution_capability(
+        execution_enabled=settings.model_download_execution_enabled,
+        command_runner=settings.command_runner,
+    )
+    return to_local_model_download_execution_capability_response(capability)
+
+
+@router.post(
+    "/local-install-drafts/{command_id}/run",
+    response_model=LocalModelDownloadExecutionResultResponse,
+)
+def run_local_model_install_draft(command_id: str) -> LocalModelDownloadExecutionResultResponse:
+    settings = get_settings()
+    try:
+        result = RunLocalModelDownloadUseCase(
+            command_repository=command_repository,
+            command_runner=command_runner,
+            workspace_repository=workspace_repository,
+            model_catalog_registry=model_catalog_registry,
+            timeline_repository=timeline_repository,
+        ).execute(
+            RunLocalModelDownloadInput(
+                command_id=command_id,
+                execution_enabled=settings.model_download_execution_enabled,
+                command_runner_name=settings.command_runner,
+            )
+        )
+    except CommandNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except (
+        LocalModelDownloadExecutionDisabledError,
+        CommandInvalidStatusError,
+    ) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except CommandWorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    return to_local_model_download_execution_result_response(result)
 
 
 @router.post(

@@ -74,6 +74,8 @@ import type {
   LocalModelInstallGuide,
   LocalModelInstallStatus,
   LocalModelDownloadWorkerPlan,
+  LocalModelDownloadExecutionCapability,
+  LocalModelDownloadExecutionResult,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -1059,5 +1061,19 @@ export function createLocalModelInstallDraft(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(request),
+  });
+}
+
+export function getLocalModelDownloadExecutionCapability(): Promise<LocalModelDownloadExecutionCapability> {
+  return getJson<LocalModelDownloadExecutionCapability>("/models/local-download-execution-capability");
+}
+
+export function runLocalModelInstallDraft(commandId: string): Promise<LocalModelDownloadExecutionResult> {
+  return requestJson<LocalModelDownloadExecutionResult>(`/models/local-install-drafts/${commandId}/run`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
   });
 }

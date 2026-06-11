@@ -237,3 +237,15 @@ models, and commands. This document provides the finer product-oriented grouping
   - Read-only Ollama model detection via `/api/tags`.
   - Returns recommended model status: `installed`, `missing`, or `unknown`.
   - Does not pull, delete, rebuild, execute MCP tools, or run frontend shell commands.
+
+## Task 206 — approved model download execution foundation
+
+- `GET /models/local-download-execution-capability`
+  - Returns whether backend model download execution is enabled for the current runtime.
+  - Disabled by default unless the trusted local desktop runtime sets `MODEL_DOWNLOAD_EXECUTION_ENABLED=true` and `COMMAND_RUNNER=local`.
+  - Documents the safety requirements before any executable model download flow is shown.
+
+- `POST /models/local-install-drafts/{command_id}/run`
+  - Runs one approved model download draft through the backend worker only when execution is explicitly enabled.
+  - Accepts only exact `ollama pull <catalog-model-name>` commands generated from the local model catalog.
+  - Does not allow arbitrary shell text, frontend shell execution, MCP execution, scan/index/rebuild, or automatic embedding reindexing.

@@ -1399,3 +1399,26 @@ export interface LocalModelInstallDraft {
   next_steps: string[];
   command_proposal: CommandProposal;
 }
+
+export interface LocalModelDownloadExecutionCapability {
+  title: string;
+  status: string;
+  execution_enabled: boolean;
+  execution_mode: string;
+  safety_summary: string;
+  requirements: string[];
+  disabled_reason: string | null;
+}
+
+export interface LocalModelDownloadExecutionResult {
+  command_id: string;
+  workspace_id: string;
+  provider: string;
+  model: string;
+  display_name: string;
+  status: string;
+  execution_status: string;
+  safety_summary: string;
+  command_proposal: CommandProposal;
+  next_steps: string[];
+}
