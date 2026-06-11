@@ -52,6 +52,7 @@ import type {
   TauriSupervisorBridge,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
+  V01Handoff,
   FirstLaunchReadiness,
   ProductionReadiness,
   AgentCapabilityCatalog,
@@ -198,6 +199,10 @@ export function getWindowsPackagingFoundation(): Promise<WindowsPackagingFoundat
 
 export function getReleaseCandidateAudit(): Promise<ReleaseCandidateAudit> {
   return getJson<ReleaseCandidateAudit>("/runtime/release-candidate-audit");
+}
+
+export function getV01Handoff(): Promise<V01Handoff> {
+  return getJson<V01Handoff>("/runtime/v0.1-handoff");
 }
 
 export function getFirstLaunchReadiness(): Promise<FirstLaunchReadiness> {

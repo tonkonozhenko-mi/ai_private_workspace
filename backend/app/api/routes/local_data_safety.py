@@ -40,6 +40,9 @@ from app.api.schemas.local_data_safety_schemas import (
     ReleaseCandidateAuditCommandResponse,
     ReleaseCandidateAuditItemResponse,
     ReleaseCandidateAuditResponse,
+    V01DemoStepResponse,
+    V01HandoffResponse,
+    V01RepositoryFileResponse,
     FirstLaunchChecklistItemResponse,
     FirstLaunchReadinessResponse,
     DatabaseBackupResponse,
@@ -1643,6 +1646,75 @@ def get_release_candidate_audit() -> ReleaseCandidateAuditResponse:
             "Windows packaging foundation is documented and scaffolded, not final MSI/NSIS distribution.",
         ],
     )
+
+
+@router.get("/v0.1-handoff", response_model=V01HandoffResponse)
+def get_v01_handoff() -> V01HandoffResponse:
+    return V01HandoffResponse(
+        status="release-candidate",
+        title="AI Private Workspace v0.1 handoff",
+        release_label="v0.1 local-first release candidate",
+        summary="Final demo and GitHub handoff guide for the local-first AI Private Workspace MVP.",
+        github_ready=True,
+        demo_story="A private desktop-like AI workspace that helps a user onboard to a local project: create workspace, scan files, build local context, ask questions, generate reports, manage local models, and prepare safe agent plans without uploading project data.",
+        demo_steps=[
+            V01DemoStepResponse(id="open", title="Open the app", summary="Start the local workspace with the current launcher or packaged app foundation.", expected_result="Backend health is ready and the UI opens without starting scans or model downloads.", ui_location="Desktop app / browser"),
+            V01DemoStepResponse(id="workspace", title="Create or select workspace", summary="Choose a local project folder and assistant mode.", expected_result="Workspace dashboard shows the next safe action.", ui_location="Overview"),
+            V01DemoStepResponse(id="scan", title="Scan project", summary="Run explicit user-click scan to detect files and skills.", expected_result="Detected technologies and project summary appear.", ui_location="Overview"),
+            V01DemoStepResponse(id="index", title="Build search context", summary="Index selected files only after explicit action.", expected_result="Ask can use retrieved local context instead of guessing from skills alone.", ui_location="Overview / Ask"),
+            V01DemoStepResponse(id="ask", title="Ask about the project", summary="Ask a practical onboarding question about the local codebase.", expected_result="Answer includes local context and does not claim facts without retrieved sources.", ui_location="Ask"),
+            V01DemoStepResponse(id="report", title="Generate report", summary="Create a project overview or documentation report.", expected_result="Report is saved locally and can be reviewed later.", ui_location="Reports"),
+            V01DemoStepResponse(id="models", title="Check local models", summary="Verify installed Ollama models and use safe download jobs only if explicitly enabled.", expected_result="User understands LLM vs embedding model and installed/missing status.", ui_location="Models"),
+            V01DemoStepResponse(id="agent", title="Create safe agent plan", summary="Draft an Agent/MCP workflow plan without automatic execution.", expected_result="The plan maps possible tools and approvals, but execution remains manual/sandbox future.", ui_location="Agent / MCP"),
+        ],
+        repository_highlights=[
+            "Local-first architecture with backend clean architecture and frontend-only API calls.",
+            "Root-preserving repository layout ready for GitHub: backend/, frontend/, docs/, scripts/.",
+            "Safety-first model manager with backend-owned jobs, allowlist, history, and cancel-safe semantics.",
+            "Desktop packaging foundation for macOS and Windows with Tauri-first direction.",
+            "Calm Apple-style UX direction with beginner-friendly flows and advanced details behind disclosure sections.",
+        ],
+        important_files=[
+            V01RepositoryFileResponse(path="README.md", purpose="GitHub landing page and quick start."),
+            V01RepositoryFileResponse(path="docs/START_HERE.md", purpose="First entry point for running and understanding the project."),
+            V01RepositoryFileResponse(path="docs/V01_DEMO_HANDOFF.md", purpose="Final demo scenario and handoff guide."),
+            V01RepositoryFileResponse(path="docs/V01_RELEASE_NOTES.md", purpose="Release notes for the v0.1 candidate."),
+            V01RepositoryFileResponse(path="docs/ROADMAP.md", purpose="Current roadmap and remaining packaging work."),
+            V01RepositoryFileResponse(path="docs/RELEASE_CANDIDATE_AUDIT.md", purpose="Release audit and archive policy."),
+            V01RepositoryFileResponse(path="scripts/audit_release_candidate.sh", purpose="Local source tree release audit."),
+        ],
+        validation_commands=[
+            ReleaseCandidateAuditCommandResponse(label="Release audit", command="./scripts/audit_release_candidate.sh", purpose="Checks source layout, docs, safety boundaries, and no-runtime-data policy."),
+            ReleaseCandidateAuditCommandResponse(label="Backend targeted tests", command="cd backend && pytest -q tests/test_v01_handoff.py tests/test_release_candidate_audit.py tests/test_api_inventory.py", purpose="Validates v0.1 handoff and release audit API coverage."),
+            ReleaseCandidateAuditCommandResponse(label="Frontend production build", command="cd frontend && npm ci && npm run build", purpose="Validates UI build before GitHub/release handoff."),
+        ],
+        release_notes=[
+            "v0.1 is a local-first MVP release candidate, not a signed commercial installer yet.",
+            "Core workspace flow is available: onboarding, scan, indexing, Ask, reports, conversations, model manager, Agent/MCP planning.",
+            "macOS and Windows packaging foundations are present; final signed installers remain future work.",
+            "All risky actions remain explicit and backend-owned where execution exists.",
+        ],
+        known_limitations=[
+            "Tauri shell is scaffolded but backend process startup from Tauri is not final production code.",
+            "Backend runtime freezing/bundling is planned but not final.",
+            "MCP/Agent execution remains planning/manual tracking only.",
+            "The current release archive is source handoff, not a notarized macOS app or Windows MSI.",
+        ],
+        next_after_v01=[
+            "Finalize Tauri backend supervisor execution with app-owned packaged backend runtime.",
+            "Produce signed macOS app package and then Windows installer.",
+            "Add sandboxed Agent/MCP execution only after strict allowlist and audit logging are ready.",
+            "Continue final UI QA with screenshots from real light/dark runs.",
+        ],
+        safety_rules=[
+            "Frontend never executes shell commands.",
+            "App startup never triggers scan, index, rebuild, MCP, agent execution, or model downloads.",
+            "Model download execution is disabled by default and requires backend opt-in plus allowlist validation.",
+            "Agent and MCP are planning/readiness workflows until sandboxed execution exists.",
+            "Runtime data and build artifacts are excluded from source release archives.",
+        ],
+    )
+
 
 def _read_counts(
     db_path: Path,

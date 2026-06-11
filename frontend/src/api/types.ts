@@ -387,6 +387,37 @@ export interface ReleaseCandidateAudit {
 }
 
 
+export interface V01DemoStep {
+  id: string;
+  title: string;
+  summary: string;
+  expected_result: string;
+  ui_location: string;
+}
+
+export interface V01RepositoryFile {
+  path: string;
+  purpose: string;
+}
+
+export interface V01Handoff {
+  status: string;
+  title: string;
+  release_label: string;
+  summary: string;
+  github_ready: boolean;
+  demo_story: string;
+  demo_steps: V01DemoStep[];
+  repository_highlights: string[];
+  important_files: V01RepositoryFile[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  release_notes: string[];
+  known_limitations: string[];
+  next_after_v01: string[];
+  safety_rules: string[];
+}
+
+
 export interface FirstLaunchReadiness {
   status: string;
   title: string;

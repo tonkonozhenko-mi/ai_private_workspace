@@ -386,6 +386,37 @@ class ReleaseCandidateAuditResponse(BaseModel):
     known_limitations: list[str]
 
 
+
+
+class V01DemoStepResponse(BaseModel):
+    id: str
+    title: str
+    summary: str
+    expected_result: str
+    ui_location: str
+
+
+class V01RepositoryFileResponse(BaseModel):
+    path: str
+    purpose: str
+
+
+class V01HandoffResponse(BaseModel):
+    status: str
+    title: str
+    release_label: str
+    summary: str
+    github_ready: bool
+    demo_story: str
+    demo_steps: list[V01DemoStepResponse]
+    repository_highlights: list[str]
+    important_files: list[V01RepositoryFileResponse]
+    validation_commands: list[ReleaseCandidateAuditCommandResponse]
+    release_notes: list[str]
+    known_limitations: list[str]
+    next_after_v01: list[str]
+    safety_rules: list[str]
+
 class DatabaseBackupResponse(BaseModel):
     filename: str
     path: str
