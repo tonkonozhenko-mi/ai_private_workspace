@@ -21,6 +21,9 @@ class LocalModelDownloadJob:
     stdout_preview: str | None
     stderr_preview: str | None
     exit_code: int | None
+    cancel_requested_at: str | None
+    cancellable: bool
+    cancellation_summary: str
     safety_summary: str
     next_steps: list[str]
 
@@ -53,6 +56,12 @@ def build_queued_model_download_job(
         stdout_preview=None,
         stderr_preview=None,
         exit_code=None,
+        cancel_requested_at=None,
+        cancellable=True,
+        cancellation_summary=(
+            "Queued downloads can be cancelled before the worker starts. Running Ollama pulls are not killed blindly; "
+            "a cancel request is recorded and the worker finishes safely."
+        ),
         safety_summary=(
             "The job is owned by the backend model download worker. The frontend only requests "
             "status and never executes shell commands."

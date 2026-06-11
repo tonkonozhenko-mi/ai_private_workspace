@@ -31,6 +31,10 @@ class LocalModelDownloadJobNotFoundError(Exception):
     pass
 
 
+class LocalModelDownloadJobNotCancellableError(Exception):
+    pass
+
+
 class RunLocalModelDownloadJobUseCase:
     def __init__(
         self,
@@ -134,6 +138,62 @@ class RunLocalModelDownloadJobUseCase:
             raise LocalModelDownloadJobNotFoundError("Model download job not found")
         return job
 
+    def list(self, workspace_id: str | None = None) -> list[LocalModelDownloadJob]:
+        return self.job_repository.list(workspace_id=workspace_id)
+
+    def request_cancel(self, job_id: str) -> LocalModelDownloadJob:
+        job = self.job_repository.get(job_id)
+        if job is None:
+            raise LocalModelDownloadJobNotFoundError("Model download job not found")
+
+        if job.status in {"succeeded", "failed", "cancelled"}:
+            raise LocalModelDownloadJobNotCancellableError("Finished model download jobs cannot be cancelled")
+
+        now = datetime.now(UTC).isoformat()
+        if job.status == "queued":
+            cancelled_command = replace(
+                job.command_proposal,
+                status=CommandStatus.REJECTED.value,
+                policy_allowed=False,
+                policy_mode="model_download_cancelled_before_start",
+                policy_reason="The user cancelled the queued model download before execution started.",
+            )
+            self.command_repository.update(cancelled_command)
+            return self.job_repository.update(
+                replace(
+                    job,
+                    status="cancelled",
+                    progress_percent=100,
+                    progress_message="Download cancelled before backend execution started.",
+                    finished_at=now,
+                    cancel_requested_at=now,
+                    cancellable=False,
+                    command_proposal=cancelled_command,
+                    cancellation_summary="Cancelled safely while queued. No Ollama pull command was executed.",
+                    next_steps=["Choose another model if needed.", "Create a new download draft when ready."],
+                )
+            )
+
+        return self.job_repository.update(
+            replace(
+                job,
+                cancel_requested_at=job.cancel_requested_at or now,
+                cancellable=False,
+                progress_message=(
+                    "Cancel requested. The backend will not kill the Ollama process blindly; "
+                    "the current pull will finish or fail and then record the final status."
+                ),
+                cancellation_summary=(
+                    "Cancel was requested after the download had started. For safety this runtime records the request "
+                    "but does not force-kill the model pull process."
+                ),
+                next_steps=[
+                    "Wait for the safe final status.",
+                    "Re-check installed models after the job finishes.",
+                ],
+            )
+        )
+
     def _run_background_job(
         self,
         job_id: str,
@@ -146,6 +206,9 @@ class RunLocalModelDownloadJobUseCase:
         if job is None or proposal is None:
             return
 
+        if job.status == "cancelled":
+            return
+
         running_job = self.job_repository.update(
             replace(
                 job,
@@ -153,6 +216,7 @@ class RunLocalModelDownloadJobUseCase:
                 progress_percent=25,
                 progress_message=f"Downloading {model.display_name} with backend-controlled Ollama worker…",
                 started_at=datetime.now(UTC).isoformat(),
+                cancellable=True,
                 command_proposal=proposal,
             )
         )
@@ -192,13 +256,20 @@ class RunLocalModelDownloadJobUseCase:
             finished_status = "failed"
             progress_message = f"{model.display_name} download failed before completion. Review backend output."
 
+        latest_job = self.job_repository.get(job_id) or running_job
+        cancellation_tail = (
+            " Cancel was requested during execution; the worker waited for the safe final result."
+            if latest_job.cancel_requested_at
+            else ""
+        )
         finished_job = self.job_repository.update(
             replace(
-                running_job,
+                latest_job,
                 status=finished_status,
                 progress_percent=100,
-                progress_message=progress_message,
+                progress_message=progress_message + cancellation_tail,
                 finished_at=datetime.now(UTC).isoformat(),
+                cancellable=False,
                 command_proposal=updated_command,
                 stdout_preview=_preview(updated_command.stdout),
                 stderr_preview=_preview(updated_command.stderr),

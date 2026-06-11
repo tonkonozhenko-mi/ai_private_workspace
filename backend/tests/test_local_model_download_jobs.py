@@ -100,3 +100,21 @@ def _create_workspace(tmp_path):
     )
     assert response.status_code == 201
     return response.json()
+
+
+def test_model_download_jobs_can_be_listed_by_workspace(tmp_path) -> None:
+    workspace = _create_workspace(tmp_path)
+    response = client.get(f"/models/local-download-jobs?workspace_id={workspace['id']}")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "jobs" in body
+    assert "summary" in body
+    assert body["count"] >= 0
+
+
+def test_model_download_job_cancel_rejects_unknown_job() -> None:
+    response = client.post("/models/local-download-jobs/missing-job/cancel")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Model download job not found"

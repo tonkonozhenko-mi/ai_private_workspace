@@ -21,8 +21,18 @@ class LocalModelDownloadJobResponse(BaseModel):
     stdout_preview: str | None
     stderr_preview: str | None
     exit_code: int | None
+    cancel_requested_at: str | None
+    cancellable: bool
+    cancellation_summary: str
     safety_summary: str
     next_steps: list[str]
+
+
+class LocalModelDownloadJobListResponse(BaseModel):
+    jobs: list[LocalModelDownloadJobResponse]
+    count: int
+    running_count: int
+    summary: str
 
 
 def to_local_model_download_job_response(job: LocalModelDownloadJob) -> LocalModelDownloadJobResponse:
@@ -43,6 +53,26 @@ def to_local_model_download_job_response(job: LocalModelDownloadJob) -> LocalMod
         stdout_preview=job.stdout_preview,
         stderr_preview=job.stderr_preview,
         exit_code=job.exit_code,
+        cancel_requested_at=job.cancel_requested_at,
+        cancellable=job.cancellable,
+        cancellation_summary=job.cancellation_summary,
         safety_summary=job.safety_summary,
         next_steps=job.next_steps,
+    )
+
+
+def to_local_model_download_job_list_response(
+    jobs: list[LocalModelDownloadJob],
+) -> LocalModelDownloadJobListResponse:
+    responses = [to_local_model_download_job_response(job) for job in jobs]
+    running_count = len([job for job in jobs if job.status in {"queued", "running"}])
+    return LocalModelDownloadJobListResponse(
+        jobs=responses,
+        count=len(responses),
+        running_count=running_count,
+        summary=(
+            "No local model download jobs recorded yet."
+            if not responses
+            else f"{len(responses)} local model download job(s), {running_count} active."
+        ),
     )

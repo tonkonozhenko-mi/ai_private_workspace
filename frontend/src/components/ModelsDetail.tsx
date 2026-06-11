@@ -19,6 +19,8 @@ import {
   getLocalModelDownloadExecutionCapability,
   startLocalModelDownloadJob,
   getLocalModelDownloadJob,
+  listLocalModelDownloadJobs,
+  cancelLocalModelDownloadJob,
   getWorkspaceMCPToolInventory,
   listWorkspaceMCPConfigs,
   previewWorkspaceMCPApproval,
@@ -60,6 +62,7 @@ import type {
   LocalModelDownloadWorkerPlan,
   LocalModelDownloadExecutionCapability,
   LocalModelDownloadJob,
+  LocalModelDownloadJobList,
   LocalModelInstallOption,
   ModelExperimentPlan,
   ModelExperimentRating,
@@ -511,8 +514,11 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   const [draftError, setDraftError] = useState<string | null>(null);
   const [draftingKey, setDraftingKey] = useState<string | null>(null);
   const [downloadJob, setDownloadJob] = useState<LocalModelDownloadJob | null>(null);
+  const [jobList, setJobList] = useState<LocalModelDownloadJobList | null>(null);
   const [runningDraft, setRunningDraft] = useState(false);
   const [refreshingJob, setRefreshingJob] = useState(false);
+  const [refreshingJobs, setRefreshingJobs] = useState(false);
+  const [cancellingJobId, setCancellingJobId] = useState<string | null>(null);
   const [refreshingInstallStatus, setRefreshingInstallStatus] = useState(false);
 
   useEffect(() => {
@@ -523,13 +529,15 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
       getLocalModelInstallStatus(),
       getLocalModelDownloadWorkerPlan(),
       getLocalModelDownloadExecutionCapability(),
+      listLocalModelDownloadJobs(workspaceId),
     ])
-      .then(([installGuide, installedStatus, downloadWorkerPlan, downloadCapability]) => {
+      .then(([installGuide, installedStatus, downloadWorkerPlan, downloadCapability, downloadJobs]) => {
         if (!cancelled) {
           setGuide(installGuide);
           setInstallStatus(installedStatus);
           setWorkerPlan(downloadWorkerPlan);
           setExecutionCapability(downloadCapability);
+          setJobList(downloadJobs);
           setError(null);
         }
       })
@@ -546,7 +554,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [workspaceId]);
 
   if (loading) {
     return (
@@ -579,6 +587,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
       });
       setDraft(result);
       setDownloadJob(null);
+      void refreshDownloadJobs();
     } catch (installDraftError) {
       setDraftError(errorMessage(installDraftError));
     } finally {
@@ -597,6 +606,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
     try {
       const job = await startLocalModelDownloadJob(draft.command_proposal.id);
       setDownloadJob(job);
+      void refreshDownloadJobs();
       if (job.status === "succeeded") {
         void refreshInstallStatus();
       }
@@ -616,6 +626,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
     try {
       const job = await getLocalModelDownloadJob(downloadJob.id);
       setDownloadJob(job);
+      void refreshDownloadJobs();
       if (job.status === "succeeded") {
         void refreshInstallStatus();
       }
@@ -623,6 +634,35 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
       setDraftError(errorMessage(downloadError));
     } finally {
       setRefreshingJob(false);
+    }
+  };
+
+
+  const refreshDownloadJobs = async () => {
+    setRefreshingJobs(true);
+    try {
+      const jobs = await listLocalModelDownloadJobs(workspaceId);
+      setJobList(jobs);
+    } catch (downloadJobsError) {
+      setDraftError(errorMessage(downloadJobsError));
+    } finally {
+      setRefreshingJobs(false);
+    }
+  };
+
+  const requestCancelJob = async (jobId: string) => {
+    setCancellingJobId(jobId);
+    setDraftError(null);
+    try {
+      const cancelled = await cancelLocalModelDownloadJob(jobId);
+      if (downloadJob?.id === jobId) {
+        setDownloadJob(cancelled);
+      }
+      await refreshDownloadJobs();
+    } catch (cancelError) {
+      setDraftError(errorMessage(cancelError));
+    } finally {
+      setCancellingJobId(null);
     }
   };
 
@@ -744,6 +784,17 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
           isRefreshing={refreshingJob}
           onRefresh={() => void refreshDownloadJob()}
           onRefreshInstalled={() => void refreshInstallStatus()}
+          onCancel={() => void requestCancelJob(downloadJob.id)}
+          isCancelling={cancellingJobId === downloadJob.id}
+        />
+      ) : null}
+      {jobList ? (
+        <ModelDownloadJobsPanel
+          jobs={jobList}
+          isRefreshing={refreshingJobs}
+          cancellingJobId={cancellingJobId}
+          onRefresh={() => void refreshDownloadJobs()}
+          onCancel={(jobId) => void requestCancelJob(jobId)}
         />
       ) : null}
       {workerPlan ? <ModelDownloadWorkerPlanPanel plan={workerPlan} /> : null}
@@ -766,11 +817,15 @@ function ModelDownloadJobStatusCard({
   isRefreshing,
   onRefresh,
   onRefreshInstalled,
+  onCancel,
+  isCancelling,
 }: {
   job: LocalModelDownloadJob;
   isRefreshing: boolean;
   onRefresh: () => void;
   onRefreshInstalled: () => void;
+  onCancel: () => void;
+  isCancelling: boolean;
 }) {
   const isFinished = job.status === "succeeded" || job.status === "failed";
   const friendlyStatus = getFriendlyDownloadJobStatus(job);
@@ -792,6 +847,12 @@ function ModelDownloadJobStatusCard({
         <span>{job.display_name}</span>
         <span>{job.progress_percent}%</span>
       </div>
+      {job.cancel_requested_at ? (
+        <div className="model-download-cancel-note">
+          <strong>Cancel requested safely.</strong>
+          <p>{job.cancellation_summary}</p>
+        </div>
+      ) : null}
       {job.status === "succeeded" ? (
         <div className="model-download-success-note">
           <strong>Model download finished.</strong>
@@ -813,6 +874,16 @@ function ModelDownloadJobStatusCard({
         >
           {isRefreshing ? "Refreshing…" : isFinished ? "Refresh job" : "Refresh status"}
         </button>
+        {job.cancellable && (job.status === "queued" || job.status === "running") ? (
+          <button
+            className="secondary-button model-install-draft-button"
+            type="button"
+            disabled={isCancelling}
+            onClick={onCancel}
+          >
+            {isCancelling ? "Requesting…" : job.status === "queued" ? "Cancel download" : "Request safe cancel"}
+          </button>
+        ) : null}
         {job.status === "succeeded" ? (
           <button
             className="primary-button model-install-draft-button"
@@ -827,11 +898,82 @@ function ModelDownloadJobStatusCard({
   );
 }
 
+
+function ModelDownloadJobsPanel({
+  jobs,
+  isRefreshing,
+  cancellingJobId,
+  onRefresh,
+  onCancel,
+}: {
+  jobs: LocalModelDownloadJobList;
+  isRefreshing: boolean;
+  cancellingJobId: string | null;
+  onRefresh: () => void;
+  onCancel: (jobId: string) => void;
+}) {
+  const visibleJobs = jobs.jobs.slice(0, 5);
+
+  return (
+    <details className="model-download-history" open={jobs.running_count > 0}>
+      <summary>
+        <div>
+          <span className="eyebrow">Download history</span>
+          <strong>{jobs.running_count > 0 ? "Active model downloads" : "Recent model downloads"}</strong>
+          <p>{jobs.summary}</p>
+        </div>
+      </summary>
+      <div className="model-download-history-body">
+        <div className="model-download-history-actions">
+          <button className="secondary-button" type="button" disabled={isRefreshing} onClick={onRefresh}>
+            {isRefreshing ? "Refreshing…" : "Refresh downloads"}
+          </button>
+        </div>
+        {visibleJobs.length === 0 ? (
+          <p className="panel-intro">No download jobs yet. Create a draft and start a backend job when you are ready.</p>
+        ) : (
+          <div className="model-download-history-list">
+            {visibleJobs.map((job) => (
+              <article className="model-download-history-row" key={job.id}>
+                <div>
+                  <strong>{job.display_name}</strong>
+                  <p>{getFriendlyDownloadJobStatus(job).message}</p>
+                  {job.cancel_requested_at ? <small>{job.cancellation_summary}</small> : null}
+                </div>
+                <div className="model-download-history-row-actions">
+                  <StatusBadge label={getFriendlyDownloadJobStatus(job).badge} />
+                  {job.cancellable && (job.status === "queued" || job.status === "running") ? (
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      disabled={cancellingJobId === job.id}
+                      onClick={() => onCancel(job.id)}
+                    >
+                      {cancellingJobId === job.id ? "Requesting…" : "Cancel"}
+                    </button>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}
+
 function getFriendlyDownloadJobStatus(job: LocalModelDownloadJob): {
   title: string;
   message: string;
   badge: string;
 } {
+  if (job.status === "cancelled") {
+    return {
+      title: "Download cancelled",
+      message: job.progress_message || "The download was cancelled before execution.",
+      badge: "Cancelled",
+    };
+  }
   if (job.status === "succeeded") {
     return {
       title: "Download complete",

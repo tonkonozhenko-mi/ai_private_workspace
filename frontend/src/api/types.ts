@@ -1417,8 +1417,18 @@ export interface LocalModelDownloadJob {
   stdout_preview: string | null;
   stderr_preview: string | null;
   exit_code: number | null;
+  cancel_requested_at: string | null;
+  cancellable: boolean;
+  cancellation_summary: string;
   safety_summary: string;
   next_steps: string[];
+}
+
+export interface LocalModelDownloadJobList {
+  jobs: LocalModelDownloadJob[];
+  count: number;
+  running_count: number;
+  summary: string;
 }
 
 export interface LocalModelDownloadExecutionCapability {

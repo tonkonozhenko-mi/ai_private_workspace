@@ -77,6 +77,7 @@ import type {
   LocalModelDownloadExecutionCapability,
   LocalModelDownloadExecutionResult,
   LocalModelDownloadJob,
+  LocalModelDownloadJobList,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -1082,6 +1083,21 @@ export function startLocalModelDownloadJob(commandId: string): Promise<LocalMode
 
 export function getLocalModelDownloadJob(jobId: string): Promise<LocalModelDownloadJob> {
   return getJson<LocalModelDownloadJob>(`/models/local-download-jobs/${jobId}`);
+}
+
+export function listLocalModelDownloadJobs(workspaceId?: string): Promise<LocalModelDownloadJobList> {
+  const query = workspaceId ? `?workspace_id=${encodeURIComponent(workspaceId)}` : "";
+  return getJson<LocalModelDownloadJobList>(`/models/local-download-jobs${query}`);
+}
+
+export function cancelLocalModelDownloadJob(jobId: string): Promise<LocalModelDownloadJob> {
+  return requestJson<LocalModelDownloadJob>(`/models/local-download-jobs/${jobId}/cancel`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+  });
 }
 
 export function runLocalModelInstallDraft(commandId: string): Promise<LocalModelDownloadExecutionResult> {

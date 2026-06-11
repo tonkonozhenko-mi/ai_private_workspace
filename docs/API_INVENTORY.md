@@ -259,3 +259,11 @@ Added model download job foundation endpoints: `POST /models/local-install-draft
 
 - `POST /models/local-install-drafts/{command_id}/jobs` starts a backend-owned background model download job and returns `202 Accepted` quickly.
 - `GET /models/local-download-jobs/{job_id}` reads queued/running/succeeded/failed status for polling UI.
+
+## Task 210 — model download jobs history and cancel-safe semantics
+
+- `GET /models/local-download-jobs` — list local model download jobs, newest first.
+- `GET /models/local-download-jobs?workspace_id=<workspace-id>` — list download jobs for one workspace.
+- `POST /models/local-download-jobs/{job_id}/cancel` — request cancel using safe semantics.
+
+Cancel semantics are intentionally conservative: queued jobs can become `cancelled`; running jobs record a cancel request and finish safely instead of force-killing Ollama.

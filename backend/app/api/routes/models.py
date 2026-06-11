@@ -70,7 +70,9 @@ from app.api.schemas.local_model_install_status_schemas import (
     to_local_model_install_status_response,
 )
 from app.api.schemas.local_model_download_job_schemas import (
+    LocalModelDownloadJobListResponse,
     LocalModelDownloadJobResponse,
+    to_local_model_download_job_list_response,
     to_local_model_download_job_response,
 )
 from app.api.schemas.local_model_download_execution_schemas import (
@@ -103,6 +105,7 @@ from app.core.use_cases.create_local_model_install_draft import (
     LocalModelInstallDraftWorkspaceNotFoundError,
 )
 from app.core.use_cases.run_local_model_download_job import (
+    LocalModelDownloadJobNotCancellableError,
     LocalModelDownloadJobNotFoundError,
     RunLocalModelDownloadJobUseCase,
 )
@@ -337,6 +340,46 @@ def start_local_model_download_job(command_id: str) -> LocalModelDownloadJobResp
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except CommandWorkspaceNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    return to_local_model_download_job_response(job)
+
+
+
+
+@router.get(
+    "/local-download-jobs",
+    response_model=LocalModelDownloadJobListResponse,
+)
+def list_local_model_download_jobs(workspace_id: str | None = None) -> LocalModelDownloadJobListResponse:
+    jobs = RunLocalModelDownloadJobUseCase(
+        command_repository=command_repository,
+        command_runner=command_runner,
+        workspace_repository=workspace_repository,
+        model_catalog_registry=model_catalog_registry,
+        job_repository=local_model_download_job_repository,
+        timeline_repository=timeline_repository,
+    ).list(workspace_id=workspace_id)
+    return to_local_model_download_job_list_response(jobs)
+
+
+@router.post(
+    "/local-download-jobs/{job_id}/cancel",
+    response_model=LocalModelDownloadJobResponse,
+)
+def cancel_local_model_download_job(job_id: str) -> LocalModelDownloadJobResponse:
+    try:
+        job = RunLocalModelDownloadJobUseCase(
+            command_repository=command_repository,
+            command_runner=command_runner,
+            workspace_repository=workspace_repository,
+            model_catalog_registry=model_catalog_registry,
+            job_repository=local_model_download_job_repository,
+            timeline_repository=timeline_repository,
+        ).request_cancel(job_id)
+    except LocalModelDownloadJobNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except LocalModelDownloadJobNotCancellableError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     return to_local_model_download_job_response(job)
 

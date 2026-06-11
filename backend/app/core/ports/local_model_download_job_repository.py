@@ -12,3 +12,7 @@ class LocalModelDownloadJobRepositoryPort(Protocol):
 
     def update(self, job: LocalModelDownloadJob) -> LocalModelDownloadJob:
         """Persist an updated job."""
+
+
+    def list(self, workspace_id: str | None = None) -> list[LocalModelDownloadJob]:
+        """Return download jobs, newest first. Optionally filter by workspace."""
