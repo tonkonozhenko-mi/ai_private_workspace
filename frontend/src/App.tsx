@@ -31,6 +31,7 @@ import type {
 import { AskWorkspace } from "./components/AskWorkspace";
 import { CreateWorkspacePanel } from "./components/CreateWorkspacePanel";
 import { ModelsDetail } from "./components/ModelsDetail";
+import { RenderCrashBoundary } from "./components/RenderCrashBoundary";
 import { ModelsSummaryCard } from "./components/ModelsSummaryCard";
 import { ReportsPanel } from "./components/ReportsPanel";
 import { ActivityTimeline } from "./components/ActivityTimeline";
@@ -614,15 +615,17 @@ function App() {
                       <ModelsSummaryCard summary={detail.modelsSummary} spacious />
                     </>
                   ) : modelsDetail ? (
-                    <ModelsDetail
-                      workspaceId={detail.dashboard.workspace_id}
-                      hasScan={detail.dashboard.summary.has_scan}
-                      dashboard={modelsDetail.dashboard}
-                      activationGuide={modelsDetail.activationGuide}
-                      onSelectionUpdated={() =>
-                        refreshWorkspaceReadOnlyState(detail.dashboard.workspace_id)
-                      }
-                    />
+                    <RenderCrashBoundary title="Models screen recovered safely">
+                      <ModelsDetail
+                        workspaceId={detail.dashboard.workspace_id}
+                        hasScan={detail.dashboard.summary.has_scan}
+                        dashboard={modelsDetail.dashboard}
+                        activationGuide={modelsDetail.activationGuide}
+                        onSelectionUpdated={() =>
+                          refreshWorkspaceReadOnlyState(detail.dashboard.workspace_id)
+                        }
+                      />
+                    </RenderCrashBoundary>
                   ) : (
                     <ModelsSummaryCard summary={detail.modelsSummary} spacious />
                   )}

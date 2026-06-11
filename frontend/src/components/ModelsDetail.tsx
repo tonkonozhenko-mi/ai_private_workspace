@@ -230,6 +230,8 @@ export function ModelsDetail({
         </div>
       </section>
 
+      <ModelUsageFlowPanel />
+
       <LocalModelInstallPanel workspaceId={workspaceId} />
 
       <details className="panel models-state-panel models-disclosure-panel">
@@ -528,6 +530,46 @@ function DesktopPackagingRealityPanel() {
   );
 }
 
+function ModelUsageFlowPanel() {
+  const steps = [
+    {
+      title: "Choose",
+      text: "Pick the AI answer model and the search context model for this workspace.",
+    },
+    {
+      title: "Download",
+      text: "Use copy-only Ollama commands or the approved backend job flow when trusted execution is enabled.",
+    },
+    {
+      title: "Verify",
+      text: "Refresh installed models so the app can confirm what Ollama can actually run.",
+    },
+    {
+      title: "Use",
+      text: "Ask questions, rebuild context only when the search model changes, and keep every action explicit.",
+    },
+  ];
+
+  return (
+    <section className="panel model-usage-flow-panel">
+      <PanelHeading eyebrow="Model flow" title="From model choice to local answers" />
+      <p className="panel-intro">
+        Models are handled as a clear user flow: choose what you need, download
+        only when you approve it, verify locally, then use it for this workspace.
+      </p>
+      <div className="model-usage-flow-grid">
+        {steps.map((step, index) => (
+          <article key={step.title}>
+            <span>{index + 1}</span>
+            <strong>{step.title}</strong>
+            <p>{step.text}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   const [guide, setGuide] = useState<LocalModelInstallGuide | null>(null);
   const [installStatus, setInstallStatus] =
@@ -738,18 +780,19 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
     return () => window.clearTimeout(timer);
   }, [downloadJob?.id, downloadJob?.status]);
 
-  const activeJobs =
-    jobList?.jobs.filter(
-      (job) => job.status === "queued" || job.status === "running",
-    ) ?? [];
-  const missingRecommended =
-    installStatus?.items.filter(
-      (item) => item.recommended && item.status !== "installed",
-    ) ?? [];
-  const installedRecommendedCount =
-    installStatus?.items.filter(
-      (item) => item.recommended && item.status === "installed",
-    ).length ?? 0;
+  const guideOptions = asArray(guide.options);
+  const installItems = asArray(installStatus?.items);
+  const jobItems = asArray(jobList?.jobs);
+  const activeJobs = jobItems.filter(
+    (job) => job.status === "queued" || job.status === "running",
+  );
+  const recommendedInstallItems = installItems.filter((item) => item.recommended);
+  const missingRecommended = recommendedInstallItems.filter(
+    (item) => item.status !== "installed",
+  );
+  const installedRecommendedCount = recommendedInstallItems.filter(
+    (item) => item.status === "installed",
+  ).length;
   const openDownloads =
     missingRecommended.length > 0 || Boolean(draft) || Boolean(downloadJob);
 
@@ -777,7 +820,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
           <span>Installed</span>
           <strong>
             {installStatus?.runtime_reachable
-              ? `${installedRecommendedCount}/${installStatus.items.filter((item) => item.recommended).length} recommended`
+              ? `${installedRecommendedCount}/${recommendedInstallItems.length} recommended`
               : "Ollama offline"}
           </strong>
           <p>
@@ -883,7 +926,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
           className="model-install-grid"
           aria-label="Recommended local model downloads"
         >
-          {guide.options.map((option) => {
+          {guideOptions.map((option) => {
             const installedItem = installStatus?.items.find(
               (item) =>
                 item.provider === option.provider &&
@@ -1040,11 +1083,11 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
         <details className="model-install-details">
           <summary>Manual install notes</summary>
           <ol>
-            {guide.next_steps.map((step) => (
+            {asArray(guide.next_steps).map((step) => (
               <li key={step}>{step}</li>
             ))}
           </ol>
-          <p>{guide.safety_notes.join(" ")}</p>
+          <p>{asArray(guide.safety_notes).join(" ")}</p>
         </details>
       </details>
     </section>
@@ -1062,7 +1105,7 @@ function getModelManagerStatus(
   if (!installStatus?.runtime_reachable) {
     return "offline";
   }
-  const recommended = installStatus.items.filter((item) => item.recommended);
+  const recommended = asArray(installStatus.items).filter((item) => item.recommended);
   const missing = recommended.filter((item) => item.status !== "installed");
   if (missing.length === 0 && recommended.length > 0) {
     return "ready";
@@ -1194,7 +1237,7 @@ function ModelDownloadJobsPanel({
   onRefresh: () => void;
   onCancel: (jobId: string) => void;
 }) {
-  const visibleJobs = jobs.jobs.slice(0, 5);
+  const visibleJobs = asArray(jobs.jobs).slice(0, 5);
 
   return (
     <details className="model-download-history" open={jobs.running_count > 0}>
@@ -1347,7 +1390,7 @@ function InstalledModelsStatusPanel({
         className="installed-models-grid"
         aria-label="Installed local model status"
       >
-        {status.items.map((item) => (
+        {asArray(status.items).map((item) => (
           <article
             className="installed-model-card"
             key={`${item.provider}-${item.model}`}
@@ -1417,7 +1460,7 @@ function ModelDownloadWorkerPlanPanel({
           className="model-worker-flow"
           aria-label="Future model download worker flow"
         >
-          {plan.user_flow.slice(0, 4).map((step, index) => (
+          {asArray(plan.user_flow).slice(0, 4).map((step, index) => (
             <div key={step}>
               <span>{index + 1}</span>
               <p>{step}</p>
@@ -1425,7 +1468,7 @@ function ModelDownloadWorkerPlanPanel({
           ))}
         </div>
         <div className="model-worker-guardrails">
-          {plan.guardrails.slice(0, 3).map((guardrail) => (
+          {asArray(plan.guardrails).slice(0, 3).map((guardrail) => (
             <article key={guardrail.id}>
               <strong>{guardrail.label}</strong>
               <p>{guardrail.detail}</p>
@@ -1505,7 +1548,7 @@ function FirstLaunchSetupPanel() {
         className="first-launch-flow"
         aria-label="Recommended workspace setup flow"
       >
-        {readiness.recommended_flow.slice(0, 6).map((step, index) => (
+        {asArray(readiness.recommended_flow).slice(0, 6).map((step, index) => (
           <article className="first-launch-flow-step" key={step}>
             <span>{index + 1}</span>
             <strong>{step}</strong>
@@ -1515,7 +1558,7 @@ function FirstLaunchSetupPanel() {
       <details className="first-launch-details">
         <summary>Readiness checks</summary>
         <div className="first-launch-grid">
-          {readiness.checklist.map((item) => (
+          {asArray(readiness.checklist).map((item) => (
             <article className="first-launch-card" key={item.id}>
               <div>
                 <span>{item.title}</span>
@@ -1531,7 +1574,7 @@ function FirstLaunchSetupPanel() {
       <details className="first-launch-details is-secondary">
         <summary>Developer commands</summary>
         <div className="first-launch-command-list">
-          {readiness.copy_commands.map((command) => (
+          {asArray(readiness.copy_commands).map((command) => (
             <div key={command.label}>
               <strong>{command.label}</strong>
               <p>{command.description}</p>
@@ -1576,14 +1619,14 @@ function GuidedModelSetupPanel({
         setError(null);
         setLlmChoice(
           toSetupChoiceValue(
-            result.llm.options[0]?.provider,
-            result.llm.options[0]?.model,
+            asArray(result.llm?.options)[0]?.provider,
+            asArray(result.llm?.options)[0]?.model,
           ),
         );
         setEmbeddingChoice(
           toSetupChoiceValue(
-            result.embedding.options[0]?.provider,
-            result.embedding.options[0]?.model,
+            asArray(result.embedding?.options)[0]?.provider,
+            asArray(result.embedding?.options)[0]?.model,
           ),
         );
       })
@@ -1643,13 +1686,16 @@ function GuidedModelSetupPanel({
     );
   }
 
+  const llmSection = normalizeGuidedModelSection(guide.llm, "llm");
+  const embeddingSection = normalizeGuidedModelSection(guide.embedding, "embedding");
+
   return (
     <section className="panel guided-model-setup-panel">
       <PanelHeading eyebrow="Guided setup" title={guide.title} />
       <p className="panel-intro">{guide.summary}</p>
       <div className="guided-model-grid">
         <GuidedModelSetupControl
-          section={guide.llm}
+          section={llmSection}
           value={llmChoice}
           customValue={customLlm}
           disabled={saving !== null}
@@ -1659,7 +1705,7 @@ function GuidedModelSetupPanel({
           onSave={() => void saveGuidedSelection("llm")}
         />
         <GuidedModelSetupControl
-          section={guide.embedding}
+          section={embeddingSection}
           value={embeddingChoice}
           customValue={customEmbedding}
           disabled={saving !== null}
@@ -1672,9 +1718,9 @@ function GuidedModelSetupPanel({
       <div className="guided-model-note-grid">
         <GuidedModelNotes
           title="Packaging ready"
-          notes={guide.packaging_notes}
+          notes={asArray(guide.packaging_notes)}
         />
-        <GuidedModelNotes title="Safety" notes={guide.safety_notes} />
+        <GuidedModelNotes title="Safety" notes={asArray(guide.safety_notes)} />
       </div>
       {message ? <p className="model-selection-message">{message}</p> : null}
       {error ? <p className="model-selection-error">{error}</p> : null}
@@ -1720,7 +1766,7 @@ function GuidedModelSetupControl({
           disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
         >
-          {section.options.map((option) => (
+          {asArray(section.options).map((option) => (
             <option
               key={`${option.provider}/${option.model}`}
               value={toSetupChoiceValue(option.provider, option.model)}
@@ -1770,7 +1816,7 @@ function GuidedModelNotes({
   return (
     <div className="guided-model-notes">
       <strong>{title}</strong>
-      {notes.map((note) => (
+      {asArray(notes).map((note) => (
         <span key={note}>{note}</span>
       ))}
     </div>
@@ -4427,6 +4473,34 @@ function getModelReindexReason(
   }
 
   return null;
+}
+
+function asArray<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeGuidedModelSection(
+  section: GuidedModelSetupSection | null | undefined,
+  modelType: "llm" | "embedding",
+): GuidedModelSetupSection {
+  if (section) {
+    return {
+      ...section,
+      options: asArray(section.options),
+    };
+  }
+
+  return {
+    model_type: modelType,
+    title: modelType === "llm" ? "AI answer model" : "Search context model",
+    purpose:
+      modelType === "llm"
+        ? "Used to generate answers for this workspace."
+        : "Used to build and search local project context.",
+    recommendation_summary: "Model guidance is temporarily unavailable.",
+    custom_model_hint: "You can still enter a custom Ollama model name.",
+    options: [],
+  };
 }
 
 function PanelHeading({
