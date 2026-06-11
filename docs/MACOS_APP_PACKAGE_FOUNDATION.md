@@ -119,3 +119,8 @@ The final app should replace the temporary shell launcher with a real Tauri shel
 - Runtime data must not be overwritten by generated updates.
 - Model downloads stay backend-side, allowlisted, explicit jobs.
 - MCP/tool execution stays disabled until sandbox/allowlist execution exists.
+
+
+## Task 217 supervisor-wired launcher
+
+The generated launcher now follows the desktop supervisor contract: it checks packaged resources, creates app-owned log/data paths, refuses to kill unknown port owners, starts only the app-owned backend, waits for `/health`, and opens the packaged UI after readiness.

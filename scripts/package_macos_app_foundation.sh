@@ -52,59 +52,123 @@ cat > "$MACOS_DIR/$APP_NAME" <<'LAUNCHER'
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Foundation macOS launcher wired to the desktop supervisor contract.
+# It starts only the app-owned backend, waits for /health, writes readable logs,
+# and refuses to kill unknown processes when the target port is busy.
+
 APP_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 RESOURCES_DIR="$APP_ROOT/Resources"
 APP_DIR="$RESOURCES_DIR/app"
-LOG_DIR="$RESOURCES_DIR/logs"
 BACKEND_DIR="$APP_DIR/backend"
 FRONTEND_DIR="$APP_DIR/frontend"
 BACKEND_HOST="127.0.0.1"
 BACKEND_PORT="${AI_PRIVATE_WORKSPACE_PORT:-8000}"
 BACKEND_URL="http://${BACKEND_HOST}:${BACKEND_PORT}"
+APP_DATA_DIR="${AI_WORKSPACE_APP_DATA_DIR:-$HOME/Library/Application Support/AI Private Workspace}"
+LOG_DIR="$APP_DATA_DIR/logs"
+LAUNCHER_LOG="$LOG_DIR/macos-app-launcher.log"
 BACKEND_LOG="$LOG_DIR/backend.log"
+BACKEND_PID_FILE="$LOG_DIR/backend.pid"
+BACKEND_PID=""
 
 mkdir -p "$LOG_DIR"
 
-if [ ! -d "$BACKEND_DIR" ] || [ ! -d "$FRONTEND_DIR" ]; then
-  echo "AI Private Workspace package is incomplete." | tee "$LOG_DIR/launch-error.log"
-  echo "Expected backend and frontend resources under: $APP_DIR" | tee -a "$LOG_DIR/launch-error.log"
+ts() { date '+%Y-%m-%d %H:%M:%S'; }
+log() { printf '[%s] %s\n' "$(ts)" "$*" | tee -a "$LAUNCHER_LOG"; }
+
+port_busy() {
+  python3 - "$BACKEND_HOST" "$BACKEND_PORT" <<'PYPORT'
+import socket
+import sys
+host = sys.argv[1]
+port = int(sys.argv[2])
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.settimeout(0.3)
+try:
+    sys.exit(0 if s.connect_ex((host, port)) == 0 else 1)
+finally:
+    s.close()
+PYPORT
+}
+
+health_ready() {
+  curl -fsS "$BACKEND_URL/health" >/dev/null 2>&1
+}
+
+open_ui() {
+  if command -v open >/dev/null 2>&1; then
+    open "$FRONTEND_DIR/index.html"
+  else
+    log "Open this file manually: $FRONTEND_DIR/index.html"
+  fi
+}
+
+cleanup_note() {
+  if [[ -n "${BACKEND_PID:-}" ]] && kill -0 "$BACKEND_PID" 2>/dev/null; then
+    log "App-owned backend is running with PID $BACKEND_PID. It will keep serving the UI after launch."
+  fi
+}
+trap cleanup_note EXIT
+
+log "Preparing AI Private Workspace macOS app foundation"
+log "App resources: $APP_DIR"
+log "App data: $APP_DATA_DIR"
+log "Logs: $LOG_DIR"
+log "Backend health: $BACKEND_URL/health"
+
+if [[ ! -d "$BACKEND_DIR" ]]; then
+  log "ERROR: packaged backend is missing: $BACKEND_DIR"
   exit 1
 fi
 
-echo "Starting AI Private Workspace foundation package..." | tee "$LOG_DIR/launcher.log"
-echo "Logs: $LOG_DIR" | tee -a "$LOG_DIR/launcher.log"
-echo "Backend URL: $BACKEND_URL" | tee -a "$LOG_DIR/launcher.log"
-
-if curl -fsS "$BACKEND_URL/health" >/dev/null 2>&1; then
-  echo "Backend already healthy at $BACKEND_URL" | tee -a "$LOG_DIR/launcher.log"
-else
-  echo "Starting packaged backend source with local Python..." | tee -a "$LOG_DIR/launcher.log"
-  (
-    cd "$BACKEND_DIR"
-    export AI_WORKBENCH_DB_PATH="${AI_WORKBENCH_DB_PATH:-$HOME/Library/Application Support/AI Private Workspace/workspace.db}"
-    export CORS_ALLOWED_ORIGINS="http://127.0.0.1:${BACKEND_PORT},http://localhost:${BACKEND_PORT},tauri://localhost"
-    python3 -m uvicorn app.main:app --host "$BACKEND_HOST" --port "$BACKEND_PORT"
-  ) > "$BACKEND_LOG" 2>&1 &
+if [[ ! -f "$FRONTEND_DIR/index.html" ]]; then
+  log "ERROR: packaged frontend is missing: $FRONTEND_DIR/index.html"
+  exit 1
 fi
 
-for _ in {1..40}; do
-  if curl -fsS "$BACKEND_URL/health" >/dev/null 2>&1; then
-    echo "Backend is ready." | tee -a "$LOG_DIR/launcher.log"
-    break
+if health_ready; then
+  log "Backend is already healthy at $BACKEND_URL. Opening UI."
+  open_ui
+  exit 0
+fi
+
+if port_busy; then
+  log "ERROR: $BACKEND_HOST:$BACKEND_PORT is busy, but it is not responding like AI Private Workspace."
+  log "Refusing to kill an unknown process. Close the other app or use AI_PRIVATE_WORKSPACE_PORT to choose a different port."
+  exit 2
+fi
+
+log "Starting app-owned backend on $BACKEND_HOST:$BACKEND_PORT"
+(
+  cd "$BACKEND_DIR"
+  export APP_ENV="desktop"
+  export HOST="$BACKEND_HOST"
+  export PORT="$BACKEND_PORT"
+  export AI_WORKSPACE_APP_DATA_DIR="$APP_DATA_DIR"
+  export AI_WORKBENCH_DB_PATH="${AI_WORKBENCH_DB_PATH:-$APP_DATA_DIR/workspace.db}"
+  export CORS_ALLOWED_ORIGINS="http://127.0.0.1:${BACKEND_PORT},http://localhost:${BACKEND_PORT},tauri://localhost,file://"
+  python3 -m uvicorn app.main:app --host "$BACKEND_HOST" --port "$BACKEND_PORT"
+) >> "$BACKEND_LOG" 2>&1 &
+BACKEND_PID=$!
+printf '%s\n' "$BACKEND_PID" > "$BACKEND_PID_FILE"
+log "Backend PID: $BACKEND_PID"
+
+log "Waiting for backend health"
+for _ in $(seq 1 80); do
+  if health_ready; then
+    log "Backend is ready. Opening packaged UI."
+    open_ui
+    exit 0
+  fi
+  if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+    log "ERROR: backend exited before becoming healthy. Check $BACKEND_LOG"
+    exit 3
   fi
   sleep 0.5
 done
 
-if ! curl -fsS "$BACKEND_URL/health" >/dev/null 2>&1; then
-  echo "Backend did not become ready. Check: $BACKEND_LOG" | tee -a "$LOG_DIR/launch-error.log"
-  exit 1
-fi
-
-if command -v open >/dev/null 2>&1; then
-  open "$FRONTEND_DIR/index.html"
-else
-  echo "Open this file manually: $FRONTEND_DIR/index.html" | tee -a "$LOG_DIR/launcher.log"
-fi
+log "ERROR: backend did not become healthy in time. Check $BACKEND_LOG"
+exit 4
 LAUNCHER
 chmod +x "$MACOS_DIR/$APP_NAME"
 

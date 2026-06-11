@@ -46,6 +46,7 @@ import type {
   DesktopPackagingDesign,
   MacOSAppPackageFoundation,
   DesktopSupervisorContract,
+  MacOSAppSupervisorWiring,
   FirstLaunchReadiness,
   ProductionReadiness,
   AgentCapabilityCatalog,
@@ -168,6 +169,10 @@ export function getMacOSAppPackageFoundation(): Promise<MacOSAppPackageFoundatio
 
 export function getDesktopSupervisorContract(): Promise<DesktopSupervisorContract> {
   return getJson<DesktopSupervisorContract>("/runtime/desktop-supervisor-contract");
+}
+
+export function getMacOSAppSupervisorWiring(): Promise<MacOSAppSupervisorWiring> {
+  return getJson<MacOSAppSupervisorWiring>("/runtime/macos-app-supervisor-wiring");
 }
 
 export function getFirstLaunchReadiness(): Promise<FirstLaunchReadiness> {

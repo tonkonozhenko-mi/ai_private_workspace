@@ -164,3 +164,8 @@ Next larger packaging tasks:
 3. macOS release candidate packaging audit.
 4. Windows package foundation.
 - Task 216 — Desktop supervisor contract: startup states, localhost-only backend lifecycle, logs, safe shutdown, and no kill-by-port behavior. ✅
+
+
+### Task 217 — macOS app wiring to supervisor contract ✅
+
+The macOS `.app` foundation is now wired to the supervisor contract: app-owned backend startup, health polling, safe port behavior, logs, and packaged UI open.

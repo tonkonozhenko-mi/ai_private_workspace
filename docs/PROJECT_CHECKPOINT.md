@@ -157,3 +157,12 @@ Important safety boundaries:
 - The script does not download models, start MCP servers, run agent tools, scan, index, rebuild, or restart user workflows.
 - This is not the final signed Tauri app yet; it is a packaging skeleton and lifecycle contract.
 - Task 216: desktop supervisor contract implemented as a read-only backend endpoint, UI section, and safe development supervisor script.
+
+
+## Task 217 — macOS app wiring to supervisor contract
+
+- Added `/runtime/macos-app-supervisor-wiring`.
+- Wired `scripts/package_macos_app_foundation.sh` launcher to the desktop supervisor lifecycle.
+- Generated `.app` now performs preflight, safe port check, app-owned backend startup, `/health` polling, and packaged UI open.
+- Logs are written outside the `.app` bundle under app data.
+- Frontend still never executes shell, and no scan/index/rebuild/MCP/agent/model download starts on launch.
