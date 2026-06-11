@@ -82,6 +82,7 @@ import type {
   CreateLocalModelInstallDraftRequest,
   LocalModelInstallDraft,
   LocalModelInstallGuide,
+  OllamaModelRecommendationGuide,
   LocalModelInstallStatus,
   LocalModelDownloadWorkerPlan,
   LocalModelDownloadExecutionCapability,
@@ -1093,6 +1094,10 @@ export function getGuidedModelSetup(
 
 export function getLocalModelInstallGuide(): Promise<LocalModelInstallGuide> {
   return getJson<LocalModelInstallGuide>("/models/local-install-guide");
+}
+
+export function getOllamaModelRecommendations(): Promise<OllamaModelRecommendationGuide> {
+  return getJson<OllamaModelRecommendationGuide>("/models/ollama-recommendations");
 }
 
 export function getLocalModelInstallStatus(): Promise<LocalModelInstallStatus> {

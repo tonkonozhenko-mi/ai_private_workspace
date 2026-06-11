@@ -17548,3 +17548,65 @@ details.settings-disclosure {
     grid-template-columns: 1fr;
   }
 }
+
+/* Task 226 — calm Ollama recommendations */
+.model-hardware-panel {
+  display: grid;
+  gap: 20px;
+}
+
+.model-role-grid,
+.model-profile-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.model-role-grid article,
+.model-profile-grid article {
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  background: var(--surface-soft);
+  padding: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.model-role-grid span,
+.model-profile-grid span {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.model-role-grid strong,
+.model-profile-grid strong {
+  color: var(--text-strong);
+  font-size: 1.08rem;
+}
+
+.model-role-grid p,
+.model-profile-grid p,
+.model-role-grid small,
+.model-profile-grid small {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.model-profile-grid article.is-recommended {
+  border-color: var(--accent-soft);
+  background: var(--accent-wash);
+}
+
+.model-safe-list {
+  display: grid;
+  gap: 10px;
+}
+
+.model-safe-list p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+}

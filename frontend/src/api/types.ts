@@ -1616,6 +1616,37 @@ export interface GuidedModelSetupGuide {
 }
 
 
+
+export interface OllamaModelRole {
+  id: string;
+  title: string;
+  model_type: string;
+  default_model: string;
+  purpose: string;
+  why_it_matters: string;
+}
+
+export interface OllamaHardwareProfile {
+  id: string;
+  title: string;
+  summary: string;
+  recommended_llm: string;
+  fallback_llm: string;
+  recommended_embedding: string;
+  notes: string[];
+}
+
+export interface OllamaModelRecommendationGuide {
+  title: string;
+  summary: string;
+  default_profile_id: string;
+  roles: OllamaModelRole[];
+  profiles: OllamaHardwareProfile[];
+  catalog_models: LocalModelDefinition[];
+  safety_notes: string[];
+  next_steps: string[];
+}
+
 export interface LocalModelInstallOption {
   provider: string;
   model: string;

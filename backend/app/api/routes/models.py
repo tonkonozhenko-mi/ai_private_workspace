@@ -56,6 +56,10 @@ from app.api.schemas.local_model_install_guide_schemas import (
     LocalModelInstallGuideResponse,
     to_local_model_install_guide_response,
 )
+from app.api.schemas.ollama_model_recommendation_schemas import (
+    OllamaModelRecommendationGuideResponse,
+    to_ollama_model_recommendation_guide_response,
+)
 from app.api.schemas.local_model_install_draft_schemas import (
     CreateLocalModelInstallDraftRequest,
     LocalModelInstallDraftResponse,
@@ -88,6 +92,9 @@ from app.api.schemas.model_switching_schemas import (
 )
 from app.config.settings import get_settings
 from app.core.domain.local_model_install_guide import build_local_model_install_guide
+from app.core.domain.ollama_model_recommendations import (
+    build_ollama_model_recommendation_guide,
+)
 from app.core.domain.local_model_install_status import (
     build_local_model_install_status,
     parse_ollama_installed_models,
@@ -222,6 +229,17 @@ def get_local_model_install_guide() -> LocalModelInstallGuideResponse:
     return to_local_model_install_guide_response(guide)
 
 
+
+
+@router.get(
+    "/ollama-recommendations",
+    response_model=OllamaModelRecommendationGuideResponse,
+)
+def get_ollama_model_recommendations() -> OllamaModelRecommendationGuideResponse:
+    guide = build_ollama_model_recommendation_guide(
+        model_catalog_registry.list_models()
+    )
+    return to_ollama_model_recommendation_guide_response(guide)
 
 
 @router.get("/local-install-status", response_model=LocalModelInstallStatusResponse)
