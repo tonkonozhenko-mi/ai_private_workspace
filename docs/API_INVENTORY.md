@@ -272,3 +272,7 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 ## Task 214 — Desktop packaging design lock
 
 - `GET /runtime/desktop-packaging-design` — read-only packaging architecture target for the real two-click desktop app. It documents Tauri-first shell, supervised local backend, localhost-only API, protected local data, logging, lifecycle, implementation phases, and safety boundaries.
+
+## Task 215 — macOS app package foundation
+
+- `GET /runtime/macos-app-package-foundation` — read-only macOS package foundation contract. It describes the `.app` skeleton, build script, expected artifacts, launch/supervisor contract, validation steps, safety rules, and items not yet included in the final package.

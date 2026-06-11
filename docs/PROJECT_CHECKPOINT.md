@@ -139,3 +139,20 @@ Added model download job foundation endpoints: `POST /models/local-install-draft
 ## Task 214 — Desktop packaging design lock
 
 Locked the target architecture for the real desktop app: Tauri-first shell, supervised FastAPI backend, static frontend assets, localhost-only API, protected local data, logs, lifecycle rules, and explicit safety boundaries. Current scripts remain a temporary developer-safe bridge.
+
+## Task 215 — macOS app package foundation
+
+Task 215 moves packaging from concept to a concrete macOS `.app` foundation.
+
+Added:
+- `GET /runtime/macos-app-package-foundation`
+- `scripts/package_macos_app_foundation.sh`
+- Settings UI section for macOS package foundation
+- `docs/MACOS_APP_PACKAGE_FOUNDATION.md`
+- `docs/MACOS_APP_PACKAGE_NEXT_STEPS.md`
+
+Important safety boundaries:
+- The generated bundle is created under `build/` and is not part of normal source archives.
+- Runtime data is excluded from packaged backend files.
+- The script does not download models, start MCP servers, run agent tools, scan, index, rebuild, or restart user workflows.
+- This is not the final signed Tauri app yet; it is a packaging skeleton and lifecycle contract.

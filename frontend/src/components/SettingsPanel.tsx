@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -16,6 +16,7 @@ import type {
   SafeUpdateWorkflow,
   DesktopStartupExperience,
   DesktopPackagingDesign,
+  MacOSAppPackageFoundation,
   ProductionReadiness,
 } from "../api/types";
 import {
@@ -178,6 +179,9 @@ export function SettingsPanel({
   const [desktopPackagingDesign, setDesktopPackagingDesign] = useState<DesktopPackagingDesign | null>(null);
   const [desktopPackagingDesignError, setDesktopPackagingDesignError] = useState<string | null>(null);
   const [desktopPackagingDesignLoading, setDesktopPackagingDesignLoading] = useState(false);
+  const [macOSAppPackageFoundation, setMacOSAppPackageFoundation] = useState<MacOSAppPackageFoundation | null>(null);
+  const [macOSAppPackageFoundationError, setMacOSAppPackageFoundationError] = useState<string | null>(null);
+  const [macOSAppPackageFoundationLoading, setMacOSAppPackageFoundationLoading] = useState(false);
 
 
   useEffect(() => {
@@ -204,6 +208,31 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setDesktopPackagingDesignLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setMacOSAppPackageFoundationLoading(true);
+    setMacOSAppPackageFoundationError(null);
+    getMacOSAppPackageFoundation()
+      .then((foundation) => {
+        if (!cancelled) {
+          setMacOSAppPackageFoundation(foundation);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setMacOSAppPackageFoundationError(error instanceof Error ? error.message : "Could not load macOS app package foundation");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setMacOSAppPackageFoundationLoading(false);
         }
       });
     return () => {
@@ -1627,6 +1656,99 @@ export function SettingsPanel({
                 </div>
               ))}
             </div>
+
+
+            <details className="settings-disclosure" open>
+              <summary>macOS app package foundation</summary>
+              {macOSAppPackageFoundationError ? (
+                <p className="settings-transfer-message">Could not load macOS app package foundation: {macOSAppPackageFoundationError}</p>
+              ) : null}
+              {macOSAppPackageFoundationLoading ? (
+                <p className="settings-transfer-message">Loading macOS package foundation…</p>
+              ) : macOSAppPackageFoundation ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{macOSAppPackageFoundation.title}</strong>
+                    <span>{macOSAppPackageFoundation.package_goal}</span>
+                    <span>Build script: <code>{macOSAppPackageFoundation.build_script}</code></span>
+                  </div>
+                  <div className="local-data-grid packaging-design-grid">
+                    <div>
+                      <span>Bundle</span>
+                      <strong>{macOSAppPackageFoundation.app_bundle_name}</strong>
+                      <small>{macOSAppPackageFoundation.expected_output_path}</small>
+                    </div>
+                    <div>
+                      <span>Shell</span>
+                      <strong>{macOSAppPackageFoundation.shell_choice}</strong>
+                      <small>Real supervisor comes next</small>
+                    </div>
+                    <div>
+                      <span>Status</span>
+                      <strong>{macOSAppPackageFoundation.status}</strong>
+                      <small>Packaging contract locked</small>
+                    </div>
+                    <div>
+                      <span>User flow</span>
+                      <strong>Double click target</strong>
+                      <small>No repo/scripts for final user</small>
+                    </div>
+                  </div>
+                  <div className="settings-quiet-flow">
+                    {macOSAppPackageFoundation.user_experience.map((step, index) => (
+                      <div className="settings-quiet-flow-step" key={step}>
+                        <span>{index + 1}</span>
+                        <p>{step}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Build and validation steps</summary>
+                    <div className="settings-command-stack">
+                      <div className="startup-checklist-command">
+                        <span>Build package skeleton</span>
+                        <code>{macOSAppPackageFoundation.build_script}</code>
+                        <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(macOSAppPackageFoundation.build_script)}>
+                          Copy
+                        </button>
+                        <small>Run from project root after frontend build. This creates build artifacts only.</small>
+                      </div>
+                    </div>
+                    <ol className="settings-preflight-list">
+                      {macOSAppPackageFoundation.build_steps.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
+                    <ol className="settings-preflight-list">
+                      {macOSAppPackageFoundation.validation_steps.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Package artifacts</summary>
+                    <div className="startup-checklist-grid">
+                      {macOSAppPackageFoundation.artifacts.map((artifact) => (
+                        <div className="startup-checklist-item is-review" key={artifact.path}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{artifact.name}</strong>
+                            <StatusBadge label={artifact.included_in_generated_zip ? "source" : "build only"} tone={artifact.included_in_generated_zip ? "success" : "warning"} />
+                          </div>
+                          <p>{artifact.purpose}</p>
+                          <small>{artifact.path}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Supervisor contract and safety</summary>
+                    <div className="settings-safety-list">
+                      {macOSAppPackageFoundation.launch_contract.map((item) => <span key={item}>{item}</span>)}
+                      {macOSAppPackageFoundation.supervisor_contract.map((item) => <span key={item}>{item}</span>)}
+                      {macOSAppPackageFoundation.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                    <p className="settings-transfer-message">Not yet included: {macOSAppPackageFoundation.not_yet_included.join(" · ")}</p>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
             <details className="settings-disclosure">
               <summary>Architecture decisions</summary>
               <div className="startup-checklist-grid">

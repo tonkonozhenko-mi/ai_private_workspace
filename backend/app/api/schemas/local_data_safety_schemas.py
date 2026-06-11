@@ -115,6 +115,34 @@ class DesktopPackagingDesignResponse(BaseModel):
     not_in_scope_now: list[str]
 
 
+
+
+class MacOSAppPackageArtifactResponse(BaseModel):
+    name: str
+    purpose: str
+    path: str
+    included_in_generated_zip: bool
+
+
+class MacOSAppPackageFoundationResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    package_goal: str
+    shell_choice: str
+    build_script: str
+    app_bundle_name: str
+    expected_output_path: str
+    launch_contract: list[str]
+    supervisor_contract: list[str]
+    artifacts: list[MacOSAppPackageArtifactResponse]
+    build_steps: list[str]
+    validation_steps: list[str]
+    safety_rules: list[str]
+    not_yet_included: list[str]
+    user_experience: list[str]
+
+
 class DatabaseBackupResponse(BaseModel):
     filename: str
     path: str

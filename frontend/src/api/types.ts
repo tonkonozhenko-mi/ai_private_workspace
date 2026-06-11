@@ -326,6 +326,33 @@ export interface DesktopPackagingDesign {
   not_in_scope_now: string[];
 }
 
+
+export interface MacOSAppPackageArtifact {
+  name: string;
+  purpose: string;
+  path: string;
+  included_in_generated_zip: boolean;
+}
+
+export interface MacOSAppPackageFoundation {
+  status: string;
+  title: string;
+  summary: string;
+  package_goal: string;
+  shell_choice: string;
+  build_script: string;
+  app_bundle_name: string;
+  expected_output_path: string;
+  launch_contract: string[];
+  supervisor_contract: string[];
+  artifacts: MacOSAppPackageArtifact[];
+  build_steps: string[];
+  validation_steps: string[];
+  safety_rules: string[];
+  not_yet_included: string[];
+  user_experience: string[];
+}
+
 export interface ProductionReadinessItem {
   id: string;
   title: string;
