@@ -39,6 +39,7 @@ import {
   updateAgentWorkflowStepEvidence,
   updateWorkspaceMCPConfig,
   updateWorkspaceModelSelection,
+  updateWorkspaceSkillProfile,
 } from "../api/client";
 import type {
   AgentCapability,
@@ -79,6 +80,13 @@ import type {
 import { CopyButton } from "./CopyButton";
 import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
+import {
+  SKILL_PROFILE_TEMPLATES,
+  applySkillProfileTemplate,
+  normalizeSkillPreferences,
+  toSkillProfileRequest,
+  type SkillProfileTemplateId,
+} from "./skillLibrary";
 
 interface ModelsDetailProps {
   workspaceId: string;
@@ -226,7 +234,11 @@ export function ModelsDetail({
         />
       </section>
 
-      <ModelCatalogPanel />
+      <ProductFitPanel />
+
+      <ModelCatalogPanel workspaceId={workspaceId} onSelectionUpdated={onSelectionUpdated} />
+
+      <ModelSkillPresetPanel workspaceId={workspaceId} dashboard={dashboard} onSelectionUpdated={onSelectionUpdated} />
 
       <LocalModelInstallPanel workspaceId={workspaceId} />
 
@@ -284,7 +296,36 @@ export function ModelsDetail({
 }
 
 
-function ModelCatalogPanel() {
+function ProductFitPanel() {
+  return (
+    <section className="panel product-fit-panel" aria-label="Original product goal">
+      <div className="panel-heading compact-heading">
+        <div>
+          <p className="eyebrow">Product goal</p>
+          <h2>Local AI workspace, not a developer dashboard.</h2>
+          <p className="panel-helper">
+            The app should help you choose a project folder, build local context, pick a model that fits your Mac, and ask questions safely. Advanced tools stay available only when they are useful.
+          </p>
+        </div>
+        <StatusBadge label="Local-first" />
+      </div>
+      <div className="product-fit-grid">
+        <article><strong>1. Choose folder</strong><span>Project files stay on this Mac.</span></article>
+        <article><strong>2. Build context</strong><span>Search uses local chunks and sources.</span></article>
+        <article><strong>3. Pick model</strong><span>Recommended choices are sized for laptop use.</span></article>
+        <article><strong>4. Approve tools</strong><span>MCP/edit/command actions are never hidden.</span></article>
+      </div>
+    </section>
+  );
+}
+
+function ModelCatalogPanel({
+  workspaceId,
+  onSelectionUpdated,
+}: {
+  workspaceId: string;
+  onSelectionUpdated: () => Promise<void> | void;
+}) {
   const answerModels = [
     {
       name: "Qwen2.5 Coder 7B",
@@ -292,6 +333,8 @@ function ModelCatalogPanel() {
       fit: "Best coding default",
       memory: "Good on Apple Silicon with 16 GB+ RAM",
       use: "Code, scripts, DevOps config, CI/CD, Terraform and troubleshooting.",
+      provider: "ollama",
+      skill: "devops_review" as SkillProfileTemplateId,
     },
     {
       name: "Llama 3.2 3B",
@@ -299,6 +342,8 @@ function ModelCatalogPanel() {
       fit: "Fast and light",
       memory: "Good on 8–16 GB RAM",
       use: "Quick summaries, README questions, light project help.",
+      provider: "ollama",
+      skill: "documentation_review" as SkillProfileTemplateId,
     },
     {
       name: "Mistral 7B",
@@ -306,6 +351,8 @@ function ModelCatalogPanel() {
       fit: "Balanced general model",
       memory: "Good on 16 GB+ RAM",
       use: "General reasoning, docs, project explanations, mixed tasks.",
+      provider: "ollama",
+      skill: "code_review" as SkillProfileTemplateId,
     },
     {
       name: "Gemma 2 9B",
@@ -313,6 +360,8 @@ function ModelCatalogPanel() {
       fit: "Stronger but heavier",
       memory: "Better on 24–32 GB+ RAM",
       use: "Deeper explanations and reviews when speed is less important.",
+      provider: "ollama",
+      skill: "manager_summary" as SkillProfileTemplateId,
     },
   ];
   const searchModels = [
@@ -322,6 +371,7 @@ function ModelCatalogPanel() {
       fit: "Recommended search model",
       memory: "Lightweight",
       use: "Builds searchable local project context for RAG.",
+      provider: "ollama",
     },
     {
       name: "mxbai Embed Large",
@@ -329,8 +379,55 @@ function ModelCatalogPanel() {
       fit: "Higher quality search",
       memory: "Heavier than nomic",
       use: "Use for larger docs/projects when retrieval quality matters more than speed.",
+      provider: "ollama",
     },
   ];
+  const [catalogMessage, setCatalogMessage] = useState<string | null>(null);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [catalogBusy, setCatalogBusy] = useState<string | null>(null);
+
+  async function chooseAnswerModel(item: (typeof answerModels)[number]) {
+    setCatalogBusy(item.model);
+    setCatalogMessage(null);
+    setCatalogError(null);
+    try {
+      await updateWorkspaceModelSelection(workspaceId, {
+        provider: item.provider,
+        model: item.model,
+        model_type: "llm",
+        selected_reason: `Selected from local model catalog. Suggested skill: ${item.skill}.`,
+      });
+      const preset = readModelSkillPreset(item.model) ?? item.skill;
+      const nextSkillPreferences = applySkillProfileTemplate(preset, undefined);
+      await updateWorkspaceSkillProfile(workspaceId, toSkillProfileRequest(nextSkillPreferences));
+      setCatalogMessage(`${item.name} selected. Applied ${friendlySkillTemplateName(preset)} guidance for this workspace.`);
+      await onSelectionUpdated();
+    } catch (error) {
+      setCatalogError(errorMessage(error));
+    } finally {
+      setCatalogBusy(null);
+    }
+  }
+
+  async function chooseSearchModel(item: (typeof searchModels)[number]) {
+    setCatalogBusy(item.model);
+    setCatalogMessage(null);
+    setCatalogError(null);
+    try {
+      await updateWorkspaceModelSelection(workspaceId, {
+        provider: item.provider,
+        model: item.model,
+        model_type: "embedding",
+        selected_reason: "Selected from local search model catalog.",
+      });
+      setCatalogMessage(`${item.name} selected. Rebuild context when you want Ask to use this search model.`);
+      await onSelectionUpdated();
+    } catch (error) {
+      setCatalogError(errorMessage(error));
+    } finally {
+      setCatalogBusy(null);
+    }
+  }
 
   return (
     <section className="panel model-catalog-panel" aria-label="Local model catalog">
@@ -357,6 +454,9 @@ function ModelCatalogPanel() {
                 <span>{item.fit}</span>
                 <p>{item.use}</p>
                 <small>{item.memory}</small>
+                <button className="secondary-button model-catalog-choose" type="button" disabled={catalogBusy === item.model} onClick={() => void chooseAnswerModel(item)}>
+                  {catalogBusy === item.model ? "Applying…" : "Use for this workspace"}
+                </button>
               </article>
             ))}
           </div>
@@ -373,11 +473,16 @@ function ModelCatalogPanel() {
                 <span>{item.fit}</span>
                 <p>{item.use}</p>
                 <small>{item.memory}</small>
+                <button className="secondary-button model-catalog-choose" type="button" disabled={catalogBusy === item.model} onClick={() => void chooseSearchModel(item)}>
+                  {catalogBusy === item.model ? "Applying…" : "Use for search"}
+                </button>
               </article>
             ))}
           </div>
         </div>
       </div>
+      {catalogMessage ? <p className="model-selection-message">{catalogMessage}</p> : null}
+      {catalogError ? <p className="model-selection-error">{catalogError}</p> : null}
       <details className="model-catalog-details">
         <summary>What should I use on my Mac?</summary>
         <div className="model-catalog-advice-grid">
@@ -391,43 +496,174 @@ function ModelCatalogPanel() {
 }
 
 function WorkspacePermissionsPanel({ workspaceId }: { workspaceId: string }) {
+  const [mcpMode, setMcpMode] = useState<"off" | "ask" | "allow">("ask");
+  const [fileWriteMode, setFileWriteMode] = useState<"ask" | "off">("ask");
+  const [commandMode, setCommandMode] = useState<"off" | "ask">("off");
+
   return (
     <section className="panel workspace-permissions-panel" aria-label="Agent and MCP permissions">
       <div className="panel-heading compact-heading">
         <div>
-          <p className="eyebrow">Permissions</p>
+          <p className="eyebrow">Tools and permissions</p>
           <h2>Agent and MCP access stay approval-based.</h2>
-          <p className="panel-helper">MCP and computer-control style actions are important, but they should appear as permissions, not as always-visible dashboard noise.</p>
+          <p className="panel-helper">
+            MCP is still part of the product. MCP means external tools the assistant may ask to use, for example a filesystem helper, browser helper, Jira/Git helper, or a project-specific tool server. Nothing runs automatically.
+          </p>
         </div>
         <StatusBadge label="Ask first" />
       </div>
-      <div className="permission-grid">
-        <article>
-          <strong>Read project files</strong>
-          <span>Allowed after you choose a folder and run Scan/Build context.</span>
-        </article>
-        <article>
-          <strong>Edit or create files</strong>
-          <span>Disabled by default. The assistant must ask before any future write action.</span>
-        </article>
-        <article>
-          <strong>MCP tools</strong>
-          <span>Configured and reviewed before use. No hidden MCP server startup.</span>
-        </article>
-        <article>
-          <strong>Run commands</strong>
-          <span>Not allowed from frontend. Future backend actions need explicit approval.</span>
-        </article>
+
+      <div className="mcp-simple-flow">
+        <article><span>1</span><strong>Choose a tool server</strong><p>Start with Filesystem/project tools. More servers can be added later.</p></article>
+        <article><span>2</span><strong>Preview what it can do</strong><p>Show readable tool names before enabling anything.</p></article>
+        <article><span>3</span><strong>Approve per action</strong><p>The assistant asks before reading, editing, or running a tool.</p></article>
       </div>
-      <details className="model-catalog-details">
-        <summary>Advanced MCP registry</summary>
-        <div className="permission-mcp-note">
-          <strong>MCP is still part of the product.</strong>
-          <p>For daily use it stays behind an approval gate: configure server, preview tools, review permissions, then explicitly allow a step. Future tool requests should appear inline when the assistant needs them.</p>
-        </div>
-      </details>
+
+      <div className="permission-grid permission-grid-controls">
+        <label>
+          <strong>MCP tools</strong>
+          <span>When the assistant needs a tool, should it ask?</span>
+          <select value={mcpMode} onChange={(event) => setMcpMode(event.target.value as "off" | "ask" | "allow")}>
+            <option value="off">Off for now</option>
+            <option value="ask">Ask before each use</option>
+            <option value="allow">Allow trusted read-only tools</option>
+          </select>
+        </label>
+        <label>
+          <strong>Edit or create files</strong>
+          <span>Useful later for code/doc changes. Always preview before applying.</span>
+          <select value={fileWriteMode} onChange={(event) => setFileWriteMode(event.target.value as "ask" | "off")}>
+            <option value="ask">Ask and preview changes</option>
+            <option value="off">Off</option>
+          </select>
+        </label>
+        <label>
+          <strong>Run commands</strong>
+          <span>Keep disabled until a safe backend approval flow is ready.</span>
+          <select value={commandMode} onChange={(event) => setCommandMode(event.target.value as "off" | "ask")}>
+            <option value="off">Off</option>
+            <option value="ask">Ask before every command</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="mcp-simple-note">
+        <strong>Recommended now:</strong>
+        <span>MCP tools: {formatLabel(mcpMode)} · File edits: {formatLabel(fileWriteMode)} · Commands: {formatLabel(commandMode)}.</span>
+        <p>These controls are prepared for the product flow. Frontend still does not execute shell commands.</p>
+      </div>
     </section>
   );
+}
+
+function ModelSkillPresetPanel({
+  workspaceId,
+  dashboard,
+  onSelectionUpdated,
+}: {
+  workspaceId: string;
+  dashboard: WorkspaceModelsDashboard;
+  onSelectionUpdated: () => Promise<void> | void;
+}) {
+  const currentModel = dashboard.selected_llm_model ?? dashboard.usage_plan.active_llm_model;
+  const [selectedTemplate, setSelectedTemplate] = useState<SkillProfileTemplateId>(
+    readModelSkillPreset(currentModel) ?? inferSkillTemplateForModel(currentModel),
+  );
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const template = SKILL_PROFILE_TEMPLATES.find((item) => item.id === selectedTemplate) ?? SKILL_PROFILE_TEMPLATES[0];
+
+  async function savePreset() {
+    setSaving(true);
+    setMessage(null);
+    setError(null);
+    try {
+      writeModelSkillPreset(currentModel, selectedTemplate);
+      const skillPreferences = applySkillProfileTemplate(selectedTemplate, undefined);
+      await updateWorkspaceSkillProfile(workspaceId, toSkillProfileRequest(skillPreferences));
+      setMessage(`${friendlySkillTemplateName(selectedTemplate)} saved for ${currentModel}. Ask will use this guidance in this workspace.`);
+      await onSelectionUpdated();
+    } catch (saveError) {
+      setError(errorMessage(saveError));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="panel model-skill-preset-panel">
+      <div className="panel-heading compact-heading">
+        <div>
+          <p className="eyebrow">Skills</p>
+          <h2>Pair each model with the work it should do.</h2>
+          <p className="panel-helper">Example: Qwen for Developer, Llama for Documentation, Mistral for DevOps. Presets are remembered per model on this Mac.</p>
+        </div>
+        <StatusBadge label="Per model" />
+      </div>
+      <div className="model-skill-preset-body">
+        <label>
+          <span>Current answer model</span>
+          <strong>{dashboard.selected_llm_provider ?? dashboard.usage_plan.active_llm_provider}/{currentModel}</strong>
+        </label>
+        <label>
+          <span>Skill preset</span>
+          <select value={selectedTemplate} onChange={(event) => setSelectedTemplate(event.target.value as SkillProfileTemplateId)}>
+            {SKILL_PROFILE_TEMPLATES.map((item) => (
+              <option key={item.id} value={item.id}>{item.name}</option>
+            ))}
+          </select>
+        </label>
+        <article>
+          <strong>{template.name}</strong>
+          <p>{template.purpose}</p>
+        </article>
+        <button className="primary-button" type="button" disabled={saving} onClick={() => void savePreset()}>
+          {saving ? "Saving…" : "Save skill for this model"}
+        </button>
+      </div>
+      {message ? <p className="model-selection-message">{message}</p> : null}
+      {error ? <p className="model-selection-error">{error}</p> : null}
+    </section>
+  );
+}
+
+const MODEL_SKILL_PRESET_STORAGE_KEY = "ai-private-workspace.model-skill-presets.v1";
+
+function readModelSkillPreset(model: string | null | undefined): SkillProfileTemplateId | null {
+  if (!model) return null;
+  try {
+    const raw = window.localStorage.getItem(MODEL_SKILL_PRESET_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) as Record<string, SkillProfileTemplateId> : {};
+    return parsed[model] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function writeModelSkillPreset(model: string | null | undefined, preset: SkillProfileTemplateId): void {
+  if (!model) return;
+  try {
+    const raw = window.localStorage.getItem(MODEL_SKILL_PRESET_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) as Record<string, SkillProfileTemplateId> : {};
+    parsed[model] = preset;
+    window.localStorage.setItem(MODEL_SKILL_PRESET_STORAGE_KEY, JSON.stringify(parsed));
+  } catch {
+    // Local presets are convenience state only.
+  }
+}
+
+function inferSkillTemplateForModel(model: string | null | undefined): SkillProfileTemplateId {
+  const normalized = (model ?? "").toLowerCase();
+  if (normalized.includes("coder") || normalized.includes("qwen")) return "code_review";
+  if (normalized.includes("llama")) return "documentation_review";
+  if (normalized.includes("mistral")) return "devops_review";
+  if (normalized.includes("gemma")) return "manager_summary";
+  return "devops_review";
+}
+
+function friendlySkillTemplateName(id: SkillProfileTemplateId): string {
+  return SKILL_PROFILE_TEMPLATES.find((item) => item.id === id)?.name ?? formatLabel(id);
 }
 
 function DesktopPackagingRealityPanel() {

@@ -19467,3 +19467,344 @@ textarea {
   background: color-mix(in srgb, var(--color-surface) 88%, #020617);
   border-color: color-mix(in srgb, var(--color-border) 80%, #ffffff 8%);
 }
+
+/* Task 272 — product UX hardening: overflow-safe layout, calm dark theme, model/skill/MCP panels */
+.product-fit-panel,
+.model-skill-preset-panel,
+.workspace-permissions-panel,
+.model-catalog-panel,
+.model-manager-panel,
+.settings-clean-card,
+.settings-clean-hero,
+.models-simple-panel,
+.models-native-hero,
+.ask-panel,
+.ask-composer-card,
+.panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.models-detail,
+.settings-simplified-page,
+.workspace-dashboard,
+.ask-workspace,
+.main-content {
+  min-width: 0;
+}
+
+.models-detail .panel,
+.settings-simplified-page .panel,
+.ask-workspace .panel {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.model-selection-grid,
+.models-simple-grid,
+.model-catalog-grid,
+.product-fit-grid,
+.permission-grid,
+.mcp-simple-flow,
+.model-manager-summary-grid,
+.settings-clean-grid,
+.model-skill-preset-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+.model-selection-card,
+.model-catalog-card,
+.simple-model-card,
+.product-fit-grid article,
+.permission-grid article,
+.permission-grid label,
+.mcp-simple-flow article,
+.model-manager-summary-grid article,
+.model-skill-preset-body article,
+.model-skill-preset-body label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  box-sizing: border-box;
+}
+
+.model-selection-card select,
+.model-skill-preset-body select,
+.permission-grid select,
+.settings-clean-template-row select,
+.settings-clean-file-form textarea,
+.settings-clean-guidance-list textarea,
+.ask-input,
+textarea,
+input,
+select {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.model-catalog-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.model-catalog-choose,
+.model-install-draft-button,
+.model-selection-save-button,
+.primary-button,
+.secondary-button,
+.secondary-action {
+  align-self: flex-start;
+  white-space: normal;
+  max-width: 100%;
+}
+
+.product-fit-grid article,
+.mcp-simple-flow article,
+.permission-grid label,
+.model-skill-preset-body label,
+.model-skill-preset-body article {
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.28));
+  border-radius: 18px;
+  padding: 16px;
+  background: var(--surface-muted, rgba(248, 250, 252, 0.72));
+}
+
+.product-fit-grid article,
+.mcp-simple-flow article {
+  display: grid;
+  gap: 6px;
+}
+
+.mcp-simple-flow article span:first-child {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(45, 112, 85, 0.12);
+  color: var(--accent-strong, #1f6b4e);
+  font-weight: 800;
+}
+
+.permission-grid-controls label,
+.model-skill-preset-body label {
+  display: grid;
+  gap: 8px;
+}
+
+.mcp-simple-note {
+  margin-top: 16px;
+  display: grid;
+  gap: 6px;
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(45, 112, 85, 0.08);
+  border: 1px solid rgba(45, 112, 85, 0.18);
+}
+
+.ask-composer-card,
+.ask-input-shell,
+.ask-input-row {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.ask-suggestions,
+.example-question-grid,
+.ask-prompt-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ask-suggestions button,
+.example-question-grid button,
+.ask-prompt-suggestions button {
+  flex: 1 1 min(280px, 100%);
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .panel-heading,
+  .compact-heading,
+  .runtime-next-action-panel,
+  .model-download-job-header,
+  .model-install-card-heading {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .runtime-next-action-buttons,
+  .settings-clean-actions,
+  .model-install-actions,
+  .model-download-job-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .runtime-next-action-buttons button,
+  .settings-clean-actions button,
+  .model-install-actions button,
+  .model-download-job-actions button {
+    width: 100%;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --app-bg: #07110f;
+  --surface: #0d1815;
+  --surface-muted: #12211d;
+  --surface-elevated: #13231f;
+  --border-subtle: rgba(148, 163, 184, 0.22);
+  --text-primary: #edf7f2;
+  --text-secondary: #b8c7c1;
+  --text-muted: #8fa09a;
+  --accent-strong: #7dd3ae;
+}
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .app-shell,
+:root[data-theme="dark"] .main-content,
+:root[data-theme="dark"] .workspace-detail-shell,
+:root[data-theme="dark"] .workspace-navigation-shell,
+:root[data-theme="dark"] .settings-simplified-page,
+:root[data-theme="dark"] .models-detail,
+:root[data-theme="dark"] .ask-workspace {
+  background: radial-gradient(circle at top, rgba(27, 76, 57, 0.18), transparent 32%), #07110f !important;
+  color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .settings-clean-card,
+:root[data-theme="dark"] .settings-clean-hero,
+:root[data-theme="dark"] .models-native-hero,
+:root[data-theme="dark"] .models-simple-panel,
+:root[data-theme="dark"] .model-catalog-panel,
+:root[data-theme="dark"] .model-manager-panel,
+:root[data-theme="dark"] .workspace-permissions-panel,
+:root[data-theme="dark"] .product-fit-panel,
+:root[data-theme="dark"] .model-skill-preset-panel,
+:root[data-theme="dark"] .ask-composer-card,
+:root[data-theme="dark"] .ask-panel,
+:root[data-theme="dark"] .simple-model-card,
+:root[data-theme="dark"] .model-catalog-card,
+:root[data-theme="dark"] .model-install-card,
+:root[data-theme="dark"] .runtime-next-action-panel,
+:root[data-theme="dark"] .product-fit-grid article,
+:root[data-theme="dark"] .mcp-simple-flow article,
+:root[data-theme="dark"] .permission-grid article,
+:root[data-theme="dark"] .permission-grid label,
+:root[data-theme="dark"] .model-skill-preset-body label,
+:root[data-theme="dark"] .model-skill-preset-body article,
+:root[data-theme="dark"] .settings-selected-guidance-card,
+:root[data-theme="dark"] .settings-clean-preview,
+:root[data-theme="dark"] .mcp-simple-note {
+  background: linear-gradient(180deg, rgba(19, 35, 31, 0.96), rgba(13, 24, 21, 0.96)) !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.24) !important;
+}
+
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] h3,
+:root[data-theme="dark"] strong,
+:root[data-theme="dark"] label span,
+:root[data-theme="dark"] .panel-heading h2,
+:root[data-theme="dark"] .compact-heading h2,
+:root[data-theme="dark"] .simple-model-card strong,
+:root[data-theme="dark"] .model-catalog-card strong {
+  color: var(--text-primary) !important;
+}
+
+:root[data-theme="dark"] p,
+:root[data-theme="dark"] small,
+:root[data-theme="dark"] span,
+:root[data-theme="dark"] .panel-helper,
+:root[data-theme="dark"] .panel-intro,
+:root[data-theme="dark"] .settings-message,
+:root[data-theme="dark"] .model-catalog-card p,
+:root[data-theme="dark"] .simple-model-card p,
+:root[data-theme="dark"] .mcp-simple-note p {
+  color: var(--text-secondary) !important;
+}
+
+:root[data-theme="dark"] .eyebrow,
+:root[data-theme="dark"] .model-install-type,
+:root[data-theme="dark"] .status-badge {
+  color: var(--text-muted) !important;
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] .ask-input {
+  background: #081310 !important;
+  color: var(--text-primary) !important;
+  border-color: rgba(148, 163, 184, 0.32) !important;
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: #70817b !important;
+}
+
+:root[data-theme="dark"] code,
+:root[data-theme="dark"] pre {
+  background: #07110f !important;
+  color: #c8f7df !important;
+  border-color: rgba(148, 163, 184, 0.2) !important;
+}
+
+:root[data-theme="dark"] .secondary-button,
+:root[data-theme="dark"] .secondary-action,
+:root[data-theme="dark"] .model-catalog-choose {
+  background: #0b1714 !important;
+  color: var(--text-primary) !important;
+  border-color: rgba(148, 163, 184, 0.34) !important;
+}
+
+:root[data-theme="dark"] .primary-button,
+:root[data-theme="dark"] .overview-cta-button {
+  background: #2f8c68 !important;
+  color: #f7fffb !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] body,
+  :root[data-theme="system"] .app-shell,
+  :root[data-theme="system"] .main-content,
+  :root[data-theme="system"] .workspace-detail-shell,
+  :root[data-theme="system"] .workspace-navigation-shell,
+  :root[data-theme="system"] .settings-simplified-page,
+  :root[data-theme="system"] .models-detail,
+  :root[data-theme="system"] .ask-workspace {
+    background: radial-gradient(circle at top, rgba(27, 76, 57, 0.18), transparent 32%), #07110f !important;
+    color: #edf7f2 !important;
+  }
+
+  :root[data-theme="system"] .panel,
+  :root[data-theme="system"] .settings-clean-card,
+  :root[data-theme="system"] .models-native-hero,
+  :root[data-theme="system"] .models-simple-panel,
+  :root[data-theme="system"] .model-catalog-panel,
+  :root[data-theme="system"] .model-manager-panel,
+  :root[data-theme="system"] .workspace-permissions-panel,
+  :root[data-theme="system"] .product-fit-panel,
+  :root[data-theme="system"] .model-skill-preset-panel,
+  :root[data-theme="system"] .ask-composer-card,
+  :root[data-theme="system"] .ask-panel {
+    background: linear-gradient(180deg, rgba(19, 35, 31, 0.96), rgba(13, 24, 21, 0.96)) !important;
+    border-color: rgba(148, 163, 184, 0.22) !important;
+    color: #edf7f2 !important;
+  }
+}

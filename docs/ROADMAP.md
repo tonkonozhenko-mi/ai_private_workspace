@@ -509,3 +509,7 @@ Focus shifted from developer-dashboard completeness to daily-use MVP quality: re
 ## Task 271 update
 
 Daily-use UI was cleaned further: Ask is lighter, Settings no longer duplicates Models, Ask guidance shows only the selected template, Models now includes a local model catalog with Mac-fit guidance, and MCP/agent capabilities are preserved as approval-based permissions. Added `scripts/check_daily_use_product_ux_contracts.sh`.
+
+## Task 272 update
+
+Task 272 improves product fit for the original AI Private Workspace idea: less dashboard noise, stronger dark theme coverage, model catalog actions, model-specific skill presets, and simple approval-based MCP/tool permissions.
