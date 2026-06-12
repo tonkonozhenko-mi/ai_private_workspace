@@ -305,3 +305,5 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 | `GET /runtime/v0.1-release-gate` | Return the final local go/no-go checklist before publishing the v0.1 source RC or creating the release archive. | No | No | No | Release checklist / GitHub handoff |
 | `GET /runtime/v0.1-ui-smoke-check` | Return the manual browser smoke-check checklist for Models, Settings, onboarding, Ask, and startup safety before v0.1 publication. | No | No | No | Release checklist / local UI verification |
 | `GET /runtime/v0.1-publication-handoff` | Return the final copyable publication path after local smoke-check: audit, tests, build, archive, git status, commit/push commands, and do-not-commit list. | No | No | No | GitHub/source release handoff |
+
+| `GET /runtime/desktop-runtime-readiness` | Return the Phase 22 / v0.2 desktop runtime readiness plan, implementation order, validation commands, blockers, and safety boundaries. | No | No | No | Settings / desktop runtime roadmap |

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -20,6 +20,7 @@ import type {
   DesktopSupervisorContract,
   MacOSAppSupervisorWiring,
   BackendRuntimeBundlePlan,
+  DesktopRuntimeReadiness,
   TauriShellScaffold,
   TauriSupervisorBridge,
   WindowsPackagingFoundation,
@@ -203,6 +204,9 @@ export function SettingsPanel({
   const [backendRuntimeBundlePlan, setBackendRuntimeBundlePlan] = useState<BackendRuntimeBundlePlan | null>(null);
   const [backendRuntimeBundlePlanError, setBackendRuntimeBundlePlanError] = useState<string | null>(null);
   const [backendRuntimeBundlePlanLoading, setBackendRuntimeBundlePlanLoading] = useState(false);
+  const [desktopRuntimeReadiness, setDesktopRuntimeReadiness] = useState<DesktopRuntimeReadiness | null>(null);
+  const [desktopRuntimeReadinessError, setDesktopRuntimeReadinessError] = useState<string | null>(null);
+  const [desktopRuntimeReadinessLoading, setDesktopRuntimeReadinessLoading] = useState(false);
   const [tauriShellScaffold, setTauriShellScaffold] = useState<TauriShellScaffold | null>(null);
   const [tauriShellScaffoldError, setTauriShellScaffoldError] = useState<string | null>(null);
   const [tauriShellScaffoldLoading, setTauriShellScaffoldLoading] = useState(false);
@@ -538,6 +542,82 @@ export function SettingsPanel({
       cancelled = true;
     };
   }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setV01PublicationHandoffLoading(true);
+    setV01PublicationHandoffError(null);
+    getV01PublicationHandoff()
+      .then((handoff) => {
+        if (!cancelled) {
+          setV01PublicationHandoff(handoff);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setV01PublicationHandoffError(error instanceof Error ? error.message : "Could not load v0.1 publication handoff");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setV01PublicationHandoffLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setFinalProductStatusLoading(true);
+    setFinalProductStatusError(null);
+    getFinalProductStatus()
+      .then((status) => {
+        if (!cancelled) {
+          setFinalProductStatus(status);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setFinalProductStatusError(error instanceof Error ? error.message : "Could not load final product status");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setFinalProductStatusLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDesktopRuntimeReadinessLoading(true);
+    setDesktopRuntimeReadinessError(null);
+    getDesktopRuntimeReadiness()
+      .then((readiness) => {
+        if (!cancelled) {
+          setDesktopRuntimeReadiness(readiness);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setDesktopRuntimeReadinessError(error instanceof Error ? error.message : "Could not load desktop runtime readiness");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setDesktopRuntimeReadinessLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
 
 
 
@@ -2484,6 +2564,88 @@ export function SettingsPanel({
               ) : null}
             </details>
 
+
+
+            <details className="settings-disclosure" open>
+              <summary>v0.2 desktop runtime readiness</summary>
+              {desktopRuntimeReadinessError ? (
+                <p className="settings-transfer-message">Could not load desktop runtime readiness: {desktopRuntimeReadinessError}</p>
+              ) : null}
+              {desktopRuntimeReadinessLoading ? (
+                <p className="settings-transfer-message">Loading desktop runtime readiness…</p>
+              ) : desktopRuntimeReadiness ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{desktopRuntimeReadiness.title}</strong>
+                    <span>{desktopRuntimeReadiness.summary}</span>
+                    <span>{desktopRuntimeReadiness.honest_remaining_work}</span>
+                  </div>
+                  <div className="local-data-grid packaging-design-grid">
+                    <div>
+                      <span>Current</span>
+                      <strong>Phase 22</strong>
+                      <small>{desktopRuntimeReadiness.current_phase}</small>
+                    </div>
+                    <div>
+                      <span>v0.1</span>
+                      <strong>freeze</strong>
+                      <small>{desktopRuntimeReadiness.v01_position}</small>
+                    </div>
+                    <div>
+                      <span>v0.2 goal</span>
+                      <strong>runtime</strong>
+                      <small>{desktopRuntimeReadiness.v02_goal}</small>
+                    </div>
+                  </div>
+                  <details className="settings-disclosure" open>
+                    <summary>Readiness items</summary>
+                    <div className="startup-checklist-grid">
+                      {desktopRuntimeReadiness.readiness_items.map((item) => (
+                        <div className={`startup-checklist-item ${item.status === "not-started" ? "is-review" : "is-ok"}`} key={item.id}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{item.title}</strong>
+                            <StatusBadge label={item.status} tone={item.status === "not-started" ? "warning" : "success"} />
+                          </div>
+                          <p>{item.summary}</p>
+                          <small>{item.evidence}</small>
+                          <p>{item.next_action}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Implementation order</summary>
+                    <ol className="settings-preflight-list">
+                      {desktopRuntimeReadiness.implementation_order.map((item) => <li key={item}>{item}</li>)}
+                    </ol>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Validation commands</summary>
+                    <div className="settings-command-stack">
+                      {desktopRuntimeReadiness.validation_commands.map((command) => (
+                        <div className="startup-checklist-command" key={command.label}>
+                          <span>{command.label}</span>
+                          <code>{command.command}</code>
+                          <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(command.command)}>
+                            Copy
+                          </button>
+                          <small>{command.purpose}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Blocked until / safety</summary>
+                    <ol className="settings-preflight-list">
+                      {desktopRuntimeReadiness.blocked_until.map((item) => <li key={item}>{item}</li>)}
+                    </ol>
+                    <div className="settings-safety-list">
+                      {desktopRuntimeReadiness.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                  </details>
+                </div>
+              ) : null}
+            </details>
 
 
             <details className="settings-disclosure" open>

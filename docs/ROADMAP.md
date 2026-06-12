@@ -300,3 +300,6 @@ Current position: Phase 21 is effectively complete as a source release candidate
 - Added final read-only publication handoff endpoint and Settings UI section.
 - Current roadmap position: Phase 21 effectively complete; v0.1 has 0-1 large task left for manual smoke-check/publication cleanup.
 - v1.0 still needs roughly 15-25 large tasks: frozen runtime, signed installers, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.
+## Task 238 — Phase 22 desktop runtime readiness
+
+Task 238 starts the post-v0.1 direction with `GET /runtime/desktop-runtime-readiness` and a Settings UI section for v0.2 runtime readiness. It keeps v0.1 frozen and defines the next safe implementation order: runtime manifest preflight, Tauri read-only supervisor status, deterministic app-owned backend startup, `/health` readiness, and Windows parity after macOS/Tauri is stable.

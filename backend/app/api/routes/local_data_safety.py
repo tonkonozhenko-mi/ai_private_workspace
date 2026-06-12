@@ -28,6 +28,9 @@ from app.api.schemas.local_data_safety_schemas import (
     BackendRuntimeBundleItemResponse,
     BackendRuntimeBundlePlanResponse,
     BackendRuntimeBundleStepResponse,
+    DesktopRuntimeValidationCommandResponse,
+    DesktopRuntimeReadinessItemResponse,
+    DesktopRuntimeReadinessResponse,
     TauriShellScaffoldFileResponse,
     TauriShellScaffoldPhaseResponse,
     TauriShellScaffoldResponse,
@@ -1328,6 +1331,99 @@ def get_backend_runtime_bundle_plan() -> BackendRuntimeBundlePlanResponse:
             "Add Tauri shell scaffold and map supervisor states to native startup UI.",
             "Create Windows packaging foundation with equivalent runtime/data/log rules.",
         ],
+    )
+
+
+@router.get("/desktop-runtime-readiness", response_model=DesktopRuntimeReadinessResponse)
+def get_desktop_runtime_readiness() -> DesktopRuntimeReadinessResponse:
+    """Return the Phase 22 / v0.2 desktop runtime readiness plan."""
+    return DesktopRuntimeReadinessResponse(
+        status="phase-22-ready-to-start",
+        title="v0.2 desktop runtime readiness",
+        summary="v0.1 source RC is effectively complete. The next product stage should turn the current packaging foundation into a reliable desktop runtime path without weakening the existing safety rules.",
+        current_phase="Phase 22 — v0.2 desktop runtime foundation",
+        v01_position="v0.1 / Phase 21 is effectively complete after local UI smoke-check, source archive, git status cleanup, and first GitHub push.",
+        v02_goal="Double-click desktop package starts an app-owned local backend, waits for /health, opens the UI, keeps logs/data outside the app bundle, and never starts scan/index/MCP/Agent/model downloads automatically.",
+        readiness_items=[
+            DesktopRuntimeReadinessItemResponse(
+                id="runtime-manifest",
+                title="Backend runtime manifest",
+                status="foundation-ready",
+                summary="The backend runtime bundle plan and manifest path are already documented.",
+                evidence="GET /runtime/backend-runtime-bundle-plan and scripts/prepare_macos_backend_runtime.sh",
+                next_action="Make the manifest a required preflight for macOS/Tauri packaging.",
+            ),
+            DesktopRuntimeReadinessItemResponse(
+                id="tauri-shell",
+                title="Tauri shell scaffold",
+                status="foundation-ready",
+                summary="The Tauri scaffold exists as the chosen desktop direction, but it is not yet the final process supervisor.",
+                evidence="frontend/src-tauri plus GET /runtime/tauri-shell-scaffold",
+                next_action="Implement native read-only supervisor status first, then app-owned backend process start after runtime staging is reliable.",
+            ),
+            DesktopRuntimeReadinessItemResponse(
+                id="supervisor-contract",
+                title="Supervisor safety contract",
+                status="foundation-ready",
+                summary="Startup states, safe port handling, app-owned logs, and no kill-by-port rules are already defined.",
+                evidence="GET /runtime/desktop-supervisor-contract and GET /runtime/tauri-supervisor-bridge",
+                next_action="Turn the contract into tests and Tauri-side startup state output.",
+            ),
+            DesktopRuntimeReadinessItemResponse(
+                id="macos-package",
+                title="macOS package foundation",
+                status="partial",
+                summary="A generated .app foundation exists, but it still is not a signed installer-grade DMG.",
+                evidence="scripts/package_macos_app_foundation.sh and build/macos/AI Private Workspace.app after local build",
+                next_action="Wire staged backend runtime into the package and verify double-click lifecycle on a clean local clone.",
+            ),
+            DesktopRuntimeReadinessItemResponse(
+                id="windows-package",
+                title="Windows packaging foundation",
+                status="partial",
+                summary="Windows data/log/supervisor rules exist, but installer output is future work.",
+                evidence="GET /runtime/windows-packaging-foundation and scripts/package_windows_app_foundation.ps1",
+                next_action="Keep Windows aligned after macOS/Tauri runtime startup is stable.",
+            ),
+            DesktopRuntimeReadinessItemResponse(
+                id="persistent-jobs",
+                title="Persistent background jobs",
+                status="not-started",
+                summary="Model download jobs have safe in-process history, but installer-grade restart persistence is not finished.",
+                evidence="Model manager job history exists, but no durable desktop job supervisor is complete.",
+                next_action="Design durable job state before enabling long-running desktop operations across restarts.",
+            ),
+        ],
+        implementation_order=[
+            "Keep v0.1 frozen except for blockers found during local UI smoke-check.",
+            "Make backend runtime manifest a required packaging preflight.",
+            "Add Tauri read-only supervisor status/log path commands.",
+            "Start app-owned backend from Tauri only after runtime staging is deterministic.",
+            "Add desktop startup screen that waits for /health before showing full UI.",
+            "Mirror the stabilized lifecycle on Windows packaging.",
+            "Only then continue toward signed installers, persistent jobs, MCP runtime, and sandboxed Agent execution.",
+        ],
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Source RC audit", command="./scripts/audit_release_candidate.sh", purpose="Keep source release hygiene green before starting v0.2 runtime work."),
+            DesktopRuntimeValidationCommandResponse(label="Backend runtime manifest", command="scripts/prepare_macos_backend_runtime.sh", purpose="Validate backend runtime staging inputs and generate the manifest."),
+            DesktopRuntimeValidationCommandResponse(label="Tauri scaffold check", command="scripts/prepare_tauri_shell_scaffold.sh", purpose="Validate the Tauri scaffold without executing unsafe shell from the frontend."),
+            DesktopRuntimeValidationCommandResponse(label="macOS package foundation", command="cd frontend && npm ci && npm run build && cd .. && scripts/package_macos_app_foundation.sh", purpose="Build the current developer-verifiable macOS app foundation."),
+        ],
+        blocked_until=[
+            "v0.1 local UI smoke-check is passed or any blocker is fixed.",
+            "Source archive excludes runtime/build/cache/database artifacts.",
+            "Tauri supervisor status is read-only before process start behavior is added.",
+            "Backend runtime staging is deterministic enough to test from a clean checkout.",
+        ],
+        safety_rules=[
+            "Frontend React code must never execute shell commands",
+            "Desktop launch must not trigger scan, index, rebuild, MCP, Agent, or model downloads.",
+            "Tauri may start only app-owned local backend runtime after explicit packaging implementation.",
+            "Never kill unknown processes using the expected localhost port.",
+            "Logs and workspace data stay outside app bundles and source archives.",
+            "MCP/Agent execution remains disabled until sandbox, allowlist, approvals, and audit logs exist.",
+        ],
+        honest_remaining_work="v0.2 desktop runtime is roughly 5-8 large tasks. Full v1.0 remains roughly 15-25 large tasks including signed installers, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.",
     )
 
 
