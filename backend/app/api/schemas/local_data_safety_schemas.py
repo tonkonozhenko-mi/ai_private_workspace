@@ -850,6 +850,28 @@ class MacOSPackagedAppSmokeResultResponse(BaseModel):
     next_steps: list[str]
 
 
+class PackagedAppFrontendBootstrapItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    evidence: str | None = None
+    command: str | None = None
+
+
+class PackagedAppFrontendBootstrapResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    milestone: str
+    check_script: str
+    root_cause: str
+    readiness_items: list[PackagedAppFrontendBootstrapItemResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
+
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str
     purpose: str

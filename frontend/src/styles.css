@@ -17688,3 +17688,19 @@ details.settings-disclosure {
     min-width: 0;
   }
 }
+
+.desktop-startup-banner {
+  position: fixed;
+  top: 18px;
+  right: 24px;
+  z-index: 20;
+  max-width: 420px;
+  padding: 10px 14px;
+  border: 1px solid rgba(38, 61, 72, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 18px 44px rgba(17, 32, 39, 0.12);
+  color: #2c3d44;
+  font-size: 0.82rem;
+  backdrop-filter: blur(18px);
+}
