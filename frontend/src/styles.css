@@ -19106,3 +19106,364 @@ pre,
     padding: 0 13px;
   }
 }
+
+/* Task 271 — product-grade daily-use cleanup
+   Final overrides keep the app elegant, prevent overflow, and hide advanced noise by default. */
+:root {
+  --app-max-readable-width: 1180px;
+}
+
+.panel,
+.models-simple-panel,
+.models-disclosure-panel,
+.settings-clean-card,
+.ask-bottom-composer,
+.conversation-history-panel,
+.model-catalog-panel,
+.workspace-permissions-panel {
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+
+button,
+.primary-button,
+.secondary-button,
+.secondary-action,
+.text-button,
+select,
+input,
+textarea {
+  font: inherit;
+}
+
+.models-detail-simple,
+.settings-simplified-page,
+.ask-workspace-centered {
+  max-width: var(--app-max-readable-width);
+  margin-inline: auto;
+}
+
+.models-simple-grid,
+.model-manager-summary-grid,
+.settings-clean-grid,
+.model-selection-grid,
+.model-catalog-grid,
+.permission-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important;
+}
+
+.model-selection-editor-body,
+.model-selection-card,
+.model-install-card,
+.model-catalog-card,
+.permission-grid article,
+.settings-clean-card,
+.models-simple-grid > *,
+.model-manager-summary-grid > * {
+  min-width: 0 !important;
+  max-width: 100%;
+}
+
+.model-selection-card select,
+.model-selection-card button,
+.model-install-card button,
+.model-install-card select,
+.models-disclosure-panel button,
+.models-disclosure-panel select {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.model-selection-card .model-selection-save-button,
+.model-install-actions,
+.runtime-next-action-buttons,
+.settings-clean-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.model-selection-save-button,
+.model-install-actions > *,
+.runtime-next-action-buttons > *,
+.settings-clean-actions > * {
+  white-space: normal;
+}
+
+.ask-workspace-centered {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 18px;
+}
+
+.ask-context-sidebar-compact {
+  position: static !important;
+  width: 100%;
+}
+
+.ask-guidance-disclosure {
+  border: 1px solid var(--color-border-soft);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  box-shadow: var(--shadow-soft);
+}
+
+.ask-guidance-disclosure > summary {
+  min-height: 52px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 850;
+  color: var(--color-text-secondary);
+}
+
+.ask-guidance-disclosure .ask-focus-hint {
+  margin: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.ask-chat-column .ask-conversation-panel {
+  min-height: auto !important;
+}
+
+.ask-bottom-composer {
+  position: sticky;
+  bottom: 12px;
+  padding: 18px !important;
+  border-radius: 24px !important;
+}
+
+.ask-bottom-input-row {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: stretch !important;
+}
+
+.ask-bottom-input-row textarea {
+  min-height: 74px !important;
+  font-size: clamp(16px, 1.4vw, 18px) !important;
+  border-radius: 18px !important;
+}
+
+.ask-send-button {
+  align-self: stretch;
+  min-width: 86px;
+}
+
+.ask-bottom-meta-row {
+  margin-top: 0 !important;
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  font-size: var(--text-sm) !important;
+}
+
+.ask-bottom-meta-row label {
+  margin: 0 !important;
+  display: inline-flex !important;
+  gap: 8px;
+}
+
+.ask-example-strip {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 10px !important;
+}
+
+.ask-example-strip button {
+  flex: 0 1 auto;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 14px;
+}
+
+.conversation-history-panel,
+.answer-notes-panel,
+.conversation-details-card,
+.conversation-context-preview-card {
+  border-radius: 22px;
+}
+
+.conversation-history-tools,
+.conversation-history-actions,
+.answer-note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.model-catalog-panel,
+.workspace-permissions-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.model-catalog-grid,
+.permission-grid,
+.model-catalog-advice-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.model-catalog-list {
+  display: grid;
+  gap: 12px;
+}
+
+.model-catalog-card,
+.permission-grid article,
+.model-catalog-advice-grid article {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+}
+
+.model-catalog-card > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.model-catalog-card code {
+  white-space: normal;
+  word-break: break-word;
+}
+
+.model-catalog-card span,
+.permission-grid article span,
+.model-catalog-advice-grid span {
+  color: var(--color-text-secondary);
+}
+
+.model-catalog-card p,
+.model-catalog-card small,
+.permission-grid article span,
+.model-catalog-advice-grid span {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.model-catalog-details {
+  border: 1px solid var(--color-border-soft);
+  border-radius: 18px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.model-catalog-details > summary {
+  padding: 14px 16px;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.model-catalog-details[open] {
+  padding-bottom: 14px;
+}
+
+.model-catalog-advice-grid,
+.permission-mcp-note {
+  padding: 0 16px 14px;
+}
+
+.permission-mcp-note p {
+  margin-bottom: 0;
+  color: var(--color-text-secondary);
+}
+
+.settings-clean-grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.settings-clean-hero {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.settings-clean-status {
+  display: none !important;
+}
+
+.settings-clean-guidance-list-focused {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.settings-clean-guidance-list-focused label small {
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.settings-selected-guidance-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  margin: 14px 0;
+  border: 1px solid var(--color-border-soft);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-accent-soft) 32%, var(--color-surface));
+}
+
+.settings-selected-guidance-card > div {
+  display: grid;
+  gap: 4px;
+}
+
+.settings-selected-guidance-card span,
+.settings-selected-guidance-card p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 760px) {
+  .models-native-hero-clean,
+  .settings-clean-hero,
+  .create-workspace-hero-simple,
+  .panel-heading,
+  .compact-heading {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .ask-bottom-input-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .ask-send-button,
+  .ask-stop-button {
+    width: 100%;
+  }
+
+  .ask-bottom-composer {
+    position: static;
+  }
+}
+
+:root[data-theme="dark"] .ask-bottom-composer,
+:root[data-theme="dark"] .ask-guidance-disclosure,
+:root[data-theme="dark"] .model-catalog-card,
+:root[data-theme="dark"] .permission-grid article,
+:root[data-theme="dark"] .model-catalog-advice-grid article,
+:root[data-theme="dark"] .settings-selected-guidance-card {
+  background: color-mix(in srgb, var(--color-surface) 86%, #020617);
+  border-color: color-mix(in srgb, var(--color-border) 76%, #ffffff 8%);
+}
+
+:root[data-theme="dark"] .segmented-control button.is-selected {
+  background: color-mix(in srgb, var(--color-surface) 70%, #ffffff 10%);
+  color: var(--color-text-primary);
+}
+
+:root[data-theme="dark"] .ask-bottom-input-row textarea,
+:root[data-theme="dark"] .settings-clean-file-form textarea,
+:root[data-theme="dark"] .settings-clean-guidance-list textarea,
+:root[data-theme="dark"] .settings-clean-template-row select,
+:root[data-theme="dark"] .model-selection-card select {
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-surface) 88%, #020617);
+  border-color: color-mix(in srgb, var(--color-border) 80%, #ffffff 8%);
+}

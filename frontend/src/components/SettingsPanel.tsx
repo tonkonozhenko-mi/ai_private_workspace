@@ -19,6 +19,7 @@ import {
 import { StatusBadge } from "./StatusBadge";
 import {
   SKILL_PRESETS,
+  SKILL_PROFILE_TEMPLATES,
   applySkillProfileTemplate,
   normalizeSkillPreferences,
   toSkillProfileRequest,
@@ -60,6 +61,16 @@ const SKILL_TEMPLATES: Array<{
     title: "Documentation review",
     description: "README, onboarding, design notes, summaries and project explanation.",
   },
+  {
+    id: "incident_support",
+    title: "Incident support",
+    description: "Troubleshooting, logs, likely causes, operational checks and rollback risks.",
+  },
+  {
+    id: "manager_summary",
+    title: "Manager summary",
+    description: "Short summaries, risks, decisions and stakeholder-friendly wording.",
+  },
 ];
 
 export function SettingsPanel({
@@ -95,6 +106,14 @@ export function SettingsPanel({
     () => SKILL_TEMPLATES.find((template) => template.id === selectedTemplateId) ?? SKILL_TEMPLATES[0],
     [selectedTemplateId],
   );
+  const selectedTemplateDefinition = useMemo(
+    () => SKILL_PROFILE_TEMPLATES.find((template) => template.id === selectedTemplateId),
+    [selectedTemplateId],
+  );
+  const selectedSkillPresets = useMemo(() => {
+    const ids = selectedTemplateDefinition?.activeSkillIds ?? ["devops"];
+    return SKILL_PRESETS.filter((preset) => ids.includes(preset.id));
+  }, [selectedTemplateDefinition]);
   const contextReady = dashboard.summary.index_status.status === "indexed";
   const modelsReady = modelsSummary.overall_status === "ready";
 
@@ -183,10 +202,7 @@ export function SettingsPanel({
         <div>
           <p className="eyebrow">Settings</p>
           <h2>Keep daily use simple.</h2>
-          <p>
-            This screen only keeps controls that change how you use the workspace. Release notes,
-            developer diagnostics, and script runbooks are intentionally hidden from the main app.
-          </p>
+          <p>Change only daily-use preferences. Model setup lives in Models, and advanced diagnostics stay out of the main flow.</p>
         </div>
         <div className="settings-clean-status">
           <StatusBadge label={contextReady ? "Context ready" : "Context needs build"} />
@@ -228,22 +244,6 @@ export function SettingsPanel({
           </div>
           <button className="secondary-action" type="button" onClick={onResetPreferences}>
             Reset appearance
-          </button>
-        </article>
-
-        <article className="panel settings-clean-card">
-          <div className="panel-heading compact-heading">
-            <div>
-              <p className="eyebrow">Models</p>
-              <h3>Local AI setup</h3>
-            </div>
-            <StatusBadge label={modelsSummary.overall_status} />
-          </div>
-          <p>
-            Model selection, downloads, and runtime checks live in one place so this screen stays clean.
-          </p>
-          <button className="primary-button" type="button" onClick={onOpenModels}>
-            Open Models
           </button>
         </article>
       </section>
@@ -317,12 +317,21 @@ export function SettingsPanel({
           </button>
         </div>
         <p className="panel-helper">{selectedTemplate.description}</p>
-        <div className="settings-clean-guidance-list">
-          {SKILL_PRESETS.map((preset) => (
+        <div className="settings-selected-guidance-card">
+          <div>
+            <p className="eyebrow">Active guidance</p>
+            <strong>{selectedTemplate.title}</strong>
+            <span>{selectedSkillPresets.map((preset) => preset.name).join(" + ")}</span>
+          </div>
+          <p>Only the guidance used by the selected template is shown here. Other assistant styles stay hidden until you choose them.</p>
+        </div>
+        <div className="settings-clean-guidance-list settings-clean-guidance-list-focused">
+          {selectedSkillPresets.map((preset) => (
             <label key={preset.id}>
               <span>{preset.name}</span>
+              <small>{preset.purpose}</small>
               <textarea
-                rows={3}
+                rows={4}
                 value={skillDrafts[preset.id] ?? ""}
                 onChange={(event) =>
                   setSkillDrafts((current) => ({ ...current, [preset.id]: event.target.value }))

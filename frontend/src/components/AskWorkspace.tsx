@@ -481,13 +481,16 @@ export function AskWorkspace({
 
   return (
     <div className="ask-workspace ask-workspace-chat ask-workspace-centered">
-      <aside className="ask-context-sidebar">
-        <AssistantFocusHint
-          assistantMode={assistantMode}
-          skillPreferences={skillPreferences}
-          skillProfileSource={skillProfileSource}
-          skillProfileUpdatedAt={skillProfileUpdatedAt}
-        />
+      <aside className="ask-context-sidebar ask-context-sidebar-compact">
+        <details className="ask-guidance-disclosure">
+          <summary>Answer style and sources</summary>
+          <AssistantFocusHint
+            assistantMode={assistantMode}
+            skillPreferences={skillPreferences}
+            skillProfileSource={skillProfileSource}
+            skillProfileUpdatedAt={skillProfileUpdatedAt}
+          />
+        </details>
       </aside>
 
       <section className="ask-chat-column">
@@ -572,7 +575,7 @@ export function AskWorkspace({
             </div>
 
             <div className="ask-bottom-meta-row">
-              <span>Nothing happens until you press Ask. Sources stay attached to the answer.</span>
+              <span>Local answers with attached sources.</span>
               <label>
                 Source snippets
                 <select
@@ -595,7 +598,7 @@ export function AskWorkspace({
             ) : null}
 
             <div className="ask-example-strip" aria-label="Example questions">
-              {EXAMPLE_QUESTIONS.slice(0, 4).map((example) => (
+              {EXAMPLE_QUESTIONS.slice(0, 3).map((example) => (
                 <button
                   key={example}
                   type="button"

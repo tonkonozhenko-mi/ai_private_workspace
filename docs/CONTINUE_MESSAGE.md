@@ -332,3 +332,7 @@ Safety remains unchanged: the frontend does not execute shell commands and scan/
 
 
 Task 270 completed daily-use UI cleanup. Continue from a simplified packaged MVP: Home/Ask/Models/Settings tabs, native macOS folder picker, simplified Settings, focused Models screen, and scripts/run_desktop_mvp_smoke.sh for one-command local verification.
+
+## Task 271 update
+
+Daily-use UI was cleaned further: Ask is lighter, Settings no longer duplicates Models, Ask guidance shows only the selected template, Models now includes a local model catalog with Mac-fit guidance, and MCP/agent capabilities are preserved as approval-based permissions. Added `scripts/check_daily_use_product_ux_contracts.sh`.
