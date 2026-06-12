@@ -254,6 +254,14 @@ export function ModelsDetail({
           <StatusBadge label={getModelWorkspaceStatusLabel(dashboard)} />
           <span>{getModelWorkspaceStatusMessage(dashboard)}</span>
         </div>
+        <RuntimeNextActionPanel
+          dashboard={dashboard}
+          workspaceId={workspaceId}
+          contextBuildJob={contextBuildJob}
+          contextBuildError={contextBuildError}
+          onBuildContext={handleBuildContext}
+          onSelectionUpdated={onSelectionUpdated}
+        />
       </section>
 
       {needsContextBuild ? (
@@ -564,6 +572,223 @@ function DesktopPackagingRealityPanel() {
       </div>
     </div>
   );
+}
+
+
+function RuntimeNextActionPanel({
+  dashboard,
+  workspaceId,
+  contextBuildJob,
+  contextBuildError,
+  onBuildContext,
+  onSelectionUpdated,
+}: {
+  dashboard: WorkspaceModelsDashboard;
+  workspaceId: string;
+  contextBuildJob: WorkspaceJob | null;
+  contextBuildError: string | null;
+  onBuildContext: () => Promise<void> | void;
+  onSelectionUpdated: () => Promise<void> | void;
+}) {
+  const usage = dashboard.usage_plan;
+  const embeddingPlan = dashboard.embedding_indexing_plan;
+  const [actionBusy, setActionBusy] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const selectedEmbedding = formatProviderModel(
+    dashboard.selected_embedding_provider,
+    dashboard.selected_embedding_model,
+  );
+  const activeEmbedding = formatProviderModel(
+    usage.active_embedding_provider,
+    usage.active_embedding_model,
+  );
+  const selectedLlm = formatProviderModel(
+    dashboard.selected_llm_provider,
+    dashboard.selected_llm_model,
+  );
+  const activeLlm = formatProviderModel(
+    usage.active_llm_provider,
+    usage.active_llm_model,
+  );
+
+  const needsEmbeddingRuntime =
+    dashboard.overall_status === "needs_embedding_runtime" ||
+    embeddingPlan.plan_status === "runtime_mismatch" ||
+    embeddingPlan.requires_backend_restart;
+  const needsContextBuild = dashboard.overall_status === "needs_context_index";
+  const isReady = dashboard.usage_plan.can_use_selected_models_fully;
+
+  async function recheckRuntime() {
+    setActionBusy("recheck");
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      await onSelectionUpdated();
+      setActionMessage("Runtime status refreshed.");
+    } catch (error) {
+      setActionError(errorMessage(error));
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  async function useActiveEmbeddingRuntime() {
+    if (!usage.active_embedding_provider || !usage.active_embedding_model) {
+      setActionError("Active backend search model is not available.");
+      return;
+    }
+
+    setActionBusy("use-active-embedding");
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      await updateWorkspaceModelSelection(workspaceId, {
+        provider: usage.active_embedding_provider,
+        model: usage.active_embedding_model,
+        model_type: "embedding",
+        selected_reason:
+          "Switched from the runtime readiness panel to the active backend search model.",
+      });
+      setActionMessage(
+        `Search context model changed to active runtime: ${activeEmbedding}. Rebuild context once before Ask uses local sources.`,
+      );
+      await onSelectionUpdated();
+    } catch (error) {
+      setActionError(errorMessage(error));
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  if (needsEmbeddingRuntime) {
+    return (
+      <div className="runtime-next-action-panel runtime-next-action-panel-warning">
+        <div className="runtime-next-action-copy">
+          <StatusBadge label="Action needed" />
+          <div>
+            <strong>Search context runtime does not match this workspace.</strong>
+            <p>
+              Selected search model: <code>{selectedEmbedding}</code>. Active backend search model: <code>{activeEmbedding}</code>.
+              Ask can use the AI answer model, but local source search needs the search model to match the active backend runtime.
+            </p>
+            <p className="runtime-next-action-hint">
+              Fastest way to continue now: use the active backend search model, then rebuild context.
+              To use the selected model instead, quit and reopen the app after starting the backend with that model.
+            </p>
+          </div>
+        </div>
+        <div className="runtime-next-action-buttons">
+          <button
+            className="primary-button"
+            type="button"
+            disabled={actionBusy !== null}
+            onClick={() => void useActiveEmbeddingRuntime()}
+          >
+            {actionBusy === "use-active-embedding"
+              ? "Applying…"
+              : `Use active search model (${activeEmbedding})`}
+          </button>
+          <button
+            className="secondary-action"
+            type="button"
+            disabled={actionBusy !== null}
+            onClick={() => void recheckRuntime()}
+          >
+            {actionBusy === "recheck" ? "Checking…" : "Re-check runtime"}
+          </button>
+        </div>
+        {actionMessage ? <p className="model-selection-message">{actionMessage}</p> : null}
+        {actionError ? <p className="model-selection-error">{actionError}</p> : null}
+      </div>
+    );
+  }
+
+  if (needsContextBuild) {
+    const isRunning = contextBuildJob
+      ? ["queued", "running"].includes(contextBuildJob.status)
+      : false;
+    const isDone = contextBuildJob?.status === "completed";
+    return (
+      <div className="runtime-next-action-panel">
+        <div className="runtime-next-action-copy">
+          <StatusBadge label="Next step" />
+          <div>
+            <strong>Build context so Ask can use local sources.</strong>
+            <p>
+              The models match the active runtime. Build the workspace context once with <code>{activeEmbedding}</code>.
+            </p>
+          </div>
+        </div>
+        <div className="runtime-next-action-buttons">
+          <button
+            className="primary-button"
+            type="button"
+            disabled={isRunning || isDone}
+            onClick={() => void onBuildContext()}
+          >
+            {isRunning ? "Building context…" : isDone ? "Context built" : "Build context now"}
+          </button>
+          <button className="secondary-action" type="button" onClick={() => void recheckRuntime()}>
+            Re-check runtime
+          </button>
+        </div>
+        {contextBuildJob?.message ? (
+          <p className="context-build-callout-note">{contextBuildJob.message}</p>
+        ) : null}
+        {contextBuildError ? <p className="model-selection-error">{contextBuildError}</p> : null}
+        {actionMessage ? <p className="model-selection-message">{actionMessage}</p> : null}
+        {actionError ? <p className="model-selection-error">{actionError}</p> : null}
+      </div>
+    );
+  }
+
+  if (isReady) {
+    return (
+      <div className="runtime-next-action-panel runtime-next-action-panel-ready">
+        <div className="runtime-next-action-copy">
+          <StatusBadge label="Ready" />
+          <div>
+            <strong>Ready to ask questions.</strong>
+            <p>
+              AI model <code>{selectedLlm || activeLlm}</code> and search model <code>{selectedEmbedding || activeEmbedding}</code> are ready for this workspace.
+            </p>
+          </div>
+        </div>
+        <div className="runtime-next-action-buttons">
+          <button className="secondary-action" type="button" onClick={() => void recheckRuntime()}>
+            Re-check runtime
+          </button>
+        </div>
+        {actionMessage ? <p className="model-selection-message">{actionMessage}</p> : null}
+        {actionError ? <p className="model-selection-error">{actionError}</p> : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="runtime-next-action-panel runtime-next-action-panel-warning">
+      <div className="runtime-next-action-copy">
+        <StatusBadge label="Review needed" />
+        <div>
+          <strong>Model setup needs attention.</strong>
+          <p>{getModelWorkspaceStatusMessage(dashboard)}</p>
+        </div>
+      </div>
+      <div className="runtime-next-action-buttons">
+        <button className="secondary-action" type="button" onClick={() => void recheckRuntime()}>
+          Re-check runtime
+        </button>
+      </div>
+      {actionMessage ? <p className="model-selection-message">{actionMessage}</p> : null}
+      {actionError ? <p className="model-selection-error">{actionError}</p> : null}
+    </div>
+  );
+}
+
+function formatProviderModel(provider: string | null | undefined, model: string | null | undefined): string {
+  return provider && model ? `${provider}/${model}` : "not selected";
 }
 
 function ContextBuildCallout({

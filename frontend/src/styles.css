@@ -18504,3 +18504,73 @@ code,
     width: 100%;
   }
 }
+
+/* Task 268: make runtime review actionable directly in the Models screen. */
+.runtime-next-action-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.runtime-next-action-panel-warning {
+  background: rgba(255, 250, 236, 0.88);
+}
+
+.runtime-next-action-panel-ready {
+  background: rgba(241, 252, 247, 0.88);
+}
+
+.runtime-next-action-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.runtime-next-action-copy strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-text-strong);
+  font-size: var(--ui-title);
+  letter-spacing: -0.02em;
+}
+
+.runtime-next-action-copy p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--ui-body);
+  line-height: var(--ui-line);
+}
+
+.runtime-next-action-copy code {
+  padding: 2px 5px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--color-text-strong);
+  overflow-wrap: anywhere;
+}
+
+.runtime-next-action-hint {
+  margin-top: 8px !important;
+}
+
+.runtime-next-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .runtime-next-action-copy {
+    flex-direction: column;
+  }
+
+  .runtime-next-action-buttons > button {
+    width: 100%;
+  }
+}
