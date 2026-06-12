@@ -134,16 +134,34 @@ export function AskWorkspace({
   }, [workspaceId, defaultSourceSnippets]);
 
   useEffect(() => {
-    setHistory([]);
-    setActiveConversationId(null);
-    setConversationSearch("");
-    setShowArchivedConversations(false);
-    setPinnedOnlyConversations(false);
-    void refreshConversations({ search: "", includeArchived: false, pinnedOnly: false });
-    setAnswerNoteSearch("");
-    setAnswerNotesPinnedOnly(false);
-    setConversationContextPreview(null);
-    void refreshAnswerNotes({ search: "", pinnedOnly: false });
+    let cancelled = false;
+
+    async function initializeAskState() {
+      setHistory([]);
+      setActiveConversationId(null);
+      setConversationSearch("");
+      setShowArchivedConversations(false);
+      setPinnedOnlyConversations(false);
+      setAnswerNoteSearch("");
+      setAnswerNotesPinnedOnly(false);
+      setConversationContextPreview(null);
+
+      const [conversationItems] = await Promise.all([
+        refreshConversations({ search: "", includeArchived: false, pinnedOnly: false }),
+        refreshAnswerNotes({ search: "", pinnedOnly: false }),
+      ]);
+
+      const latestConversation = conversationItems[0];
+      if (!cancelled && latestConversation) {
+        await openConversation(latestConversation.id);
+      }
+    }
+
+    void initializeAskState();
+
+    return () => {
+      cancelled = true;
+    };
   }, [workspaceId]);
 
   useEffect(() => {
@@ -162,7 +180,7 @@ export function AskWorkspace({
 
   async function refreshConversations(
     options: { search?: string; includeArchived?: boolean; pinnedOnly?: boolean } = {},
-  ) {
+  ): Promise<WorkspaceConversation[]> {
     try {
       const items = await listWorkspaceConversations(workspaceId, {
         search: options.search ?? conversationSearch,
@@ -170,22 +188,26 @@ export function AskWorkspace({
         pinnedOnly: options.pinnedOnly ?? pinnedOnlyConversations,
       });
       setConversations(items);
+      return items;
     } catch {
       setConversations([]);
+      return [];
     }
   }
 
   async function refreshAnswerNotes(
     options: { search?: string; pinnedOnly?: boolean } = {},
-  ) {
+  ): Promise<ConversationAnswerNote[]> {
     try {
       const notes = await listWorkspaceAnswerNotes(workspaceId, {
         search: options.search ?? answerNoteSearch,
         pinnedOnly: options.pinnedOnly ?? answerNotesPinnedOnly,
       });
       setAnswerNotes(notes);
+      return notes;
     } catch {
       setAnswerNotes([]);
+      return [];
     }
   }
 

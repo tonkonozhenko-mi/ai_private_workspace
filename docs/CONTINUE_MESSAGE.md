@@ -318,3 +318,14 @@ signing/notarization and installer-grade distribution.
 
 
 Task 267 status: packaged persistent RAG was added. The `.app` should pass VECTOR_STORE=sqlite and VECTOR_STORE_PATH under `~/Library/Application Support/AI Private Workspace/data/vector_store.db`; memory remains only for dev/tests. Next check: run packaged smoke and confirm Ask works after quit/reopen without reindex.
+
+## Task 269 — Daily-use MVP polish
+
+The packaged MVP now includes a clearer daily-use path:
+
+- Overview shows a `Use it now` readiness panel.
+- The primary action changes between scan, build context, fix model setup, and ask.
+- Ask reloads the latest conversation for the selected workspace, so restart feels continuous.
+- A new `scripts/check_daily_use_mvp_contracts.sh` guard verifies this UX and safety contract.
+
+Safety remains unchanged: the frontend does not execute shell commands and scan/index/ask do not start automatically on mount.

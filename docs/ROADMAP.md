@@ -489,3 +489,14 @@ Next packaging work:
 ## Task 267 — Persistent packaged RAG index
 
 The packaged MVP should keep workspace chunks after quit/reopen. Implemented SQLite-backed vector persistence under the app-owned data directory and added persistent RAG contract/tests.
+
+## Task 269 — Daily-use MVP polish
+
+The packaged MVP now includes a clearer daily-use path:
+
+- Overview shows a `Use it now` readiness panel.
+- The primary action changes between scan, build context, fix model setup, and ask.
+- Ask reloads the latest conversation for the selected workspace, so restart feels continuous.
+- A new `scripts/check_daily_use_mvp_contracts.sh` guard verifies this UX and safety contract.
+
+Safety remains unchanged: the frontend does not execute shell commands and scan/index/ask do not start automatically on mount.

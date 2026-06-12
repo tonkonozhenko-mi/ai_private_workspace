@@ -74,6 +74,16 @@ export function WorkspaceDashboard({
         </div>
       </header>
 
+      <DailyUseStatusPanel
+        dashboard={dashboard}
+        modelsSummary={modelsSummary}
+        onOpenAsk={onOpenAsk}
+        onOpenModels={onOpenModels}
+        onOpenCapabilities={onOpenCapabilities}
+        onStartScan={() => void onStartScanJob()}
+        onStartIndex={() => void onStartIndexJob()}
+      />
+
       {modelsSummary.overall_status !== "ready" ? (
         <LocalAISetupWarning
           summary={modelsSummary}
@@ -168,6 +178,141 @@ export function WorkspaceDashboard({
       </div>
     </>
   );
+}
+
+
+function DailyUseStatusPanel({
+  dashboard,
+  modelsSummary,
+  onOpenAsk,
+  onOpenModels,
+  onOpenCapabilities,
+  onStartScan,
+  onStartIndex,
+}: {
+  dashboard: WorkspaceDashboardData;
+  modelsSummary: WorkspaceModelsDashboardSummary;
+  onOpenAsk: () => void;
+  onOpenModels: () => void;
+  onOpenCapabilities: () => void;
+  onStartScan: () => void;
+  onStartIndex: () => void;
+}) {
+  const summary = dashboard.summary;
+  const hasScan = summary.has_scan;
+  const indexReady = summary.index_status.status === "indexed";
+  const modelsReady = modelsSummary.overall_status === "ready";
+  const readyToUse = hasScan && indexReady && modelsReady;
+  const nextAction = getDailyUseNextAction({
+    hasScan,
+    indexReady,
+    modelsReady,
+    modelsStatus: modelsSummary.overall_status,
+  });
+
+  function handlePrimaryAction() {
+    if (nextAction.id === "scan") {
+      onStartScan();
+      return;
+    }
+    if (nextAction.id === "index") {
+      onStartIndex();
+      return;
+    }
+    if (nextAction.id === "models") {
+      onOpenModels();
+      return;
+    }
+    onOpenAsk();
+  }
+
+  return (
+    <section className={readyToUse ? "panel daily-use-panel is-ready" : "panel daily-use-panel"}>
+      <div className="daily-use-main">
+        <div>
+          <p className="eyebrow">Use it now</p>
+          <h2>{readyToUse ? "Workspace is ready for questions" : "Next step to make this workspace usable"}</h2>
+          <p>{nextAction.description}</p>
+        </div>
+        <div className="daily-use-actions">
+          <button className="overview-cta-button" type="button" onClick={handlePrimaryAction}>
+            {nextAction.label}
+          </button>
+          <button className="secondary-action" type="button" onClick={onOpenModels}>
+            Check models
+          </button>
+        </div>
+      </div>
+
+      <div className="daily-use-checklist" aria-label="Workspace ready-to-use checklist">
+        <DailyUseCheck label="Project scan" ready={hasScan} detail={hasScan ? `${summary.detected_skills_count} skill(s) found` : "Not scanned yet"} />
+        <DailyUseCheck label="Search context" ready={indexReady} detail={indexReady ? `${summary.index_status.chunks_count} chunk(s) indexed` : formatLabel(summary.index_status.status)} />
+        <DailyUseCheck label="Models" ready={modelsReady} detail={modelsReady ? "Ready" : formatLabel(modelsSummary.overall_status)} />
+        <DailyUseCheck label="Ask history" ready detail="Saved after restart" />
+      </div>
+
+      {!readyToUse ? (
+        <div className="daily-use-help">
+          <span>No hidden automation.</span>
+          <p>Scan, index, and Ask still start only after your click. Open Capabilities for deeper checks.</p>
+          <button className="text-button" type="button" onClick={onOpenCapabilities}>
+            View capabilities
+          </button>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function DailyUseCheck({ label, ready, detail }: { label: string; ready: boolean; detail: string }) {
+  return (
+    <article className={ready ? "daily-use-check is-ready" : "daily-use-check"}>
+      <StatusBadge label={ready ? "ready" : "needs action"} tone={ready ? "success" : "warning"} />
+      <div>
+        <strong>{label}</strong>
+        <span>{detail}</span>
+      </div>
+    </article>
+  );
+}
+
+function getDailyUseNextAction({
+  hasScan,
+  indexReady,
+  modelsReady,
+  modelsStatus,
+}: {
+  hasScan: boolean;
+  indexReady: boolean;
+  modelsReady: boolean;
+  modelsStatus: string;
+}) {
+  if (!hasScan) {
+    return {
+      id: "scan",
+      label: "Scan project",
+      description: "Start with a safe local scan. It reads matching files through the backend and detects project skills.",
+    };
+  }
+  if (!indexReady) {
+    return {
+      id: "index",
+      label: "Build search context",
+      description: "Create persistent local context so Ask can find sources without reindexing after restart.",
+    };
+  }
+  if (!modelsReady) {
+    return {
+      id: "models",
+      label: "Fix model setup",
+      description: `Model setup still needs attention: ${formatLabel(modelsStatus)}. Open Models for the exact next action on the same screen.`,
+    };
+  }
+  return {
+    id: "ask",
+    label: "Ask this workspace",
+    description: "Everything needed for daily use is ready. Ask will use local context and keep sources attached.",
+  };
 }
 
 function WorkspaceOnboardingGuide({
