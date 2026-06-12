@@ -4,13 +4,27 @@
 
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 SPEC_DIR = Path(SPECPATH).resolve()
 BACKEND_DIR = SPEC_DIR.parent
 ENTRYPOINT = BACKEND_DIR / "packaging" / "pyinstaller_backend_entrypoint.py"
 
-hiddenimports = collect_submodules("app")
+hiddenimports = []
+for package in [
+    "app",
+    "uvicorn",
+    "fastapi",
+    "starlette",
+    "pydantic",
+    "pydantic_core",
+    "yaml",
+]:
+    hiddenimports.extend(collect_submodules(package))
+
+datas = []
+for package in ["app"]:
+    datas.extend(collect_data_files(package, include_py_files=False))
 block_cipher = None
 
 
@@ -18,7 +32,7 @@ a = Analysis(
     [str(ENTRYPOINT)],
     pathex=[str(BACKEND_DIR)],
     binaries=[],
-    datas=[],
+    datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

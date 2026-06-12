@@ -10,10 +10,20 @@ HEALTH_URL="http://$HOST:$PORT/health"
 LOG_DIR="${AI_PRIVATE_WORKSPACE_SMOKE_LOG_DIR:-$ROOT_DIR/build/desktop/smoke-logs}"
 LOG_FILE="$LOG_DIR/frozen-backend-smoke.log"
 PID_FILE="$LOG_DIR/frozen-backend-smoke.pid"
-TIMEOUT_SECONDS="${AI_PRIVATE_WORKSPACE_SMOKE_TIMEOUT_SECONDS:-30}"
+APP_DATA_DIR="$LOG_DIR/app-data"
+TIMEOUT_SECONDS="${AI_PRIVATE_WORKSPACE_SMOKE_TIMEOUT_SECONDS:-45}"
 
 fail() { echo "❌ $1" >&2; exit 1; }
 ok() { echo "✅ $1"; }
+print_log_tail() {
+  if [ -f "$LOG_FILE" ]; then
+    echo "--- frozen backend log tail: $LOG_FILE ---" >&2
+    tail -80 "$LOG_FILE" >&2 || true
+    echo "--- end frozen backend log tail ---" >&2
+  else
+    echo "--- frozen backend log missing: $LOG_FILE ---" >&2
+  fi
+}
 
 [ -f "$MANIFEST" ] || fail "Frozen runtime manifest missing. Run scripts/build_pyinstaller_backend_runtime.sh first."
 command -v python3 >/dev/null 2>&1 || fail "python3 is required for safe manifest parsing and health checks"
@@ -44,8 +54,16 @@ if result == 0:
     raise SystemExit(f"port {host}:{port} is already in use; refusing to kill or replace unknown process")
 PY
 
-mkdir -p "$LOG_DIR"
-rm -f "$PID_FILE"
+mkdir -p "$LOG_DIR" "$APP_DATA_DIR"
+rm -f "$PID_FILE" "$LOG_FILE"
+
+APP_ENV="desktop" \
+APP_DATA_DIR="$APP_DATA_DIR" \
+WORKSPACE_DB_PATH="$APP_DATA_DIR/workspaces.db" \
+"$BINARY" --runtime-self-check >"$LOG_FILE" 2>&1 || {
+  print_log_tail
+  fail "frozen backend import preflight failed before startup"
+}
 
 cleanup() {
   if [ -f "$PID_FILE" ]; then
@@ -59,19 +77,27 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+APP_ENV="desktop" \
+APP_DATA_DIR="$APP_DATA_DIR" \
+WORKSPACE_DB_PATH="$APP_DATA_DIR/workspaces.db" \
 AI_PRIVATE_WORKSPACE_HOST="$HOST" \
 AI_PRIVATE_WORKSPACE_PORT="$PORT" \
-"$BINARY" >"$LOG_FILE" 2>&1 &
+"$BINARY" >>"$LOG_FILE" 2>&1 &
 PID="$!"
 echo "$PID" > "$PID_FILE"
 ok "started frozen backend PID $PID"
 
-python3 - "$HEALTH_URL" "$TIMEOUT_SECONDS" <<'PY'
-import json, sys, time, urllib.request
+python3 - "$HEALTH_URL" "$TIMEOUT_SECONDS" "$PID" <<'PY'
+import json, os, signal, sys, time, urllib.request
 url = sys.argv[1]
 deadline = time.time() + int(sys.argv[2])
+pid = int(sys.argv[3])
 last_error = None
 while time.time() < deadline:
+    try:
+        os.kill(pid, 0)
+    except OSError as exc:
+        raise SystemExit(f"frozen backend process exited before health became ready: {exc}") from exc
     try:
         with urllib.request.urlopen(url, timeout=1) as response:
             body = response.read().decode("utf-8")
@@ -88,6 +114,12 @@ while time.time() < deadline:
     time.sleep(0.5)
 raise SystemExit(f"health check failed for {url}: {last_error}")
 PY
+status=$?
+if [ "$status" -ne 0 ]; then
+  print_log_tail
+  exit "$status"
+fi
 
 ok "frozen backend smoke passed: $HEALTH_URL"
 ok "log: $LOG_FILE"
+ok "app data: $APP_DATA_DIR"

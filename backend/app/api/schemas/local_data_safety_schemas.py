@@ -550,6 +550,29 @@ class FrozenBackendSmokeContractResponse(BaseModel):
 
 
 
+
+
+class FrozenBackendStartupDiagnosticsItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    command: str | None = None
+
+
+class FrozenBackendStartupDiagnosticsResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    check_script: str
+    smoke_script: str
+    entrypoint_path: str
+    spec_path: str
+    diagnostics_items: list[FrozenBackendStartupDiagnosticsItemResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
 class AppOwnedBackendStartupGateItemResponse(BaseModel):
     id: str
     title: str

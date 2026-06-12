@@ -368,3 +368,7 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 ## Task 257 — Tauri packaged app build readiness
 
 - `GET /runtime/tauri-packaged-app-build-readiness` — records the packaged macOS/Tauri app build readiness gate. It verifies Tauri bundle activation, package icons, frozen backend runtime resource wiring, packaged manifest lookup paths, `/health` readiness, and `.idea`/`.DS_Store`/Tauri target hygiene before `npm run tauri:build`.
+
+## Task 258 — frozen backend startup diagnostics
+
+- `GET /runtime/frozen-backend-startup-diagnostics` — records the hardened frozen backend diagnostics path after local smoke showed `Connection refused`. It validates explicit import preflight, broader PyInstaller hidden imports, app-owned smoke data paths, and log-tail diagnostics when `/health` does not become ready.

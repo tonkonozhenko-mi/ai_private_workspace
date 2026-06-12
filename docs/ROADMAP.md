@@ -431,3 +431,8 @@ Fixed the local Tauri `cargo check` blocker caused by missing/non-RGBA icon asse
 ## Task 257 — Packaged macOS app build readiness
 
 Phase 22 now moves from successful Tauri dev smoke to packaged macOS app smoke preparation. The next validation target is `npm run tauri:build` after frozen backend runtime build/check/smoke succeeds locally.
+
+### Task 258 — frozen backend startup diagnostics ✅
+
+After local packaged-app work, `npm run tauri:build` succeeded, but `scripts/smoke_frozen_backend_runtime.sh` showed the frozen backend process did not make `/health` ready. Task 258 hardened the PyInstaller entrypoint/spec and smoke script: explicit import self-check, broader hidden imports, app-owned smoke data directory, early-process-exit detection, and log-tail printing on failure. Next local step is to rebuild the frozen backend and rerun the smoke script to see either a clean `/health` pass or a concrete backend traceback.
+
