@@ -1,22 +1,36 @@
 name: Bug report
-description: Report a problem with AI Private Workspace
+description: Report a reproducible problem in AI Private Workspace
 title: "Bug: "
-labels: [bug]
+labels: ["bug"]
 body:
   - type: textarea
-    id: what-happened
+    id: summary
     attributes:
-      label: What happened?
-      description: Describe the bug and the expected behavior.
+      label: Summary
+      description: What happened?
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
       label: Steps to reproduce
-      description: List the steps that reproduce the issue.
+      description: List exact steps and commands when possible.
+    validations:
+      required: true
   - type: textarea
-    id: logs
+    id: expected
     attributes:
-      label: Logs or screenshots
-      description: Paste relevant logs or attach screenshots.
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python, Node, browser/shell, local model runtime.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety relevance
+      options:
+        - label: This involves command execution, model downloads, MCP, Agent workflows, or private project data.
