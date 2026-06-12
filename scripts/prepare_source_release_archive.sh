@@ -27,6 +27,7 @@ zip -r "$ARCHIVE_PATH" . \
   -x './frontend/node_modules/*' \
   -x './frontend/dist/*' \
   -x './frontend/.vite/*' \
+  -x './frontend/src-tauri/target/*' \
   -x './build/*' \
   -x './.pytest_cache/*' \
   -x './.venv/*' \

@@ -416,3 +416,6 @@ Task 250 hardens the real Tauri app-owned backend startup implementation. Deskto
 ### Task 253 — Tauri Rust structure and public npm registry guard ✅
 
 The desktop runtime path now has the correct Cargo library layout for Tauri: `main.rs` delegates to `ai_private_workspace_lib::run()` and `lib.rs` owns the app-owned backend lifecycle commands. The release checks also guard against internal package registry URLs in `frontend/package-lock.json`.
+
+
+* Task 254 — Tauri Rust dependency pin fix + src-tauri target hygiene ✅

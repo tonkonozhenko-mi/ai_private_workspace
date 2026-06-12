@@ -16,3 +16,5 @@ tauri-build = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri = { version = "2", features = [] }
+# Pin time below newer releases that currently conflict with cookie 0.18.x on latest Rust toolchains.
+time = "=0.3.36"

@@ -716,6 +716,28 @@ class TauriRustStructureRegistryResponse(BaseModel):
     safety_rules: list[str]
     next_steps: list[str]
 
+
+
+class TauriRustDependencyPinItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    command: str | None = None
+
+
+class TauriRustDependencyPinsResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    check_script: str
+    cargo_toml_policy: str
+    gitignore_policy: str
+    validation_items: list[TauriRustDependencyPinItemResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str
     purpose: str

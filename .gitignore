@@ -23,3 +23,5 @@ frontend/.vite/
 
 # Release archives are generated artifacts
 build/release/
+frontend/src-tauri/target/
+
