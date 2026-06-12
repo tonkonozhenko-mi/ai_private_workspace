@@ -226,7 +226,11 @@ export function ModelsDetail({
         />
       </section>
 
+      <ModelCatalogPanel />
+
       <LocalModelInstallPanel workspaceId={workspaceId} />
+
+      <WorkspacePermissionsPanel workspaceId={workspaceId} />
 
       <details className="panel models-disclosure-panel model-selection-disclosure">
         <summary>
@@ -276,6 +280,153 @@ export function ModelsDetail({
         </div>
       </details>
     </div>
+  );
+}
+
+
+function ModelCatalogPanel() {
+  const answerModels = [
+    {
+      name: "Qwen2.5 Coder 7B",
+      model: "qwen2.5-coder:7b",
+      fit: "Best coding default",
+      memory: "Good on Apple Silicon with 16 GB+ RAM",
+      use: "Code, scripts, DevOps config, CI/CD, Terraform and troubleshooting.",
+    },
+    {
+      name: "Llama 3.2 3B",
+      model: "llama3.2:3b",
+      fit: "Fast and light",
+      memory: "Good on 8–16 GB RAM",
+      use: "Quick summaries, README questions, light project help.",
+    },
+    {
+      name: "Mistral 7B",
+      model: "mistral:7b",
+      fit: "Balanced general model",
+      memory: "Good on 16 GB+ RAM",
+      use: "General reasoning, docs, project explanations, mixed tasks.",
+    },
+    {
+      name: "Gemma 2 9B",
+      model: "gemma2:9b",
+      fit: "Stronger but heavier",
+      memory: "Better on 24–32 GB+ RAM",
+      use: "Deeper explanations and reviews when speed is less important.",
+    },
+  ];
+  const searchModels = [
+    {
+      name: "Nomic Embed Text",
+      model: "nomic-embed-text",
+      fit: "Recommended search model",
+      memory: "Lightweight",
+      use: "Builds searchable local project context for RAG.",
+    },
+    {
+      name: "mxbai Embed Large",
+      model: "mxbai-embed-large",
+      fit: "Higher quality search",
+      memory: "Heavier than nomic",
+      use: "Use for larger docs/projects when retrieval quality matters more than speed.",
+    },
+  ];
+
+  return (
+    <section className="panel model-catalog-panel" aria-label="Local model catalog">
+      <div className="panel-heading compact-heading">
+        <div>
+          <p className="eyebrow">Model catalog</p>
+          <h2>Pick a local model without guessing.</h2>
+          <p className="panel-helper">
+            Start with Qwen2.5 Coder for DevOps/code work and Nomic Embed Text for search. Avoid very large models unless your Mac has enough memory.
+          </p>
+        </div>
+        <StatusBadge label="Local only" />
+      </div>
+      <div className="model-catalog-grid">
+        <div>
+          <h3>AI answer models</h3>
+          <div className="model-catalog-list">
+            {answerModels.map((item) => (
+              <article key={item.model} className="model-catalog-card">
+                <div>
+                  <strong>{item.name}</strong>
+                  <code>{item.model}</code>
+                </div>
+                <span>{item.fit}</span>
+                <p>{item.use}</p>
+                <small>{item.memory}</small>
+              </article>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h3>Search context models</h3>
+          <div className="model-catalog-list">
+            {searchModels.map((item) => (
+              <article key={item.model} className="model-catalog-card">
+                <div>
+                  <strong>{item.name}</strong>
+                  <code>{item.model}</code>
+                </div>
+                <span>{item.fit}</span>
+                <p>{item.use}</p>
+                <small>{item.memory}</small>
+              </article>
+            ))}
+          </div>
+        </div>
+      </div>
+      <details className="model-catalog-details">
+        <summary>What should I use on my Mac?</summary>
+        <div className="model-catalog-advice-grid">
+          <article><strong>8 GB RAM</strong><span>Llama 3.2 3B + Nomic Embed Text. Keep source snippets low.</span></article>
+          <article><strong>16 GB RAM</strong><span>Qwen2.5 Coder 7B or Mistral 7B + Nomic Embed Text.</span></article>
+          <article><strong>24–32 GB+ RAM</strong><span>Try Gemma 2 9B or larger 7B/8B models. Avoid 70B/120B locally.</span></article>
+        </div>
+      </details>
+    </section>
+  );
+}
+
+function WorkspacePermissionsPanel({ workspaceId }: { workspaceId: string }) {
+  return (
+    <section className="panel workspace-permissions-panel" aria-label="Agent and MCP permissions">
+      <div className="panel-heading compact-heading">
+        <div>
+          <p className="eyebrow">Permissions</p>
+          <h2>Agent and MCP access stay approval-based.</h2>
+          <p className="panel-helper">MCP and computer-control style actions are important, but they should appear as permissions, not as always-visible dashboard noise.</p>
+        </div>
+        <StatusBadge label="Ask first" />
+      </div>
+      <div className="permission-grid">
+        <article>
+          <strong>Read project files</strong>
+          <span>Allowed after you choose a folder and run Scan/Build context.</span>
+        </article>
+        <article>
+          <strong>Edit or create files</strong>
+          <span>Disabled by default. The assistant must ask before any future write action.</span>
+        </article>
+        <article>
+          <strong>MCP tools</strong>
+          <span>Configured and reviewed before use. No hidden MCP server startup.</span>
+        </article>
+        <article>
+          <strong>Run commands</strong>
+          <span>Not allowed from frontend. Future backend actions need explicit approval.</span>
+        </article>
+      </div>
+      <details className="model-catalog-details">
+        <summary>Advanced MCP registry</summary>
+        <div className="permission-mcp-note">
+          <strong>MCP is still part of the product.</strong>
+          <p>For daily use it stays behind an approval gate: configure server, preview tools, review permissions, then explicitly allow a step. Future tool requests should appear inline when the assistant needs them.</p>
+        </div>
+      </details>
+    </section>
   );
 }
 
