@@ -302,3 +302,4 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 
 | `GET /runtime/product-completion-roadmap` | Return an honest v0.1-to-v1 completion roadmap, remaining large work packages, and safety boundaries. | No | No | No | Settings / GitHub handoff |
 | `GET /runtime/final-product-status` | Return the final v0.1 source-RC status, v1.0 runway, remaining tasks, publication checks, and safety boundaries. | No | No | No | Settings / final handoff |
+| `GET /runtime/v0.1-release-gate` | Return the final local go/no-go checklist before publishing the v0.1 source RC or creating the release archive. | No | No | No | Release checklist / GitHub handoff |

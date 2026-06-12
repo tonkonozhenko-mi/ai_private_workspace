@@ -280,3 +280,15 @@ Remaining v1 work is intentionally separate from the source RC:
 ## Task 232 — final status and v1 runway clarity
 
 Added a final status endpoint and Settings UI section so the app clearly says where the project is: v0.1 source RC is ready after local validation, while a true v1.0 installer-grade product still requires roughly 15-25 large tasks across runtime bundling, installers, persistent jobs, and sandboxed Agent/MCP execution.
+
+## Task 235 — v0.1 release gate and roadmap lock ✅
+
+Task 235 adds the final source-release go/no-go layer before the first GitHub push:
+
+- `GET /runtime/v0.1-release-gate` for local audit/build/test/UI smoke-check status.
+- explicit 0-1 large-task estimate for the remaining v0.1 source RC publication step.
+- explicit 15-25 large-task estimate for the future v1.0 installer-grade product.
+- updated next-task wording so v0.1 does not drift into new feature work before publication.
+
+Current position: Phase 21 is effectively complete as a source release candidate. The next step is local verification and GitHub/source archive publication. Phase 22/v0.2 should start only after v0.1 is published or intentionally frozen.
+

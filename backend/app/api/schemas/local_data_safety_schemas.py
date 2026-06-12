@@ -464,6 +464,28 @@ class FinalProductStatusResponse(BaseModel):
     not_v1_yet: list[str]
     safety_rules: list[str]
 
+
+
+class V01ReleaseGateItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    command: str | None = None
+
+
+class V01ReleaseGateResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    current_position: str
+    source_rc_remaining_tasks: str
+    v1_remaining_large_tasks: str
+    release_gate_items: list[V01ReleaseGateItemResponse]
+    go_no_go_rule: str
+    next_actions: list[str]
+    safety_rules: list[str]
+
 class DatabaseBackupResponse(BaseModel):
     filename: str
     path: str

@@ -47,6 +47,8 @@ from app.api.schemas.local_data_safety_schemas import (
     ProductCompletionRoadmapResponse,
     FinalProductStageResponse,
     FinalProductStatusResponse,
+    V01ReleaseGateItemResponse,
+    V01ReleaseGateResponse,
     FirstLaunchChecklistItemResponse,
     FirstLaunchReadinessResponse,
     DatabaseBackupResponse,
@@ -1737,10 +1739,9 @@ def get_product_completion_roadmap() -> ProductCompletionRoadmapResponse:
             ProductCompletionStageResponse(id="v1", title="v1.0 polished product", status="target", summary="Installer-grade desktop product with stable local runtime, polished onboarding, safe execution model, and user-facing troubleshooting.", remaining_large_tasks=4),
         ],
         next_recommended_tasks=[
-            "Task 232 — final product status and v1 runway clarity.",
-            "Task 233 — final screenshot/UI smoke review from a real local run.",
-            "Task 234 — first GitHub push checklist and repository hygiene verification.",
-            "Task 235 — v0.2 planning kickoff: frozen backend runtime and Tauri supervisor implementation.",
+            "Task 235 — final v0.1 release gate and roadmap lock.",
+            "Task 236 — local UI smoke-check results and first GitHub publication cleanup, if needed.",
+            "Task 237 — v0.2 planning kickoff: frozen backend runtime and Tauri supervisor implementation.",
         ],
         not_done_yet=[
             "Final frozen backend binary/runtime bundle.",
@@ -1759,6 +1760,40 @@ def get_product_completion_roadmap() -> ProductCompletionRoadmapResponse:
         ],
     )
 
+
+
+@router.get("/v0.1-release-gate", response_model=V01ReleaseGateResponse)
+def get_v01_release_gate() -> V01ReleaseGateResponse:
+    """Return the final go/no-go checklist before publishing the v0.1 source RC."""
+    return V01ReleaseGateResponse(
+        status="v0.1-source-rc-release-gate",
+        title="v0.1 release gate",
+        summary="Use this as the final local go/no-go checklist before creating the source archive or pushing AI Private Workspace v0.1 to GitHub.",
+        current_position="Phase 21 is effectively complete as a source release candidate. The remaining v0.1 work is local verification and publication hygiene, not new product capability.",
+        source_rc_remaining_tasks="0-1 large task: local UI smoke-check, clean git status, audit/build/test pass, and source archive or first GitHub push.",
+        v1_remaining_large_tasks="Roughly 15-25 large tasks remain for a true v1.0 installer-grade product: frozen runtime, signed installers, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.",
+        release_gate_items=[
+            V01ReleaseGateItemResponse(id="audit", title="Release audit", status="required", summary="Must pass with no real blockers before source publication.", command="./scripts/audit_release_candidate.sh"),
+            V01ReleaseGateItemResponse(id="backend-tests", title="Backend targeted tests", status="required", summary="Validates release audit, API inventory, final status, and source archive behavior.", command="cd backend && pytest -q tests/test_release_candidate_audit_script.py tests/test_source_release_archive_script.py tests/test_release_candidate_audit.py tests/test_api_inventory.py tests/test_final_product_status.py tests/test_product_completion_roadmap.py tests/test_v01_release_gate.py"),
+            V01ReleaseGateItemResponse(id="frontend-build", title="Frontend production build", status="required", summary="Confirms the UI compiles before GitHub/source archive publication.", command="cd frontend && npm ci && npm run build"),
+            V01ReleaseGateItemResponse(id="ui-smoke", title="Local UI smoke-check", status="recommended", summary="Open the app locally and verify Models, Settings, onboarding, workspace creation, and no automatic scan/index/model download on startup."),
+            V01ReleaseGateItemResponse(id="git-status", title="Git status cleanup", status="required", summary="Only intentional source/docs/config changes should be staged; runtime/build/cache data must remain untracked or ignored.", command="git status --short"),
+            V01ReleaseGateItemResponse(id="source-archive", title="Clean source archive", status="required-for-zip-release", summary="Creates a root-preserving source archive without runtime/build artifacts.", command="./scripts/prepare_source_release_archive.sh"),
+        ],
+        go_no_go_rule="Go only when audit, backend targeted tests, frontend build, and git status are clean; treat UI smoke-check as the final human confidence check before publishing.",
+        next_actions=[
+            "Run the release gate commands locally on the latest clean source tree.",
+            "Fix only real blockers; avoid adding new features to v0.1 unless they are release blockers.",
+            "Create the source archive or push the clean repository to GitHub.",
+            "After v0.1 is published, start Phase 22/v0.2 with frozen backend runtime and Tauri supervisor work.",
+        ],
+        safety_rules=[
+            "Do not include backend/.ai-workbench, virtualenvs, node_modules, dist/build outputs, caches, or SQLite/database files in the release.",
+            "Desktop startup must not trigger scan, index, rebuild, MCP, Agent, or model downloads.",
+            "Frontend must not execute shell commands.",
+            "MCP/Agent execution remains disabled until sandbox, approvals, allowlists, and audit logs are implemented.",
+        ],
+    )
 
 
 @router.get("/final-product-status", response_model=FinalProductStatusResponse)
@@ -1786,9 +1821,9 @@ def get_final_product_status() -> FinalProductStatusResponse:
             FinalProductStageResponse(id="v1", title="v1.0 polished product", status="target", summary="Installer-grade local desktop product with stable runtime, clear onboarding, safe execution, recovery, and polished UI.", remaining_large_tasks="4-6"),
         ],
         next_recommended_tasks=[
-            "Task 233 — final screenshot/UI smoke review from a real local run.",
-            "Task 234 — first GitHub push checklist and repository hygiene verification.",
-            "Task 235 — v0.2 planning kickoff: frozen backend runtime and Tauri supervisor implementation.",
+            "Task 235 — final v0.1 release gate and roadmap lock.",
+            "Task 236 — local UI smoke-check results and first GitHub publication cleanup, if needed.",
+            "Task 237 — v0.2 planning kickoff: frozen backend runtime and Tauri supervisor implementation.",
         ],
         publication_checks=[
             ReleaseCandidateAuditCommandResponse(label="Release audit", command="./scripts/audit_release_candidate.sh", purpose="Verify source layout, docs, safety rules, and no runtime database leakage."),
