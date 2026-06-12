@@ -63,6 +63,7 @@ import type {
   AppOwnedBackendStartupImplementation,
   AppOwnedBackendHealthReadiness,
   MacOSTauriSmokeRunbook,
+  MacOSPackagedAppSmokePreflight,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -261,6 +262,10 @@ export function getAppOwnedBackendHealthReadiness(): Promise<AppOwnedBackendHeal
 
 export function getMacOSTauriSmokeRunbook(): Promise<MacOSTauriSmokeRunbook> {
   return getJson<MacOSTauriSmokeRunbook>("/runtime/macos-tauri-smoke-runbook");
+}
+
+export function getMacOSPackagedAppSmokePreflight(): Promise<MacOSPackagedAppSmokePreflight> {
+  return getJson<MacOSPackagedAppSmokePreflight>("/runtime/macos-packaged-app-smoke-preflight");
 }
 
 export function getWindowsPackagingFoundation(): Promise<WindowsPackagingFoundation> {

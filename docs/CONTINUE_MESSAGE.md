@@ -64,3 +64,16 @@ Task 250 — Tauri backend health readiness gate ✅
 - Failed readiness cleanup stops only the child process started by this app session.
 - No kill-by-port, no generic shell execution, no scan/index/rebuild/MCP/Agent/model downloads on launch.
 - Next recommended large task: local macOS cargo/PyInstaller/Tauri smoke fixes, then Windows parity.
+
+Task 251 — macOS packaged app smoke preflight ✅
+
+- Added Tauri CLI npm wiring:
+  - `npm run tauri dev`
+  - `npm run tauri:dev`
+  - `npm run tauri:build`
+- Added `@tauri-apps/cli` to frontend devDependencies and package-lock.
+- Added backend endpoint `GET /runtime/macos-packaged-app-smoke-preflight`.
+- Added Settings section “macOS packaged app smoke preflight”.
+- Added script `scripts/check_macos_packaged_app_smoke_preflight.sh`.
+- Added doc `docs/TASK251_MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md`.
+- Next: local macOS smoke should run `scripts/build_pyinstaller_backend_runtime.sh`, `scripts/smoke_frozen_backend_runtime.sh`, `cargo check`, and `npm run tauri dev`.

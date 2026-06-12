@@ -62,6 +62,8 @@ from app.api.schemas.local_data_safety_schemas import (
     AppOwnedBackendHealthReadinessResponse,
     MacOSTauriSmokeRunbookItemResponse,
     MacOSTauriSmokeRunbookResponse,
+    MacOSPackagedAppSmokePreflightItemResponse,
+    MacOSPackagedAppSmokePreflightResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
@@ -2149,6 +2151,99 @@ def get_macos_tauri_smoke_runbook() -> MacOSTauriSmokeRunbookResponse:
             "Fix hidden imports or resource paths found by the frozen runtime smoke.",
             "After macOS Tauri startup is proven, mirror the runtime smoke contract on Windows.",
             "Then move to signed DMG/MSI packaging and update flow work.",
+        ],
+    )
+
+
+@router.get("/macos-packaged-app-smoke-preflight", response_model=MacOSPackagedAppSmokePreflightResponse)
+def get_macos_packaged_app_smoke_preflight() -> MacOSPackagedAppSmokePreflightResponse:
+    """Return the local macOS packaged-app smoke preflight checklist."""
+    root = Path(__file__).resolve().parents[4]
+    package_json = root / "frontend" / "package.json"
+    package_lock = root / "frontend" / "package-lock.json"
+    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "main.rs"
+    tauri_config = root / "frontend" / "src-tauri" / "tauri.conf.json"
+    frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+
+    package_text = package_json.read_text(encoding="utf-8") if package_json.exists() else ""
+    lock_text = package_lock.read_text(encoding="utf-8") if package_lock.exists() else ""
+    bridge_text = tauri_bridge.read_text(encoding="utf-8") if tauri_bridge.exists() else ""
+
+    items = [
+        MacOSPackagedAppSmokePreflightItemResponse(
+            id="tauri-cli-script",
+            title="Tauri CLI npm scripts",
+            status="ok" if '"tauri": "tauri"' in package_text and '"tauri:dev": "tauri dev"' in package_text else "blocked",
+            summary="Frontend package exposes npm run tauri dev and npm run tauri:dev so the smoke runbook is executable.",
+            command="cd frontend && npm run tauri dev",
+        ),
+        MacOSPackagedAppSmokePreflightItemResponse(
+            id="tauri-cli-lockfile",
+            title="Tauri CLI lockfile",
+            status="ok" if "node_modules/@tauri-apps/cli" in lock_text else "blocked",
+            summary="package-lock.json includes @tauri-apps/cli, so npm ci can install the desktop CLI reproducibly.",
+            command="cd frontend && npm ci",
+        ),
+        MacOSPackagedAppSmokePreflightItemResponse(
+            id="tauri-config",
+            title="Tauri config",
+            status="ok" if tauri_config.exists() else "blocked",
+            summary="Tauri config is present for macOS dev/package smoke.",
+            command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml",
+        ),
+        MacOSPackagedAppSmokePreflightItemResponse(
+            id="health-readiness",
+            title="HTTP health readiness",
+            status="ok" if "GET /health HTTP/1.1" in bridge_text and "wait_for_backend_health" in bridge_text else "blocked",
+            summary="Desktop readiness requires HTTP /health 200, not TCP-only availability.",
+            command="scripts/check_tauri_backend_health_readiness.sh",
+        ),
+        MacOSPackagedAppSmokePreflightItemResponse(
+            id="frozen-manifest",
+            title="Frozen runtime manifest",
+            status="ready_after_local_build" if not frozen_manifest.exists() else "ok",
+            summary="Frozen backend manifest is generated locally and should not be committed in source archives.",
+            command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh",
+        ),
+    ]
+
+    status = "ready_after_local_frozen_build"
+    if any(item.status == "blocked" for item in items):
+        status = "blocked"
+
+    return MacOSPackagedAppSmokePreflightResponse(
+        status=status,
+        title="macOS packaged app smoke preflight",
+        summary="Makes the macOS/Tauri smoke path reproducible by adding npm Tauri CLI wiring, lockfile support, and a single preflight checklist before packaged app smoke.",
+        runbook_doc="docs/TASK251_MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md",
+        check_script="scripts/check_macos_packaged_app_smoke_preflight.sh",
+        package_manager="npm + package-lock.json",
+        desktop_shell="Tauri + React",
+        preflight_items=items,
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Check packaged app smoke preflight", command="scripts/check_macos_packaged_app_smoke_preflight.sh", purpose="Validate npm/Tauri CLI wiring, Rust scaffold, frozen runtime gates, and safety boundaries before package smoke."),
+            DesktopRuntimeValidationCommandResponse(label="Build and smoke frozen backend", command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh", purpose="Generate the local frozen backend runtime and prove /health before Tauri smoke."),
+            DesktopRuntimeValidationCommandResponse(label="Run Tauri dev smoke", command="cd frontend && npm ci && npm run build && cargo check --manifest-path src-tauri/Cargo.toml && npm run tauri dev", purpose="Run the macOS desktop shell against the app-owned backend lifecycle."),
+        ],
+        pass_criteria=[
+            "npm ci installs @tauri-apps/cli from package-lock.json.",
+            "npm run tauri dev is available.",
+            "cargo check passes locally on macOS.",
+            "Frozen backend smoke passes before Tauri startup is trusted.",
+            "Tauri reports ready only after HTTP /health returns 200.",
+        ],
+        safety_rules=[
+            "React/frontend does not execute shell commands.",
+            "Tauri exposes only app-owned backend lifecycle commands.",
+            "No generic shell execution is exposed to the UI.",
+            "No pkill, killall, taskkill, or kill-by-port behavior.",
+            "Desktop launch must not start scan, index, rebuild, MCP, Agent, or model downloads.",
+        ],
+        next_steps=[
+            "Run the preflight and frozen backend smoke locally on macOS.",
+            "Run npm run tauri dev and verify start/health/stop behavior.",
+            "After dev smoke passes, run npm run tauri:build and inspect packaged app resources.",
+            "Then mirror the same smoke path on Windows before installer work.",
         ],
     )
 

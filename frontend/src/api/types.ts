@@ -2230,6 +2230,30 @@ export interface MacOSTauriSmokeRunbook {
   next_steps: string[];
 }
 
+
+export interface MacOSPackagedAppSmokePreflightItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  command: string | null;
+}
+
+export interface MacOSPackagedAppSmokePreflight {
+  status: string;
+  title: string;
+  summary: string;
+  runbook_doc: string;
+  check_script: string;
+  package_manager: string;
+  desktop_shell: string;
+  preflight_items: MacOSPackagedAppSmokePreflightItem[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  pass_criteria: string[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
 export interface StagedBackendRuntimeItem {
   id: string;
   title: string;
