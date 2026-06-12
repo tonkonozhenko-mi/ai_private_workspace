@@ -436,3 +436,16 @@ Fixed the local Tauri `cargo check` blocker caused by missing/non-RGBA icon asse
 Local macOS Tauri development smoke now works. Added `/runtime/tauri-dev-smoke-readiness`, `scripts/check_tauri_dev_smoke_readiness.sh`, and tests to keep the successful Tauri dev path reproducible. The next major Phase 22 goal is packaged macOS smoke using the frozen backend runtime, followed by Windows parity.
 
 Current estimate to 100% v1.0: roughly 5–8 large tasks, depending on macOS packaged build, Windows parity, signing/installer, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.
+
+## Task 257 checkpoint
+
+Task 257 adds Tauri packaged app build readiness:
+
+- `.idea/`, `.DS_Store`, and `frontend/src-tauri/target/` are treated as local-only artifacts.
+- Tauri bundling is enabled for local packaged app smoke.
+- Frozen backend runtime is declared as a Tauri resource.
+- Tauri supervisor can look for the frozen runtime manifest under packaged app Resources.
+- New check script: `scripts/check_tauri_packaged_app_build.sh`.
+- New endpoint: `GET /runtime/tauri-packaged-app-build-readiness`.
+
+Current roadmap position: Phase 22 / v0.2 desktop runtime foundation is strongly in progress. Remaining to 100% v1.0 is roughly 5–8 large tasks depending on macOS packaged smoke, Windows parity, installers/signing, persistent jobs, MCP/Agent execution, update flow, and final QA.

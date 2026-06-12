@@ -64,6 +64,7 @@ import type {
   AppOwnedBackendHealthReadiness,
   MacOSTauriSmokeRunbook,
   MacOSPackagedAppSmokePreflight,
+  TauriPackagedAppBuildReadiness,
   TauriRustStructureRegistry,
   TauriRustDependencyPins,
   WindowsPackagingFoundation,
@@ -270,6 +271,10 @@ export function getMacOSPackagedAppSmokePreflight(): Promise<MacOSPackagedAppSmo
   return getJson<MacOSPackagedAppSmokePreflight>("/runtime/macos-packaged-app-smoke-preflight");
 }
 
+
+export function getTauriPackagedAppBuildReadiness(): Promise<TauriPackagedAppBuildReadiness> {
+  return getJson<TauriPackagedAppBuildReadiness>("/runtime/tauri-packaged-app-build-readiness");
+}
 
 export function getTauriRustStructureRegistry(): Promise<TauriRustStructureRegistry> {
   return getJson<TauriRustStructureRegistry>("/runtime/tauri-rust-structure-registry");

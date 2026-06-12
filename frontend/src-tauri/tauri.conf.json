@@ -26,10 +26,21 @@
     }
   },
   "bundle": {
-    "active": false,
-    "targets": "all",
+    "active": true,
+    "targets": [
+      "app"
+    ],
     "category": "DeveloperTool",
     "shortDescription": "Local-first AI workspace for private project onboarding.",
-    "longDescription": "AI Private Workspace runs local project analysis, local model setup, and safe agent planning without uploading private project data."
+    "longDescription": "AI Private Workspace runs local project analysis, local model setup, and safe agent planning without uploading private project data.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
+    ],
+    "resources": [
+      "../../build/desktop/frozen-backend-runtime"
+    ]
   }
 }

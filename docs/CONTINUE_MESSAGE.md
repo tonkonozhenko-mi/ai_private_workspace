@@ -130,3 +130,26 @@ Current roadmap:
 Next recommended task:
 
 Task 257 — packaged macOS app smoke preparation/build hardening. Focus on `npm run tauri:build`, frozen backend runtime placement, bundled resource paths, and app-owned logs/data validation.
+
+Task 257 — Tauri packaged app build readiness ✅
+
+- Added `.idea/` and `.DS_Store` repository hygiene.
+- Kept `frontend/src-tauri/target/` ignored and excluded from release archives.
+- Enabled Tauri bundle config for packaged app smoke.
+- Declared frozen backend runtime as a packaged Tauri resource.
+- Added packaged Resources manifest lookup in Tauri supervisor.
+- Added `scripts/check_tauri_packaged_app_build.sh`.
+- Added endpoint `GET /runtime/tauri-packaged-app-build-readiness` and Settings UI section.
+
+Next local smoke path:
+
+```bash
+./scripts/check_tauri_packaged_app_build.sh
+./scripts/build_pyinstaller_backend_runtime.sh
+./scripts/check_pyinstaller_backend_runtime.sh
+./scripts/smoke_frozen_backend_runtime.sh
+cd frontend
+npm run tauri:build
+```
+
+Then open the generated macOS app and verify app-owned backend startup, `/health`, logs/data paths, and no auto scan/index/rebuild/MCP/Agent/model downloads.

@@ -25,3 +25,5 @@ frontend/.vite/
 build/release/
 frontend/src-tauri/target/
 
+# IDE and OS metadata
+.idea/

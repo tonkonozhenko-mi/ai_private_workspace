@@ -145,6 +145,8 @@ fn runtime_manifest_candidates() -> Vec<PathBuf> {
             candidates.push(exe_dir.join("backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"));
             candidates.push(exe_dir.join("../Resources/backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"));
             candidates.push(exe_dir.join("../../Resources/backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"));
+            candidates.push(exe_dir.join("../Resources/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"));
+            candidates.push(exe_dir.join("../../Resources/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"));
         }
     }
     candidates

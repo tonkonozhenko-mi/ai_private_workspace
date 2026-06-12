@@ -2255,6 +2255,28 @@ export interface MacOSPackagedAppSmokePreflight {
 }
 
 
+
+export interface TauriPackagedAppBuildItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  command: string | null;
+}
+
+export interface TauriPackagedAppBuildReadiness {
+  status: string;
+  title: string;
+  summary: string;
+  milestone: string;
+  check_script: string;
+  packaged_build_command: string;
+  readiness_items: TauriPackagedAppBuildItem[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
 export interface TauriRustStructureRegistryItem {
   id: string;
   title: string;
