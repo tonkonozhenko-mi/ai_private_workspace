@@ -826,6 +826,30 @@ class TauriPackagedAppBuildReadinessResponse(BaseModel):
     safety_rules: list[str]
     next_steps: list[str]
 
+
+
+class MacOSPackagedAppSmokeResultItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    evidence: str | None = None
+    command: str | None = None
+
+
+class MacOSPackagedAppSmokeResultResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    milestone: str
+    check_script: str
+    packaged_app_path: str
+    local_results: list[MacOSPackagedAppSmokeResultItemResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
+
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str
     purpose: str

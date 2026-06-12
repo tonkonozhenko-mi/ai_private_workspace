@@ -2300,6 +2300,28 @@ export interface TauriPackagedAppBuildReadiness {
   next_steps: string[];
 }
 
+export interface MacOSPackagedAppSmokeResultItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  evidence: string | null;
+  command: string | null;
+}
+
+export interface MacOSPackagedAppSmokeResult {
+  status: string;
+  title: string;
+  summary: string;
+  milestone: string;
+  check_script: string;
+  packaged_app_path: string;
+  local_results: MacOSPackagedAppSmokeResultItem[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
 export interface TauriRustStructureRegistryItem {
   id: string;
   title: string;
