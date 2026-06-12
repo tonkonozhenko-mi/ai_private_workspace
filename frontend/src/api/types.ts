@@ -654,6 +654,31 @@ export interface BackendRuntimeBundlePlan {
 }
 
 
+
+export interface DesktopRuntimeReadinessItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  evidence: string;
+  next_action: string;
+}
+
+export interface DesktopRuntimeReadiness {
+  status: string;
+  title: string;
+  summary: string;
+  current_phase: string;
+  v01_position: string;
+  v02_goal: string;
+  readiness_items: DesktopRuntimeReadinessItem[];
+  implementation_order: string[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  blocked_until: string[];
+  safety_rules: string[];
+  honest_remaining_work: string;
+}
+
 export interface TauriShellScaffoldFile {
   path: string;
   purpose: string;

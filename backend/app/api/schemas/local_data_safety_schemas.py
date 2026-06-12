@@ -252,6 +252,38 @@ class BackendRuntimeBundlePlanResponse(BaseModel):
     next_steps: list[str]
 
 
+
+
+class DesktopRuntimeValidationCommandResponse(BaseModel):
+    label: str
+    command: str
+    purpose: str
+
+
+class DesktopRuntimeReadinessItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    evidence: str
+    next_action: str
+
+
+class DesktopRuntimeReadinessResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    current_phase: str
+    v01_position: str
+    v02_goal: str
+    readiness_items: list[DesktopRuntimeReadinessItemResponse]
+    implementation_order: list[str]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    blocked_until: list[str]
+    safety_rules: list[str]
+    honest_remaining_work: str
+
+
 class TauriShellScaffoldFileResponse(BaseModel):
     path: str
     purpose: str
@@ -380,7 +412,7 @@ class ReleaseCandidateAuditResponse(BaseModel):
     blocked_items: list[ReleaseCandidateAuditItemResponse]
     review_items: list[ReleaseCandidateAuditItemResponse]
     passed_items: list[ReleaseCandidateAuditItemResponse]
-    validation_commands: list[ReleaseCandidateAuditCommandResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
     final_handoff_steps: list[str]
     safety_rules: list[str]
     known_limitations: list[str]
@@ -411,7 +443,7 @@ class V01HandoffResponse(BaseModel):
     demo_steps: list[V01DemoStepResponse]
     repository_highlights: list[str]
     important_files: list[V01RepositoryFileResponse]
-    validation_commands: list[ReleaseCandidateAuditCommandResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
     release_notes: list[str]
     known_limitations: list[str]
     next_after_v01: list[str]

@@ -309,3 +309,6 @@ Current roadmap position after Task 236:
 - Added final read-only publication handoff endpoint and Settings UI section.
 - Current roadmap position: Phase 21 effectively complete; v0.1 has 0-1 large task left for manual smoke-check/publication cleanup.
 - v1.0 still needs roughly 15-25 large tasks: frozen runtime, signed installers, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.
+## Task 238 — desktop runtime readiness
+
+Task 238 adds the Phase 22 / v0.2 desktop runtime readiness endpoint and Settings UI handoff. The project should now stop adding v0.1 features unless local smoke-check finds blockers. The next product stage is desktop runtime reliability: backend runtime manifest, Tauri supervisor status, app-owned backend startup, app-owned logs/data, and no automatic scan/index/MCP/Agent/model downloads on launch.
