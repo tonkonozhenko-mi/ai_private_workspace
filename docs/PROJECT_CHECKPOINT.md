@@ -317,3 +317,12 @@ Task 238 adds the Phase 22 / v0.2 desktop runtime readiness endpoint and Setting
 ### Task 239 — Desktop runtime preflight
 
 Task 239 adds a read-only Phase 22 gate with `GET /runtime/desktop-runtime-preflight`, `scripts/check_desktop_runtime_preflight.sh`, backend tests, and a Settings UI section. It verifies backend entrypoint, runtime manifest, frontend build output, macOS package foundation script, and Tauri scaffold before any real Tauri backend process supervision is implemented. It preserves the rule that frontend code can display/copy commands but never execute shell commands.
+
+
+## Task 240 — Tauri supervisor static gate
+
+- Added a read-only Tauri supervisor static gate for Phase 22.
+- Added `GET /runtime/tauri-supervisor-static-gate`.
+- Added `scripts/check_tauri_supervisor_bridge.sh`.
+- Tauri bridge now exposes status, log paths, and preflight data while keeping backend startup disabled.
+- Next larger step: frozen/staged backend runtime and deterministic app-owned startup design.

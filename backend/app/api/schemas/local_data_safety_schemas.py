@@ -375,6 +375,25 @@ class TauriSupervisorBridgeResponse(BaseModel):
 
 
 
+class TauriSupervisorStaticGateItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    evidence: str
+
+
+class TauriSupervisorStaticGateResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    check_script: str
+    bridge_file: str
+    items: list[TauriSupervisorStaticGateItemResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
 
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str

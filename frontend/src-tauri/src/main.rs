@@ -1,40 +1,123 @@
 use serde::Serialize;
+use std::env;
+use std::path::PathBuf;
 
 #[derive(Serialize)]
 struct SupervisorStatus {
-    state: &'static str,
-    user_message: &'static str,
-    health_url: &'static str,
-    data_directory_hint: &'static str,
-    logs_directory_hint: &'static str,
-    execution_mode: &'static str,
+    state: String,
+    user_message: String,
+    health_url: String,
+    data_directory_hint: String,
+    logs_directory_hint: String,
+    execution_mode: String,
+    backend_start_enabled: bool,
+    safe_launch_contract: Vec<String>,
 }
 
 #[derive(Serialize)]
 struct SupervisorLogPaths {
-    launcher_log: &'static str,
-    backend_log: &'static str,
-    model_download_log: &'static str,
+    logs_directory: String,
+    launcher_log: String,
+    backend_log: String,
+    model_download_log: String,
+    supervisor_state_file: String,
+}
+
+#[derive(Serialize)]
+struct SupervisorPreflightItem {
+    id: String,
+    status: String,
+    summary: String,
+}
+
+#[derive(Serialize)]
+struct SupervisorPreflight {
+    status: String,
+    items: Vec<SupervisorPreflightItem>,
+    safety_note: String,
+}
+
+fn app_data_dir() -> PathBuf {
+    if cfg!(target_os = "macos") {
+        let home = env::var("HOME").unwrap_or_else(|_| "~".to_string());
+        return PathBuf::from(home).join("Library/Application Support/AI Private Workspace");
+    }
+
+    if cfg!(target_os = "windows") {
+        let local_app_data = env::var("LOCALAPPDATA").unwrap_or_else(|_| "%LOCALAPPDATA%".to_string());
+        return PathBuf::from(local_app_data).join("AI Private Workspace");
+    }
+
+    let home = env::var("HOME").unwrap_or_else(|_| "~".to_string());
+    PathBuf::from(home).join(".local/share/AI Private Workspace")
+}
+
+fn logs_dir() -> PathBuf {
+    app_data_dir().join("logs")
 }
 
 #[tauri::command]
 fn get_supervisor_status() -> SupervisorStatus {
     SupervisorStatus {
-        state: "scaffold",
-        user_message: "Desktop supervisor bridge is scaffolded. Backend startup is still owned by the safe development scripts until runtime bundling is finalized.",
-        health_url: "http://127.0.0.1:8000/health",
-        data_directory_hint: "~/Library/Application Support/AI Private Workspace",
-        logs_directory_hint: "~/Library/Application Support/AI Private Workspace/logs",
-        execution_mode: "read-only bridge scaffold",
+        state: "read_only_preflight".to_string(),
+        user_message: "Desktop supervisor bridge is ready for read-only status/log path checks. Backend startup is still disabled until the runtime bundle is frozen.".to_string(),
+        health_url: "http://127.0.0.1:8000/health".to_string(),
+        data_directory_hint: app_data_dir().display().to_string(),
+        logs_directory_hint: logs_dir().display().to_string(),
+        execution_mode: "read-only supervisor bridge; no process startup".to_string(),
+        backend_start_enabled: false,
+        safe_launch_contract: vec![
+            "Do not start scan, index, rebuild, MCP, Agent, or model downloads on desktop launch.".to_string(),
+            "Do not expose arbitrary shell execution to React.".to_string(),
+            "Do not kill unknown processes on localhost ports.".to_string(),
+            "Keep runtime data and logs outside the app bundle.".to_string(),
+        ],
     }
 }
 
 #[tauri::command]
 fn get_supervisor_log_paths() -> SupervisorLogPaths {
+    let logs = logs_dir();
     SupervisorLogPaths {
-        launcher_log: "~/Library/Application Support/AI Private Workspace/logs/macos-app-launcher.log",
-        backend_log: "~/Library/Application Support/AI Private Workspace/logs/backend.log",
-        model_download_log: "~/Library/Application Support/AI Private Workspace/logs/model-downloads.log",
+        logs_directory: logs.display().to_string(),
+        launcher_log: logs.join("desktop-launcher.log").display().to_string(),
+        backend_log: logs.join("backend.log").display().to_string(),
+        model_download_log: logs.join("model-downloads.log").display().to_string(),
+        supervisor_state_file: app_data_dir().join("supervisor-state.json").display().to_string(),
+    }
+}
+
+#[tauri::command]
+fn get_supervisor_preflight() -> SupervisorPreflight {
+    let status = get_supervisor_status();
+    let paths = get_supervisor_log_paths();
+    let items = vec![
+        SupervisorPreflightItem {
+            id: "backend-start-disabled".to_string(),
+            status: "ok".to_string(),
+            summary: format!("Backend start enabled: {}", status.backend_start_enabled),
+        },
+        SupervisorPreflightItem {
+            id: "localhost-health-url".to_string(),
+            status: "ok".to_string(),
+            summary: status.health_url,
+        },
+        SupervisorPreflightItem {
+            id: "app-owned-data-dir".to_string(),
+            status: "ok".to_string(),
+            summary: status.data_directory_hint,
+        },
+        SupervisorPreflightItem {
+            id: "app-owned-logs-dir".to_string(),
+            status: "ok".to_string(),
+            summary: paths.logs_directory,
+        },
+    ];
+
+    SupervisorPreflight {
+        status: "ok".to_string(),
+        items,
+        safety_note: "Read-only Tauri commands expose status and paths only; they do not start processes or execute shell commands.".to_string(),
     }
 }
 
@@ -42,7 +125,8 @@ fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_supervisor_status,
-            get_supervisor_log_paths
+            get_supervisor_log_paths,
+            get_supervisor_preflight
         ])
         .run(tauri::generate_context!())
         .expect("error while running AI Private Workspace desktop shell");

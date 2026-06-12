@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -24,6 +24,7 @@ import type {
   DesktopRuntimePreflight,
   TauriShellScaffold,
   TauriSupervisorBridge,
+  TauriSupervisorStaticGate,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -217,6 +218,9 @@ export function SettingsPanel({
   const [tauriSupervisorBridge, setTauriSupervisorBridge] = useState<TauriSupervisorBridge | null>(null);
   const [tauriSupervisorBridgeError, setTauriSupervisorBridgeError] = useState<string | null>(null);
   const [tauriSupervisorBridgeLoading, setTauriSupervisorBridgeLoading] = useState(false);
+  const [tauriSupervisorStaticGate, setTauriSupervisorStaticGate] = useState<TauriSupervisorStaticGate | null>(null);
+  const [tauriSupervisorStaticGateError, setTauriSupervisorStaticGateError] = useState<string | null>(null);
+  const [tauriSupervisorStaticGateLoading, setTauriSupervisorStaticGateLoading] = useState(false);
   const [windowsPackagingFoundation, setWindowsPackagingFoundation] = useState<WindowsPackagingFoundation | null>(null);
   const [windowsPackagingFoundationError, setWindowsPackagingFoundationError] = useState<string | null>(null);
   const [windowsPackagingFoundationLoading, setWindowsPackagingFoundationLoading] = useState(false);
@@ -647,10 +651,30 @@ export function SettingsPanel({
     };
   }, [dashboard.workspace_id]);
 
-
-
-
-
+  useEffect(() => {
+    let cancelled = false;
+    setTauriSupervisorStaticGateLoading(true);
+    setTauriSupervisorStaticGateError(null);
+    getTauriSupervisorStaticGate()
+      .then((gate) => {
+        if (!cancelled) {
+          setTauriSupervisorStaticGate(gate);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setTauriSupervisorStaticGateError(error instanceof Error ? error.message : "Could not load Tauri supervisor static gate");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setTauriSupervisorStaticGateLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2672,6 +2696,52 @@ export function SettingsPanel({
                       {desktopRuntimeReadiness.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
                     </div>
                   </details>
+                </div>
+              ) : null}
+            </details>
+
+            <details className="settings-disclosure" open>
+              <summary>Tauri supervisor static gate</summary>
+              {tauriSupervisorStaticGateError ? (
+                <p className="settings-transfer-message">Could not load Tauri supervisor static gate: {tauriSupervisorStaticGateError}</p>
+              ) : null}
+              {tauriSupervisorStaticGateLoading ? (
+                <p className="settings-transfer-message">Loading Tauri supervisor static gate…</p>
+              ) : tauriSupervisorStaticGate ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{tauriSupervisorStaticGate.title}</strong>
+                    <span>{tauriSupervisorStaticGate.summary}</span>
+                    <span>Script: {tauriSupervisorStaticGate.check_script}</span>
+                    <span>Bridge: {tauriSupervisorStaticGate.bridge_file}</span>
+                  </div>
+                  <div className="startup-checklist-grid">
+                    {tauriSupervisorStaticGate.items.map((item) => (
+                      <div className={`startup-checklist-item ${item.status === "blocked" ? "is-danger" : item.status === "review" ? "is-review" : "is-ok"}`} key={item.id}>
+                        <div className="startup-checklist-item-header">
+                          <strong>{item.title}</strong>
+                          <span>{item.status}</span>
+                        </div>
+                        <p>{item.summary}</p>
+                        <code>{item.evidence}</code>
+                      </div>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Validation commands</summary>
+                    <div className="settings-command-stack">
+                      {tauriSupervisorStaticGate.validation_commands.map((command) => (
+                        <div className="startup-checklist-command" key={command.label}>
+                          <span>{command.label}</span>
+                          <code>{command.command}</code>
+                          <small>{command.purpose}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <div className="settings-safety-list">
+                    {tauriSupervisorStaticGate.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                  </div>
                 </div>
               ) : null}
             </details>

@@ -52,6 +52,7 @@ import type {
   DesktopRuntimePreflight,
   TauriShellScaffold,
   TauriSupervisorBridge,
+  TauriSupervisorStaticGate,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -206,6 +207,10 @@ export function getTauriShellScaffold(): Promise<TauriShellScaffold> {
 
 export function getTauriSupervisorBridge(): Promise<TauriSupervisorBridge> {
   return getJson<TauriSupervisorBridge>("/runtime/tauri-supervisor-bridge");
+}
+
+export function getTauriSupervisorStaticGate(): Promise<TauriSupervisorStaticGate> {
+  return getJson<TauriSupervisorStaticGate>("/runtime/tauri-supervisor-static-gate");
 }
 
 export function getWindowsPackagingFoundation(): Promise<WindowsPackagingFoundation> {
