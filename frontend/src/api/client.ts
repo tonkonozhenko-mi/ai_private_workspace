@@ -58,6 +58,7 @@ import type {
   StagedBackendRuntimeContract,
   PyInstallerBackendRuntimeContract,
   FrozenBackendRuntimeSelection,
+  FrozenBackendSmokeContract,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -236,6 +237,10 @@ export function getPyInstallerBackendRuntimeContract(): Promise<PyInstallerBacke
 
 export function getFrozenBackendRuntimeSelection(): Promise<FrozenBackendRuntimeSelection> {
   return getJson<FrozenBackendRuntimeSelection>("/runtime/frozen-backend-runtime-selection");
+}
+
+export function getFrozenBackendSmokeContract(): Promise<FrozenBackendSmokeContract> {
+  return getJson<FrozenBackendSmokeContract>("/runtime/frozen-backend-smoke-contract");
 }
 
 

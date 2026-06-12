@@ -528,6 +528,27 @@ class FrozenBackendRuntimeSelectionResponse(BaseModel):
 
 
 
+class FrozenBackendSmokeItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    command: str | None = None
+
+
+class FrozenBackendSmokeContractResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    smoke_script: str
+    smoke_mode: str
+    health_url: str
+    items: list[FrozenBackendSmokeItemResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
+
 
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str
