@@ -12,6 +12,8 @@ def test_source_release_archive_script_exists_and_mentions_required_excludes() -
     assert "audit_release_candidate.sh" in text
     assert "backend/.ai-workbench" in text
     assert "*.sqlite3" in text
+    assert "backend/.venv" in text
+    assert "*.tsbuildinfo" in text
     assert "build/release" in text
 
 

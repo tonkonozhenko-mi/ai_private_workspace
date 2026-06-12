@@ -39,6 +39,8 @@ local_artifacts=(
   frontend/node_modules
   frontend/dist
   .pytest_cache
+  backend/.venv
+  frontend/.vite
 )
 
 for path in "${local_artifacts[@]}"; do
@@ -62,6 +64,19 @@ if find . \( \
   fail "database files found outside ignored runtime/build paths; remove them from source or release archive"
 else
   pass "no source-tree *.db, *.sqlite, or *.sqlite3 files found outside ignored runtime/build paths"
+fi
+
+# TypeScript incremental build metadata is local-only. It is harmless locally, but
+# should not be committed or included in handoff/source archives.
+if find . \( \
+  -path './.git' -o \
+  -path './frontend/node_modules' -o \
+  -path './frontend/dist' -o \
+  -path './build' \
+\) -prune -o -name '*.tsbuildinfo' -print | grep -q .; then
+  warn "TypeScript build metadata found locally; exclude from release zip: *.tsbuildinfo"
+else
+  pass "release zip excludes TypeScript build metadata: *.tsbuildinfo"
 fi
 
 release_docs=(
