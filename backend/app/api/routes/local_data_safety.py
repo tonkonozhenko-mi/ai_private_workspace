@@ -74,6 +74,8 @@ from app.api.schemas.local_data_safety_schemas import (
     TauriIconAssetsResponse,
     TauriDevSmokeReadinessItemResponse,
     TauriDevSmokeReadinessResponse,
+    TauriPackagedAppBuildItemResponse,
+    TauriPackagedAppBuildReadinessResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
@@ -2630,6 +2632,100 @@ def get_tauri_dev_smoke_readiness() -> TauriDevSmokeReadinessResponse:
             "Run cargo check and npm run tauri dev from frontend after each desktop-shell change.",
             "Prepare packaged macOS app smoke using npm run tauri:build after the frozen runtime is validated.",
             "Then mirror the same startup/readiness/shutdown contract on Windows.",
+        ],
+    )
+
+
+
+
+@router.get("/tauri-packaged-app-build-readiness", response_model=TauriPackagedAppBuildReadinessResponse)
+def get_tauri_packaged_app_build_readiness() -> TauriPackagedAppBuildReadinessResponse:
+    """Return the packaged macOS/Tauri app build readiness contract."""
+    root = Path(__file__).resolve().parents[4]
+    tauri_conf = root / "frontend/src-tauri/tauri.conf.json"
+    lib_rs = root / "frontend/src-tauri/src/lib.rs"
+    gitignore = root / ".gitignore"
+
+    tauri_conf_text = tauri_conf.read_text(encoding="utf-8") if tauri_conf.exists() else ""
+    lib_text = lib_rs.read_text(encoding="utf-8") if lib_rs.exists() else ""
+    gitignore_text = gitignore.read_text(encoding="utf-8") if gitignore.exists() else ""
+
+    checks = [
+        (
+            "bundle-active",
+            "Tauri app bundling is enabled",
+            "ok" if '"active": true' in tauri_conf_text else "blocked",
+            "`npm run tauri:build` must produce a packaged app artifact, not only compile the dev shell.",
+            "cd frontend && npm run tauri:build",
+        ),
+        (
+            "frozen-runtime-resource",
+            "Frozen backend runtime is declared as a Tauri resource",
+            "ok" if "../../build/desktop/frozen-backend-runtime" in tauri_conf_text else "blocked",
+            "The packaged app must carry the app-owned frozen backend runtime so double-click startup does not depend on source checkout paths.",
+            "scripts/build_pyinstaller_backend_runtime.sh && cd frontend && npm run tauri:build",
+        ),
+        (
+            "resource-manifest-lookup",
+            "Packaged app can find the frozen runtime manifest in Resources",
+            "ok" if "Resources/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json" in lib_text else "blocked",
+            "The Tauri supervisor checks packaged Resources paths in addition to local dev build paths.",
+            "scripts/check_tauri_packaged_app_build.sh",
+        ),
+        (
+            "health-readiness",
+            "Packaged startup waits for HTTP /health readiness",
+            "ok" if "GET /health HTTP/1.1" in lib_text else "blocked",
+            "Packaged startup must wait for application-level readiness, not only an open TCP port.",
+            "scripts/check_tauri_backend_health_readiness.sh",
+        ),
+        (
+            "repo-hygiene",
+            "macOS and IDE build artifacts are ignored",
+            "ok" if all(item in gitignore_text for item in ["frontend/src-tauri/target/", ".idea/", ".DS_Store"]) else "blocked",
+            "Rust target output, JetBrains metadata, and Finder metadata must not be committed or included in source archives.",
+            "git check-ignore frontend/src-tauri/target .idea .DS_Store || true",
+        ),
+    ]
+
+    items = [
+        TauriPackagedAppBuildItemResponse(
+            id=item_id,
+            title=title,
+            status=status,
+            summary=summary,
+            command=command,
+        )
+        for item_id, title, status, summary, command in checks
+    ]
+    status = "blocked" if any(item.status == "blocked" for item in items) else "ready"
+    return TauriPackagedAppBuildReadinessResponse(
+        status=status,
+        title="Tauri packaged app build readiness",
+        summary="Prepares the next step from successful `npm run tauri dev` to a packaged macOS app smoke using `npm run tauri:build` and the app-owned frozen backend runtime.",
+        milestone="Task 257 — packaged macOS app build hardening",
+        check_script="scripts/check_tauri_packaged_app_build.sh",
+        packaged_build_command="cd frontend && npm run tauri:build",
+        readiness_items=items,
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Packaged app build preflight", command="scripts/check_tauri_packaged_app_build.sh", purpose="Verify bundle config, resources, app-owned runtime lookup, icons, and repository hygiene before running Tauri build."),
+            DesktopRuntimeValidationCommandResponse(label="Build frozen backend", command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh", purpose="Create and smoke the app-owned backend runtime that will be included in the packaged app."),
+            DesktopRuntimeValidationCommandResponse(label="Build Tauri app", command="cd frontend && npm run tauri:build", purpose="Build the packaged macOS app after frozen runtime smoke succeeds."),
+            DesktopRuntimeValidationCommandResponse(label="Run packaged app smoke", command="open frontend/src-tauri/target/release/bundle/macos/AI\\ Private\\ Workspace.app", purpose="Open the packaged app and verify app-owned startup, /health readiness, logs, and shutdown behavior."),
+        ],
+        safety_rules=[
+            "React/frontend code still does not execute shell commands.",
+            "Packaged Tauri startup may start only the app-owned frozen backend runtime selected by manifest.",
+            "Startup success requires HTTP GET /health 200.",
+            "No pkill, killall, taskkill, or kill-by-port behavior is allowed.",
+            "Desktop launch must not start scan, index, rebuild, MCP, Agent, or model downloads.",
+        ],
+        next_steps=[
+            "Run scripts/check_tauri_packaged_app_build.sh from the repository root.",
+            "Build and smoke the frozen backend runtime locally.",
+            "Run cd frontend && npm run tauri:build.",
+            "Open the generated macOS .app and confirm logs/data stay in app-owned user directories.",
+            "After macOS package smoke is stable, mirror the same contract on Windows.",
         ],
     )
 

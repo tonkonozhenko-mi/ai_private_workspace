@@ -22,6 +22,7 @@ rm -f "$ARCHIVE_PATH"
 # the release commit exists. Excludes mirror the runtime/build policy in .gitignore.
 zip -r "$ARCHIVE_PATH" . \
   -x './.git/*' \
+  -x './.idea/*' \
   -x './backend/.ai-workbench/*' \
   -x './backend/.venv/*' \
   -x './frontend/node_modules/*' \
@@ -39,7 +40,8 @@ zip -r "$ARCHIVE_PATH" . \
   -x '*/.venv/*' \
   -x '*.pyc' \
   -x '*.tsbuildinfo' \
-  -x '.DS_Store'
+  -x '.DS_Store' \
+  -x '*/.DS_Store'
 
 printf 'Source release archive created: %s\n' "$ARCHIVE_PATH"
 printf 'Archive is a build artifact. Do not commit build/release/.\n'

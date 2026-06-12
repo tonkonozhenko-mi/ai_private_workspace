@@ -427,3 +427,7 @@ Fixed the local Tauri `cargo check` blocker caused by missing/non-RGBA icon asse
 ## Task 256 — Tauri dev smoke success ✅
 
 `npm run tauri dev` now works locally on macOS after fixing the Rust library structure, npm lockfile registry hygiene, Rust dependency pinning, and Tauri RGBA icon assets. Phase 22 is no longer only scaffold/preflight work: the desktop shell can start in development mode. Next step is packaged macOS smoke with a locally built PyInstaller backend runtime, then Windows parity.
+
+## Task 257 — Packaged macOS app build readiness
+
+Phase 22 now moves from successful Tauri dev smoke to packaged macOS app smoke preparation. The next validation target is `npm run tauri:build` after frozen backend runtime build/check/smoke succeeds locally.

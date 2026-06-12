@@ -42,6 +42,8 @@ local_artifacts=(
   backend/.venv
   frontend/.vite
   frontend/src-tauri/target
+  .idea
+  .DS_Store
 )
 
 for path in "${local_artifacts[@]}"; do
@@ -120,6 +122,7 @@ shell_scripts=(
   scripts/audit_release_candidate.sh
   scripts/check_tauri_rust_structure_and_registry.sh
   scripts/check_tauri_rust_dependency_pins.sh
+  scripts/check_tauri_packaged_app_build.sh
 )
 
 for script in "${shell_scripts[@]}"; do

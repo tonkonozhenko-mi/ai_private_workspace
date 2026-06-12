@@ -364,3 +364,7 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 ## Task 256 — Tauri dev smoke readiness
 
 - `GET /runtime/tauri-dev-smoke-readiness` — records that local `cargo check` / `npm run tauri dev` now works after the Rust structure, dependency pin, npm registry, and RGBA icon blockers were fixed. It defines the remaining safe path toward packaged macOS app smoke while preserving frozen-manifest, `/health`, PID-owned shutdown, and no-auto-scan/index/Agent/MCP/model-download guardrails.
+
+## Task 257 — Tauri packaged app build readiness
+
+- `GET /runtime/tauri-packaged-app-build-readiness` — records the packaged macOS/Tauri app build readiness gate. It verifies Tauri bundle activation, package icons, frozen backend runtime resource wiring, packaged manifest lookup paths, `/health` readiness, and `.idea`/`.DS_Store`/Tauri target hygiene before `npm run tauri:build`.

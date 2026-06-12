@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getFrozenBackendRuntimeSelection, getFrozenBackendSmokeContract, getAppOwnedBackendStartupGate, getAppOwnedBackendStartupImplementation, getAppOwnedBackendHealthReadiness, getMacOSTauriSmokeRunbook, getMacOSPackagedAppSmokePreflight, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getFrozenBackendRuntimeSelection, getFrozenBackendSmokeContract, getAppOwnedBackendStartupGate, getAppOwnedBackendStartupImplementation, getAppOwnedBackendHealthReadiness, getMacOSTauriSmokeRunbook, getMacOSPackagedAppSmokePreflight, getTauriPackagedAppBuildReadiness, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -36,6 +36,7 @@ import type {
   AppOwnedBackendHealthReadiness,
   MacOSTauriSmokeRunbook,
   MacOSPackagedAppSmokePreflight,
+  TauriPackagedAppBuildReadiness,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -265,6 +266,9 @@ export function SettingsPanel({
   const [macOSPackagedAppSmokePreflight, setMacOSPackagedAppSmokePreflight] = useState<MacOSPackagedAppSmokePreflight | null>(null);
   const [macOSPackagedAppSmokePreflightError, setMacOSPackagedAppSmokePreflightError] = useState<string | null>(null);
   const [macOSPackagedAppSmokePreflightLoading, setMacOSPackagedAppSmokePreflightLoading] = useState(false);
+  const [tauriPackagedAppBuildReadiness, setTauriPackagedAppBuildReadiness] = useState<TauriPackagedAppBuildReadiness | null>(null);
+  const [tauriPackagedAppBuildReadinessError, setTauriPackagedAppBuildReadinessError] = useState<string | null>(null);
+  const [tauriPackagedAppBuildReadinessLoading, setTauriPackagedAppBuildReadinessLoading] = useState(false);
   const [windowsPackagingFoundation, setWindowsPackagingFoundation] = useState<WindowsPackagingFoundation | null>(null);
   const [windowsPackagingFoundationError, setWindowsPackagingFoundationError] = useState<string | null>(null);
   const [windowsPackagingFoundationLoading, setWindowsPackagingFoundationLoading] = useState(false);
@@ -719,6 +723,33 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setMacOSPackagedAppSmokePreflightLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+
+
+  useEffect(() => {
+    let cancelled = false;
+    setTauriPackagedAppBuildReadinessLoading(true);
+    setTauriPackagedAppBuildReadinessError(null);
+    getTauriPackagedAppBuildReadiness()
+      .then((readiness) => {
+        if (!cancelled) {
+          setTauriPackagedAppBuildReadiness(readiness);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setTauriPackagedAppBuildReadinessError(error instanceof Error ? error.message : "Could not load Tauri packaged app build readiness");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setTauriPackagedAppBuildReadinessLoading(false);
         }
       });
     return () => {
