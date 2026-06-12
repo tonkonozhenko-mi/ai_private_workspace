@@ -377,3 +377,12 @@ The smoke script starts only the app-owned generated backend executable, waits f
 ## Task 247 — app-owned backend startup gate
 
 Fixed the Settings `GET /runtime/v0.1-handoff` crash by aligning the endpoint response objects with the declared schema. Added `/runtime/app-owned-backend-startup-gate`, `scripts/check_tauri_app_owned_startup_gate.sh`, Tauri read-only startup gate metadata, Settings UI wiring, and tests. Tauri still does not start backend processes.
+
+
+## Task 248 — app-owned backend startup implementation
+
+- `GET /runtime/app-owned-backend-startup-implementation` records the first real Tauri backend lifecycle implementation.
+- Tauri now has narrow commands to report, start, and stop only the app-owned frozen backend runtime.
+- Startup is gated by the frozen backend manifest; missing manifest means blocked startup, not arbitrary fallback.
+- Shutdown is PID-owned and no kill-by-port/generic shell execution is allowed.
+- Settings crash coverage for `GET /runtime/v0.1-handoff` was added.

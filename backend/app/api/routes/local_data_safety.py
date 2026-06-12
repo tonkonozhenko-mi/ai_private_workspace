@@ -56,6 +56,8 @@ from app.api.schemas.local_data_safety_schemas import (
     FrozenBackendSmokeContractResponse,
     AppOwnedBackendStartupGateItemResponse,
     AppOwnedBackendStartupGateResponse,
+    AppOwnedBackendStartupImplementationItemResponse,
+    AppOwnedBackendStartupImplementationResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
@@ -1869,6 +1871,101 @@ def get_app_owned_backend_startup_gate() -> AppOwnedBackendStartupGateResponse:
             "After a passing smoke, implement Tauri process startup against the frozen manifest only.",
             "Add PID file, health wait, log capture, and shutdown tests for macOS first.",
             "Repeat the same startup gate on Windows before installer work.",
+        ],
+    )
+
+
+@router.get("/app-owned-backend-startup-implementation", response_model=AppOwnedBackendStartupImplementationResponse)
+def get_app_owned_backend_startup_implementation() -> AppOwnedBackendStartupImplementationResponse:
+    """Return the real-but-gated Tauri backend startup implementation status."""
+    root = Path(__file__).resolve().parents[4]
+    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "main.rs"
+    check_script = root / "scripts" / "check_tauri_app_owned_backend_startup.sh"
+    frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+
+    bridge_text = tauri_bridge.read_text(encoding="utf-8") if tauri_bridge.exists() else ""
+    items = [
+        AppOwnedBackendStartupImplementationItemResponse(
+            id="start-command",
+            title="Tauri start command",
+            status="ok" if "start_app_owned_backend_runtime" in bridge_text else "blocked",
+            summary="Tauri exposes a narrow native command that can start only the app-owned backend runtime selected from the frozen manifest.",
+            evidence="start_app_owned_backend_runtime",
+            command="scripts/check_tauri_app_owned_backend_startup.sh",
+        ),
+        AppOwnedBackendStartupImplementationItemResponse(
+            id="stop-command",
+            title="PID-owned stop command",
+            status="ok" if "stop_app_owned_backend_runtime" in bridge_text else "blocked",
+            summary="Shutdown is limited to the backend child process spawned and stored by the Tauri supervisor; there is no kill-by-port behavior.",
+            evidence="stop_app_owned_backend_runtime",
+            command="scripts/check_tauri_app_owned_backend_startup.sh",
+        ),
+        AppOwnedBackendStartupImplementationItemResponse(
+            id="process-status",
+            title="Process status command",
+            status="ok" if "get_app_owned_backend_process_status" in bridge_text else "blocked",
+            summary="The shell can report runtime kind, PID, health URL, and logs without exposing arbitrary process control to React.",
+            evidence="get_app_owned_backend_process_status",
+            command="scripts/check_tauri_app_owned_backend_startup.sh",
+        ),
+        AppOwnedBackendStartupImplementationItemResponse(
+            id="frozen-manifest",
+            title="Frozen manifest gate",
+            status="ready_after_local_build" if not frozen_manifest.exists() else "ok",
+            summary="Real startup is gated by the generated frozen backend manifest. If it is missing, startup returns a clear blocked result instead of falling back to unknown commands.",
+            evidence="build/desktop/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json",
+            command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh",
+        ),
+        AppOwnedBackendStartupImplementationItemResponse(
+            id="no-shell-exposure",
+            title="No generic shell exposure",
+            status="ok" if all(term not in bridge_text for term in ["pkill", "killall", "taskkill", "sh -c", "cmd /C"]) else "blocked",
+            summary="The implementation uses Rust process APIs for one known backend executable; it does not expose shell strings, pkill, killall, taskkill, or kill-by-port behavior.",
+            evidence="Command::new + stored child PID",
+            command="scripts/check_tauri_app_owned_backend_startup.sh",
+        ),
+    ]
+
+    status = "implementation_ready_after_local_frozen_build"
+    if any(item.status == "blocked" for item in items):
+        status = "blocked"
+
+    return AppOwnedBackendStartupImplementationResponse(
+        status=status,
+        title="App-owned backend startup implementation",
+        summary="Adds the first real Tauri supervisor lifecycle for starting a packaged app-owned backend runtime, while preserving strict manifest, port, PID, and no-auto-action gates.",
+        startup_mode="real_tauri_process_start_gated_by_frozen_manifest",
+        tauri_bridge_file="frontend/src-tauri/src/main.rs",
+        check_script="scripts/check_tauri_app_owned_backend_startup.sh",
+        runtime_priority=[
+            "Frozen PyInstaller runtime from build/desktop/frozen-backend-runtime",
+            "No automatic staged-source fallback for packaged startup",
+            "External manually started backend only for development browser mode",
+        ],
+        implementation_items=items,
+        tauri_commands=[
+            "get_app_owned_backend_process_status",
+            "start_app_owned_backend_runtime",
+            "stop_app_owned_backend_runtime",
+        ],
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Check Tauri startup implementation", command="scripts/check_tauri_app_owned_backend_startup.sh", purpose="Validate that the Tauri supervisor exposes only narrow app-owned backend lifecycle commands and no generic shell execution."),
+            DesktopRuntimeValidationCommandResponse(label="Build frozen backend", command="scripts/build_pyinstaller_backend_runtime.sh", purpose="Create the local frozen backend runtime manifest and executable used by the startup command."),
+            DesktopRuntimeValidationCommandResponse(label="Smoke frozen backend", command="scripts/smoke_frozen_backend_runtime.sh", purpose="Validate the frozen backend outside Tauri before relying on desktop startup."),
+        ],
+        safety_rules=[
+            "React/frontend still does not execute shell commands.",
+            "Tauri may start only the executable named by the frozen backend manifest.",
+            "If the backend port is already occupied, startup fails with a clear error and does not kill anything.",
+            "Shutdown stops only the stored child process spawned by this app session.",
+            "Desktop startup must not trigger scan, index, rebuild, MCP, Agent, or model downloads.",
+        ],
+        next_steps=[
+            "Run PyInstaller build and frozen smoke locally on macOS.",
+            "Run the Tauri shell locally and verify start/stop commands against the frozen runtime.",
+            "After macOS is stable, repeat the same check on Windows.",
+            "Then move to signed packaging/installer work.",
         ],
     )
 

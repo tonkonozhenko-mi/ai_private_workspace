@@ -573,6 +573,31 @@ class AppOwnedBackendStartupGateResponse(BaseModel):
 
 
 
+class AppOwnedBackendStartupImplementationItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    evidence: str
+    command: str | None = None
+
+
+class AppOwnedBackendStartupImplementationResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    startup_mode: str
+    tauri_bridge_file: str
+    check_script: str
+    runtime_priority: list[str]
+    implementation_items: list[AppOwnedBackendStartupImplementationItemResponse]
+    tauri_commands: list[str]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
+
+
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str
     purpose: str

@@ -331,3 +331,12 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 ## Task 247 runtime endpoint
 
 - `GET /runtime/app-owned-backend-startup-gate` — read-only gate before Tauri may start an app-owned backend runtime. It records frozen manifest, developer smoke, PID-owned shutdown, health readiness, no kill-by-port behavior, and the rule that this task still does not enable automatic backend startup.
+
+
+## Task 248 — app-owned backend startup implementation
+
+- `GET /runtime/app-owned-backend-startup-implementation` records the first real Tauri backend lifecycle implementation.
+- Tauri now has narrow commands to report, start, and stop only the app-owned frozen backend runtime.
+- Startup is gated by the frozen backend manifest; missing manifest means blocked startup, not arbitrary fallback.
+- Shutdown is PID-owned and no kill-by-port/generic shell execution is allowed.
+- Settings crash coverage for `GET /runtime/v0.1-handoff` was added.

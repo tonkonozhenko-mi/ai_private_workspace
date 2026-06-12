@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getFrozenBackendRuntimeSelection, getFrozenBackendSmokeContract, getAppOwnedBackendStartupGate, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getFrozenBackendRuntimeSelection, getFrozenBackendSmokeContract, getAppOwnedBackendStartupGate, getAppOwnedBackendStartupImplementation, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -32,6 +32,7 @@ import type {
   FrozenBackendRuntimeSelection,
   FrozenBackendSmokeContract,
   AppOwnedBackendStartupGate,
+  AppOwnedBackendStartupImplementation,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -249,6 +250,9 @@ export function SettingsPanel({
   const [appOwnedBackendStartupGate, setAppOwnedBackendStartupGate] = useState<AppOwnedBackendStartupGate | null>(null);
   const [appOwnedBackendStartupGateError, setAppOwnedBackendStartupGateError] = useState<string | null>(null);
   const [appOwnedBackendStartupGateLoading, setAppOwnedBackendStartupGateLoading] = useState(false);
+  const [appOwnedBackendStartupImplementation, setAppOwnedBackendStartupImplementation] = useState<AppOwnedBackendStartupImplementation | null>(null);
+  const [appOwnedBackendStartupImplementationError, setAppOwnedBackendStartupImplementationError] = useState<string | null>(null);
+  const [appOwnedBackendStartupImplementationLoading, setAppOwnedBackendStartupImplementationLoading] = useState(false);
   const [windowsPackagingFoundation, setWindowsPackagingFoundation] = useState<WindowsPackagingFoundation | null>(null);
   const [windowsPackagingFoundationError, setWindowsPackagingFoundationError] = useState<string | null>(null);
   const [windowsPackagingFoundationLoading, setWindowsPackagingFoundationLoading] = useState(false);
@@ -600,6 +604,32 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setAppOwnedBackendStartupGateLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    setAppOwnedBackendStartupImplementationLoading(true);
+    setAppOwnedBackendStartupImplementationError(null);
+    getAppOwnedBackendStartupImplementation()
+      .then((implementation) => {
+        if (!cancelled) {
+          setAppOwnedBackendStartupImplementation(implementation);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setAppOwnedBackendStartupImplementationError(error instanceof Error ? error.message : "Could not load app-owned backend startup implementation");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAppOwnedBackendStartupImplementationLoading(false);
         }
       });
     return () => {
@@ -3269,6 +3299,61 @@ export function SettingsPanel({
                     </div>
                     <div className="settings-safety-list">
                       {appOwnedBackendStartupGate.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
+
+            <details className="settings-disclosure" open>
+              <summary>App-owned backend startup implementation</summary>
+              {appOwnedBackendStartupImplementationError ? (
+                <p className="settings-transfer-message">Could not load app-owned backend startup implementation: {appOwnedBackendStartupImplementationError}</p>
+              ) : null}
+              {appOwnedBackendStartupImplementationLoading ? (
+                <p className="settings-transfer-message">Loading app-owned backend startup implementation…</p>
+              ) : appOwnedBackendStartupImplementation ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{appOwnedBackendStartupImplementation.title}</strong>
+                    <span>{appOwnedBackendStartupImplementation.summary}</span>
+                    <span>Mode: {appOwnedBackendStartupImplementation.startup_mode}</span>
+                    <span>Script: {appOwnedBackendStartupImplementation.check_script}</span>
+                    <span>Bridge: {appOwnedBackendStartupImplementation.tauri_bridge_file}</span>
+                  </div>
+                  <div className="startup-checklist-grid">
+                    {appOwnedBackendStartupImplementation.implementation_items.map((item) => (
+                      <div className={`startup-checklist-item ${item.status === "blocked" ? "is-danger" : item.status.includes("ready_after") ? "is-review" : "is-ok"}`} key={item.id}>
+                        <div className="startup-checklist-item-header">
+                          <strong>{item.title}</strong>
+                          <span>{item.status}</span>
+                        </div>
+                        <p>{item.summary}</p>
+                        <span>{item.evidence}</span>
+                        {item.command ? <code>{item.command}</code> : null}
+                      </div>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Runtime priority, Tauri commands, and safety</summary>
+                    <ul>
+                      {appOwnedBackendStartupImplementation.runtime_priority.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                    <div className="settings-safety-list">
+                      {appOwnedBackendStartupImplementation.tauri_commands.map((command) => <span key={command}>{command}</span>)}
+                    </div>
+                    <div className="settings-command-list">
+                      {appOwnedBackendStartupImplementation.validation_commands.map((command) => (
+                        <div className="settings-command-card" key={command.command}>
+                          <strong>{command.label}</strong>
+                          <code>{command.command}</code>
+                          <span>{command.purpose}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="settings-safety-list">
+                      {appOwnedBackendStartupImplementation.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
                     </div>
                   </details>
                 </div>
