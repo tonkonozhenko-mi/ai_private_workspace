@@ -56,6 +56,17 @@ struct RuntimeSelectionStatus {
     safety_note: String,
 }
 
+#[derive(Serialize)]
+struct AppOwnedStartupGate {
+    status: String,
+    backend_start_enabled: bool,
+    startup_mode: String,
+    preferred_runtime: String,
+    health_url: String,
+    required_gates: Vec<String>,
+    safety_note: String,
+}
+
 fn app_data_dir() -> PathBuf {
     if cfg!(target_os = "macos") {
         let home = env::var("HOME").unwrap_or_else(|_| "~".to_string());
@@ -168,13 +179,34 @@ fn get_runtime_selection_status() -> RuntimeSelectionStatus {
     }
 }
 
+
+#[tauri::command]
+fn get_app_owned_startup_gate() -> AppOwnedStartupGate {
+    AppOwnedStartupGate {
+        status: "gate_ready_metadata_only".to_string(),
+        backend_start_enabled: false,
+        startup_mode: "manifest_gated_future_startup_no_process_start_yet".to_string(),
+        preferred_runtime: "frozen-pyinstaller-runtime".to_string(),
+        health_url: "http://127.0.0.1:8000/health".to_string(),
+        required_gates: vec![
+            "Frozen runtime manifest exists and points to an app-owned backend executable.".to_string(),
+            "Developer-only frozen backend smoke has passed locally.".to_string(),
+            "Startup records a spawned PID and shuts down only that PID.".to_string(),
+            "If the port is occupied by an unknown process, do not kill it.".to_string(),
+            "Open UI only after /health is ready.".to_string(),
+        ],
+        safety_note: "This command is read-only gate metadata. It does not start backend processes, run shell commands, kill ports, download models, or trigger scan/index/rebuild/MCP/Agent workflows.".to_string(),
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_supervisor_status,
             get_supervisor_log_paths,
             get_supervisor_preflight,
-            get_runtime_selection_status
+            get_runtime_selection_status,
+            get_app_owned_startup_gate
         ])
         .run(tauri::generate_context!())
         .expect("error while running AI Private Workspace desktop shell");

@@ -2133,6 +2133,29 @@ export interface FrozenBackendSmokeContract {
   next_steps: string[];
 }
 
+
+export interface AppOwnedBackendStartupGateItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  command: string | null;
+}
+
+export interface AppOwnedBackendStartupGate {
+  status: string;
+  title: string;
+  summary: string;
+  startup_mode: string;
+  tauri_bridge_file: string;
+  check_script: string;
+  required_gates: AppOwnedBackendStartupGateItem[];
+  startup_contract: string[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
 export interface StagedBackendRuntimeItem {
   id: string;
   title: string;

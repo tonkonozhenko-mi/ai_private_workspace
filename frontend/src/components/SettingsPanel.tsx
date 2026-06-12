@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getFrozenBackendRuntimeSelection, getFrozenBackendSmokeContract, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getFrozenBackendRuntimeSelection, getFrozenBackendSmokeContract, getAppOwnedBackendStartupGate, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -31,6 +31,7 @@ import type {
   PyInstallerBackendRuntimeContract,
   FrozenBackendRuntimeSelection,
   FrozenBackendSmokeContract,
+  AppOwnedBackendStartupGate,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -245,6 +246,9 @@ export function SettingsPanel({
   const [frozenBackendSmokeContract, setFrozenBackendSmokeContract] = useState<FrozenBackendSmokeContract | null>(null);
   const [frozenBackendSmokeContractError, setFrozenBackendSmokeContractError] = useState<string | null>(null);
   const [frozenBackendSmokeContractLoading, setFrozenBackendSmokeContractLoading] = useState(false);
+  const [appOwnedBackendStartupGate, setAppOwnedBackendStartupGate] = useState<AppOwnedBackendStartupGate | null>(null);
+  const [appOwnedBackendStartupGateError, setAppOwnedBackendStartupGateError] = useState<string | null>(null);
+  const [appOwnedBackendStartupGateLoading, setAppOwnedBackendStartupGateLoading] = useState(false);
   const [windowsPackagingFoundation, setWindowsPackagingFoundation] = useState<WindowsPackagingFoundation | null>(null);
   const [windowsPackagingFoundationError, setWindowsPackagingFoundationError] = useState<string | null>(null);
   const [windowsPackagingFoundationLoading, setWindowsPackagingFoundationLoading] = useState(false);
@@ -571,6 +575,31 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setFrozenBackendSmokeContractLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setAppOwnedBackendStartupGateLoading(true);
+    setAppOwnedBackendStartupGateError(null);
+    getAppOwnedBackendStartupGate()
+      .then((gate) => {
+        if (!cancelled) {
+          setAppOwnedBackendStartupGate(gate);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setAppOwnedBackendStartupGateError(error instanceof Error ? error.message : "Could not load app-owned backend startup gate");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAppOwnedBackendStartupGateLoading(false);
         }
       });
     return () => {
@@ -3189,6 +3218,57 @@ export function SettingsPanel({
                     </div>
                     <div className="settings-safety-list">
                       {frozenBackendSmokeContract.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
+
+            <details className="settings-disclosure" open>
+              <summary>App-owned backend startup gate</summary>
+              {appOwnedBackendStartupGateError ? (
+                <p className="settings-transfer-message">Could not load app-owned backend startup gate: {appOwnedBackendStartupGateError}</p>
+              ) : null}
+              {appOwnedBackendStartupGateLoading ? (
+                <p className="settings-transfer-message">Loading app-owned backend startup gate…</p>
+              ) : appOwnedBackendStartupGate ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{appOwnedBackendStartupGate.title}</strong>
+                    <span>{appOwnedBackendStartupGate.summary}</span>
+                    <span>Mode: {appOwnedBackendStartupGate.startup_mode}</span>
+                    <span>Script: {appOwnedBackendStartupGate.check_script}</span>
+                    <span>Bridge: {appOwnedBackendStartupGate.tauri_bridge_file}</span>
+                  </div>
+                  <div className="startup-checklist-grid">
+                    {appOwnedBackendStartupGate.required_gates.map((item) => (
+                      <div className={`startup-checklist-item ${item.status === "blocked" ? "is-danger" : item.status === "ready_after_build" ? "is-review" : "is-ok"}`} key={item.id}>
+                        <div className="startup-checklist-item-header">
+                          <strong>{item.title}</strong>
+                          <span>{item.status}</span>
+                        </div>
+                        <p>{item.summary}</p>
+                        {item.command ? <code>{item.command}</code> : null}
+                      </div>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Startup contract and validation commands</summary>
+                    <ul>
+                      {appOwnedBackendStartupGate.startup_contract.map((rule) => <li key={rule}>{rule}</li>)}
+                    </ul>
+                    <div className="settings-command-list">
+                      {appOwnedBackendStartupGate.validation_commands.map((command) => (
+                        <div className="settings-command-card" key={command.command}>
+                          <strong>{command.label}</strong>
+                          <code>{command.command}</code>
+                          <span>{command.purpose}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="settings-safety-list">
+                      {appOwnedBackendStartupGate.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
                     </div>
                   </details>
                 </div>

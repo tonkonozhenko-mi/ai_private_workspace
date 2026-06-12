@@ -373,3 +373,7 @@ The project now has a read-only frozen backend runtime selection contract and Ta
 - Settings UI visibility for the smoke contract
 
 The smoke script starts only the app-owned generated backend executable, waits for `/health`, and stops only the PID it created. Tauri backend startup remains disabled until the next app-owned startup gate.
+
+## Task 247 — app-owned backend startup gate
+
+Fixed the Settings `GET /runtime/v0.1-handoff` crash by aligning the endpoint response objects with the declared schema. Added `/runtime/app-owned-backend-startup-gate`, `scripts/check_tauri_app_owned_startup_gate.sh`, Tauri read-only startup gate metadata, Settings UI wiring, and tests. Tauri still does not start backend processes.
