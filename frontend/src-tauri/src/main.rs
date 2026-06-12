@@ -37,6 +37,25 @@ struct SupervisorPreflight {
     safety_note: String,
 }
 
+#[derive(Serialize)]
+struct RuntimeSelectionCandidate {
+    id: String,
+    priority: u8,
+    manifest_path: String,
+    runtime_kind: String,
+    startup_enabled: bool,
+    fallback_rule: String,
+}
+
+#[derive(Serialize)]
+struct RuntimeSelectionStatus {
+    status: String,
+    backend_start_enabled: bool,
+    selected_runtime: String,
+    candidates: Vec<RuntimeSelectionCandidate>,
+    safety_note: String,
+}
+
 fn app_data_dir() -> PathBuf {
     if cfg!(target_os = "macos") {
         let home = env::var("HOME").unwrap_or_else(|_| "~".to_string());
@@ -121,12 +140,41 @@ fn get_supervisor_preflight() -> SupervisorPreflight {
     }
 }
 
+#[tauri::command]
+fn get_runtime_selection_status() -> RuntimeSelectionStatus {
+    RuntimeSelectionStatus {
+        status: "read_only_selection_contract".to_string(),
+        backend_start_enabled: false,
+        selected_runtime: "none_yet".to_string(),
+        candidates: vec![
+            RuntimeSelectionCandidate {
+                id: "frozen-pyinstaller-runtime".to_string(),
+                priority: 1,
+                manifest_path: "build/desktop/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json".to_string(),
+                runtime_kind: "frozen_backend".to_string(),
+                startup_enabled: false,
+                fallback_rule: "If the frozen manifest or binary is missing/unhealthy, do not start unknown processes; fall back to read-only or staged developer runtime.".to_string(),
+            },
+            RuntimeSelectionCandidate {
+                id: "staged-source-runtime".to_string(),
+                priority: 2,
+                manifest_path: "build/desktop/backend-runtime/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json".to_string(),
+                runtime_kind: "developer_staged_source".to_string(),
+                startup_enabled: false,
+                fallback_rule: "Use only as a developer fallback until frozen runtime smoke checks pass.".to_string(),
+            },
+        ],
+        safety_note: "Runtime selection is metadata-only for now. Tauri does not start backend processes until the app-owned frozen runtime passes explicit checks.".to_string(),
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_supervisor_status,
             get_supervisor_log_paths,
-            get_supervisor_preflight
+            get_supervisor_preflight,
+            get_runtime_selection_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running AI Private Workspace desktop shell");

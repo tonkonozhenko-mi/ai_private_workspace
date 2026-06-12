@@ -505,6 +505,29 @@ class PyInstallerBackendRuntimeContractResponse(BaseModel):
     next_steps: list[str]
 
 
+class RuntimeSelectionCandidateResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    path: str
+    selection_rule: str
+    fallback_rule: str
+
+
+class FrozenBackendRuntimeSelectionResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    selection_strategy: str
+    tauri_bridge_file: str
+    check_script: str
+    candidates: list[RuntimeSelectionCandidateResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
+
+
 
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str
