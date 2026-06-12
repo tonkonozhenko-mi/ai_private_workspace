@@ -477,3 +477,11 @@ Local packaged macOS smoke now reached the milestone where opening the generated
 - `backend.log` records Uvicorn startup and `/workspaces/overview` calls.
 
 Task 263 tightened the frontend first-run state so an empty app with zero workspaces is presented as normal onboarding, not as a broken backend state. Workspace overview loading is now race-safe, stale backend errors are cleared after successful readiness, and the packaged UI shows desktop startup status.
+
+## Task 264 checkpoint
+
+- Packaged macOS app backend startup works, but workspace APIs failed because the frozen runtime used legacy env names that backend settings did not read.
+- Fixed canonical app-owned DB env wiring and SQLite parent-directory creation.
+- Added Tauri/local CORS support for packaged webview preflight requests.
+- Added `scripts/check_packaged_app_sqlite_cors_bootstrap.sh`.
+- Full backend tests after this task: `545 passed, 3 skipped`.
