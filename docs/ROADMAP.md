@@ -286,6 +286,7 @@ Added a final status endpoint and Settings UI section so the app clearly says wh
 Task 235 adds the final source-release go/no-go layer before the first GitHub push:
 
 - `GET /runtime/v0.1-release-gate` for local audit/build/test/UI smoke-check status.
+- `GET /runtime/v0.1-ui-smoke-check` for the final manual browser verification path before GitHub/source archive publication.
 - explicit 0-1 large-task estimate for the remaining v0.1 source RC publication step.
 - explicit 15-25 large-task estimate for the future v1.0 installer-grade product.
 - updated next-task wording so v0.1 does not drift into new feature work before publication.

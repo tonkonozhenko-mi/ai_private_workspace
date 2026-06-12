@@ -418,6 +418,51 @@ export interface V01Handoff {
 }
 
 
+
+
+export interface V01ReleaseGateItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  command: string | null;
+}
+
+export interface V01ReleaseGate {
+  status: string;
+  title: string;
+  summary: string;
+  current_position: string;
+  source_rc_remaining_tasks: string;
+  v1_remaining_large_tasks: string;
+  release_gate_items: V01ReleaseGateItem[];
+  go_no_go_rule: string;
+  next_actions: string[];
+  safety_rules: string[];
+}
+
+export interface V01UISmokeCheckItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  expected_result: string;
+  ui_location: string;
+  must_not_happen: string[];
+}
+
+export interface V01UISmokeCheck {
+  status: string;
+  title: string;
+  summary: string;
+  estimated_duration: string;
+  checklist: V01UISmokeCheckItem[];
+  copy_commands: ReleaseCandidateAuditCommand[];
+  pass_criteria: string[];
+  fail_fast_conditions: string[];
+  safety_note: string;
+}
+
 export interface FinalProductStage {
   id: string;
   title: string;
