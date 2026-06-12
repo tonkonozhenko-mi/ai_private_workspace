@@ -70,6 +70,8 @@ from app.api.schemas.local_data_safety_schemas import (
     TauriRustStructureRegistryResponse,
     TauriRustDependencyPinItemResponse,
     TauriRustDependencyPinsResponse,
+    TauriIconAssetItemResponse,
+    TauriIconAssetsResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
@@ -2467,6 +2469,87 @@ def get_packaging_toolchain_prerequisites() -> PackagingToolchainPrerequisitesRe
         ],
     )
 
+
+
+@router.get("/tauri-icon-assets", response_model=TauriIconAssetsResponse)
+def get_tauri_icon_assets() -> TauriIconAssetsResponse:
+    root = Path(__file__).resolve().parents[4]
+    icons_dir = root / "frontend" / "src-tauri" / "icons"
+    lib_rs = root / "frontend" / "src-tauri" / "src" / "lib.rs"
+    required = {
+        "icon.png": (512, 512),
+        "32x32.png": (32, 32),
+        "128x128.png": (128, 128),
+        "128x128@2x.png": (256, 256),
+    }
+
+    items: list[TauriIconAssetItemResponse] = []
+    for name, expected in required.items():
+        path = icons_dir / name
+        status = "blocked"
+        summary = "Missing required Tauri icon asset."
+        if path.exists():
+            info = _read_png_header(path)
+            if info is None:
+                summary = "Icon exists but is not a valid PNG file."
+            else:
+                width, height, bit_depth, color_type = info
+                if (width, height) == expected and bit_depth == 8 and color_type == 6:
+                    status = "ok"
+                    summary = f"{name} is {width}x{height} 8-bit RGBA PNG."
+                else:
+                    summary = f"{name} must be {expected[0]}x{expected[1]} 8-bit RGBA PNG; got {width}x{height}, bit_depth={bit_depth}, color_type={color_type}."
+        items.append(
+            TauriIconAssetItemResponse(
+                id=name.replace("@", "-").replace(".", "-"),
+                title=name,
+                status=status,
+                summary=summary,
+                path=f"frontend/src-tauri/icons/{name}",
+                command="scripts/check_tauri_icon_assets.sh",
+            )
+        )
+
+    lib_text = lib_rs.read_text(encoding="utf-8") if lib_rs.exists() else ""
+    items.append(
+        TauriIconAssetItemResponse(
+            id="rust-unused-path-import",
+            title="Rust unused Path import",
+            status="blocked" if "use std::path::{Path, PathBuf};" in lib_text else "ok",
+            summary="frontend/src-tauri/src/lib.rs should import PathBuf only to keep cargo check warning-free.",
+            path="frontend/src-tauri/src/lib.rs",
+            command="scripts/check_tauri_icon_assets.sh",
+        )
+    )
+
+    status = "blocked" if any(item.status == "blocked" for item in items) else "ready"
+    return TauriIconAssetsResponse(
+        status=status,
+        title="Tauri icon assets",
+        summary="Validates the RGBA PNG icon assets required by Tauri's generate_context macro and keeps cargo check warning-free.",
+        check_script="scripts/check_tauri_icon_assets.sh",
+        icons_directory="frontend/src-tauri/icons",
+        required_icons=list(required.keys()),
+        validation_items=items,
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Check Tauri icon assets", command="scripts/check_tauri_icon_assets.sh", purpose="Validate required RGBA PNG icons and Rust import hygiene."),
+            DesktopRuntimeValidationCommandResponse(label="Cargo check", command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml", purpose="Verify Tauri generate_context can read icon assets locally."),
+            DesktopRuntimeValidationCommandResponse(label="Tauri dev smoke", command="cd frontend && npm run tauri dev", purpose="Run the local desktop shell after frozen backend smoke passes."),
+        ],
+        safety_rules=[
+            "Icon checks are read-only and do not start backend processes.",
+            "Frontend React code still does not execute shell commands.",
+            "Desktop launch must not start scan, index, rebuild, MCP, Agent, or model downloads.",
+            "Tauri app-owned startup remains gated by frozen runtime manifest and /health readiness.",
+        ],
+        next_steps=[
+            "Run scripts/check_tauri_icon_assets.sh from the project root.",
+            "Run cargo check locally on macOS now that the required icons exist.",
+            "If cargo check passes, continue to npm run tauri dev after frozen backend smoke.",
+        ],
+    )
+
+
 @router.get("/windows-packaging-foundation", response_model=WindowsPackagingFoundationResponse)
 def get_windows_packaging_foundation() -> WindowsPackagingFoundationResponse:
     return WindowsPackagingFoundationResponse(
@@ -3669,3 +3752,16 @@ def _shell_quote(path: Path) -> str:
     if not value:
         return "''"
     return "'" + value.replace("'", "'\\''") + "'"
+
+
+def _read_png_header(path: Path) -> tuple[int, int, int, int] | None:
+    import struct
+
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return None
+    if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) < 26 or data[12:16] != b"IHDR":
+        return None
+    width, height, bit_depth, color_type = struct.unpack(">IIBB", data[16:26])
+    return width, height, bit_depth, color_type

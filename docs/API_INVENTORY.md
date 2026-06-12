@@ -356,3 +356,7 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 
 - `GET /runtime/tauri-rust-dependency-pins` — validates the Tauri Rust dependency compatibility pin for the local `cookie`/`time` Cargo conflict and confirms `frontend/src-tauri/target/` is ignored as local build output.
 - `GET /runtime/tauri-rust-structure-registry` — validates Tauri Rust `main.rs`/`lib.rs` structure and npm lockfile registry hygiene. It catches the missing `src/lib.rs` Cargo blocker and prevents internal registry URLs from leaking into committed `package-lock.json`.
+
+## Task 255 — Tauri icon assets
+
+- `GET /runtime/tauri-icon-assets` — validates required Tauri RGBA PNG icon assets and Rust import hygiene so `cargo check --manifest-path frontend/src-tauri/Cargo.toml` does not fail on missing/non-RGBA icons or warning-only cleanup.
