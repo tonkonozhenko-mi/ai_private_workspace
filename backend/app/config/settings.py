@@ -12,6 +12,26 @@ DEFAULT_APP_DATA_DIR = Path(".ai-workbench")
 DEFAULT_QDRANT_COLLECTION = "ai_workbench_chunks"
 
 
+def _first_non_empty_env(*names: str, default: str) -> str:
+    for name in names:
+        value = os.getenv(name)
+        if value and value.strip():
+            return value.strip()
+    return default
+
+
+def _prepare_runtime_path(path_value: str, *, label: str, create_parent: bool) -> Path:
+    try:
+        path = Path(path_value).expanduser()
+        directory = path.parent if create_parent else path
+        directory.mkdir(parents=True, exist_ok=True)
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(
+            f"Could not prepare {label} at {path_value!r}: {exc}"
+        ) from exc
+    return path
+
+
 class Settings(BaseModel):
     app_name: str = PRODUCT_NAME
     CORS_ALLOWED_ORIGINS: list[str] = [
@@ -121,17 +141,25 @@ class Settings(BaseModel):
 
 @lru_cache
 def get_settings() -> Settings:
-    app_data_dir = Path(
-        os.getenv(
-            "APP_DATA_DIR",
-            os.getenv("AI_WORKSPACE_APP_DATA_DIR", str(DEFAULT_APP_DATA_DIR)),
-        )
+    app_data_dir_value = _first_non_empty_env(
+        "APP_DATA_DIR",
+        "AI_WORKSPACE_APP_DATA_DIR",
+        default=str(DEFAULT_APP_DATA_DIR),
     )
-    workspace_db_path = Path(
-        os.getenv(
-            "WORKSPACE_DB_PATH",
-            os.getenv("AI_WORKBENCH_DB_PATH", str(app_data_dir / "workspaces.db")),
-        )
+    app_data_dir = _prepare_runtime_path(
+        app_data_dir_value,
+        label="application data directory",
+        create_parent=False,
+    )
+    workspace_db_path_value = _first_non_empty_env(
+        "WORKSPACE_DB_PATH",
+        "AI_WORKBENCH_DB_PATH",
+        default=str(app_data_dir / "workspaces.db"),
+    )
+    workspace_db_path = _prepare_runtime_path(
+        workspace_db_path_value,
+        label="workspace database parent directory",
+        create_parent=True,
     )
     default_cors_origins = ",".join(
         [
@@ -184,6 +212,4 @@ def get_settings() -> Settings:
         MODEL_DOWNLOAD_EXECUTION_ENABLED=os.getenv("MODEL_DOWNLOAD_EXECUTION_ENABLED", "false").lower()
         in {"1", "true", "yes", "on"},
     )
-    settings.app_data_dir.mkdir(parents=True, exist_ok=True)
-    settings.workspace_db_path.parent.mkdir(parents=True, exist_ok=True)
     return settings

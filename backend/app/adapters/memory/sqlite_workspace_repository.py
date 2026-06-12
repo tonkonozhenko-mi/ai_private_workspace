@@ -8,8 +8,17 @@ from app.core.domain.workspace import Workspace
 
 class SQLiteWorkspaceRepository:
     def __init__(self, db_path: str | Path) -> None:
-        self.db_path = Path(db_path)
-        initialize_workspace_schema(self.db_path)
+        raw_db_path = str(db_path).strip()
+        if not raw_db_path:
+            raise ValueError("Workspace database path must not be empty.")
+        self.db_path = Path(raw_db_path).expanduser()
+        try:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            initialize_workspace_schema(self.db_path)
+        except (OSError, sqlite3.Error) as exc:
+            raise RuntimeError(
+                f"Could not initialize workspace SQLite database at {self.db_path}: {exc}"
+            ) from exc
 
     def create(self, workspace: Workspace) -> Workspace:
         with self._connect() as connection:
@@ -108,8 +117,13 @@ class SQLiteWorkspaceRepository:
         return workspace
 
     def _connect(self) -> sqlite3.Connection:
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        connection = sqlite3.connect(self.db_path)
+        try:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            connection = sqlite3.connect(self.db_path)
+        except (OSError, sqlite3.Error) as exc:
+            raise RuntimeError(
+                f"Could not open workspace SQLite database at {self.db_path}: {exc}"
+            ) from exc
         connection.row_factory = sqlite3.Row
         return connection
 

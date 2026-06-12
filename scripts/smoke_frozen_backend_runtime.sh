@@ -7,10 +7,13 @@ MANIFEST="$OUTPUT_DIR/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
 HOST="${AI_PRIVATE_WORKSPACE_HOST:-127.0.0.1}"
 PORT="${AI_PRIVATE_WORKSPACE_PORT:-8000}"
 HEALTH_URL="http://$HOST:$PORT/health"
+WORKSPACES_OVERVIEW_URL="http://$HOST:$PORT/workspaces/overview"
 LOG_DIR="${AI_PRIVATE_WORKSPACE_SMOKE_LOG_DIR:-$ROOT_DIR/build/desktop/smoke-logs}"
 LOG_FILE="$LOG_DIR/frozen-backend-smoke.log"
 PID_FILE="$LOG_DIR/frozen-backend-smoke.pid"
 APP_DATA_DIR="$LOG_DIR/app-data"
+DATA_DIR="$APP_DATA_DIR/data"
+WORKSPACE_DB_PATH="$DATA_DIR/workspaces.db"
 TIMEOUT_SECONDS="${AI_PRIVATE_WORKSPACE_SMOKE_TIMEOUT_SECONDS:-45}"
 
 fail() { echo "❌ $1" >&2; exit 1; }
@@ -54,12 +57,12 @@ if result == 0:
     raise SystemExit(f"port {host}:{port} is already in use; refusing to kill or replace unknown process")
 PY
 
-mkdir -p "$LOG_DIR" "$APP_DATA_DIR"
+mkdir -p "$LOG_DIR" "$DATA_DIR"
 rm -f "$PID_FILE" "$LOG_FILE"
 
 APP_ENV="desktop" \
 APP_DATA_DIR="$APP_DATA_DIR" \
-WORKSPACE_DB_PATH="$APP_DATA_DIR/workspaces.db" \
+WORKSPACE_DB_PATH="$WORKSPACE_DB_PATH" \
 "$BINARY" --runtime-self-check >"$LOG_FILE" 2>&1 || {
   print_log_tail
   fail "frozen backend import preflight failed before startup"
@@ -79,7 +82,7 @@ trap cleanup EXIT INT TERM
 
 APP_ENV="desktop" \
 APP_DATA_DIR="$APP_DATA_DIR" \
-WORKSPACE_DB_PATH="$APP_DATA_DIR/workspaces.db" \
+WORKSPACE_DB_PATH="$WORKSPACE_DB_PATH" \
 AI_PRIVATE_WORKSPACE_HOST="$HOST" \
 AI_PRIVATE_WORKSPACE_PORT="$PORT" \
 "$BINARY" >>"$LOG_FILE" 2>&1 &
@@ -121,5 +124,23 @@ if [ "$status" -ne 0 ]; then
 fi
 
 ok "frozen backend smoke passed: $HEALTH_URL"
+
+python3 - "$WORKSPACES_OVERVIEW_URL" "$WORKSPACE_DB_PATH" <<'PY'
+import json, pathlib, sys, urllib.request
+
+url = sys.argv[1]
+db_path = pathlib.Path(sys.argv[2])
+with urllib.request.urlopen(url, timeout=3) as response:
+    payload = json.loads(response.read().decode("utf-8"))
+    if response.status != 200:
+        raise SystemExit(f"workspace overview returned HTTP {response.status}")
+    if not isinstance(payload.get("items"), list):
+        raise SystemExit("workspace overview response is missing items list")
+if not db_path.is_file():
+    raise SystemExit(f"workspace database was not created: {db_path}")
+print(f"workspace overview ok; database exists: {db_path}")
+PY
+
+ok "workspace API smoke passed: $WORKSPACES_OVERVIEW_URL"
 ok "log: $LOG_FILE"
 ok "app data: $APP_DATA_DIR"

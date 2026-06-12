@@ -237,3 +237,53 @@ Latest checks:
 - `./scripts/audit_release_candidate.sh` passed with expected local warnings.
 
 Next gate: rebuild frozen backend + Tauri app, open packaged `.app`, create first project, then test onboarding/scan/index/ask inside the packaged desktop app.
+
+## Latest state after Task 265
+
+Task 265 hardens the packaged macOS SQLite workspace API path after the
+remaining `sqlite3.OperationalError: unable to open database file` report:
+
+- Tauri bundle identifier is `local.ai-private-workspace` without the
+  discouraged `.app` suffix.
+- Tauri creates `~/Library/Application Support/AI Private Workspace/data` and
+  passes/logs the exact `workspaces.db` path.
+- Frozen PyInstaller fallback paths use app-owned Application Support data, not
+  `.app/Contents/Resources`.
+- Backend settings support canonical and legacy path variables and ignore
+  blank canonical values.
+- SQLite workspace initialization/connect errors include the resolved path.
+- Packaged readiness requires both `/health` and `/workspaces/overview`.
+- New gate: `scripts/check_packaged_app_workspace_api_smoke.sh`.
+
+Exact next local gate:
+
+```bash
+./scripts/audit_release_candidate.sh
+./scripts/check_packaged_app_workspace_api_smoke.sh
+cd backend && python3 -m pytest -q
+cd ../frontend && npm ci && npm run build
+cargo check --manifest-path src-tauri/Cargo.toml
+npm run tauri:build
+open "src-tauri/target/release/bundle/macos/AI Private Workspace.app"
+```
+
+Then verify the app-owned data/log directories, `/health`,
+`/workspaces/overview`, first-run `No projects yet`, and explicit **Add
+project**. Desktop launch still never starts scan, index, rebuild, MCP, Agent,
+or model downloads.
+
+Latest local smoke detail:
+
+- fresh frozen backend workspace API smoke passed on owned alternate port 8011;
+- it created `build/desktop/task265-smoke-logs/app-data/data/workspaces.db`;
+- rebuilt `.app` logged the correct Application Support DB path;
+- the rebuilt supervisor correctly refused to reuse or kill an older orphaned
+  packaged backend that returned `/health` 200 and `/workspaces/overview` 500;
+- after stopping only the exact old app-owned PID recorded by the supervisor,
+  the rebuilt `.app` passed `/health`, `/workspaces/overview`, packaged CORS
+  preflight, and real `POST /workspaces` creation;
+- `~/Library/Application Support/AI Private Workspace/data/workspaces.db`
+  exists and the created workspace appears in overview.
+- graceful packaged-app quit now stops the PyInstaller bootloader and internal
+  server child; port 8000 is free afterward and no orphan product process
+  remains.

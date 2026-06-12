@@ -457,3 +457,15 @@ The macOS packaged `.app` can now start the app-owned frozen backend runtime and
 ### Task 264 — Packaged app SQLite/CORS bootstrap ✅
 
 The packaged macOS app can start the frozen backend. Task 264 fixed the next packaged-app blocker: app-owned SQLite database path bootstrap and Tauri/local CORS preflight for workspace/project APIs.
+
+### Task 265 — Packaged app SQLite workspace smoke
+
+Task 265 closes the remaining macOS packaged workspace-API bootstrap gap. The
+frozen runtime and Tauri supervisor now agree on the writable app-owned
+database path, supervisor readiness includes `/workspaces/overview`, and
+source checks preserve PID-owned shutdown with no generic shell execution or
+kill-by-port behavior.
+
+Next gate: rebuild and open the packaged `.app`, verify `/health` and
+`/workspaces/overview`, create the first project, then exercise explicit
+onboarding/scan/index/ask actions.

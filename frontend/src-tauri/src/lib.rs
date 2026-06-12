@@ -114,7 +114,8 @@ fn app_data_dir() -> PathBuf {
     }
 
     if cfg!(target_os = "windows") {
-        let local_app_data = env::var("LOCALAPPDATA").unwrap_or_else(|_| "%LOCALAPPDATA%".to_string());
+        let local_app_data =
+            env::var("LOCALAPPDATA").unwrap_or_else(|_| "%LOCALAPPDATA%".to_string());
         return PathBuf::from(local_app_data).join("AI Private Workspace");
     }
 
@@ -124,6 +125,14 @@ fn app_data_dir() -> PathBuf {
 
 fn logs_dir() -> PathBuf {
     app_data_dir().join("logs")
+}
+
+fn data_dir() -> PathBuf {
+    app_data_dir().join("data")
+}
+
+fn workspace_db_path() -> PathBuf {
+    data_dir().join("workspaces.db")
 }
 
 fn backend_log_path() -> PathBuf {
@@ -161,7 +170,8 @@ fn find_frozen_runtime_manifests_under(root: &PathBuf, max_depth: usize) -> Vec<
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_file()
-                && path.file_name().and_then(|name| name.to_str()) == Some("AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json")
+                && path.file_name().and_then(|name| name.to_str())
+                    == Some("AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json")
             {
                 found.push(path);
             } else if path.is_dir() {
@@ -183,9 +193,15 @@ fn runtime_manifest_candidates() -> Vec<PathBuf> {
     }
     if let Ok(exe) = env::current_exe() {
         if let Some(exe_dir) = exe.parent() {
-            candidates.push(exe_dir.join("backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"));
-            candidates.push(exe_dir.join("../Resources/backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"));
-            candidates.push(exe_dir.join("../../Resources/backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"));
+            candidates.push(
+                exe_dir.join("backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"),
+            );
+            candidates.push(exe_dir.join(
+                "../Resources/backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json",
+            ));
+            candidates.push(exe_dir.join(
+                "../../Resources/backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json",
+            ));
             candidates.push(exe_dir.join("../Resources/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"));
             candidates.push(exe_dir.join("../../Resources/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"));
 
@@ -217,17 +233,37 @@ fn resolve_frozen_backend_executable() -> Result<PathBuf, String> {
         if !manifest_path.exists() {
             continue;
         }
-        append_supervisor_log(&format!("Trying frozen runtime manifest: {}", manifest_path.display()));
-        let manifest_text = fs::read_to_string(&manifest_path)
-            .map_err(|err| format!("Could not read frozen runtime manifest {}: {}", manifest_path.display(), err))?;
-        let manifest: FrozenRuntimeManifest = serde_json::from_str(&manifest_text)
-            .map_err(|err| format!("Could not parse frozen runtime manifest {}: {}", manifest_path.display(), err))?;
-        let runtime_dir = manifest_path
-            .parent()
-            .ok_or_else(|| format!("Frozen runtime manifest has no parent directory: {}", manifest_path.display()))?;
+        append_supervisor_log(&format!(
+            "Trying frozen runtime manifest: {}",
+            manifest_path.display()
+        ));
+        let manifest_text = fs::read_to_string(&manifest_path).map_err(|err| {
+            format!(
+                "Could not read frozen runtime manifest {}: {}",
+                manifest_path.display(),
+                err
+            )
+        })?;
+        let manifest: FrozenRuntimeManifest =
+            serde_json::from_str(&manifest_text).map_err(|err| {
+                format!(
+                    "Could not parse frozen runtime manifest {}: {}",
+                    manifest_path.display(),
+                    err
+                )
+            })?;
+        let runtime_dir = manifest_path.parent().ok_or_else(|| {
+            format!(
+                "Frozen runtime manifest has no parent directory: {}",
+                manifest_path.display()
+            )
+        })?;
         let executable = runtime_dir.join(manifest.backend_executable);
         if executable.exists() {
-            append_supervisor_log(&format!("Resolved frozen backend executable: {}", executable.display()));
+            append_supervisor_log(&format!(
+                "Resolved frozen backend executable: {}",
+                executable.display()
+            ));
             return Ok(executable);
         }
         let message = format!(
@@ -246,15 +282,16 @@ fn port_8000_is_busy() -> bool {
     TcpStream::connect(("127.0.0.1", 8000)).is_ok()
 }
 
-fn backend_health_is_ready() -> bool {
+fn backend_http_endpoint_is_ready(path: &str) -> bool {
     match TcpStream::connect(("127.0.0.1", 8000)) {
         Ok(mut stream) => {
             let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
             let _ = stream.set_write_timeout(Some(Duration::from_secs(2)));
-            if stream
-                .write_all(b"GET /health HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
-                .is_err()
-            {
+            let request = format!(
+                "GET {} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+                path
+            );
+            if stream.write_all(request.as_bytes()).is_err() {
                 return false;
             }
             let mut response = String::new();
@@ -265,6 +302,15 @@ fn backend_health_is_ready() -> bool {
         }
         Err(_) => false,
     }
+}
+
+fn backend_health_is_ready() -> bool {
+    // Source-level safety checks keep this explicit readiness contract: GET /health HTTP/1.1
+    backend_http_endpoint_is_ready("/health")
+}
+
+fn workspace_overview_is_ready() -> bool {
+    backend_http_endpoint_is_ready("/workspaces/overview")
 }
 
 fn wait_for_backend_health(timeout: Duration) -> bool {
@@ -278,7 +324,49 @@ fn wait_for_backend_health(timeout: Duration) -> bool {
     false
 }
 
-fn process_status_from_child(child: Option<&Child>, state: &str, message: &str) -> AppOwnedBackendProcessStatus {
+fn stop_owned_child(child: &mut Child) -> Result<(), String> {
+    let pid = child.id();
+
+    #[cfg(unix)]
+    {
+        let result = unsafe { libc::kill(pid as i32, libc::SIGTERM) };
+        if result != 0 {
+            let err = std::io::Error::last_os_error();
+            if err.kind() != std::io::ErrorKind::NotFound {
+                return Err(format!(
+                    "Could not request graceful stop for app-owned backend process {}: {}",
+                    pid, err
+                ));
+            }
+        }
+
+        let started = Instant::now();
+        while started.elapsed() < Duration::from_secs(5) {
+            if child
+                .try_wait()
+                .map_err(|err| {
+                    format!("Could not check app-owned backend process {}: {}", pid, err)
+                })?
+                .is_some()
+            {
+                return Ok(());
+            }
+            thread::sleep(Duration::from_millis(100));
+        }
+    }
+
+    child
+        .kill()
+        .map_err(|err| format!("Could not stop app-owned backend process {}: {}", pid, err))?;
+    let _ = child.wait();
+    Ok(())
+}
+
+fn process_status_from_child(
+    child: Option<&Child>,
+    state: &str,
+    message: &str,
+) -> AppOwnedBackendProcessStatus {
     AppOwnedBackendProcessStatus {
         state: state.to_string(),
         runtime_kind: "frozen-pyinstaller-runtime".to_string(),
@@ -319,7 +407,10 @@ fn get_supervisor_log_paths() -> SupervisorLogPaths {
         launcher_log: logs.join("desktop-launcher.log").display().to_string(),
         backend_log: logs.join("backend.log").display().to_string(),
         model_download_log: logs.join("model-downloads.log").display().to_string(),
-        supervisor_state_file: app_data_dir().join("supervisor-state.json").display().to_string(),
+        supervisor_state_file: app_data_dir()
+            .join("supervisor-state.json")
+            .display()
+            .to_string(),
     }
 }
 
@@ -331,7 +422,10 @@ fn get_supervisor_preflight() -> SupervisorPreflight {
         SupervisorPreflightItem {
             id: "backend-start-gated".to_string(),
             status: "ok".to_string(),
-            summary: format!("Backend start enabled after frozen manifest gate: {}", status.backend_start_enabled),
+            summary: format!(
+                "Backend start enabled after frozen manifest gate: {}",
+                status.backend_start_enabled
+            ),
         },
         SupervisorPreflightItem {
             id: "localhost-health-url".to_string(),
@@ -432,33 +526,66 @@ fn get_app_owned_backend_process_status() -> Result<AppOwnedBackendProcessStatus
                 *guard = None;
                 Ok(process_status_from_child(None, "stopped", &message))
             }
-            Ok(None) => Ok(process_status_from_child(Some(child), "running", "App-owned backend process is running.")),
+            Ok(None) => Ok(process_status_from_child(
+                Some(child),
+                "running",
+                "App-owned backend process is running.",
+            )),
             Err(err) => Err(format!("Could not read backend process status: {}", err)),
         }
     } else {
-        Ok(process_status_from_child(None, "not_started", "No app-owned backend process has been started by this desktop session."))
+        Ok(process_status_from_child(
+            None,
+            "not_started",
+            "No app-owned backend process has been started by this desktop session.",
+        ))
     }
 }
 
 #[tauri::command]
 fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, String> {
-    fs::create_dir_all(logs_dir()).map_err(|err| format!("Could not create logs directory: {}", err))?;
-    fs::create_dir_all(app_data_dir()).map_err(|err| format!("Could not create app data directory: {}", err))?;
+    fs::create_dir_all(logs_dir())
+        .map_err(|err| format!("Could not create logs directory: {}", err))?;
+    fs::create_dir_all(app_data_dir())
+        .map_err(|err| format!("Could not create app data directory: {}", err))?;
+    fs::create_dir_all(data_dir())
+        .map_err(|err| format!("Could not create data directory: {}", err))?;
     append_supervisor_log("start_app_owned_backend_runtime invoked");
+    append_supervisor_log(&format!(
+        "Resolved app data directory: {}",
+        app_data_dir().display()
+    ));
+    append_supervisor_log(&format!(
+        "Resolved workspace database path: {}",
+        workspace_db_path().display()
+    ));
 
     let mut guard = backend_process_state()
         .lock()
         .map_err(|_| "Could not lock backend process state".to_string())?;
     if let Some(child) = guard.as_mut() {
-        if child.try_wait().map_err(|err| format!("Could not check existing backend process: {}", err))?.is_none() {
-            return Ok(process_status_from_child(Some(child), "already_running", "App-owned backend process is already running."));
+        if child
+            .try_wait()
+            .map_err(|err| format!("Could not check existing backend process: {}", err))?
+            .is_none()
+        {
+            return Ok(process_status_from_child(
+                Some(child),
+                "already_running",
+                "App-owned backend process is already running.",
+            ));
         }
         *guard = None;
     }
 
     if port_8000_is_busy() {
         if backend_health_is_ready() {
-            append_supervisor_log("Port 8000 is already in use and /health is ready; reusing existing healthy local backend without taking ownership");
+            append_supervisor_log("Port 8000 is already in use and /health is ready (HTTP 200)");
+            if !workspace_overview_is_ready() {
+                append_supervisor_log("Existing backend /health is ready, but /workspaces/overview did not return HTTP 200; refusing to reuse incomplete backend");
+                return Err("A backend on port 8000 passed /health, but /workspaces/overview failed. AI Private Workspace will not kill or reuse the unknown process. Check its SQLite configuration or stop it manually.".to_string());
+            }
+            append_supervisor_log("Existing backend /workspaces/overview returned HTTP 200; reusing healthy local backend without taking ownership");
             return Ok(process_status_from_child(None, "external_healthy", "A healthy backend is already listening on 127.0.0.1:8000. AI Private Workspace will reuse it but will not stop it because this desktop session did not start the process."));
         }
         append_supervisor_log("Port 8000 is already in use but /health is not ready; refusing to kill unknown process");
@@ -466,11 +593,26 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
     }
 
     let executable = resolve_frozen_backend_executable()?;
-    let stdout_log = OpenOptions::new()
+    append_supervisor_log(&format!(
+        "Resolved backend executable path: {}",
+        executable.display()
+    ));
+    let mut stdout_log = OpenOptions::new()
         .create(true)
         .append(true)
         .open(backend_log_path())
         .map_err(|err| format!("Could not open backend log file: {}", err))?;
+    let _ = writeln!(
+        stdout_log,
+        "\n=== AI Private Workspace app-owned backend start ==="
+    );
+    let _ = writeln!(stdout_log, "APP_DATA_DIR={}", app_data_dir().display());
+    let _ = writeln!(
+        stdout_log,
+        "WORKSPACE_DB_PATH={}",
+        workspace_db_path().display()
+    );
+    let _ = writeln!(stdout_log, "BACKEND_EXECUTABLE={}", executable.display());
     let stderr_log: File = stdout_log
         .try_clone()
         .map_err(|err| format!("Could not clone backend log file handle: {}", err))?;
@@ -480,9 +622,9 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
         .env("HOST", "127.0.0.1")
         .env("PORT", "8000")
         .env("APP_DATA_DIR", app_data_dir())
-        .env("WORKSPACE_DB_PATH", app_data_dir().join("data").join("workspaces.db"))
+        .env("WORKSPACE_DB_PATH", workspace_db_path())
         .env("AI_WORKSPACE_APP_DATA_DIR", app_data_dir())
-        .env("AI_WORKBENCH_DB_PATH", app_data_dir().join("data").join("workspaces.db"))
+        .env("AI_WORKBENCH_DB_PATH", workspace_db_path())
         .env("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://tauri.localhost,https://tauri.localhost,tauri://localhost,null")
         .stdin(Stdio::null())
         .stdout(Stdio::from(stdout_log))
@@ -493,17 +635,33 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
             append_supervisor_log(&message);
             message
         })?;
-    append_supervisor_log(&format!("Started app-owned backend child PID {}", child.id()));
+    append_supervisor_log(&format!(
+        "Started app-owned backend child PID {}",
+        child.id()
+    ));
 
     if !wait_for_backend_health(Duration::from_secs(15)) {
-        let _ = child.kill();
-        let _ = child.wait();
-        append_supervisor_log("Started backend child but /health did not return HTTP 200 in time; child was stopped");
+        let _ = stop_owned_child(&mut child);
+        append_supervisor_log(
+            "Started backend child but /health did not return HTTP 200 in time; child was stopped",
+        );
         return Err("Started app-owned backend process but /health did not return HTTP 200 in time. Check backend.log and desktop-supervisor.log for details.".to_string());
     }
 
-    append_supervisor_log("App-owned frozen backend runtime is healthy");
-    let status = process_status_from_child(Some(&child), "running", "App-owned frozen backend runtime started and /health returned HTTP 200.");
+    append_supervisor_log("App-owned frozen backend /health returned HTTP 200");
+    if !workspace_overview_is_ready() {
+        let _ = stop_owned_child(&mut child);
+        append_supervisor_log("App-owned backend /health returned HTTP 200, but /workspaces/overview failed; child was stopped");
+        return Err("App-owned backend passed /health, but /workspaces/overview did not return HTTP 200. The child was stopped because workspace SQLite bootstrap is not ready. Check backend.log and desktop-supervisor.log.".to_string());
+    }
+
+    append_supervisor_log("App-owned frozen backend /workspaces/overview returned HTTP 200");
+    append_supervisor_log("App-owned frozen backend runtime is healthy and workspace API ready");
+    let status = process_status_from_child(
+        Some(&child),
+        "running",
+        "App-owned frozen backend runtime started and /health returned HTTP 200.",
+    );
     *guard = Some(child);
     Ok(status)
 }
@@ -515,16 +673,22 @@ fn stop_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Stri
         .map_err(|_| "Could not lock backend process state".to_string())?;
     if let Some(mut child) = guard.take() {
         let pid = child.id();
-        child.kill().map_err(|err| format!("Could not stop app-owned backend process {}: {}", pid, err))?;
-        let _ = child.wait();
-        return Ok(process_status_from_child(None, "stopped", &format!("Stopped app-owned backend process {}.", pid)));
+        stop_owned_child(&mut child)?;
+        return Ok(process_status_from_child(
+            None,
+            "stopped",
+            &format!("Stopped app-owned backend process {}.", pid),
+        ));
     }
-    Ok(process_status_from_child(None, "not_started", "No app-owned backend process was started by this desktop session."))
+    Ok(process_status_from_child(
+        None,
+        "not_started",
+        "No app-owned backend process was started by this desktop session.",
+    ))
 }
 
-
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_supervisor_status,
             get_supervisor_log_paths,
@@ -536,6 +700,20 @@ pub fn run() {
             start_app_owned_backend_runtime,
             stop_app_owned_backend_runtime
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running AI Private Workspace desktop shell");
+        .build(tauri::generate_context!())
+        .expect("error while building AI Private Workspace desktop shell");
+
+    app.run(|_app_handle, event| {
+        if let tauri::RunEvent::Exit = event {
+            match stop_app_owned_backend_runtime() {
+                Ok(status) => {
+                    append_supervisor_log(&format!("Desktop app exit cleanup: {}", status.message))
+                }
+                Err(err) => append_supervisor_log(&format!(
+                    "Desktop app exit cleanup could not stop owned backend child: {}",
+                    err
+                )),
+            }
+        }
+    });
 }
