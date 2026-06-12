@@ -1177,6 +1177,20 @@ def get_tauri_supervisor_bridge() -> TauriSupervisorBridgeResponse:
     )
 
 
+def _tauri_source_has_no_generic_shell_api(source: str) -> bool:
+    forbidden_tokens = ("sh -c", "cmd /C", "npm run", "ollama pull")
+    if any(token in source for token in forbidden_tokens):
+        return False
+    if "osascript" not in source:
+        return True
+    return (
+        "fn choose_project_directory" in source
+        and "choose folder with prompt" in source
+        and "POSIX path of (choose folder" in source
+        and source.count("osascript") == 1
+    )
+
+
 @router.get("/tauri-supervisor-static-gate", response_model=TauriSupervisorStaticGateResponse)
 def get_tauri_supervisor_static_gate() -> TauriSupervisorStaticGateResponse:
     """Return the static safety gate for the read-only Tauri supervisor bridge."""
@@ -1224,9 +1238,9 @@ def get_tauri_supervisor_static_gate() -> TauriSupervisorStaticGateResponse:
         TauriSupervisorStaticGateItemResponse(
             id="no-generic-shell-api",
             title="No generic shell execution API",
-            status="ok" if all(token not in source for token in ("sh -c", "cmd /C", "osascript", "npm run", "ollama pull")) else "blocked",
-            summary="Only narrow app-owned backend lifecycle commands are present" if all(token not in source for token in ("sh -c", "cmd /C", "osascript", "npm run", "ollama pull")) else "Generic shell execution keywords found",
-            evidence="no sh -c / cmd /C / npm run / ollama pull",
+            status="ok" if _tauri_source_has_no_generic_shell_api(source) else "blocked",
+            summary="Only narrow app-owned backend lifecycle commands and the fixed macOS folder picker are present" if _tauri_source_has_no_generic_shell_api(source) else "Generic shell execution keywords found",
+            evidence="no sh -c / cmd /C / npm run / ollama pull; osascript allowed only for fixed choose-folder dialog",
         ),
     ]
     status = "blocked" if any(item.status == "blocked" for item in items) else "ok"

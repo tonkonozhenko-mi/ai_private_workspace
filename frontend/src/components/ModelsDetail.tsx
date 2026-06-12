@@ -182,77 +182,39 @@ export function ModelsDetail({
   }
 
   return (
-    <div className="models-detail">
-      <section className="panel models-native-hero">
+    <div className="models-detail models-detail-simple">
+      <section className="panel models-native-hero models-native-hero-clean">
         <div>
-          <p className="eyebrow">Model workspace</p>
-          <h2>Models for local answers.</h2>
-          <p>
-            See which local AI model answers questions and which search model
-            prepares project context.
-          </p>
+          <p className="eyebrow">Models</p>
+          <h2>Local AI for this workspace</h2>
+          <p>Choose models, install missing ones, and keep the runtime state visible without digging through technical panels.</p>
         </div>
         <div className="models-native-hero-badges">
-          <StatusBadge
-            label={
-              dashboard.usage_plan.can_use_selected_models_fully
-                ? "Ready"
-                : "Needs review"
-            }
-          />
+          <StatusBadge label={dashboard.usage_plan.can_use_selected_models_fully ? "Ready" : "Needs action"} />
         </div>
       </section>
 
-      <FirstLaunchSetupPanel />
-
-      <details className="panel desktop-packaging-panel models-disclosure-panel">
-        <summary>
-          <div>
-            <p className="eyebrow">Product packaging</p>
-            <h2>Desktop app direction</h2>
-            <span>
-              Planned path from developer-safe build to double-click app.
-            </span>
-          </div>
-        </summary>
-        <DesktopPackagingRealityPanel />
-      </details>
-
-      <section className="panel models-simple-panel">
+      <section className="panel models-simple-panel models-simple-panel-clean">
         <PanelHeading
-          eyebrow="Simple model view"
+          eyebrow="Current setup"
           title="Models used by this workspace"
           status={dashboard.overall_status}
         />
-        <p className="panel-intro">
-          Most users can keep these models as they are.
-        </p>
         <div className="models-simple-grid">
           <SimpleModelCard
             label="AI answer model"
-            provider={
-              dashboard.selected_llm_provider ?? usage.active_llm_provider
-            }
+            provider={dashboard.selected_llm_provider ?? usage.active_llm_provider}
             model={dashboard.selected_llm_model ?? usage.active_llm_model}
-            description="Used when you ask questions about this workspace."
+            description="Used when you ask questions."
             status={usage.can_ask_with_selected_llm ? "Ready" : "Needs setup"}
           />
           <SimpleModelCard
             label="Search context model"
-            provider={
-              dashboard.selected_embedding_provider ??
-              usage.active_embedding_provider
-            }
-            model={
-              dashboard.selected_embedding_model ?? usage.active_embedding_model
-            }
-            description="Used to build and search the local project context."
+            provider={dashboard.selected_embedding_provider ?? usage.active_embedding_provider}
+            model={dashboard.selected_embedding_model ?? usage.active_embedding_model}
+            description="Used to build and search local project context."
             status={getSearchContextStatusLabel(dashboard)}
           />
-        </div>
-        <div className="models-simple-status">
-          <StatusBadge label={getModelWorkspaceStatusLabel(dashboard)} />
-          <span>{getModelWorkspaceStatusMessage(dashboard)}</span>
         </div>
         <RuntimeNextActionPanel
           dashboard={dashboard}
@@ -264,238 +226,41 @@ export function ModelsDetail({
         />
       </section>
 
-      {needsContextBuild ? (
-        <ContextBuildCallout
-          job={contextBuildJob}
-          error={contextBuildError}
-          onBuildContext={handleBuildContext}
-        />
-      ) : null}
-
-      <ModelUsageFlowPanel />
-
-      <OllamaRecommendationPanel />
-
       <LocalModelInstallPanel workspaceId={workspaceId} />
 
-      <details className="panel models-state-panel models-disclosure-panel">
+      <details className="panel models-disclosure-panel model-selection-disclosure">
         <summary>
           <div>
-            <p className="eyebrow">Technical details</p>
-            <h2>Technical model setup</h2>
-            <span>
-              Only needed for troubleshooting backend defaults or search setup.
-            </span>
+            <p className="eyebrow">Change model preferences</p>
+            <h2>Advanced selection</h2>
+            <span>Open only when you want to switch answer or search models for this workspace.</span>
           </div>
         </summary>
-        <div className="model-runtime-grid">
-          <RuntimeModel
-            label="Chosen AI model"
-            provider={dashboard.selected_llm_provider}
-            model={dashboard.selected_llm_model}
-            status={
-              llmDiffersFromBackendDefault
-                ? "per-request override"
-                : dashboard.selection_status.llm_status.status
-            }
-            title={
-              llmDiffersFromBackendDefault
-                ? "This workspace preference differs from the backend default AI model. Ask can still request it per question when the model is supported by the provider."
-                : undefined
-            }
-          />
-          <RuntimeModel
-            label="Backend default AI model"
-            provider={usage.active_llm_provider}
-            model={usage.active_llm_model}
-            status={
-              dashboard.selection_status.llm_status.matches_active_runtime
-                ? "ready"
-                : "default runtime"
-            }
-            title={
-              llmDiffersFromBackendDefault
-                ? "This is the backend default AI model. It is not automatically changed by saving a workspace AI model preference."
-                : undefined
-            }
-          />
-          <RuntimeModel
-            label="Chosen search model"
-            provider={dashboard.selected_embedding_provider}
-            model={dashboard.selected_embedding_model}
-            status={dashboard.selection_status.embedding_status.status}
-          />
-          <RuntimeModel
-            label="Backend default search model"
-            provider={usage.active_embedding_provider}
-            model={usage.active_embedding_model}
-            status={
-              dashboard.selection_status.embedding_status.matches_active_runtime
-                ? "ready"
-                : "runtime_mismatch"
-            }
-          />
-        </div>
-        {llmDiffersFromBackendDefault ? (
-          <div className="llm-override-note">
-            <StatusBadge label="informational" />
-            <div>
-              <strong>Chosen AI model is a per-request preference.</strong>
-              <p>
-                The chosen AI model differs from the backend default. This does
-                not require rebuilding search context. Ask can still use the
-                chosen AI model per question when the model is available.
-              </p>
-            </div>
-          </div>
-        ) : null}
+        <ModelSelectionEditor
+          workspaceId={workspaceId}
+          selectedLlmProvider={dashboard.selected_llm_provider}
+          selectedLlmModel={dashboard.selected_llm_model}
+          selectedEmbeddingProvider={dashboard.selected_embedding_provider}
+          selectedEmbeddingModel={dashboard.selected_embedding_model}
+          llmOptions={llmOptions}
+          embeddingOptions={embeddingOptions}
+          reindexReason={reindexReason}
+          hasScan={hasScan}
+          onSelectionUpdated={onSelectionUpdated}
+        />
       </details>
 
-      <ModelsWorkflowSteps
-        canAsk={usage.can_ask_with_selected_llm}
-        canSearch={usage.can_search_with_selected_embedding}
-      />
-
-      <GuidedModelSetupPanel
-        workspaceId={workspaceId}
-        onApplySelection={async (modelType, provider, model) => {
-          await updateWorkspaceModelSelection(workspaceId, {
-            provider,
-            model,
-            model_type: modelType,
-            selected_reason: "Chosen from guided model setup.",
-          });
-          await onSelectionUpdated();
-        }}
-      />
-
-      <ModelSelectionEditor
-        workspaceId={workspaceId}
-        selectedLlmProvider={dashboard.selected_llm_provider}
-        selectedLlmModel={dashboard.selected_llm_model}
-        selectedEmbeddingProvider={dashboard.selected_embedding_provider}
-        selectedEmbeddingModel={dashboard.selected_embedding_model}
-        llmOptions={llmOptions}
-        embeddingOptions={embeddingOptions}
-        reindexReason={reindexReason}
-        hasScan={hasScan}
-        onSelectionUpdated={onSelectionUpdated}
-      />
-
-      <AgentMCPReadinessOverview />
-
-      <AgentModeReadinessPanel
-        workspaceId={workspaceId}
-        selectedProvider={
-          dashboard.selected_llm_provider ?? usage.active_llm_provider
-        }
-        selectedModel={dashboard.selected_llm_model ?? usage.active_llm_model}
-      />
-
-      <MCPServerRegistryPanel workspaceId={workspaceId} />
-
-      <ModelExperimentPlanner
-        workspaceId={workspaceId}
-        llmOptions={llmOptions}
-        selectedLlmProvider={dashboard.selected_llm_provider}
-        selectedLlmModel={dashboard.selected_llm_model}
-        activeLlmProvider={usage.active_llm_provider}
-        activeLlmModel={usage.active_llm_model}
-        onSelectionUpdated={onSelectionUpdated}
-      />
-
-      <div className="models-secondary-grid">
-        <section className="panel model-readiness-panel">
-          <PanelHeading eyebrow="Status" title="Ready now" />
-          <div className="readiness-list">
-            <ReadinessRow
-              label="Ask with chosen AI model"
-              ready={usage.can_ask_with_selected_llm}
-            />
-            <ReadinessRow
-              label="Search with chosen search model"
-              ready={usage.can_search_with_selected_embedding}
-            />
-            <ReadinessRow
-              label="Build context with chosen search model"
-              ready={usage.can_index_with_selected_embedding}
-            />
-          </div>
-          <div className="next-action-strip">
-            <span>Recommended next action</span>
-            <strong>
-              {formatModelActionTitle(dashboard.primary_next_action_title) ??
-                "Review model selection"}
-            </strong>
-          </div>
-        </section>
-
-        <section className="panel recommendations-panel">
-          <PanelHeading eyebrow="Suggestions" title="Recommended models" />
-          <p className="model-ranking-hint">
-            Fit score is an advisory ranking; higher is better.
-          </p>
-          {dashboard.recommendations.recommendations.length > 0 ? (
-            <div className="model-ranking-list">
-              {dashboard.recommendations.recommendations
-                .slice(0, 3)
-                .map((recommendation) => (
-                  <RecommendationRow
-                    key={`${recommendation.model.provider}/${recommendation.model.model_name}`}
-                    recommendation={recommendation}
-                  />
-                ))}
-            </div>
-          ) : (
-            <EmptyState
-              title="No model recommendations are available yet"
-              compact
-            />
-          )}
-        </section>
-
-        <section className="panel performance-panel">
-          <PanelHeading eyebrow="History" title="Past model results" />
-          <p className="model-ranking-hint">
-            Past ratings help the workspace suggest better local models.
-          </p>
-          {dashboard.performance_summary.items.length > 0 ? (
-            <div className="model-ranking-list">
-              {dashboard.performance_summary.items.slice(0, 3).map((item) => (
-                <PerformanceRow
-                  key={`${item.provider}/${item.model}`}
-                  item={item}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title="No model comparison feedback has been recorded yet"
-              compact
-            />
-          )}
-        </section>
-      </div>
-
-      <details className="panel activation-panel models-disclosure-panel">
+      <details className="panel models-disclosure-panel activation-panel">
         <summary>
           <div>
-            <p className="eyebrow">Instructions only</p>
-            <h2>Local AI setup commands</h2>
-            <span>
-              Copy-only commands for Ollama, Qdrant, and backend settings.
-            </span>
+            <p className="eyebrow">Manual commands</p>
+            <h2>Copy-only setup notes</h2>
+            <span>Only for troubleshooting when the built-in model manager is not enough.</span>
           </div>
         </summary>
-        <p className="panel-intro">
-          These commands are displayed as setup instructions. The frontend does
-          not execute them or create command proposals.
-        </p>
-        <p className="activation-safety-note">
-          Commands are copied only. The frontend never executes them.
-        </p>
+        <p className="activation-safety-note">Commands are copied only. The frontend never executes them.</p>
         <div className="activation-step-list">
-          {activationGuide.steps.map((step) => (
+          {activationGuide.steps.slice(0, 4).map((step) => (
             <article className="activation-step" key={step.id}>
               <div className="activation-step-heading">
                 <div>
@@ -505,11 +270,7 @@ export function ModelsDetail({
                 <StatusBadge label={friendlyStatus(step.status)} />
               </div>
               <p>{step.description}</p>
-              <small>{step.reason}</small>
-              <CommandList
-                primaryCommand={step.command}
-                commands={step.commands ?? []}
-              />
+              <CommandList primaryCommand={step.command} commands={step.commands ?? []} />
             </article>
           ))}
         </div>

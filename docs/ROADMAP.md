@@ -500,3 +500,8 @@ The packaged MVP now includes a clearer daily-use path:
 - A new `scripts/check_daily_use_mvp_contracts.sh` guard verifies this UX and safety contract.
 
 Safety remains unchanged: the frontend does not execute shell commands and scan/index/ask do not start automatically on mount.
+
+
+## Task 270
+
+Focus shifted from developer-dashboard completeness to daily-use MVP quality: reduce duplication, hide advanced/dev content, improve spacing, add folder picker, and provide one smoke command.

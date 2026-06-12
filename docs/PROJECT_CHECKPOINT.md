@@ -557,3 +557,8 @@ The packaged MVP now includes a clearer daily-use path:
 - A new `scripts/check_daily_use_mvp_contracts.sh` guard verifies this UX and safety contract.
 
 Safety remains unchanged: the frontend does not execute shell commands and scan/index/ask do not start automatically on mount.
+
+
+## Task 270 update
+
+Daily-use UI was simplified: main tabs reduced to Home/Ask/Models/Settings, Settings no longer shows release/GitHub/runbook content, Models is focused on model setup, Add project has a native macOS folder picker, and a one-command desktop smoke script was added.
