@@ -359,6 +359,42 @@ export interface DesktopTechnologyDecision {
   next_steps: string[];
 }
 
+
+export interface DesktopStackComponent {
+  id: string;
+  name: string;
+  role: string;
+  license_model: string;
+  why_selected: string;
+  maintenance_note: string;
+}
+
+export interface DesktopRuntimeFreezeMilestone {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  exit_criteria: string[];
+}
+
+export interface DesktopStackAndRuntimeContract {
+  status: string;
+  title: string;
+  summary: string;
+  desktop_shell: string;
+  backend_runtime_strategy: string;
+  frontend_strategy: string;
+  packaging_strategy: string;
+  stack_principles: string[];
+  selected_components: DesktopStackComponent[];
+  rejected_paths: DesktopTechnologyOption[];
+  runtime_freeze_milestones: DesktopRuntimeFreezeMilestone[];
+  staging_contract: string[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
 export interface WindowsPackagingArtifact {
   path: string;
   purpose: string;

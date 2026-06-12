@@ -54,6 +54,7 @@ import type {
   TauriSupervisorBridge,
   TauriSupervisorStaticGate,
   DesktopTechnologyDecision,
+  DesktopStackAndRuntimeContract,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -216,6 +217,10 @@ export function getTauriSupervisorStaticGate(): Promise<TauriSupervisorStaticGat
 
 export function getDesktopTechnologyDecision(): Promise<DesktopTechnologyDecision> {
   return getJson<DesktopTechnologyDecision>("/runtime/desktop-technology-decision");
+}
+
+export function getDesktopStackAndRuntimeContract(): Promise<DesktopStackAndRuntimeContract> {
+  return getJson<DesktopStackAndRuntimeContract>("/runtime/desktop-stack-runtime-contract");
 }
 
 export function getWindowsPackagingFoundation(): Promise<WindowsPackagingFoundation> {

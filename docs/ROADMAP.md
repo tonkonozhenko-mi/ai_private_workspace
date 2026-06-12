@@ -327,3 +327,7 @@ Frontend React code must never execute shell commands. It may display and copy c
 - Tauri is now documented as the current v0.2 candidate, not an irreversible v1.0 decision.
 - Alternatives are recorded: Electron, native SwiftUI/WinUI, and browser UI plus launcher scripts.
 - Guardrails remain unchanged: frontend cannot execute shell commands, desktop launch cannot auto-start scan/index/MCP/Agent/model downloads, and native commands must stay allowlisted.
+
+### Task 242 — Desktop stack and runtime contract
+
+Phase 22 now has an accepted v0.2 technology direction: open-source/free Tauri + React desktop shell, FastAPI backend, SQLite/Qdrant/Ollama local runtime, and a PyInstaller-first backend freeze spike. The desktop shell still cannot start the backend until runtime staging is deterministic and safety checks pass.

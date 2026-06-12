@@ -330,3 +330,12 @@ Task 239 adds a read-only Phase 22 gate with `GET /runtime/desktop-runtime-prefl
 ## Task 241 — Desktop technology decision
 
 Task 241 adds an explicit desktop shell technology decision record. Tauri remains the current candidate because it can reuse the React UI for macOS and Windows while keeping the native layer narrow. The decision is still reviewable before v1.0; Electron, native SwiftUI/WinUI, and browser-plus-launcher approaches are documented as alternatives.
+
+## Task 242 — Desktop stack and runtime contract
+
+- Accepted Tauri + React as the v0.2 desktop shell candidate for macOS and Windows.
+- Kept Electron as fallback, not default.
+- Rejected separate SwiftUI/WinUI apps for now because they create two UI codebases.
+- Added `/runtime/desktop-stack-runtime-contract`.
+- Added `scripts/check_desktop_stack_contract.sh`.
+- Locked the runtime staging contract before enabling desktop-owned backend startup.

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -26,6 +26,7 @@ import type {
   TauriSupervisorBridge,
   TauriSupervisorStaticGate,
   DesktopTechnologyDecision,
+  DesktopStackAndRuntimeContract,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -225,6 +226,9 @@ export function SettingsPanel({
   const [desktopTechnologyDecision, setDesktopTechnologyDecision] = useState<DesktopTechnologyDecision | null>(null);
   const [desktopTechnologyDecisionError, setDesktopTechnologyDecisionError] = useState<string | null>(null);
   const [desktopTechnologyDecisionLoading, setDesktopTechnologyDecisionLoading] = useState(false);
+  const [desktopStackContract, setDesktopStackContract] = useState<DesktopStackAndRuntimeContract | null>(null);
+  const [desktopStackContractError, setDesktopStackContractError] = useState<string | null>(null);
+  const [desktopStackContractLoading, setDesktopStackContractLoading] = useState(false);
   const [windowsPackagingFoundation, setWindowsPackagingFoundation] = useState<WindowsPackagingFoundation | null>(null);
   const [windowsPackagingFoundationError, setWindowsPackagingFoundationError] = useState<string | null>(null);
   const [windowsPackagingFoundationLoading, setWindowsPackagingFoundationLoading] = useState(false);
@@ -423,6 +427,33 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setTauriSupervisorBridgeLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+
+
+  useEffect(() => {
+    let cancelled = false;
+    setDesktopStackContractLoading(true);
+    setDesktopStackContractError(null);
+    getDesktopStackAndRuntimeContract()
+      .then((contract) => {
+        if (!cancelled) {
+          setDesktopStackContract(contract);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setDesktopStackContractError(error instanceof Error ? error.message : "Could not load desktop stack runtime contract");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setDesktopStackContractLoading(false);
         }
       });
     return () => {
@@ -2773,6 +2804,73 @@ export function SettingsPanel({
                     <ol className="settings-preflight-list">
                       {desktopTechnologyDecision.when_to_reconsider.map((item) => <li key={item}>{item}</li>)}
                     </ol>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
+
+
+            <details className="settings-disclosure" open>
+              <summary>Desktop stack and runtime contract</summary>
+              {desktopStackContractError ? (
+                <p className="settings-transfer-message">Could not load desktop stack runtime contract: {desktopStackContractError}</p>
+              ) : null}
+              {desktopStackContractLoading ? (
+                <p className="settings-transfer-message">Loading desktop stack runtime contract…</p>
+              ) : desktopStackContract ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{desktopStackContract.title}</strong>
+                    <span>{desktopStackContract.summary}</span>
+                    <span>Desktop shell: {desktopStackContract.desktop_shell}</span>
+                    <span>Backend runtime: {desktopStackContract.backend_runtime_strategy}</span>
+                  </div>
+                  <div className="settings-safety-list">
+                    {desktopStackContract.stack_principles.map((principle) => <span key={principle}>{principle}</span>)}
+                  </div>
+                  <div className="startup-checklist-grid">
+                    {desktopStackContract.selected_components.map((component) => (
+                      <div className="startup-checklist-item is-ok" key={component.id}>
+                        <div className="startup-checklist-item-header">
+                          <strong>{component.name}</strong>
+                          <span>{component.license_model}</span>
+                        </div>
+                        <p>{component.role}</p>
+                        <small>{component.why_selected}</small>
+                        <small>{component.maintenance_note}</small>
+                      </div>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Runtime freeze milestones</summary>
+                    <div className="startup-checklist-grid">
+                      {desktopStackContract.runtime_freeze_milestones.map((milestone) => (
+                        <div className={`startup-checklist-item ${milestone.status.includes("done") ? "is-ok" : milestone.status === "next" ? "is-review" : ""}`} key={milestone.id}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{milestone.title}</strong>
+                            <span>{milestone.status}</span>
+                          </div>
+                          <p>{milestone.summary}</p>
+                          <small>Exit criteria: {milestone.exit_criteria.join(" · ")}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Staging contract and validation</summary>
+                    <div className="settings-safety-list">
+                      {desktopStackContract.staging_contract.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                    <div className="settings-command-list">
+                      {desktopStackContract.validation_commands.map((command) => (
+                        <div className="settings-command-card" key={command.command}>
+                          <strong>{command.label}</strong>
+                          <code>{command.command}</code>
+                          <span>{command.purpose}</span>
+                        </div>
+                      ))}
+                    </div>
                   </details>
                 </div>
               ) : null}
