@@ -484,3 +484,8 @@ Next packaging work:
 1. Windows frozen-runtime and packaged full-flow parity.
 2. macOS signing/notarization and installer-grade distribution.
 3. Persistent job state and optional persistent Qdrant onboarding polish.
+
+
+## Task 267 — Persistent packaged RAG index
+
+The packaged MVP should keep workspace chunks after quit/reopen. Implemented SQLite-backed vector persistence under the app-owned data directory and added persistent RAG contract/tests.

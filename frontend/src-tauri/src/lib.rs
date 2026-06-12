@@ -131,6 +131,10 @@ fn data_dir() -> PathBuf {
     app_data_dir().join("data")
 }
 
+fn vector_store_path() -> PathBuf {
+    app_data_dir().join("data").join("vector_store.db")
+}
+
 fn workspace_db_path() -> PathBuf {
     data_dir().join("workspaces.db")
 }
@@ -612,6 +616,12 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
         "WORKSPACE_DB_PATH={}",
         workspace_db_path().display()
     );
+    let _ = writeln!(stdout_log, "VECTOR_STORE=sqlite");
+    let _ = writeln!(
+        stdout_log,
+        "VECTOR_STORE_PATH={}",
+        vector_store_path().display()
+    );
     let _ = writeln!(stdout_log, "BACKEND_EXECUTABLE={}", executable.display());
     let stderr_log: File = stdout_log
         .try_clone()
@@ -623,6 +633,9 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
         .env("PORT", "8000")
         .env("APP_DATA_DIR", app_data_dir())
         .env("WORKSPACE_DB_PATH", workspace_db_path())
+        .env("VECTOR_STORE", "sqlite")
+        .env("VECTOR_STORE_PATH", vector_store_path())
+        .env("AI_WORKSPACE_VECTOR_STORE_PATH", vector_store_path())
         .env("AI_WORKSPACE_APP_DATA_DIR", app_data_dir())
         .env("AI_WORKBENCH_DB_PATH", workspace_db_path())
         .env("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://tauri.localhost,https://tauri.localhost,tauri://localhost,null")

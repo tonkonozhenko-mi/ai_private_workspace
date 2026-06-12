@@ -541,3 +541,8 @@ Task 266 closes the first complete packaged macOS product-flow gate:
 
 Next recommended large task: Windows packaged-runtime parity, while retaining
 the now-proven macOS full-flow contract.
+
+
+## Task 267 update — packaged persistent RAG
+
+Packaged `.app` now uses an app-owned SQLite vector store by default (`VECTOR_STORE=sqlite`, `data/vector_store.db`) instead of memory. This allows indexed chunks to survive backend restart while keeping Qdrant as an optional advanced provider.
