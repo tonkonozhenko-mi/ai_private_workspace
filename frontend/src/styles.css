@@ -18713,3 +18713,396 @@ code,
     grid-template-columns: 1fr;
   }
 }
+
+/* Task 270: daily-use UI cleanup — calmer app-like layout */
+:root {
+  --app-radius-lg: 24px;
+  --app-radius-md: 18px;
+  --app-gap: 18px;
+}
+
+.app-shell {
+  background: linear-gradient(180deg, #f8fafc 0%, #f3f6f8 100%);
+}
+
+.sidebar {
+  border-right: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.sidebar-footer-simple code,
+.workspace-context-chip,
+.information-band,
+.desktop-packaging-panel,
+.model-usage-flow-panel,
+.model-hardware-panel,
+.agent-readiness-panel,
+.mcp-server-registry-panel,
+.models-secondary-grid,
+.product-status-section,
+.metric-grid {
+  display: none !important;
+}
+
+.workspace-navigation-shell {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 18px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(248, 250, 252, 0.82));
+  backdrop-filter: blur(16px);
+}
+
+.workspace-tabs {
+  width: auto;
+  max-width: min(100%, 620px);
+  padding: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 16px 45px rgba(15, 23, 42, 0.08);
+}
+
+.workspace-tabs > div {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.workspace-tabs button {
+  min-height: 40px;
+  border-radius: 999px;
+  padding: 0 18px;
+  white-space: nowrap;
+}
+
+.workspace-tabs button.is-selected {
+  background: #0f172a;
+  color: #fff;
+  box-shadow: none;
+}
+
+.workspace-tab-content,
+.dashboard-layout,
+.models-detail,
+.settings-simplified-page {
+  display: grid;
+  gap: var(--app-gap);
+}
+
+.panel,
+.surface-panel {
+  border-radius: var(--app-radius-lg);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.07);
+}
+
+.workspace-header,
+.daily-use-panel,
+.onboarding-guide-panel,
+.models-native-hero-clean,
+.models-simple-panel-clean,
+.model-manager-panel,
+.settings-clean-hero,
+.settings-clean-card,
+.create-workspace-hero-simple,
+.create-workspace-form,
+.create-workspace-guide-simple {
+  overflow: hidden;
+}
+
+.workspace-header {
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px;
+}
+
+.workspace-header h1,
+.models-native-hero h2,
+.settings-clean-hero h2,
+.create-workspace-hero h1 {
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.workspace-header-path,
+code,
+pre,
+.metric-word,
+.model-install-card dd,
+.settings-clean-preview span {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.daily-use-panel {
+  padding: 22px;
+}
+
+.daily-use-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+}
+
+.daily-use-main h2 {
+  margin: 0;
+  font-size: clamp(1.55rem, 2vw, 2.15rem);
+}
+
+.daily-use-main p {
+  max-width: 760px;
+}
+
+.daily-use-actions,
+.runtime-next-action-buttons,
+.settings-clean-actions,
+.model-install-actions,
+.create-form-actions,
+.path-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.daily-use-actions button,
+.runtime-next-action-buttons button,
+.settings-clean-actions button,
+.create-form-actions button,
+.path-picker-row button {
+  min-height: 42px;
+}
+
+.daily-use-checklist {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.daily-use-check {
+  min-width: 0;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(248, 250, 252, 0.72);
+}
+
+.daily-use-help,
+.background-jobs-panel,
+.onboarding-steps-grid,
+.file-rules-plan {
+  display: none !important;
+}
+
+.onboarding-guide-panel {
+  padding: 22px;
+}
+
+.onboarding-guide-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+}
+
+.workspace-setup-actions {
+  margin-top: 16px;
+  border-radius: 18px;
+}
+
+.overview-advanced-disclosure > summary,
+.models-disclosure-panel > summary,
+.model-manager-section > summary,
+.model-download-history > summary {
+  min-height: 62px;
+  gap: 16px;
+}
+
+.overview-advanced-disclosure > summary h2,
+.models-disclosure-panel > summary h2 {
+  margin: 0;
+}
+
+.models-detail-simple {
+  max-width: 1180px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.models-native-hero-clean,
+.settings-clean-hero,
+.create-workspace-hero-simple {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 26px;
+}
+
+.models-simple-grid,
+.model-manager-summary-grid,
+.settings-clean-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.model-manager-summary-grid article,
+.models-simple-grid article,
+.settings-clean-preview {
+  min-width: 0;
+  border-radius: 18px;
+}
+
+.model-manager-section:not([open]).is-quiet,
+.model-download-history:not([open]) {
+  opacity: 0.82;
+}
+
+.model-install-grid,
+.model-profile-grid,
+.model-role-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.model-install-card {
+  min-width: 0;
+}
+
+.settings-clean-grid {
+  align-items: stretch;
+}
+
+.settings-clean-card {
+  padding: 22px;
+}
+
+.compact-heading {
+  margin-bottom: 14px;
+}
+
+.segmented-control {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 5px;
+  margin: 0 0 12px;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, 0.62);
+}
+
+.segmented-control button {
+  border: 0;
+  border-radius: 999px;
+  min-height: 34px;
+  padding: 0 14px;
+  background: transparent;
+  color: #475569;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.segmented-control button.is-selected {
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.settings-clean-file-form,
+.settings-clean-guidance-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.settings-clean-file-form label,
+.settings-clean-guidance-list label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.settings-clean-file-form textarea,
+.settings-clean-guidance-list textarea,
+.settings-clean-template-row select,
+.create-workspace-form input {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.settings-clean-actions {
+  grid-column: 1 / -1;
+}
+
+.settings-clean-template-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.create-workspace-grid-simple {
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
+}
+
+.path-picker-row input {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.compact-list li {
+  padding: 12px 0;
+}
+
+@media (max-width: 980px) {
+  .daily-use-main,
+  .models-native-hero-clean,
+  .settings-clean-hero,
+  .create-workspace-hero-simple,
+  .onboarding-guide-heading,
+  .create-workspace-grid-simple {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-use-checklist,
+  .models-simple-grid,
+  .model-manager-summary-grid,
+  .settings-clean-grid,
+  .settings-clean-file-form,
+  .settings-clean-guidance-list {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-navigation-shell {
+    justify-content: flex-start;
+  }
+
+  .workspace-tabs {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .workspace-header,
+  .daily-use-panel,
+  .onboarding-guide-panel,
+  .models-native-hero-clean,
+  .settings-clean-hero,
+  .settings-clean-card,
+  .create-workspace-hero-simple {
+    padding: 18px;
+  }
+
+  .workspace-tabs button {
+    padding: 0 13px;
+  }
+}

@@ -91,12 +91,9 @@ const DEFAULT_PREFERENCES: WorkbenchPreferences = {
 };
 
 const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
-  { id: "overview", label: "Overview" },
+  { id: "overview", label: "Home" },
   { id: "ask", label: "Ask" },
   { id: "models", label: "Models" },
-  { id: "reports", label: "Reports" },
-  { id: "actions", label: "Capabilities" },
-  { id: "activity", label: "Activity" },
   { id: "settings", label: "Settings" },
 ];
 
@@ -499,7 +496,7 @@ function App() {
               <h2>Workspaces</h2>
               <span className="sidebar-workspace-count">{totalWorkspaces}</span>
             </div>
-            <p className="sidebar-subtitle">Select a workspace to inspect</p>
+            <p className="sidebar-subtitle">Your local projects</p>
           </div>
           <div className="sidebar-heading-actions">
             <button
@@ -554,9 +551,8 @@ function App() {
           </>
         )}
 
-        <footer className="sidebar-footer">
-          <span>Frontend is connected to local backend.</span>
-          <code>{preferences.apiBaseUrl}</code>
+        <footer className="sidebar-footer sidebar-footer-simple">
+          <span>Local backend ready</span>
         </footer>
       </aside>
 
@@ -664,14 +660,6 @@ function App() {
               </div>
               {activeTab === "models" ? (
                 <div className="models-tab">
-                  <div className="information-band">
-                    <p>
-                      <strong>Chosen AI model:</strong> can be used per question without changing the backend default.
-                    </p>
-                    <p>
-                      <strong>Chosen search model:</strong> powers workspace search. If it changes, rebuild the search context before asking questions.
-                    </p>
-                  </div>
                   {modelsDetailLoading ? (
                     <>
                       <LoadingState

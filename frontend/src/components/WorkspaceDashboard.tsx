@@ -91,35 +91,6 @@ export function WorkspaceDashboard({
         />
       ) : null}
 
-      <section className="metric-grid" aria-label="Workspace status">
-        <article className="metric-card">
-          <span className="metric-label">Technologies found</span>
-          <strong>{summary.detected_skills_count}</strong>
-          <span>
-            {summary.has_scan ? "Latest scan available" : "Project scan needed"}
-          </span>
-        </article>
-        <article className="metric-card">
-          <span className="metric-label">Context</span>
-          <strong className="metric-word">
-            {formatLabel(indexStatus.status)}
-          </strong>
-          <span>{indexStatus.chunks_count} context pieces</span>
-        </article>
-        <article className="metric-card">
-          <span className="metric-label">Quick start</span>
-          <strong className="metric-word">
-            {formatLabel(dashboard.quick_start.status)}
-          </strong>
-          <span>{dashboard.primary_next_action_title ?? "No next action"}</span>
-        </article>
-        <article className="metric-card">
-          <span className="metric-label">Recent activity</span>
-          <strong>{dashboard.recent_events.length}</strong>
-          <span>events shown</span>
-        </article>
-      </section>
-
       <WorkspaceOnboardingGuide
         dashboard={dashboard}
         modelsSummary={modelsSummary}
@@ -137,45 +108,26 @@ export function WorkspaceDashboard({
         fileIndexingPreferences={fileIndexingPreferences}
       />
 
-      <WorkspaceSkillsSection
-        dashboard={dashboard}
-        onOpenAsk={onOpenAsk}
-        onOpenSettings={onOpenSettings}
-        skillPreferences={skillPreferences}
-      />
-
-      <WorkspaceFilesSection
-        dashboard={dashboard}
-        fileIndexingPreferences={fileIndexingPreferences}
-        onOpenSettings={onOpenSettings}
-      />
-
-      <ProductStatusSection
-        dashboard={dashboard}
-        modelsSummary={modelsSummary}
-        onOpenAsk={onOpenAsk}
-      />
-
-      <div className="overview-grid">
-        <ModelsSummaryCard summary={modelsSummary} compact />
-        <section className="panel overview-next-action overview-secondary-action">
+      <details className="panel overview-advanced-disclosure">
+        <summary>
           <div>
-            <p className="eyebrow">Next best step</p>
-            <h2>Ask your first workspace question</h2>
-            <p>
-              Use the Ask tab to get a local answer grounded in this workspace
-              context. Sources stay visible so you can verify important claims.
-            </p>
+            <p className="eyebrow">Advanced</p>
+            <h2>Project details and detected skills</h2>
+            <span>Open only when you need to inspect file rules or skill guidance.</span>
           </div>
-          <button
-            className="overview-cta-button"
-            type="button"
-            onClick={onOpenAsk}
-          >
-            Go to Ask
-          </button>
-        </section>
-      </div>
+        </summary>
+        <WorkspaceSkillsSection
+          dashboard={dashboard}
+          onOpenAsk={onOpenAsk}
+          onOpenSettings={onOpenSettings}
+          skillPreferences={skillPreferences}
+        />
+        <WorkspaceFilesSection
+          dashboard={dashboard}
+          fileIndexingPreferences={fileIndexingPreferences}
+          onOpenSettings={onOpenSettings}
+        />
+      </details>
     </>
   );
 }

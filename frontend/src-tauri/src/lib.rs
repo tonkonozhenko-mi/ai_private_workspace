@@ -700,6 +700,37 @@ fn stop_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Stri
     ))
 }
 
+
+#[tauri::command]
+fn choose_project_directory() -> Result<Option<String>, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let output = Command::new("/usr/bin/osascript")
+            .arg("-e")
+            .arg("POSIX path of (choose folder with prompt \"Choose a local project folder for AI Private Workspace\")")
+            .stdin(Stdio::null())
+            .output()
+            .map_err(|err| format!("Could not open macOS folder picker: {}", err))?;
+        if output.status.success() {
+            let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if value.is_empty() {
+                return Ok(None);
+            }
+            return Ok(Some(value.trim_end_matches('/').to_string()));
+        }
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        if stderr.contains("User canceled") || stderr.contains("-128") {
+            return Ok(None);
+        }
+        return Err(format!("Folder picker failed: {}", stderr.trim()));
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("Native folder picker is currently implemented for macOS packaged builds.".to_string())
+    }
+}
+
 pub fn run() {
     let app = tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
@@ -711,7 +742,8 @@ pub fn run() {
             get_backend_health_readiness_contract,
             get_app_owned_backend_process_status,
             start_app_owned_backend_runtime,
-            stop_app_owned_backend_runtime
+            stop_app_owned_backend_runtime,
+            choose_project_directory
         ])
         .build(tauri::generate_context!())
         .expect("error while building AI Private Workspace desktop shell");

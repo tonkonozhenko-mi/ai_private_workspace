@@ -59,6 +59,15 @@ export function isRunningInsideTauri(): boolean {
   return tauriInvoke() !== null;
 }
 
+export async function chooseProjectDirectory(): Promise<string | null> {
+  const invoke = tauriInvoke();
+  if (!invoke) {
+    return null;
+  }
+
+  return invoke<string | null>("choose_project_directory");
+}
+
 export async function ensureAppOwnedBackendRuntime(): Promise<DesktopBackendStartupResult | null> {
   const invoke = tauriInvoke();
   if (!invoke) {
