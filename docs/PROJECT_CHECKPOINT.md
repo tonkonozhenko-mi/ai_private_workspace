@@ -546,3 +546,14 @@ the now-proven macOS full-flow contract.
 ## Task 267 update — packaged persistent RAG
 
 Packaged `.app` now uses an app-owned SQLite vector store by default (`VECTOR_STORE=sqlite`, `data/vector_store.db`) instead of memory. This allows indexed chunks to survive backend restart while keeping Qdrant as an optional advanced provider.
+
+## Task 269 — Daily-use MVP polish
+
+The packaged MVP now includes a clearer daily-use path:
+
+- Overview shows a `Use it now` readiness panel.
+- The primary action changes between scan, build context, fix model setup, and ask.
+- Ask reloads the latest conversation for the selected workspace, so restart feels continuous.
+- A new `scripts/check_daily_use_mvp_contracts.sh` guard verifies this UX and safety contract.
+
+Safety remains unchanged: the frontend does not execute shell commands and scan/index/ask do not start automatically on mount.
