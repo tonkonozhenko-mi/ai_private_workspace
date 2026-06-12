@@ -647,6 +647,30 @@ class MacOSTauriSmokeRunbookResponse(BaseModel):
 
 
 
+class MacOSPackagedAppSmokePreflightItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    command: str | None = None
+
+
+class MacOSPackagedAppSmokePreflightResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    runbook_doc: str
+    check_script: str
+    package_manager: str
+    desktop_shell: str
+    preflight_items: list[MacOSPackagedAppSmokePreflightItemResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    pass_criteria: list[str]
+    safety_rules: list[str]
+    next_steps: list[str]
+
+
+
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str
     purpose: str

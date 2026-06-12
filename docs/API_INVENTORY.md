@@ -346,3 +346,7 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 ## Task 250 — Tauri backend health readiness
 
 - `GET /runtime/app-owned-backend-health-readiness` — records the health readiness gate for real Tauri app-owned backend startup. It requires HTTP `GET /health` to return 200 before the desktop shell treats startup as successful, and keeps failed-startup cleanup PID-owned with no kill-by-port behavior.
+
+## Task 251 — macOS packaged app smoke preflight
+
+- `GET /runtime/macos-packaged-app-smoke-preflight` — records the reproducible macOS packaged-app smoke preflight. It validates Tauri CLI npm wiring, package-lock support, Rust/Tauri scaffold presence, frozen backend manifest readiness, HTTP `/health` readiness, and no generic shell/kill-by-port behavior before package smoke.

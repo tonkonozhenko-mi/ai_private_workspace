@@ -398,3 +398,9 @@ Added the local macOS smoke runbook and check gate for the frozen backend runtim
 ## Task 250 — Tauri backend health readiness gate ✅
 
 Task 250 hardens the real Tauri app-owned backend startup implementation. Desktop readiness now requires application-level `/health` HTTP 200 rather than only an open TCP port. This reduces false-positive startup success before packaged macOS/Windows smoke work.
+
+## Task 251 update
+
+- Phase 22 continues with macOS packaged app smoke preflight.
+- Frontend now includes Tauri CLI npm scripts and lockfile support so `npm run tauri dev` is reproducible after `npm ci`.
+- Next major step: run local macOS frozen backend + Tauri dev/package smoke, then mirror the flow on Windows.

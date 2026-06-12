@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getFrozenBackendRuntimeSelection, getFrozenBackendSmokeContract, getAppOwnedBackendStartupGate, getAppOwnedBackendStartupImplementation, getAppOwnedBackendHealthReadiness, getMacOSTauriSmokeRunbook, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getFrozenBackendRuntimeSelection, getFrozenBackendSmokeContract, getAppOwnedBackendStartupGate, getAppOwnedBackendStartupImplementation, getAppOwnedBackendHealthReadiness, getMacOSTauriSmokeRunbook, getMacOSPackagedAppSmokePreflight, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -35,6 +35,7 @@ import type {
   AppOwnedBackendStartupImplementation,
   AppOwnedBackendHealthReadiness,
   MacOSTauriSmokeRunbook,
+  MacOSPackagedAppSmokePreflight,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -261,6 +262,9 @@ export function SettingsPanel({
   const [macOSTauriSmokeRunbook, setMacOSTauriSmokeRunbook] = useState<MacOSTauriSmokeRunbook | null>(null);
   const [macOSTauriSmokeRunbookError, setMacOSTauriSmokeRunbookError] = useState<string | null>(null);
   const [macOSTauriSmokeRunbookLoading, setMacOSTauriSmokeRunbookLoading] = useState(false);
+  const [macOSPackagedAppSmokePreflight, setMacOSPackagedAppSmokePreflight] = useState<MacOSPackagedAppSmokePreflight | null>(null);
+  const [macOSPackagedAppSmokePreflightError, setMacOSPackagedAppSmokePreflightError] = useState<string | null>(null);
+  const [macOSPackagedAppSmokePreflightLoading, setMacOSPackagedAppSmokePreflightLoading] = useState(false);
   const [windowsPackagingFoundation, setWindowsPackagingFoundation] = useState<WindowsPackagingFoundation | null>(null);
   const [windowsPackagingFoundationError, setWindowsPackagingFoundationError] = useState<string | null>(null);
   const [windowsPackagingFoundationLoading, setWindowsPackagingFoundationLoading] = useState(false);
@@ -690,6 +694,31 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setMacOSTauriSmokeRunbookLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setMacOSPackagedAppSmokePreflightLoading(true);
+    setMacOSPackagedAppSmokePreflightError(null);
+    getMacOSPackagedAppSmokePreflight()
+      .then((preflight) => {
+        if (!cancelled) {
+          setMacOSPackagedAppSmokePreflight(preflight);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setMacOSPackagedAppSmokePreflightError(error instanceof Error ? error.message : "Could not load macOS packaged app smoke preflight");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setMacOSPackagedAppSmokePreflightLoading(false);
         }
       });
     return () => {

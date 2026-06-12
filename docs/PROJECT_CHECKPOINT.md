@@ -400,3 +400,17 @@ Added `GET /runtime/macos-tauri-smoke-runbook`, `scripts/check_macos_tauri_smoke
 - Failed startup cleanup remains PID-owned and does not kill unknown processes by port.
 - Settings has a new `App-owned backend health readiness` section.
 - Next: local cargo check + PyInstaller smoke + Tauri dev smoke on macOS, then Windows parity.
+
+## Task 251 checkpoint
+
+Task 251 added macOS packaged app smoke preflight.
+
+New/updated artifacts:
+
+- `frontend/package.json` includes `tauri`, `tauri:dev`, and `tauri:build` scripts.
+- `frontend/package-lock.json` includes `@tauri-apps/cli`.
+- `scripts/check_macos_packaged_app_smoke_preflight.sh` validates local smoke readiness.
+- `GET /runtime/macos-packaged-app-smoke-preflight` exposes the checklist in Settings.
+- `docs/TASK251_MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md` documents the local smoke path.
+
+Status: Phase 22 is strongly in progress. v1.0 remains roughly 6–10 large tasks away.
