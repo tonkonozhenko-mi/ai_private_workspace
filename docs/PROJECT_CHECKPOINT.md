@@ -362,3 +362,14 @@ Task 241 adds an explicit desktop shell technology decision record. Tauri remain
 ## Task 245 checkpoint
 
 The project now has a read-only frozen backend runtime selection contract and Tauri metadata command. Backend startup from Tauri remains disabled until a frozen runtime is built and smoke-checked. `/runtime/release-candidate-audit` validation schema is fixed.
+
+## Phase 22 Update — Task 246
+
+**Task 246 — Frozen backend smoke contract:** done. The project now has an explicit developer-only smoke path for the PyInstaller frozen backend runtime:
+
+- `scripts/smoke_frozen_backend_runtime.sh`
+- `scripts/check_frozen_backend_smoke_contract.sh`
+- `GET /runtime/frozen-backend-smoke-contract`
+- Settings UI visibility for the smoke contract
+
+The smoke script starts only the app-owned generated backend executable, waits for `/health`, and stops only the PID it created. Tauri backend startup remains disabled until the next app-owned startup gate.

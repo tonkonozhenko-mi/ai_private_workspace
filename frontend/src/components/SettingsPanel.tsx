@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getFrozenBackendRuntimeSelection, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getFrozenBackendRuntimeSelection, getFrozenBackendSmokeContract, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -30,6 +30,7 @@ import type {
   StagedBackendRuntimeContract,
   PyInstallerBackendRuntimeContract,
   FrozenBackendRuntimeSelection,
+  FrozenBackendSmokeContract,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -241,6 +242,9 @@ export function SettingsPanel({
   const [frozenBackendRuntimeSelection, setFrozenBackendRuntimeSelection] = useState<FrozenBackendRuntimeSelection | null>(null);
   const [frozenBackendRuntimeSelectionError, setFrozenBackendRuntimeSelectionError] = useState<string | null>(null);
   const [frozenBackendRuntimeSelectionLoading, setFrozenBackendRuntimeSelectionLoading] = useState(false);
+  const [frozenBackendSmokeContract, setFrozenBackendSmokeContract] = useState<FrozenBackendSmokeContract | null>(null);
+  const [frozenBackendSmokeContractError, setFrozenBackendSmokeContractError] = useState<string | null>(null);
+  const [frozenBackendSmokeContractLoading, setFrozenBackendSmokeContractLoading] = useState(false);
   const [windowsPackagingFoundation, setWindowsPackagingFoundation] = useState<WindowsPackagingFoundation | null>(null);
   const [windowsPackagingFoundationError, setWindowsPackagingFoundationError] = useState<string | null>(null);
   const [windowsPackagingFoundationLoading, setWindowsPackagingFoundationLoading] = useState(false);
@@ -542,6 +546,31 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setFrozenBackendRuntimeSelectionLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setFrozenBackendSmokeContractLoading(true);
+    setFrozenBackendSmokeContractError(null);
+    getFrozenBackendSmokeContract()
+      .then((contract) => {
+        if (!cancelled) {
+          setFrozenBackendSmokeContract(contract);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setFrozenBackendSmokeContractError(error instanceof Error ? error.message : "Could not load frozen backend smoke contract");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setFrozenBackendSmokeContractLoading(false);
         }
       });
     return () => {
@@ -3112,6 +3141,54 @@ export function SettingsPanel({
                     </div>
                     <div className="settings-safety-list">
                       {frozenBackendRuntimeSelection.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
+
+            <details className="settings-disclosure" open>
+              <summary>Frozen backend smoke contract</summary>
+              {frozenBackendSmokeContractError ? (
+                <p className="settings-transfer-message">Could not load frozen backend smoke contract: {frozenBackendSmokeContractError}</p>
+              ) : null}
+              {frozenBackendSmokeContractLoading ? (
+                <p className="settings-transfer-message">Loading frozen backend smoke contract…</p>
+              ) : frozenBackendSmokeContract ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{frozenBackendSmokeContract.title}</strong>
+                    <span>{frozenBackendSmokeContract.summary}</span>
+                    <span>Mode: {frozenBackendSmokeContract.smoke_mode}</span>
+                    <span>Health: {frozenBackendSmokeContract.health_url}</span>
+                    <span>Script: {frozenBackendSmokeContract.smoke_script}</span>
+                  </div>
+                  <div className="startup-checklist-grid">
+                    {frozenBackendSmokeContract.items.map((item) => (
+                      <div className={`startup-checklist-item ${item.status === "blocked" ? "is-danger" : item.status === "ready_after_build" || item.status === "ready_after_command" ? "is-review" : "is-ok"}`} key={item.id}>
+                        <div className="startup-checklist-item-header">
+                          <strong>{item.title}</strong>
+                          <span>{item.status}</span>
+                        </div>
+                        <p>{item.summary}</p>
+                        {item.command ? <code>{item.command}</code> : null}
+                      </div>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Smoke commands and safety rules</summary>
+                    <div className="settings-command-list">
+                      {frozenBackendSmokeContract.validation_commands.map((command) => (
+                        <div className="settings-command-card" key={command.command}>
+                          <strong>{command.label}</strong>
+                          <code>{command.command}</code>
+                          <span>{command.purpose}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="settings-safety-list">
+                      {frozenBackendSmokeContract.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
                     </div>
                   </details>
                 </div>

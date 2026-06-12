@@ -2111,6 +2111,28 @@ export interface FrozenBackendRuntimeSelection {
   next_steps: string[];
 }
 
+
+export interface FrozenBackendSmokeItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  command: string | null;
+}
+
+export interface FrozenBackendSmokeContract {
+  status: string;
+  title: string;
+  summary: string;
+  smoke_script: string;
+  smoke_mode: string;
+  health_url: string;
+  items: FrozenBackendSmokeItem[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
 export interface StagedBackendRuntimeItem {
   id: string;
   title: string;
