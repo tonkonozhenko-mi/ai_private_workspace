@@ -68,6 +68,8 @@ from app.api.schemas.local_data_safety_schemas import (
     PackagingToolchainPrerequisitesResponse,
     TauriRustStructureRegistryItemResponse,
     TauriRustStructureRegistryResponse,
+    TauriRustDependencyPinItemResponse,
+    TauriRustDependencyPinsResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
@@ -2326,6 +2328,71 @@ def get_tauri_rust_structure_registry() -> TauriRustStructureRegistryResponse:
             "Run npm ci after ensuring npm registry points to https://registry.npmjs.org/.",
             "Run cargo check locally now that Cargo is installed.",
             "Run npm run tauri dev after the frozen backend runtime smoke succeeds.",
+        ],
+    )
+
+
+
+@router.get("/tauri-rust-dependency-pins", response_model=TauriRustDependencyPinsResponse)
+def get_tauri_rust_dependency_pins() -> TauriRustDependencyPinsResponse:
+    root = Path(__file__).resolve().parents[4]
+    cargo_toml = root / "frontend" / "src-tauri" / "Cargo.toml"
+    cargo_lock = root / "frontend" / "src-tauri" / "Cargo.lock"
+    gitignore = root / ".gitignore"
+
+    cargo_text = cargo_toml.read_text(encoding="utf-8") if cargo_toml.exists() else ""
+    lock_text = cargo_lock.read_text(encoding="utf-8") if cargo_lock.exists() else ""
+    gitignore_text = gitignore.read_text(encoding="utf-8") if gitignore.exists() else ""
+    lock_has_known_bad_time = 'name = "time"' in lock_text and 'version = "0.3.48"' in lock_text
+
+    items = [
+        TauriRustDependencyPinItemResponse(
+            id="time-cookie-compatibility-pin",
+            title="time/cookie compatibility pin",
+            status="ok" if 'time = "=0.3.36"' in cargo_text else "blocked",
+            summary="Cargo.toml pins time to =0.3.36 to avoid the cookie 0.18.x E0119 conflict seen on the local macOS Rust toolchain.",
+            command="cd frontend && cargo update --manifest-path src-tauri/Cargo.toml -p time --precise 0.3.36 && cargo check --manifest-path src-tauri/Cargo.toml",
+        ),
+        TauriRustDependencyPinItemResponse(
+            id="cargo-lock-refresh",
+            title="Cargo.lock refresh",
+            status="review" if lock_has_known_bad_time else "ok",
+            summary="Cargo.lock should be refreshed locally after the time pin so cargo check does not keep the known-bad time 0.3.48 resolution.",
+            command="cd frontend && cargo update --manifest-path src-tauri/Cargo.toml -p time --precise 0.3.36",
+        ),
+        TauriRustDependencyPinItemResponse(
+            id="tauri-target-gitignore",
+            title="Tauri target gitignore",
+            status="ok" if "frontend/src-tauri/target/" in gitignore_text else "blocked",
+            summary="frontend/src-tauri/target is a Rust build cache and must not be committed or included in release zips.",
+            command="git status --short frontend/src-tauri/target",
+        ),
+    ]
+
+    status = "blocked" if any(item.status == "blocked" for item in items) else "ready"
+    return TauriRustDependencyPinsResponse(
+        status=status,
+        title="Tauri Rust dependency pins",
+        summary="Documents and validates the local fix for the cookie/time Rust dependency conflict plus Tauri target build-cache hygiene.",
+        check_script="scripts/check_tauri_rust_dependency_pins.sh",
+        cargo_toml_policy="Pin time =0.3.36 until cookie/Tauri dependency resolution is upgraded and verified on macOS and Windows.",
+        gitignore_policy="frontend/src-tauri/target/ is local Rust build output and must never be committed.",
+        validation_items=items,
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Check Rust dependency pins", command="scripts/check_tauri_rust_dependency_pins.sh", purpose="Validate the time pin, Cargo.lock refresh guidance, and Tauri target gitignore rule."),
+            DesktopRuntimeValidationCommandResponse(label="Refresh Cargo lock", command="cd frontend && cargo update --manifest-path src-tauri/Cargo.toml -p time --precise 0.3.36", purpose="Resolve Cargo.lock to the pinned time version before cargo check."),
+            DesktopRuntimeValidationCommandResponse(label="Cargo check", command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml", purpose="Validate the Tauri Rust app locally after dependency resolution."),
+        ],
+        safety_rules=[
+            "This change only pins Rust dependencies and ignores local build output.",
+            "It does not add frontend shell execution.",
+            "It does not start scan, index, rebuild, MCP, Agent, or model downloads.",
+            "frontend/src-tauri/target must stay local-only.",
+        ],
+        next_steps=[
+            "Run the dependency pin check script.",
+            "Refresh Cargo.lock using cargo update -p time --precise 0.3.36.",
+            "Run cargo check locally and upload the next zip if another Rust dependency blocker appears.",
         ],
     )
 

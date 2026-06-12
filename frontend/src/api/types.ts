@@ -2277,6 +2277,28 @@ export interface TauriRustStructureRegistry {
   next_steps: string[];
 }
 
+
+export interface TauriRustDependencyPinItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  command: string | null;
+}
+
+export interface TauriRustDependencyPins {
+  status: string;
+  title: string;
+  summary: string;
+  check_script: string;
+  cargo_toml_policy: string;
+  gitignore_policy: string;
+  validation_items: TauriRustDependencyPinItem[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
 export interface StagedBackendRuntimeItem {
   id: string;
   title: string;

@@ -423,3 +423,6 @@ Packaging toolchain blockers found on the local Mac were fixed: PyInstaller is n
 ## Task 253 — Tauri Rust structure and registry guard
 
 Fixed the local `cargo check --manifest-path src-tauri/Cargo.toml` blocker by moving the real Tauri implementation into `frontend/src-tauri/src/lib.rs` and making `frontend/src-tauri/src/main.rs` a thin `ai_private_workspace_lib::run();` entrypoint. Added `scripts/check_tauri_rust_structure_and_registry.sh` and updated Tauri checks to inspect `src/lib.rs`. Also added a guard against internal npm registry URLs in `frontend/package-lock.json`.
+
+
+* Task 254 — Tauri Rust dependency pin fix + src-tauri target hygiene ✅

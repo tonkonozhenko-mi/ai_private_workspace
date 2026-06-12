@@ -103,3 +103,6 @@ npm run build
 cargo check --manifest-path src-tauri/Cargo.toml
 npm run tauri dev
 ```
+
+
+* Task 254 — Tauri Rust dependency pin fix + src-tauri target hygiene ✅

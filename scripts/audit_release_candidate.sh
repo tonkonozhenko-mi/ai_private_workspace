@@ -41,6 +41,7 @@ local_artifacts=(
   .pytest_cache
   backend/.venv
   frontend/.vite
+  frontend/src-tauri/target
 )
 
 for path in "${local_artifacts[@]}"; do
@@ -55,7 +56,8 @@ if find . \( \
   -path './frontend/node_modules' -o \
   -path './frontend/dist' -o \
   -path './build' -o \
-  -path './.pytest_cache' \
+  -path './.pytest_cache' -o \
+  -path './frontend/src-tauri/target' \
 \) -prune -o \( \
   -name '*.db' -o \
   -name '*.sqlite' -o \
@@ -81,7 +83,8 @@ if find . \( \
   -path './.git' -o \
   -path './frontend/node_modules' -o \
   -path './frontend/dist' -o \
-  -path './build' \
+  -path './build' -o \
+  -path './frontend/src-tauri/target' \
 \) -prune -o -name '*.tsbuildinfo' -print | grep -q .; then
   warn "TypeScript build metadata found locally; exclude from release zip: *.tsbuildinfo"
 else
@@ -116,6 +119,7 @@ shell_scripts=(
   scripts/prepare_source_release_archive.sh
   scripts/audit_release_candidate.sh
   scripts/check_tauri_rust_structure_and_registry.sh
+  scripts/check_tauri_rust_dependency_pins.sh
 )
 
 for script in "${shell_scripts[@]}"; do

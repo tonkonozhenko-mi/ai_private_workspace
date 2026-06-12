@@ -65,6 +65,7 @@ import type {
   MacOSTauriSmokeRunbook,
   MacOSPackagedAppSmokePreflight,
   TauriRustStructureRegistry,
+  TauriRustDependencyPins,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -272,6 +273,10 @@ export function getMacOSPackagedAppSmokePreflight(): Promise<MacOSPackagedAppSmo
 
 export function getTauriRustStructureRegistry(): Promise<TauriRustStructureRegistry> {
   return getJson<TauriRustStructureRegistry>("/runtime/tauri-rust-structure-registry");
+}
+
+export function getTauriRustDependencyPins(): Promise<TauriRustDependencyPins> {
+  return getJson<TauriRustDependencyPins>("/runtime/tauri-rust-dependency-pins");
 }
 
 export function getWindowsPackagingFoundation(): Promise<WindowsPackagingFoundation> {
