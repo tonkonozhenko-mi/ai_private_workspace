@@ -430,3 +430,9 @@ Fixed the local `cargo check --manifest-path src-tauri/Cargo.toml` blocker by mo
 ## Task 255 — Tauri icon assets ✅
 
 Fixed the local Tauri `cargo check` blocker caused by missing/non-RGBA icon assets. Added required RGBA PNG placeholder icons, removed an unused Rust import, added `scripts/check_tauri_icon_assets.sh`, and exposed `GET /runtime/tauri-icon-assets` for Settings/API readiness. Next local check: `scripts/check_tauri_icon_assets.sh && cd frontend && cargo check --manifest-path src-tauri/Cargo.toml`.
+
+## Task 256 — Tauri dev smoke success ✅
+
+Local macOS Tauri development smoke now works. Added `/runtime/tauri-dev-smoke-readiness`, `scripts/check_tauri_dev_smoke_readiness.sh`, and tests to keep the successful Tauri dev path reproducible. The next major Phase 22 goal is packaged macOS smoke using the frozen backend runtime, followed by Windows parity.
+
+Current estimate to 100% v1.0: roughly 5–8 large tasks, depending on macOS packaged build, Windows parity, signing/installer, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.

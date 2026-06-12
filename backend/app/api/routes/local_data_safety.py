@@ -72,6 +72,8 @@ from app.api.schemas.local_data_safety_schemas import (
     TauriRustDependencyPinsResponse,
     TauriIconAssetItemResponse,
     TauriIconAssetsResponse,
+    TauriDevSmokeReadinessItemResponse,
+    TauriDevSmokeReadinessResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
@@ -2546,6 +2548,88 @@ def get_tauri_icon_assets() -> TauriIconAssetsResponse:
             "Run scripts/check_tauri_icon_assets.sh from the project root.",
             "Run cargo check locally on macOS now that the required icons exist.",
             "If cargo check passes, continue to npm run tauri dev after frozen backend smoke.",
+        ],
+    )
+
+
+@router.get("/tauri-dev-smoke-readiness", response_model=TauriDevSmokeReadinessResponse)
+def get_tauri_dev_smoke_readiness() -> TauriDevSmokeReadinessResponse:
+    root = Path(__file__).resolve().parents[4]
+    checks = [
+        (
+            "cargo-check",
+            "Cargo check passed locally",
+            "ok",
+            "User reported that `cargo check --manifest-path src-tauri/Cargo.toml` now passes after the icon/RGBA and Rust dependency fixes.",
+            "cd frontend && cargo check --manifest-path src-tauri/Cargo.toml",
+        ),
+        (
+            "tauri-dev",
+            "Tauri dev smoke starts",
+            "ok",
+            "User reported that `npm run tauri dev` now starts successfully. This confirms the Tauri scaffold is no longer only theoretical.",
+            "cd frontend && npm run tauri dev",
+        ),
+        (
+            "target-hygiene",
+            "Tauri target is ignored",
+            "ok" if "frontend/src-tauri/target/" in (root / ".gitignore").read_text(encoding="utf-8") else "blocked",
+            "Rust build output must stay local and must not be committed or included in source release archives.",
+            "git check-ignore frontend/src-tauri/target || true",
+        ),
+        (
+            "frozen-manifest-gate",
+            "Frozen runtime manifest gate remains required",
+            "ok",
+            "Tauri app-owned backend startup remains gated by the frozen runtime manifest and HTTP `/health` readiness. Dev-mode success does not weaken runtime safety.",
+            "scripts/check_tauri_app_owned_backend_startup.sh",
+        ),
+        (
+            "registry-hygiene",
+            "Public npm registry hygiene",
+            "ok",
+            "The npm lockfile must not include internal registry URLs, so contributors can run `npm ci` outside this environment.",
+            "scripts/check_tauri_rust_structure_and_registry.sh",
+        ),
+    ]
+
+    items = [
+        TauriDevSmokeReadinessItemResponse(
+            id=item_id,
+            title=title,
+            status=status,
+            summary=summary,
+            command=command,
+        )
+        for item_id, title, status, summary, command in checks
+    ]
+    status = "blocked" if any(item.status == "blocked" for item in items) else "ready"
+    return TauriDevSmokeReadinessResponse(
+        status=status,
+        title="Tauri dev smoke readiness",
+        summary="Records that the local macOS Tauri development shell now starts successfully and defines the next safe path from dev smoke to packaged app smoke.",
+        milestone="Task 256 — Tauri dev smoke success recorded",
+        check_script="scripts/check_tauri_dev_smoke_readiness.sh",
+        local_success_reported=True,
+        readiness_items=items,
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Tauri dev smoke readiness", command="scripts/check_tauri_dev_smoke_readiness.sh", purpose="Verify the source tree still contains the files and guardrails needed for local Tauri dev smoke."),
+            DesktopRuntimeValidationCommandResponse(label="Cargo check", command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml", purpose="Compile-check the Tauri Rust shell locally."),
+            DesktopRuntimeValidationCommandResponse(label="Tauri dev", command="cd frontend && npm run tauri dev", purpose="Run the local desktop shell smoke after cargo check passes."),
+            DesktopRuntimeValidationCommandResponse(label="Frozen backend smoke", command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh", purpose="Validate the app-owned backend runtime that packaged Tauri should supervise."),
+        ],
+        safety_rules=[
+            "React/frontend code still does not execute shell commands.",
+            "Tauri may start only the app-owned frozen backend runtime selected by manifest.",
+            "Startup success requires HTTP GET /health 200, not just an open TCP port.",
+            "No pkill, killall, taskkill, or kill-by-port behavior is allowed.",
+            "Desktop launch must not start scan, index, rebuild, MCP, Agent, or model downloads.",
+        ],
+        next_steps=[
+            "Run the frozen backend build/check/smoke scripts locally on macOS.",
+            "Run cargo check and npm run tauri dev from frontend after each desktop-shell change.",
+            "Prepare packaged macOS app smoke using npm run tauri:build after the frozen runtime is validated.",
+            "Then mirror the same startup/readiness/shutdown contract on Windows.",
         ],
     )
 

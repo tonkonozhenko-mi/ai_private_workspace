@@ -110,3 +110,23 @@ npm run tauri dev
 ## Task 255 — Tauri icon assets ✅
 
 Fixed the local Tauri `cargo check` blocker caused by missing/non-RGBA icon assets. Added required RGBA PNG placeholder icons, removed an unused Rust import, added `scripts/check_tauri_icon_assets.sh`, and exposed `GET /runtime/tauri-icon-assets` for Settings/API readiness. Next local check: `scripts/check_tauri_icon_assets.sh && cd frontend && cargo check --manifest-path src-tauri/Cargo.toml`.
+
+## Latest update — Task 256
+
+Task 256 records the first successful local Tauri dev smoke:
+
+- User reported `npm run tauri dev` now works on macOS.
+- Added `GET /runtime/tauri-dev-smoke-readiness`.
+- Added `scripts/check_tauri_dev_smoke_readiness.sh`.
+- Added tests for the readiness endpoint and Tauri source hygiene.
+- Safety remains unchanged: no frontend shell execution, no kill-by-port, frozen manifest gate, `/health` readiness, and no scan/index/rebuild/MCP/Agent/model downloads on launch.
+
+Current roadmap:
+
+- Phase 21 / v0.1 source RC: effectively complete.
+- Phase 22 / v0.2 desktop runtime: strongly in progress and now locally smoke-proven in Tauri dev mode.
+- Remaining to 100% v1.0: roughly 5–8 large tasks.
+
+Next recommended task:
+
+Task 257 — packaged macOS app smoke preparation/build hardening. Focus on `npm run tauri:build`, frozen backend runtime placement, bundled resource paths, and app-owned logs/data validation.
