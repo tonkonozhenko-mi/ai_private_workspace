@@ -49,6 +49,8 @@ from app.api.schemas.local_data_safety_schemas import (
     FinalProductStatusResponse,
     V01ReleaseGateItemResponse,
     V01ReleaseGateResponse,
+    V01UISmokeCheckItemResponse,
+    V01UISmokeCheckResponse,
     FirstLaunchChecklistItemResponse,
     FirstLaunchReadinessResponse,
     DatabaseBackupResponse,
@@ -1760,6 +1762,94 @@ def get_product_completion_roadmap() -> ProductCompletionRoadmapResponse:
         ],
     )
 
+
+
+@router.get("/v0.1-ui-smoke-check", response_model=V01UISmokeCheckResponse)
+def get_v01_ui_smoke_check() -> V01UISmokeCheckResponse:
+    """Return the manual local UI smoke-check for the final v0.1 source RC."""
+    return V01UISmokeCheckResponse(
+        status="manual-check-required",
+        title="v0.1 local UI smoke-check",
+        summary="A short manual checklist for validating the source RC in a real browser before GitHub publication. It is intentionally read-only: it tells the user what to open and what must not start automatically.",
+        estimated_duration="10-15 minutes",
+        checklist=[
+            V01UISmokeCheckItemResponse(
+                id="startup",
+                title="Start backend and frontend manually",
+                status="required",
+                summary="Open the local app only after the backend /health endpoint is ready.",
+                expected_result="The UI loads without a blank page, React crash boundary, or console-visible startup error.",
+                ui_location="App shell",
+                must_not_happen=["No scan starts", "No indexing job starts", "No model download starts", "No MCP/Agent execution starts"],
+            ),
+            V01UISmokeCheckItemResponse(
+                id="models",
+                title="Models page renders",
+                status="required",
+                summary="Open Models and verify selected LLM/embedding status, recommendations, installed model check, and Build context guidance.",
+                expected_result="Models explains the difference between selected embedding model and indexed context without requiring a download on load.",
+                ui_location="Models",
+                must_not_happen=["No ollama pull is triggered by opening the page", "No shell command is executed by the frontend"],
+            ),
+            V01UISmokeCheckItemResponse(
+                id="onboarding",
+                title="Create or open a workspace",
+                status="required",
+                summary="Use the explicit workspace flow and verify that assistant mode/privacy mode are visible before any scan/index action.",
+                expected_result="Workspace creation succeeds or existing workspace opens; scan/index actions remain explicit buttons.",
+                ui_location="Overview / Create workspace",
+                must_not_happen=["No automatic filesystem scan on app load", "No automatic context rebuild"],
+            ),
+            V01UISmokeCheckItemResponse(
+                id="ask",
+                title="Ask flow keeps source-grounding language",
+                status="recommended",
+                summary="Ask a small question after context is available, or verify the empty-context explanation if it is not indexed yet.",
+                expected_result="The answer is source-aware, or the UI clearly says context must be built first.",
+                ui_location="Ask",
+                must_not_happen=["No unsupported project claims without retrieved sources"],
+            ),
+            V01UISmokeCheckItemResponse(
+                id="settings",
+                title="Settings release sections are readable",
+                status="required",
+                summary="Open Settings and verify final product status, release gate, release audit, local data safety, and packaging sections.",
+                expected_result="The page clearly separates v0.1 source RC from future v1.0 installer-grade work.",
+                ui_location="Settings",
+                must_not_happen=["No unsafe apply/update action runs from the page"],
+            ),
+        ],
+        copy_commands=[
+            ReleaseCandidateAuditCommandResponse(
+                label="Backend",
+                command="cd backend && uvicorn app.main:app --reload",
+                purpose="Start the local API for UI smoke-checking.",
+            ),
+            ReleaseCandidateAuditCommandResponse(
+                label="Frontend",
+                command="cd frontend && npm ci && npm run dev",
+                purpose="Start the Vite UI for manual browser verification.",
+            ),
+            ReleaseCandidateAuditCommandResponse(
+                label="Release gate",
+                command="./scripts/audit_release_candidate.sh && cd backend && pytest -q tests/test_v01_release_gate.py tests/test_v01_ui_smoke_check.py tests/test_final_product_status.py tests/test_api_inventory.py && cd ../frontend && npm run build",
+                purpose="Run the targeted checks that support the final UI smoke-check handoff.",
+            ),
+        ],
+        pass_criteria=[
+            "UI opens without a blank Models page or React hook-order crash.",
+            "Models, onboarding, Ask, and Settings are understandable without reading developer docs first.",
+            "No scan, index, rebuild, MCP, Agent, or model download starts automatically on app launch.",
+            "Release/status wording still says v0.1 source RC, not finished v1.0 product.",
+        ],
+        fail_fast_conditions=[
+            "Models or Settings render a blank page.",
+            "Opening the app starts filesystem scan/index/model download without a user click.",
+            "Frontend executes or attempts to execute shell commands.",
+            "Generated source archive includes runtime/build data or local databases.",
+        ],
+        safety_note="This endpoint is documentation for a human smoke-check only. It does not inspect browser state, start servers, run tests, scan files, index context, download models, or execute shell commands.",
+    )
 
 
 @router.get("/v0.1-release-gate", response_model=V01ReleaseGateResponse)

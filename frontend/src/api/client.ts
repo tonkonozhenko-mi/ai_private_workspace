@@ -53,6 +53,8 @@ import type {
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
+  V01ReleaseGate,
+  V01UISmokeCheck,
   FinalProductStatus,
   FirstLaunchReadiness,
   ProductionReadiness,
@@ -205,6 +207,14 @@ export function getReleaseCandidateAudit(): Promise<ReleaseCandidateAudit> {
 
 export function getV01Handoff(): Promise<V01Handoff> {
   return getJson<V01Handoff>("/runtime/v0.1-handoff");
+}
+
+export function getV01ReleaseGate(): Promise<V01ReleaseGate> {
+  return getJson<V01ReleaseGate>("/runtime/v0.1-release-gate");
+}
+
+export function getV01UISmokeCheck(): Promise<V01UISmokeCheck> {
+  return getJson<V01UISmokeCheck>("/runtime/v0.1-ui-smoke-check");
 }
 
 export function getFinalProductStatus(): Promise<FinalProductStatus> {

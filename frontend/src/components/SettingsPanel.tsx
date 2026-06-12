@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -25,6 +25,8 @@ import type {
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
+  V01ReleaseGate,
+  V01UISmokeCheck,
   FinalProductStatus,
   ProductionReadiness,
 } from "../api/types";
@@ -215,6 +217,12 @@ export function SettingsPanel({
   const [v01Handoff, setV01Handoff] = useState<V01Handoff | null>(null);
   const [v01HandoffError, setV01HandoffError] = useState<string | null>(null);
   const [v01HandoffLoading, setV01HandoffLoading] = useState(false);
+  const [v01ReleaseGate, setV01ReleaseGate] = useState<V01ReleaseGate | null>(null);
+  const [v01ReleaseGateError, setV01ReleaseGateError] = useState<string | null>(null);
+  const [v01ReleaseGateLoading, setV01ReleaseGateLoading] = useState(false);
+  const [v01UISmokeCheck, setV01UISmokeCheck] = useState<V01UISmokeCheck | null>(null);
+  const [v01UISmokeCheckError, setV01UISmokeCheckError] = useState<string | null>(null);
+  const [v01UISmokeCheckLoading, setV01UISmokeCheckLoading] = useState(false);
   const [finalProductStatus, setFinalProductStatus] = useState<FinalProductStatus | null>(null);
   const [finalProductStatusError, setFinalProductStatusError] = useState<string | null>(null);
   const [finalProductStatusLoading, setFinalProductStatusLoading] = useState(false);
@@ -476,6 +484,57 @@ export function SettingsPanel({
       cancelled = true;
     };
   }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setV01ReleaseGateLoading(true);
+    setV01ReleaseGateError(null);
+    getV01ReleaseGate()
+      .then((gate) => {
+        if (!cancelled) {
+          setV01ReleaseGate(gate);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setV01ReleaseGateError(error instanceof Error ? error.message : "Could not load v0.1 release gate");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setV01ReleaseGateLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setV01UISmokeCheckLoading(true);
+    setV01UISmokeCheckError(null);
+    getV01UISmokeCheck()
+      .then((check) => {
+        if (!cancelled) {
+          setV01UISmokeCheck(check);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setV01UISmokeCheckError(error instanceof Error ? error.message : "Could not load v0.1 UI smoke-check");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setV01UISmokeCheckLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
 
 
 
@@ -2608,6 +2667,100 @@ export function SettingsPanel({
                 </div>
               ) : null}
             </details>
+
+            <details className="settings-disclosure" open>
+              <summary>v0.1 release gate and UI smoke-check</summary>
+              {v01ReleaseGateError ? (
+                <p className="settings-transfer-message">Could not load v0.1 release gate: {v01ReleaseGateError}</p>
+              ) : null}
+              {v01UISmokeCheckError ? (
+                <p className="settings-transfer-message">Could not load v0.1 UI smoke-check: {v01UISmokeCheckError}</p>
+              ) : null}
+              {v01ReleaseGateLoading || v01UISmokeCheckLoading ? (
+                <p className="settings-transfer-message">Loading v0.1 release gate…</p>
+              ) : v01ReleaseGate && v01UISmokeCheck ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{v01ReleaseGate.title}</strong>
+                    <span>{v01ReleaseGate.summary}</span>
+                    <span>{v01ReleaseGate.current_position}</span>
+                  </div>
+                  <div className="local-data-grid packaging-design-grid">
+                    <div>
+                      <span>v0.1 left</span>
+                      <strong>0-1 task</strong>
+                      <small>{v01ReleaseGate.source_rc_remaining_tasks}</small>
+                    </div>
+                    <div>
+                      <span>v1.0 left</span>
+                      <strong>15-25 tasks</strong>
+                      <small>{v01ReleaseGate.v1_remaining_large_tasks}</small>
+                    </div>
+                    <div>
+                      <span>UI smoke</span>
+                      <strong>{v01UISmokeCheck.estimated_duration}</strong>
+                      <small>{v01UISmokeCheck.status}</small>
+                    </div>
+                  </div>
+                  <p className="settings-transfer-message">{v01ReleaseGate.go_no_go_rule}</p>
+                  <details className="settings-disclosure" open>
+                    <summary>Release gate commands</summary>
+                    <div className="settings-command-stack">
+                      {v01ReleaseGate.release_gate_items.filter((item) => item.command).map((item) => (
+                        <div className="startup-checklist-command" key={item.id}>
+                          <span>{item.title}</span>
+                          <code>{item.command}</code>
+                          <button className="secondary-action small" type="button" onClick={() => item.command ? void navigator.clipboard.writeText(item.command) : undefined}>
+                            Copy
+                          </button>
+                          <small>{item.summary}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure" open>
+                    <summary>Manual browser smoke-check</summary>
+                    <div className="startup-checklist-grid">
+                      {v01UISmokeCheck.checklist.map((item) => (
+                        <div className={`startup-checklist-item ${item.status === "required" ? "is-review" : "is-ok"}`} key={item.id}>
+                          <div className="startup-checklist-item-header">
+                            <strong>{item.title}</strong>
+                            <StatusBadge label={item.ui_location} tone="info" />
+                          </div>
+                          <p>{item.summary}</p>
+                          <small>{item.expected_result}</small>
+                          <div className="settings-safety-list">
+                            {item.must_not_happen.map((rule) => <span key={rule}>{rule}</span>)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Pass/fail criteria</summary>
+                    <ol className="settings-preflight-list">
+                      {v01UISmokeCheck.pass_criteria.map((item) => <li key={item}>{item}</li>)}
+                    </ol>
+                    <div className="startup-checklist-grid">
+                      {v01UISmokeCheck.fail_fast_conditions.map((item) => (
+                        <div className="startup-checklist-item is-blocked" key={item}>
+                          <div className="startup-checklist-item-header">
+                            <strong>Fail fast</strong>
+                            <StatusBadge label="blocker" tone="danger" />
+                          </div>
+                          <p>{item}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="settings-transfer-message">{v01UISmokeCheck.safety_note}</p>
+                  </details>
+                  <div className="settings-safety-list">
+                    {v01ReleaseGate.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                  </div>
+                </div>
+              ) : null}
+            </details>
+
 
             <details className="settings-disclosure" open>
               <summary>Release candidate audit</summary>

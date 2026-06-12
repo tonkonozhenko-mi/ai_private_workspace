@@ -1,6 +1,6 @@
 # AI Private Workspace — Project Checkpoint
 
-Last updated: Task 191
+Last updated: Task 236
 
 ## Working style
 
@@ -291,3 +291,14 @@ Current status after this task:
 - v1.0 installer-grade product: still future work, roughly 15-25 large tasks.
 - Recommended next step: run the release gate locally, create/push the clean source release, then start Phase 22/v0.2.
 
+
+
+## Task 236 — v0.1 UI smoke-check handoff
+
+Task 236 adds a final manual UI smoke-check endpoint: `GET /runtime/v0.1-ui-smoke-check`. It gives a 10-15 minute browser checklist for startup, Models, onboarding/workspace creation, Ask, and Settings before GitHub/source archive publication. The checklist is documentation only: it does not start servers, inspect browser state, run tests, scan/index context, download models, or execute shell commands.
+
+Current roadmap position after Task 236:
+
+- Phase 21 / v0.1 source RC is effectively complete.
+- Remaining v0.1 work is local human verification, clean git status, source archive, and first GitHub push.
+- v1.0 remains future work with roughly 15-25 large tasks: frozen backend runtime, signed installers, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.

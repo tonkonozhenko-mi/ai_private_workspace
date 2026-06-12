@@ -466,6 +466,29 @@ class FinalProductStatusResponse(BaseModel):
 
 
 
+
+
+class V01UISmokeCheckItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    expected_result: str
+    ui_location: str
+    must_not_happen: list[str] = []
+
+
+class V01UISmokeCheckResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    estimated_duration: str
+    checklist: list[V01UISmokeCheckItemResponse]
+    copy_commands: list[ReleaseCandidateAuditCommandResponse]
+    pass_criteria: list[str]
+    fail_fast_conditions: list[str]
+    safety_note: str
+
 class V01ReleaseGateItemResponse(BaseModel):
     id: str
     title: str
