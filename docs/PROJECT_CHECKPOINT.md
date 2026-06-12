@@ -280,3 +280,14 @@ The release target remains source-RC quality, not a signed installer. Runtime/bu
 ## Task 232 update — final status and v1 runway
 
 Task 232 adds `GET /runtime/final-product-status` and a Settings UI section named **Where we are now**. It makes the status explicit: the project is a GitHub-ready v0.1 source release candidate after local validation, not a finished v1.0 desktop installer. The remaining estimate is 0-2 large tasks for source-RC cleanup and roughly 15-25 large tasks for a polished v1.0 product.
+
+## Task 235 — v0.1 release gate and roadmap lock
+
+Task 235 adds a final release-gate endpoint: `GET /runtime/v0.1-release-gate`. It gives a concrete go/no-go checklist for audit, backend targeted tests, frontend build, UI smoke-check, git status cleanup, and clean source archive creation.
+
+Current status after this task:
+
+- v0.1 source RC: effectively complete, with 0-1 large task left for local verification and publication.
+- v1.0 installer-grade product: still future work, roughly 15-25 large tasks.
+- Recommended next step: run the release gate locally, create/push the clean source release, then start Phase 22/v0.2.
+
