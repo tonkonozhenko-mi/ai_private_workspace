@@ -9,6 +9,8 @@ def test_release_candidate_audit_script_exists_and_is_safe():
     assert "backend/.ai-workbench" in content
     assert "*.sqlite" in content
     assert "node_modules" in content
+    assert "backend/.venv" in content
+    assert "*.tsbuildinfo" in content
     assert "bash -n" in content
     assert "kill -9" not in content
     assert "rm -rf" not in content
