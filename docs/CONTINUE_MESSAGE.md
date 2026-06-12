@@ -220,3 +220,20 @@ Current status:
 - Phase 21 / v0.1 source RC: effectively complete.
 - Phase 22 / v0.2 desktop runtime: macOS packaged runtime is very close to closed.
 - Estimated remaining to 100% v1.0: around 4–6 large tasks.
+
+## Latest state after Task 264
+
+Task 264 fixed packaged app SQLite/CORS bootstrap:
+- backend accepts `APP_DATA_DIR` / `WORKSPACE_DB_PATH` and legacy `AI_WORKSPACE_APP_DATA_DIR` / `AI_WORKBENCH_DB_PATH`;
+- SQLite repository creates DB parent directories before connecting;
+- Tauri passes canonical app-owned DB path under `~/Library/Application Support/AI Private Workspace/data/workspaces.db`;
+- packaged-webview CORS preflight is allowed for local/Tauri origins;
+- if port 8000 is already healthy, Tauri reuses it without taking ownership instead of showing a startup failure.
+
+Latest checks:
+- `scripts/check_packaged_app_sqlite_cors_bootstrap.sh` passed.
+- `cd backend && python3 -m pytest -q` → `545 passed, 3 skipped`.
+- `cd frontend && npm ci && npm run build` passed.
+- `./scripts/audit_release_candidate.sh` passed with expected local warnings.
+
+Next gate: rebuild frozen backend + Tauri app, open packaged `.app`, create first project, then test onboarding/scan/index/ask inside the packaged desktop app.

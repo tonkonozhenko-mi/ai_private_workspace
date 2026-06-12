@@ -57,3 +57,49 @@ def test_cors_allowed_origins_parses_comma_separated_setting(monkeypatch) -> Non
 
     get_settings.cache_clear()
     get_settings()
+
+
+def test_preflight_from_tauri_origin_returns_cors_headers() -> None:
+    tauri_origin = "http://tauri.localhost"
+    response = client.options(
+        "/workspaces",
+        headers={
+            "Origin": tauri_origin,
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == tauri_origin
+
+
+def test_preflight_from_null_origin_is_allowed_for_packaged_webview() -> None:
+    response = client.options(
+        "/workspaces",
+        headers={
+            "Origin": "null",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "null"
+
+
+def test_legacy_desktop_env_aliases_map_to_canonical_paths(monkeypatch, tmp_path) -> None:
+    get_settings.cache_clear()
+    with monkeypatch.context() as context:
+        context.delenv("APP_DATA_DIR", raising=False)
+        context.delenv("WORKSPACE_DB_PATH", raising=False)
+        context.setenv("AI_WORKSPACE_APP_DATA_DIR", str(tmp_path / "app-data"))
+        context.setenv("AI_WORKBENCH_DB_PATH", str(tmp_path / "app-data" / "workspace.sqlite3"))
+
+        settings = get_settings()
+
+        assert settings.app_data_dir == tmp_path / "app-data"
+        assert settings.workspace_db_path == tmp_path / "app-data" / "workspace.sqlite3"
+        assert settings.app_data_dir.exists()
+        assert settings.workspace_db_path.parent.exists()
+
+    get_settings.cache_clear()
+    get_settings()

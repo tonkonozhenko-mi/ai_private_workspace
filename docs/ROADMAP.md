@@ -453,3 +453,7 @@ After local packaged-app work, `npm run tauri:build` succeeded, but `scripts/smo
 ## Task 263 update — macOS packaged runtime milestone
 
 The macOS packaged `.app` can now start the app-owned frozen backend runtime and write app-owned supervisor/backend logs. Phase 22 is very close to closed for macOS. Remaining v1.0 work is mostly Windows parity, installer/signing, persistent jobs, MCP runtime execution, sandboxed Agent execution, update flow, and final QA.
+
+### Task 264 — Packaged app SQLite/CORS bootstrap ✅
+
+The packaged macOS app can start the frozen backend. Task 264 fixed the next packaged-app blocker: app-owned SQLite database path bootstrap and Tauri/local CORS preflight for workspace/project APIs.

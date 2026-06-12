@@ -121,15 +121,35 @@ class Settings(BaseModel):
 
 @lru_cache
 def get_settings() -> Settings:
-    app_data_dir = Path(os.getenv("APP_DATA_DIR", str(DEFAULT_APP_DATA_DIR)))
+    app_data_dir = Path(
+        os.getenv(
+            "APP_DATA_DIR",
+            os.getenv("AI_WORKSPACE_APP_DATA_DIR", str(DEFAULT_APP_DATA_DIR)),
+        )
+    )
     workspace_db_path = Path(
-        os.getenv("WORKSPACE_DB_PATH", str(app_data_dir / "workspaces.db"))
+        os.getenv(
+            "WORKSPACE_DB_PATH",
+            os.getenv("AI_WORKBENCH_DB_PATH", str(app_data_dir / "workspaces.db")),
+        )
+    )
+    default_cors_origins = ",".join(
+        [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+            "http://tauri.localhost",
+            "https://tauri.localhost",
+            "tauri://localhost",
+            "null",
+        ]
     )
     cors_allowed_origins = [
         origin.strip()
         for origin in os.getenv(
             "CORS_ALLOWED_ORIGINS",
-            "http://localhost:5173,http://127.0.0.1:5173",
+            default_cors_origins,
         ).split(",")
         if origin.strip()
     ]

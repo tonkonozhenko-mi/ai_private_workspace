@@ -457,8 +457,12 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
     }
 
     if port_8000_is_busy() {
-        append_supervisor_log("Port 8000 is already in use; refusing to kill unknown process");
-        return Err("Port 8000 is already in use. AI Private Workspace will not kill unknown processes; stop the other process manually or configure a different port in a future build.".to_string());
+        if backend_health_is_ready() {
+            append_supervisor_log("Port 8000 is already in use and /health is ready; reusing existing healthy local backend without taking ownership");
+            return Ok(process_status_from_child(None, "external_healthy", "A healthy backend is already listening on 127.0.0.1:8000. AI Private Workspace will reuse it but will not stop it because this desktop session did not start the process."));
+        }
+        append_supervisor_log("Port 8000 is already in use but /health is not ready; refusing to kill unknown process");
+        return Err("Port 8000 is already in use, but /health is not ready. AI Private Workspace will not kill unknown processes; stop the other process manually or configure a different port in a future build.".to_string());
     }
 
     let executable = resolve_frozen_backend_executable()?;
@@ -475,8 +479,11 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
         .env("APP_ENV", "desktop")
         .env("HOST", "127.0.0.1")
         .env("PORT", "8000")
+        .env("APP_DATA_DIR", app_data_dir())
+        .env("WORKSPACE_DB_PATH", app_data_dir().join("data").join("workspaces.db"))
         .env("AI_WORKSPACE_APP_DATA_DIR", app_data_dir())
-        .env("AI_WORKBENCH_DB_PATH", app_data_dir().join("workspace.db"))
+        .env("AI_WORKBENCH_DB_PATH", app_data_dir().join("data").join("workspaces.db"))
+        .env("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://tauri.localhost,https://tauri.localhost,tauri://localhost,null")
         .stdin(Stdio::null())
         .stdout(Stdio::from(stdout_log))
         .stderr(Stdio::from(stderr_log))
