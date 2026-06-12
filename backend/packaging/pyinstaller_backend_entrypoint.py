@@ -47,14 +47,24 @@ def _configure_frozen_environment() -> None:
             "AI_WORKBENCH_DB_PATH",
             default=app_data_dir / "data" / "workspaces.db",
         )
+        vector_store_path = _first_non_empty_env(
+            "VECTOR_STORE_PATH",
+            "AI_WORKSPACE_VECTOR_STORE_PATH",
+            default=app_data_dir / "data" / "vector_store.db",
+        )
         workspace_db_path.parent.mkdir(parents=True, exist_ok=True)
+        vector_store_path.parent.mkdir(parents=True, exist_ok=True)
         (app_data_dir / "logs").mkdir(parents=True, exist_ok=True)
         os.environ["APP_DATA_DIR"] = str(app_data_dir)
         os.environ["WORKSPACE_DB_PATH"] = str(workspace_db_path)
+        os.environ.setdefault("VECTOR_STORE", "sqlite")
+        os.environ["VECTOR_STORE_PATH"] = str(vector_store_path)
         os.environ.setdefault("AI_WORKSPACE_APP_DATA_DIR", str(app_data_dir))
         os.environ.setdefault("AI_WORKBENCH_DB_PATH", str(workspace_db_path))
+        os.environ.setdefault("AI_WORKSPACE_VECTOR_STORE_PATH", str(vector_store_path))
         print(f"AI Private Workspace app data directory: {app_data_dir}", file=sys.stderr)
         print(f"AI Private Workspace workspace database: {workspace_db_path}", file=sys.stderr)
+        print(f"AI Private Workspace vector store: {os.environ.get('VECTOR_STORE')} at {vector_store_path}", file=sys.stderr)
     else:
         os.environ.setdefault("APP_ENV", "desktop")
 

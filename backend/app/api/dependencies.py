@@ -64,6 +64,7 @@ from app.adapters.runtime_health.qdrant_runtime_health_checker import (
     QdrantRuntimeHealthChecker,
 )
 from app.adapters.vector_store.in_memory_vector_store import InMemoryVectorStore
+from app.adapters.vector_store.sqlite_vector_store import SQLiteVectorStore
 from app.config.settings import get_settings
 from app.core.ports.agent_workflow_repository import AgentWorkflowRepositoryPort
 from app.core.ports.command_repository import CommandRepositoryPort
@@ -291,6 +292,8 @@ def build_vector_store() -> VectorStorePort:
 
     if vector_store_type == "memory":
         return InMemoryVectorStore()
+    if vector_store_type == "sqlite":
+        return SQLiteVectorStore(settings.vector_store_path)
     if vector_store_type == "qdrant":
         from app.adapters.vector_store.qdrant_vector_store import QdrantVectorStore
 
@@ -354,6 +357,7 @@ def build_readiness_configuration() -> dict[str, str]:
     settings = get_settings()
     return {
         "VECTOR_STORE": settings.vector_store,
+        "VECTOR_STORE_PATH": str(settings.vector_store_path),
         "EMBEDDING_PROVIDER": settings.embedding_provider,
         "LLM_PROVIDER": settings.llm_provider,
         "COMMAND_RUNNER": settings.command_runner,
@@ -367,6 +371,7 @@ def build_runtime_health_configuration() -> dict[str, str]:
     settings = get_settings()
     return {
         "VECTOR_STORE": settings.vector_store,
+        "VECTOR_STORE_PATH": str(settings.vector_store_path),
         "EMBEDDING_PROVIDER": settings.embedding_provider,
         "LLM_PROVIDER": settings.llm_provider,
         "COMMAND_RUNNER": settings.command_runner,

@@ -315,3 +315,6 @@ persistent vector-store path.
 
 Next recommended task: Windows packaged-runtime full-flow parity, then macOS
 signing/notarization and installer-grade distribution.
+
+
+Task 267 status: packaged persistent RAG was added. The `.app` should pass VECTOR_STORE=sqlite and VECTOR_STORE_PATH under `~/Library/Application Support/AI Private Workspace/data/vector_store.db`; memory remains only for dev/tests. Next check: run packaged smoke and confirm Ask works after quit/reopen without reindex.

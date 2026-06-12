@@ -45,6 +45,7 @@ class Settings(BaseModel):
     COMMAND_TIMEOUT_SECONDS: int = 30
     COMMAND_OUTPUT_LIMIT_CHARS: int = 20000
     VECTOR_STORE: str = "memory"
+    VECTOR_STORE_PATH: Path = DEFAULT_APP_DATA_DIR / "data" / "vector_store.db"
     QDRANT_URL: str = "http://localhost:6333"
     QDRANT_COLLECTION: str = DEFAULT_QDRANT_COLLECTION
     EMBEDDING_PROVIDER: str = "fake"
@@ -89,6 +90,10 @@ class Settings(BaseModel):
     @property
     def vector_store(self) -> str:
         return self.VECTOR_STORE
+
+    @property
+    def vector_store_path(self) -> Path:
+        return self.VECTOR_STORE_PATH
 
     @property
     def qdrant_url(self) -> str:
@@ -182,6 +187,17 @@ def get_settings() -> Settings:
         if origin.strip()
     ]
 
+    vector_store_path_value = _first_non_empty_env(
+        "VECTOR_STORE_PATH",
+        "AI_WORKSPACE_VECTOR_STORE_PATH",
+        default=str(app_data_dir / "data" / "vector_store.db"),
+    )
+    vector_store_path = _prepare_runtime_path(
+        vector_store_path_value,
+        label="vector store database parent directory",
+        create_parent=True,
+    )
+
     settings = Settings(
         CORS_ALLOWED_ORIGINS=cors_allowed_origins,
         APP_DATA_DIR=app_data_dir,
@@ -191,6 +207,7 @@ def get_settings() -> Settings:
         COMMAND_TIMEOUT_SECONDS=int(os.getenv("COMMAND_TIMEOUT_SECONDS", "30")),
         COMMAND_OUTPUT_LIMIT_CHARS=int(os.getenv("COMMAND_OUTPUT_LIMIT_CHARS", "20000")),
         VECTOR_STORE=os.getenv("VECTOR_STORE", "memory"),
+        VECTOR_STORE_PATH=vector_store_path,
         QDRANT_URL=os.getenv("QDRANT_URL", "http://localhost:6333"),
         QDRANT_COLLECTION=os.getenv("QDRANT_COLLECTION", DEFAULT_QDRANT_COLLECTION),
         EMBEDDING_PROVIDER=os.getenv("EMBEDDING_PROVIDER", "fake"),
