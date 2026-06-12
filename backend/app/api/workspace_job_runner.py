@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+import logging
 from threading import Lock
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable
@@ -9,6 +10,7 @@ from uuid import uuid4
 
 
 TERMINAL_JOB_STATUSES = {"completed", "failed", "cancelled"}
+logger = logging.getLogger("uvicorn.error.ai_private_workspace.workspace_jobs")
 
 
 def _now() -> str:
@@ -103,6 +105,12 @@ class WorkspaceJobRunner:
         with self._lock:
             self._jobs[job.job_id] = job
 
+        logger.info(
+            "workspace job queued workspace_id=%s job_id=%s job_type=%s",
+            workspace_id,
+            job.job_id,
+            job_type,
+        )
         self._executor.submit(self._run_job, job.job_id, operation)
         return self.get_job(job.job_id)
 
@@ -177,6 +185,15 @@ class WorkspaceJobRunner:
             job.status = "running"
             job.started_at = _now()
             job.message = "Running..."
+            workspace_id = job.workspace_id
+            job_type = job.job_type
+
+        logger.info(
+            "workspace job started workspace_id=%s job_id=%s job_type=%s",
+            workspace_id,
+            job_id,
+            job_type,
+        )
 
         try:
             with self._lock:
@@ -205,6 +222,16 @@ class WorkspaceJobRunner:
                 failed.message = "The operation failed."
                 failed.completed_at = _now()
                 failed.duration_ms = _duration_ms(failed.started_at or failed.created_at, failed.completed_at)
+                workspace_id = failed.workspace_id
+                job_type = failed.job_type
+                duration_ms = failed.duration_ms
+            logger.exception(
+                "workspace job failed workspace_id=%s job_id=%s job_type=%s duration_ms=%s",
+                workspace_id,
+                job_id,
+                job_type,
+                duration_ms,
+            )
             return
 
         with self._lock:
@@ -221,6 +248,18 @@ class WorkspaceJobRunner:
             completed.progress_percent = 100.0
             completed.completed_at = _now()
             completed.duration_ms = _duration_ms(completed.started_at or completed.created_at, completed.completed_at)
+            workspace_id = completed.workspace_id
+            job_type = completed.job_type
+            duration_ms = completed.duration_ms
+
+        logger.info(
+            "workspace job completed workspace_id=%s job_id=%s job_type=%s duration_ms=%s result=%s",
+            workspace_id,
+            job_id,
+            job_type,
+            duration_ms,
+            result_summary,
+        )
 
 
 def _duration_ms(started_at: str | None, completed_at: str | None) -> int | None:
