@@ -66,6 +66,15 @@ else
   pass "no source-tree *.db, *.sqlite, or *.sqlite3 files found outside ignored runtime/build paths"
 fi
 
+
+if [ -f frontend/package-lock.json ]; then
+  if grep -E "applied-caas|internal\.api\.openai|artifactory" frontend/package-lock.json >/dev/null; then
+    fail "frontend/package-lock.json contains internal registry URLs; regenerate it with the public npm registry"
+  else
+    pass "frontend/package-lock.json contains no internal registry URLs"
+  fi
+fi
+
 # TypeScript incremental build metadata is local-only. It is harmless locally, but
 # should not be committed or included in handoff/source archives.
 if find . \( \
@@ -106,6 +115,7 @@ shell_scripts=(
   scripts/prepare_windows_packaging_foundation.sh
   scripts/prepare_source_release_archive.sh
   scripts/audit_release_candidate.sh
+  scripts/check_tauri_rust_structure_and_registry.sh
 )
 
 for script in "${shell_scripts[@]}"; do

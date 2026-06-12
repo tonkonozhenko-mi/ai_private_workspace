@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TAURI_MAIN="$ROOT_DIR/frontend/src-tauri/src/main.rs"
+TAURI_MAIN="$ROOT_DIR/frontend/src-tauri/src/lib.rs"
 BLOCKERS=0
 REVIEWS=0
 
@@ -10,7 +10,7 @@ fail() { echo "❌ $1" >&2; BLOCKERS=$((BLOCKERS + 1)); }
 review() { echo "⚠️  $1" >&2; REVIEWS=$((REVIEWS + 1)); }
 ok() { echo "✅ $1"; }
 
-[ -f "$TAURI_MAIN" ] || fail "Tauri main.rs missing: frontend/src-tauri/src/main.rs"
+[ -f "$TAURI_MAIN" ] || fail "Tauri main.rs missing: frontend/src-tauri/src/lib.rs"
 
 if [ -f "$TAURI_MAIN" ]; then
   grep -q "backend_health_is_ready" "$TAURI_MAIN" && ok "HTTP health readiness function exists" || fail "Missing backend_health_is_ready"

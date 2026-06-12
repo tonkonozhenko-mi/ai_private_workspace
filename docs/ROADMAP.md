@@ -404,3 +404,15 @@ Task 250 hardens the real Tauri app-owned backend startup implementation. Deskto
 - Phase 22 continues with macOS packaged app smoke preflight.
 - Frontend now includes Tauri CLI npm scripts and lockfile support so `npm run tauri dev` is reproducible after `npm ci`.
 - Next major step: run local macOS frozen backend + Tauri dev/package smoke, then mirror the flow on Windows.
+
+
+### Task 252 — Packaging toolchain fixes ✅
+
+- Fixed PyInstaller spec path resolution so the backend entrypoint no longer resolves to duplicated `backend/packaging/backend/packaging`.
+- Declared `pyinstaller>=6.0,<7.0` in backend requirements.
+- Added packaging toolchain prerequisite check and endpoint.
+- Documented Rust/Cargo installation for local Tauri smoke.
+
+### Task 253 — Tauri Rust structure and public npm registry guard ✅
+
+The desktop runtime path now has the correct Cargo library layout for Tauri: `main.rs` delegates to `ai_private_workspace_lib::run()` and `lib.rs` owns the app-owned backend lifecycle commands. The release checks also guard against internal package registry URLs in `frontend/package-lock.json`.

@@ -77,3 +77,29 @@ Task 251 — macOS packaged app smoke preflight ✅
 - Added script `scripts/check_macos_packaged_app_smoke_preflight.sh`.
 - Added doc `docs/TASK251_MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md`.
 - Next: local macOS smoke should run `scripts/build_pyinstaller_backend_runtime.sh`, `scripts/smoke_frozen_backend_runtime.sh`, `cargo check`, and `npm run tauri dev`.
+
+
+- Task 252 fixed local packaging blockers: added `pyinstaller>=6.0,<7.0`, fixed PyInstaller spec path resolution, added `scripts/check_packaging_toolchain_prerequisites.sh`, and documented Cargo install (`brew install rust` or rustup).
+
+## Latest update — Task 253
+
+Task 253 fixed the Tauri Rust manifest structure and npm registry hygiene:
+
+- `frontend/src-tauri/src/main.rs` is now a thin entrypoint that calls `ai_private_workspace_lib::run();`.
+- `frontend/src-tauri/src/lib.rs` contains the real Tauri app-owned backend lifecycle commands.
+- Added `scripts/check_tauri_rust_structure_and_registry.sh`.
+- Updated Tauri check scripts to inspect `src/lib.rs` instead of expecting all logic in `src/main.rs`.
+- Added a guard against internal npm registry URLs in `frontend/package-lock.json`.
+- Existing safety rules remain: no frontend shell execution, no kill-by-port, startup only via frozen manifest, and no scan/index/rebuild/MCP/Agent/model downloads on launch.
+
+Current next local checks:
+
+```bash
+scripts/check_tauri_rust_structure_and_registry.sh
+scripts/check_macos_packaged_app_smoke_preflight.sh
+cd frontend
+npm ci
+npm run build
+cargo check --manifest-path src-tauri/Cargo.toml
+npm run tauri dev
+```

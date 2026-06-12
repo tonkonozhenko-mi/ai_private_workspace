@@ -350,3 +350,8 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 ## Task 251 — macOS packaged app smoke preflight
 
 - `GET /runtime/macos-packaged-app-smoke-preflight` — records the reproducible macOS packaged-app smoke preflight. It validates Tauri CLI npm wiring, package-lock support, Rust/Tauri scaffold presence, frozen backend manifest readiness, HTTP `/health` readiness, and no generic shell/kill-by-port behavior before package smoke.
+
+
+- `GET /runtime/packaging-toolchain-prerequisites` — Packaging prerequisite contract for PyInstaller dependency, spec path resolution, Tauri CLI scripts, and Rust/Cargo local setup.
+
+- `GET /runtime/tauri-rust-structure-registry` — validates Tauri Rust `main.rs`/`lib.rs` structure and npm lockfile registry hygiene. It catches the missing `src/lib.rs` Cargo blocker and prevents internal registry URLs from leaking into committed `package-lock.json`.

@@ -671,6 +671,51 @@ class MacOSPackagedAppSmokePreflightResponse(BaseModel):
 
 
 
+
+
+class PackagingToolchainPrerequisiteItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    command: str | None = None
+
+
+class PackagingToolchainPrerequisitesResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    check_script: str
+    pyinstaller_dependency: str
+    cargo_install_options: list[str]
+    prerequisite_items: list[PackagingToolchainPrerequisiteItemResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
+
+
+class TauriRustStructureRegistryItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    command: str | None = None
+
+
+class TauriRustStructureRegistryResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    check_script: str
+    rust_entrypoint: str
+    rust_library: str
+    npm_registry_policy: str
+    validation_items: list[TauriRustStructureRegistryItemResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str
     purpose: str

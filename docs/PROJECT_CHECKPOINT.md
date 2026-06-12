@@ -414,3 +414,12 @@ New/updated artifacts:
 - `docs/TASK251_MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md` documents the local smoke path.
 
 Status: Phase 22 is strongly in progress. v1.0 remains roughly 6–10 large tasks away.
+
+
+## Task 252 checkpoint
+
+Packaging toolchain blockers found on the local Mac were fixed: PyInstaller is now declared in backend requirements, the PyInstaller spec resolves paths from `SPECPATH`, and Cargo/Rust setup is documented/checkable through `scripts/check_packaging_toolchain_prerequisites.sh`.
+
+## Task 253 — Tauri Rust structure and registry guard
+
+Fixed the local `cargo check --manifest-path src-tauri/Cargo.toml` blocker by moving the real Tauri implementation into `frontend/src-tauri/src/lib.rs` and making `frontend/src-tauri/src/main.rs` a thin `ai_private_workspace_lib::run();` entrypoint. Added `scripts/check_tauri_rust_structure_and_registry.sh` and updated Tauri checks to inspect `src/lib.rs`. Also added a guard against internal npm registry URLs in `frontend/package-lock.json`.

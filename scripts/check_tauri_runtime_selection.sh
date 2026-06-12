@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TAURI_MAIN="$ROOT_DIR/frontend/src-tauri/src/main.rs"
+TAURI_MAIN="$ROOT_DIR/frontend/src-tauri/src/lib.rs"
 BLOCKERS=0
 REVIEW=0
 check_contains() {

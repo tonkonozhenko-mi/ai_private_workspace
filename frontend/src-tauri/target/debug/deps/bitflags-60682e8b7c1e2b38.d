@@ -1,0 +1,12 @@
+/Users/maks/Documents/ai_workspace/frontend/src-tauri/target/debug/deps/bitflags-60682e8b7c1e2b38.d: /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/lib.rs /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/iter.rs /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/parser.rs /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/traits.rs /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/public.rs /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/internal.rs /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/external.rs /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/external/serde.rs
+
+/Users/maks/Documents/ai_workspace/frontend/src-tauri/target/debug/deps/libbitflags-60682e8b7c1e2b38.rmeta: /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/lib.rs /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/iter.rs /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/parser.rs /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/traits.rs /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/public.rs /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/internal.rs /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/external.rs /Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/external/serde.rs
+
+/Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/lib.rs:
+/Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/iter.rs:
+/Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/parser.rs:
+/Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/traits.rs:
+/Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/public.rs:
+/Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/internal.rs:
+/Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/external.rs:
+/Users/maks/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.0/src/external/serde.rs:
