@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getFrozenBackendRuntimeSelection, getFrozenBackendSmokeContract, getAppOwnedBackendStartupGate, getAppOwnedBackendStartupImplementation, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getFrozenBackendRuntimeSelection, getFrozenBackendSmokeContract, getAppOwnedBackendStartupGate, getAppOwnedBackendStartupImplementation, getMacOSTauriSmokeRunbook, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -33,6 +33,7 @@ import type {
   FrozenBackendSmokeContract,
   AppOwnedBackendStartupGate,
   AppOwnedBackendStartupImplementation,
+  MacOSTauriSmokeRunbook,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -253,6 +254,9 @@ export function SettingsPanel({
   const [appOwnedBackendStartupImplementation, setAppOwnedBackendStartupImplementation] = useState<AppOwnedBackendStartupImplementation | null>(null);
   const [appOwnedBackendStartupImplementationError, setAppOwnedBackendStartupImplementationError] = useState<string | null>(null);
   const [appOwnedBackendStartupImplementationLoading, setAppOwnedBackendStartupImplementationLoading] = useState(false);
+  const [macOSTauriSmokeRunbook, setMacOSTauriSmokeRunbook] = useState<MacOSTauriSmokeRunbook | null>(null);
+  const [macOSTauriSmokeRunbookError, setMacOSTauriSmokeRunbookError] = useState<string | null>(null);
+  const [macOSTauriSmokeRunbookLoading, setMacOSTauriSmokeRunbookLoading] = useState(false);
   const [windowsPackagingFoundation, setWindowsPackagingFoundation] = useState<WindowsPackagingFoundation | null>(null);
   const [windowsPackagingFoundationError, setWindowsPackagingFoundationError] = useState<string | null>(null);
   const [windowsPackagingFoundationLoading, setWindowsPackagingFoundationLoading] = useState(false);
@@ -630,6 +634,32 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setAppOwnedBackendStartupImplementationLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    setMacOSTauriSmokeRunbookLoading(true);
+    setMacOSTauriSmokeRunbookError(null);
+    getMacOSTauriSmokeRunbook()
+      .then((runbook) => {
+        if (!cancelled) {
+          setMacOSTauriSmokeRunbook(runbook);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setMacOSTauriSmokeRunbookError(error instanceof Error ? error.message : "Could not load macOS Tauri smoke runbook");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setMacOSTauriSmokeRunbookLoading(false);
         }
       });
     return () => {
@@ -3354,6 +3384,60 @@ export function SettingsPanel({
                     </div>
                     <div className="settings-safety-list">
                       {appOwnedBackendStartupImplementation.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
+
+            <details className="settings-disclosure" open>
+              <summary>macOS frozen runtime and Tauri smoke runbook</summary>
+              {macOSTauriSmokeRunbookError ? (
+                <p className="settings-transfer-message">Could not load macOS Tauri smoke runbook: {macOSTauriSmokeRunbookError}</p>
+              ) : null}
+              {macOSTauriSmokeRunbookLoading ? (
+                <p className="settings-transfer-message">Loading macOS Tauri smoke runbook…</p>
+              ) : macOSTauriSmokeRunbook ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{macOSTauriSmokeRunbook.title}</strong>
+                    <span>{macOSTauriSmokeRunbook.summary}</span>
+                    <span>Platform: {macOSTauriSmokeRunbook.platform}</span>
+                    <span>Runbook: {macOSTauriSmokeRunbook.runbook_doc}</span>
+                    <span>Script: {macOSTauriSmokeRunbook.check_script}</span>
+                  </div>
+                  <div className="startup-checklist-grid">
+                    {macOSTauriSmokeRunbook.smoke_steps.map((item) => (
+                      <div className={`startup-checklist-item ${item.status === "blocked" ? "is-danger" : item.status.includes("manual") || item.status.includes("ready_after") ? "is-review" : "is-ok"}`} key={item.id}>
+                        <div className="startup-checklist-item-header">
+                          <strong>{item.title}</strong>
+                          <span>{item.status}</span>
+                        </div>
+                        <p>{item.summary}</p>
+                        {item.command ? <code>{item.command}</code> : null}
+                      </div>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Prerequisites, pass criteria, and safety</summary>
+                    <ul>
+                      {macOSTauriSmokeRunbook.prerequisites.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                    <div className="settings-command-list">
+                      {macOSTauriSmokeRunbook.validation_commands.map((command) => (
+                        <div className="settings-command-card" key={command.command}>
+                          <strong>{command.label}</strong>
+                          <code>{command.command}</code>
+                          <span>{command.purpose}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="settings-safety-list">
+                      {macOSTauriSmokeRunbook.pass_criteria.map((item) => <span key={item}>{item}</span>)}
+                    </div>
+                    <div className="settings-safety-list">
+                      {macOSTauriSmokeRunbook.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
                     </div>
                   </details>
                 </div>

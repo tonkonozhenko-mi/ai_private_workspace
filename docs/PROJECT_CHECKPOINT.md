@@ -386,3 +386,8 @@ Fixed the Settings `GET /runtime/v0.1-handoff` crash by aligning the endpoint re
 - Startup is gated by the frozen backend manifest; missing manifest means blocked startup, not arbitrary fallback.
 - Shutdown is PID-owned and no kill-by-port/generic shell execution is allowed.
 - Settings crash coverage for `GET /runtime/v0.1-handoff` was added.
+
+## Task 249 — macOS frozen runtime and Tauri smoke runbook ✅
+
+Added `GET /runtime/macos-tauri-smoke-runbook`, `scripts/check_macos_tauri_smoke_runbook.sh`, `docs/TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md`, Settings UI wiring, and regression tests. Also added `docs/CONTINUE_MESSAGE.md` so the project can continue after token limits. Current position: Phase 21 v0.1 source RC effectively complete; Phase 22 v0.2 desktop runtime foundation strongly in progress. Estimated v1.0 remaining work: roughly 7–12 large tasks, depending on local PyInstaller/Tauri/macOS/Windows findings.
+

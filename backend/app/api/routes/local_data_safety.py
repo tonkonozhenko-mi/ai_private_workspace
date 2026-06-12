@@ -58,6 +58,8 @@ from app.api.schemas.local_data_safety_schemas import (
     AppOwnedBackendStartupGateResponse,
     AppOwnedBackendStartupImplementationItemResponse,
     AppOwnedBackendStartupImplementationResponse,
+    MacOSTauriSmokeRunbookItemResponse,
+    MacOSTauriSmokeRunbookResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
@@ -1966,6 +1968,108 @@ def get_app_owned_backend_startup_implementation() -> AppOwnedBackendStartupImpl
             "Run the Tauri shell locally and verify start/stop commands against the frozen runtime.",
             "After macOS is stable, repeat the same check on Windows.",
             "Then move to signed packaging/installer work.",
+        ],
+    )
+
+
+@router.get("/macos-tauri-smoke-runbook", response_model=MacOSTauriSmokeRunbookResponse)
+def get_macos_tauri_smoke_runbook() -> MacOSTauriSmokeRunbookResponse:
+    """Return the explicit local macOS frozen runtime and Tauri smoke runbook."""
+    root = Path(__file__).resolve().parents[4]
+    frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "main.rs"
+    runbook = root / "docs" / "TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md"
+    check_script = root / "scripts" / "check_macos_tauri_smoke_runbook.sh"
+
+    steps = [
+        MacOSTauriSmokeRunbookItemResponse(
+            id="build-frozen-backend",
+            title="Build frozen backend runtime",
+            status="manual_required",
+            summary="Create the local PyInstaller backend runtime and generated manifest on the developer Mac.",
+            command="scripts/build_pyinstaller_backend_runtime.sh",
+        ),
+        MacOSTauriSmokeRunbookItemResponse(
+            id="check-frozen-runtime",
+            title="Check frozen backend runtime",
+            status="ready_after_build" if not frozen_manifest.exists() else "ok",
+            summary="Validate the generated frozen runtime manifest and executable before any Tauri startup test.",
+            command="scripts/check_pyinstaller_backend_runtime.sh",
+        ),
+        MacOSTauriSmokeRunbookItemResponse(
+            id="smoke-frozen-runtime",
+            title="Smoke frozen backend runtime",
+            status="manual_required",
+            summary="Start only the generated backend executable, wait for /health, and stop only the PID created by the smoke script.",
+            command="scripts/smoke_frozen_backend_runtime.sh",
+        ),
+        MacOSTauriSmokeRunbookItemResponse(
+            id="check-tauri-startup",
+            title="Check Tauri startup implementation",
+            status="ok" if tauri_bridge.exists() else "blocked",
+            summary="Verify the Tauri bridge exposes only the narrow app-owned backend lifecycle commands and no arbitrary shell execution.",
+            command="scripts/check_tauri_app_owned_backend_startup.sh",
+        ),
+        MacOSTauriSmokeRunbookItemResponse(
+            id="tauri-dev-smoke",
+            title="Run Tauri local smoke",
+            status="manual_required",
+            summary="Run the desktop shell locally after frozen backend smoke passes, then verify startup, status, logs, and PID-owned shutdown.",
+            command="cd frontend && npm run tauri dev",
+        ),
+    ]
+
+    status = "ready_for_local_macos_smoke"
+    if not runbook.exists() or not check_script.exists() or not tauri_bridge.exists():
+        status = "blocked"
+
+    return MacOSTauriSmokeRunbookResponse(
+        status=status,
+        title="macOS frozen runtime and Tauri smoke runbook",
+        summary="Defines the shortest safe local path from source to a developer-verified macOS desktop smoke: build frozen backend, smoke it, then verify Tauri app-owned startup without frontend shell execution.",
+        runbook_doc="docs/TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md",
+        check_script="scripts/check_macos_tauri_smoke_runbook.sh",
+        platform="macOS first, Windows parity after macOS pass",
+        prerequisites=[
+            "Python virtualenv for backend tests and PyInstaller build.",
+            "Node dependencies installed under frontend/ for Vite and Tauri dev mode.",
+            "Rust/Cargo and Tauri prerequisites installed locally on the developer Mac.",
+            "Port 8000 free before frozen/Tauri startup smoke.",
+        ],
+        smoke_steps=steps,
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Check runbook files", command="scripts/check_macos_tauri_smoke_runbook.sh", purpose="Validate that Task 249 runbook, scripts, Tauri commands, and safety wording are present."),
+            DesktopRuntimeValidationCommandResponse(label="Build frozen backend", command="scripts/build_pyinstaller_backend_runtime.sh", purpose="Generate the local frozen backend runtime used by Tauri."),
+            DesktopRuntimeValidationCommandResponse(label="Smoke frozen backend", command="scripts/smoke_frozen_backend_runtime.sh", purpose="Validate the frozen backend outside Tauri first."),
+            DesktopRuntimeValidationCommandResponse(label="Check Tauri startup", command="scripts/check_tauri_app_owned_backend_startup.sh", purpose="Validate the Tauri bridge safety boundaries."),
+            DesktopRuntimeValidationCommandResponse(label="Run Tauri smoke locally", command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml && npm run tauri dev", purpose="Compile and manually smoke the desktop shell on macOS."),
+        ],
+        pass_criteria=[
+            "Frozen backend build creates a manifest and executable under build/desktop/frozen-backend-runtime.",
+            "Frozen backend smoke returns /health successfully and stops only the spawned PID.",
+            "Tauri command status shows app-owned runtime paths and no generic shell execution.",
+            "The desktop UI opens only after backend health is ready.",
+            "Logs are written under the app-owned logs directory, not inside the app bundle.",
+        ],
+        fail_fast_conditions=[
+            "Port 8000 is already occupied by an unknown process.",
+            "PyInstaller build does not produce the frozen runtime manifest.",
+            "Frozen backend /health does not answer during the smoke timeout.",
+            "Tauri bridge contains shell escape patterns, pkill, killall, taskkill, or kill-by-port behavior.",
+            "Desktop launch triggers scan, index, rebuild, MCP, Agent, or model downloads without explicit user action.",
+        ],
+        safety_rules=[
+            "React/frontend still cannot execute shell commands.",
+            "Tauri may start only the executable referenced by the app-owned frozen backend manifest.",
+            "Shutdown is PID-owned; do not kill unknown localhost processes by port.",
+            "No scan, index, rebuild, MCP server, agent workflow, or model download starts on desktop launch.",
+            "Windows parity starts only after this macOS path is locally proven.",
+        ],
+        next_steps=[
+            "Run the Task 249 local smoke sequence on the Mac and capture any PyInstaller/Tauri errors.",
+            "Fix hidden imports or resource paths found by the frozen runtime smoke.",
+            "After macOS Tauri startup is proven, mirror the runtime smoke contract on Windows.",
+            "Then move to signed DMG/MSI packaging and update flow work.",
         ],
     )
 

@@ -340,3 +340,5 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 - Startup is gated by the frozen backend manifest; missing manifest means blocked startup, not arbitrary fallback.
 - Shutdown is PID-owned and no kill-by-port/generic shell execution is allowed.
 - Settings crash coverage for `GET /runtime/v0.1-handoff` was added.
+- `GET /runtime/macos-tauri-smoke-runbook` — local macOS frozen runtime and Tauri smoke runbook. It records the safe sequence for building the PyInstaller backend runtime, smoking it outside Tauri, then running the Tauri desktop smoke with app-owned startup and PID-owned shutdown.
+

@@ -598,6 +598,31 @@ class AppOwnedBackendStartupImplementationResponse(BaseModel):
 
 
 
+class MacOSTauriSmokeRunbookItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    command: str | None = None
+
+
+class MacOSTauriSmokeRunbookResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    runbook_doc: str
+    check_script: str
+    platform: str
+    prerequisites: list[str]
+    smoke_steps: list[MacOSTauriSmokeRunbookItemResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    pass_criteria: list[str]
+    fail_fast_conditions: list[str]
+    safety_rules: list[str]
+    next_steps: list[str]
+
+
+
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str
     purpose: str

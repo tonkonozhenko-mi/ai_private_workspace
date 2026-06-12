@@ -389,3 +389,8 @@ Phase 22 now has a metadata-only Tauri startup gate. The project can describe th
 - Startup is gated by the frozen backend manifest; missing manifest means blocked startup, not arbitrary fallback.
 - Shutdown is PID-owned and no kill-by-port/generic shell execution is allowed.
 - Settings crash coverage for `GET /runtime/v0.1-handoff` was added.
+
+### Task 249 — macOS frozen runtime and Tauri smoke runbook ✅
+
+Added the local macOS smoke runbook and check gate for the frozen backend runtime plus Tauri app-owned startup path. This keeps Phase 22 practical: build frozen backend, smoke it, compile-check Tauri, then run the desktop smoke locally before Windows parity or installer work.
+
