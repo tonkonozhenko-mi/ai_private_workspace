@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TAURI_MAIN="$ROOT_DIR/frontend/src-tauri/src/main.rs"
+TAURI_MAIN="$ROOT_DIR/frontend/src-tauri/src/lib.rs"
 BLOCKERS=0
 REVIEWS=0
 
@@ -20,7 +20,7 @@ ok() {
   echo "✅ $1"
 }
 
-[ -f "$TAURI_MAIN" ] || fail "Tauri main.rs missing: frontend/src-tauri/src/main.rs"
+[ -f "$TAURI_MAIN" ] || fail "Tauri main.rs missing: frontend/src-tauri/src/lib.rs"
 
 if [ -f "$TAURI_MAIN" ]; then
   grep -q "fn start_app_owned_backend_runtime" "$TAURI_MAIN" && ok "start_app_owned_backend_runtime exists" || fail "Missing start_app_owned_backend_runtime command"

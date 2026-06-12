@@ -2,16 +2,21 @@
 # PyInstaller proof-of-concept spec for AI Private Workspace backend.
 # Build from the repository root through scripts/build_pyinstaller_backend_runtime.sh.
 
+from pathlib import Path
+
 from PyInstaller.utils.hooks import collect_submodules
 
-hiddenimports = collect_submodules("app")
+SPEC_DIR = Path(SPECPATH).resolve()
+BACKEND_DIR = SPEC_DIR.parent
+ENTRYPOINT = BACKEND_DIR / "packaging" / "pyinstaller_backend_entrypoint.py"
 
+hiddenimports = collect_submodules("app")
 block_cipher = None
 
 
 a = Analysis(
-    ["backend/packaging/pyinstaller_backend_entrypoint.py"],
-    pathex=["backend"],
+    [str(ENTRYPOINT)],
+    pathex=[str(BACKEND_DIR)],
     binaries=[],
     datas=[],
     hiddenimports=hiddenimports,

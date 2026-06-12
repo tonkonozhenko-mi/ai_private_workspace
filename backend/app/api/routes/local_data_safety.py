@@ -64,6 +64,10 @@ from app.api.schemas.local_data_safety_schemas import (
     MacOSTauriSmokeRunbookResponse,
     MacOSPackagedAppSmokePreflightItemResponse,
     MacOSPackagedAppSmokePreflightResponse,
+    PackagingToolchainPrerequisiteItemResponse,
+    PackagingToolchainPrerequisitesResponse,
+    TauriRustStructureRegistryItemResponse,
+    TauriRustStructureRegistryResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
@@ -1675,7 +1679,7 @@ def get_frozen_backend_runtime_selection() -> FrozenBackendRuntimeSelectionRespo
     root = Path(__file__).resolve().parents[4]
     frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
     staged_manifest = root / "build" / "desktop" / "backend-runtime" / "AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json"
-    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "main.rs"
+    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
     check_script = root / "scripts" / "check_tauri_runtime_selection.sh"
 
     candidates = [
@@ -1741,7 +1745,7 @@ def get_frozen_backend_smoke_contract() -> FrozenBackendSmokeContractResponse:
     smoke_script = root / "scripts" / "smoke_frozen_backend_runtime.sh"
     frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
     staged_manifest = root / "build" / "desktop" / "backend-runtime" / "AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json"
-    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "main.rs"
+    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
 
     items = [
         FrozenBackendSmokeItemResponse(
@@ -1808,7 +1812,7 @@ def get_frozen_backend_smoke_contract() -> FrozenBackendSmokeContractResponse:
 def get_app_owned_backend_startup_gate() -> AppOwnedBackendStartupGateResponse:
     """Return the safe gate before Tauri may start an app-owned backend runtime."""
     root = Path(__file__).resolve().parents[4]
-    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "main.rs"
+    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
     startup_check = root / "scripts" / "check_tauri_app_owned_startup_gate.sh"
     frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
     frozen_smoke = root / "scripts" / "smoke_frozen_backend_runtime.sh"
@@ -1885,7 +1889,7 @@ def get_app_owned_backend_startup_gate() -> AppOwnedBackendStartupGateResponse:
 def get_app_owned_backend_startup_implementation() -> AppOwnedBackendStartupImplementationResponse:
     """Return the real-but-gated Tauri backend startup implementation status."""
     root = Path(__file__).resolve().parents[4]
-    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "main.rs"
+    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
     check_script = root / "scripts" / "check_tauri_app_owned_backend_startup.sh"
     frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
 
@@ -1980,7 +1984,7 @@ def get_app_owned_backend_startup_implementation() -> AppOwnedBackendStartupImpl
 def get_app_owned_backend_health_readiness() -> AppOwnedBackendHealthReadinessResponse:
     """Return the Tauri /health readiness gate for app-owned backend startup."""
     root = Path(__file__).resolve().parents[4]
-    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "main.rs"
+    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
     check_script = root / "scripts" / "check_tauri_backend_health_readiness.sh"
     bridge_text = tauri_bridge.read_text(encoding="utf-8") if tauri_bridge.exists() else ""
 
@@ -2058,7 +2062,7 @@ def get_macos_tauri_smoke_runbook() -> MacOSTauriSmokeRunbookResponse:
     """Return the explicit local macOS frozen runtime and Tauri smoke runbook."""
     root = Path(__file__).resolve().parents[4]
     frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
-    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "main.rs"
+    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
     runbook = root / "docs" / "TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md"
     check_script = root / "scripts" / "check_macos_tauri_smoke_runbook.sh"
 
@@ -2161,7 +2165,7 @@ def get_macos_packaged_app_smoke_preflight() -> MacOSPackagedAppSmokePreflightRe
     root = Path(__file__).resolve().parents[4]
     package_json = root / "frontend" / "package.json"
     package_lock = root / "frontend" / "package-lock.json"
-    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "main.rs"
+    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
     tauri_config = root / "frontend" / "src-tauri" / "tauri.conf.json"
     frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
 
@@ -2247,6 +2251,154 @@ def get_macos_packaged_app_smoke_preflight() -> MacOSPackagedAppSmokePreflightRe
         ],
     )
 
+
+
+
+
+@router.get("/tauri-rust-structure-registry", response_model=TauriRustStructureRegistryResponse)
+def get_tauri_rust_structure_registry() -> TauriRustStructureRegistryResponse:
+    root = Path(__file__).resolve().parents[4]
+    main_rs = root / "frontend" / "src-tauri" / "src" / "main.rs"
+    lib_rs = root / "frontend" / "src-tauri" / "src" / "lib.rs"
+    cargo_toml = root / "frontend" / "src-tauri" / "Cargo.toml"
+    package_lock = root / "frontend" / "package-lock.json"
+
+    lock_text = package_lock.read_text(encoding="utf-8") if package_lock.exists() else ""
+    internal_registry_found = any(token in lock_text for token in ["applied-caas", "internal.api.openai", "artifactory"])
+    main_text = main_rs.read_text(encoding="utf-8") if main_rs.exists() else ""
+    lib_text = lib_rs.read_text(encoding="utf-8") if lib_rs.exists() else ""
+    cargo_text = cargo_toml.read_text(encoding="utf-8") if cargo_toml.exists() else ""
+
+    items = [
+        TauriRustStructureRegistryItemResponse(
+            id="cargo-library-contract",
+            title="Cargo library contract",
+            status="ok" if 'name = "ai_private_workspace_lib"' in cargo_text and lib_rs.exists() else "blocked",
+            summary="Cargo declares ai_private_workspace_lib and frontend/src-tauri/src/lib.rs exists.",
+            command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml",
+        ),
+        TauriRustStructureRegistryItemResponse(
+            id="thin-main-entrypoint",
+            title="Thin Tauri main entrypoint",
+            status="ok" if "ai_private_workspace_lib::run();" in main_text else "blocked",
+            summary="main.rs delegates to the library run function instead of duplicating supervisor logic.",
+            command="scripts/check_tauri_rust_structure_and_registry.sh",
+        ),
+        TauriRustStructureRegistryItemResponse(
+            id="supervisor-library",
+            title="Supervisor library implementation",
+            status="ok" if "pub fn run()" in lib_text and "start_app_owned_backend_runtime" in lib_text else "blocked",
+            summary="lib.rs owns the Tauri command registration and app-owned backend lifecycle implementation.",
+            command="scripts/check_tauri_rust_structure_and_registry.sh",
+        ),
+        TauriRustStructureRegistryItemResponse(
+            id="public-npm-lockfile",
+            title="Public npm lockfile",
+            status="blocked" if internal_registry_found else "ok",
+            summary="package-lock.json must not contain internal sandbox/OpenAI registry URLs.",
+            command="grep -R -E 'applied-caas|internal.api.openai|artifactory' frontend/package-lock.json",
+        ),
+    ]
+
+    status = "blocked" if any(item.status == "blocked" for item in items) else "ready"
+    return TauriRustStructureRegistryResponse(
+        status=status,
+        title="Tauri Rust structure and registry guard",
+        summary="Validates the Cargo library layout required by Tauri and guards npm lockfiles against internal registry URLs.",
+        check_script="scripts/check_tauri_rust_structure_and_registry.sh",
+        rust_entrypoint="frontend/src-tauri/src/main.rs",
+        rust_library="frontend/src-tauri/src/lib.rs",
+        npm_registry_policy="frontend/package-lock.json must resolve packages from the public npm registry, not internal sandbox registries.",
+        validation_items=items,
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Check Tauri Rust structure", command="scripts/check_tauri_rust_structure_and_registry.sh", purpose="Validate main.rs/lib.rs layout, manifest-gated startup commands, and npm registry hygiene."),
+            DesktopRuntimeValidationCommandResponse(label="Frontend build", command="cd frontend && npm ci && npm run build", purpose="Validate public npm lockfile and production frontend build."),
+            DesktopRuntimeValidationCommandResponse(label="Cargo check", command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml", purpose="Validate the Tauri Rust manifest and library structure locally."),
+        ],
+        safety_rules=[
+            "Frontend React code must not execute shell commands.",
+            "Tauri startup is limited to the app-owned frozen backend runtime selected by manifest.",
+            "Do not use internal package registry URLs in committed lockfiles.",
+            "Do not kill unknown processes or ports.",
+            "Desktop launch must not start scan, index, rebuild, MCP, Agent, or model downloads.",
+        ],
+        next_steps=[
+            "Run npm ci after ensuring npm registry points to https://registry.npmjs.org/.",
+            "Run cargo check locally now that Cargo is installed.",
+            "Run npm run tauri dev after the frozen backend runtime smoke succeeds.",
+        ],
+    )
+
+@router.get("/packaging-toolchain-prerequisites", response_model=PackagingToolchainPrerequisitesResponse)
+def get_packaging_toolchain_prerequisites() -> PackagingToolchainPrerequisitesResponse:
+    root = Path(__file__).resolve().parents[4]
+    requirements = root / "backend" / "requirements.txt"
+    spec_file = root / "backend" / "packaging" / "ai_private_workspace_backend.spec"
+    package_json = root / "frontend" / "package.json"
+    check_script = root / "scripts" / "check_packaging_toolchain_prerequisites.sh"
+
+    items = [
+        PackagingToolchainPrerequisiteItemResponse(
+            id="pyinstaller-dependency",
+            title="PyInstaller dependency",
+            status="ok" if requirements.exists() and "pyinstaller" in requirements.read_text().lower() else "blocked",
+            summary="backend/requirements.txt declares PyInstaller so the frozen backend build script can run after npm/pip setup.",
+            command="cd backend && python3 -m pip install -r requirements.txt",
+        ),
+        PackagingToolchainPrerequisiteItemResponse(
+            id="pyinstaller-spec-path",
+            title="PyInstaller spec path resolution",
+            status="ok" if spec_file.exists() and "SPECPATH" in spec_file.read_text() else "blocked",
+            summary="The spec resolves the entrypoint from its own directory, avoiding duplicated backend/packaging paths.",
+            command="scripts/build_pyinstaller_backend_runtime.sh",
+        ),
+        PackagingToolchainPrerequisiteItemResponse(
+            id="tauri-cli",
+            title="Tauri CLI npm script",
+            status="ok" if package_json.exists() and "@tauri-apps/cli" in package_json.read_text() else "blocked",
+            summary="frontend/package.json declares Tauri CLI scripts used by macOS desktop smoke tests.",
+            command="cd frontend && npm ci",
+        ),
+        PackagingToolchainPrerequisiteItemResponse(
+            id="cargo",
+            title="Rust/Cargo for Tauri",
+            status="manual",
+            summary="Cargo is required locally for cargo check and npm run tauri dev/build. It is installed outside the repository.",
+            command="brew install rust",
+        ),
+    ]
+
+    return PackagingToolchainPrerequisitesResponse(
+        status="ready",
+        title="Packaging toolchain prerequisites",
+        summary="Developer-machine prerequisites for building the frozen backend and running Tauri smoke tests.",
+        check_script="scripts/check_packaging_toolchain_prerequisites.sh",
+        pyinstaller_dependency="pyinstaller>=6.0,<7.0",
+        cargo_install_options=[
+            "Preferred on macOS with Homebrew: brew install rust",
+            "Alternative cross-platform installer: rustup from https://rustup.rs",
+            "After install, verify with: cargo --version",
+        ],
+        prerequisite_items=items,
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Install backend packaging deps", command="cd backend && python3 -m pip install -r requirements.txt", purpose="Install PyInstaller in the backend virtual environment before frozen runtime build."),
+            DesktopRuntimeValidationCommandResponse(label="Check packaging toolchain", command="scripts/check_packaging_toolchain_prerequisites.sh", purpose="Validate PyInstaller dependency, spec path handling, Tauri CLI scripts, and Cargo availability."),
+            DesktopRuntimeValidationCommandResponse(label="Build frozen backend", command="scripts/build_pyinstaller_backend_runtime.sh", purpose="Create the local PyInstaller frozen backend runtime."),
+            DesktopRuntimeValidationCommandResponse(label="Check Tauri locally", command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml", purpose="Validate Rust/Tauri compile readiness on the developer machine."),
+        ],
+        safety_rules=[
+            "Installing Cargo/Rust is a developer-machine prerequisite, not an app startup action.",
+            "Building PyInstaller runtime does not start scan, index, rebuild, MCP, Agent, or model downloads.",
+            "Frontend still cannot execute shell commands.",
+            "Generated build/desktop artifacts must not be committed.",
+        ],
+        next_steps=[
+            "Install backend requirements in the local .venv.",
+            "Install Cargo on macOS if cargo --version is missing.",
+            "Run the frozen backend build and smoke scripts.",
+            "Run cargo check and npm run tauri dev from frontend.",
+        ],
+    )
 
 @router.get("/windows-packaging-foundation", response_model=WindowsPackagingFoundationResponse)
 def get_windows_packaging_foundation() -> WindowsPackagingFoundationResponse:

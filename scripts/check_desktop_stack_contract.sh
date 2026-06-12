@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ROUTE_FILE="$ROOT_DIR/backend/app/api/routes/local_data_safety.py"
 SCHEMA_FILE="$ROOT_DIR/backend/app/api/schemas/local_data_safety_schemas.py"
-TAURI_MAIN="$ROOT_DIR/frontend/src-tauri/src/main.rs"
+TAURI_MAIN="$ROOT_DIR/frontend/src-tauri/src/lib.rs"
 DOC_FILE="$ROOT_DIR/docs/TASK242_DESKTOP_STACK_AND_RUNTIME_CONTRACT.md"
 
 failures=0
@@ -19,7 +19,7 @@ printf 'Project root: %s\n\n' "$ROOT_DIR"
 
 [ -f "$ROUTE_FILE" ] && ok "runtime route file found" || fail "runtime route file missing"
 [ -f "$SCHEMA_FILE" ] && ok "runtime schema file found" || fail "runtime schema file missing"
-[ -f "$TAURI_MAIN" ] && ok "Tauri scaffold found" || review "Tauri scaffold missing"
+[ -f "$TAURI_MAIN" ] && ok "Tauri supervisor library found" || review "Tauri supervisor library missing"
 [ -f "$DOC_FILE" ] && ok "Task 242 contract document found" || fail "Task 242 contract document missing"
 
 if grep -q '/desktop-stack-runtime-contract' "$ROUTE_FILE" 2>/dev/null; then
@@ -36,10 +36,10 @@ for token in 'open-source/free' 'Tauri + React' 'PyInstaller' 'macOS and Windows
   fi
 done
 
-if grep -q 'backend_start_enabled: false' "$TAURI_MAIN" 2>/dev/null; then
-  ok "Tauri backend startup remains disabled while runtime freeze is pending"
+if grep -q 'backend_start_enabled: true' "$TAURI_MAIN" 2>/dev/null && grep -q 'AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json' "$TAURI_MAIN" 2>/dev/null; then
+  ok "Tauri backend startup is enabled only behind the frozen manifest gate"
 else
-  fail "Tauri backend startup is not explicitly disabled"
+  fail "Tauri frozen-manifest startup gate is missing"
 fi
 
 if grep -q 'scan, index, rebuild, MCP, Agent, or model downloads' "$ROUTE_FILE" "$DOC_FILE" 2>/dev/null; then

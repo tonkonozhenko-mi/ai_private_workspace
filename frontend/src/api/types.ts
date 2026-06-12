@@ -2254,6 +2254,29 @@ export interface MacOSPackagedAppSmokePreflight {
   next_steps: string[];
 }
 
+
+export interface TauriRustStructureRegistryItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  command: string | null;
+}
+
+export interface TauriRustStructureRegistry {
+  status: string;
+  title: string;
+  summary: string;
+  check_script: string;
+  rust_entrypoint: string;
+  rust_library: string;
+  npm_registry_policy: string;
+  validation_items: TauriRustStructureRegistryItem[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
 export interface StagedBackendRuntimeItem {
   id: string;
   title: string;
