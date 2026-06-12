@@ -2156,6 +2156,31 @@ export interface AppOwnedBackendStartupGate {
   next_steps: string[];
 }
 
+
+export interface AppOwnedBackendStartupImplementationItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  evidence: string;
+  command: string | null;
+}
+
+export interface AppOwnedBackendStartupImplementation {
+  status: string;
+  title: string;
+  summary: string;
+  startup_mode: string;
+  tauri_bridge_file: string;
+  check_script: string;
+  runtime_priority: string[];
+  implementation_items: AppOwnedBackendStartupImplementationItem[];
+  tauri_commands: string[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
 export interface StagedBackendRuntimeItem {
   id: string;
   title: string;

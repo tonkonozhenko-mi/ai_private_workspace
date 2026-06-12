@@ -60,6 +60,7 @@ import type {
   FrozenBackendRuntimeSelection,
   FrozenBackendSmokeContract,
   AppOwnedBackendStartupGate,
+  AppOwnedBackendStartupImplementation,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -246,6 +247,10 @@ export function getFrozenBackendSmokeContract(): Promise<FrozenBackendSmokeContr
 
 export function getAppOwnedBackendStartupGate(): Promise<AppOwnedBackendStartupGate> {
   return getJson<AppOwnedBackendStartupGate>("/runtime/app-owned-backend-startup-gate");
+}
+
+export function getAppOwnedBackendStartupImplementation(): Promise<AppOwnedBackendStartupImplementation> {
+  return getJson<AppOwnedBackendStartupImplementation>("/runtime/app-owned-backend-startup-implementation");
 }
 
 export function getWindowsPackagingFoundation(): Promise<WindowsPackagingFoundation> {
