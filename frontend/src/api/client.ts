@@ -59,6 +59,7 @@ import type {
   PyInstallerBackendRuntimeContract,
   FrozenBackendRuntimeSelection,
   FrozenBackendSmokeContract,
+  FrozenBackendStartupDiagnostics,
   AppOwnedBackendStartupGate,
   AppOwnedBackendStartupImplementation,
   AppOwnedBackendHealthReadiness,
@@ -249,6 +250,10 @@ export function getFrozenBackendRuntimeSelection(): Promise<FrozenBackendRuntime
 
 export function getFrozenBackendSmokeContract(): Promise<FrozenBackendSmokeContract> {
   return getJson<FrozenBackendSmokeContract>("/runtime/frozen-backend-smoke-contract");
+}
+
+export function getFrozenBackendStartupDiagnostics(): Promise<FrozenBackendStartupDiagnostics> {
+  return getJson<FrozenBackendStartupDiagnostics>("/runtime/frozen-backend-startup-diagnostics");
 }
 
 export function getAppOwnedBackendStartupGate(): Promise<AppOwnedBackendStartupGate> {

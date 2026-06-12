@@ -449,3 +449,8 @@ Task 257 adds Tauri packaged app build readiness:
 - New endpoint: `GET /runtime/tauri-packaged-app-build-readiness`.
 
 Current roadmap position: Phase 22 / v0.2 desktop runtime foundation is strongly in progress. Remaining to 100% v1.0 is roughly 5–8 large tasks depending on macOS packaged smoke, Windows parity, installers/signing, persistent jobs, MCP/Agent execution, update flow, and final QA.
+
+### Task 258 — frozen backend startup diagnostics ✅
+
+After local packaged-app work, `npm run tauri:build` succeeded, but `scripts/smoke_frozen_backend_runtime.sh` showed the frozen backend process did not make `/health` ready. Task 258 hardened the PyInstaller entrypoint/spec and smoke script: explicit import self-check, broader hidden imports, app-owned smoke data directory, early-process-exit detection, and log-tail printing on failure. Next local step is to rebuild the frozen backend and rerun the smoke script to see either a clean `/health` pass or a concrete backend traceback.
+

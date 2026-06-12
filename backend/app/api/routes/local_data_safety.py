@@ -54,6 +54,8 @@ from app.api.schemas.local_data_safety_schemas import (
     FrozenBackendRuntimeSelectionResponse,
     FrozenBackendSmokeItemResponse,
     FrozenBackendSmokeContractResponse,
+    FrozenBackendStartupDiagnosticsItemResponse,
+    FrozenBackendStartupDiagnosticsResponse,
     AppOwnedBackendStartupGateItemResponse,
     AppOwnedBackendStartupGateResponse,
     AppOwnedBackendStartupImplementationItemResponse,
@@ -1815,6 +1817,44 @@ def get_frozen_backend_smoke_contract() -> FrozenBackendSmokeContractResponse:
         ],
     )
 
+
+
+
+@router.get("/frozen-backend-startup-diagnostics", response_model=FrozenBackendStartupDiagnosticsResponse)
+def get_frozen_backend_startup_diagnostics() -> FrozenBackendStartupDiagnosticsResponse:
+    return FrozenBackendStartupDiagnosticsResponse(
+        status="ready",
+        title="Frozen backend startup diagnostics",
+        summary="Hardens the PyInstaller backend runtime path after local smoke showed that the process started but HTTP /health never became ready. The smoke script now runs an import self-check, uses an app-owned data directory, and prints the frozen backend log tail on failure.",
+        check_script="scripts/check_frozen_backend_startup_diagnostics.sh",
+        smoke_script="scripts/smoke_frozen_backend_runtime.sh",
+        entrypoint_path="backend/packaging/pyinstaller_backend_entrypoint.py",
+        spec_path="backend/packaging/ai_private_workspace_backend.spec",
+        diagnostics_items=[
+            FrozenBackendStartupDiagnosticsItemResponse(id="import-preflight", title="Frozen import preflight", status="done", summary="The entrypoint imports app.main eagerly and supports --runtime-self-check so packaging/import errors are visible before starting Uvicorn.", command="build/desktop/frozen-backend-runtime/ai-private-workspace-backend --runtime-self-check"),
+            FrozenBackendStartupDiagnosticsItemResponse(id="hidden-imports", title="PyInstaller hidden imports", status="done", summary="The spec collects app, uvicorn, FastAPI, Starlette, Pydantic and YAML submodules to reduce runtime-only import failures.", command="scripts/build_pyinstaller_backend_runtime.sh"),
+            FrozenBackendStartupDiagnosticsItemResponse(id="app-data", title="App-owned smoke data", status="done", summary="The smoke script sets APP_DATA_DIR and WORKSPACE_DB_PATH under build/desktop/smoke-logs/app-data so frozen runtime does not write into source by default."),
+            FrozenBackendStartupDiagnosticsItemResponse(id="log-tail", title="Failure diagnostics", status="done", summary="If the frozen process exits early or /health does not become ready, the smoke script prints the last backend log lines instead of only reporting connection refused.", command="scripts/smoke_frozen_backend_runtime.sh"),
+        ],
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Diagnostics contract", command="scripts/check_frozen_backend_startup_diagnostics.sh", purpose="Verify the entrypoint, spec and smoke script include the required frozen startup diagnostics."),
+            DesktopRuntimeValidationCommandResponse(label="Build frozen backend", command="scripts/build_pyinstaller_backend_runtime.sh", purpose="Rebuild the frozen backend with the updated PyInstaller spec."),
+            DesktopRuntimeValidationCommandResponse(label="Smoke frozen backend", command="scripts/smoke_frozen_backend_runtime.sh", purpose="Run import self-check, start the app-owned backend, wait for HTTP /health 200, and print log tail on failure."),
+            DesktopRuntimeValidationCommandResponse(label="Build packaged app", command="cd frontend && npm run tauri:build", purpose="Rebuild the macOS app after frozen backend smoke passes."),
+        ],
+        safety_rules=[
+            "The smoke script refuses to replace unknown processes if the target port is already in use.",
+            "The smoke script stops only the PID it started.",
+            "The frozen runtime must not start scan, index, rebuild, MCP, Agent, or model downloads on startup.",
+            "Generated logs, app data, PyInstaller work dirs and Tauri targets stay under ignored build/runtime paths.",
+        ],
+        next_steps=[
+            "Run scripts/check_frozen_backend_startup_diagnostics.sh.",
+            "Rebuild the frozen backend with scripts/build_pyinstaller_backend_runtime.sh.",
+            "Run scripts/smoke_frozen_backend_runtime.sh and inspect the printed log tail if it still fails.",
+            "If frozen backend smoke passes, run cd frontend && npm run tauri:build and open the generated .app.",
+        ],
+    )
 
 @router.get("/app-owned-backend-startup-gate", response_model=AppOwnedBackendStartupGateResponse)
 def get_app_owned_backend_startup_gate() -> AppOwnedBackendStartupGateResponse:

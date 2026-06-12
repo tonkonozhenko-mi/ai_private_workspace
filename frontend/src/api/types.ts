@@ -2134,6 +2134,29 @@ export interface FrozenBackendSmokeContract {
 }
 
 
+
+export interface FrozenBackendStartupDiagnosticsItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  command: string | null;
+}
+
+export interface FrozenBackendStartupDiagnostics {
+  status: string;
+  title: string;
+  summary: string;
+  check_script: string;
+  smoke_script: string;
+  entrypoint_path: string;
+  spec_path: string;
+  diagnostics_items: FrozenBackendStartupDiagnosticsItem[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
 export interface AppOwnedBackendStartupGateItem {
   id: string;
   title: string;
