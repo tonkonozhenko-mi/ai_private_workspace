@@ -419,3 +419,7 @@ The desktop runtime path now has the correct Cargo library layout for Tauri: `ma
 
 
 * Task 254 — Tauri Rust dependency pin fix + src-tauri target hygiene ✅
+
+## Task 255 — Tauri icon assets ✅
+
+Fixed the local Tauri `cargo check` blocker caused by missing/non-RGBA icon assets. Added required RGBA PNG placeholder icons, removed an unused Rust import, added `scripts/check_tauri_icon_assets.sh`, and exposed `GET /runtime/tauri-icon-assets` for Settings/API readiness. Next local check: `scripts/check_tauri_icon_assets.sh && cd frontend && cargo check --manifest-path src-tauri/Cargo.toml`.

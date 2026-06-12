@@ -738,6 +738,28 @@ class TauriRustDependencyPinsResponse(BaseModel):
     safety_rules: list[str]
     next_steps: list[str]
 
+
+class TauriIconAssetItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    path: str | None = None
+    command: str | None = None
+
+
+class TauriIconAssetsResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    check_script: str
+    icons_directory: str
+    required_icons: list[str]
+    validation_items: list[TauriIconAssetItemResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str
     purpose: str
