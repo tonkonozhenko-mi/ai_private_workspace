@@ -312,3 +312,8 @@ Current roadmap position after Task 236:
 ## Task 238 — desktop runtime readiness
 
 Task 238 adds the Phase 22 / v0.2 desktop runtime readiness endpoint and Settings UI handoff. The project should now stop adding v0.1 features unless local smoke-check finds blockers. The next product stage is desktop runtime reliability: backend runtime manifest, Tauri supervisor status, app-owned backend startup, app-owned logs/data, and no automatic scan/index/MCP/Agent/model downloads on launch.
+
+
+### Task 239 — Desktop runtime preflight
+
+Task 239 adds a read-only Phase 22 gate with `GET /runtime/desktop-runtime-preflight`, `scripts/check_desktop_runtime_preflight.sh`, backend tests, and a Settings UI section. It verifies backend entrypoint, runtime manifest, frontend build output, macOS package foundation script, and Tauri scaffold before any real Tauri backend process supervision is implemented. It preserves the rule that frontend code can display/copy commands but never execute shell commands.

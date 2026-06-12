@@ -31,6 +31,8 @@ from app.api.schemas.local_data_safety_schemas import (
     DesktopRuntimeValidationCommandResponse,
     DesktopRuntimeReadinessItemResponse,
     DesktopRuntimeReadinessResponse,
+    DesktopRuntimePreflightItemResponse,
+    DesktopRuntimePreflightResponse,
     TauriShellScaffoldFileResponse,
     TauriShellScaffoldPhaseResponse,
     TauriShellScaffoldResponse,
@@ -1396,6 +1398,7 @@ def get_desktop_runtime_readiness() -> DesktopRuntimeReadinessResponse:
         ],
         implementation_order=[
             "Keep v0.1 frozen except for blockers found during local UI smoke-check.",
+            "Run the desktop runtime preflight before packaging changes.",
             "Make backend runtime manifest a required packaging preflight.",
             "Add Tauri read-only supervisor status/log path commands.",
             "Start app-owned backend from Tauri only after runtime staging is deterministic.",
@@ -1405,6 +1408,7 @@ def get_desktop_runtime_readiness() -> DesktopRuntimeReadinessResponse:
         ],
         validation_commands=[
             DesktopRuntimeValidationCommandResponse(label="Source RC audit", command="./scripts/audit_release_candidate.sh", purpose="Keep source release hygiene green before starting v0.2 runtime work."),
+            DesktopRuntimeValidationCommandResponse(label="Desktop runtime preflight", command="scripts/check_desktop_runtime_preflight.sh", purpose="Read-only Phase 22 gate before packaging/runtime changes."),
             DesktopRuntimeValidationCommandResponse(label="Backend runtime manifest", command="scripts/prepare_macos_backend_runtime.sh", purpose="Validate backend runtime staging inputs and generate the manifest."),
             DesktopRuntimeValidationCommandResponse(label="Tauri scaffold check", command="scripts/prepare_tauri_shell_scaffold.sh", purpose="Validate the Tauri scaffold without executing unsafe shell from the frontend."),
             DesktopRuntimeValidationCommandResponse(label="macOS package foundation", command="cd frontend && npm ci && npm run build && cd .. && scripts/package_macos_app_foundation.sh", purpose="Build the current developer-verifiable macOS app foundation."),
@@ -1424,6 +1428,108 @@ def get_desktop_runtime_readiness() -> DesktopRuntimeReadinessResponse:
             "MCP/Agent execution remains disabled until sandbox, allowlist, approvals, and audit logs exist.",
         ],
         honest_remaining_work="v0.2 desktop runtime is roughly 5-8 large tasks. Full v1.0 remains roughly 15-25 large tasks including signed installers, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.",
+    )
+
+
+@router.get("/desktop-runtime-preflight", response_model=DesktopRuntimePreflightResponse)
+def get_desktop_runtime_preflight() -> DesktopRuntimePreflightResponse:
+    """Return the read-only desktop runtime preflight for Phase 22 packaging work."""
+    root = Path(__file__).resolve().parents[4]
+    manifest = root / "build" / "macos" / "backend-runtime" / "AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt"
+    package_script = root / "scripts" / "package_macos_app_foundation.sh"
+    preflight_script = root / "scripts" / "check_desktop_runtime_preflight.sh"
+    frontend_dist = root / "frontend" / "dist" / "index.html"
+    backend_app = root / "backend" / "app" / "main.py"
+    tauri_main = root / "frontend" / "src-tauri" / "src" / "main.rs"
+
+    items = [
+        DesktopRuntimePreflightItemResponse(
+            id="backend-source",
+            title="Backend source entrypoint",
+            status="ok" if backend_app.exists() else "blocked",
+            summary="backend/app/main.py is present" if backend_app.exists() else "backend/app/main.py is missing",
+            evidence="backend/app/main.py",
+            fix_command=None,
+        ),
+        DesktopRuntimePreflightItemResponse(
+            id="runtime-manifest",
+            title="Backend runtime manifest",
+            status="ok" if manifest.exists() else "review",
+            summary="Runtime manifest exists" if manifest.exists() else "Runtime manifest has not been generated in this checkout",
+            evidence="build/macos/backend-runtime/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt",
+            fix_command="scripts/prepare_macos_backend_runtime.sh" if not manifest.exists() else None,
+        ),
+        DesktopRuntimePreflightItemResponse(
+            id="frontend-dist",
+            title="Packaged frontend assets",
+            status="ok" if frontend_dist.exists() else "review",
+            summary="frontend/dist/index.html exists" if frontend_dist.exists() else "frontend/dist is not built in the source checkout",
+            evidence="frontend/dist/index.html",
+            fix_command="cd frontend && npm ci && npm run build" if not frontend_dist.exists() else None,
+        ),
+        DesktopRuntimePreflightItemResponse(
+            id="package-script",
+            title="macOS package foundation script",
+            status="ok" if package_script.exists() else "blocked",
+            summary="Package script exists" if package_script.exists() else "Package script is missing",
+            evidence="scripts/package_macos_app_foundation.sh",
+            fix_command=None,
+        ),
+        DesktopRuntimePreflightItemResponse(
+            id="tauri-shell",
+            title="Tauri shell scaffold",
+            status="ok" if tauri_main.exists() else "review",
+            summary="Tauri shell source exists" if tauri_main.exists() else "Tauri shell scaffold is not present",
+            evidence="frontend/src-tauri/src/main.rs",
+            fix_command="scripts/prepare_tauri_shell_scaffold.sh" if not tauri_main.exists() else None,
+        ),
+    ]
+    if any(item.status == "blocked" for item in items):
+        status = "blocked"
+    elif any(item.status == "review" for item in items):
+        status = "review"
+    else:
+        status = "ok"
+
+    return DesktopRuntimePreflightResponse(
+        status=status,
+        title="Desktop runtime preflight",
+        summary="Read-only Phase 22 checkpoint before turning the packaging foundation into a real app-owned desktop runtime.",
+        preflight_script="scripts/check_desktop_runtime_preflight.sh",
+        runtime_manifest_path="build/macos/backend-runtime/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt",
+        package_script="scripts/package_macos_app_foundation.sh",
+        items=items,
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Read-only preflight", command="scripts/check_desktop_runtime_preflight.sh", purpose="Checks source, manifest, build outputs, package script, and Tauri scaffold without starting services."),
+            DesktopRuntimeValidationCommandResponse(label="Generate runtime manifest", command="scripts/prepare_macos_backend_runtime.sh", purpose="Creates the manifest used by packaging preflight; it does not start backend or models."),
+            DesktopRuntimeValidationCommandResponse(label="Build frontend assets", command="cd frontend && npm ci && npm run build", purpose="Creates frontend/dist for package foundation validation."),
+            DesktopRuntimeValidationCommandResponse(label="Build macOS app foundation", command="scripts/package_macos_app_foundation.sh", purpose="Stages the current foundation .app after manifest and frontend assets are ready."),
+        ],
+        pass_criteria=[
+            "backend/app/main.py exists and imports in backend tests.",
+            "Runtime manifest is generated before packaging.",
+            "frontend/dist exists before packaging the .app foundation.",
+            "Package script refuses missing inputs instead of silently creating a broken app.",
+            "Tauri scaffold remains present and does not grant shell execution to React frontend code.",
+        ],
+        fail_fast_conditions=[
+            "Missing backend/app/main.py.",
+            "Missing scripts/package_macos_app_foundation.sh.",
+            "Any release audit blocker for database/runtime/build artifacts outside ignored paths.",
+            "Any packaging step that starts scan, index, rebuild, MCP, Agent, or model downloads automatically.",
+        ],
+        safety_rules=[
+            "This endpoint is read-only and never executes the preflight commands.",
+            "Frontend can display and copy commands only; it cannot run shell commands.",
+            "Desktop launch must not trigger scan, index, rebuild, MCP, Agent, or model downloads.",
+            "Runtime data and logs stay outside the app bundle and source release archive.",
+            "Unknown processes on localhost ports must never be killed automatically.",
+        ],
+        next_steps=[
+            "Use this preflight as the first Phase 22 gate before every desktop runtime change.",
+            "Next task can add Tauri-side read-only supervisor status/log path commands.",
+            "Only after that should app-owned backend process start move into Tauri.",
+        ],
     )
 
 

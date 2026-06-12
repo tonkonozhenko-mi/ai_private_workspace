@@ -679,6 +679,31 @@ export interface DesktopRuntimeReadiness {
   honest_remaining_work: string;
 }
 
+
+export interface DesktopRuntimePreflightItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  evidence: string;
+  fix_command: string | null;
+}
+
+export interface DesktopRuntimePreflight {
+  status: string;
+  title: string;
+  summary: string;
+  preflight_script: string;
+  runtime_manifest_path: string;
+  package_script: string;
+  items: DesktopRuntimePreflightItem[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  pass_criteria: string[];
+  fail_fast_conditions: string[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
 export interface TauriShellScaffoldFile {
   path: string;
   purpose: string;

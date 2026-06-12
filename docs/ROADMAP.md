@@ -303,3 +303,11 @@ Current position: Phase 21 is effectively complete as a source release candidate
 ## Task 238 — Phase 22 desktop runtime readiness
 
 Task 238 starts the post-v0.1 direction with `GET /runtime/desktop-runtime-readiness` and a Settings UI section for v0.2 runtime readiness. It keeps v0.1 frozen and defines the next safe implementation order: runtime manifest preflight, Tauri read-only supervisor status, deterministic app-owned backend startup, `/health` readiness, and Windows parity after macOS/Tauri is stable.
+
+
+### Task 239 — Desktop runtime preflight
+
+Task 239 adds a read-only Phase 22 gate with `GET /runtime/desktop-runtime-preflight`, `scripts/check_desktop_runtime_preflight.sh`, backend tests, and a Settings UI section. It verifies backend entrypoint, runtime manifest, frontend build output, macOS package foundation script, and Tauri scaffold before any real Tauri backend process supervision is implemented. It preserves the rule that frontend code can display/copy commands but never execute shell commands.
+
+
+Frontend React code must never execute shell commands. It may display and copy commands only.

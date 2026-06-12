@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -21,6 +21,7 @@ import type {
   MacOSAppSupervisorWiring,
   BackendRuntimeBundlePlan,
   DesktopRuntimeReadiness,
+  DesktopRuntimePreflight,
   TauriShellScaffold,
   TauriSupervisorBridge,
   WindowsPackagingFoundation,
@@ -207,6 +208,9 @@ export function SettingsPanel({
   const [desktopRuntimeReadiness, setDesktopRuntimeReadiness] = useState<DesktopRuntimeReadiness | null>(null);
   const [desktopRuntimeReadinessError, setDesktopRuntimeReadinessError] = useState<string | null>(null);
   const [desktopRuntimeReadinessLoading, setDesktopRuntimeReadinessLoading] = useState(false);
+  const [desktopRuntimePreflight, setDesktopRuntimePreflight] = useState<DesktopRuntimePreflight | null>(null);
+  const [desktopRuntimePreflightError, setDesktopRuntimePreflightError] = useState<string | null>(null);
+  const [desktopRuntimePreflightLoading, setDesktopRuntimePreflightLoading] = useState(false);
   const [tauriShellScaffold, setTauriShellScaffold] = useState<TauriShellScaffold | null>(null);
   const [tauriShellScaffoldError, setTauriShellScaffoldError] = useState<string | null>(null);
   const [tauriShellScaffoldLoading, setTauriShellScaffoldLoading] = useState(false);
@@ -611,6 +615,31 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setDesktopRuntimeReadinessLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDesktopRuntimePreflightLoading(true);
+    setDesktopRuntimePreflightError(null);
+    getDesktopRuntimePreflight()
+      .then((preflight) => {
+        if (!cancelled) {
+          setDesktopRuntimePreflight(preflight);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setDesktopRuntimePreflightError(error instanceof Error ? error.message : "Could not load desktop runtime preflight");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setDesktopRuntimePreflightLoading(false);
         }
       });
     return () => {
@@ -2643,6 +2672,70 @@ export function SettingsPanel({
                       {desktopRuntimeReadiness.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
                     </div>
                   </details>
+                </div>
+              ) : null}
+            </details>
+
+
+            <details className="settings-disclosure" open>
+              <summary>Desktop runtime preflight</summary>
+              {desktopRuntimePreflightError ? (
+                <p className="settings-transfer-message">Could not load desktop runtime preflight: {desktopRuntimePreflightError}</p>
+              ) : null}
+              {desktopRuntimePreflightLoading ? (
+                <p className="settings-transfer-message">Loading desktop runtime preflight…</p>
+              ) : desktopRuntimePreflight ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{desktopRuntimePreflight.title}</strong>
+                    <span>{desktopRuntimePreflight.summary}</span>
+                    <span>Script: {desktopRuntimePreflight.preflight_script}</span>
+                  </div>
+                  <div className="startup-checklist-grid">
+                    {desktopRuntimePreflight.items.map((item) => (
+                      <div className={`startup-checklist-item ${item.status === "blocked" ? "is-danger" : item.status === "review" ? "is-review" : "is-ok"}`} key={item.id}>
+                        <div className="startup-checklist-item-header">
+                          <strong>{item.title}</strong>
+                          <StatusBadge label={item.status} tone={item.status === "blocked" ? "danger" : item.status === "review" ? "warning" : "success"} />
+                        </div>
+                        <p>{item.summary}</p>
+                        <small>{item.evidence}</small>
+                        {item.fix_command ? (
+                          <div className="startup-checklist-command">
+                            <code>{item.fix_command}</code>
+                            <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(item.fix_command ?? "")}>
+                              Copy
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Validation commands</summary>
+                    <div className="settings-command-stack">
+                      {desktopRuntimePreflight.validation_commands.map((command) => (
+                        <div className="startup-checklist-command" key={command.label}>
+                          <span>{command.label}</span>
+                          <code>{command.command}</code>
+                          <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(command.command)}>
+                            Copy
+                          </button>
+                          <small>{command.purpose}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Pass / fail rules</summary>
+                    <ol className="settings-preflight-list">
+                      {desktopRuntimePreflight.pass_criteria.map((item) => <li key={item}>{item}</li>)}
+                    </ol>
+                    <p className="settings-transfer-message">Fail fast: {desktopRuntimePreflight.fail_fast_conditions.join(" · ")}</p>
+                  </details>
+                  <div className="settings-safety-list">
+                    {desktopRuntimePreflight.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                  </div>
                 </div>
               ) : null}
             </details>
