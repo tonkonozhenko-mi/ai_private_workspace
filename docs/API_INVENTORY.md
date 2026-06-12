@@ -372,3 +372,4 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 ## Task 258 — frozen backend startup diagnostics
 
 - `GET /runtime/frozen-backend-startup-diagnostics` — records the hardened frozen backend diagnostics path after local smoke showed `Connection refused`. It validates explicit import preflight, broader PyInstaller hidden imports, app-owned smoke data paths, and log-tail diagnostics when `/health` does not become ready.
+- `GET /runtime/macos-packaged-app-smoke-result` — records the local milestone where frozen backend smoke and Tauri packaged macOS app build passed, and exposes the remaining packaged `.app` smoke steps.

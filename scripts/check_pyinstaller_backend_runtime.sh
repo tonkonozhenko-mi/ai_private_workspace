@@ -21,7 +21,7 @@ printf 'Project root: %s\n\n' "$ROOT_DIR"
 [ -x "$BUILD_SCRIPT" ] && ok "PyInstaller build script is executable" || fail "PyInstaller build script missing or not executable"
 
 if [ -f "$ENTRYPOINT" ]; then
-  grep -q 'uvicorn.run("app.main:app"' "$ENTRYPOINT" && ok "entrypoint starts only app.main:app through uvicorn" || fail "entrypoint does not target app.main:app"
+  grep -q 'from app.main import app' "$ENTRYPOINT" && grep -q 'uvicorn.run(app' "$ENTRYPOINT" && ok "entrypoint imports app.main:app and passes the app object to uvicorn" || fail "entrypoint does not import app.main:app and pass app object to uvicorn"
   grep -q 'AI_PRIVATE_WORKSPACE_HOST' "$ENTRYPOINT" && ok "entrypoint uses explicit host env" || fail "entrypoint missing host env"
 fi
 if [ -f "$BUILD_SCRIPT" ]; then
@@ -34,10 +34,21 @@ if [ -f "$MANIFEST" ]; then
 else
   review "frozen runtime manifest not present yet; run scripts/build_pyinstaller_backend_runtime.sh in a packaging venv"
 fi
-if find "$ROOT_DIR" -path "$ROOT_DIR/build" -prune -o \( -name 'ai-private-workspace-backend' -o -name 'ai-private-workspace-backend.exe' \) -print -quit 2>/dev/null | grep -q .; then
-  fail "frozen backend executable appears outside build/; do not commit generated binaries"
+UNEXPECTED_BINARY=""
+while IFS= read -r candidate; do
+  case "$candidate" in
+    "$ROOT_DIR/build/"*) ;;
+    "$ROOT_DIR/frontend/src-tauri/target/"*) ;;
+    *) UNEXPECTED_BINARY="$candidate"; break ;;
+  esac
+done < <(find "$ROOT_DIR" \
+  \( -path "$ROOT_DIR/.git" -o -path "$ROOT_DIR/backend/.venv" -o -path "$ROOT_DIR/frontend/node_modules" \) -prune -o \
+  \( -name 'ai-private-workspace-backend' -o -name 'ai-private-workspace-backend.exe' \) -print 2>/dev/null)
+
+if [ -n "$UNEXPECTED_BINARY" ]; then
+  fail "frozen backend executable appears outside allowed generated locations: $UNEXPECTED_BINARY"
 else
-  ok "no generated backend binary outside build/"
+  ok "no generated backend binary outside allowed generated locations"
 fi
 printf '\nSummary: %s blocker(s), %s review item(s)\n' "$failures" "$reviews"
 [ "$failures" -eq 0 ]

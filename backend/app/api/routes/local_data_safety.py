@@ -78,6 +78,8 @@ from app.api.schemas.local_data_safety_schemas import (
     TauriDevSmokeReadinessResponse,
     TauriPackagedAppBuildItemResponse,
     TauriPackagedAppBuildReadinessResponse,
+    MacOSPackagedAppSmokeResultItemResponse,
+    MacOSPackagedAppSmokeResultResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
@@ -2766,6 +2768,98 @@ def get_tauri_packaged_app_build_readiness() -> TauriPackagedAppBuildReadinessRe
             "Run cd frontend && npm run tauri:build.",
             "Open the generated macOS .app and confirm logs/data stay in app-owned user directories.",
             "After macOS package smoke is stable, mirror the same contract on Windows.",
+        ],
+    )
+
+
+@router.get("/macos-packaged-app-smoke-result", response_model=MacOSPackagedAppSmokeResultResponse)
+def get_macos_packaged_app_smoke_result() -> MacOSPackagedAppSmokeResultResponse:
+    """Return the local macOS packaged app smoke result milestone and remaining gates."""
+    root = Path(__file__).resolve().parents[4]
+    app_bundle = root / "frontend/src-tauri/target/release/bundle/macos/AI Private Workspace.app"
+    tauri_binary = root / "frontend/src-tauri/target/release/ai-private-workspace"
+    frozen_manifest = root / "build/desktop/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+    smoke_log = root / "build/desktop/smoke-logs/frozen-backend-smoke.log"
+    check_script = root / "scripts/check_macos_packaged_app_smoke_result.sh"
+
+    smoke_log_text = smoke_log.read_text(encoding="utf-8", errors="replace") if smoke_log.exists() else ""
+    results = [
+        MacOSPackagedAppSmokeResultItemResponse(
+            id="frozen-backend-smoke",
+            title="Frozen backend smoke passed locally",
+            status="ok",
+            summary="User reported that scripts/smoke_frozen_backend_runtime.sh started the frozen backend and returned health ok from http://127.0.0.1:8000/health.",
+            evidence="health ok: ok",
+            command="scripts/smoke_frozen_backend_runtime.sh",
+        ),
+        MacOSPackagedAppSmokeResultItemResponse(
+            id="tauri-packaged-build",
+            title="Tauri packaged macOS app build passed locally",
+            status="ok",
+            summary="User reported that npm run tauri:build finished and produced AI Private Workspace.app under frontend/src-tauri/target/release/bundle/macos.",
+            evidence="frontend/src-tauri/target/release/bundle/macos/AI Private Workspace.app",
+            command="cd frontend && npm run tauri:build",
+        ),
+        MacOSPackagedAppSmokeResultItemResponse(
+            id="check-script",
+            title="Packaged smoke result check is available",
+            status="ok" if check_script.exists() else "blocked",
+            summary="The source tree has a read-only check that records the local smoke milestone without committing generated binaries or .app bundles.",
+            evidence="scripts/check_macos_packaged_app_smoke_result.sh",
+            command="scripts/check_macos_packaged_app_smoke_result.sh",
+        ),
+        MacOSPackagedAppSmokeResultItemResponse(
+            id="local-app-bundle",
+            title="Packaged app bundle is local-only",
+            status="local" if app_bundle.exists() else "pending-local",
+            summary="The generated .app is a local build artifact under frontend/src-tauri/target and must not be committed or included in source archives.",
+            evidence="frontend/src-tauri/target/release/bundle/macos/AI Private Workspace.app",
+            command="cd frontend && npm run tauri:build",
+        ),
+        MacOSPackagedAppSmokeResultItemResponse(
+            id="local-frozen-manifest",
+            title="Frozen backend manifest is local-only",
+            status="local" if frozen_manifest.exists() else "pending-local",
+            summary="The frozen backend manifest is generated under build/desktop and is required before packaged app runtime smoke, but it must stay out of Git.",
+            evidence="build/desktop/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json",
+            command="scripts/build_pyinstaller_backend_runtime.sh",
+        ),
+        MacOSPackagedAppSmokeResultItemResponse(
+            id="local-smoke-log",
+            title="Frozen smoke log is local-only",
+            status="local" if smoke_log.exists() else "pending-local",
+            summary="Generated smoke logs are useful for local debugging and must stay under ignored build/desktop paths.",
+            evidence="Application startup complete" if "Application startup complete" in smoke_log_text else "build/desktop/smoke-logs/frozen-backend-smoke.log",
+            command="scripts/smoke_frozen_backend_runtime.sh",
+        ),
+    ]
+    status = "blocked" if any(item.status == "blocked" for item in results) else "ready"
+    return MacOSPackagedAppSmokeResultResponse(
+        status=status,
+        title="macOS packaged app smoke result",
+        summary="Records that frozen backend smoke and Tauri packaged macOS build now pass locally. The next gate is opening the generated .app and validating app-owned startup, logs, and shutdown behavior.",
+        milestone="Task 259 — macOS packaged app build and frozen backend smoke success",
+        check_script="scripts/check_macos_packaged_app_smoke_result.sh",
+        packaged_app_path="frontend/src-tauri/target/release/bundle/macos/AI Private Workspace.app",
+        local_results=results,
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Packaged smoke result check", command="scripts/check_macos_packaged_app_smoke_result.sh", purpose="Verify source guardrails and optionally detect local generated app/frozen runtime artifacts."),
+            DesktopRuntimeValidationCommandResponse(label="Frozen backend smoke", command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh", purpose="Rebuild and smoke the app-owned backend runtime before packaged .app smoke."),
+            DesktopRuntimeValidationCommandResponse(label="Build packaged macOS app", command="cd frontend && npm run tauri:build", purpose="Generate the macOS .app bundle locally."),
+            DesktopRuntimeValidationCommandResponse(label="Open packaged app", command="open frontend/src-tauri/target/release/bundle/macos/AI\\ Private\\ Workspace.app", purpose="Validate app-owned backend startup, HTTP /health readiness, local logs, and safe shutdown."),
+        ],
+        safety_rules=[
+            "Generated .app bundles, Tauri target output, frozen binaries, manifests, and smoke logs remain local-only artifacts.",
+            "Packaged app startup may start only the app-owned frozen backend runtime selected by manifest.",
+            "Startup success requires HTTP GET /health 200.",
+            "No pkill, killall, taskkill, or kill-by-port behavior is allowed.",
+            "Desktop launch must not start scan, index, rebuild, MCP, Agent, or model downloads.",
+        ],
+        next_steps=[
+            "Open the generated macOS .app and confirm it starts the app-owned backend and reaches /health.",
+            "Confirm logs and app data are written to app-owned user directories, not the source tree.",
+            "Confirm closing the app stops only its own child backend process.",
+            "After macOS packaged smoke is stable, start Windows parity work.",
         ],
     )
 
