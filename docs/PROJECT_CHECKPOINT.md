@@ -1,6 +1,6 @@
 # AI Private Workspace — Project Checkpoint
 
-Last updated: Task 265
+Last updated: Task 266
 
 ## Working style
 
@@ -521,3 +521,23 @@ internal server child listening on port 8000. Tauri now requests graceful
 termination of the exact stored app-owned PID first, with hard stop only as a
 timeout fallback. Verified result: graceful app quit frees port 8000 and
 leaves no AI Private Workspace process behind.
+
+## Task 266 checkpoint
+
+Task 266 closes the first complete packaged macOS product-flow gate:
+
+- packaged `.app` opens with the app-owned frozen backend;
+- workspace creation, explicit scan, explicit index, and explicit Ask work;
+- scan and index jobs expose progress/errors and write lifecycle diagnostics;
+- Ask logs workspace/provider/retrieval/diagnostic state without logging the
+  question or project content;
+- workspace, latest scan, and index metadata persist in app-owned SQLite;
+- default memory-vector chunks intentionally do not persist after restart, so
+  Ask returns a clear reindex diagnostic instead of silently claiming context;
+- `scripts/check_packaged_app_full_flow_contracts.sh` guards explicit-action,
+  no-shell, no-auto-run, CORS, app-owned-path, and PID-safe desktop contracts;
+- `docs/TASK266_PACKAGED_FULL_PRODUCT_FLOW_SMOKE.md` is the exact rebuild and
+  manual restart runbook.
+
+Next recommended large task: Windows packaged-runtime parity, while retaining
+the now-proven macOS full-flow contract.

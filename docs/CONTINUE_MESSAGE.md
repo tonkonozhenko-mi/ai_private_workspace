@@ -287,3 +287,31 @@ Latest local smoke detail:
 - graceful packaged-app quit now stops the PyInstaller bootloader and internal
   server child; port 8000 is free afterward and no orphan product process
   remains.
+
+## Latest state after Task 266
+
+Task 266 proves and guards the first complete packaged macOS product flow:
+
+- open `.app`;
+- create/select workspace;
+- explicitly scan;
+- explicitly build search context;
+- explicitly Ask with a selected provider;
+- quit/reopen and verify SQLite persistence.
+
+New gate and runbook:
+
+```bash
+./scripts/check_packaged_app_full_flow_contracts.sh
+cat docs/TASK266_PACKAGED_FULL_PRODUCT_FLOW_SMOKE.md
+```
+
+The packaged deterministic smoke uses `VECTOR_STORE=memory`,
+`EMBEDDING_PROVIDER=fake`, and selected `fake/fake-llm`. Scan/index metadata
+persists in SQLite. Memory-vector chunks do not persist after backend restart,
+so Ask must show the clear `index_metadata_exists_but_no_chunks_found`
+diagnostic until the user explicitly rebuilds context. Qdrant remains the
+persistent vector-store path.
+
+Next recommended task: Windows packaged-runtime full-flow parity, then macOS
+signing/notarization and installer-grade distribution.

@@ -1,5 +1,6 @@
 from dataclasses import replace
 from datetime import datetime
+import logging
 
 from fastapi import APIRouter, Body, HTTPException, status
 from pydantic import BaseModel, Field
@@ -27,6 +28,9 @@ from app.api.dependencies import (
     workspace_model_selection_repository,
     workspace_repository,
 )
+
+
+logger = logging.getLogger("uvicorn.error.ai_private_workspace.workspace_api")
 from app.api.project_scan_schemas import (
     FileSelectionPreviewResponse,
     ProjectScanResponse,
@@ -1516,6 +1520,11 @@ def ask_workspace_question(
     workspace_id: str,
     request: AskWorkspaceQuestionRequest,
 ) -> WorkspaceQuestionAnswerResponse:
+    logger.info(
+        "workspace ask requested workspace_id=%s mode=override_or_default limit=%s",
+        workspace_id,
+        request.limit,
+    )
     use_case = AskWorkspaceQuestionUseCase(
         workspace_repository=workspace_repository,
         embedding_provider=embedding_provider,
@@ -1550,16 +1559,36 @@ def ask_workspace_question(
         )
         result = _persist_answer_in_conversation(conversation.id, result)
     except AskWorkspaceQuestionNotFoundError as exc:
+        logger.warning(
+            "workspace ask rejected workspace_id=%s mode=override_or_default reason=%s",
+            workspace_id,
+            exc,
+        )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
     except AskWorkspaceQuestionValidationError as exc:
+        logger.warning(
+            "workspace ask rejected workspace_id=%s mode=override_or_default reason=%s",
+            workspace_id,
+            exc,
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         ) from exc
 
+    logger.info(
+        "workspace ask completed workspace_id=%s mode=override_or_default provider=%s model=%s "
+        "retrieved_chunks=%s diagnostic_code=%s quality_warnings=%s",
+        workspace_id,
+        result.llm_provider,
+        result.llm_model,
+        result.used_context_chunks,
+        result.diagnostic_code or "none",
+        len(result.quality_warnings),
+    )
     return to_workspace_question_answer_response(result)
 
 
@@ -1571,6 +1600,11 @@ def ask_workspace_question_with_selected_llm(
     workspace_id: str,
     request: AskWorkspaceQuestionWithSelectedLLMRequest,
 ) -> WorkspaceQuestionAnswerResponse:
+    logger.info(
+        "workspace ask requested workspace_id=%s mode=selected_llm limit=%s",
+        workspace_id,
+        request.limit,
+    )
     ask_use_case = AskWorkspaceQuestionUseCase(
         workspace_repository=workspace_repository,
         embedding_provider=embedding_provider,
@@ -1610,16 +1644,36 @@ def ask_workspace_question_with_selected_llm(
         )
         result = _persist_answer_in_conversation(conversation.id, result)
     except AskWorkspaceQuestionWithSelectedLLMNotFoundError as exc:
+        logger.warning(
+            "workspace ask rejected workspace_id=%s mode=selected_llm reason=%s",
+            workspace_id,
+            exc,
+        )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
     except AskWorkspaceQuestionWithSelectedLLMValidationError as exc:
+        logger.warning(
+            "workspace ask rejected workspace_id=%s mode=selected_llm reason=%s",
+            workspace_id,
+            exc,
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         ) from exc
 
+    logger.info(
+        "workspace ask completed workspace_id=%s mode=selected_llm provider=%s model=%s "
+        "retrieved_chunks=%s diagnostic_code=%s quality_warnings=%s",
+        workspace_id,
+        result.llm_provider,
+        result.llm_model,
+        result.used_context_chunks,
+        result.diagnostic_code or "none",
+        len(result.quality_warnings),
+    )
     return to_workspace_question_answer_response(result)
 
 

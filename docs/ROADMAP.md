@@ -469,3 +469,18 @@ kill-by-port behavior.
 Next gate: rebuild and open the packaged `.app`, verify `/health` and
 `/workspaces/overview`, create the first project, then exercise explicit
 onboarding/scan/index/ask actions.
+
+### Task 266 — Packaged full product flow smoke ✅
+
+The macOS packaged path now has a complete source-contract and regression gate
+for create workspace, explicit scan, explicit index, explicit Ask, and restart
+persistence. Backend lifecycle logs distinguish job start/completion/failure
+and Ask retrieval/provider diagnostics. SQLite state survives restart; the
+default memory vector store remains intentionally ephemeral and produces a
+clear reindex diagnostic after restart.
+
+Next packaging work:
+
+1. Windows frozen-runtime and packaged full-flow parity.
+2. macOS signing/notarization and installer-grade distribution.
+3. Persistent job state and optional persistent Qdrant onboarding polish.
