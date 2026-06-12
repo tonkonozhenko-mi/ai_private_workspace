@@ -293,3 +293,10 @@ Task 235 adds the final source-release go/no-go layer before the first GitHub pu
 
 Current position: Phase 21 is effectively complete as a source release candidate. The next step is local verification and GitHub/source archive publication. Phase 22/v0.2 should start only after v0.1 is published or intentionally frozen.
 
+
+
+## Task 237 — v0.1 publication handoff
+
+- Added final read-only publication handoff endpoint and Settings UI section.
+- Current roadmap position: Phase 21 effectively complete; v0.1 has 0-1 large task left for manual smoke-check/publication cleanup.
+- v1.0 still needs roughly 15-25 large tasks: frozen runtime, signed installers, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.

@@ -509,6 +509,33 @@ class V01ReleaseGateResponse(BaseModel):
     next_actions: list[str]
     safety_rules: list[str]
 
+
+
+class V01PublicationHandoffStepResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    command: str | None = None
+    expected_result: str
+
+
+class V01PublicationHandoffResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    current_position: str
+    publish_verdict: str
+    v01_remaining_work: str
+    v1_remaining_work: str
+    steps: list[V01PublicationHandoffStepResponse]
+    source_archive_name: str
+    git_commit_message: str
+    github_push_commands: list[ReleaseCandidateAuditCommandResponse]
+    do_not_commit: list[str]
+    after_publish: list[str]
+    safety_rules: list[str]
+
 class DatabaseBackupResponse(BaseModel):
     filename: str
     path: str

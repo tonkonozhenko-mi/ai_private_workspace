@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getTauriShellScaffold, getTauriSupervisorBridge, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -27,6 +27,7 @@ import type {
   V01Handoff,
   V01ReleaseGate,
   V01UISmokeCheck,
+  V01PublicationHandoff,
   FinalProductStatus,
   ProductionReadiness,
 } from "../api/types";
@@ -223,6 +224,9 @@ export function SettingsPanel({
   const [v01UISmokeCheck, setV01UISmokeCheck] = useState<V01UISmokeCheck | null>(null);
   const [v01UISmokeCheckError, setV01UISmokeCheckError] = useState<string | null>(null);
   const [v01UISmokeCheckLoading, setV01UISmokeCheckLoading] = useState(false);
+  const [v01PublicationHandoff, setV01PublicationHandoff] = useState<V01PublicationHandoff | null>(null);
+  const [v01PublicationHandoffError, setV01PublicationHandoffError] = useState<string | null>(null);
+  const [v01PublicationHandoffLoading, setV01PublicationHandoffLoading] = useState(false);
   const [finalProductStatus, setFinalProductStatus] = useState<FinalProductStatus | null>(null);
   const [finalProductStatusError, setFinalProductStatusError] = useState<string | null>(null);
   const [finalProductStatusLoading, setFinalProductStatusLoading] = useState(false);
@@ -2756,6 +2760,92 @@ export function SettingsPanel({
                   </details>
                   <div className="settings-safety-list">
                     {v01ReleaseGate.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                  </div>
+                </div>
+              ) : null}
+            </details>
+
+
+            <details className="settings-disclosure" open>
+              <summary>v0.1 publication handoff</summary>
+              {v01PublicationHandoffError ? (
+                <p className="settings-transfer-message">Could not load v0.1 publication handoff: {v01PublicationHandoffError}</p>
+              ) : null}
+              {v01PublicationHandoffLoading ? (
+                <p className="settings-transfer-message">Loading v0.1 publication handoff…</p>
+              ) : v01PublicationHandoff ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{v01PublicationHandoff.title}</strong>
+                    <span>{v01PublicationHandoff.summary}</span>
+                    <span>{v01PublicationHandoff.publish_verdict}</span>
+                  </div>
+                  <div className="local-data-grid packaging-design-grid">
+                    <div>
+                      <span>Current</span>
+                      <strong>Phase 21</strong>
+                      <small>{v01PublicationHandoff.current_position}</small>
+                    </div>
+                    <div>
+                      <span>v0.1 left</span>
+                      <strong>0-1 task</strong>
+                      <small>{v01PublicationHandoff.v01_remaining_work}</small>
+                    </div>
+                    <div>
+                      <span>v1.0 left</span>
+                      <strong>15-25 tasks</strong>
+                      <small>{v01PublicationHandoff.v1_remaining_work}</small>
+                    </div>
+                    <div>
+                      <span>Archive</span>
+                      <strong>source zip</strong>
+                      <small>{v01PublicationHandoff.source_archive_name}</small>
+                    </div>
+                  </div>
+                  <details className="settings-disclosure" open>
+                    <summary>Final publish path</summary>
+                    <div className="settings-command-stack">
+                      {v01PublicationHandoff.steps.map((step) => (
+                        <div className="startup-checklist-command" key={step.id}>
+                          <span>{step.title}</span>
+                          {step.command ? <code>{step.command}</code> : null}
+                          {step.command ? (
+                            <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(step.command ?? "")}>
+                              Copy
+                            </button>
+                          ) : null}
+                          <small>{step.summary} Expected: {step.expected_result}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>GitHub commit/push commands</summary>
+                    <p className="settings-transfer-message">Suggested commit: <code>{v01PublicationHandoff.git_commit_message}</code></p>
+                    <div className="settings-command-stack">
+                      {v01PublicationHandoff.github_push_commands.map((command) => (
+                        <div className="startup-checklist-command" key={command.label}>
+                          <span>{command.label}</span>
+                          <code>{command.command}</code>
+                          <button className="secondary-action small" type="button" onClick={() => void navigator.clipboard.writeText(command.command)}>
+                            Copy
+                          </button>
+                          <small>{command.purpose}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Do not commit / after publish</summary>
+                    <div className="settings-safety-list">
+                      {v01PublicationHandoff.do_not_commit.map((item) => <span key={item}>{item}</span>)}
+                    </div>
+                    <ol className="settings-preflight-list">
+                      {v01PublicationHandoff.after_publish.map((item) => <li key={item}>{item}</li>)}
+                    </ol>
+                  </details>
+                  <div className="settings-safety-list">
+                    {v01PublicationHandoff.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
                   </div>
                 </div>
               ) : null}
