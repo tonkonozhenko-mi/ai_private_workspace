@@ -30,8 +30,8 @@ if [ -f "$TAURI_MAIN" ]; then
   grep -q "resolve_frozen_backend_executable" "$TAURI_MAIN" && ok "Startup is gated by frozen runtime manifest resolver" || fail "Missing frozen runtime manifest resolver"
   grep -q "backend_process_state" "$TAURI_MAIN" && ok "Backend child process state is stored for PID-owned shutdown" || fail "Missing stored backend process state"
   grep -q "port_8000_is_busy" "$TAURI_MAIN" && ok "Port occupation is detected before startup" || fail "Missing safe port occupation check"
-  grep -q "wait_for_backend_tcp" "$TAURI_MAIN" && ok "Startup waits for local backend readiness" || fail "Missing backend readiness wait"
-  grep -q "child.kill" "$TAURI_MAIN" && ok "Shutdown targets only stored child process" || fail "Missing PID-owned child shutdown"
+  grep -q "wait_for_backend_health" "$TAURI_MAIN" && ok "Startup waits for HTTP /health readiness" || fail "Missing HTTP /health readiness wait"
+  grep -q "child.kill" "$TAURI_MAIN" && ok "Shutdown/failed startup cleanup targets only stored child process" || fail "Missing PID-owned child shutdown"
 
   if grep -Eq "pkill|killall|taskkill|sh -c|cmd /C|powershell -Command" "$TAURI_MAIN"; then
     fail "Forbidden generic process/shell control found in Tauri supervisor"

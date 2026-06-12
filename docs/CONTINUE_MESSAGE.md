@@ -55,3 +55,12 @@ Current desktop stack decision:
 Next recommended task:
 
 Task 250 — local smoke feedback/fixes. If the user ran local commands and shows errors, fix them first. Otherwise add Windows frozen runtime parity checks and keep moving toward installer-grade v1.0.
+
+Task 250 — Tauri backend health readiness gate ✅
+
+- Added `/runtime/app-owned-backend-health-readiness`.
+- Added `scripts/check_tauri_backend_health_readiness.sh`.
+- Tauri no longer treats open TCP port as readiness; startup success requires HTTP `GET /health` 200.
+- Failed readiness cleanup stops only the child process started by this app session.
+- No kill-by-port, no generic shell execution, no scan/index/rebuild/MCP/Agent/model downloads on launch.
+- Next recommended large task: local macOS cargo/PyInstaller/Tauri smoke fixes, then Windows parity.

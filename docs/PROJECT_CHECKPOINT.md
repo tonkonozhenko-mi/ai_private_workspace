@@ -391,3 +391,12 @@ Fixed the Settings `GET /runtime/v0.1-handoff` crash by aligning the endpoint re
 
 Added `GET /runtime/macos-tauri-smoke-runbook`, `scripts/check_macos_tauri_smoke_runbook.sh`, `docs/TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md`, Settings UI wiring, and regression tests. Also added `docs/CONTINUE_MESSAGE.md` so the project can continue after token limits. Current position: Phase 21 v0.1 source RC effectively complete; Phase 22 v0.2 desktop runtime foundation strongly in progress. Estimated v1.0 remaining work: roughly 7–12 large tasks, depending on local PyInstaller/Tauri/macOS/Windows findings.
 
+
+## Task 250 checkpoint
+
+- Added `/runtime/app-owned-backend-health-readiness`.
+- Added `scripts/check_tauri_backend_health_readiness.sh`.
+- Tauri startup now waits for HTTP `/health` 200 instead of TCP-only readiness.
+- Failed startup cleanup remains PID-owned and does not kill unknown processes by port.
+- Settings has a new `App-owned backend health readiness` section.
+- Next: local cargo check + PyInstaller smoke + Tauri dev smoke on macOS, then Windows parity.

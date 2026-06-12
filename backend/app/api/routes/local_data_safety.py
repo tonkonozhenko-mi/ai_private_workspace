@@ -58,6 +58,8 @@ from app.api.schemas.local_data_safety_schemas import (
     AppOwnedBackendStartupGateResponse,
     AppOwnedBackendStartupImplementationItemResponse,
     AppOwnedBackendStartupImplementationResponse,
+    AppOwnedBackendHealthReadinessItemResponse,
+    AppOwnedBackendHealthReadinessResponse,
     MacOSTauriSmokeRunbookItemResponse,
     MacOSTauriSmokeRunbookResponse,
     WindowsPackagingArtifactResponse,
@@ -1968,6 +1970,83 @@ def get_app_owned_backend_startup_implementation() -> AppOwnedBackendStartupImpl
             "Run the Tauri shell locally and verify start/stop commands against the frozen runtime.",
             "After macOS is stable, repeat the same check on Windows.",
             "Then move to signed packaging/installer work.",
+        ],
+    )
+
+
+@router.get("/app-owned-backend-health-readiness", response_model=AppOwnedBackendHealthReadinessResponse)
+def get_app_owned_backend_health_readiness() -> AppOwnedBackendHealthReadinessResponse:
+    """Return the Tauri /health readiness gate for app-owned backend startup."""
+    root = Path(__file__).resolve().parents[4]
+    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "main.rs"
+    check_script = root / "scripts" / "check_tauri_backend_health_readiness.sh"
+    bridge_text = tauri_bridge.read_text(encoding="utf-8") if tauri_bridge.exists() else ""
+
+    items = [
+        AppOwnedBackendHealthReadinessItemResponse(
+            id="http-health-check",
+            title="HTTP /health readiness",
+            status="ok" if "backend_health_is_ready" in bridge_text and "GET /health HTTP/1.1" in bridge_text else "blocked",
+            summary="Desktop readiness is based on an HTTP GET /health response, not only an open TCP port.",
+            evidence="backend_health_is_ready + GET /health",
+            command="scripts/check_tauri_backend_health_readiness.sh",
+        ),
+        AppOwnedBackendHealthReadinessItemResponse(
+            id="health-wait",
+            title="Wait for /health before ready",
+            status="ok" if "wait_for_backend_health" in bridge_text else "blocked",
+            summary="Tauri waits for backend /health before returning a successful startup status to the desktop shell.",
+            evidence="wait_for_backend_health",
+            command="scripts/check_tauri_backend_health_readiness.sh",
+        ),
+        AppOwnedBackendHealthReadinessItemResponse(
+            id="failed-health-cleanup",
+            title="PID-owned cleanup on failed readiness",
+            status="ok" if "child.kill()" in bridge_text and "/health did not return HTTP 200" in bridge_text else "blocked",
+            summary="If the spawned backend does not become healthy, the supervisor stops only the child process it just created.",
+            evidence="child.kill + stored child process",
+            command="scripts/check_tauri_backend_health_readiness.sh",
+        ),
+        AppOwnedBackendHealthReadinessItemResponse(
+            id="tauri-contract-command",
+            title="Read-only health contract command",
+            status="ok" if "get_backend_health_readiness_contract" in bridge_text else "blocked",
+            summary="Tauri exposes a read-only contract describing the /health gate without exposing arbitrary shell execution.",
+            evidence="get_backend_health_readiness_contract",
+            command="scripts/check_tauri_backend_health_readiness.sh",
+        ),
+    ]
+
+    status = "health_readiness_gate_ready"
+    if any(item.status == "blocked" for item in items):
+        status = "blocked"
+
+    return AppOwnedBackendHealthReadinessResponse(
+        status=status,
+        title="App-owned backend health readiness",
+        summary="Hardens the real Tauri backend startup path so desktop readiness requires HTTP /health 200 instead of treating an open localhost port as success.",
+        readiness_mode="http_get_health_must_return_200",
+        health_url="http://127.0.0.1:8000/health",
+        tauri_bridge_file="frontend/src-tauri/src/main.rs",
+        check_script="scripts/check_tauri_backend_health_readiness.sh",
+        implementation_items=items,
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Check Tauri health readiness", command="scripts/check_tauri_backend_health_readiness.sh", purpose="Validate HTTP /health readiness, failure cleanup, and no kill-by-port behavior."),
+            DesktopRuntimeValidationCommandResponse(label="Check Tauri startup", command="scripts/check_tauri_app_owned_backend_startup.sh", purpose="Validate app-owned backend startup implementation and safety boundaries."),
+            DesktopRuntimeValidationCommandResponse(label="Run macOS smoke", command="scripts/build_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh && cd frontend && npm run tauri dev", purpose="Locally prove frozen backend and desktop startup after the health gate is in place."),
+        ],
+        safety_rules=[
+            "Do not treat an open TCP port as application readiness.",
+            "Desktop startup is successful only after /health returns HTTP 200.",
+            "If /health fails after spawning, stop only the spawned child process.",
+            "Do not kill unknown processes by port.",
+            "Do not start scan, index, rebuild, MCP, Agent, or model downloads during desktop launch.",
+        ],
+        next_steps=[
+            "Run cargo check locally because the sandbox may not have Rust/Cargo installed.",
+            "Build the frozen backend and run the frozen smoke script.",
+            "Run Tauri dev smoke and confirm UI readiness follows /health, not TCP-only availability.",
+            "After macOS passes, mirror the smoke on Windows.",
         ],
     )
 

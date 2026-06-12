@@ -598,6 +598,30 @@ class AppOwnedBackendStartupImplementationResponse(BaseModel):
 
 
 
+class AppOwnedBackendHealthReadinessItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    evidence: str
+    command: str | None = None
+
+
+class AppOwnedBackendHealthReadinessResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    readiness_mode: str
+    health_url: str
+    tauri_bridge_file: str
+    check_script: str
+    implementation_items: list[AppOwnedBackendHealthReadinessItemResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
+
+
 class MacOSTauriSmokeRunbookItemResponse(BaseModel):
     id: str
     title: str

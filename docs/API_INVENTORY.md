@@ -342,3 +342,7 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 - Settings crash coverage for `GET /runtime/v0.1-handoff` was added.
 - `GET /runtime/macos-tauri-smoke-runbook` — local macOS frozen runtime and Tauri smoke runbook. It records the safe sequence for building the PyInstaller backend runtime, smoking it outside Tauri, then running the Tauri desktop smoke with app-owned startup and PID-owned shutdown.
 
+
+## Task 250 — Tauri backend health readiness
+
+- `GET /runtime/app-owned-backend-health-readiness` — records the health readiness gate for real Tauri app-owned backend startup. It requires HTTP `GET /health` to return 200 before the desktop shell treats startup as successful, and keeps failed-startup cleanup PID-owned with no kill-by-port behavior.
