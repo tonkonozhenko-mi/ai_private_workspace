@@ -1,0 +1,442 @@
+from app.adapters.commands.fake_command_runner import FakeCommandRunner
+from app.adapters.commands.local_command_runner import LocalCommandRunner
+from app.adapters.embeddings.fake_embedding_provider import FakeEmbeddingProvider
+from app.adapters.filesystem.local_file_system import LocalFileSystem
+from app.adapters.llm.fake_llm_provider import FakeLLMProvider
+from app.adapters.llm.llm_provider_factory import LLMProviderFactory
+from app.adapters.memory.in_memory_agent_workflow_repository import InMemoryAgentWorkflowRepository
+from app.adapters.memory.in_memory_command_repository import InMemoryCommandRepository
+from app.adapters.memory.in_memory_conversation_repository import InMemoryConversationRepository
+from app.adapters.memory.in_memory_index_status_repository import (
+    InMemoryIndexStatusRepository,
+)
+from app.adapters.memory.in_memory_indexing_rules_repository import (
+    InMemoryIndexingRulesRepository,
+)
+from app.adapters.memory.in_memory_model_experiment_repository import (
+    InMemoryModelExperimentRepository,
+)
+from app.adapters.memory.in_memory_mcp_repository import InMemoryMCPRepository
+from app.adapters.memory.in_memory_local_model_download_job_repository import (
+    InMemoryLocalModelDownloadJobRepository,
+)
+from app.adapters.memory.in_memory_model_experiment_rating_repository import (
+    InMemoryModelExperimentRatingRepository,
+)
+from app.adapters.memory.in_memory_project_scan_repository import (
+    InMemoryProjectScanRepository,
+)
+from app.adapters.memory.in_memory_report_repository import InMemoryReportRepository
+from app.adapters.memory.in_memory_skill_profile_repository import InMemorySkillProfileRepository
+from app.adapters.memory.in_memory_timeline_repository import InMemoryTimelineRepository
+from app.adapters.memory.in_memory_workspace_repository import InMemoryWorkspaceRepository
+from app.adapters.memory.in_memory_workspace_model_selection_repository import (
+    InMemoryWorkspaceModelSelectionRepository,
+)
+from app.adapters.memory.sqlite_agent_workflow_repository import SQLiteAgentWorkflowRepository
+from app.adapters.memory.sqlite_command_repository import SQLiteCommandRepository
+from app.adapters.memory.sqlite_conversation_repository import SQLiteConversationRepository
+from app.adapters.memory.sqlite_index_status_repository import SQLiteIndexStatusRepository
+from app.adapters.memory.sqlite_indexing_rules_repository import SQLiteIndexingRulesRepository
+from app.adapters.memory.sqlite_model_experiment_repository import (
+    SQLiteModelExperimentRepository,
+)
+from app.adapters.memory.sqlite_mcp_repository import SQLiteMCPRepository
+from app.adapters.memory.sqlite_model_experiment_rating_repository import (
+    SQLiteModelExperimentRatingRepository,
+)
+from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScanRepository
+from app.adapters.memory.sqlite_report_repository import SQLiteReportRepository
+from app.adapters.memory.sqlite_skill_profile_repository import SQLiteSkillProfileRepository
+from app.adapters.memory.sqlite_timeline_repository import SQLiteTimelineRepository
+from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
+from app.adapters.memory.sqlite_workspace_model_selection_repository import (
+    SQLiteWorkspaceModelSelectionRepository,
+)
+from app.adapters.model_catalog.user_model_catalog_loader import UserModelCatalogLoader
+from app.adapters.runtime_health.command_runner_health_checker import (
+    CommandRunnerHealthChecker,
+)
+from app.adapters.runtime_health.ollama_runtime_health_checker import (
+    OllamaRuntimeHealthChecker,
+)
+from app.adapters.runtime_health.qdrant_runtime_health_checker import (
+    QdrantRuntimeHealthChecker,
+)
+from app.adapters.vector_store.in_memory_vector_store import InMemoryVectorStore
+from app.adapters.vector_store.sqlite_vector_store import SQLiteVectorStore
+from app.config.settings import get_settings
+from app.core.ports.agent_workflow_repository import AgentWorkflowRepositoryPort
+from app.core.ports.command_repository import CommandRepositoryPort
+from app.core.ports.local_model_download_job_repository import (
+    LocalModelDownloadJobRepositoryPort,
+)
+from app.core.ports.conversation_repository import ConversationRepositoryPort
+from app.core.ports.command_runner import CommandRunnerPort
+from app.core.ports.embedding_provider import EmbeddingProviderPort
+from app.core.ports.index_status_repository import IndexStatusRepositoryPort
+from app.core.ports.indexing_rules_repository import IndexingRulesRepositoryPort
+from app.core.ports.llm_provider import LLMProviderPort
+from app.core.ports.llm_provider_factory import LLMProviderFactoryPort
+from app.core.ports.model_experiment_repository import ModelExperimentRepositoryPort
+from app.core.ports.mcp_repository import MCPRepositoryPort
+from app.core.ports.model_experiment_rating_repository import (
+    ModelExperimentRatingRepositoryPort,
+)
+from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
+from app.core.ports.report_repository import ReportRepositoryPort
+from app.core.ports.runtime_health_checker import RuntimeHealthCheckerPort
+from app.core.ports.skill_profile_repository import SkillProfileRepositoryPort
+from app.core.ports.timeline_repository import TimelineRepositoryPort
+from app.core.ports.vector_store import VectorStorePort
+from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.ports.workspace_model_selection_repository import (
+    WorkspaceModelSelectionRepositoryPort,
+)
+from app.core.domain.model_catalog_registry import ModelCatalogRegistry
+
+
+def build_workspace_repository() -> WorkspaceRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryWorkspaceRepository()
+    if repository_type == "sqlite":
+        return SQLiteWorkspaceRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_project_scan_repository() -> ProjectScanRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryProjectScanRepository()
+    if repository_type == "sqlite":
+        return SQLiteProjectScanRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+
+def build_report_repository() -> ReportRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryReportRepository()
+    if repository_type == "sqlite":
+        return SQLiteReportRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+def build_mcp_repository() -> MCPRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryMCPRepository()
+    if repository_type == "sqlite":
+        return SQLiteMCPRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_agent_workflow_repository() -> AgentWorkflowRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryAgentWorkflowRepository()
+    if repository_type == "sqlite":
+        return SQLiteAgentWorkflowRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_command_repository() -> CommandRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryCommandRepository()
+    if repository_type == "sqlite":
+        return SQLiteCommandRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+
+def build_local_model_download_job_repository() -> LocalModelDownloadJobRepositoryPort:
+    # Model download jobs are runtime orchestration state for the trusted local backend.
+    # They are intentionally kept in memory for this foundation step.
+    return InMemoryLocalModelDownloadJobRepository()
+
+
+def build_index_status_repository() -> IndexStatusRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryIndexStatusRepository()
+    if repository_type == "sqlite":
+        return SQLiteIndexStatusRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_indexing_rules_repository() -> IndexingRulesRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryIndexingRulesRepository()
+    if repository_type == "sqlite":
+        return SQLiteIndexingRulesRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_skill_profile_repository() -> SkillProfileRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemorySkillProfileRepository()
+    if repository_type == "sqlite":
+        return SQLiteSkillProfileRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_timeline_repository() -> TimelineRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryTimelineRepository()
+    if repository_type == "sqlite":
+        return SQLiteTimelineRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_conversation_repository() -> ConversationRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryConversationRepository()
+    if repository_type == "sqlite":
+        return SQLiteConversationRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_model_experiment_repository() -> ModelExperimentRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryModelExperimentRepository()
+    if repository_type == "sqlite":
+        return SQLiteModelExperimentRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_model_experiment_rating_repository() -> ModelExperimentRatingRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryModelExperimentRatingRepository()
+    if repository_type == "sqlite":
+        return SQLiteModelExperimentRatingRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_workspace_model_selection_repository() -> WorkspaceModelSelectionRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryWorkspaceModelSelectionRepository()
+    if repository_type == "sqlite":
+        return SQLiteWorkspaceModelSelectionRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
+def build_command_runner() -> CommandRunnerPort:
+    settings = get_settings()
+    runner_type = settings.command_runner.lower()
+
+    if runner_type == "local":
+        return LocalCommandRunner(
+            timeout_seconds=settings.command_timeout_seconds,
+            output_limit_chars=settings.command_output_limit_chars,
+        )
+    if runner_type == "fake":
+        return FakeCommandRunner()
+
+    raise ValueError(f"Unsupported command runner: {settings.command_runner}")
+
+
+def build_vector_store() -> VectorStorePort:
+    settings = get_settings()
+    vector_store_type = settings.vector_store.lower()
+
+    if vector_store_type == "memory":
+        return InMemoryVectorStore()
+    if vector_store_type == "sqlite":
+        return SQLiteVectorStore(settings.vector_store_path)
+    if vector_store_type == "qdrant":
+        from app.adapters.vector_store.qdrant_vector_store import QdrantVectorStore
+
+        return QdrantVectorStore(
+            url=settings.qdrant_url,
+            collection_name=settings.qdrant_collection,
+        )
+
+    raise ValueError(f"Unsupported vector store: {settings.vector_store}")
+
+
+def build_embedding_provider() -> EmbeddingProviderPort:
+    settings = get_settings()
+    provider_type = settings.embedding_provider.lower()
+
+    if provider_type == "fake":
+        return FakeEmbeddingProvider()
+    if provider_type == "ollama":
+        from app.adapters.embeddings.ollama_embedding_provider import (
+            OllamaEmbeddingProvider,
+        )
+
+        return OllamaEmbeddingProvider(
+            base_url=settings.ollama_base_url,
+            model=settings.ollama_embedding_model,
+            timeout_seconds=settings.ollama_timeout_seconds,
+        )
+
+    raise ValueError(f"Unsupported embedding provider: {settings.embedding_provider}")
+
+
+def build_llm_provider() -> LLMProviderPort:
+    settings = get_settings()
+    provider_type = settings.llm_provider.lower()
+
+    if provider_type == "fake":
+        return FakeLLMProvider()
+    if provider_type == "ollama":
+        from app.adapters.llm.ollama_llm_provider import OllamaLLMProvider
+
+        return OllamaLLMProvider(
+            base_url=settings.ollama_base_url,
+            model=settings.ollama_llm_model,
+            timeout_seconds=settings.ollama_llm_timeout_seconds,
+        )
+
+    raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
+
+
+def build_llm_provider_factory() -> LLMProviderFactoryPort:
+    settings = get_settings()
+    return LLMProviderFactory(
+        default_provider=settings.llm_provider,
+        ollama_base_url=settings.ollama_base_url,
+        ollama_default_model=settings.ollama_llm_model,
+        ollama_timeout_seconds=settings.ollama_llm_timeout_seconds,
+    )
+
+
+def build_readiness_configuration() -> dict[str, str]:
+    settings = get_settings()
+    return {
+        "VECTOR_STORE": settings.vector_store,
+        "VECTOR_STORE_PATH": str(settings.vector_store_path),
+        "EMBEDDING_PROVIDER": settings.embedding_provider,
+        "LLM_PROVIDER": settings.llm_provider,
+        "COMMAND_RUNNER": settings.command_runner,
+        "QDRANT_COLLECTION": settings.qdrant_collection,
+        "OLLAMA_EMBEDDING_MODEL": settings.ollama_embedding_model,
+        "OLLAMA_LLM_MODEL": settings.ollama_llm_model,
+    }
+
+
+def build_runtime_health_configuration() -> dict[str, str]:
+    settings = get_settings()
+    return {
+        "VECTOR_STORE": settings.vector_store,
+        "VECTOR_STORE_PATH": str(settings.vector_store_path),
+        "EMBEDDING_PROVIDER": settings.embedding_provider,
+        "LLM_PROVIDER": settings.llm_provider,
+        "COMMAND_RUNNER": settings.command_runner,
+        "QDRANT_URL": settings.qdrant_url,
+        "OLLAMA_BASE_URL": settings.ollama_base_url,
+        "OLLAMA_EMBEDDING_MODEL": settings.ollama_embedding_model,
+        "OLLAMA_LLM_MODEL": settings.ollama_llm_model,
+    }
+
+
+def build_runtime_health_checkers() -> list[RuntimeHealthCheckerPort]:
+    settings = get_settings()
+    timeout_seconds = settings.runtime_health_timeout_seconds
+    return [
+        QdrantRuntimeHealthChecker(
+            vector_store=settings.vector_store,
+            qdrant_url=settings.qdrant_url,
+            timeout_seconds=timeout_seconds,
+        ),
+        OllamaRuntimeHealthChecker(
+            embedding_provider=settings.embedding_provider,
+            llm_provider=settings.llm_provider,
+            base_url=settings.ollama_base_url,
+            embedding_model=settings.ollama_embedding_model,
+            llm_model=settings.ollama_llm_model,
+            timeout_seconds=timeout_seconds,
+        ),
+        CommandRunnerHealthChecker(command_runner=settings.command_runner),
+    ]
+
+
+def build_model_catalog_registry() -> ModelCatalogRegistry:
+    settings = get_settings()
+    registry = ModelCatalogRegistry(
+        loader=UserModelCatalogLoader(settings.user_model_catalog_path),
+    )
+    registry.reload()
+    return registry
+
+
+workspace_repository = build_workspace_repository()
+project_scan_repository = build_project_scan_repository()
+report_repository = build_report_repository()
+agent_workflow_repository = build_agent_workflow_repository()
+mcp_repository = build_mcp_repository()
+command_repository = build_command_repository()
+local_model_download_job_repository = build_local_model_download_job_repository()
+index_status_repository = build_index_status_repository()
+indexing_rules_repository = build_indexing_rules_repository()
+skill_profile_repository = build_skill_profile_repository()
+timeline_repository = build_timeline_repository()
+conversation_repository = build_conversation_repository()
+model_experiment_repository = build_model_experiment_repository()
+model_experiment_rating_repository = build_model_experiment_rating_repository()
+workspace_model_selection_repository = build_workspace_model_selection_repository()
+file_system = LocalFileSystem()
+command_runner = build_command_runner()
+embedding_provider = build_embedding_provider()
+llm_provider_factory = build_llm_provider_factory()
+vector_store = build_vector_store()
+readiness_configuration = build_readiness_configuration()
+runtime_health_configuration = build_runtime_health_configuration()
+runtime_health_checkers = build_runtime_health_checkers()
+model_catalog_registry = build_model_catalog_registry()
+
+from app.api.workspace_job_runner import WorkspaceJobRunner
+
+workspace_job_runner = WorkspaceJobRunner()
