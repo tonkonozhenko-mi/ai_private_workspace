@@ -17704,3 +17704,803 @@ details.settings-disclosure {
   font-size: 0.82rem;
   backdrop-filter: blur(18px);
 }
+
+/* Task 267 — final workbench visual normalization.
+ * This layer deliberately wins over older visual experiments. It keeps the
+ * information-dense product calm, aligned, and usable at desktop and mobile
+ * sizes without changing component behavior.
+ */
+:root {
+  --workbench-content-max: 1240px;
+  --workbench-card-radius: 8px;
+  --workbench-control-radius: 7px;
+  --workbench-card-padding: clamp(18px, 2vw, 24px);
+  --workbench-gap: clamp(14px, 1.8vw, 20px);
+  --workbench-control-height: 38px;
+  --workbench-hairline: color-mix(in srgb, var(--color-border) 82%, transparent);
+  --workbench-shadow: 0 1px 2px rgb(23 39 48 / 4%), 0 10px 28px rgb(23 39 48 / 5%);
+}
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  color: var(--color-text);
+  background: var(--color-page);
+  letter-spacing: 0;
+}
+
+.app-shell {
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  min-width: 0;
+}
+
+.main-content {
+  min-width: 0;
+  max-width: none;
+  padding: clamp(20px, 2.6vw, 34px);
+}
+
+.dashboard-layout,
+.workspace-tab-content,
+.models-tab,
+.models-detail,
+.ask-workspace,
+.settings-panel,
+.reports-panel,
+.action-catalog,
+.activity-timeline-panel {
+  min-width: 0;
+  width: 100%;
+}
+
+.dashboard-layout,
+.workspace-tab-content {
+  max-width: var(--workbench-content-max);
+  margin-inline: auto;
+}
+
+.workspace-tab-content,
+.models-tab,
+.models-detail,
+.ask-workspace,
+.settings-panel,
+.reports-panel,
+.action-catalog {
+  gap: var(--workbench-gap);
+}
+
+/* Native workbench navigation: one stable row, scrollable tabs, no overlap. */
+.workspace-navigation-shell {
+  position: sticky;
+  top: 14px;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 230px);
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  max-width: var(--workbench-content-max);
+  min-height: 62px;
+  margin: 0 auto var(--workbench-gap);
+  padding: 8px;
+  overflow: hidden;
+  border: 1px solid var(--workbench-hairline);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+  box-shadow: var(--workbench-shadow);
+  backdrop-filter: blur(22px) saturate(145%);
+}
+
+.workspace-tabs {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 0;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.workspace-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.workspace-tabs > div {
+  display: flex !important;
+  width: max-content !important;
+  min-width: max-content !important;
+  min-height: 44px !important;
+  align-items: center;
+  flex-wrap: nowrap !important;
+  gap: 3px !important;
+  padding: 3px !important;
+  overflow: visible !important;
+  border: 1px solid color-mix(in srgb, var(--color-border-soft) 78%, transparent);
+  border-radius: 9px !important;
+  background: color-mix(in srgb, var(--color-surface-soft) 86%, transparent);
+}
+
+.workspace-tabs button {
+  display: inline-flex !important;
+  flex: 0 0 auto;
+  min-width: 0 !important;
+  min-height: 36px !important;
+  padding: 0 13px !important;
+  border: 0 !important;
+  border-radius: var(--workbench-control-radius) !important;
+  color: var(--color-text-muted);
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  white-space: nowrap;
+}
+
+.workspace-tabs button:hover {
+  color: var(--color-text-strong);
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+}
+
+.workspace-tabs button.is-selected {
+  color: var(--color-text-strong);
+  background: var(--color-surface);
+  box-shadow: 0 1px 2px rgb(20 32 42 / 10%), inset 0 0 0 1px var(--workbench-hairline);
+}
+
+.workspace-tabs button span {
+  display: inline-grid !important;
+  min-width: 18px;
+  height: 18px;
+  margin: 0 0 0 4px;
+  padding: 0 5px;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 0.64rem !important;
+}
+
+.workspace-context-chip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  justify-self: stretch;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid var(--workbench-hairline);
+  border-radius: var(--workbench-control-radius);
+  background: color-mix(in srgb, var(--color-surface-soft) 88%, transparent);
+  font-size: 0.72rem;
+}
+
+.workspace-context-chip span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-context-chip strong {
+  color: var(--color-accent-strong);
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+/* One consistent card and control language. */
+.panel,
+.metric-card,
+.state-card,
+.workspace-header,
+.settings-section,
+.settings-section-card,
+.settings-focus-panel,
+.settings-safety-panel,
+.settings-hero-panel,
+.models-native-hero,
+.models-calm-card,
+.models-calm-section,
+.models-simple-panel,
+.models-state-panel,
+.guided-model-setup-panel,
+.first-launch-panel,
+.model-selection-card,
+.simple-model-card,
+.activation-step,
+.reports-card,
+.report-card,
+.report-preview-panel,
+.saved-report-card,
+.action-card,
+.action-details-panel,
+.activity-timeline-panel,
+.timeline-item > article,
+.conversation-history-panel,
+.conversation-history-item,
+.ask-workspace-chat,
+.answer-card,
+.source-card,
+.settings-disclosure,
+.workspace-setup-actions,
+.file-rules-disclosure,
+.first-launch-details,
+.models-disclosure-panel {
+  border-radius: var(--workbench-card-radius) !important;
+  border-color: var(--workbench-hairline);
+  box-shadow: var(--workbench-shadow);
+}
+
+.panel,
+.state-card,
+.workspace-header,
+.settings-section,
+.settings-section-card,
+.settings-focus-panel,
+.settings-safety-panel,
+.settings-hero-panel,
+.models-native-hero,
+.models-calm-card,
+.models-calm-section,
+.models-simple-panel,
+.models-state-panel,
+.guided-model-setup-panel,
+.first-launch-panel,
+.action-details-panel,
+.activity-timeline-panel,
+.conversation-history-panel,
+.ask-workspace-chat {
+  padding: var(--workbench-card-padding) !important;
+}
+
+.metric-card {
+  min-height: 108px;
+  padding: 16px !important;
+}
+
+.metric-grid,
+.overview-grid,
+.models-detail,
+.models-simple-grid,
+.model-selection-grid,
+.model-runtime-grid,
+.guided-model-grid,
+.guided-model-note-grid,
+.settings-grid,
+.action-card-list,
+.activity-summary-grid,
+.timeline-metadata {
+  gap: 12px !important;
+}
+
+.workspace-header {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: var(--workbench-gap);
+}
+
+.workspace-header h1,
+.panel-heading h2,
+.panel-heading-row h2,
+.settings-section-heading h2,
+.models-section-heading h2,
+.agent-section-heading h2,
+.mcp-section-heading h2,
+.product-status-heading h2,
+.settings-hero-panel h1,
+.models-native-hero h2 {
+  letter-spacing: -0.025em;
+  line-height: 1.14;
+  text-wrap: balance;
+}
+
+.workspace-header h1 {
+  margin-block: 4px 6px;
+  font-size: clamp(1.55rem, 3vw, 2.2rem);
+}
+
+.workspace-header-path,
+code,
+pre,
+.command-block,
+.code-block,
+.action-endpoint code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.panel-heading,
+.panel-heading-row,
+.settings-section-heading,
+.models-section-heading,
+.agent-section-heading,
+.mcp-section-heading,
+.product-status-heading,
+.action-group-heading {
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.panel-heading > div,
+.panel-heading-row > div,
+.settings-section-heading > div,
+.models-section-heading > div,
+.action-group-heading > div {
+  min-width: 0;
+}
+
+.eyebrow,
+.panel-label,
+.metric-label,
+.section-eyebrow {
+  font-size: 0.68rem !important;
+  letter-spacing: 0.08em !important;
+  line-height: 1.25;
+}
+
+p,
+li,
+dd,
+.panel-intro,
+.workspace-header-path,
+.workspace-header-status,
+.muted-text,
+.helper-text {
+  font-size: 0.875rem;
+  line-height: 1.52;
+}
+
+button,
+.primary-action,
+.secondary-action,
+.primary-button,
+.secondary-button,
+.ghost-button,
+.text-button,
+.danger-button,
+.copy-button,
+.local-ai-models-button,
+.session-clear-button,
+.overview-cta-button,
+.model-selection-save-button,
+select,
+input {
+  min-height: var(--workbench-control-height) !important;
+  border-radius: var(--workbench-control-radius) !important;
+}
+
+button,
+.primary-action,
+.secondary-action,
+.primary-button,
+.secondary-button,
+.ghost-button,
+.text-button,
+.danger-button,
+.copy-button,
+.local-ai-models-button,
+.session-clear-button,
+.overview-cta-button,
+.model-selection-save-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  font-size: 0.78rem !important;
+  line-height: 1.1;
+}
+
+textarea {
+  border-radius: var(--workbench-control-radius) !important;
+}
+
+.status-badge,
+.panel-count,
+.metadata-chip,
+.model-chip,
+.skill-chip,
+.source-chip {
+  min-height: 24px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+/* Overview should scan quickly instead of feeling like a marketing page. */
+.local-ai-setup-warning {
+  gap: 12px;
+  margin-bottom: var(--workbench-gap);
+  padding: 18px !important;
+}
+
+.local-ai-setup-warning-heading h2 {
+  margin-top: 4px;
+  font-size: 1.1rem;
+}
+
+.local-ai-runtime-comparison > div,
+.local-ai-setup-next {
+  border-radius: var(--workbench-control-radius);
+}
+
+.local-ai-setup-next {
+  align-items: center;
+}
+
+.local-ai-setup-navigation {
+  justify-items: end;
+  min-width: 180px;
+}
+
+.information-band {
+  gap: 0;
+  overflow: hidden;
+  border-radius: var(--workbench-card-radius);
+}
+
+.information-band p {
+  min-width: 0;
+  margin: 0;
+  padding: 13px 16px;
+}
+
+/* Capabilities inspector remains readable even in its narrow column. */
+.action-catalog {
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.72fr);
+  align-items: start;
+}
+
+.native-action-inspector {
+  min-width: 0;
+  padding: 20px !important;
+}
+
+.action-safety-card {
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--workbench-card-radius);
+}
+
+.native-action-details-list div {
+  grid-template-columns: minmax(82px, 0.4fr) minmax(0, 1fr);
+}
+
+.action-details-description,
+.action-safety-card p,
+.native-action-details-list dd {
+  overflow-wrap: anywhere;
+}
+
+/* Sidebar stays informative without competing with the workspace. */
+.sidebar {
+  padding: 18px 14px 14px;
+}
+
+.brand {
+  min-height: 52px;
+  padding: 0 6px 16px;
+}
+
+.sidebar-heading {
+  align-items: flex-start;
+  padding: 16px 6px 10px;
+}
+
+.sidebar-heading-actions {
+  display: grid;
+  gap: 6px;
+  justify-items: stretch;
+}
+
+.sidebar-heading-actions button {
+  min-width: 92px;
+}
+
+.sidebar-subtitle,
+.sidebar-footer,
+.workspace-list-signals,
+.workspace-path {
+  font-size: 0.7rem;
+}
+
+.workspace-list {
+  gap: 10px;
+}
+
+.workspace-list-card {
+  overflow: hidden;
+  border-radius: var(--workbench-card-radius) !important;
+}
+
+.workspace-list-item {
+  min-height: 0;
+  padding: 13px;
+  border-radius: 0 !important;
+}
+
+.workspace-list-heading strong {
+  font-size: 0.82rem;
+}
+
+.workspace-list-labels span,
+.workspace-next-action span {
+  font-size: 0.65rem;
+}
+
+.workspace-card-actions {
+  padding: 8px 10px;
+}
+
+.workspace-card-action {
+  min-height: 28px !important;
+  padding: 0 9px;
+  font-size: 0.66rem !important;
+}
+
+/* Ask layout: preserve a readable composer without covering the history. */
+.ask-workspace,
+.ask-workspace-native {
+  align-items: start;
+}
+
+.ask-composer,
+.ask-composer-native {
+  min-width: 0;
+}
+
+.ask-composer textarea {
+  min-width: 0;
+  resize: vertical;
+}
+
+.conversation-history-tools {
+  min-width: 0;
+}
+
+.conversation-history-tools input[type="search"] {
+  min-width: 0;
+}
+
+/* Safe defaults for every nested grid and long technical value. */
+.panel *,
+.metric-card *,
+.action-card *,
+.action-details-panel *,
+.source-card *,
+.timeline-item > article *,
+.workspace-list-card * {
+  min-width: 0;
+}
+
+pre,
+code,
+.command-box,
+.instruction-command-row code,
+.startup-checklist-command code,
+.settings-command-stack code,
+.reindex-command-row code {
+  font-size: 0.78rem !important;
+  line-height: 1.5 !important;
+}
+
+@media (max-width: 1180px) {
+  .workspace-navigation-shell {
+    grid-template-columns: minmax(0, 1fr) minmax(140px, 190px);
+  }
+
+  .workspace-tabs button {
+    padding-inline: 11px !important;
+  }
+
+  .workspace-context-chip {
+    font-size: 0.68rem;
+  }
+
+  .action-catalog {
+    grid-template-columns: 1fr;
+  }
+
+  .native-action-inspector {
+    position: static;
+  }
+}
+
+@media (max-width: 980px) {
+  :root {
+    --sidebar-width: 100%;
+  }
+
+  .app-shell {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    position: static !important;
+    height: auto !important;
+    min-height: 0;
+    max-height: none;
+    border-right: 0;
+    border-bottom: 1px solid var(--sidebar-border);
+  }
+
+  .workspace-list {
+    max-height: 440px;
+    overflow-y: auto;
+  }
+
+  .sidebar-footer {
+    margin-top: 8px;
+  }
+
+  .workspace-navigation-shell {
+    position: sticky;
+    top: 8px;
+  }
+}
+
+@media (max-width: 760px) {
+  :root {
+    --workbench-card-padding: 16px;
+    --workbench-gap: 12px;
+  }
+
+  .main-content {
+    padding: 12px 10px 28px;
+  }
+
+  .workspace-navigation-shell {
+    grid-template-columns: 1fr;
+    gap: 7px;
+    padding: 7px;
+  }
+
+  .workspace-context-chip {
+    display: none;
+  }
+
+  .workspace-tabs > div {
+    min-height: 42px !important;
+  }
+
+  .workspace-tabs button {
+    min-height: 34px !important;
+    padding-inline: 11px !important;
+  }
+
+  .workspace-header,
+  .panel-heading,
+  .panel-heading-row,
+  .settings-section-heading,
+  .models-section-heading,
+  .agent-section-heading,
+  .mcp-section-heading,
+  .product-status-heading,
+  .action-group-heading,
+  .local-ai-setup-warning-heading,
+  .local-ai-setup-next {
+    display: grid;
+    justify-items: start;
+  }
+
+  .workspace-header-status,
+  .local-ai-setup-navigation {
+    justify-items: start;
+    min-width: 0;
+  }
+
+  .metric-grid,
+  .overview-grid,
+  .local-ai-runtime-comparison,
+  .information-band,
+  .settings-grid,
+  .model-selection-grid,
+  .models-simple-grid,
+  .models-detail,
+  .guided-model-grid,
+  .guided-model-note-grid,
+  .action-card-list,
+  .activity-summary-grid,
+  .timeline-metadata {
+    grid-template-columns: 1fr !important;
+  }
+
+  .metric-card {
+    min-height: 92px;
+  }
+
+  .information-band p + p {
+    border-top: 1px solid var(--workbench-hairline);
+    border-left: 0;
+  }
+
+  .instruction-command-row,
+  .startup-checklist-command,
+  .settings-command-stack > div,
+  .reindex-command-row,
+  .action-endpoint > div {
+    grid-template-columns: 1fr !important;
+  }
+
+  .instruction-command-row .copy-button,
+  .startup-checklist-command .copy-button,
+  .settings-command-stack .copy-button,
+  .reindex-command-row .copy-button,
+  .action-endpoint .copy-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .sidebar {
+    padding: 14px 10px 12px;
+  }
+
+  .sidebar-heading {
+    display: grid;
+  }
+
+  .sidebar-heading-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .sidebar-heading-actions button {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .sidebar-footer {
+    display: none;
+  }
+
+  .workspace-list {
+    max-height: 380px;
+  }
+
+  .workspace-navigation-shell {
+    top: 6px;
+  }
+
+  .workspace-context-chip span {
+    max-width: 210px;
+  }
+
+  button,
+  .primary-action,
+  .secondary-action,
+  .primary-button,
+  .secondary-button,
+  .ghost-button,
+  .text-button,
+  .danger-button,
+  .copy-button,
+  .local-ai-models-button,
+  .session-clear-button,
+  .overview-cta-button,
+  .model-selection-save-button {
+    width: auto;
+    max-width: 100%;
+  }
+
+  .workspace-setup-action-buttons,
+  .local-ai-setup-navigation,
+  .overview-next-action,
+  .context-build-callout-action {
+    width: 100%;
+  }
+
+  .workspace-setup-action-buttons button,
+  .local-ai-setup-navigation button,
+  .overview-next-action button,
+  .context-build-callout-action button {
+    width: 100%;
+  }
+}
