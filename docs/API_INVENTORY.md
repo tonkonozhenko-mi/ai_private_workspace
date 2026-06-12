@@ -360,3 +360,7 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 ## Task 255 — Tauri icon assets
 
 - `GET /runtime/tauri-icon-assets` — validates required Tauri RGBA PNG icon assets and Rust import hygiene so `cargo check --manifest-path frontend/src-tauri/Cargo.toml` does not fail on missing/non-RGBA icons or warning-only cleanup.
+
+## Task 256 — Tauri dev smoke readiness
+
+- `GET /runtime/tauri-dev-smoke-readiness` — records that local `cargo check` / `npm run tauri dev` now works after the Rust structure, dependency pin, npm registry, and RGBA icon blockers were fixed. It defines the remaining safe path toward packaged macOS app smoke while preserving frozen-manifest, `/health`, PID-owned shutdown, and no-auto-scan/index/Agent/MCP/model-download guardrails.

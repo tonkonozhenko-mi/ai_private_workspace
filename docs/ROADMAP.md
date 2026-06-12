@@ -423,3 +423,7 @@ The desktop runtime path now has the correct Cargo library layout for Tauri: `ma
 ## Task 255 — Tauri icon assets ✅
 
 Fixed the local Tauri `cargo check` blocker caused by missing/non-RGBA icon assets. Added required RGBA PNG placeholder icons, removed an unused Rust import, added `scripts/check_tauri_icon_assets.sh`, and exposed `GET /runtime/tauri-icon-assets` for Settings/API readiness. Next local check: `scripts/check_tauri_icon_assets.sh && cd frontend && cargo check --manifest-path src-tauri/Cargo.toml`.
+
+## Task 256 — Tauri dev smoke success ✅
+
+`npm run tauri dev` now works locally on macOS after fixing the Rust library structure, npm lockfile registry hygiene, Rust dependency pinning, and Tauri RGBA icon assets. Phase 22 is no longer only scaffold/preflight work: the desktop shell can start in development mode. Next step is packaged macOS smoke with a locally built PyInstaller backend runtime, then Windows parity.

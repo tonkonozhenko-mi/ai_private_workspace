@@ -760,6 +760,27 @@ class TauriIconAssetsResponse(BaseModel):
     safety_rules: list[str]
     next_steps: list[str]
 
+
+class TauriDevSmokeReadinessItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    command: str | None = None
+
+
+class TauriDevSmokeReadinessResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    milestone: str
+    check_script: str
+    local_success_reported: bool
+    readiness_items: list[TauriDevSmokeReadinessItemResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str
     purpose: str
