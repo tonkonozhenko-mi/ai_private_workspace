@@ -171,3 +171,31 @@ After local packaged-app work, `npm run tauri:build` succeeded, but `scripts/smo
 - Added explicit npm `allowScripts` policy for `esbuild` and `fsevents`.
 - Added `scripts/check_npm_supply_chain_policy.sh`.
 - Next local check: rebuild frozen backend, rebuild `.app`, open packaged app, verify `/health` and app-owned logs.
+
+## Task 262 update
+
+Task 262 fixed the packaged macOS app backend startup diagnostics and full backend pytest stability.
+
+Important updates:
+- Full backend pytest is now isolated from the developer shell runtime by setting deterministic fake runtime defaults in `backend/tests/conftest.py`.
+- Tauri packaged runtime discovery now recursively searches bundled `Contents/Resources` for `AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json`.
+- Tauri writes `desktop-supervisor.log` before backend startup, so missing bundled runtime/manifests are diagnosable even when `backend.log` does not exist.
+- Full backend test result in sandbox: `538 passed, 3 skipped`.
+
+Next local check:
+```bash
+scripts/build_pyinstaller_backend_runtime.sh
+scripts/check_pyinstaller_backend_runtime.sh
+scripts/smoke_frozen_backend_runtime.sh
+cd frontend
+npm run tauri:build
+open "src-tauri/target/release/bundle/macos/AI Private Workspace.app"
+```
+
+Then inspect:
+```bash
+curl http://127.0.0.1:8000/health
+ls -la "$HOME/Library/Application Support/AI Private Workspace/logs"
+tail -n 100 "$HOME/Library/Application Support/AI Private Workspace/logs/desktop-supervisor.log"
+tail -n 100 "$HOME/Library/Application Support/AI Private Workspace/logs/backend.log"
+```

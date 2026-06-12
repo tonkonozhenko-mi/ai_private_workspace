@@ -14,7 +14,7 @@ def test_tauri_rust_structure_registry_endpoint() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["check_script"] == "scripts/check_tauri_rust_structure_and_registry.sh"
-    assert payload["rust_entrypoint"] == "frontend/src-tauri/src/main.rs"
+    assert payload["rust_entrypoint"] == "frontend/src-tauri/src/lib.rs"
     assert payload["rust_library"] == "frontend/src-tauri/src/lib.rs"
     assert "internal" in payload["npm_registry_policy"]
     item_ids = {item["id"] for item in payload["validation_items"]}

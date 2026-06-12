@@ -11,3 +11,14 @@ test_data_dir = Path(tempfile.mkdtemp(prefix="ai-workbench-tests-"))
 os.environ["APP_DATA_DIR"] = str(test_data_dir)
 os.environ["WORKSPACE_DB_PATH"] = str(test_data_dir / "workspaces.db")
 os.environ["WORKSPACE_REPOSITORY"] = "sqlite"
+
+# Keep the full test suite deterministic even if the developer shell is configured
+# for the real local runtime. Individual tests can still override these values
+# with monkeypatch after conftest is loaded.
+os.environ["VECTOR_STORE"] = "memory"
+os.environ["EMBEDDING_PROVIDER"] = "fake"
+os.environ["EMBEDDING_MODEL"] = "fake-embedding-model"
+os.environ["LLM_PROVIDER"] = "fake"
+os.environ["LLM_MODEL"] = "fake-llm"
+os.environ["COMMAND_RUNNER"] = "fake"
+os.environ["MODEL_DOWNLOAD_EXECUTION_ENABLED"] = "false"

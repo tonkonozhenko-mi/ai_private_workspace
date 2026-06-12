@@ -60,6 +60,7 @@ fi
 if [[ -f "$LIB_RS" ]]; then
   check_contains "$LIB_RS" "start_app_owned_backend_runtime" "Tauri command for app-owned backend startup exists"
   check_contains "$LIB_RS" "GET /health HTTP/1.1" "Tauri startup waits for HTTP /health"
+check_contains "$LIB_RS" "desktop-supervisor.log" "Tauri startup writes desktop supervisor diagnostics"
 fi
 
 if grep -R "@tauri-apps/api" "$ROOT_DIR/frontend/src" >/dev/null 2>&1; then
