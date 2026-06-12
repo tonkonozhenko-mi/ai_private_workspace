@@ -51,6 +51,8 @@ from app.api.schemas.local_data_safety_schemas import (
     V01ReleaseGateResponse,
     V01UISmokeCheckItemResponse,
     V01UISmokeCheckResponse,
+    V01PublicationHandoffStepResponse,
+    V01PublicationHandoffResponse,
     FirstLaunchChecklistItemResponse,
     FirstLaunchReadinessResponse,
     DatabaseBackupResponse,
@@ -1885,6 +1887,103 @@ def get_v01_release_gate() -> V01ReleaseGateResponse:
         ],
     )
 
+
+
+@router.get("/v0.1-publication-handoff", response_model=V01PublicationHandoffResponse)
+def get_v01_publication_handoff() -> V01PublicationHandoffResponse:
+    """Return the final publish handoff after the local v0.1 smoke-check passes."""
+    return V01PublicationHandoffResponse(
+        status="ready-after-local-smoke-check",
+        title="v0.1 publication handoff",
+        summary="A final, copyable source-release path for publishing AI Private Workspace v0.1 after manual UI smoke-check passes.",
+        current_position="Phase 21 is effectively complete. Do not add new v0.1 features unless a release blocker appears.",
+        publish_verdict="Go for GitHub/source release after audit, backend targeted tests, frontend build, UI smoke-check, and git status are clean.",
+        v01_remaining_work="0-1 large task: only local smoke-check and publication cleanup remain.",
+        v1_remaining_work="15-25 large tasks remain for installer-grade v1.0.",
+        steps=[
+            V01PublicationHandoffStepResponse(
+                id="audit",
+                title="Run release audit",
+                status="required",
+                summary="Verify source layout, required docs, scripts, GitHub files, and no runtime database leakage.",
+                command="./scripts/audit_release_candidate.sh",
+                expected_result="Audit passes. Local cache/build warnings are acceptable only if they are excluded from commit/archive.",
+            ),
+            V01PublicationHandoffStepResponse(
+                id="backend-tests",
+                title="Run backend release tests",
+                status="required",
+                summary="Validate release endpoints, API inventory, audit rules, and source archive hygiene.",
+                command="cd backend && python -m pytest -q tests/test_v01_publication_handoff.py tests/test_v01_ui_smoke_check.py tests/test_v01_release_gate.py tests/test_final_product_status.py tests/test_api_inventory.py tests/test_release_candidate_audit.py tests/test_release_candidate_audit_script.py tests/test_source_release_archive_script.py",
+                expected_result="All selected tests pass.",
+            ),
+            V01PublicationHandoffStepResponse(
+                id="frontend-build",
+                title="Build frontend",
+                status="required",
+                summary="Validate that Settings, Models, and release status UI compile into a production bundle.",
+                command="cd frontend && npm ci && npm run build",
+                expected_result="Vite build completes without TypeScript or bundling errors.",
+            ),
+            V01PublicationHandoffStepResponse(
+                id="ui-smoke",
+                title="Manual browser smoke-check",
+                status="required",
+                summary="Start backend and frontend manually, then check Models, Settings, onboarding, Ask, and startup safety.",
+                command="cd backend && uvicorn app.main:app --reload  # second terminal: cd frontend && npm run dev",
+                expected_result="UI loads; no blank Models page; no automatic scan/index/rebuild/MCP/Agent/model download starts.",
+            ),
+            V01PublicationHandoffStepResponse(
+                id="source-archive",
+                title="Create clean source archive",
+                status="required",
+                summary="Create the root-preserving source archive using the audited release script.",
+                command="./scripts/prepare_source_release_archive.sh",
+                expected_result="build/release/ai-private-workspace-v0.1-source.zip exists and does not include runtime/build artifacts.",
+            ),
+            V01PublicationHandoffStepResponse(
+                id="git-status",
+                title="Review git status",
+                status="required",
+                summary="Confirm only intended source/docs/config changes are staged before commit and push.",
+                command="git status --short",
+                expected_result="Only intended files are listed. No build/release, node_modules, dist, .venv, .pytest_cache, database, or tsbuildinfo files are staged.",
+            ),
+        ],
+        source_archive_name="build/release/ai-private-workspace-v0.1-source.zip",
+        git_commit_message="Prepare v0.1 source release",
+        github_push_commands=[
+            ReleaseCandidateAuditCommandResponse(label="Stage intended files", command="git add README.md CONTRIBUTING.md SECURITY.md .editorconfig .gitattributes .github backend frontend docs scripts pytest.ini .gitignore", purpose="Stage source, docs, scripts, UI, backend, and GitHub repository files only."),
+            ReleaseCandidateAuditCommandResponse(label="Review staged diff", command="git diff --cached --stat && git diff --cached --check", purpose="Catch whitespace/errors and confirm the staged change set is reasonable."),
+            ReleaseCandidateAuditCommandResponse(label="Commit", command="git commit -m \"Prepare v0.1 source release\"", purpose="Create the v0.1 source release commit."),
+            ReleaseCandidateAuditCommandResponse(label="Push", command="git push origin main", purpose="Push after confirming the target branch name for the new GitHub repository."),
+        ],
+        do_not_commit=[
+            "backend/.ai-workbench/",
+            "backend/.venv/",
+            "frontend/node_modules/",
+            "frontend/dist/",
+            "frontend/.vite/",
+            "build/",
+            ".pytest_cache/",
+            "__pycache__/",
+            "*.db, *.sqlite, *.sqlite3",
+            "*.tsbuildinfo",
+        ],
+        after_publish=[
+            "Create the GitHub repository description and topics.",
+            "Attach or keep the source archive under build/release locally; do not commit it unless a release artifact workflow is chosen.",
+            "Open the README on GitHub and verify links/rendering.",
+            "Start Phase 22/v0.2 work: frozen backend runtime and real Tauri supervisor lifecycle.",
+        ],
+        safety_rules=[
+            "Frontend must never execute shell commands.",
+            "Desktop launch must not auto-start scan, index, rebuild, MCP, Agent, or model downloads.",
+            "Model download execution stays backend-owned, opt-in, allowlisted, and disabled by default.",
+            "MCP/Agent execution remains planning/manual tracking until sandbox, allowlists, approvals, and audit logs exist.",
+            "Do not call v0.1 a finished installer-grade v1.0 product.",
+        ],
+    )
 
 @router.get("/final-product-status", response_model=FinalProductStatusResponse)
 def get_final_product_status() -> FinalProductStatusResponse:

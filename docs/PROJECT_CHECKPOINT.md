@@ -302,3 +302,10 @@ Current roadmap position after Task 236:
 - Phase 21 / v0.1 source RC is effectively complete.
 - Remaining v0.1 work is local human verification, clean git status, source archive, and first GitHub push.
 - v1.0 remains future work with roughly 15-25 large tasks: frozen backend runtime, signed installers, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.
+
+
+## Task 237 — v0.1 publication handoff
+
+- Added final read-only publication handoff endpoint and Settings UI section.
+- Current roadmap position: Phase 21 effectively complete; v0.1 has 0-1 large task left for manual smoke-check/publication cleanup.
+- v1.0 still needs roughly 15-25 large tasks: frozen runtime, signed installers, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.

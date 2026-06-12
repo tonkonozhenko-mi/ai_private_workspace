@@ -55,6 +55,7 @@ import type {
   V01Handoff,
   V01ReleaseGate,
   V01UISmokeCheck,
+  V01PublicationHandoff,
   FinalProductStatus,
   FirstLaunchReadiness,
   ProductionReadiness,
@@ -215,6 +216,10 @@ export function getV01ReleaseGate(): Promise<V01ReleaseGate> {
 
 export function getV01UISmokeCheck(): Promise<V01UISmokeCheck> {
   return getJson<V01UISmokeCheck>("/runtime/v0.1-ui-smoke-check");
+}
+
+export function getV01PublicationHandoff(): Promise<V01PublicationHandoff> {
+  return getJson<V01PublicationHandoff>("/runtime/v0.1-publication-handoff");
 }
 
 export function getFinalProductStatus(): Promise<FinalProductStatus> {

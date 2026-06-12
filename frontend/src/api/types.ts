@@ -463,6 +463,33 @@ export interface V01UISmokeCheck {
   safety_note: string;
 }
 
+
+export interface V01PublicationHandoffStep {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  command: string | null;
+  expected_result: string;
+}
+
+export interface V01PublicationHandoff {
+  status: string;
+  title: string;
+  summary: string;
+  current_position: string;
+  publish_verdict: string;
+  v01_remaining_work: string;
+  v1_remaining_work: string;
+  steps: V01PublicationHandoffStep[];
+  source_archive_name: string;
+  git_commit_message: string;
+  github_push_commands: ReleaseCandidateAuditCommand[];
+  do_not_commit: string[];
+  after_publish: string[];
+  safety_rules: string[];
+}
+
 export interface FinalProductStage {
   id: string;
   title: string;
