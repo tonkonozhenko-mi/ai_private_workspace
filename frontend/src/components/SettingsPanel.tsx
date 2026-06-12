@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getFrozenBackendRuntimeSelection, getFrozenBackendSmokeContract, getAppOwnedBackendStartupGate, getAppOwnedBackendStartupImplementation, getMacOSTauriSmokeRunbook, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getFrozenBackendRuntimeSelection, getFrozenBackendSmokeContract, getAppOwnedBackendStartupGate, getAppOwnedBackendStartupImplementation, getAppOwnedBackendHealthReadiness, getMacOSTauriSmokeRunbook, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -33,6 +33,7 @@ import type {
   FrozenBackendSmokeContract,
   AppOwnedBackendStartupGate,
   AppOwnedBackendStartupImplementation,
+  AppOwnedBackendHealthReadiness,
   MacOSTauriSmokeRunbook,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
@@ -254,6 +255,9 @@ export function SettingsPanel({
   const [appOwnedBackendStartupImplementation, setAppOwnedBackendStartupImplementation] = useState<AppOwnedBackendStartupImplementation | null>(null);
   const [appOwnedBackendStartupImplementationError, setAppOwnedBackendStartupImplementationError] = useState<string | null>(null);
   const [appOwnedBackendStartupImplementationLoading, setAppOwnedBackendStartupImplementationLoading] = useState(false);
+  const [appOwnedBackendHealthReadiness, setAppOwnedBackendHealthReadiness] = useState<AppOwnedBackendHealthReadiness | null>(null);
+  const [appOwnedBackendHealthReadinessError, setAppOwnedBackendHealthReadinessError] = useState<string | null>(null);
+  const [appOwnedBackendHealthReadinessLoading, setAppOwnedBackendHealthReadinessLoading] = useState(false);
   const [macOSTauriSmokeRunbook, setMacOSTauriSmokeRunbook] = useState<MacOSTauriSmokeRunbook | null>(null);
   const [macOSTauriSmokeRunbookError, setMacOSTauriSmokeRunbookError] = useState<string | null>(null);
   const [macOSTauriSmokeRunbookLoading, setMacOSTauriSmokeRunbookLoading] = useState(false);
@@ -634,6 +638,32 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setAppOwnedBackendStartupImplementationLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    setAppOwnedBackendHealthReadinessLoading(true);
+    setAppOwnedBackendHealthReadinessError(null);
+    getAppOwnedBackendHealthReadiness()
+      .then((contract) => {
+        if (!cancelled) {
+          setAppOwnedBackendHealthReadiness(contract);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setAppOwnedBackendHealthReadinessError(error instanceof Error ? error.message : "Could not load app-owned backend health readiness");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAppOwnedBackendHealthReadinessLoading(false);
         }
       });
     return () => {
@@ -3390,6 +3420,58 @@ export function SettingsPanel({
               ) : null}
             </details>
 
+
+            <details className="settings-disclosure" open>
+              <summary>App-owned backend health readiness</summary>
+              {appOwnedBackendHealthReadinessError ? (
+                <p className="settings-transfer-message">Could not load app-owned backend health readiness: {appOwnedBackendHealthReadinessError}</p>
+              ) : null}
+              {appOwnedBackendHealthReadinessLoading ? (
+                <p className="settings-transfer-message">Loading app-owned backend health readiness…</p>
+              ) : appOwnedBackendHealthReadiness ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{appOwnedBackendHealthReadiness.title}</strong>
+                    <span>{appOwnedBackendHealthReadiness.summary}</span>
+                    <span>Mode: {appOwnedBackendHealthReadiness.readiness_mode}</span>
+                    <span>Health: {appOwnedBackendHealthReadiness.health_url}</span>
+                    <span>Script: {appOwnedBackendHealthReadiness.check_script}</span>
+                    <span>Bridge: {appOwnedBackendHealthReadiness.tauri_bridge_file}</span>
+                  </div>
+                  <div className="startup-checklist-grid">
+                    {appOwnedBackendHealthReadiness.implementation_items.map((item) => (
+                      <div className={`startup-checklist-item ${item.status === "blocked" ? "is-danger" : "is-ok"}`} key={item.id}>
+                        <div className="startup-checklist-item-header">
+                          <strong>{item.title}</strong>
+                          <span>{item.status}</span>
+                        </div>
+                        <p>{item.summary}</p>
+                        <span>{item.evidence}</span>
+                        {item.command ? <code>{item.command}</code> : null}
+                      </div>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Validation, safety, and next steps</summary>
+                    <div className="settings-command-list">
+                      {appOwnedBackendHealthReadiness.validation_commands.map((command) => (
+                        <div className="settings-command-card" key={command.command}>
+                          <strong>{command.label}</strong>
+                          <code>{command.command}</code>
+                          <span>{command.purpose}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="settings-safety-list">
+                      {appOwnedBackendHealthReadiness.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                    <ul>
+                      {appOwnedBackendHealthReadiness.next_steps.map((step) => <li key={step}>{step}</li>)}
+                    </ul>
+                  </details>
+                </div>
+              ) : null}
+            </details>
 
             <details className="settings-disclosure" open>
               <summary>macOS frozen runtime and Tauri smoke runbook</summary>

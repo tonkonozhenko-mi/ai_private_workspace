@@ -2182,6 +2182,30 @@ export interface AppOwnedBackendStartupImplementation {
 }
 
 
+export interface AppOwnedBackendHealthReadinessItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  evidence: string;
+  command: string | null;
+}
+
+export interface AppOwnedBackendHealthReadiness {
+  status: string;
+  title: string;
+  summary: string;
+  readiness_mode: string;
+  health_url: string;
+  tauri_bridge_file: string;
+  check_script: string;
+  implementation_items: AppOwnedBackendHealthReadinessItem[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
+
 export interface MacOSTauriSmokeRunbookItem {
   id: string;
   title: string;

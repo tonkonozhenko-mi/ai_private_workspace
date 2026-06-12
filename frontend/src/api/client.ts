@@ -61,6 +61,7 @@ import type {
   FrozenBackendSmokeContract,
   AppOwnedBackendStartupGate,
   AppOwnedBackendStartupImplementation,
+  AppOwnedBackendHealthReadiness,
   MacOSTauriSmokeRunbook,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
@@ -252,6 +253,10 @@ export function getAppOwnedBackendStartupGate(): Promise<AppOwnedBackendStartupG
 
 export function getAppOwnedBackendStartupImplementation(): Promise<AppOwnedBackendStartupImplementation> {
   return getJson<AppOwnedBackendStartupImplementation>("/runtime/app-owned-backend-startup-implementation");
+}
+
+export function getAppOwnedBackendHealthReadiness(): Promise<AppOwnedBackendHealthReadiness> {
+  return getJson<AppOwnedBackendHealthReadiness>("/runtime/app-owned-backend-health-readiness");
 }
 
 export function getMacOSTauriSmokeRunbook(): Promise<MacOSTauriSmokeRunbook> {

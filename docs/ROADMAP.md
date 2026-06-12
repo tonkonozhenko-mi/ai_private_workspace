@@ -394,3 +394,7 @@ Phase 22 now has a metadata-only Tauri startup gate. The project can describe th
 
 Added the local macOS smoke runbook and check gate for the frozen backend runtime plus Tauri app-owned startup path. This keeps Phase 22 practical: build frozen backend, smoke it, compile-check Tauri, then run the desktop smoke locally before Windows parity or installer work.
 
+
+## Task 250 — Tauri backend health readiness gate ✅
+
+Task 250 hardens the real Tauri app-owned backend startup implementation. Desktop readiness now requires application-level `/health` HTTP 200 rather than only an open TCP port. This reduces false-positive startup success before packaged macOS/Windows smoke work.

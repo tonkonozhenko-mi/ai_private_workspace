@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs::{self, File, OpenOptions};
+use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -88,6 +89,15 @@ struct AppOwnedBackendProcessStatus {
     message: String,
 }
 
+#[derive(Serialize)]
+struct BackendHealthReadinessContract {
+    status: String,
+    health_url: String,
+    readiness_check: String,
+    startup_timeout_seconds: u64,
+    safety_rules: Vec<String>,
+}
+
 #[derive(Deserialize)]
 struct FrozenRuntimeManifest {
     backend_executable: String,
@@ -168,10 +178,31 @@ fn port_8000_is_busy() -> bool {
     TcpStream::connect(("127.0.0.1", 8000)).is_ok()
 }
 
-fn wait_for_backend_tcp(timeout: Duration) -> bool {
+fn backend_health_is_ready() -> bool {
+    match TcpStream::connect(("127.0.0.1", 8000)) {
+        Ok(mut stream) => {
+            let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
+            let _ = stream.set_write_timeout(Some(Duration::from_secs(2)));
+            if stream
+                .write_all(b"GET /health HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+                .is_err()
+            {
+                return false;
+            }
+            let mut response = String::new();
+            if stream.read_to_string(&mut response).is_err() {
+                return false;
+            }
+            response.starts_with("HTTP/1.1 200") || response.starts_with("HTTP/1.0 200")
+        }
+        Err(_) => false,
+    }
+}
+
+fn wait_for_backend_health(timeout: Duration) -> bool {
     let started = Instant::now();
     while started.elapsed() < timeout {
-        if TcpStream::connect(("127.0.0.1", 8000)).is_ok() {
+        if backend_health_is_ready() {
             return true;
         }
         thread::sleep(Duration::from_millis(250));
@@ -306,6 +337,22 @@ fn get_app_owned_startup_gate() -> AppOwnedStartupGate {
 }
 
 #[tauri::command]
+fn get_backend_health_readiness_contract() -> BackendHealthReadinessContract {
+    BackendHealthReadinessContract {
+        status: "http_health_gate_enabled".to_string(),
+        health_url: health_url(),
+        readiness_check: "HTTP GET /health must return 200 before the desktop UI treats the backend as ready".to_string(),
+        startup_timeout_seconds: 15,
+        safety_rules: vec![
+            "Do not treat an open TCP port as application readiness.".to_string(),
+            "Do not open the UI as ready until /health returns HTTP 200.".to_string(),
+            "If /health does not become ready, stop only the child process started by this app session.".to_string(),
+            "Do not kill unknown processes by port.".to_string(),
+        ],
+    }
+}
+
+#[tauri::command]
 fn get_app_owned_backend_process_status() -> Result<AppOwnedBackendProcessStatus, String> {
     let mut guard = backend_process_state()
         .lock()
@@ -366,13 +413,13 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
         .spawn()
         .map_err(|err| format!("Could not start frozen backend runtime {}: {}", executable.display(), err))?;
 
-    if !wait_for_backend_tcp(Duration::from_secs(15)) {
+    if !wait_for_backend_health(Duration::from_secs(15)) {
         let _ = child.kill();
         let _ = child.wait();
-        return Err("Started app-owned backend process but localhost health port did not become ready in time. Check the backend log for details.".to_string());
+        return Err("Started app-owned backend process but /health did not return HTTP 200 in time. Check the backend log for details.".to_string());
     }
 
-    let status = process_status_from_child(Some(&child), "running", "App-owned frozen backend runtime started and localhost health port is reachable.");
+    let status = process_status_from_child(Some(&child), "running", "App-owned frozen backend runtime started and /health returned HTTP 200.");
     *guard = Some(child);
     Ok(status)
 }
@@ -399,6 +446,7 @@ fn main() {
             get_supervisor_preflight,
             get_runtime_selection_status,
             get_app_owned_startup_gate,
+            get_backend_health_readiness_contract,
             get_app_owned_backend_process_status,
             start_app_owned_backend_runtime,
             stop_app_owned_backend_runtime
