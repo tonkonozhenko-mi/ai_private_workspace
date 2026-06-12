@@ -311,3 +311,12 @@ Task 239 adds a read-only Phase 22 gate with `GET /runtime/desktop-runtime-prefl
 
 
 Frontend React code must never execute shell commands. It may display and copy commands only.
+
+
+## Task 240 — Tauri supervisor static gate
+
+- Added a read-only Tauri supervisor static gate for Phase 22.
+- Added `GET /runtime/tauri-supervisor-static-gate`.
+- Added `scripts/check_tauri_supervisor_bridge.sh`.
+- Tauri bridge now exposes status, log paths, and preflight data while keeping backend startup disabled.
+- Next larger step: frozen/staged backend runtime and deterministic app-owned startup design.

@@ -39,6 +39,8 @@ from app.api.schemas.local_data_safety_schemas import (
     TauriSupervisorBridgeCommandResponse,
     TauriSupervisorBridgeResponse,
     TauriSupervisorBridgeStateResponse,
+    TauriSupervisorStaticGateItemResponse,
+    TauriSupervisorStaticGateResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
@@ -1130,6 +1132,84 @@ def get_tauri_supervisor_bridge() -> TauriSupervisorBridgeResponse:
             "Add desktop startup screen that reads Tauri supervisor status before showing the full app.",
             "Create Windows packaging foundation with equivalent supervisor states and log rules.",
             "Run release candidate audit after macOS and Windows packaging paths are documented.",
+        ],
+    )
+
+
+@router.get("/tauri-supervisor-static-gate", response_model=TauriSupervisorStaticGateResponse)
+def get_tauri_supervisor_static_gate() -> TauriSupervisorStaticGateResponse:
+    """Return the static safety gate for the read-only Tauri supervisor bridge."""
+    root = Path(__file__).resolve().parents[4]
+    bridge_file = root / "frontend" / "src-tauri" / "src" / "main.rs"
+    check_script = root / "scripts" / "check_tauri_supervisor_bridge.sh"
+    source = bridge_file.read_text(encoding="utf-8") if bridge_file.exists() else ""
+
+    items = [
+        TauriSupervisorStaticGateItemResponse(
+            id="bridge-file",
+            title="Tauri bridge source",
+            status="ok" if bridge_file.exists() else "blocked",
+            summary="frontend/src-tauri/src/main.rs exists" if bridge_file.exists() else "Tauri bridge source is missing",
+            evidence="frontend/src-tauri/src/main.rs",
+        ),
+        TauriSupervisorStaticGateItemResponse(
+            id="status-command",
+            title="Read-only supervisor status command",
+            status="ok" if "fn get_supervisor_status" in source else "blocked",
+            summary="get_supervisor_status is present" if "fn get_supervisor_status" in source else "get_supervisor_status is missing",
+            evidence="get_supervisor_status",
+        ),
+        TauriSupervisorStaticGateItemResponse(
+            id="log-path-command",
+            title="Read-only log path command",
+            status="ok" if "fn get_supervisor_log_paths" in source else "blocked",
+            summary="get_supervisor_log_paths is present" if "fn get_supervisor_log_paths" in source else "get_supervisor_log_paths is missing",
+            evidence="get_supervisor_log_paths",
+        ),
+        TauriSupervisorStaticGateItemResponse(
+            id="preflight-command",
+            title="Read-only preflight command",
+            status="ok" if "fn get_supervisor_preflight" in source else "blocked",
+            summary="get_supervisor_preflight is present" if "fn get_supervisor_preflight" in source else "get_supervisor_preflight is missing",
+            evidence="get_supervisor_preflight",
+        ),
+        TauriSupervisorStaticGateItemResponse(
+            id="backend-start-disabled",
+            title="Backend start disabled",
+            status="ok" if "backend_start_enabled: false" in source else "blocked",
+            summary="Tauri bridge exposes status/log paths but does not start the backend yet" if "backend_start_enabled: false" in source else "Backend start is not explicitly disabled",
+            evidence="backend_start_enabled: false",
+        ),
+        TauriSupervisorStaticGateItemResponse(
+            id="no-process-api",
+            title="No process execution API",
+            status="blocked" if any(token in source for token in ("std::process::Command", "Command::new", "std::process", "spawn(")) else "ok",
+            summary="No process execution calls are present" if not any(token in source for token in ("std::process::Command", "Command::new", "std::process", "spawn(")) else "Process execution keywords found; keep Task 240 read-only",
+            evidence="std::process::Command / Command::new / spawn(",
+        ),
+    ]
+    status = "blocked" if any(item.status == "blocked" for item in items) else "ok"
+    return TauriSupervisorStaticGateResponse(
+        status=status,
+        title="Tauri supervisor static gate",
+        summary="Read-only Phase 22 gate for Tauri status/log-path commands before backend process startup is implemented.",
+        check_script="scripts/check_tauri_supervisor_bridge.sh",
+        bridge_file="frontend/src-tauri/src/main.rs",
+        items=items,
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Tauri supervisor bridge check", command="scripts/check_tauri_supervisor_bridge.sh", purpose="Validate read-only Tauri commands and safety wording without starting backend processes."),
+            DesktopRuntimeValidationCommandResponse(label="Desktop runtime preflight", command="scripts/check_desktop_runtime_preflight.sh", purpose="Validate runtime manifest, frontend build output, and packaging inputs."),
+        ],
+        safety_rules=[
+            "Tauri commands are read-only in this stage.",
+            "Backend startup stays disabled until runtime bundling is deterministic.",
+            "React frontend still cannot execute shell commands.",
+            "Desktop launch must not start scan, index, rebuild, MCP, Agent, or model downloads.",
+            "Unknown localhost processes must never be killed automatically.",
+        ],
+        next_steps=[
+            "Use this gate before implementing app-owned backend startup.",
+            "Next Phase 22 step should be frozen backend runtime selection/staging, not more v0.1 polish.",
         ],
     )
 

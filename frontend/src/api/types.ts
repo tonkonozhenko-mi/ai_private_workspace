@@ -316,6 +316,25 @@ export interface TauriSupervisorBridge {
 }
 
 
+export interface TauriSupervisorStaticGateItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  evidence: string;
+}
+
+export interface TauriSupervisorStaticGate {
+  status: string;
+  title: string;
+  summary: string;
+  check_script: string;
+  bridge_file: string;
+  items: TauriSupervisorStaticGateItem[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  safety_rules: string[];
+  next_steps: string[];
+}
 
 export interface WindowsPackagingArtifact {
   path: string;
