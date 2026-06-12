@@ -50,6 +50,8 @@ from app.api.schemas.local_data_safety_schemas import (
     StagedBackendRuntimeContractResponse,
     PyInstallerBackendRuntimeItemResponse,
     PyInstallerBackendRuntimeContractResponse,
+    RuntimeSelectionCandidateResponse,
+    FrozenBackendRuntimeSelectionResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
@@ -1655,6 +1657,70 @@ def get_pyinstaller_backend_runtime_contract() -> PyInstallerBackendRuntimeContr
     )
 
 
+@router.get("/frozen-backend-runtime-selection", response_model=FrozenBackendRuntimeSelectionResponse)
+def get_frozen_backend_runtime_selection() -> FrozenBackendRuntimeSelectionResponse:
+    """Return the safe runtime selection contract for Tauri/future desktop startup."""
+    root = Path(__file__).resolve().parents[4]
+    frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+    staged_manifest = root / "build" / "desktop" / "backend-runtime" / "AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json"
+    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "main.rs"
+    check_script = root / "scripts" / "check_tauri_runtime_selection.sh"
+
+    candidates = [
+        RuntimeSelectionCandidateResponse(
+            id="frozen-pyinstaller-runtime",
+            title="Frozen PyInstaller backend runtime",
+            status="ok" if frozen_manifest.exists() else "not_built_yet",
+            path="build/desktop/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json",
+            selection_rule="Prefer this runtime when the manifest and backend executable exist and pass local smoke checks.",
+            fallback_rule="If missing or unhealthy, do not auto-start an unknown backend; fall back to read-only status or developer staged runtime.",
+        ),
+        RuntimeSelectionCandidateResponse(
+            id="staged-source-runtime",
+            title="Staged source backend runtime",
+            status="ok" if staged_manifest.exists() else "ready_after_command",
+            path="build/desktop/backend-runtime/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json",
+            selection_rule="Use only as a developer fallback while frozen backend work is still in progress.",
+            fallback_rule="If missing, keep backend startup disabled and show copyable preparation commands.",
+        ),
+        RuntimeSelectionCandidateResponse(
+            id="external-dev-backend",
+            title="External developer backend",
+            status="manual_only",
+            path="http://127.0.0.1:8000/health",
+            selection_rule="Allowed only for local development when the user manually starts uvicorn.",
+            fallback_rule="Never kill or replace an unknown process on the port.",
+        ),
+    ]
+
+    return FrozenBackendRuntimeSelectionResponse(
+        status="selection_contract_ready",
+        title="Frozen backend runtime selection",
+        summary="Defines how the desktop shell will choose between frozen backend, staged source runtime, and manually started developer backend without unsafe auto-execution.",
+        selection_strategy="Prefer frozen app-owned runtime after manifest and health checks; use staged runtime only as a developer fallback; otherwise keep backend startup disabled.",
+        tauri_bridge_file="frontend/src-tauri/src/main.rs",
+        check_script="scripts/check_tauri_runtime_selection.sh",
+        candidates=candidates,
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Check runtime selection bridge", command="scripts/check_tauri_runtime_selection.sh", purpose="Validate Tauri exposes runtime selection metadata while keeping backend process startup disabled."),
+            DesktopRuntimeValidationCommandResponse(label="Check PyInstaller runtime", command="scripts/check_pyinstaller_backend_runtime.sh", purpose="Validate frozen runtime inputs and manifest when the binary has been built locally."),
+            DesktopRuntimeValidationCommandResponse(label="Check staged runtime", command="scripts/stage_backend_runtime.sh && scripts/check_staged_backend_runtime.sh", purpose="Prepare and validate the developer fallback runtime layout."),
+        ],
+        safety_rules=[
+            "Tauri runtime selection is read-only in this task; backend_start_enabled remains false.",
+            "Frontend cannot execute shell commands or choose arbitrary executables.",
+            "Desktop startup must not trigger scan, index, rebuild, MCP, Agent, or model downloads.",
+            "The future supervisor may start only an app-owned runtime whose manifest passed checks.",
+            "Unknown localhost processes must not be killed by port.",
+        ],
+        next_steps=[
+            "Run PyInstaller build locally and inspect hidden-import/runtime issues.",
+            "Add explicit developer-only frozen backend smoke command that starts the binary and checks /health.",
+            "After smoke checks pass on macOS, enable Tauri app-owned backend startup behind a strict manifest gate.",
+            "Repeat the same runtime selection checks on Windows before installer work.",
+        ],
+    )
+
 
 @router.get("/windows-packaging-foundation", response_model=WindowsPackagingFoundationResponse)
 def get_windows_packaging_foundation() -> WindowsPackagingFoundationResponse:
@@ -2357,9 +2423,9 @@ def get_release_candidate_audit() -> ReleaseCandidateAuditResponse:
         review_items=review,
         passed_items=passed,
         validation_commands=[
-            ReleaseCandidateAuditCommandResponse(label="Run release audit", command="./scripts/audit_release_candidate.sh", purpose="Checks source structure, docs, runtime-data exclusions, and script syntax."),
-            ReleaseCandidateAuditCommandResponse(label="Frontend build", command="cd frontend && npm ci && npm run build", purpose="Validates React/TypeScript production build."),
-            ReleaseCandidateAuditCommandResponse(label="Backend targeted tests", command="cd backend && pytest -q tests/test_api_inventory.py tests/test_windows_packaging_foundation.py tests/test_tauri_supervisor_bridge.py", purpose="Runs packaging/API safety coverage without requiring the full long test suite."),
+            DesktopRuntimeValidationCommandResponse(label="Run release audit", command="./scripts/audit_release_candidate.sh", purpose="Checks source structure, docs, runtime-data exclusions, and script syntax."),
+            DesktopRuntimeValidationCommandResponse(label="Frontend build", command="cd frontend && npm ci && npm run build", purpose="Validates React/TypeScript production build."),
+            DesktopRuntimeValidationCommandResponse(label="Backend targeted tests", command="cd backend && pytest -q tests/test_api_inventory.py tests/test_windows_packaging_foundation.py tests/test_tauri_supervisor_bridge.py", purpose="Runs packaging/API safety coverage without requiring the full long test suite."),
         ],
         final_handoff_steps=[
             "Run the audit script and targeted tests.",

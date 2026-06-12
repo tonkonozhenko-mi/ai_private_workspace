@@ -358,3 +358,7 @@ Task 241 adds an explicit desktop shell technology decision record. Tauri remain
 - Added PyInstaller backend entrypoint, spec, build script, check script, API contract, UI section, docs, and tests.
 - Generated frozen backend binaries stay under `build/desktop/frozen-backend-runtime` and must not be committed.
 - Remaining v1.0 work still includes local PyInstaller smoke testing, Tauri supervisor startup wiring, signing/notarization, Windows installer parity, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.
+
+## Task 245 checkpoint
+
+The project now has a read-only frozen backend runtime selection contract and Tauri metadata command. Backend startup from Tauri remains disabled until a frozen runtime is built and smoke-checked. `/runtime/release-candidate-audit` validation schema is fixed.

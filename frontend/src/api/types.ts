@@ -2089,6 +2089,28 @@ export interface PyInstallerBackendRuntimeContract {
   next_steps: string[];
 }
 
+export interface RuntimeSelectionCandidate {
+  id: string;
+  title: string;
+  status: string;
+  path: string;
+  selection_rule: string;
+  fallback_rule: string;
+}
+
+export interface FrozenBackendRuntimeSelection {
+  status: string;
+  title: string;
+  summary: string;
+  selection_strategy: string;
+  tauri_bridge_file: string;
+  check_script: string;
+  candidates: RuntimeSelectionCandidate[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
 export interface StagedBackendRuntimeItem {
   id: string;
   title: string;

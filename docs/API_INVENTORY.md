@@ -322,3 +322,7 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 ## Task 244 runtime endpoint
 
 - `GET /runtime/pyinstaller-backend-runtime-contract` — PyInstaller frozen backend runtime proof-of-concept contract, build/check scripts, entrypoint/spec paths, validation commands, and safety rules.
+
+## Task 245 runtime endpoint
+
+- `GET /runtime/frozen-backend-runtime-selection` — read-only runtime selection contract for frozen PyInstaller backend, staged source runtime fallback, and manual developer backend. It also records safety rules for future Tauri startup gating.

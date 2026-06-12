@@ -361,3 +361,7 @@ The project now has the first frozen-backend runtime path:
 - Settings UI visibility for the PyInstaller backend runtime PoC
 
 This does not claim final installer-grade packaging. It creates a reproducible PoC path toward a frozen backend executable that Tauri can later supervise only after explicit checks pass.
+
+## Phase 22 Update — Task 245
+
+**Task 245 — Frozen backend runtime selection:** done. The desktop runtime path now distinguishes frozen PyInstaller runtime, staged source runtime, and manual developer backend without enabling process startup. The release-candidate audit Settings error was fixed, and frontend build chunking was improved.

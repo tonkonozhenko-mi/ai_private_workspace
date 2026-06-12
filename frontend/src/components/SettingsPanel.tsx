@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getFrozenBackendRuntimeSelection, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -29,6 +29,7 @@ import type {
   DesktopStackAndRuntimeContract,
   StagedBackendRuntimeContract,
   PyInstallerBackendRuntimeContract,
+  FrozenBackendRuntimeSelection,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -237,6 +238,9 @@ export function SettingsPanel({
   const [pyInstallerBackendRuntimeContract, setPyInstallerBackendRuntimeContract] = useState<PyInstallerBackendRuntimeContract | null>(null);
   const [pyInstallerBackendRuntimeContractError, setPyInstallerBackendRuntimeContractError] = useState<string | null>(null);
   const [pyInstallerBackendRuntimeContractLoading, setPyInstallerBackendRuntimeContractLoading] = useState(false);
+  const [frozenBackendRuntimeSelection, setFrozenBackendRuntimeSelection] = useState<FrozenBackendRuntimeSelection | null>(null);
+  const [frozenBackendRuntimeSelectionError, setFrozenBackendRuntimeSelectionError] = useState<string | null>(null);
+  const [frozenBackendRuntimeSelectionLoading, setFrozenBackendRuntimeSelectionLoading] = useState(false);
   const [windowsPackagingFoundation, setWindowsPackagingFoundation] = useState<WindowsPackagingFoundation | null>(null);
   const [windowsPackagingFoundationError, setWindowsPackagingFoundationError] = useState<string | null>(null);
   const [windowsPackagingFoundationLoading, setWindowsPackagingFoundationLoading] = useState(false);
@@ -512,6 +516,32 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setPyInstallerBackendRuntimeContractLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    setFrozenBackendRuntimeSelectionLoading(true);
+    setFrozenBackendRuntimeSelectionError(null);
+    getFrozenBackendRuntimeSelection()
+      .then((selection) => {
+        if (!cancelled) {
+          setFrozenBackendRuntimeSelection(selection);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setFrozenBackendRuntimeSelectionError(error instanceof Error ? error.message : "Could not load frozen backend runtime selection");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setFrozenBackendRuntimeSelectionLoading(false);
         }
       });
     return () => {
@@ -3039,6 +3069,55 @@ export function SettingsPanel({
                 </div>
               ) : null}
             </details>
+
+            <details className="settings-disclosure" open>
+              <summary>Frozen backend runtime selection</summary>
+              {frozenBackendRuntimeSelectionError ? (
+                <p className="settings-transfer-message">Could not load frozen backend runtime selection: {frozenBackendRuntimeSelectionError}</p>
+              ) : null}
+              {frozenBackendRuntimeSelectionLoading ? (
+                <p className="settings-transfer-message">Loading frozen backend runtime selection…</p>
+              ) : frozenBackendRuntimeSelection ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{frozenBackendRuntimeSelection.title}</strong>
+                    <span>{frozenBackendRuntimeSelection.summary}</span>
+                    <span>Strategy: {frozenBackendRuntimeSelection.selection_strategy}</span>
+                    <span>Bridge: {frozenBackendRuntimeSelection.tauri_bridge_file}</span>
+                    <span>Check: {frozenBackendRuntimeSelection.check_script}</span>
+                  </div>
+                  <div className="startup-checklist-grid">
+                    {frozenBackendRuntimeSelection.candidates.map((candidate) => (
+                      <div className={`startup-checklist-item ${candidate.status === "not_built_yet" || candidate.status === "ready_after_command" || candidate.status === "manual_only" ? "is-review" : candidate.status === "blocked" ? "is-danger" : "is-ok"}`} key={candidate.id}>
+                        <div className="startup-checklist-item-header">
+                          <strong>{candidate.title}</strong>
+                          <span>{candidate.status}</span>
+                        </div>
+                        <p>{candidate.selection_rule}</p>
+                        <p>{candidate.fallback_rule}</p>
+                        <code>{candidate.path}</code>
+                      </div>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Commands and safety rules</summary>
+                    <div className="settings-command-list">
+                      {frozenBackendRuntimeSelection.validation_commands.map((command) => (
+                        <div className="settings-command-card" key={command.command}>
+                          <strong>{command.label}</strong>
+                          <code>{command.command}</code>
+                          <span>{command.purpose}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="settings-safety-list">
+                      {frozenBackendRuntimeSelection.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
 
             <details className="settings-disclosure" open>
               <summary>Tauri supervisor static gate</summary>
