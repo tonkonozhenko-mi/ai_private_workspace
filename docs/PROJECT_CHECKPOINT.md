@@ -467,3 +467,13 @@ After local packaged-app work, `npm run tauri:build` succeeded, but `scripts/smo
 - Added explicit npm `allowScripts` policy for `esbuild` and `fsevents`.
 - Added `scripts/check_npm_supply_chain_policy.sh`.
 - Next local check: rebuild frozen backend, rebuild `.app`, open packaged app, verify `/health` and app-owned logs.
+
+## Task 263 — packaged app first-run UI clarity
+
+Local packaged macOS smoke now reached the milestone where opening the generated `.app` starts the app-owned frozen backend runtime. Evidence from the user's Mac:
+
+- `curl http://127.0.0.1:8000/health` returns `{"status":"ok"}` after opening the `.app`.
+- `desktop-supervisor.log` records manifest discovery, backend PID, and `/health` readiness.
+- `backend.log` records Uvicorn startup and `/workspaces/overview` calls.
+
+Task 263 tightened the frontend first-run state so an empty app with zero workspaces is presented as normal onboarding, not as a broken backend state. Workspace overview loading is now race-safe, stale backend errors are cleared after successful readiness, and the packaged UI shows desktop startup status.

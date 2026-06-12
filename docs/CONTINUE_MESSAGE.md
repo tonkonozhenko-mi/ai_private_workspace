@@ -199,3 +199,24 @@ ls -la "$HOME/Library/Application Support/AI Private Workspace/logs"
 tail -n 100 "$HOME/Library/Application Support/AI Private Workspace/logs/desktop-supervisor.log"
 tail -n 100 "$HOME/Library/Application Support/AI Private Workspace/logs/backend.log"
 ```
+
+## Latest checkpoint after Task 263
+
+Task 263 fixed packaged first-run UI clarity after the first successful `.app` backend startup milestone. The packaged macOS app now starts the app-owned frozen backend runtime on the user's Mac: `/health` returns ok and logs appear under `~/Library/Application Support/AI Private Workspace/logs`.
+
+Important: if the app has zero workspaces, the main screen being mostly empty is expected. It should show a clear no-projects state and the user should click **Add project**. This is not a backend failure as long as `/health` is ok and logs exist.
+
+Task 263 frontend fixes:
+- race-safe workspace overview loading with `loadWorkspacesRequestIdRef`;
+- frontend waits for backend `/health` before workspace loading in Tauri mode;
+- stale backend errors are cleared after successful readiness;
+- visible desktop startup banner;
+- first-run empty state says "No projects yet" and explains the desktop backend is running.
+
+New check:
+- `scripts/check_packaged_app_first_run_ui.sh`
+
+Current status:
+- Phase 21 / v0.1 source RC: effectively complete.
+- Phase 22 / v0.2 desktop runtime: macOS packaged runtime is very close to closed.
+- Estimated remaining to 100% v1.0: around 4–6 large tasks.

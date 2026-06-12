@@ -449,3 +449,7 @@ After local packaged-app work, `npm run tauri:build` succeeded, but `scripts/smo
 - Added explicit npm `allowScripts` policy for `esbuild` and `fsevents`.
 - Added `scripts/check_npm_supply_chain_policy.sh`.
 - Next local check: rebuild frozen backend, rebuild `.app`, open packaged app, verify `/health` and app-owned logs.
+
+## Task 263 update — macOS packaged runtime milestone
+
+The macOS packaged `.app` can now start the app-owned frozen backend runtime and write app-owned supervisor/backend logs. Phase 22 is very close to closed for macOS. Remaining v1.0 work is mostly Windows parity, installer/signing, persistent jobs, MCP runtime execution, sandboxed Agent execution, update flow, and final QA.

@@ -100,6 +100,25 @@ const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
   { id: "settings", label: "Settings" },
 ];
 
+
+async function waitForBackendApi(baseUrl: string, attempts = 20): Promise<boolean> {
+  const normalizedBaseUrl = baseUrl.replace(/\/+$/, "");
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const response = await fetch(`${normalizedBaseUrl}/health`, {
+        headers: { Accept: "application/json" },
+      });
+      if (response.ok) {
+        return true;
+      }
+    } catch {
+      // The packaged desktop backend may still be binding localhost.
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+  return false;
+}
+
 function App() {
   const [workspaces, setWorkspaces] = useState<WorkspaceOverviewItem[]>([]);
   const [archivedWorkspaces, setArchivedWorkspaces] = useState<WorkspaceOverviewItem[]>([]);
@@ -108,6 +127,7 @@ function App() {
     null,
   );
   const selectedWorkspaceIdRef = useRef<string | null>(null);
+  const loadWorkspacesRequestIdRef = useRef(0);
   const [detail, setDetail] = useState<WorkspaceDetailBundle | null>(null);
   const [workspacesLoading, setWorkspacesLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -189,6 +209,8 @@ function App() {
   }, [loadModelsDetail, preferences.landingTab]);
 
   const loadWorkspaces = useCallback(async () => {
+    const requestId = loadWorkspacesRequestIdRef.current + 1;
+    loadWorkspacesRequestIdRef.current = requestId;
     setWorkspacesLoading(true);
     setWorkspacesError(null);
     try {
@@ -196,7 +218,11 @@ function App() {
         getWorkspacesOverview(),
         getWorkspacesOverview({ includeArchived: true }),
       ]);
+      if (loadWorkspacesRequestIdRef.current !== requestId) {
+        return;
+      }
       const archivedItems = allOverview.items.filter((workspace) => workspace.is_archived);
+      setWorkspacesError(null);
       setWorkspaces(overview.items);
       setArchivedWorkspaces(archivedItems);
       setTotalWorkspaces(overview.total_workspaces);
@@ -216,7 +242,7 @@ function App() {
             : overview.items[0].workspace_id;
         if (nextWorkspaceId) {
           await loadWorkspaceDetail(nextWorkspaceId);
-          if (!currentExists && storedExists) {
+          if (!currentExists && storedExists && loadWorkspacesRequestIdRef.current === requestId) {
             const restoredWorkspace = overview.items.find((workspace) => workspace.workspace_id === nextWorkspaceId);
             setResumeMessage(
               restoredWorkspace
@@ -232,9 +258,13 @@ function App() {
         setDetail(null);
       }
     } catch (error) {
-      setWorkspacesError(errorMessage(error));
+      if (loadWorkspacesRequestIdRef.current === requestId) {
+        setWorkspacesError(errorMessage(error));
+      }
     } finally {
-      setWorkspacesLoading(false);
+      if (loadWorkspacesRequestIdRef.current === requestId) {
+        setWorkspacesLoading(false);
+      }
     }
   }, [loadWorkspaceDetail]);
 
@@ -429,6 +459,16 @@ function App() {
         if (bridgeDiagnostic === "no-tauri-invoke-bridge" && window.location.protocol === "tauri:") {
           setDesktopStartupMessage("Desktop backend startup bridge is unavailable. Rebuild the app after enabling Tauri global invoke bridge.");
         }
+        if (isRunningInsideTauri()) {
+          const backendReady = await waitForBackendApi(preferences.apiBaseUrl);
+          if (!cancelled && backendReady) {
+            setWorkspacesError(null);
+            setDesktopStartupMessage((current) => current ?? "Desktop backend is ready.");
+          }
+          if (!cancelled && !backendReady) {
+            setDesktopStartupMessage("Desktop backend did not become reachable from the packaged UI. Check desktop-supervisor.log and backend.log.");
+          }
+        }
         await loadWorkspaces();
       }
     }
@@ -438,7 +478,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [loadWorkspaces]);
+  }, [loadWorkspaces, preferences.apiBaseUrl]);
 
   return (
     <div className={`app-shell${preferences.demoMode === "on" ? " is-demo-mode" : ""}`}>
@@ -521,6 +561,12 @@ function App() {
       </aside>
 
       <main className="main-content">
+        {desktopStartupMessage ? (
+          <div className="resume-workspace-banner desktop-startup-banner" role="status">
+            <span>{desktopStartupMessage}</span>
+          </div>
+        ) : null}
+
         {showCreateWorkspace ? (
           <CreateWorkspacePanel
             onCreated={(workspace) => void handleWorkspaceCreated(workspace.workspace_id)}
@@ -707,8 +753,8 @@ function App() {
         ) : (
           <div className="empty-workspace-start">
             <EmptyState
-              title="Select or add a project"
-              message="Choose a local project from the sidebar or create a new workspace to start onboarding."
+              title="No projects yet"
+              message="The desktop backend is running. Add your first local project to start onboarding."
             />
             <button
               className="primary-action"
