@@ -350,3 +350,11 @@ Task 241 adds an explicit desktop shell technology decision record. Tauri remain
 - Remaining v1.0 work still includes frozen backend binary, signed macOS app,
   Windows installer, persistent jobs, MCP runtime, sandboxed Agent execution,
   update flow, and final QA.
+
+## Task 244 checkpoint
+
+- Phase 21 / v0.1 source RC remains effectively complete.
+- Phase 22 / v0.2 desktop runtime now has both source-runtime staging and a PyInstaller frozen-runtime PoC path.
+- Added PyInstaller backend entrypoint, spec, build script, check script, API contract, UI section, docs, and tests.
+- Generated frozen backend binaries stay under `build/desktop/frozen-backend-runtime` and must not be committed.
+- Remaining v1.0 work still includes local PyInstaller smoke testing, Tauri supervisor startup wiring, signing/notarization, Windows installer parity, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.

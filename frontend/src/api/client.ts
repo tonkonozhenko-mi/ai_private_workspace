@@ -56,6 +56,7 @@ import type {
   DesktopTechnologyDecision,
   DesktopStackAndRuntimeContract,
   StagedBackendRuntimeContract,
+  PyInstallerBackendRuntimeContract,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -226,6 +227,10 @@ export function getDesktopStackAndRuntimeContract(): Promise<DesktopStackAndRunt
 
 export function getStagedBackendRuntimeContract(): Promise<StagedBackendRuntimeContract> {
   return getJson<StagedBackendRuntimeContract>("/runtime/staged-backend-runtime-contract");
+}
+
+export function getPyInstallerBackendRuntimeContract(): Promise<PyInstallerBackendRuntimeContract> {
+  return getJson<PyInstallerBackendRuntimeContract>("/runtime/pyinstaller-backend-runtime-contract");
 }
 
 

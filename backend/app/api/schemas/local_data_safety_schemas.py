@@ -479,6 +479,32 @@ class StagedBackendRuntimeContractResponse(BaseModel):
     next_steps: list[str]
 
 
+class PyInstallerBackendRuntimeItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    path: str | None = None
+
+
+class PyInstallerBackendRuntimeContractResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    builder: str
+    build_script: str
+    check_script: str
+    entrypoint_path: str
+    spec_path: str
+    frozen_runtime_dir: str
+    manifest_path: str
+    items: list[PyInstallerBackendRuntimeItemResponse]
+    runtime_contract: list[str]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
+
 
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str
