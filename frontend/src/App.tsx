@@ -40,7 +40,7 @@ import { ErrorState } from "./components/ErrorState";
 import { LoadingState } from "./components/LoadingState";
 import { UIActionsPanel } from "./components/UIActionsPanel";
 import { SettingsPanel } from "./components/SettingsPanel";
-import { ensureAppOwnedBackendRuntime, isRunningInsideTauri } from "./desktopRuntime";
+import { ensureAppOwnedBackendRuntime, isRunningInsideTauri, tauriBridgeDiagnostic } from "./desktopRuntime";
 import { WorkspaceDashboard } from "./components/WorkspaceDashboard";
 import { WorkspaceList } from "./components/WorkspaceList";
 import {
@@ -407,8 +407,9 @@ function App() {
     let cancelled = false;
 
     async function startDesktopRuntimeAndLoadWorkspaces() {
+      const bridgeDiagnostic = tauriBridgeDiagnostic();
       if (isRunningInsideTauri()) {
-        setDesktopStartupMessage("Starting local desktop backend…");
+        setDesktopStartupMessage(`Starting local desktop backend… (${bridgeDiagnostic})`);
         try {
           const startup = await ensureAppOwnedBackendRuntime();
           if (!cancelled && startup) {
@@ -425,6 +426,9 @@ function App() {
       }
 
       if (!cancelled) {
+        if (bridgeDiagnostic === "no-tauri-invoke-bridge" && window.location.protocol === "tauri:") {
+          setDesktopStartupMessage("Desktop backend startup bridge is unavailable. Rebuild the app after enabling Tauri global invoke bridge.");
+        }
         await loadWorkspaces();
       }
     }

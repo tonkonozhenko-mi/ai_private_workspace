@@ -79,6 +79,16 @@ if [ -f frontend/package-lock.json ]; then
   fi
 fi
 
+if [ -f frontend/package.json ]; then
+  if grep -F '"allowScripts"' frontend/package.json >/dev/null \
+    && grep -F '"esbuild": true' frontend/package.json >/dev/null \
+    && grep -F '"fsevents": true' frontend/package.json >/dev/null; then
+    pass "frontend/package.json has explicit npm allowScripts policy for reviewed install scripts"
+  else
+    fail "frontend/package.json is missing allowScripts policy for esbuild/fsevents; npm ci may warn and install scripts remain unreviewed"
+  fi
+fi
+
 # TypeScript incremental build metadata is local-only. It is harmless locally, but
 # should not be committed or included in handoff/source archives.
 if find . \( \

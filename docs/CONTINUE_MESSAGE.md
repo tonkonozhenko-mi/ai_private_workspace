@@ -161,3 +161,13 @@ After local packaged-app work, `npm run tauri:build` succeeded, but `scripts/smo
 
 
 - Task 260 — packaged app frontend bootstrap: React now invokes the narrow Tauri app-owned backend startup command before workspace HTTP API calls, fixing the packaged `.app` case where UI opened but backend/logs were missing. ✅
+
+
+## Task 261 — packaged app Tauri bridge fix and npm install-script policy ✅
+
+- Enabled `app.withGlobalTauri = true` so packaged React can invoke the Tauri bridge.
+- Added fallback detection for `__TAURI_INTERNALS__.invoke`.
+- Added `tauriBridgeDiagnostic()` to surface packaged bridge state in the UI.
+- Added explicit npm `allowScripts` policy for `esbuild` and `fsevents`.
+- Added `scripts/check_npm_supply_chain_policy.sh`.
+- Next local check: rebuild frozen backend, rebuild `.app`, open packaged app, verify `/health` and app-owned logs.

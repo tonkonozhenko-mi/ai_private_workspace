@@ -375,3 +375,8 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 - `GET /runtime/macos-packaged-app-smoke-result` — records the local milestone where frozen backend smoke and Tauri packaged macOS app build passed, and exposes the remaining packaged `.app` smoke steps.
 
 - `GET /runtime/packaged-app-frontend-bootstrap` — packaged app frontend bootstrap contract for app-owned backend startup.
+
+
+## Task 261 note
+
+`/runtime/packaged-app-frontend-bootstrap` now also verifies the packaged Tauri global invoke bridge (`withGlobalTauri`) and the npm install-script allowlist policy for `esbuild` and `fsevents`.

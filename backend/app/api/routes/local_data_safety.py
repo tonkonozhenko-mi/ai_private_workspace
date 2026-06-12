@@ -3926,18 +3926,23 @@ def get_packaged_app_frontend_bootstrap() -> PackagedAppFrontendBootstrapRespons
     app_tsx = root / "frontend/src/App.tsx"
     desktop_runtime = root / "frontend/src/desktopRuntime.ts"
     lib_rs = root / "frontend/src-tauri/src/lib.rs"
+    tauri_conf = root / "frontend/src-tauri/tauri.conf.json"
+    package_json = root / "frontend/package.json"
     check_script = root / "scripts/check_packaged_app_frontend_bootstrap.sh"
+    npm_policy_script = root / "scripts/check_npm_supply_chain_policy.sh"
 
     app_text = app_tsx.read_text(encoding="utf-8") if app_tsx.exists() else ""
     runtime_text = desktop_runtime.read_text(encoding="utf-8") if desktop_runtime.exists() else ""
     lib_text = lib_rs.read_text(encoding="utf-8") if lib_rs.exists() else ""
+    tauri_conf_text = tauri_conf.read_text(encoding="utf-8") if tauri_conf.exists() else ""
+    package_json_text = package_json.read_text(encoding="utf-8") if package_json.exists() else ""
 
     checks = [
         (
             "tauri-runtime-helper",
             "Frontend has a Tauri runtime helper",
-            "ok" if "ensureAppOwnedBackendRuntime" in runtime_text and "__TAURI__" in runtime_text else "blocked",
-            "The packaged UI must call the narrow Tauri command bridge before it tries HTTP API calls.",
+            "ok" if "ensureAppOwnedBackendRuntime" in runtime_text and "__TAURI__" in runtime_text and "__TAURI_INTERNALS__" in runtime_text else "blocked",
+            "The packaged UI must call the narrow Tauri command bridge before it tries HTTP API calls and include a diagnostic fallback when the bridge is missing.",
             "frontend/src/desktopRuntime.ts",
             None,
         ),
@@ -3948,6 +3953,22 @@ def get_packaged_app_frontend_bootstrap() -> PackagedAppFrontendBootstrapRespons
             "Packaged app must not assume an external uvicorn process is already running.",
             "frontend/src/App.tsx",
             None,
+        ),
+        (
+            "tauri-global-bridge-enabled",
+            "Packaged app enables the Tauri global invoke bridge",
+            "ok" if "\"withGlobalTauri\": true" in tauri_conf_text else "blocked",
+            "The packaged frontend uses the injected window.__TAURI__ bridge, so Tauri must expose the global bridge in tauri.conf.json.",
+            "frontend/src-tauri/tauri.conf.json",
+            None,
+        ),
+        (
+            "npm-allow-scripts-policy",
+            "npm install scripts are explicitly reviewed",
+            "ok" if "\"allowScripts\"" in package_json_text and "\"esbuild\": true" in package_json_text and "\"fsevents\": true" in package_json_text else "blocked",
+            "npm 11 may warn when packages with install scripts are not covered by allowScripts; this project explicitly allows the known esbuild and fsevents scripts used by Vite/Tauri tooling.",
+            "frontend/package.json",
+            "scripts/check_npm_supply_chain_policy.sh",
         ),
         (
             "tauri-command-exists",
@@ -3973,6 +3994,14 @@ def get_packaged_app_frontend_bootstrap() -> PackagedAppFrontendBootstrapRespons
             "scripts/check_packaged_app_frontend_bootstrap.sh",
             "scripts/check_packaged_app_frontend_bootstrap.sh",
         ),
+        (
+            "npm-policy-check-script",
+            "npm supply-chain policy check exists",
+            "ok" if npm_policy_script.exists() else "blocked",
+            "A source-level check prevents internal registry URLs and unreviewed install-script warnings from silently entering the release path.",
+            "scripts/check_npm_supply_chain_policy.sh",
+            "scripts/check_npm_supply_chain_policy.sh",
+        ),
     ]
 
     items = [
@@ -3990,13 +4019,14 @@ def get_packaged_app_frontend_bootstrap() -> PackagedAppFrontendBootstrapRespons
     return PackagedAppFrontendBootstrapResponse(
         status=status,
         title="Packaged app frontend bootstrap",
-        summary="Fixes the packaged .app case where the React UI opened but no app-owned backend process was started, leaving http://127.0.0.1:8000/health unavailable and no app-owned logs directory created.",
-        milestone="Task 260 — packaged app frontend starts app-owned backend",
+        summary="Fixes the packaged .app case where the React UI opened but no app-owned backend process was started. Task 261 adds the missing Tauri global invoke bridge and npm install-script policy so packaged bootstrap can actually call start_app_owned_backend_runtime.",
+        milestone="Task 261 — packaged app Tauri invoke bridge and npm supply-chain policy",
         check_script="scripts/check_packaged_app_frontend_bootstrap.sh",
-        root_cause="The packaged frontend still loaded workspaces immediately through HTTP and did not invoke the Tauri app-owned backend startup command on launch.",
+        root_cause="The packaged frontend helper expected window.__TAURI__.core.invoke, but the packaged Tauri config did not enable the global bridge. As a result, the app opened as a static UI and never called start_app_owned_backend_runtime.",
         readiness_items=items,
         validation_commands=[
             DesktopRuntimeValidationCommandResponse(label="Frontend bootstrap check", command="scripts/check_packaged_app_frontend_bootstrap.sh", purpose="Verify the packaged frontend invokes the Tauri app-owned backend startup before workspace API calls."),
+            DesktopRuntimeValidationCommandResponse(label="npm supply-chain policy check", command="scripts/check_npm_supply_chain_policy.sh", purpose="Verify npm install-script approvals and public registry lockfile hygiene."),
             DesktopRuntimeValidationCommandResponse(label="Build frozen backend", command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh", purpose="Rebuild and smoke the backend runtime that packaged Tauri starts."),
             DesktopRuntimeValidationCommandResponse(label="Build packaged app", command="cd frontend && npm run tauri:build", purpose="Rebuild the macOS .app with the frontend bootstrap fix."),
             DesktopRuntimeValidationCommandResponse(label="Open packaged app", command=r"open frontend/src-tauri/target/release/bundle/macos/AI\ Private\ Workspace.app", purpose="Confirm the .app starts backend, creates app-owned logs, and reaches /health without manual uvicorn."),
