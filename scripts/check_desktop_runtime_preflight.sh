@@ -7,6 +7,7 @@ PACKAGE_SCRIPT="$ROOT_DIR/scripts/package_macos_app_foundation.sh"
 TAURI_MAIN="$ROOT_DIR/frontend/src-tauri/src/main.rs"
 FRONTEND_DIST="$ROOT_DIR/frontend/dist/index.html"
 BACKEND_ENTRYPOINT="$ROOT_DIR/backend/app/main.py"
+PYINSTALLER_CHECK="$ROOT_DIR/scripts/check_pyinstaller_backend_runtime.sh"
 
 failures=0
 reviews=0
@@ -22,6 +23,7 @@ printf 'Project root: %s\n\n' "$ROOT_DIR"
 [ -f "$PACKAGE_SCRIPT" ] && ok "package_macos_app_foundation.sh found" || fail "package_macos_app_foundation.sh missing"
 [ -f "$TAURI_MAIN" ] && ok "Tauri scaffold found" || review "Tauri scaffold missing; run scripts/prepare_tauri_shell_scaffold.sh"
 [ -f "$FRONTEND_DIST" ] && ok "frontend/dist/index.html found" || review "frontend/dist missing; run: cd frontend && npm ci && npm run build"
+[ -x "$PYINSTALLER_CHECK" ] && ok "PyInstaller runtime check found" || review "PyInstaller runtime check missing; Task 244 frozen-runtime PoC not available"
 
 if [ -f "$MANIFEST" ]; then
   ok "backend runtime manifest found"

@@ -2063,6 +2063,32 @@ export interface LocalModelDownloadExecutionResult {
 }
 
 
+export interface PyInstallerBackendRuntimeItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  path: string | null;
+}
+
+export interface PyInstallerBackendRuntimeContract {
+  status: string;
+  title: string;
+  summary: string;
+  builder: string;
+  build_script: string;
+  check_script: string;
+  entrypoint_path: string;
+  spec_path: string;
+  frozen_runtime_dir: string;
+  manifest_path: string;
+  items: PyInstallerBackendRuntimeItem[];
+  runtime_contract: string[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
 export interface StagedBackendRuntimeItem {
   id: string;
   title: string;

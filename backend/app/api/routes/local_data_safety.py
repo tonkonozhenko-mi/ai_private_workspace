@@ -48,6 +48,8 @@ from app.api.schemas.local_data_safety_schemas import (
     DesktopStackAndRuntimeContractResponse,
     StagedBackendRuntimeItemResponse,
     StagedBackendRuntimeContractResponse,
+    PyInstallerBackendRuntimeItemResponse,
+    PyInstallerBackendRuntimeContractResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
@@ -1548,6 +1550,107 @@ def get_staged_backend_runtime_contract() -> StagedBackendRuntimeContractRespons
             "Add a PyInstaller proof-of-concept for the backend runtime after source staging is stable.",
             "Enable Tauri backend startup only after staged/frozen runtime checks pass.",
             "Repeat the same staging contract on Windows before calling the desktop runtime production-ready.",
+        ],
+    )
+
+
+@router.get("/pyinstaller-backend-runtime-contract", response_model=PyInstallerBackendRuntimeContractResponse)
+def get_pyinstaller_backend_runtime_contract() -> PyInstallerBackendRuntimeContractResponse:
+    """Return the PyInstaller frozen backend runtime proof-of-concept contract."""
+    root = Path(__file__).resolve().parents[4]
+    build_script = root / "scripts" / "build_pyinstaller_backend_runtime.sh"
+    check_script = root / "scripts" / "check_pyinstaller_backend_runtime.sh"
+    entrypoint = root / "backend" / "packaging" / "pyinstaller_backend_entrypoint.py"
+    spec_file = root / "backend" / "packaging" / "ai_private_workspace_backend.spec"
+    runtime_dir = root / "build" / "desktop" / "frozen-backend-runtime"
+    manifest = runtime_dir / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+
+    items = [
+        PyInstallerBackendRuntimeItemResponse(
+            id="entrypoint",
+            title="Backend frozen-runtime entrypoint",
+            status="ok" if entrypoint.exists() else "blocked",
+            summary="Tiny PyInstaller entrypoint that starts app.main:app through Uvicorn and reads only explicit host/port environment variables." if entrypoint.exists() else "PyInstaller backend entrypoint is missing.",
+            path="backend/packaging/pyinstaller_backend_entrypoint.py",
+        ),
+        PyInstallerBackendRuntimeItemResponse(
+            id="spec",
+            title="PyInstaller spec",
+            status="ok" if spec_file.exists() else "blocked",
+            summary="Proof-of-concept spec for building a single backend executable from the existing FastAPI app." if spec_file.exists() else "PyInstaller spec is missing.",
+            path="backend/packaging/ai_private_workspace_backend.spec",
+        ),
+        PyInstallerBackendRuntimeItemResponse(
+            id="build-script",
+            title="Frozen runtime build script",
+            status="ok" if build_script.exists() else "blocked",
+            summary="Reproducible local build script; it fails with guidance if PyInstaller is not installed and never starts the backend." if build_script.exists() else "PyInstaller build script is missing.",
+            path="scripts/build_pyinstaller_backend_runtime.sh",
+        ),
+        PyInstallerBackendRuntimeItemResponse(
+            id="check-script",
+            title="Frozen runtime check script",
+            status="ok" if check_script.exists() else "blocked",
+            summary="Static/safe gate that validates the PyInstaller PoC inputs and generated manifest when present." if check_script.exists() else "PyInstaller check script is missing.",
+            path="scripts/check_pyinstaller_backend_runtime.sh",
+        ),
+        PyInstallerBackendRuntimeItemResponse(
+            id="frozen-manifest",
+            title="Frozen runtime manifest",
+            status="ready_after_command" if not manifest.exists() else "ok",
+            summary="Generated only after scripts/build_pyinstaller_backend_runtime.sh runs in a local packaging environment.",
+            path="build/desktop/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json",
+        ),
+    ]
+
+    return PyInstallerBackendRuntimeContractResponse(
+        status="pyinstaller_poc_ready",
+        title="PyInstaller backend runtime proof-of-concept",
+        summary="Adds a reproducible PyInstaller PoC path for freezing the FastAPI backend into an app-owned executable. This is the next runtime step after source staging, but it is still not a signed installer-grade v1.0 runtime.",
+        builder="PyInstaller",
+        build_script="scripts/build_pyinstaller_backend_runtime.sh",
+        check_script="scripts/check_pyinstaller_backend_runtime.sh",
+        entrypoint_path="backend/packaging/pyinstaller_backend_entrypoint.py",
+        spec_path="backend/packaging/ai_private_workspace_backend.spec",
+        frozen_runtime_dir="build/desktop/frozen-backend-runtime",
+        manifest_path="build/desktop/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json",
+        items=items,
+        runtime_contract=[
+            "PyInstaller is the first frozen-backend candidate because it is open-source, free, cross-platform, and operationally simple for Python apps.",
+            "The build script creates generated output only under build/desktop/frozen-backend-runtime and must not be committed.",
+            "The frozen executable starts only the FastAPI backend on 127.0.0.1 using explicit environment variables from the desktop supervisor.",
+            "The build command does not start backend, scan, index, rebuild, MCP, Agent, or model downloads.",
+            "Nuitka or packaged Python runtime remain fallback paths if PyInstaller becomes unreliable for macOS/Windows packaging.",
+        ],
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(
+                label="Check PyInstaller PoC",
+                command="scripts/check_pyinstaller_backend_runtime.sh",
+                purpose="Validate frozen backend runtime inputs without requiring an actual binary build.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Build PyInstaller runtime",
+                command="scripts/build_pyinstaller_backend_runtime.sh",
+                purpose="Build the local frozen backend runtime in a packaging environment where PyInstaller is installed.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Desktop runtime preflight",
+                command="scripts/check_desktop_runtime_preflight.sh",
+                purpose="Confirm desktop packaging gates still pass after adding the frozen-runtime PoC.",
+            ),
+        ],
+        safety_rules=[
+            "Frontend still cannot execute shell commands or build the runtime.",
+            "The build script never starts the backend process after building it.",
+            "Generated build/desktop output is local-only and must not be committed to GitHub/source archives.",
+            "Desktop startup must still not trigger scan, index, rebuild, MCP, Agent, or model downloads.",
+            "This is a PoC contract, not final signing/notarization or Windows installer completion.",
+        ],
+        next_steps=[
+            "Run the PyInstaller build locally on macOS and record missing hidden imports or runtime issues.",
+            "Add a smoke command that starts the frozen backend only in explicit developer mode and verifies /health.",
+            "Teach Tauri supervisor to prefer frozen runtime when checks pass, otherwise keep backend startup disabled.",
+            "Repeat the build/check path on Windows before declaring the runtime frozen for v1.0.",
         ],
     )
 

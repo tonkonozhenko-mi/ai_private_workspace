@@ -346,3 +346,18 @@ The project now has a practical v0.2 runtime staging layer:
 
 This is still not the final v1.0 frozen runtime. It is the bridge from v0.1
 source RC toward a real double-click desktop app.
+
+## Phase 22 Update — Task 244
+
+**Task 244 — PyInstaller backend runtime proof-of-concept:** done.
+
+The project now has the first frozen-backend runtime path:
+
+- `backend/packaging/pyinstaller_backend_entrypoint.py`
+- `backend/packaging/ai_private_workspace_backend.spec`
+- `scripts/build_pyinstaller_backend_runtime.sh`
+- `scripts/check_pyinstaller_backend_runtime.sh`
+- `GET /runtime/pyinstaller-backend-runtime-contract`
+- Settings UI visibility for the PyInstaller backend runtime PoC
+
+This does not claim final installer-grade packaging. It creates a reproducible PoC path toward a frozen backend executable that Tauri can later supervise only after explicit checks pass.

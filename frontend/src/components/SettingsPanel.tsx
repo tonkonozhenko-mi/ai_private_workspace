@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getPyInstallerBackendRuntimeContract, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -28,6 +28,7 @@ import type {
   DesktopTechnologyDecision,
   DesktopStackAndRuntimeContract,
   StagedBackendRuntimeContract,
+  PyInstallerBackendRuntimeContract,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -233,6 +234,9 @@ export function SettingsPanel({
   const [stagedBackendRuntimeContract, setStagedBackendRuntimeContract] = useState<StagedBackendRuntimeContract | null>(null);
   const [stagedBackendRuntimeContractError, setStagedBackendRuntimeContractError] = useState<string | null>(null);
   const [stagedBackendRuntimeContractLoading, setStagedBackendRuntimeContractLoading] = useState(false);
+  const [pyInstallerBackendRuntimeContract, setPyInstallerBackendRuntimeContract] = useState<PyInstallerBackendRuntimeContract | null>(null);
+  const [pyInstallerBackendRuntimeContractError, setPyInstallerBackendRuntimeContractError] = useState<string | null>(null);
+  const [pyInstallerBackendRuntimeContractLoading, setPyInstallerBackendRuntimeContractLoading] = useState(false);
   const [windowsPackagingFoundation, setWindowsPackagingFoundation] = useState<WindowsPackagingFoundation | null>(null);
   const [windowsPackagingFoundationError, setWindowsPackagingFoundationError] = useState<string | null>(null);
   const [windowsPackagingFoundationLoading, setWindowsPackagingFoundationLoading] = useState(false);
@@ -483,6 +487,31 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setStagedBackendRuntimeContractLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPyInstallerBackendRuntimeContractLoading(true);
+    setPyInstallerBackendRuntimeContractError(null);
+    getPyInstallerBackendRuntimeContract()
+      .then((contract) => {
+        if (!cancelled) {
+          setPyInstallerBackendRuntimeContract(contract);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setPyInstallerBackendRuntimeContractError(error instanceof Error ? error.message : "Could not load PyInstaller backend runtime contract");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setPyInstallerBackendRuntimeContractLoading(false);
         }
       });
     return () => {
@@ -2952,6 +2981,59 @@ export function SettingsPanel({
                     <summary>Safety rules</summary>
                     <div className="settings-safety-list">
                       {stagedBackendRuntimeContract.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
+            <details className="settings-disclosure" open>
+              <summary>PyInstaller backend runtime PoC</summary>
+              {pyInstallerBackendRuntimeContractError ? (
+                <p className="settings-transfer-message">Could not load PyInstaller backend runtime contract: {pyInstallerBackendRuntimeContractError}</p>
+              ) : null}
+              {pyInstallerBackendRuntimeContractLoading ? (
+                <p className="settings-transfer-message">Loading PyInstaller backend runtime contract…</p>
+              ) : pyInstallerBackendRuntimeContract ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{pyInstallerBackendRuntimeContract.title}</strong>
+                    <span>{pyInstallerBackendRuntimeContract.summary}</span>
+                    <span>Builder: {pyInstallerBackendRuntimeContract.builder}</span>
+                    <span>Runtime: {pyInstallerBackendRuntimeContract.frozen_runtime_dir}</span>
+                    <span>Manifest: {pyInstallerBackendRuntimeContract.manifest_path}</span>
+                  </div>
+                  <div className="startup-checklist-grid">
+                    {pyInstallerBackendRuntimeContract.items.map((item) => (
+                      <div className={`startup-checklist-item ${item.status === "ready_after_command" ? "is-review" : item.status === "blocked" ? "is-danger" : "is-ok"}`} key={item.id}>
+                        <div className="startup-checklist-item-header">
+                          <strong>{item.title}</strong>
+                          <span>{item.status}</span>
+                        </div>
+                        <p>{item.summary}</p>
+                        {item.path ? <code>{item.path}</code> : null}
+                      </div>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Runtime contract and commands</summary>
+                    <div className="settings-safety-list">
+                      {pyInstallerBackendRuntimeContract.runtime_contract.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                    <div className="settings-command-list">
+                      {pyInstallerBackendRuntimeContract.validation_commands.map((command) => (
+                        <div className="settings-command-card" key={command.command}>
+                          <strong>{command.label}</strong>
+                          <code>{command.command}</code>
+                          <span>{command.purpose}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Safety rules</summary>
+                    <div className="settings-safety-list">
+                      {pyInstallerBackendRuntimeContract.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
                     </div>
                   </details>
                 </div>
