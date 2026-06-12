@@ -51,6 +51,10 @@ def build_workspace_question_prompt(
         "so explicitly and name the source_path for each configuration.\n"
         "- Do not say something is absent if any provided context contains it.\n"
         "- If the context is insufficient or you are unsure, say so clearly.\n"
+        "- If the user asks you to create, edit, delete, or run files/commands, "
+        "do not claim that you directly changed the computer. Instead, provide a "
+        "safe proposed change: target path, exact file content or patch, and a "
+        "short approval note saying the app must ask before applying changes.\n"
         "- Do not invent facts."
     )
 

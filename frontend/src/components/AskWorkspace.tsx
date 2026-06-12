@@ -478,6 +478,12 @@ export function AskWorkspace({
   const missingChosenAIModel =
     error?.toLowerCase().includes("selected llm") ||
     error?.toLowerCase().includes("select an llm");
+  const modelRuntimeError =
+    error?.toLowerCase().includes("ollama") ||
+    error?.toLowerCase().includes("selected local model") ||
+    error?.toLowerCase().includes("runtime_unavailable") ||
+    error?.toLowerCase().includes("load failed") ||
+    error?.toLowerCase().includes("unable to reach");
 
   return (
     <div className="ask-workspace ask-workspace-chat ask-workspace-centered">
@@ -538,11 +544,14 @@ export function AskWorkspace({
         ) : null}
 
         {error ? (
-          <div className="ask-error ask-error-centered" role="alert">
-            <strong>Could not ask workspace</strong>
-            <span>{error}</span>
+          <div className="ask-error ask-error-centered ask-actionable-error" role="alert">
+            <strong>{modelRuntimeError ? "Selected model is not ready" : "Could not ask workspace"}</strong>
+            <span>{friendlyAskError(error)}</span>
             {missingChosenAIModel ? (
               <span>Select an AI model in the Models tab, then try again.</span>
+            ) : null}
+            {modelRuntimeError ? (
+              <span>Open Models, choose a ready local model, or install the selected Ollama model and try again. Your chat history is still saved.</span>
             ) : null}
           </div>
         ) : null}
@@ -1993,7 +2002,22 @@ function formatTime(value: string) {
   }).format(new Date(value));
 }
 
-export function isLikelyProjectQuestion(question: string): boolean {
+export function friendlyAskError(message: string): string {
+  const normalized = message.trim();
+  const lower = normalized.toLowerCase();
+  if (lower.includes("load failed")) {
+    return "The selected model did not load successfully. This usually means the model is not installed, Ollama is not running, or the model is too heavy for this Mac.";
+  }
+  if (lower.includes("unable to reach ollama")) {
+    return "Ollama is not reachable. Start Ollama or choose a fake/local-ready model for smoke testing.";
+  }
+  if (lower.includes("selected local model could not answer")) {
+    return normalized;
+  }
+  return normalized || "The request failed.";
+}
+
+function isLikelyProjectQuestion(question: string): boolean {
   const words = question.toLowerCase().match(/[a-z0-9]+/g) ?? [];
   return words.some((word) => PROJECT_QUESTION_KEYWORDS.has(word));
 }

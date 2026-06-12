@@ -142,7 +142,23 @@ class AskWorkspaceQuestionUseCase:
             context_results=context_results,
             skill_instructions=request.skill_instructions,
         )
-        answer, usage = self._generate_answer_with_usage(llm_provider, prompt)
+        try:
+            answer, usage = self._generate_answer_with_usage(llm_provider, prompt)
+        except RuntimeError as exc:
+            return self._record_question_event(
+                self._diagnostic_answer(
+                    request=request,
+                    llm_provider=llm_provider,
+                    answer=(
+                        "The selected local model could not answer right now. "
+                        "Check that Ollama is running and that this model is installed, "
+                        "or choose another ready model in Models."
+                    ),
+                    diagnostic_code="selected_llm_runtime_unavailable",
+                    diagnostic_message=str(exc),
+                ),
+                request,
+            )
         quality_warnings = [
             *evaluate_rag_answer(
                 question=request.question,
