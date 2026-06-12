@@ -19808,3 +19808,438 @@ select {
     color: #edf7f2 !important;
   }
 }
+
+/* Task 273 — daily-use visual hardening, dark theme, and compact Ask */
+:root {
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.35rem;
+  --text-2xl: clamp(1.6rem, 2.5vw, 2.15rem);
+  --text-hero: clamp(1.85rem, 3vw, 2.4rem);
+}
+
+.workspace-tabs,
+.workspace-navigation-shell,
+.panel,
+.metric-card,
+.model-selection-card,
+.simple-model-card,
+.models-simple-panel,
+.models-native-hero,
+.settings-clean-card,
+.settings-clean-hero,
+.product-status-panel,
+.product-status-card,
+.ask-bottom-composer,
+.ask-chat-column .ask-conversation-panel > .state-card,
+.assistant-bubble,
+.source-panel,
+.quality-warnings,
+.ask-error,
+.ask-question-hint,
+.ask-guidance-disclosure,
+.models-disclosure-panel,
+.model-catalog-card,
+.model-skill-card,
+.workspace-permission-card,
+.local-model-install-card {
+  max-width: 100%;
+  min-width: 0;
+}
+
+button,
+.primary-button,
+.secondary-action,
+.text-button,
+.overview-cta-button,
+.model-selection-save-button {
+  white-space: normal;
+  line-height: 1.2;
+}
+
+select,
+input,
+textarea,
+code,
+pre,
+.model-selection-card strong,
+.simple-model-card strong,
+.metric-card strong,
+.source-preview,
+.workspace-header-path {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.workspace-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 10px 12px;
+  backdrop-filter: blur(18px);
+}
+
+.workspace-tabs > div {
+  margin-inline: auto;
+  width: fit-content;
+  max-width: min(100%, 620px);
+  padding: 4px;
+  border-radius: 999px;
+}
+
+.workspace-tabs button {
+  min-height: 38px;
+  padding: 8px 18px;
+  font-size: 0.9rem;
+}
+
+.product-status-grid,
+.models-simple-grid,
+.model-selection-grid,
+.model-catalog-grid,
+.model-skill-grid,
+.workspace-permissions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 14px;
+}
+
+.model-selection-card,
+.simple-model-card,
+.model-catalog-card,
+.model-skill-card,
+.workspace-permission-card {
+  overflow: hidden;
+}
+
+.model-selection-card select,
+.model-selection-card button,
+.model-catalog-card button,
+.model-skill-card button,
+.workspace-permission-card select {
+  width: 100%;
+  max-width: 100%;
+}
+
+.ask-workspace-centered {
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.ask-context-sidebar {
+  display: none;
+}
+
+.ask-chat-column {
+  max-width: 980px;
+}
+
+.ask-chat-column .ask-conversation-panel {
+  min-height: auto;
+  padding-bottom: 8px;
+}
+
+.ask-chat-column .ask-conversation-panel > .state-card {
+  min-height: 260px;
+  border-radius: 22px;
+}
+
+.ask-message-list {
+  padding: 8px 4px 110px;
+  gap: 16px;
+}
+
+.ask-message-row.is-user,
+.ask-message-row.is-assistant {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.ask-avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 0.68rem;
+}
+
+.ask-message-bubble,
+.user-bubble,
+.assistant-bubble,
+.ask-assistant-stack,
+.ask-assistant-stack .source-panel,
+.ask-assistant-stack .quality-warnings,
+.ask-assistant-stack .reindex-guidance,
+.ask-assistant-stack .ask-diagnostic,
+.ask-assistant-stack .ask-source-path-note {
+  width: min(100%, 820px);
+  max-width: 100%;
+}
+
+.user-bubble,
+.assistant-bubble {
+  padding: 14px 16px;
+  border-radius: 18px;
+}
+
+.ask-bottom-composer {
+  bottom: 14px;
+  width: min(100%, 920px);
+  padding: 14px;
+  border-radius: 22px;
+}
+
+.ask-bottom-input-row {
+  grid-template-columns: minmax(0, 1fr) minmax(76px, auto);
+  align-items: stretch;
+}
+
+.ask-bottom-input-row textarea {
+  min-height: 54px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-size: 0.98rem;
+}
+
+.ask-send-button {
+  min-width: 76px;
+  min-height: 46px;
+  border-radius: 15px;
+}
+
+.ask-bottom-meta-row {
+  font-size: 0.82rem;
+}
+
+.ask-bottom-meta-row > span {
+  display: none;
+}
+
+.ask-example-strip {
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+}
+
+.ask-example-strip button {
+  min-height: 34px;
+  border-radius: 12px;
+}
+
+.ask-actionable-error {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+
+.settings-clean-grid,
+.settings-clean-card,
+.settings-clean-hero {
+  overflow: hidden;
+}
+
+.settings-clean-card .segmented-control,
+.settings-segmented-control,
+.segmented-control {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.segmented-control button,
+.settings-segmented-control button {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+:root[data-theme="dark"],
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] #root,
+:root[data-theme="dark"] .app-shell,
+:root[data-theme="dark"] .main-content {
+  color-scheme: dark;
+  background: #07120f;
+  color: #edf4f1;
+}
+
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .metric-card,
+:root[data-theme="dark"] .model-selection-card,
+:root[data-theme="dark"] .simple-model-card,
+:root[data-theme="dark"] .models-simple-panel,
+:root[data-theme="dark"] .models-native-hero,
+:root[data-theme="dark"] .settings-clean-card,
+:root[data-theme="dark"] .settings-clean-hero,
+:root[data-theme="dark"] .product-status-panel,
+:root[data-theme="dark"] .product-status-card,
+:root[data-theme="dark"] .onboarding-guide-panel,
+:root[data-theme="dark"] .onboarding-step-card,
+:root[data-theme="dark"] .ask-bottom-composer,
+:root[data-theme="dark"] .ask-chat-column .ask-conversation-panel > .state-card,
+:root[data-theme="dark"] .assistant-bubble,
+:root[data-theme="dark"] .source-panel,
+:root[data-theme="dark"] .quality-warnings,
+:root[data-theme="dark"] .ask-guidance-disclosure,
+:root[data-theme="dark"] .models-disclosure-panel,
+:root[data-theme="dark"] .model-catalog-card,
+:root[data-theme="dark"] .model-skill-card,
+:root[data-theme="dark"] .workspace-permission-card,
+:root[data-theme="dark"] .local-model-install-card,
+:root[data-theme="dark"] article,
+:root[data-theme="dark"] details {
+  color: #edf4f1;
+  background: linear-gradient(180deg, rgba(20, 35, 31, 0.98), rgba(13, 26, 23, 0.98));
+  border-color: rgba(126, 154, 144, 0.34);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 18px 42px rgba(0,0,0,0.28);
+}
+
+:root[data-theme="dark"] .workspace-tabs,
+:root[data-theme="dark"] .workspace-navigation-shell {
+  background: rgba(7, 18, 15, 0.86);
+  border-color: rgba(126, 154, 144, 0.26);
+}
+
+:root[data-theme="dark"] .workspace-tabs > div,
+:root[data-theme="dark"] .segmented-control,
+:root[data-theme="dark"] .settings-segmented-control {
+  background: rgba(235, 242, 238, 0.09);
+  border-color: rgba(235, 242, 238, 0.16);
+}
+
+:root[data-theme="dark"] .workspace-tabs button,
+:root[data-theme="dark"] .segmented-control button,
+:root[data-theme="dark"] .settings-segmented-control button {
+  color: #c8d7d1;
+  background: transparent;
+}
+
+:root[data-theme="dark"] .workspace-tabs button.is-selected,
+:root[data-theme="dark"] .segmented-control button.is-selected,
+:root[data-theme="dark"] .settings-segmented-control button.is-selected {
+  color: #ffffff;
+  background: rgba(255,255,255,0.16);
+}
+
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] h3,
+:root[data-theme="dark"] h4,
+:root[data-theme="dark"] strong,
+:root[data-theme="dark"] b,
+:root[data-theme="dark"] .metric-card strong,
+:root[data-theme="dark"] .simple-model-card strong,
+:root[data-theme="dark"] .model-selection-card strong {
+  color: #f6fbf8;
+}
+
+:root[data-theme="dark"] p,
+:root[data-theme="dark"] span,
+:root[data-theme="dark"] li,
+:root[data-theme="dark"] .panel-helper,
+:root[data-theme="dark"] .models-simple-status,
+:root[data-theme="dark"] .source-panel-subtitle {
+  color: #c8d7d1;
+}
+
+:root[data-theme="dark"] .eyebrow,
+:root[data-theme="dark"] small,
+:root[data-theme="dark"] .metric-label {
+  color: #9fb3ab;
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select {
+  color: #f6fbf8;
+  background: rgba(4, 13, 11, 0.9);
+  border-color: rgba(163, 188, 178, 0.34);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: #8fa49c;
+}
+
+:root[data-theme="dark"] .primary-button,
+:root[data-theme="dark"] .overview-cta-button,
+:root[data-theme="dark"] .model-selection-save-button {
+  color: #ffffff;
+  background: #2f8b68;
+  border-color: #54b58c;
+}
+
+:root[data-theme="dark"] .secondary-action,
+:root[data-theme="dark"] .text-button {
+  color: #d9efe5;
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.14);
+}
+
+:root[data-theme="dark"] .status-badge,
+:root[data-theme="dark"] .status-badge--neutral,
+:root[data-theme="dark"] .status-badge--success,
+:root[data-theme="dark"] .status-badge--warning,
+:root[data-theme="dark"] .status-badge--danger,
+:root[data-theme="dark"] .status-badge--info,
+:root[data-theme="dark"] .status-badge--accent {
+  color: #e9f6f0;
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.14);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"],
+  :root[data-theme="system"] body,
+  :root[data-theme="system"] #root,
+  :root[data-theme="system"] .app-shell,
+  :root[data-theme="system"] .main-content {
+    color-scheme: dark;
+    background: #07120f;
+    color: #edf4f1;
+  }
+
+  :root[data-theme="system"] .panel,
+  :root[data-theme="system"] .metric-card,
+  :root[data-theme="system"] .model-selection-card,
+  :root[data-theme="system"] .simple-model-card,
+  :root[data-theme="system"] .models-simple-panel,
+  :root[data-theme="system"] .models-native-hero,
+  :root[data-theme="system"] .settings-clean-card,
+  :root[data-theme="system"] .settings-clean-hero,
+  :root[data-theme="system"] .product-status-panel,
+  :root[data-theme="system"] .product-status-card,
+  :root[data-theme="system"] .ask-bottom-composer,
+  :root[data-theme="system"] .assistant-bubble,
+  :root[data-theme="system"] .source-panel,
+  :root[data-theme="system"] article,
+  :root[data-theme="system"] details {
+    color: #edf4f1;
+    background: linear-gradient(180deg, rgba(20, 35, 31, 0.98), rgba(13, 26, 23, 0.98));
+    border-color: rgba(126, 154, 144, 0.34);
+  }
+
+  :root[data-theme="system"] h1,
+  :root[data-theme="system"] h2,
+  :root[data-theme="system"] h3,
+  :root[data-theme="system"] h4,
+  :root[data-theme="system"] strong,
+  :root[data-theme="system"] b {
+    color: #f6fbf8;
+  }
+
+  :root[data-theme="system"] p,
+  :root[data-theme="system"] span,
+  :root[data-theme="system"] li,
+  :root[data-theme="system"] .panel-helper {
+    color: #c8d7d1;
+  }
+
+  :root[data-theme="system"] input,
+  :root[data-theme="system"] textarea,
+  :root[data-theme="system"] select {
+    color: #f6fbf8;
+    background: rgba(4, 13, 11, 0.9);
+    border-color: rgba(163, 188, 178, 0.34);
+  }
+}
