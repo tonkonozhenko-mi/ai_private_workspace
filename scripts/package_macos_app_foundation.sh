@@ -43,7 +43,7 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
   <key>CFBundleDisplayName</key>
   <string>AI Private Workspace</string>
   <key>CFBundleIdentifier</key>
-  <string>local.ai-private-workspace.app</string>
+  <string>local.ai-private-workspace</string>
   <key>CFBundleVersion</key>
   <string>0.1.0-foundation</string>
   <key>CFBundleShortVersionString</key>

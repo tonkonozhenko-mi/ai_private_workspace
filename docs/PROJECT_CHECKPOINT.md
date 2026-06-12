@@ -1,6 +1,6 @@
 # AI Private Workspace — Project Checkpoint
 
-Last updated: Task 236
+Last updated: Task 265
 
 ## Working style
 
@@ -485,3 +485,39 @@ Task 263 tightened the frontend first-run state so an empty app with zero worksp
 - Added Tauri/local CORS support for packaged webview preflight requests.
 - Added `scripts/check_packaged_app_sqlite_cors_bootstrap.sh`.
 - Full backend tests after this task: `545 passed, 3 skipped`.
+
+## Task 265 checkpoint
+
+Task 265 hardens the final packaged macOS workspace API bootstrap:
+
+- the Tauri bundle identifier no longer ends in `.app`;
+- Tauri creates and logs the app-owned `data` directory and exact SQLite path;
+- frozen-backend fallback paths use the writable macOS Application Support
+  directory rather than the bundled executable directory;
+- SQLite bootstrap errors identify the resolved database path;
+- desktop readiness now verifies `/workspaces/overview` after `/health`;
+- `scripts/check_packaged_app_workspace_api_smoke.sh` guards the workspace API,
+  packaged CORS, no-shell, and no-kill-by-port contracts.
+
+Implementation checks are complete when the source-contract script, backend
+tests, frontend build, Cargo check, and Tauri build pass. The final gate is a
+manual smoke of the rebuilt `.app`, including first project creation.
+
+Local Task 265 verification proved the fresh frozen backend on an owned
+alternate port: `/health` and `/workspaces/overview` returned HTTP 200 and the
+runtime created `app-data/data/workspaces.db`. The rebuilt `.app` also proved
+the new stale-listener guard by refusing to reuse an older orphaned port-8000
+backend whose `/health` was 200 but workspace overview was 500.
+
+After stopping only the exact app-owned PID recorded by the old supervisor and
+restarting the rebuilt `.app`, the final packaged workspace API smoke passed:
+`/health` 200, `/workspaces/overview` 200, packaged CORS preflight 200,
+app-owned `data/workspaces.db` created, and `POST /workspaces` returned 201
+with the new workspace visible in overview.
+
+The final lifecycle smoke also exposed and fixed a PyInstaller one-file
+shutdown detail: hard-killing only the stored bootloader PID could leave its
+internal server child listening on port 8000. Tauri now requests graceful
+termination of the exact stored app-owned PID first, with hard stop only as a
+timeout fallback. Verified result: graceful app quit frees port 8000 and
+leaves no AI Private Workspace process behind.

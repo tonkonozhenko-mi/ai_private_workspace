@@ -16,20 +16,45 @@ from pathlib import Path
 import uvicorn
 
 
+def _default_desktop_app_data_dir() -> Path:
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "AI Private Workspace"
+    if sys.platform == "win32":
+        return Path(os.getenv("LOCALAPPDATA", str(Path.home()))) / "AI Private Workspace"
+    return Path.home() / ".local" / "share" / "AI Private Workspace"
+
+
+def _first_non_empty_env(*names: str, default: Path) -> Path:
+    for name in names:
+        value = os.getenv(name)
+        if value and value.strip():
+            return Path(value.strip()).expanduser()
+    return default
+
+
 def _configure_frozen_environment() -> None:
     """Set safe desktop defaults for the frozen backend runtime."""
 
     if getattr(sys, "frozen", False):
-        executable_dir = Path(sys.executable).resolve().parent
         os.environ.setdefault("APP_ENV", "desktop")
-        os.environ.setdefault(
+        app_data_dir = _first_non_empty_env(
             "APP_DATA_DIR",
-            str(executable_dir / "app-data"),
+            "AI_WORKSPACE_APP_DATA_DIR",
+            default=_default_desktop_app_data_dir(),
         )
-        os.environ.setdefault(
+        workspace_db_path = _first_non_empty_env(
             "WORKSPACE_DB_PATH",
-            str(executable_dir / "app-data" / "workspaces.db"),
+            "AI_WORKBENCH_DB_PATH",
+            default=app_data_dir / "data" / "workspaces.db",
         )
+        workspace_db_path.parent.mkdir(parents=True, exist_ok=True)
+        (app_data_dir / "logs").mkdir(parents=True, exist_ok=True)
+        os.environ["APP_DATA_DIR"] = str(app_data_dir)
+        os.environ["WORKSPACE_DB_PATH"] = str(workspace_db_path)
+        os.environ.setdefault("AI_WORKSPACE_APP_DATA_DIR", str(app_data_dir))
+        os.environ.setdefault("AI_WORKBENCH_DB_PATH", str(workspace_db_path))
+        print(f"AI Private Workspace app data directory: {app_data_dir}", file=sys.stderr)
+        print(f"AI Private Workspace workspace database: {workspace_db_path}", file=sys.stderr)
     else:
         os.environ.setdefault("APP_ENV", "desktop")
 
