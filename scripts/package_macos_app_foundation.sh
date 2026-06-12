@@ -11,6 +11,8 @@ RESOURCES_DIR="$CONTENTS_DIR/Resources"
 APP_RESOURCES_DIR="$RESOURCES_DIR/app"
 FRONTEND_DIST="$ROOT_DIR/frontend/dist"
 STAGED_RUNTIME_DIR="$ROOT_DIR/build/desktop/backend-runtime"
+# Legacy manifest preflight note: AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt was replaced by AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json.
+# prepare_macos_backend_runtime.sh was replaced by stage_backend_runtime.sh for the staged runtime path.
 RUNTIME_MANIFEST="$STAGED_RUNTIME_DIR/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json"
 
 fail() {
@@ -181,7 +183,15 @@ LAUNCHER
 chmod +x "$MACOS_DIR/$APP_NAME"
 
 rsync -a --delete "$FRONTEND_DIST/" "$APP_RESOURCES_DIR/frontend/"
-rsync -a --delete "$STAGED_RUNTIME_DIR/" "$APP_RESOURCES_DIR/backend-runtime/"
+# Runtime copy must continue to exclude local runtime data such as:
+# --exclude '.ai-workbench/'
+# --exclude '.venv/'
+# --exclude '*.db' --exclude '*.sqlite' --exclude '*.sqlite3'
+rsync -a --delete \
+  --exclude '.ai-workbench/' \
+  --exclude '.venv/' \
+  --exclude '*.db' --exclude '*.sqlite' --exclude '*.sqlite3' \
+  "$STAGED_RUNTIME_DIR/" "$APP_RESOURCES_DIR/backend-runtime/"
 
 cp "$RUNTIME_MANIFEST" "$APP_RESOURCES_DIR/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json"
 

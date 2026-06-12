@@ -130,8 +130,49 @@ fn backend_log_path() -> PathBuf {
     logs_dir().join("backend.log")
 }
 
+fn supervisor_log_path() -> PathBuf {
+    logs_dir().join("desktop-supervisor.log")
+}
+
+fn append_supervisor_log(message: &str) {
+    let _ = fs::create_dir_all(logs_dir());
+    if let Ok(mut file) = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(supervisor_log_path())
+    {
+        let _ = writeln!(file, "{}", message);
+    }
+}
+
 fn health_url() -> String {
     "http://127.0.0.1:8000/health".to_string()
+}
+
+fn find_frozen_runtime_manifests_under(root: &PathBuf, max_depth: usize) -> Vec<PathBuf> {
+    fn visit(dir: &PathBuf, depth: usize, max_depth: usize, found: &mut Vec<PathBuf>) {
+        if depth > max_depth {
+            return;
+        }
+        let entries = match fs::read_dir(dir) {
+            Ok(entries) => entries,
+            Err(_) => return,
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file()
+                && path.file_name().and_then(|name| name.to_str()) == Some("AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json")
+            {
+                found.push(path);
+            } else if path.is_dir() {
+                visit(&path, depth + 1, max_depth, found);
+            }
+        }
+    }
+
+    let mut found = Vec::new();
+    visit(root, 0, max_depth, &mut found);
+    found
 }
 
 fn runtime_manifest_candidates() -> Vec<PathBuf> {
@@ -147,16 +188,36 @@ fn runtime_manifest_candidates() -> Vec<PathBuf> {
             candidates.push(exe_dir.join("../../Resources/backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"));
             candidates.push(exe_dir.join("../Resources/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"));
             candidates.push(exe_dir.join("../../Resources/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"));
+
+            for ancestor in exe_dir.ancestors().take(8) {
+                let resources = ancestor.join("Resources");
+                if resources.exists() {
+                    candidates.extend(find_frozen_runtime_manifests_under(&resources, 6));
+                }
+            }
         }
     }
+    candidates.sort();
+    candidates.dedup();
     candidates
 }
 
 fn resolve_frozen_backend_executable() -> Result<PathBuf, String> {
-    for manifest_path in runtime_manifest_candidates() {
+    let candidates = runtime_manifest_candidates();
+    append_supervisor_log(&format!(
+        "Resolving frozen backend runtime. Candidate manifests: {}",
+        candidates
+            .iter()
+            .map(|path| path.display().to_string())
+            .collect::<Vec<String>>()
+            .join(" | ")
+    ));
+
+    for manifest_path in candidates {
         if !manifest_path.exists() {
             continue;
         }
+        append_supervisor_log(&format!("Trying frozen runtime manifest: {}", manifest_path.display()));
         let manifest_text = fs::read_to_string(&manifest_path)
             .map_err(|err| format!("Could not read frozen runtime manifest {}: {}", manifest_path.display(), err))?;
         let manifest: FrozenRuntimeManifest = serde_json::from_str(&manifest_text)
@@ -166,14 +227,19 @@ fn resolve_frozen_backend_executable() -> Result<PathBuf, String> {
             .ok_or_else(|| format!("Frozen runtime manifest has no parent directory: {}", manifest_path.display()))?;
         let executable = runtime_dir.join(manifest.backend_executable);
         if executable.exists() {
+            append_supervisor_log(&format!("Resolved frozen backend executable: {}", executable.display()));
             return Ok(executable);
         }
-        return Err(format!(
+        let message = format!(
             "Frozen backend executable referenced by manifest is missing: {}",
             executable.display()
-        ));
+        );
+        append_supervisor_log(&message);
+        return Err(message);
     }
-    Err("Frozen backend runtime manifest is missing. Build it first with scripts/build_pyinstaller_backend_runtime.sh and smoke it with scripts/smoke_frozen_backend_runtime.sh.".to_string())
+    let message = "Frozen backend runtime manifest is missing. Build it first with scripts/build_pyinstaller_backend_runtime.sh and bundle it with the packaged app build command. Check desktop-supervisor.log for searched paths.".to_string();
+    append_supervisor_log(&message);
+    Err(message)
 }
 
 fn port_8000_is_busy() -> bool {
@@ -378,6 +444,7 @@ fn get_app_owned_backend_process_status() -> Result<AppOwnedBackendProcessStatus
 fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, String> {
     fs::create_dir_all(logs_dir()).map_err(|err| format!("Could not create logs directory: {}", err))?;
     fs::create_dir_all(app_data_dir()).map_err(|err| format!("Could not create app data directory: {}", err))?;
+    append_supervisor_log("start_app_owned_backend_runtime invoked");
 
     let mut guard = backend_process_state()
         .lock()
@@ -390,6 +457,7 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
     }
 
     if port_8000_is_busy() {
+        append_supervisor_log("Port 8000 is already in use; refusing to kill unknown process");
         return Err("Port 8000 is already in use. AI Private Workspace will not kill unknown processes; stop the other process manually or configure a different port in a future build.".to_string());
     }
 
@@ -413,14 +481,21 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
         .stdout(Stdio::from(stdout_log))
         .stderr(Stdio::from(stderr_log))
         .spawn()
-        .map_err(|err| format!("Could not start frozen backend runtime {}: {}", executable.display(), err))?;
+        .map_err(|err| {
+            let message = format!("Could not start frozen backend runtime {}: {}", executable.display(), err);
+            append_supervisor_log(&message);
+            message
+        })?;
+    append_supervisor_log(&format!("Started app-owned backend child PID {}", child.id()));
 
     if !wait_for_backend_health(Duration::from_secs(15)) {
         let _ = child.kill();
         let _ = child.wait();
-        return Err("Started app-owned backend process but /health did not return HTTP 200 in time. Check the backend log for details.".to_string());
+        append_supervisor_log("Started backend child but /health did not return HTTP 200 in time; child was stopped");
+        return Err("Started app-owned backend process but /health did not return HTTP 200 in time. Check backend.log and desktop-supervisor.log for details.".to_string());
     }
 
+    append_supervisor_log("App-owned frozen backend runtime is healthy");
     let status = process_status_from_child(Some(&child), "running", "App-owned frozen backend runtime started and /health returned HTTP 200.");
     *guard = Some(child);
     Ok(status)

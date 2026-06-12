@@ -994,7 +994,7 @@ def get_tauri_shell_scaffold() -> TauriShellScaffoldResponse:
                 generated=False,
             ),
             TauriShellScaffoldFileResponse(
-                path="frontend/src-tauri/src/main.rs",
+                path="frontend/src-tauri/src/lib.rs",
                 purpose="Safe shell entrypoint placeholder. It opens the app window but does not execute project commands yet.",
                 generated=False,
             ),
@@ -1078,7 +1078,7 @@ def get_tauri_supervisor_bridge() -> TauriSupervisorBridgeResponse:
         title="Tauri supervisor bridge",
         summary="Maps the real desktop shell to the backend supervisor lifecycle: start app-owned backend, wait for health, open the UI, and show friendly errors without letting React execute shell commands.",
         package_goal="Double click the packaged app -> Tauri shell starts -> app-owned backend starts on localhost -> /health succeeds -> UI becomes ready.",
-        bridge_file="frontend/src-tauri/src/main.rs",
+        bridge_file="frontend/src-tauri/src/lib.rs",
         tauri_command_strategy="Expose small Tauri commands for startup status and log paths only. Process startup belongs to the native shell layer, never to React UI code.",
         backend_start_strategy="Future implementation starts the bundled backend executable/source from the Tauri process using app-owned paths and a localhost-only bind. Current scaffold records the contract but does not start processes yet.",
         readiness_strategy="Tauri polls http://127.0.0.1:8000/health and marks the app ready only after a successful response. If an unknown service owns the port, it fails calmly and points to logs.",
@@ -1149,7 +1149,7 @@ def get_tauri_supervisor_bridge() -> TauriSupervisorBridgeResponse:
         ],
         validation_steps=[
             "Run scripts/prepare_tauri_shell_scaffold.sh from the project root.",
-            "Verify frontend/src-tauri/src/main.rs contains supervisor state commands but no arbitrary shell bridge.",
+            "Verify frontend/src-tauri/src/lib.rs contains supervisor state commands but no arbitrary shell bridge.",
             "Verify React code does not call Tauri process APIs or shell commands.",
             "Verify app launch does not start scan/index/rebuild/MCP/agent/model downloads.",
             "Verify generated source zip excludes build/, dist/, node_modules, runtime DBs, caches, and app data.",
@@ -1181,7 +1181,7 @@ def get_tauri_supervisor_bridge() -> TauriSupervisorBridgeResponse:
 def get_tauri_supervisor_static_gate() -> TauriSupervisorStaticGateResponse:
     """Return the static safety gate for the read-only Tauri supervisor bridge."""
     root = Path(__file__).resolve().parents[4]
-    bridge_file = root / "frontend" / "src-tauri" / "src" / "main.rs"
+    bridge_file = root / "frontend" / "src-tauri" / "src" / "lib.rs"
     check_script = root / "scripts" / "check_tauri_supervisor_bridge.sh"
     source = bridge_file.read_text(encoding="utf-8") if bridge_file.exists() else ""
 
@@ -1190,8 +1190,8 @@ def get_tauri_supervisor_static_gate() -> TauriSupervisorStaticGateResponse:
             id="bridge-file",
             title="Tauri bridge source",
             status="ok" if bridge_file.exists() else "blocked",
-            summary="frontend/src-tauri/src/main.rs exists" if bridge_file.exists() else "Tauri bridge source is missing",
-            evidence="frontend/src-tauri/src/main.rs",
+            summary="frontend/src-tauri/src/lib.rs exists" if bridge_file.exists() else "Tauri bridge source is missing",
+            evidence="frontend/src-tauri/src/lib.rs",
         ),
         TauriSupervisorStaticGateItemResponse(
             id="status-command",
@@ -1215,42 +1215,42 @@ def get_tauri_supervisor_static_gate() -> TauriSupervisorStaticGateResponse:
             evidence="get_supervisor_preflight",
         ),
         TauriSupervisorStaticGateItemResponse(
-            id="backend-start-disabled",
-            title="Backend start disabled",
-            status="ok" if "backend_start_enabled: false" in source else "blocked",
-            summary="Tauri bridge exposes status/log paths but does not start the backend yet" if "backend_start_enabled: false" in source else "Backend start is not explicitly disabled",
-            evidence="backend_start_enabled: false",
+            id="backend-start-gated",
+            title="Backend start gated by frozen manifest",
+            status="ok" if "backend_start_enabled: true" in source and "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json" in source else "blocked",
+            summary="Tauri can start only the app-owned frozen backend after the manifest is present" if "backend_start_enabled: true" in source and "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json" in source else "Frozen manifest startup gate is missing",
+            evidence="backend_start_enabled: true + AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json",
         ),
         TauriSupervisorStaticGateItemResponse(
-            id="no-process-api",
-            title="No process execution API",
-            status="blocked" if any(token in source for token in ("std::process::Command", "Command::new", "std::process", "spawn(")) else "ok",
-            summary="No process execution calls are present" if not any(token in source for token in ("std::process::Command", "Command::new", "std::process", "spawn(")) else "Process execution keywords found; keep Task 240 read-only",
-            evidence="std::process::Command / Command::new / spawn(",
+            id="no-generic-shell-api",
+            title="No generic shell execution API",
+            status="ok" if all(token not in source for token in ("sh -c", "cmd /C", "osascript", "npm run", "ollama pull")) else "blocked",
+            summary="Only narrow app-owned backend lifecycle commands are present" if all(token not in source for token in ("sh -c", "cmd /C", "osascript", "npm run", "ollama pull")) else "Generic shell execution keywords found",
+            evidence="no sh -c / cmd /C / npm run / ollama pull",
         ),
     ]
     status = "blocked" if any(item.status == "blocked" for item in items) else "ok"
     return TauriSupervisorStaticGateResponse(
         status=status,
         title="Tauri supervisor static gate",
-        summary="Read-only Phase 22 gate for Tauri status/log-path commands before backend process startup is implemented.",
+        summary="Phase 22 gate for Tauri status/log-path commands and manifest-gated app-owned backend startup.",
         check_script="scripts/check_tauri_supervisor_bridge.sh",
-        bridge_file="frontend/src-tauri/src/main.rs",
+        bridge_file="frontend/src-tauri/src/lib.rs",
         items=items,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Tauri supervisor bridge check", command="scripts/check_tauri_supervisor_bridge.sh", purpose="Validate read-only Tauri commands and safety wording without starting backend processes."),
+            DesktopRuntimeValidationCommandResponse(label="Tauri supervisor bridge check", command="scripts/check_tauri_supervisor_bridge.sh", purpose="Validate Tauri commands and safety wording without exposing generic shell execution."),
             DesktopRuntimeValidationCommandResponse(label="Desktop runtime preflight", command="scripts/check_desktop_runtime_preflight.sh", purpose="Validate runtime manifest, frontend build output, and packaging inputs."),
         ],
         safety_rules=[
-            "Tauri commands are read-only in this stage.",
-            "Backend startup stays disabled until runtime bundling is deterministic.",
+            "Tauri commands expose only app-owned backend lifecycle and diagnostics.",
+            "Backend startup is enabled only after the frozen runtime manifest is bundled.",
             "React frontend still cannot execute shell commands.",
             "Desktop launch must not start scan, index, rebuild, MCP, Agent, or model downloads.",
             "Unknown localhost processes must never be killed automatically.",
         ],
         next_steps=[
-            "Use this gate before implementing app-owned backend startup.",
-            "Next Phase 22 step should be frozen backend runtime selection/staging, not more v0.1 polish.",
+            "Use this gate before packaged app smoke validation.",
+            "Next Phase 22 step should verify packaged app backend startup diagnostics and app-owned logs.",
         ],
     )
 
@@ -1728,7 +1728,7 @@ def get_frozen_backend_runtime_selection() -> FrozenBackendRuntimeSelectionRespo
         title="Frozen backend runtime selection",
         summary="Defines how the desktop shell will choose between frozen backend, staged source runtime, and manually started developer backend without unsafe auto-execution.",
         selection_strategy="Prefer frozen app-owned runtime after manifest and health checks; use staged runtime only as a developer fallback; otherwise keep backend startup disabled.",
-        tauri_bridge_file="frontend/src-tauri/src/main.rs",
+        tauri_bridge_file="frontend/src-tauri/src/lib.rs",
         check_script="scripts/check_tauri_runtime_selection.sh",
         candidates=candidates,
         validation_commands=[
@@ -1905,7 +1905,7 @@ def get_app_owned_backend_startup_gate() -> AppOwnedBackendStartupGateResponse:
         title="App-owned backend startup gate",
         summary="Defines the exact gate before the desktop shell can start the packaged backend: frozen manifest, explicit smoke pass, app-owned logs/data, PID-owned shutdown, and no risky launch side effects.",
         startup_mode="gate_metadata_only_no_process_start",
-        tauri_bridge_file="frontend/src-tauri/src/main.rs",
+        tauri_bridge_file="frontend/src-tauri/src/lib.rs",
         check_script="scripts/check_tauri_app_owned_startup_gate.sh",
         required_gates=required_gates,
         startup_contract=[
@@ -1998,7 +1998,7 @@ def get_app_owned_backend_startup_implementation() -> AppOwnedBackendStartupImpl
         title="App-owned backend startup implementation",
         summary="Adds the first real Tauri supervisor lifecycle for starting a packaged app-owned backend runtime, while preserving strict manifest, port, PID, and no-auto-action gates.",
         startup_mode="real_tauri_process_start_gated_by_frozen_manifest",
-        tauri_bridge_file="frontend/src-tauri/src/main.rs",
+        tauri_bridge_file="frontend/src-tauri/src/lib.rs",
         check_script="scripts/check_tauri_app_owned_backend_startup.sh",
         runtime_priority=[
             "Frozen PyInstaller runtime from build/desktop/frozen-backend-runtime",
@@ -2085,7 +2085,7 @@ def get_app_owned_backend_health_readiness() -> AppOwnedBackendHealthReadinessRe
         summary="Hardens the real Tauri backend startup path so desktop readiness requires HTTP /health 200 instead of treating an open localhost port as success.",
         readiness_mode="http_get_health_must_return_200",
         health_url="http://127.0.0.1:8000/health",
-        tauri_bridge_file="frontend/src-tauri/src/main.rs",
+        tauri_bridge_file="frontend/src-tauri/src/lib.rs",
         check_script="scripts/check_tauri_backend_health_readiness.sh",
         implementation_items=items,
         validation_commands=[
@@ -2358,7 +2358,7 @@ def get_tauri_rust_structure_registry() -> TauriRustStructureRegistryResponse:
         title="Tauri Rust structure and registry guard",
         summary="Validates the Cargo library layout required by Tauri and guards npm lockfiles against internal registry URLs.",
         check_script="scripts/check_tauri_rust_structure_and_registry.sh",
-        rust_entrypoint="frontend/src-tauri/src/main.rs",
+        rust_entrypoint="frontend/src-tauri/src/lib.rs",
         rust_library="frontend/src-tauri/src/lib.rs",
         npm_registry_policy="frontend/package-lock.json must resolve packages from the public npm registry, not internal sandbox registries.",
         validation_items=items,
@@ -3212,7 +3212,7 @@ def get_desktop_runtime_preflight() -> DesktopRuntimePreflightResponse:
             title="Tauri shell scaffold",
             status="ok" if tauri_main.exists() else "review",
             summary="Tauri shell source exists" if tauri_main.exists() else "Tauri shell scaffold is not present",
-            evidence="frontend/src-tauri/src/main.rs",
+            evidence="frontend/src-tauri/src/lib.rs",
             fix_command="scripts/prepare_tauri_shell_scaffold.sh" if not tauri_main.exists() else None,
         ),
     ]

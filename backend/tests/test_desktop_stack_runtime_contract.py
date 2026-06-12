@@ -40,7 +40,8 @@ def test_desktop_stack_contract_script_is_static_and_safe() -> None:
 
     assert "AI Private Workspace desktop stack contract check" in content
     assert "/desktop-stack-runtime-contract" in content
-    assert "backend_start_enabled: false" in content
+    assert "backend_start_enabled: true" in content
+    assert "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json" in content
     assert "uvicorn" not in content
     assert "ollama pull" not in content
     assert "npm run dev" not in content
