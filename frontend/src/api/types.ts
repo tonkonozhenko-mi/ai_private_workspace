@@ -2061,3 +2061,28 @@ export interface LocalModelDownloadExecutionResult {
   command_proposal: CommandProposal;
   next_steps: string[];
 }
+
+
+export interface StagedBackendRuntimeItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  path: string | null;
+}
+
+export interface StagedBackendRuntimeContract {
+  status: string;
+  title: string;
+  summary: string;
+  staging_script: string;
+  check_script: string;
+  staging_directory: string;
+  launcher_path: string;
+  manifest_path: string;
+  items: StagedBackendRuntimeItem[];
+  runtime_contract: string[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  safety_rules: string[];
+  next_steps: string[];
+}

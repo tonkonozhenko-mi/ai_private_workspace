@@ -10,7 +10,8 @@ MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 APP_RESOURCES_DIR="$RESOURCES_DIR/app"
 FRONTEND_DIST="$ROOT_DIR/frontend/dist"
-RUNTIME_MANIFEST="$ROOT_DIR/build/macos/backend-runtime/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt"
+STAGED_RUNTIME_DIR="$ROOT_DIR/build/desktop/backend-runtime"
+RUNTIME_MANIFEST="$STAGED_RUNTIME_DIR/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json"
 
 fail() {
   echo "❌ $1" >&2
@@ -20,11 +21,12 @@ fail() {
 [ -d "$ROOT_DIR/backend" ] || fail "backend/ directory not found. Run this from the ai_workspace project root."
 [ -d "$ROOT_DIR/frontend" ] || fail "frontend/ directory not found. Run this from the ai_workspace project root."
 [ -d "$FRONTEND_DIST" ] || fail "frontend/dist not found. Run: cd frontend && npm ci && npm run build"
-if [ ! -f "$RUNTIME_MANIFEST" ]; then
-  echo "ℹ️ Backend runtime manifest not found. Generating foundation manifest first."
-  "$ROOT_DIR/scripts/prepare_macos_backend_runtime.sh"
+if [ ! -f "$RUNTIME_MANIFEST" ] || [ ! -x "$STAGED_RUNTIME_DIR/run_backend.sh" ]; then
+  echo "ℹ️ Staged backend runtime not found. Generating source runtime stage first."
+  "$ROOT_DIR/scripts/stage_backend_runtime.sh"
 fi
-[ -f "$RUNTIME_MANIFEST" ] || fail "backend runtime manifest was not generated."
+[ -f "$RUNTIME_MANIFEST" ] || fail "staged backend runtime manifest was not generated."
+[ -x "$STAGED_RUNTIME_DIR/run_backend.sh" ] || fail "staged backend runtime launcher was not generated."
 
 rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR" "$APP_RESOURCES_DIR/frontend" "$APP_RESOURCES_DIR/backend" "$RESOURCES_DIR/logs"
@@ -65,7 +67,7 @@ set -euo pipefail
 APP_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 RESOURCES_DIR="$APP_ROOT/Resources"
 APP_DIR="$RESOURCES_DIR/app"
-BACKEND_DIR="$APP_DIR/backend"
+BACKEND_DIR="$APP_DIR/backend-runtime/app"
 FRONTEND_DIR="$APP_DIR/frontend"
 BACKEND_HOST="127.0.0.1"
 BACKEND_PORT="${AI_PRIVATE_WORKSPACE_PORT:-8000}"
@@ -179,16 +181,9 @@ LAUNCHER
 chmod +x "$MACOS_DIR/$APP_NAME"
 
 rsync -a --delete "$FRONTEND_DIST/" "$APP_RESOURCES_DIR/frontend/"
-rsync -a --delete \
-  --exclude '.ai-workbench/' \
-  --exclude '*.db' \
-  --exclude '*.sqlite' \
-  --exclude '__pycache__/' \
-  --exclude '.pytest_cache/' \
-  --exclude '.venv/' \
-  "$ROOT_DIR/backend/" "$APP_RESOURCES_DIR/backend/"
+rsync -a --delete "$STAGED_RUNTIME_DIR/" "$APP_RESOURCES_DIR/backend-runtime/"
 
-cp "$RUNTIME_MANIFEST" "$APP_RESOURCES_DIR/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt"
+cp "$RUNTIME_MANIFEST" "$APP_RESOURCES_DIR/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json"
 
 cat > "$APP_RESOURCES_DIR/README_PACKAGE_FOUNDATION.txt" <<EOF
 AI Private Workspace macOS package foundation
@@ -196,9 +191,9 @@ AI Private Workspace macOS package foundation
 This is a foundation bundle for packaging validation, not the final signed app.
 It stages:
 - static frontend assets from frontend/dist
-- backend source without runtime data
-- backend runtime manifest from build/macos/backend-runtime
-- a temporary launcher stub
+- staged backend runtime from build/desktop/backend-runtime
+- backend runtime manifest from build/desktop/backend-runtime
+- a temporary launcher stub wired to the staged source runtime
 
 Runtime data is expected outside the app bundle, for example:
 ~/Library/Application Support/AI Private Workspace/workspace.db

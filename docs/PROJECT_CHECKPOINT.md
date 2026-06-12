@@ -339,3 +339,14 @@ Task 241 adds an explicit desktop shell technology decision record. Tauri remain
 - Added `/runtime/desktop-stack-runtime-contract`.
 - Added `scripts/check_desktop_stack_contract.sh`.
 - Locked the runtime staging contract before enabling desktop-owned backend startup.
+
+
+## Task 243 checkpoint
+
+- Phase 21 / v0.1 source RC remains effectively complete.
+- Phase 22 / v0.2 desktop runtime is now practical, not only documented.
+- Added staged backend runtime script, check script, API contract, UI section,
+  docs, and tests.
+- Remaining v1.0 work still includes frozen backend binary, signed macOS app,
+  Windows installer, persistent jobs, MCP runtime, sandboxed Agent execution,
+  update flow, and final QA.

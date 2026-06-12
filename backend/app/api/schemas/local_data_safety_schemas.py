@@ -454,6 +454,32 @@ class DesktopStackAndRuntimeContractResponse(BaseModel):
     safety_rules: list[str]
     next_steps: list[str]
 
+
+class StagedBackendRuntimeItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    path: str | None = None
+
+
+class StagedBackendRuntimeContractResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    staging_script: str
+    check_script: str
+    staging_directory: str
+    launcher_path: str
+    manifest_path: str
+    items: list[StagedBackendRuntimeItemResponse]
+    runtime_contract: list[str]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
+
+
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str
     purpose: str

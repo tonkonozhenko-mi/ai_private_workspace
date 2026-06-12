@@ -316,3 +316,5 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 ## Task 242 runtime endpoint
 
 - `GET /runtime/desktop-stack-runtime-contract` — selected open-source/free cross-platform desktop stack, rejected alternatives, runtime freeze milestones, staging contract, validation commands, and safety rules.
+
+- `GET /runtime/staged-backend-runtime-contract` — staged backend runtime layout, manifest, launcher and validation contract for v0.2 desktop packaging.
