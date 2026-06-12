@@ -1,0 +1,41 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.routes.agent_workflows import router as agent_workflows_router
+from app.api.routes.assistant_profiles import router as assistant_profiles_router
+from app.api.routes.commands import router as commands_router
+from app.api.routes.health import router as health_router
+from app.api.routes.local_data_safety import router as local_data_safety_router
+from app.api.routes.models import router as models_router
+from app.api.routes.mcp import router as mcp_router
+from app.api.routes.onboarding import router as onboarding_router
+from app.api.routes.projects import router as projects_router
+from app.api.routes.runtime_health import router as runtime_health_router
+from app.api.routes.workspaces import router as workspaces_router
+from app.config.settings import get_settings
+
+
+settings = get_settings()
+
+app = FastAPI(title=settings.app_name)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_allowed_origins,
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|tauri\.localhost)(:\d+)?$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(health_router)
+app.include_router(runtime_health_router)
+app.include_router(local_data_safety_router)
+app.include_router(assistant_profiles_router)
+app.include_router(agent_workflows_router)
+app.include_router(models_router)
+app.include_router(mcp_router)
+app.include_router(onboarding_router)
+app.include_router(projects_router)
+app.include_router(workspaces_router)
+app.include_router(commands_router)
