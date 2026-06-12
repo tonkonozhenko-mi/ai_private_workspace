@@ -87,12 +87,21 @@ export interface CreateWorkspaceRequest {
 }
 
 export interface CreatedWorkspace {
-  workspace_id: string;
+  id: string;
   name: string;
   project_path: string;
   assistant_mode: string;
   privacy_mode: string;
   created_at: string;
+  archived_at: string | null;
+}
+
+export interface WorkspaceFileWriteResult {
+  workspace_id: string;
+  relative_path: string;
+  bytes_written: number;
+  replaced_existing: boolean;
+  status: string;
 }
 
 export interface WorkspaceOverviewItem {

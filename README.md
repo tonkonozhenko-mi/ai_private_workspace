@@ -15,6 +15,8 @@ The v0.1 release candidate is a source handoff for developers and reviewers. It 
 - Keeps conversations, answer history, model choices, reports, and timeline state locally.
 - Guides local Ollama/model setup and detects installed local models.
 - Provides safe model download drafts and backend-owned download jobs behind explicit approval.
+- Provides working workspace model presets, comparisons, and an MCP registry with explicit approval planning.
+- Lets Ask turn an answer into a reviewed project-file draft; a file is written only after the user confirms its relative path, exact content, and overwrite intent.
 - Provides Agent and MCP planning UX without automatic tool execution.
 - Includes macOS, Windows, and Tauri packaging foundations for future installer-grade releases.
 
@@ -27,7 +29,19 @@ AI Private Workspace is designed around explicit user control:
 - Model download execution is disabled by default and must be enabled backend-side in trusted local runtime only.
 - Agent workflows are planning/manual tracking only in v0.1.
 - Approval gates record user intent; they do not execute tools automatically.
+- Ask never writes a generated file automatically. The user must open the review panel and explicitly create it.
 - Runtime data, local databases, caches, and build artifacts are excluded from source archives.
+
+## Main product flows
+
+The frontend keeps the common workflows focused and progressively reveals technical detail:
+
+- **Ask** answers from workspace context and can prepare a safe, editable file draft.
+- **Models** separates Overview, Choose & install, Skills, Compare, MCP tools, and Advanced configuration.
+- **Choose & install** uses backend-provided recommendations and accepts custom Ollama model tags; downloads remain explicit and opt-in.
+- **Skills** saves workspace model presets, while **Compare** runs explicit model comparisons.
+- **MCP tools** provides an approval-first registry for creating, editing, enabling, disabling, and inspecting MCP server definitions. MCP tools are not executed automatically.
+- **Settings** shows a plain-language readiness checklist for the local backend, project scan, search context, and local AI.
 
 ## Current status
 
@@ -79,6 +93,11 @@ For the current macOS developer-safe launcher:
 chmod +x scripts/launch_macos.command scripts/create_macos_shortcut.sh
 ./scripts/launch_macos.command
 ```
+
+For the desktop app bundle, double-click `Open AI Private Workspace.command` in
+the repository root. It rebuilds the packaged app when tracked application
+sources changed since the last successful build, otherwise it opens the
+existing app immediately.
 
 ## Validation
 

@@ -16,6 +16,7 @@ import {
   updateWorkspaceConversationPinned,
   saveConversationAnswerNote,
   updateWorkspaceConversationTitle,
+  writeWorkspaceFile,
 } from "../api/client";
 import { CopyButton } from "./CopyButton";
 import type {
@@ -1230,6 +1231,7 @@ function AnswerResult({
   const isMissingSourcePaths = warnings.some(
     (warning) => warning.code === "answer_missing_source_paths",
   );
+  const [showFileDraft, setShowFileDraft] = useState(false);
 
   return (
     <div className="ask-message-row is-assistant">
@@ -1253,6 +1255,13 @@ function AnswerResult({
                 Save note
               </button>
               <CopyButton text={answer.answer} label="answer" />
+              <button
+                className="text-button"
+                type="button"
+                onClick={() => setShowFileDraft((current) => !current)}
+              >
+                {showFileDraft ? "Close file draft" : "Create file"}
+              </button>
             </div>
           </div>
           <div className="answer-content">
@@ -1273,6 +1282,14 @@ function AnswerResult({
           <LLMUsageSummary answer={answer} />
           <AskSkillProfileAuditSummary answer={answer} />
         </article>
+
+        {showFileDraft ? (
+          <AnswerFileDraft
+            workspaceId={answer.workspace_id}
+            answer={answer.answer}
+            onClose={() => setShowFileDraft(false)}
+          />
+        ) : null}
 
         {answer.diagnostic_message ? (
           <article className="ask-diagnostic">
@@ -1305,6 +1322,98 @@ function AnswerResult({
       </div>
     </div>
   );
+}
+
+function AnswerFileDraft({
+  workspaceId,
+  answer,
+  onClose,
+}: {
+  workspaceId: string;
+  answer: string;
+  onClose: () => void;
+}) {
+  const [relativePath, setRelativePath] = useState("");
+  const [content, setContent] = useState(() => extractFirstCodeBlock(answer) ?? answer);
+  const [overwrite, setOverwrite] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function saveFile() {
+    if (!relativePath.trim()) {
+      setError("Enter a relative path such as docs/generated-overview.md.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const result = await writeWorkspaceFile(workspaceId, {
+        relative_path: relativePath.trim(),
+        content,
+        overwrite,
+      });
+      setMessage(`${result.status === "replaced" ? "Replaced" : "Created"} ${result.relative_path} (${result.bytes_written} bytes).`);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Could not save workspace file.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="ask-file-draft" aria-label="Review and create workspace file">
+      <div className="ask-file-draft-heading">
+        <div>
+          <p className="eyebrow">Explicit file change</p>
+          <h3>Review before creating a project file</h3>
+          <p>The file is written only after you press Create file. Paths outside this workspace are blocked.</p>
+        </div>
+        <StatusBadge label="Review required" tone="warning" />
+      </div>
+      <label>
+        <span>Relative project path</span>
+        <input
+          value={relativePath}
+          placeholder="docs/generated-overview.md"
+          onChange={(event) => setRelativePath(event.target.value)}
+        />
+      </label>
+      <label>
+        <span>Exact file content</span>
+        <textarea
+          rows={12}
+          value={content}
+          spellCheck={false}
+          onChange={(event) => setContent(event.target.value)}
+        />
+      </label>
+      <label className="ask-file-overwrite">
+        <input
+          type="checkbox"
+          checked={overwrite}
+          onChange={(event) => setOverwrite(event.target.checked)}
+        />
+        Allow replacing an existing file after review
+      </label>
+      <div className="ask-file-draft-actions">
+        <button className="primary-button" type="button" disabled={saving} onClick={() => void saveFile()}>
+          {saving ? "Saving…" : "Create file"}
+        </button>
+        <button className="secondary-action" type="button" onClick={onClose}>
+          Cancel
+        </button>
+      </div>
+      {message ? <p className="ask-file-message">{message}</p> : null}
+      {error ? <p className="ask-file-error" role="alert">{error}</p> : null}
+    </section>
+  );
+}
+
+function extractFirstCodeBlock(value: string): string | null {
+  const match = value.match(/```(?:[a-zA-Z0-9_-]+)?\s*\n([\s\S]*?)```/);
+  return match?.[1]?.trimEnd() ?? null;
 }
 
 

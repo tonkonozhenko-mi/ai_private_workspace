@@ -565,7 +565,7 @@ function App() {
 
         {showCreateWorkspace ? (
           <CreateWorkspacePanel
-            onCreated={(workspace) => void handleWorkspaceCreated(workspace.workspace_id)}
+            onCreated={(workspace) => void handleWorkspaceCreated(workspace.id)}
             onCancel={() => setShowCreateWorkspace(false)}
           />
         ) : detailLoading ? (
