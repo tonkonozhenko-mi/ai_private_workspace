@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MANIFEST="$ROOT_DIR/build/macos/backend-runtime/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt"
+PACKAGE_SCRIPT="$ROOT_DIR/scripts/package_macos_app_foundation.sh"
+TAURI_MAIN="$ROOT_DIR/frontend/src-tauri/src/main.rs"
+FRONTEND_DIST="$ROOT_DIR/frontend/dist/index.html"
+BACKEND_ENTRYPOINT="$ROOT_DIR/backend/app/main.py"
+
+failures=0
+reviews=0
+
+ok() { printf '✅ %s\n' "$1"; }
+review() { printf '⚠️  %s\n' "$1"; reviews=$((reviews + 1)); }
+fail() { printf '❌ %s\n' "$1"; failures=$((failures + 1)); }
+
+printf 'AI Private Workspace desktop runtime preflight\n'
+printf 'Project root: %s\n\n' "$ROOT_DIR"
+
+[ -f "$BACKEND_ENTRYPOINT" ] && ok "backend/app/main.py found" || fail "backend/app/main.py missing"
+[ -f "$PACKAGE_SCRIPT" ] && ok "package_macos_app_foundation.sh found" || fail "package_macos_app_foundation.sh missing"
+[ -f "$TAURI_MAIN" ] && ok "Tauri scaffold found" || review "Tauri scaffold missing; run scripts/prepare_tauri_shell_scaffold.sh"
+[ -f "$FRONTEND_DIST" ] && ok "frontend/dist/index.html found" || review "frontend/dist missing; run: cd frontend && npm ci && npm run build"
+
+if [ -f "$MANIFEST" ]; then
+  ok "backend runtime manifest found"
+  grep -q 'Requirements SHA256:' "$MANIFEST" && ok "manifest contains requirements hash" || fail "manifest missing requirements hash"
+  grep -q 'Runtime preparation does not start scan/index/rebuild/MCP/agent/model downloads' "$MANIFEST" && ok "manifest documents no automatic risky actions" || fail "manifest missing safety statement"
+  grep -q 'backend/.ai-workbench/' "$MANIFEST" && ok "manifest documents runtime data excludes" || fail "manifest missing runtime data excludes"
+else
+  review "backend runtime manifest missing; run: scripts/prepare_macos_backend_runtime.sh"
+fi
+
+if grep -q 'prepare_macos_backend_runtime.sh' "$PACKAGE_SCRIPT" 2>/dev/null && grep -q 'AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt' "$PACKAGE_SCRIPT" 2>/dev/null; then
+  ok "package script uses runtime manifest preflight"
+else
+  fail "package script is not wired to runtime manifest preflight"
+fi
+
+if grep -q 'frontend never executes shell commands' "$ROOT_DIR/docs/ROADMAP.md" 2>/dev/null || grep -q 'Frontend React code must never execute shell commands' "$ROOT_DIR/docs/ROADMAP.md" 2>/dev/null; then
+  ok "roadmap keeps frontend shell-execution safety rule visible"
+else
+  review "roadmap should document frontend no-shell safety rule"
+fi
+
+printf '\nSummary: %s blocker(s), %s review item(s)\n' "$failures" "$reviews"
+if [ "$failures" -gt 0 ]; then
+  exit 1
+fi
+exit 0

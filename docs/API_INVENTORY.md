@@ -307,3 +307,4 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 | `GET /runtime/v0.1-publication-handoff` | Return the final copyable publication path after local smoke-check: audit, tests, build, archive, git status, commit/push commands, and do-not-commit list. | No | No | No | GitHub/source release handoff |
 
 | `GET /runtime/desktop-runtime-readiness` | Return the Phase 22 / v0.2 desktop runtime readiness plan, implementation order, validation commands, blockers, and safety boundaries. | No | No | No | Settings / desktop runtime roadmap |
+| `GET /runtime/desktop-runtime-preflight` | Return the Phase 22 desktop runtime preflight, packaging inputs, pass/fail criteria, validation commands, and safety rules. | No | No | No | Settings / desktop runtime preflight |

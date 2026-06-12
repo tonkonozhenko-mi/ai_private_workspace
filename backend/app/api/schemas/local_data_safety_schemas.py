@@ -284,6 +284,32 @@ class DesktopRuntimeReadinessResponse(BaseModel):
     honest_remaining_work: str
 
 
+
+
+class DesktopRuntimePreflightItemResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    evidence: str
+    fix_command: str | None = None
+
+
+class DesktopRuntimePreflightResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    preflight_script: str
+    runtime_manifest_path: str
+    package_script: str
+    items: list[DesktopRuntimePreflightItemResponse]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    pass_criteria: list[str]
+    fail_fast_conditions: list[str]
+    safety_rules: list[str]
+    next_steps: list[str]
+
+
 class TauriShellScaffoldFileResponse(BaseModel):
     path: str
     purpose: str

@@ -49,6 +49,7 @@ import type {
   MacOSAppSupervisorWiring,
   BackendRuntimeBundlePlan,
   DesktopRuntimeReadiness,
+  DesktopRuntimePreflight,
   TauriShellScaffold,
   TauriSupervisorBridge,
   WindowsPackagingFoundation,
@@ -193,6 +194,10 @@ export function getBackendRuntimeBundlePlan(): Promise<BackendRuntimeBundlePlan>
 
 export function getDesktopRuntimeReadiness(): Promise<DesktopRuntimeReadiness> {
   return getJson<DesktopRuntimeReadiness>("/runtime/desktop-runtime-readiness");
+}
+
+export function getDesktopRuntimePreflight(): Promise<DesktopRuntimePreflight> {
+  return getJson<DesktopRuntimePreflight>("/runtime/desktop-runtime-preflight");
 }
 
 export function getTauriShellScaffold(): Promise<TauriShellScaffold> {
