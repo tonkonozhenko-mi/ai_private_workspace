@@ -38,9 +38,9 @@ def test_desktop_runtime_preflight_script_is_safe_static_contract() -> None:
     content = SCRIPT.read_text(encoding="utf-8")
 
     assert "AI Private Workspace desktop runtime preflight" in content
-    assert "prepare_macos_backend_runtime.sh" in content
+    assert "stage_backend_runtime.sh" in content
     assert "npm ci && npm run build" in content
     assert "package_macos_app_foundation.sh" in content
-    assert "scan/index/rebuild/MCP/agent/model downloads" in content
+    assert "staging does not scan, index, rebuild" in content
     assert "uvicorn" not in content
     assert "ollama pull" not in content

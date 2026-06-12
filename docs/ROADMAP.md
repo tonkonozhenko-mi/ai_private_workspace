@@ -331,3 +331,18 @@ Frontend React code must never execute shell commands. It may display and copy c
 ### Task 242 — Desktop stack and runtime contract
 
 Phase 22 now has an accepted v0.2 technology direction: open-source/free Tauri + React desktop shell, FastAPI backend, SQLite/Qdrant/Ollama local runtime, and a PyInstaller-first backend freeze spike. The desktop shell still cannot start the backend until runtime staging is deterministic and safety checks pass.
+
+
+## Phase 22 Update — Task 243
+
+**Task 243 — Staged backend runtime:** done.
+
+The project now has a practical v0.2 runtime staging layer:
+
+- `scripts/stage_backend_runtime.sh`
+- `scripts/check_staged_backend_runtime.sh`
+- `GET /runtime/staged-backend-runtime-contract`
+- Settings UI visibility for the staged runtime contract
+
+This is still not the final v1.0 frozen runtime. It is the bridge from v0.1
+source RC toward a real double-click desktop app.

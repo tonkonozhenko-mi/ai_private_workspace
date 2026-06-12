@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getDesktopStackAndRuntimeContract, getStagedBackendRuntimeContract, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -27,6 +27,7 @@ import type {
   TauriSupervisorStaticGate,
   DesktopTechnologyDecision,
   DesktopStackAndRuntimeContract,
+  StagedBackendRuntimeContract,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -229,6 +230,9 @@ export function SettingsPanel({
   const [desktopStackContract, setDesktopStackContract] = useState<DesktopStackAndRuntimeContract | null>(null);
   const [desktopStackContractError, setDesktopStackContractError] = useState<string | null>(null);
   const [desktopStackContractLoading, setDesktopStackContractLoading] = useState(false);
+  const [stagedBackendRuntimeContract, setStagedBackendRuntimeContract] = useState<StagedBackendRuntimeContract | null>(null);
+  const [stagedBackendRuntimeContractError, setStagedBackendRuntimeContractError] = useState<string | null>(null);
+  const [stagedBackendRuntimeContractLoading, setStagedBackendRuntimeContractLoading] = useState(false);
   const [windowsPackagingFoundation, setWindowsPackagingFoundation] = useState<WindowsPackagingFoundation | null>(null);
   const [windowsPackagingFoundationError, setWindowsPackagingFoundationError] = useState<string | null>(null);
   const [windowsPackagingFoundationLoading, setWindowsPackagingFoundationLoading] = useState(false);
@@ -454,6 +458,31 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setDesktopStackContractLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setStagedBackendRuntimeContractLoading(true);
+    setStagedBackendRuntimeContractError(null);
+    getStagedBackendRuntimeContract()
+      .then((contract) => {
+        if (!cancelled) {
+          setStagedBackendRuntimeContract(contract);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setStagedBackendRuntimeContractError(error instanceof Error ? error.message : "Could not load staged backend runtime contract");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setStagedBackendRuntimeContractLoading(false);
         }
       });
     return () => {
@@ -2870,6 +2899,59 @@ export function SettingsPanel({
                           <span>{command.purpose}</span>
                         </div>
                       ))}
+                    </div>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
+            <details className="settings-disclosure" open>
+              <summary>Staged backend runtime contract</summary>
+              {stagedBackendRuntimeContractError ? (
+                <p className="settings-transfer-message">Could not load staged backend runtime contract: {stagedBackendRuntimeContractError}</p>
+              ) : null}
+              {stagedBackendRuntimeContractLoading ? (
+                <p className="settings-transfer-message">Loading staged backend runtime contract…</p>
+              ) : stagedBackendRuntimeContract ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{stagedBackendRuntimeContract.title}</strong>
+                    <span>{stagedBackendRuntimeContract.summary}</span>
+                    <span>Stage: {stagedBackendRuntimeContract.staging_directory}</span>
+                    <span>Manifest: {stagedBackendRuntimeContract.manifest_path}</span>
+                    <span>Launcher: {stagedBackendRuntimeContract.launcher_path}</span>
+                  </div>
+                  <div className="startup-checklist-grid">
+                    {stagedBackendRuntimeContract.items.map((item) => (
+                      <div className={`startup-checklist-item ${item.status === "future" ? "is-review" : item.status === "blocked" ? "is-danger" : "is-ok"}`} key={item.id}>
+                        <div className="startup-checklist-item-header">
+                          <strong>{item.title}</strong>
+                          <span>{item.status}</span>
+                        </div>
+                        <p>{item.summary}</p>
+                        {item.path ? <code>{item.path}</code> : null}
+                      </div>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Runtime contract and commands</summary>
+                    <div className="settings-safety-list">
+                      {stagedBackendRuntimeContract.runtime_contract.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                    <div className="settings-command-list">
+                      {stagedBackendRuntimeContract.validation_commands.map((command) => (
+                        <div className="settings-command-card" key={command.command}>
+                          <strong>{command.label}</strong>
+                          <code>{command.command}</code>
+                          <span>{command.purpose}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                  <details className="settings-disclosure">
+                    <summary>Safety rules</summary>
+                    <div className="settings-safety-list">
+                      {stagedBackendRuntimeContract.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
                     </div>
                   </details>
                 </div>

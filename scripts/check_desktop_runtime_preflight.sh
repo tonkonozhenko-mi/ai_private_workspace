@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MANIFEST="$ROOT_DIR/build/macos/backend-runtime/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt"
+MANIFEST="$ROOT_DIR/build/desktop/backend-runtime/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json"
 PACKAGE_SCRIPT="$ROOT_DIR/scripts/package_macos_app_foundation.sh"
 TAURI_MAIN="$ROOT_DIR/frontend/src-tauri/src/main.rs"
 FRONTEND_DIST="$ROOT_DIR/frontend/dist/index.html"
@@ -25,17 +25,17 @@ printf 'Project root: %s\n\n' "$ROOT_DIR"
 
 if [ -f "$MANIFEST" ]; then
   ok "backend runtime manifest found"
-  grep -q 'Requirements SHA256:' "$MANIFEST" && ok "manifest contains requirements hash" || fail "manifest missing requirements hash"
-  grep -q 'Runtime preparation does not start scan/index/rebuild/MCP/agent/model downloads' "$MANIFEST" && ok "manifest documents no automatic risky actions" || fail "manifest missing safety statement"
-  grep -q 'backend/.ai-workbench/' "$MANIFEST" && ok "manifest documents runtime data excludes" || fail "manifest missing runtime data excludes"
+  grep -q 'requirements_sha256' "$MANIFEST" && ok "manifest contains requirements hash" || fail "manifest missing requirements hash"
+  grep -q 'staging does not scan, index, rebuild' "$MANIFEST" && ok "manifest documents no automatic risky actions" || fail "manifest missing safety statement"
+  grep -q 'runtime data and logs stay outside' "$MANIFEST" && ok "manifest documents runtime data excludes" || fail "manifest missing runtime data excludes"
 else
-  review "backend runtime manifest missing; run: scripts/prepare_macos_backend_runtime.sh"
+  review "staged backend runtime manifest missing; run: scripts/stage_backend_runtime.sh"
 fi
 
-if grep -q 'prepare_macos_backend_runtime.sh' "$PACKAGE_SCRIPT" 2>/dev/null && grep -q 'AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt' "$PACKAGE_SCRIPT" 2>/dev/null; then
-  ok "package script uses runtime manifest preflight"
+if grep -q 'stage_backend_runtime.sh' "$PACKAGE_SCRIPT" 2>/dev/null && grep -q 'AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json' "$PACKAGE_SCRIPT" 2>/dev/null; then
+  ok "package script uses staged runtime manifest preflight"
 else
-  fail "package script is not wired to runtime manifest preflight"
+  fail "package script is not wired to staged runtime manifest preflight"
 fi
 
 if grep -q 'frontend never executes shell commands' "$ROOT_DIR/docs/ROADMAP.md" 2>/dev/null || grep -q 'Frontend React code must never execute shell commands' "$ROOT_DIR/docs/ROADMAP.md" 2>/dev/null; then
