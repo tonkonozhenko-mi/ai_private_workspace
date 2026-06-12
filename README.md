@@ -1,43 +1,71 @@
 # AI Private Workspace
 
-AI Private Workspace is a local-first assistant workspace for understanding private projects without sending source code to external services by default.
+**AI Private Workspace** is a local-first desktop-oriented workspace for private project onboarding, local RAG, model management, project reports, and safe Agent/MCP planning.
 
-It combines project scanning, local context indexing, Ollama-based model setup, source-grounded Ask, reports, and safe Agent/MCP planning foundations.
+The v0.1 release candidate is a source handoff for developers and reviewers. It is not yet a signed installer-grade product.
 
-> Status: **v0.1 source release candidate**. This repository is ready for local demos and GitHub publication checks. It is not yet a signed macOS/Windows installer.
-
-![AI Private Workspace product flow](docs/assets/product-flow.svg)
+![AI Private Workspace flow](docs/assets/product-flow.svg)
 
 ## What it does
 
-- Creates local workspaces for project folders.
-- Scans files and detects skills such as Terraform, Python, Docker, Kubernetes, Helm, CI, and documentation.
-- Builds local context for source-grounded answers.
-- Lets you choose local LLM and embedding/search models.
-- Supports safe Ollama model download drafts and backend-owned jobs.
-- Generates reports and keeps conversation history.
-- Provides Agent and MCP planning foundations without automatic tool execution.
-- Includes macOS and Windows packaging foundations for the future desktop app.
+- Creates local workspaces for private projects.
+- Scans source folders and detects skills such as Terraform, Terragrunt, Kubernetes, Helm, Docker, Python, GitLab CI, and documentation.
+- Builds local search context only after explicit user action.
+- Answers questions from retrieved project sources instead of unsupported guesses.
+- Keeps conversations, answer history, model choices, reports, and timeline state locally.
+- Guides local Ollama/model setup and detects installed local models.
+- Provides safe model download drafts and backend-owned download jobs behind explicit approval.
+- Provides Agent and MCP planning UX without automatic tool execution.
+- Includes macOS, Windows, and Tauri packaging foundations for future installer-grade releases.
 
-## Safety principles
+## Safety model
 
-- Frontend never executes shell commands.
-- Scan, index, rebuild, model downloads, MCP, and Agent execution require explicit user action.
-- Model downloads are backend-owned, opt-in, and allowlisted.
-- MCP servers and tools are not started automatically.
-- Runtime data and build outputs are excluded from source release archives.
+AI Private Workspace is designed around explicit user control:
 
-## Quick start for local development
+- The frontend never executes shell commands.
+- App launch never starts scans, indexing, rebuilds, MCP servers, Agent workflows, or model downloads.
+- Model download execution is disabled by default and must be enabled backend-side in trusted local runtime only.
+- Agent workflows are planning/manual tracking only in v0.1.
+- Approval gates record user intent; they do not execute tools automatically.
+- Runtime data, local databases, caches, and build artifacts are excluded from source archives.
+
+## Current status
+
+- **v0.1 source release candidate:** nearly ready for GitHub publication after local verification.
+- **v1.0 installer-grade product:** future stage. It still needs frozen backend runtime, signed macOS package, Windows installer, persistent jobs, sandboxed Agent/MCP execution, update flow, and final QA.
+
+See:
+
+- [Start here](docs/START_HERE.md)
+- [v0.1 demo handoff](docs/V01_DEMO_HANDOFF.md)
+- [v0.1 release notes](docs/V01_RELEASE_NOTES.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [GitHub publication checklist](docs/GITHUB_PUBLICATION_CHECKLIST.md)
+- [v1 product completion roadmap](docs/V1_PRODUCT_COMPLETION_ROADMAP.md)
+
+## Repository layout
+
+```text
+backend/     FastAPI backend, domain services, adapters, tests
+frontend/    React/Vite UI
+docs/        product, architecture, release, and packaging docs
+scripts/     local runtime, audit, packaging, and release helper scripts
+.github/     CI workflows and contribution templates
+```
+
+## Developer startup
+
+Backend:
 
 ```bash
 cd backend
-python3 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-In another terminal:
+Frontend:
 
 ```bash
 cd frontend
@@ -45,38 +73,56 @@ npm ci
 npm run dev
 ```
 
-Open the local frontend URL shown by Vite.
+For the current macOS developer-safe launcher:
 
-## Recommended validation
+```bash
+chmod +x scripts/launch_macos.command scripts/create_macos_shortcut.sh
+./scripts/launch_macos.command
+```
+
+## Validation
+
+Run the release audit from the repository root:
 
 ```bash
 ./scripts/audit_release_candidate.sh
+```
 
+Run focused backend checks:
+
+```bash
 cd backend
-pytest -q tests/test_health.py tests/test_release_candidate_audit.py tests/test_api_inventory.py
+pytest -q tests/test_final_product_status.py tests/test_product_completion_roadmap.py tests/test_release_candidate_audit.py tests/test_release_candidate_audit_script.py tests/test_source_release_archive_script.py tests/test_api_inventory.py
+```
 
-cd ../frontend
+Run frontend validation:
+
+```bash
+cd frontend
 npm ci
 npm run build
 ```
 
-## Source release archive
+Create a clean source archive:
 
 ```bash
 ./scripts/prepare_source_release_archive.sh
 ```
 
-The archive is written under `build/release/` and excludes runtime/build/cache data.
+The generated archive is written to `build/release/` and must not be committed.
 
-## Documentation map
+## Runtime data policy
 
-- `docs/START_HERE.md` — first entry point.
-- `docs/V01_DEMO_HANDOFF.md` — v0.1 demo flow.
-- `docs/V01_RELEASE_NOTES.md` — v0.1 release notes.
-- `docs/V1_PRODUCT_COMPLETION_ROADMAP.md` — honest path from source RC to v1.0.
-- `docs/GITHUB_PUBLICATION_CHECKLIST.md` — first push checklist.
-- `docs/RELEASE_CANDIDATE_AUDIT.md` — release audit policy.
+Do not commit:
 
-## Current roadmap position
+- `backend/.ai-workbench/`
+- `frontend/node_modules/`
+- `frontend/dist/`
+- `build/`
+- `.pytest_cache/`
+- `__pycache__/`
+- `*.db`, `*.sqlite`, `*.sqlite3`
 
-AI Private Workspace is currently a polished **v0.1 source release candidate**. A full v1.0 product still needs a frozen backend runtime, signed installers, persistent jobs, and sandboxed Agent/MCP execution.
+## License
+
+License has not been finalized yet. Add a `LICENSE` file before public production distribution.

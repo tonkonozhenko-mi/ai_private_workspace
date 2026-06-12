@@ -2,20 +2,44 @@ name: Desktop packaging checks
 
 on:
   pull_request:
+    paths:
+      - 'scripts/package_macos_app_foundation.sh'
+      - 'scripts/prepare_macos_backend_runtime.sh'
+      - 'scripts/prepare_tauri_shell_scaffold.sh'
+      - 'scripts/prepare_windows_packaging_foundation.sh'
+      - 'scripts/desktop_supervisor_contract.sh'
+      - 'scripts/windows_supervisor_contract.ps1'
+      - 'docs/*PACKAGING*'
+      - 'docs/*SUPERVISOR*'
+      - '.github/workflows/desktop-packaging-checks.yml'
   push:
     branches: [main]
 
 jobs:
-  scripts:
+  script-syntax:
+    name: Packaging script syntax
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate shell scripts
+      - name: Check shell scripts
         run: |
-          bash -n scripts/audit_release_candidate.sh
-          bash -n scripts/prepare_source_release_archive.sh
           bash -n scripts/package_macos_app_foundation.sh
+          bash -n scripts/prepare_macos_backend_runtime.sh
           bash -n scripts/prepare_tauri_shell_scaffold.sh
           bash -n scripts/prepare_windows_packaging_foundation.sh
-      - name: Run release audit
-        run: ./scripts/audit_release_candidate.sh
+          bash -n scripts/desktop_supervisor_contract.sh
+      - name: Confirm PowerShell packaging script is present
+        run: test -f scripts/windows_supervisor_contract.ps1
+      - name: Run focused packaging tests
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pytest -q \
+            tests/test_macos_app_package_foundation.py \
+            tests/test_macos_app_package_supervisor_wiring_script.py \
+            tests/test_macos_backend_runtime_script.py \
+            tests/test_tauri_shell_scaffold.py \
+            tests/test_tauri_supervisor_bridge.py \
+            tests/test_windows_packaging_foundation.py \
+            tests/test_windows_packaging_scripts.py

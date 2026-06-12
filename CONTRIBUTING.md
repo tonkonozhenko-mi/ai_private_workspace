@@ -2,35 +2,46 @@
 
 Thanks for helping improve AI Private Workspace.
 
-## Development checks
+## Product principles
 
-Run these before opening a pull request:
+- Local-first by default.
+- Private project data must stay under user control.
+- Frontend must never execute shell commands.
+- Scans, indexing, rebuilds, model downloads, MCP setup, and Agent workflows must require explicit user action.
+- Backend core must stay independent from FastAPI, SQLite, and other infrastructure details.
+- Project claims in answers must be grounded in retrieved sources.
+
+## Development flow
+
+1. Create a focused branch.
+2. Keep changes grouped by product flow, not by tiny UI/button-only patches.
+3. Add or update tests for backend behavior.
+4. Run local validation before opening a PR.
 
 ```bash
 ./scripts/audit_release_candidate.sh
-
-cd backend
-pytest -q tests/test_health.py tests/test_api_inventory.py
-
-cd ../frontend
-npm ci
-npm run build
+cd backend && pytest -q
+cd ../frontend && npm ci && npm run build
 ```
 
-## Safety rules
+## Source hygiene
 
-- Do not add frontend shell execution.
-- Do not start scan/index/rebuild/model downloads/MCP/Agent automatically.
-- Keep runtime data out of source archives and commits.
-- Keep risky actions explicit, user-approved, and backend-owned.
-
-## Repository hygiene
-
-Do not commit:
+Do not commit runtime or build data:
 
 - `backend/.ai-workbench/`
-- `*.db`, `*.sqlite`, `*.sqlite3`
 - `frontend/node_modules/`
 - `frontend/dist/`
 - `build/`
-- caches such as `.pytest_cache/` and `__pycache__/`
+- `.pytest_cache/`
+- `__pycache__/`
+- `*.db`, `*.sqlite`, `*.sqlite3`
+
+## Pull requests
+
+A good PR should include:
+
+- clear product reason;
+- summary of user-visible changes;
+- safety impact;
+- tests or validation commands;
+- screenshots for UI changes when useful.

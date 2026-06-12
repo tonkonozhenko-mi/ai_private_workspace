@@ -1,24 +1,37 @@
 name: Feature request
-description: Suggest an improvement for AI Private Workspace
+description: Suggest a product improvement
 title: "Feature: "
-labels: [enhancement]
+labels: ["enhancement"]
 body:
   - type: textarea
     id: problem
     attributes:
-      label: Problem or user need
-      description: What should be easier, safer, or clearer?
+      label: Problem
+      description: What user problem should this solve?
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
       label: Proposed solution
-      description: Describe the desired behavior.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Backend
+        - Frontend
+        - RAG / indexing
+        - Model management
+        - Desktop packaging
+        - Agent / MCP
+        - Documentation
+        - Other
   - type: checkboxes
     id: safety
     attributes:
-      label: Safety impact
+      label: Safety checklist
       options:
-        - label: This does not require frontend shell execution.
-        - label: This keeps risky actions explicit and user-approved.
+        - label: The feature keeps scans, indexing, model downloads, MCP, and Agent execution explicit/user-approved.
