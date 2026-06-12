@@ -310,3 +310,5 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 
 | `GET /runtime/desktop-runtime-readiness` | Return the Phase 22 / v0.2 desktop runtime readiness plan, implementation order, validation commands, blockers, and safety boundaries. | No | No | No | Settings / desktop runtime roadmap |
 | `GET /runtime/desktop-runtime-preflight` | Return the Phase 22 desktop runtime preflight, packaging inputs, pass/fail criteria, validation commands, and safety rules. | No | No | No | Settings / desktop runtime preflight |
+
+| `GET /runtime/desktop-technology-decision` | Return the explicit desktop shell technology decision, why Tauri is the current candidate, alternatives, guardrails, and reconsideration triggers. | No | No | No | Settings / desktop runtime architecture |

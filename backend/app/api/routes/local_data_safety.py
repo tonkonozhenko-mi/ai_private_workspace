@@ -41,6 +41,8 @@ from app.api.schemas.local_data_safety_schemas import (
     TauriSupervisorBridgeStateResponse,
     TauriSupervisorStaticGateItemResponse,
     TauriSupervisorStaticGateResponse,
+    DesktopTechnologyOptionResponse,
+    DesktopTechnologyDecisionResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
@@ -1210,6 +1212,110 @@ def get_tauri_supervisor_static_gate() -> TauriSupervisorStaticGateResponse:
         next_steps=[
             "Use this gate before implementing app-owned backend startup.",
             "Next Phase 22 step should be frozen backend runtime selection/staging, not more v0.1 polish.",
+        ],
+    )
+
+
+@router.get("/desktop-technology-decision", response_model=DesktopTechnologyDecisionResponse)
+def get_desktop_technology_decision() -> DesktopTechnologyDecisionResponse:
+    """Return the explicit desktop shell technology decision and alternatives."""
+    return DesktopTechnologyDecisionResponse(
+        status="reviewable",
+        title="Desktop shell technology decision",
+        summary="Tauri is the current candidate for the desktop shell, but it is not treated as an irreversible product decision. This record explains the choice, alternatives, and guardrails before v1.0 packaging is finalized.",
+        current_candidate="Tauri-first desktop shell",
+        decision_state="candidate locked for v0.2 exploration; replaceable before v1.0 signed installers",
+        why_it_was_chosen=[
+            "One React UI can be reused for macOS and Windows instead of maintaining two separate native interfaces.",
+            "The app bundle can stay smaller than typical Chromium-bundled Electron apps because it uses the system webview.",
+            "Rust native commands are a good fit for a narrow supervisor layer: status, log paths, health checks, and eventually app-owned backend startup.",
+            "The current implementation keeps Tauri commands read-only, so React still cannot execute shell commands.",
+            "It matches the product goal: downloaded package -> double click -> local backend -> local UI, without external services.",
+        ],
+        alternatives=[
+            DesktopTechnologyOptionResponse(
+                id="tauri",
+                title="Tauri + React",
+                status="current_candidate",
+                summary="Best current balance for a small local-first desktop shell over the existing React frontend.",
+                strengths=[
+                    "Cross-platform macOS/Windows path with one frontend.",
+                    "Small app shell compared with Electron-style bundles.",
+                    "Native supervisor layer can be strictly allowlisted.",
+                    "Good fit for local logs, app data paths, and readiness gates.",
+                ],
+                tradeoffs=[
+                    "Requires Rust/Tauri toolchain for developers.",
+                    "Uses platform webviews, so rendering can differ slightly by OS.",
+                    "Final signing/notarization/installer flow still needs real validation.",
+                ],
+            ),
+            DesktopTechnologyOptionResponse(
+                id="electron",
+                title="Electron + React",
+                status="fallback_option",
+                summary="Mature desktop packaging option, but usually heavier for a privacy-first local utility.",
+                strengths=[
+                    "Very mature ecosystem and many packaging examples.",
+                    "Consistent Chromium rendering across platforms.",
+                    "Large community and debugging resources.",
+                ],
+                tradeoffs=[
+                    "Larger app size and higher memory footprint.",
+                    "More surface area to harden for a local-first security model.",
+                    "Still needs careful process-supervisor design.",
+                ],
+            ),
+            DesktopTechnologyOptionResponse(
+                id="native",
+                title="Native SwiftUI + WinUI",
+                status="not_recommended_for_now",
+                summary="Best native feel, but it would split the product into separate macOS and Windows UI implementations.",
+                strengths=[
+                    "Excellent native OS integration.",
+                    "Best platform-specific UX potential.",
+                    "Clear access to OS app-data/log APIs.",
+                ],
+                tradeoffs=[
+                    "Two frontend codebases to maintain.",
+                    "Slower product delivery for a solo/early-stage project.",
+                    "More duplicated QA across platforms.",
+                ],
+            ),
+            DesktopTechnologyOptionResponse(
+                id="browser_plus_launcher",
+                title="Browser UI + local launcher scripts",
+                status="v0.1_style_baseline",
+                summary="Simplest for source release and development, but not the final user-friendly product.",
+                strengths=[
+                    "Easy to debug and explain.",
+                    "No desktop toolchain required.",
+                    "Good for GitHub source RC and demos.",
+                ],
+                tradeoffs=[
+                    "Not a real double-click desktop app.",
+                    "User still needs terminal/scripts.",
+                    "Weak installer/update experience.",
+                ],
+            ),
+        ],
+        decision_guardrails=[
+            "Tauri remains a candidate until a real macOS/Windows packaging spike passes.",
+            "Frontend must never gain arbitrary shell execution through the desktop shell.",
+            "Native commands must stay small, explicit, and allowlisted.",
+            "Desktop launch must not trigger scan, index, rebuild, MCP, Agent, or model downloads.",
+            "If Tauri increases complexity more than it reduces packaging risk, Electron or another shell can replace it before v1.0.",
+        ],
+        when_to_reconsider=[
+            "Tauri packaging becomes unstable on target macOS/Windows versions.",
+            "Webview differences break important UI flows.",
+            "Signing/notarization/installer requirements are significantly simpler with another stack.",
+            "The Rust supervisor layer becomes too complex for the project maintenance model.",
+        ],
+        next_steps=[
+            "Keep Task 241 as the explicit decision record instead of treating Tauri as an invisible assumption.",
+            "Before enabling backend startup from the shell, complete a frozen runtime/staging spike.",
+            "Run one macOS and one Windows packaging proof before calling the choice final for v1.0.",
         ],
     )
 

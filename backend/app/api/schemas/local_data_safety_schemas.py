@@ -395,6 +395,29 @@ class TauriSupervisorStaticGateResponse(BaseModel):
     next_steps: list[str]
 
 
+
+
+class DesktopTechnologyOptionResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    strengths: list[str]
+    tradeoffs: list[str]
+
+
+class DesktopTechnologyDecisionResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    current_candidate: str
+    decision_state: str
+    why_it_was_chosen: list[str]
+    alternatives: list[DesktopTechnologyOptionResponse]
+    decision_guardrails: list[str]
+    when_to_reconsider: list[str]
+    next_steps: list[str]
+
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str
     purpose: str

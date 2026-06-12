@@ -320,3 +320,10 @@ Frontend React code must never execute shell commands. It may display and copy c
 - Added `scripts/check_tauri_supervisor_bridge.sh`.
 - Tauri bridge now exposes status, log paths, and preflight data while keeping backend startup disabled.
 - Next larger step: frozen/staged backend runtime and deterministic app-owned startup design.
+
+## Task 241 — Desktop technology decision
+
+- Added `GET /runtime/desktop-technology-decision` to make the Tauri choice explicit and reviewable.
+- Tauri is now documented as the current v0.2 candidate, not an irreversible v1.0 decision.
+- Alternatives are recorded: Electron, native SwiftUI/WinUI, and browser UI plus launcher scripts.
+- Guardrails remain unchanged: frontend cannot execute shell commands, desktop launch cannot auto-start scan/index/MCP/Agent/model downloads, and native commands must stay allowlisted.

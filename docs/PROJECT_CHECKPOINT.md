@@ -326,3 +326,7 @@ Task 239 adds a read-only Phase 22 gate with `GET /runtime/desktop-runtime-prefl
 - Added `scripts/check_tauri_supervisor_bridge.sh`.
 - Tauri bridge now exposes status, log paths, and preflight data while keeping backend startup disabled.
 - Next larger step: frozen/staged backend runtime and deterministic app-owned startup design.
+
+## Task 241 — Desktop technology decision
+
+Task 241 adds an explicit desktop shell technology decision record. Tauri remains the current candidate because it can reuse the React UI for macOS and Windows while keeping the native layer narrow. The decision is still reviewable before v1.0; Electron, native SwiftUI/WinUI, and browser-plus-launcher approaches are documented as alternatives.
