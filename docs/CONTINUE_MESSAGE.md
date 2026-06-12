@@ -158,3 +158,6 @@ Then open the generated macOS app and verify app-owned backend startup, `/health
 
 After local packaged-app work, `npm run tauri:build` succeeded, but `scripts/smoke_frozen_backend_runtime.sh` showed the frozen backend process did not make `/health` ready. Task 258 hardened the PyInstaller entrypoint/spec and smoke script: explicit import self-check, broader hidden imports, app-owned smoke data directory, early-process-exit detection, and log-tail printing on failure. Next local step is to rebuild the frozen backend and rerun the smoke script to see either a clean `/health` pass or a concrete backend traceback.
 * Task 259 — macOS packaged app smoke result ✅
+
+
+- Task 260 — packaged app frontend bootstrap: React now invokes the narrow Tauri app-owned backend startup command before workspace HTTP API calls, fixing the packaged `.app` case where UI opened but backend/logs were missing. ✅

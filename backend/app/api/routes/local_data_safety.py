@@ -80,6 +80,8 @@ from app.api.schemas.local_data_safety_schemas import (
     TauriPackagedAppBuildReadinessResponse,
     MacOSPackagedAppSmokeResultItemResponse,
     MacOSPackagedAppSmokeResultResponse,
+    PackagedAppFrontendBootstrapItemResponse,
+    PackagedAppFrontendBootstrapResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
@@ -3916,6 +3918,105 @@ def get_v01_publication_handoff() -> V01PublicationHandoffResponse:
             "Do not call v0.1 a finished installer-grade v1.0 product.",
         ],
     )
+
+@router.get("/packaged-app-frontend-bootstrap", response_model=PackagedAppFrontendBootstrapResponse)
+def get_packaged_app_frontend_bootstrap() -> PackagedAppFrontendBootstrapResponse:
+    """Return the packaged app frontend bootstrap contract for starting the app-owned backend."""
+    root = Path(__file__).resolve().parents[4]
+    app_tsx = root / "frontend/src/App.tsx"
+    desktop_runtime = root / "frontend/src/desktopRuntime.ts"
+    lib_rs = root / "frontend/src-tauri/src/lib.rs"
+    check_script = root / "scripts/check_packaged_app_frontend_bootstrap.sh"
+
+    app_text = app_tsx.read_text(encoding="utf-8") if app_tsx.exists() else ""
+    runtime_text = desktop_runtime.read_text(encoding="utf-8") if desktop_runtime.exists() else ""
+    lib_text = lib_rs.read_text(encoding="utf-8") if lib_rs.exists() else ""
+
+    checks = [
+        (
+            "tauri-runtime-helper",
+            "Frontend has a Tauri runtime helper",
+            "ok" if "ensureAppOwnedBackendRuntime" in runtime_text and "__TAURI__" in runtime_text else "blocked",
+            "The packaged UI must call the narrow Tauri command bridge before it tries HTTP API calls.",
+            "frontend/src/desktopRuntime.ts",
+            None,
+        ),
+        (
+            "app-bootstrap-before-load",
+            "App starts desktop backend before loading workspaces",
+            "ok" if "ensureAppOwnedBackendRuntime" in app_text and "startDesktopRuntimeAndLoadWorkspaces" in app_text else "blocked",
+            "Packaged app must not assume an external uvicorn process is already running.",
+            "frontend/src/App.tsx",
+            None,
+        ),
+        (
+            "tauri-command-exists",
+            "Tauri exposes app-owned backend startup command",
+            "ok" if "start_app_owned_backend_runtime" in lib_text else "blocked",
+            "The frontend helper can only invoke the app-owned startup command, not arbitrary shell commands.",
+            "frontend/src-tauri/src/lib.rs",
+            None,
+        ),
+        (
+            "health-readiness",
+            "Startup still waits for /health readiness",
+            "ok" if "GET /health HTTP/1.1" in lib_text else "blocked",
+            "Packaged app startup is successful only after backend /health returns HTTP 200.",
+            "frontend/src-tauri/src/lib.rs",
+            None,
+        ),
+        (
+            "check-script",
+            "Frontend bootstrap check exists",
+            "ok" if check_script.exists() else "blocked",
+            "A source-level check prevents regressions where the .app opens but the backend is never started.",
+            "scripts/check_packaged_app_frontend_bootstrap.sh",
+            "scripts/check_packaged_app_frontend_bootstrap.sh",
+        ),
+    ]
+
+    items = [
+        PackagedAppFrontendBootstrapItemResponse(
+            id=item_id,
+            title=title,
+            status=status,
+            summary=summary,
+            evidence=evidence,
+            command=command,
+        )
+        for item_id, title, status, summary, evidence, command in checks
+    ]
+    status = "blocked" if any(item.status == "blocked" for item in items) else "ready"
+    return PackagedAppFrontendBootstrapResponse(
+        status=status,
+        title="Packaged app frontend bootstrap",
+        summary="Fixes the packaged .app case where the React UI opened but no app-owned backend process was started, leaving http://127.0.0.1:8000/health unavailable and no app-owned logs directory created.",
+        milestone="Task 260 — packaged app frontend starts app-owned backend",
+        check_script="scripts/check_packaged_app_frontend_bootstrap.sh",
+        root_cause="The packaged frontend still loaded workspaces immediately through HTTP and did not invoke the Tauri app-owned backend startup command on launch.",
+        readiness_items=items,
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Frontend bootstrap check", command="scripts/check_packaged_app_frontend_bootstrap.sh", purpose="Verify the packaged frontend invokes the Tauri app-owned backend startup before workspace API calls."),
+            DesktopRuntimeValidationCommandResponse(label="Build frozen backend", command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh", purpose="Rebuild and smoke the backend runtime that packaged Tauri starts."),
+            DesktopRuntimeValidationCommandResponse(label="Build packaged app", command="cd frontend && npm run tauri:build", purpose="Rebuild the macOS .app with the frontend bootstrap fix."),
+            DesktopRuntimeValidationCommandResponse(label="Open packaged app", command=r"open frontend/src-tauri/target/release/bundle/macos/AI\ Private\ Workspace.app", purpose="Confirm the .app starts backend, creates app-owned logs, and reaches /health without manual uvicorn."),
+        ],
+        safety_rules=[
+            "React still does not execute shell commands.",
+            "React may only invoke the narrow Tauri app-owned backend lifecycle command.",
+            "Tauri starts only the frozen backend runtime selected by manifest.",
+            "Startup success requires HTTP GET /health 200.",
+            "Desktop launch must not start scan, index, rebuild, MCP, Agent, or model downloads.",
+        ],
+        next_steps=[
+            "Rebuild the frozen backend runtime.",
+            "Rebuild the packaged macOS .app.",
+            "Open the .app and verify curl http://127.0.0.1:8000/health returns ok.",
+            "Verify ~/Library/Application Support/AI Private Workspace/logs/backend.log exists.",
+            "After macOS packaged startup is stable, move to Windows parity.",
+        ],
+    )
+
 
 @router.get("/final-product-status", response_model=FinalProductStatusResponse)
 def get_final_product_status() -> FinalProductStatusResponse:

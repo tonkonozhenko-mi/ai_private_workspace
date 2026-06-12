@@ -2322,6 +2322,28 @@ export interface MacOSPackagedAppSmokeResult {
   next_steps: string[];
 }
 
+export interface PackagedAppFrontendBootstrapItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  evidence: string | null;
+  command: string | null;
+}
+
+export interface PackagedAppFrontendBootstrap {
+  status: string;
+  title: string;
+  summary: string;
+  milestone: string;
+  check_script: string;
+  root_cause: string;
+  readiness_items: PackagedAppFrontendBootstrapItem[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
 export interface TauriRustStructureRegistryItem {
   id: string;
   title: string;

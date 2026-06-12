@@ -40,6 +40,7 @@ import { ErrorState } from "./components/ErrorState";
 import { LoadingState } from "./components/LoadingState";
 import { UIActionsPanel } from "./components/UIActionsPanel";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { ensureAppOwnedBackendRuntime, isRunningInsideTauri } from "./desktopRuntime";
 import { WorkspaceDashboard } from "./components/WorkspaceDashboard";
 import { WorkspaceList } from "./components/WorkspaceList";
 import {
@@ -130,6 +131,7 @@ function App() {
   const [activityJobsError, setActivityJobsError] = useState<string | null>(null);
   const [workspaceSkillProfile, setWorkspaceSkillProfile] = useState<WorkspaceSkillProfile | null>(null);
   const [resumeMessage, setResumeMessage] = useState<string | null>(null);
+  const [desktopStartupMessage, setDesktopStartupMessage] = useState<string | null>(null);
 
   const loadModelsDetail = useCallback(async (workspaceId: string) => {
     setModelsDetail(null);
@@ -402,7 +404,36 @@ function App() {
   }, [preferences]);
 
   useEffect(() => {
-    void loadWorkspaces();
+    let cancelled = false;
+
+    async function startDesktopRuntimeAndLoadWorkspaces() {
+      if (isRunningInsideTauri()) {
+        setDesktopStartupMessage("Starting local desktop backend…");
+        try {
+          const startup = await ensureAppOwnedBackendRuntime();
+          if (!cancelled && startup) {
+            setDesktopStartupMessage(startup.message);
+          }
+        } catch (error) {
+          if (!cancelled) {
+            setDesktopStartupMessage(`Desktop backend startup failed: ${errorMessage(error)}`);
+            setWorkspacesError(errorMessage(error));
+            setWorkspacesLoading(false);
+          }
+          return;
+        }
+      }
+
+      if (!cancelled) {
+        await loadWorkspaces();
+      }
+    }
+
+    void startDesktopRuntimeAndLoadWorkspaces();
+
+    return () => {
+      cancelled = true;
+    };
   }, [loadWorkspaces]);
 
   return (
