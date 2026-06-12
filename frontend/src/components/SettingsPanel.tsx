@@ -211,6 +211,38 @@ export function SettingsPanel({
       </section>
 
       <section className="settings-clean-grid">
+        <article className="panel settings-clean-card settings-readiness-card">
+          <div className="panel-heading compact-heading">
+            <div>
+              <p className="eyebrow">App readiness</p>
+              <h3>What this workspace needs</h3>
+              <p className="panel-helper">A simple checklist for normal use. Nothing starts or downloads automatically.</p>
+            </div>
+            <StatusBadge label={contextReady && modelsReady ? "Ready" : "Needs attention"} />
+          </div>
+          <div className="settings-readiness-list">
+            <div>
+              <StatusBadge label="Ready" tone="success" size="sm" />
+              <span><strong>Local backend</strong><small>Workspace settings can be saved.</small></span>
+            </div>
+            <div>
+              <StatusBadge label={dashboard.summary.has_scan ? "Ready" : "Needed"} size="sm" />
+              <span><strong>Project scan</strong><small>{dashboard.summary.has_scan ? "Project technologies are detected." : "Run Scan from Home before building context."}</small></span>
+            </div>
+            <div>
+              <StatusBadge label={contextReady ? "Ready" : "Needed"} size="sm" />
+              <span><strong>Search context</strong><small>{contextReady ? "Ask can retrieve local sources." : "Build context from Home after scanning."}</small></span>
+            </div>
+            <div>
+              <StatusBadge label={modelsReady ? "Ready" : "Review"} size="sm" />
+              <span><strong>Local AI models</strong><small>{modelsReady ? "Selected models match the active setup." : "Choose, install, and verify models in Models."}</small></span>
+            </div>
+          </div>
+          <button className="secondary-action" type="button" onClick={onOpenModels}>
+            Open Models and MCP tools
+          </button>
+        </article>
+
         <article className="panel settings-clean-card">
           <div className="panel-heading compact-heading">
             <div>

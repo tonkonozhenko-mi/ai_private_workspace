@@ -167,6 +167,11 @@ from app.api.schemas.workspace_summary_schemas import (
     to_workspace_summary_response,
 )
 from app.api.schemas.workspace_job_schemas import WorkspaceJobResponse
+from app.api.schemas.workspace_file_schemas import (
+    WorkspaceFileWriteResponse,
+    WriteWorkspaceFileRequest,
+    to_workspace_file_write_response,
+)
 from app.api.workspace_job_runner import (
     WorkspaceJob,
     WorkspaceJobCancelledError,
@@ -445,6 +450,12 @@ from app.core.use_cases.update_workspace_metadata import (
     UpdateWorkspaceMetadataUseCase,
     UpdateWorkspaceMetadataValidationError,
 )
+from app.core.use_cases.write_workspace_file import (
+    WriteWorkspaceFileInput,
+    WriteWorkspaceFileNotFoundError,
+    WriteWorkspaceFileUseCase,
+    WriteWorkspaceFileValidationError,
+)
 
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
@@ -546,6 +557,35 @@ def get_workspace_indexing_rules(workspace_id: str) -> WorkspaceIndexingRulesRes
         ) from exc
     source = "saved" if indexing_rules_repository.get(workspace_id) is not None else "default"
     return to_workspace_indexing_rules_response(profile, source=source)
+
+
+@router.post(
+    "/{workspace_id}/files/write",
+    response_model=WorkspaceFileWriteResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def write_workspace_file(
+    workspace_id: str,
+    request: WriteWorkspaceFileRequest,
+) -> WorkspaceFileWriteResponse:
+    try:
+        result = WriteWorkspaceFileUseCase(
+            workspace_repository=workspace_repository,
+            file_system=file_system,
+            timeline_repository=timeline_repository,
+        ).execute(
+            WriteWorkspaceFileInput(
+                workspace_id=workspace_id,
+                relative_path=request.relative_path,
+                content=request.content,
+                overwrite=request.overwrite,
+            )
+        )
+    except WriteWorkspaceFileNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except WriteWorkspaceFileValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return to_workspace_file_write_response(result)
 
 
 @router.put("/{workspace_id}/indexing-rules", response_model=WorkspaceIndexingRulesResponse)

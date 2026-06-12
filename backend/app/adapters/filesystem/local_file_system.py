@@ -4,6 +4,7 @@ from app.core.domain.project_scan import ProjectFile, ProjectFileList
 
 
 MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024
+MAX_WRITTEN_FILE_SIZE_BYTES = 1024 * 1024
 SKIPPED_DIRECTORIES = {
     ".git",
     ".venv",
@@ -80,6 +81,36 @@ class LocalFileSystem:
             return target_path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             return ""
+
+    def write_text_file(
+        self,
+        root_path: str,
+        relative_path: str,
+        content: str,
+        overwrite: bool = False,
+    ) -> bool:
+        root = Path(root_path).resolve()
+        if not root.is_dir():
+            raise ValueError("Workspace project path does not exist or is not a directory")
+        target_path = (root / relative_path).resolve()
+
+        try:
+            target_path.relative_to(root)
+        except ValueError as exc:
+            raise ValueError("Target path must stay inside the workspace") from exc
+
+        if len(content.encode("utf-8")) > MAX_WRITTEN_FILE_SIZE_BYTES:
+            raise ValueError("File content exceeds the 1 MB safety limit")
+
+        replaced_existing = target_path.exists()
+        if replaced_existing and not target_path.is_file():
+            raise ValueError("Target path is not a file")
+        if replaced_existing and not overwrite:
+            raise FileExistsError("File already exists; enable overwrite after reviewing it")
+
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_text(content, encoding="utf-8")
+        return replaced_existing
 
     def _collect_candidates(self, root: Path) -> list[tuple[Path, Path, int]]:
         candidates: list[tuple[Path, Path, int]] = []

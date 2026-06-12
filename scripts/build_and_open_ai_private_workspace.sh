@@ -20,5 +20,7 @@ run_step "Smoke frozen backend" ./scripts/smoke_frozen_backend_runtime.sh
 run_step "Build macOS app" bash -lc 'cd frontend && npm run tauri:build'
 
 APP_PATH="$ROOT_DIR/frontend/src-tauri/target/release/bundle/macos/AI Private Workspace.app"
+mkdir -p "$ROOT_DIR/build/desktop"
+touch "$ROOT_DIR/build/desktop/last-successful-app-build"
 printf '\n✅ Ready. Opening app:\n%s\n' "$APP_PATH"
 open "$APP_PATH"

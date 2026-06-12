@@ -105,6 +105,8 @@ interface ModelOption {
   source: string;
 }
 
+type ModelsSection = "setup" | "catalog" | "skills" | "compare" | "tools" | "advanced";
+
 export function ModelsDetail({
   workspaceId,
   hasScan,
@@ -158,6 +160,7 @@ export function ModelsDetail({
   const needsContextBuild = dashboard.overall_status === "needs_context_index";
   const [contextBuildJob, setContextBuildJob] = useState<WorkspaceJob | null>(null);
   const [contextBuildError, setContextBuildError] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<ModelsSection>("setup");
 
   useEffect(() => {
     if (!contextBuildJob || !["queued", "running"].includes(contextBuildJob.status)) {
@@ -189,6 +192,23 @@ export function ModelsDetail({
     }
   }
 
+  async function applyGuidedSelection(
+    modelType: "llm" | "embedding",
+    provider: string,
+    model: string,
+  ) {
+    await updateWorkspaceModelSelection(workspaceId, {
+      provider,
+      model,
+      model_type: modelType,
+      selected_reason:
+        modelType === "llm"
+          ? "Chosen from guided local model setup."
+          : "Chosen from guided local search model setup.",
+    });
+    await onSelectionUpdated();
+  }
+
   return (
     <div className="models-detail models-detail-simple">
       <section className="panel models-native-hero models-native-hero-clean">
@@ -202,95 +222,139 @@ export function ModelsDetail({
         </div>
       </section>
 
-      <section className="panel models-simple-panel models-simple-panel-clean">
-        <PanelHeading
-          eyebrow="Current setup"
-          title="Models used by this workspace"
-          status={dashboard.overall_status}
-        />
-        <div className="models-simple-grid">
-          <SimpleModelCard
-            label="AI answer model"
-            provider={dashboard.selected_llm_provider ?? usage.active_llm_provider}
-            model={dashboard.selected_llm_model ?? usage.active_llm_model}
-            description="Used when you ask questions."
-            status={usage.can_ask_with_selected_llm ? "Ready" : "Needs setup"}
+      <nav className="models-section-nav" aria-label="Model settings sections">
+        {([
+          ["setup", "Overview"],
+          ["catalog", "Choose & install"],
+          ["skills", "Skills"],
+          ["compare", "Compare"],
+          ["tools", "MCP tools"],
+          ["advanced", "Advanced"],
+        ] as Array<[ModelsSection, string]>).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={activeSection === id ? "is-selected" : ""}
+            aria-pressed={activeSection === id}
+            onClick={() => setActiveSection(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      {activeSection === "setup" ? (
+        <>
+          <section className="panel models-simple-panel models-simple-panel-clean">
+            <PanelHeading
+              eyebrow="Current setup"
+              title="Models used by this workspace"
+              status={dashboard.overall_status}
+            />
+            <div className="models-simple-grid">
+              <SimpleModelCard
+                label="AI answer model"
+                provider={dashboard.selected_llm_provider ?? usage.active_llm_provider}
+                model={dashboard.selected_llm_model ?? usage.active_llm_model}
+                description="Used when you ask questions."
+                status={usage.can_ask_with_selected_llm ? "Ready" : "Needs setup"}
+              />
+              <SimpleModelCard
+                label="Search context model"
+                provider={dashboard.selected_embedding_provider ?? usage.active_embedding_provider}
+                model={dashboard.selected_embedding_model ?? usage.active_embedding_model}
+                description="Used to build and search local project context."
+                status={getSearchContextStatusLabel(dashboard)}
+              />
+            </div>
+            <RuntimeNextActionPanel
+              dashboard={dashboard}
+              workspaceId={workspaceId}
+              contextBuildJob={contextBuildJob}
+              contextBuildError={contextBuildError}
+              onBuildContext={handleBuildContext}
+              onSelectionUpdated={onSelectionUpdated}
+            />
+          </section>
+          <ProductFitPanel />
+        </>
+      ) : null}
+
+      {activeSection === "catalog" ? (
+        <>
+          <GuidedModelSetupPanel
+            workspaceId={workspaceId}
+            onApplySelection={applyGuidedSelection}
           />
-          <SimpleModelCard
-            label="Search context model"
-            provider={dashboard.selected_embedding_provider ?? usage.active_embedding_provider}
-            model={dashboard.selected_embedding_model ?? usage.active_embedding_model}
-            description="Used to build and search local project context."
-            status={getSearchContextStatusLabel(dashboard)}
-          />
-        </div>
-        <RuntimeNextActionPanel
-          dashboard={dashboard}
+          <LocalModelInstallPanel workspaceId={workspaceId} />
+        </>
+      ) : null}
+
+      {activeSection === "skills" ? (
+        <ModelSkillPresetPanel
           workspaceId={workspaceId}
-          contextBuildJob={contextBuildJob}
-          contextBuildError={contextBuildError}
-          onBuildContext={handleBuildContext}
+          dashboard={dashboard}
           onSelectionUpdated={onSelectionUpdated}
         />
-      </section>
+      ) : null}
 
-      <ProductFitPanel />
-
-      <ModelCatalogPanel workspaceId={workspaceId} onSelectionUpdated={onSelectionUpdated} />
-
-      <ModelSkillPresetPanel workspaceId={workspaceId} dashboard={dashboard} onSelectionUpdated={onSelectionUpdated} />
-
-      <LocalModelInstallPanel workspaceId={workspaceId} />
-
-      <WorkspacePermissionsPanel workspaceId={workspaceId} />
-
-      <details className="panel models-disclosure-panel model-selection-disclosure">
-        <summary>
-          <div>
-            <p className="eyebrow">Change model preferences</p>
-            <h2>Advanced selection</h2>
-            <span>Open only when you want to switch answer or search models for this workspace.</span>
-          </div>
-        </summary>
-        <ModelSelectionEditor
+      {activeSection === "compare" ? (
+        <ModelExperimentPlanner
           workspaceId={workspaceId}
+          llmOptions={llmOptions}
           selectedLlmProvider={dashboard.selected_llm_provider}
           selectedLlmModel={dashboard.selected_llm_model}
-          selectedEmbeddingProvider={dashboard.selected_embedding_provider}
-          selectedEmbeddingModel={dashboard.selected_embedding_model}
-          llmOptions={llmOptions}
-          embeddingOptions={embeddingOptions}
-          reindexReason={reindexReason}
-          hasScan={hasScan}
+          activeLlmProvider={usage.active_llm_provider}
+          activeLlmModel={usage.active_llm_model}
           onSelectionUpdated={onSelectionUpdated}
         />
-      </details>
+      ) : null}
 
-      <details className="panel models-disclosure-panel activation-panel">
-        <summary>
-          <div>
-            <p className="eyebrow">Manual commands</p>
-            <h2>Copy-only setup notes</h2>
-            <span>Only for troubleshooting when the built-in model manager is not enough.</span>
-          </div>
-        </summary>
-        <p className="activation-safety-note">Commands are copied only. The frontend never executes them.</p>
-        <div className="activation-step-list">
-          {activationGuide.steps.slice(0, 4).map((step) => (
-            <article className="activation-step" key={step.id}>
-              <div className="activation-step-heading">
-                <div>
-                  <span>{formatLabel(step.category)}</span>
-                  <strong>{step.title}</strong>
-                </div>
-                <StatusBadge label={friendlyStatus(step.status)} />
+      {activeSection === "tools" ? (
+        <MCPServerRegistryPanel workspaceId={workspaceId} />
+      ) : null}
+
+      {activeSection === "advanced" ? (
+        <div className="models-advanced-stack">
+          <ModelSelectionEditor
+            workspaceId={workspaceId}
+            selectedLlmProvider={dashboard.selected_llm_provider}
+            selectedLlmModel={dashboard.selected_llm_model}
+            selectedEmbeddingProvider={dashboard.selected_embedding_provider}
+            selectedEmbeddingModel={dashboard.selected_embedding_model}
+            llmOptions={llmOptions}
+            embeddingOptions={embeddingOptions}
+            reindexReason={reindexReason}
+            hasScan={hasScan}
+            onSelectionUpdated={onSelectionUpdated}
+          />
+          <details className="panel models-disclosure-panel activation-panel">
+            <summary>
+              <div>
+                <p className="eyebrow">Manual commands</p>
+                <h2>Copy-only setup notes</h2>
+                <span>Only for troubleshooting when the built-in model manager is not enough.</span>
               </div>
-              <p>{step.description}</p>
-              <CommandList primaryCommand={step.command} commands={step.commands ?? []} />
-            </article>
-          ))}
+            </summary>
+            <p className="activation-safety-note">Commands are copied only. The frontend never executes them.</p>
+            <div className="activation-step-list">
+              {activationGuide.steps.slice(0, 4).map((step) => (
+                <article className="activation-step" key={step.id}>
+                  <div className="activation-step-heading">
+                    <div>
+                      <span>{formatLabel(step.category)}</span>
+                      <strong>{step.title}</strong>
+                    </div>
+                    <StatusBadge label={friendlyStatus(step.status)} />
+                  </div>
+                  <p>{step.description}</p>
+                  <CommandList primaryCommand={step.command} commands={step.commands ?? []} />
+                </article>
+              ))}
+            </div>
+          </details>
         </div>
-      </details>
+      ) : null}
     </div>
   );
 }

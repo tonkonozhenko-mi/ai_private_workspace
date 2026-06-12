@@ -15,3 +15,12 @@ class FileSystemPort(Protocol):
 
     def read_text_file(self, root_path: str, relative_path: str) -> str:
         """Read a text file under a root path."""
+
+    def write_text_file(
+        self,
+        root_path: str,
+        relative_path: str,
+        content: str,
+        overwrite: bool = False,
+    ) -> bool:
+        """Write a text file under a root path and return whether it replaced a file."""

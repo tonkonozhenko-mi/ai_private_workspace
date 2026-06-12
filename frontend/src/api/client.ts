@@ -7,6 +7,7 @@ import type {
   ModelExperimentRun,
   CreateWorkspaceRequest,
   CreatedWorkspace,
+  WorkspaceFileWriteResult,
   ProjectScanResponse,
   FileSelectionPreview,
   FileSelectionRulesRequest,
@@ -372,6 +373,23 @@ export function createWorkspace(
     },
     body: JSON.stringify(request),
   });
+}
+
+export function writeWorkspaceFile(
+  workspaceId: string,
+  request: { relative_path: string; content: string; overwrite: boolean },
+): Promise<WorkspaceFileWriteResult> {
+  return requestJson<WorkspaceFileWriteResult>(
+    `/workspaces/${workspaceId}/files/write`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    },
+  );
 }
 
 export function archiveWorkspace(workspaceId: string): Promise<void> {
