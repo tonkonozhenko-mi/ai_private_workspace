@@ -376,3 +376,7 @@ This does not claim final installer-grade packaging. It creates a reproducible P
 - Settings UI visibility for the smoke contract
 
 The smoke script starts only the app-owned generated backend executable, waits for `/health`, and stops only the PID it created. Tauri backend startup remains disabled until the next app-owned startup gate.
+
+### Task 247 — app-owned backend startup gate
+
+Phase 22 now has a metadata-only Tauri startup gate. The project can describe the exact conditions for future app-owned backend startup, but automatic backend startup remains disabled until a frozen runtime passes local smoke and PID-owned shutdown is implemented.

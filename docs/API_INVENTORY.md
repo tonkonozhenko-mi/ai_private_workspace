@@ -327,3 +327,7 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 
 - `GET /runtime/frozen-backend-smoke-contract` — developer-only frozen backend smoke contract. It documents `scripts/smoke_frozen_backend_runtime.sh`, PID-owned cleanup, `/health` verification, and the rule that frontend/Tauri still cannot auto-start backend until later gates pass.
 - `GET /runtime/frozen-backend-runtime-selection` — read-only runtime selection contract for frozen PyInstaller backend, staged source runtime fallback, and manual developer backend. It also records safety rules for future Tauri startup gating.
+
+## Task 247 runtime endpoint
+
+- `GET /runtime/app-owned-backend-startup-gate` — read-only gate before Tauri may start an app-owned backend runtime. It records frozen manifest, developer smoke, PID-owned shutdown, health readiness, no kill-by-port behavior, and the rule that this task still does not enable automatic backend startup.

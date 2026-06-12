@@ -59,6 +59,7 @@ import type {
   PyInstallerBackendRuntimeContract,
   FrozenBackendRuntimeSelection,
   FrozenBackendSmokeContract,
+  AppOwnedBackendStartupGate,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -243,6 +244,9 @@ export function getFrozenBackendSmokeContract(): Promise<FrozenBackendSmokeContr
   return getJson<FrozenBackendSmokeContract>("/runtime/frozen-backend-smoke-contract");
 }
 
+export function getAppOwnedBackendStartupGate(): Promise<AppOwnedBackendStartupGate> {
+  return getJson<AppOwnedBackendStartupGate>("/runtime/app-owned-backend-startup-gate");
+}
 
 export function getWindowsPackagingFoundation(): Promise<WindowsPackagingFoundation> {
   return getJson<WindowsPackagingFoundation>("/runtime/windows-packaging-foundation");
