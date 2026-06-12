@@ -418,6 +418,42 @@ class DesktopTechnologyDecisionResponse(BaseModel):
     when_to_reconsider: list[str]
     next_steps: list[str]
 
+
+
+class DesktopStackComponentResponse(BaseModel):
+    id: str
+    name: str
+    role: str
+    license_model: str
+    why_selected: str
+    maintenance_note: str
+
+
+class DesktopRuntimeFreezeMilestoneResponse(BaseModel):
+    id: str
+    title: str
+    status: str
+    summary: str
+    exit_criteria: list[str]
+
+
+class DesktopStackAndRuntimeContractResponse(BaseModel):
+    status: str
+    title: str
+    summary: str
+    desktop_shell: str
+    backend_runtime_strategy: str
+    frontend_strategy: str
+    packaging_strategy: str
+    stack_principles: list[str]
+    selected_components: list[DesktopStackComponentResponse]
+    rejected_paths: list[DesktopTechnologyOptionResponse]
+    runtime_freeze_milestones: list[DesktopRuntimeFreezeMilestoneResponse]
+    staging_contract: list[str]
+    validation_commands: list[DesktopRuntimeValidationCommandResponse]
+    safety_rules: list[str]
+    next_steps: list[str]
+
 class WindowsPackagingArtifactResponse(BaseModel):
     path: str
     purpose: str

@@ -43,6 +43,9 @@ from app.api.schemas.local_data_safety_schemas import (
     TauriSupervisorStaticGateResponse,
     DesktopTechnologyOptionResponse,
     DesktopTechnologyDecisionResponse,
+    DesktopStackComponentResponse,
+    DesktopRuntimeFreezeMilestoneResponse,
+    DesktopStackAndRuntimeContractResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
@@ -1316,6 +1319,135 @@ def get_desktop_technology_decision() -> DesktopTechnologyDecisionResponse:
             "Keep Task 241 as the explicit decision record instead of treating Tauri as an invisible assumption.",
             "Before enabling backend startup from the shell, complete a frozen runtime/staging spike.",
             "Run one macOS and one Windows packaging proof before calling the choice final for v1.0.",
+        ],
+    )
+
+
+@router.get("/desktop-stack-runtime-contract", response_model=DesktopStackAndRuntimeContractResponse)
+def get_desktop_stack_runtime_contract() -> DesktopStackAndRuntimeContractResponse:
+    """Return the selected open-source desktop stack and runtime freeze/staging contract."""
+    return DesktopStackAndRuntimeContractResponse(
+        status="accepted_for_v0.2",
+        title="Desktop stack and runtime contract",
+        summary="Locks the practical v0.2 direction: open-source/free components, one React UI for macOS and Windows, Tauri as the lightweight desktop shell candidate, and a staged backend runtime that must be deterministic before the shell starts it.",
+        desktop_shell="Tauri + React, accepted for v0.2 unless the packaging spike proves it too costly",
+        backend_runtime_strategy="Freeze/stage the Python backend runtime before enabling app-owned desktop startup; evaluate PyInstaller first, keep Nuitka or packaged Python as fallback paths.",
+        frontend_strategy="React + TypeScript + Vite remains the shared UI because it already exists, builds fast, and can be reused in browser and desktop modes.",
+        packaging_strategy="Start with developer-verifiable bundles and scripts, then move to signed macOS DMG and Windows installer after runtime freeze is stable.",
+        stack_principles=[
+            "Use open-source/free technologies by default.",
+            "Keep one shared UI for macOS and Windows instead of two native codebases.",
+            "Prefer lightweight tools with small operational surface area.",
+            "Native desktop code must stay narrow: status, paths, health checks, and later app-owned backend lifecycle only.",
+            "Every runtime-changing action must be explicit and testable.",
+        ],
+        selected_components=[
+            DesktopStackComponentResponse(
+                id="tauri",
+                name="Tauri",
+                role="Desktop shell and native supervisor bridge",
+                license_model="Open source / free",
+                why_selected="Best current balance for a lightweight cross-platform desktop app over the existing React UI.",
+                maintenance_note="Keep Rust code small and allowlisted; reconsider before v1.0 if signing or Windows packaging becomes painful.",
+            ),
+            DesktopStackComponentResponse(
+                id="react-vite",
+                name="React + TypeScript + Vite",
+                role="Shared frontend UI",
+                license_model="Open source / free",
+                why_selected="Already implemented, fast to build, familiar, and usable in both browser dev mode and desktop shell mode.",
+                maintenance_note="Avoid adding desktop-only behavior to React; frontend remains display/copy/user-click only.",
+            ),
+            DesktopStackComponentResponse(
+                id="fastapi",
+                name="FastAPI",
+                role="Local backend API",
+                license_model="Open source / free",
+                why_selected="Simple, productive Python backend with clear API boundaries and existing tests.",
+                maintenance_note="Keep core logic outside FastAPI adapters to preserve clean architecture.",
+            ),
+            DesktopStackComponentResponse(
+                id="sqlite-qdrant-ollama",
+                name="SQLite + Qdrant + Ollama",
+                role="Local persistence, vector search, and local model runtime",
+                license_model="Open source / free for local development/use",
+                why_selected="Matches the local-first privacy goal without requiring external services.",
+                maintenance_note="Runtime data stays outside app bundles and must be excluded from source/release archives.",
+            ),
+            DesktopStackComponentResponse(
+                id="pyinstaller-first",
+                name="PyInstaller-first runtime freeze",
+                role="Candidate for freezing/staging the backend runtime",
+                license_model="Open source / free",
+                why_selected="Most practical first spike for packaging a Python backend into an app-owned runtime on macOS and Windows.",
+                maintenance_note="If binary size/startup/signing is bad, evaluate Nuitka or packaged Python without changing product architecture.",
+            ),
+        ],
+        rejected_paths=[
+            DesktopTechnologyOptionResponse(
+                id="electron_first",
+                title="Electron-first desktop shell",
+                status="fallback_only",
+                summary="Kept as fallback, but not selected now because it is usually heavier than needed for this product.",
+                strengths=["Mature ecosystem", "Consistent Chromium rendering", "Many packaging examples"],
+                tradeoffs=["Larger app size", "Higher memory footprint", "More surface area to harden"],
+            ),
+            DesktopTechnologyOptionResponse(
+                id="separate_native_apps",
+                title="Separate SwiftUI and WinUI apps",
+                status="rejected_for_now",
+                summary="Too much maintenance for this stage because it creates two UI products.",
+                strengths=["Best native feel", "Deep OS integration"],
+                tradeoffs=["Two UI codebases", "More QA", "Slower delivery"],
+            ),
+        ],
+        runtime_freeze_milestones=[
+            DesktopRuntimeFreezeMilestoneResponse(
+                id="manifest",
+                title="Runtime manifest",
+                status="done_foundation",
+                summary="Backend source and dependency manifest can be generated and checked before packaging.",
+                exit_criteria=["Manifest contains requirements hash", "Runtime excludes are documented", "No launch actions are executed"],
+            ),
+            DesktopRuntimeFreezeMilestoneResponse(
+                id="staged-runtime",
+                title="Staged app-owned backend runtime",
+                status="next",
+                summary="Create a deterministic backend runtime directory that the desktop shell can later start safely.",
+                exit_criteria=["Backend entrypoint exists", "Dependency lock/hash is recorded", "Logs/data paths are outside the bundle", "Health endpoint can be checked manually"],
+            ),
+            DesktopRuntimeFreezeMilestoneResponse(
+                id="frozen-runtime",
+                title="Frozen backend runtime",
+                status="future",
+                summary="Package backend runtime without requiring users to create a Python venv manually.",
+                exit_criteria=["macOS smoke test passes", "Windows smoke test passes", "No runtime DB is bundled", "Startup and shutdown are app-owned"],
+            ),
+        ],
+        staging_contract=[
+            "Desktop shell may start only the staged app-owned backend runtime, never arbitrary user commands.",
+            "Runtime staging must not include backend/.ai-workbench, databases, caches, node_modules, or build artifacts unrelated to the app package.",
+            "App data and logs must be created under OS user data locations, not inside the app bundle.",
+            "UI opens only after /health is ready or shows a calm local-log error screen.",
+            "Port handling must never kill unknown processes; only a PID started by the app may be stopped by the app.",
+        ],
+        validation_commands=[
+            DesktopRuntimeValidationCommandResponse(label="Release audit", command="./scripts/audit_release_candidate.sh", purpose="Check source/release hygiene before packaging work."),
+            DesktopRuntimeValidationCommandResponse(label="Runtime manifest", command="scripts/prepare_macos_backend_runtime.sh", purpose="Generate the current backend runtime manifest foundation."),
+            DesktopRuntimeValidationCommandResponse(label="Desktop preflight", command="scripts/check_desktop_runtime_preflight.sh", purpose="Validate runtime manifest, frontend build output, and desktop packaging inputs."),
+            DesktopRuntimeValidationCommandResponse(label="Stack contract check", command="scripts/check_desktop_stack_contract.sh", purpose="Validate that the repository documents the selected open-source cross-platform stack and safety contract."),
+        ],
+        safety_rules=[
+            "Frontend still cannot execute shell commands.",
+            "Desktop launch must not start scan, index, rebuild, MCP, Agent, or model downloads.",
+            "Model downloads stay backend-side, opt-in, allowlisted, and explicitly approved.",
+            "MCP servers/tools are not started automatically.",
+            "Agent workflows remain approval-gated and do not execute tools automatically.",
+        ],
+        next_steps=[
+            "Implement the staged backend runtime directory contract before enabling Tauri backend startup.",
+            "Run a macOS packaging spike first, then validate Windows parity before calling the stack final for v1.0.",
+            "Only after staging is deterministic, add app-owned backend start/stop in the Tauri supervisor.",
         ],
     )
 
