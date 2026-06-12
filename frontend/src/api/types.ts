@@ -2181,6 +2181,31 @@ export interface AppOwnedBackendStartupImplementation {
   next_steps: string[];
 }
 
+
+export interface MacOSTauriSmokeRunbookItem {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  command: string | null;
+}
+
+export interface MacOSTauriSmokeRunbook {
+  status: string;
+  title: string;
+  summary: string;
+  runbook_doc: string;
+  check_script: string;
+  platform: string;
+  prerequisites: string[];
+  smoke_steps: MacOSTauriSmokeRunbookItem[];
+  validation_commands: ReleaseCandidateAuditCommand[];
+  pass_criteria: string[];
+  fail_fast_conditions: string[];
+  safety_rules: string[];
+  next_steps: string[];
+}
+
 export interface StagedBackendRuntimeItem {
   id: string;
   title: string;
