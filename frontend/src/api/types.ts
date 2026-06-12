@@ -336,6 +336,29 @@ export interface TauriSupervisorStaticGate {
   next_steps: string[];
 }
 
+
+export interface DesktopTechnologyOption {
+  id: string;
+  title: string;
+  status: string;
+  summary: string;
+  strengths: string[];
+  tradeoffs: string[];
+}
+
+export interface DesktopTechnologyDecision {
+  status: string;
+  title: string;
+  summary: string;
+  current_candidate: string;
+  decision_state: string;
+  why_it_was_chosen: string[];
+  alternatives: DesktopTechnologyOption[];
+  decision_guardrails: string[];
+  when_to_reconsider: string[];
+  next_steps: string[];
+}
+
 export interface WindowsPackagingArtifact {
   path: string;
   purpose: string;

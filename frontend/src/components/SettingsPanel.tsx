@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import { DEFAULT_API_BASE_URL } from "../api/client";
-import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
+import { createDatabaseBackup, getDatabaseBackups, getDatabaseMigrationSafety, getDatabaseRestorePlan, getDesktopStartupExperience, getDesktopPackagingDesign, getMacOSAppPackageFoundation, getDesktopSupervisorContract, getMacOSAppSupervisorWiring, getBackendRuntimeBundlePlan, getDesktopRuntimeReadiness, getDesktopRuntimePreflight, getTauriShellScaffold, getTauriSupervisorBridge, getTauriSupervisorStaticGate, getDesktopTechnologyDecision, getWindowsPackagingFoundation, getReleaseCandidateAudit, getV01Handoff, getV01ReleaseGate, getV01UISmokeCheck, getV01PublicationHandoff, getFinalProductStatus, getProductionReadiness, getLocalDataSafety, getRuntimeTroubleshooting, getSafeUpdateWorkflow, getStartupChecklist, previewWorkspaceFileSelection, updateWorkspaceIndexingRules, updateWorkspaceSkillProfile } from "../api/client";
 import type {
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
@@ -25,6 +25,7 @@ import type {
   TauriShellScaffold,
   TauriSupervisorBridge,
   TauriSupervisorStaticGate,
+  DesktopTechnologyDecision,
   WindowsPackagingFoundation,
   ReleaseCandidateAudit,
   V01Handoff,
@@ -221,6 +222,9 @@ export function SettingsPanel({
   const [tauriSupervisorStaticGate, setTauriSupervisorStaticGate] = useState<TauriSupervisorStaticGate | null>(null);
   const [tauriSupervisorStaticGateError, setTauriSupervisorStaticGateError] = useState<string | null>(null);
   const [tauriSupervisorStaticGateLoading, setTauriSupervisorStaticGateLoading] = useState(false);
+  const [desktopTechnologyDecision, setDesktopTechnologyDecision] = useState<DesktopTechnologyDecision | null>(null);
+  const [desktopTechnologyDecisionError, setDesktopTechnologyDecisionError] = useState<string | null>(null);
+  const [desktopTechnologyDecisionLoading, setDesktopTechnologyDecisionLoading] = useState(false);
   const [windowsPackagingFoundation, setWindowsPackagingFoundation] = useState<WindowsPackagingFoundation | null>(null);
   const [windowsPackagingFoundationError, setWindowsPackagingFoundationError] = useState<string | null>(null);
   const [windowsPackagingFoundationLoading, setWindowsPackagingFoundationLoading] = useState(false);
@@ -669,6 +673,32 @@ export function SettingsPanel({
       .finally(() => {
         if (!cancelled) {
           setTauriSupervisorStaticGateLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.workspace_id]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    setDesktopTechnologyDecisionLoading(true);
+    setDesktopTechnologyDecisionError(null);
+    getDesktopTechnologyDecision()
+      .then((decision) => {
+        if (!cancelled) {
+          setDesktopTechnologyDecision(decision);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setDesktopTechnologyDecisionError(error instanceof Error ? error.message : "Could not load desktop technology decision");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setDesktopTechnologyDecisionLoading(false);
         }
       });
     return () => {
@@ -2695,6 +2725,54 @@ export function SettingsPanel({
                     <div className="settings-safety-list">
                       {desktopRuntimeReadiness.safety_rules.map((rule) => <span key={rule}>{rule}</span>)}
                     </div>
+                  </details>
+                </div>
+              ) : null}
+            </details>
+
+
+            <details className="settings-disclosure" open>
+              <summary>Desktop shell technology decision</summary>
+              {desktopTechnologyDecisionError ? (
+                <p className="settings-transfer-message">Could not load desktop technology decision: {desktopTechnologyDecisionError}</p>
+              ) : null}
+              {desktopTechnologyDecisionLoading ? (
+                <p className="settings-transfer-message">Loading desktop technology decision…</p>
+              ) : desktopTechnologyDecision ? (
+                <div className="settings-foundation-block">
+                  <div className="startup-checklist-summary">
+                    <strong>{desktopTechnologyDecision.title}</strong>
+                    <span>{desktopTechnologyDecision.summary}</span>
+                    <span>Current candidate: {desktopTechnologyDecision.current_candidate}</span>
+                    <span>Decision state: {desktopTechnologyDecision.decision_state}</span>
+                  </div>
+                  <details className="settings-disclosure" open>
+                    <summary>Why this candidate</summary>
+                    <ol className="settings-preflight-list">
+                      {desktopTechnologyDecision.why_it_was_chosen.map((item) => <li key={item}>{item}</li>)}
+                    </ol>
+                  </details>
+                  <div className="startup-checklist-grid">
+                    {desktopTechnologyDecision.alternatives.map((option) => (
+                      <div className={`startup-checklist-item ${option.status === "current_candidate" ? "is-ok" : option.status === "fallback_option" ? "is-review" : ""}`} key={option.id}>
+                        <div className="startup-checklist-item-header">
+                          <strong>{option.title}</strong>
+                          <span>{option.status}</span>
+                        </div>
+                        <p>{option.summary}</p>
+                        <small>Strengths: {option.strengths.join(" · ")}</small>
+                        <small>Tradeoffs: {option.tradeoffs.join(" · ")}</small>
+                      </div>
+                    ))}
+                  </div>
+                  <details className="settings-disclosure">
+                    <summary>Guardrails and reconsideration points</summary>
+                    <div className="settings-safety-list">
+                      {desktopTechnologyDecision.decision_guardrails.map((rule) => <span key={rule}>{rule}</span>)}
+                    </div>
+                    <ol className="settings-preflight-list">
+                      {desktopTechnologyDecision.when_to_reconsider.map((item) => <li key={item}>{item}</li>)}
+                    </ol>
                   </details>
                 </div>
               ) : null}
