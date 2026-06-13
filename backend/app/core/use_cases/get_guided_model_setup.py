@@ -103,6 +103,11 @@ class GetGuidedModelSetupUseCase:
         *,
         preferred_ids: list[str],
     ):
+        # Hide internal fake/testing providers from the user-facing picker. They
+        # remain available as deterministic defaults for tests and for booting the
+        # app before a real local model is installed, but a person choosing an AI
+        # should only ever see real, usable models.
+        models = [model for model in models if model.provider != "fake"]
         preferred = {model_id: index for index, model_id in enumerate(preferred_ids)}
         ranked = sorted(
             models,
