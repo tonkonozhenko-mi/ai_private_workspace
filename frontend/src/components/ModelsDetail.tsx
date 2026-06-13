@@ -234,7 +234,7 @@ export function ModelsDetail({
         <div>
           <p className="eyebrow">Models</p>
           <h2>Local AI for this workspace</h2>
-          <p>Choose models, install missing ones, and keep the runtime state visible without digging through technical panels.</p>
+          <p>Pick the AI this project uses, and install it if you don't have it yet. Everything runs on your computer.</p>
         </div>
         <div className="models-native-hero-badges">
           <StatusBadge label={dashboard.usage_plan.can_use_selected_models_fully ? "Ready" : "Needs action"} />
@@ -308,16 +308,18 @@ export function ModelsDetail({
             developerMode={developerMode}
             onApplySelection={applyGuidedSelection}
           />
-          <LocalModelInstallPanel
-            key={[
-              workspaceId,
-              dashboard.selected_llm_provider,
-              dashboard.selected_llm_model,
-              dashboard.selected_embedding_provider,
-              dashboard.selected_embedding_model,
-            ].join("-")}
-            workspaceId={workspaceId}
-          />
+          {developerMode ? (
+            <LocalModelInstallPanel
+              key={[
+                workspaceId,
+                dashboard.selected_llm_provider,
+                dashboard.selected_llm_model,
+                dashboard.selected_embedding_provider,
+                dashboard.selected_embedding_model,
+              ].join("-")}
+              workspaceId={workspaceId}
+            />
+          ) : null}
         </>
       ) : null}
 
