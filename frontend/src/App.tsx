@@ -552,6 +552,15 @@ function App() {
         )}
 
         <footer className="sidebar-footer sidebar-footer-simple">
+          <span className="sidebar-privacy" title="Your project files are read and answered on this computer. Nothing is uploaded.">
+            <svg className="sidebar-privacy-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path
+                d="M8 1.5a3 3 0 0 0-3 3V6H4.5A1.5 1.5 0 0 0 3 7.5v5A1.5 1.5 0 0 0 4.5 14h7a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 11.5 6H11V4.5a3 3 0 0 0-3-3Zm1.5 4.5h-3V4.5a1.5 1.5 0 0 1 3 0V6Z"
+                fill="currentColor"
+              />
+            </svg>
+            Private — your files stay on this computer
+          </span>
           <span>Local backend ready</span>
         </footer>
       </aside>
