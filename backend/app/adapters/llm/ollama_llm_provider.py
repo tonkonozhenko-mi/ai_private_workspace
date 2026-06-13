@@ -25,8 +25,8 @@ class OllamaLLMProvider:
     def model_name(self) -> str:
         return self.model
 
-    def generate(self, prompt: str) -> str:
-        response = self._request_with_one_local_retry(prompt)
+    def generate(self, prompt: str, images: list[str] | None = None) -> str:
+        response = self._request_with_one_local_retry(prompt, images)
 
         try:
             payload = response.json()
@@ -43,17 +43,23 @@ class OllamaLLMProvider:
 
         return generated_text
 
-    def _request_with_one_local_retry(self, prompt: str) -> httpx.Response:
+    def _request_with_one_local_retry(
+        self, prompt: str, images: list[str] | None = None
+    ) -> httpx.Response:
         last_error: httpx.HTTPError | None = None
+        payload: dict[str, object] = {
+            "model": self.model,
+            "prompt": prompt,
+            "stream": False,
+        }
+        if images:
+            # Ollama accepts base64-encoded images for vision-capable models.
+            payload["images"] = images
         for attempt in range(2):
             try:
                 response = self.client.post(
                     f"{self.base_url}/api/generate",
-                    json={
-                        "model": self.model,
-                        "prompt": prompt,
-                        "stream": False,
-                    },
+                    json=payload,
                     timeout=self.timeout_seconds,
                 )
                 response.raise_for_status()

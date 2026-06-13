@@ -1595,6 +1595,7 @@ def ask_workspace_question(
                 skill_profile_name=skill_profile_name,
                 skill_profile_updated_at=skill_updated_at,
                 conversation_id=conversation.id,
+                images=request.images,
             )
         )
         result = _persist_answer_in_conversation(conversation.id, result)
@@ -1680,6 +1681,7 @@ def ask_workspace_question_with_selected_llm(
                 skill_profile_name=skill_profile_name,
                 skill_profile_updated_at=skill_updated_at,
                 conversation_id=conversation.id,
+                images=request.images,
             )
         )
         result = _persist_answer_in_conversation(conversation.id, result)
