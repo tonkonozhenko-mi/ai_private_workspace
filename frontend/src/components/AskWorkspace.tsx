@@ -126,7 +126,31 @@ export function AskWorkspace({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [cancelMessage, setCancelMessage] = useState<string | null>(null);
+  const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const askAbortControllerRef = useRef<AbortController | null>(null);
+
+  async function handleImageFiles(files: FileList | null) {
+    if (!files || files.length === 0) {
+      return;
+    }
+    const selected = Array.from(files).slice(0, 4);
+    const encoded = await Promise.all(
+      selected.map(
+        (file) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              // Keep the full data URL so previews render; the base64 payload is
+              // extracted at send time.
+              resolve(typeof reader.result === "string" ? reader.result : "");
+            };
+            reader.onerror = () => reject(reader.error ?? new Error("Could not read image file"));
+            reader.readAsDataURL(file);
+          }),
+      ),
+    );
+    setAttachedImages((current) => [...current, ...encoded].slice(0, 4));
+  }
   const showGeneralQuestionHint =
     question.trim().length > 0 && !isLikelyProjectQuestion(question);
 
@@ -434,7 +458,14 @@ export function AskWorkspace({
         trimmedQuestion,
         limit,
         buildSkillContext(skillPreferences),
-        { signal: abortController.signal, conversationId: activeConversationId },
+        {
+          signal: abortController.signal,
+          conversationId: activeConversationId,
+          images: attachedImages.map((image) => {
+            const comma = image.indexOf(",");
+            return comma >= 0 ? image.slice(comma + 1) : image;
+          }),
+        },
       );
       const historyItem = createHistoryItem(result);
       setActiveConversationId(result.conversation_id ?? activeConversationId);
@@ -442,6 +473,7 @@ export function AskWorkspace({
       await refreshConversations();
       if (options.clearComposer) {
         setQuestion("");
+        setAttachedImages([]);
       }
       await onAsked?.();
     } catch (requestError) {
@@ -600,6 +632,43 @@ export function AskWorkspace({
                 </select>
               </label>
             </div>
+
+            <div className="ask-attach-row">
+              <label className="ask-attach-button">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(event) => {
+                    void handleImageFiles(event.target.files);
+                    event.target.value = "";
+                  }}
+                />
+                Attach image
+              </label>
+              <span className="ask-attach-hint">
+                Add a diagram or screenshot to ask about it. Needs a vision model
+                (for example llama3.2-vision); it is sent only to your local AI.
+              </span>
+            </div>
+            {attachedImages.length > 0 ? (
+              <div className="ask-attach-previews" aria-label="Attached images">
+                {attachedImages.map((image, index) => (
+                  <div key={index} className="ask-attach-thumb">
+                    <img src={image} alt={`Attached ${index + 1}`} />
+                    <button
+                      type="button"
+                      aria-label={`Remove attached image ${index + 1}`}
+                      onClick={() =>
+                        setAttachedImages((current) => current.filter((_, i) => i !== index))
+                      }
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
 
             {showGeneralQuestionHint ? (
               <p className="ask-question-hint ask-question-hint-centered">
