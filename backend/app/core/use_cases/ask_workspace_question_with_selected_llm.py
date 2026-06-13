@@ -102,6 +102,20 @@ class AskWorkspaceQuestionWithSelectedLLMUseCase:
                 )
             )
 
+        if selected_llm.provider == "fake":
+            additional_warnings.append(
+                RagQualityWarning(
+                    code="fake_test_model_selected",
+                    message=(
+                        "This workspace is using the built-in test model, which only "
+                        "returns placeholder text — not real answers. Open Models and "
+                        "choose (and install) a local AI to get real responses."
+                    ),
+                    severity="high",
+                    evidence=[f"selected={selected_llm.provider}/{selected_llm.model}"],
+                )
+            )
+
         try:
             return self.ask_workspace_question.execute(
                 AskWorkspaceQuestionInput(

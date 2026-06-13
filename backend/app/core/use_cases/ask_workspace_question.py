@@ -34,7 +34,13 @@ INDEX_METADATA_WITHOUT_CHUNKS_MESSAGE = (
     "If VECTOR_STORE=memory, reindex after API restart. If VECTOR_STORE=qdrant, "
     "verify VECTOR_STORE, EMBEDDING_PROVIDER, model, and collection settings."
 )
-NO_RELEVANT_CONTEXT_ANSWER = "No relevant indexed context was found for this question."
+NO_RELEVANT_CONTEXT_ANSWER = (
+    "I answer using this project's files, and I didn't find anything relevant to "
+    "that question here. Try asking about the project's code, configuration, "
+    "documentation, or setup. (General questions that aren't about the project — "
+    "like which AI model is running — aren't answered from project files; the "
+    "current model is shown above each answer.)"
+)
 NO_RELEVANT_CONTEXT_MESSAGE = (
     "The active vector store returned no context chunks for this question."
 )
