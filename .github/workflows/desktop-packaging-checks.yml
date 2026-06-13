@@ -9,6 +9,11 @@ on:
       - 'scripts/prepare_windows_packaging_foundation.sh'
       - 'scripts/desktop_supervisor_contract.sh'
       - 'scripts/windows_supervisor_contract.ps1'
+      - 'scripts/open_ai_private_workspace.sh'
+      - 'scripts/build_and_open_ai_private_workspace.sh'
+      - 'scripts/build_pyinstaller_backend_runtime.sh'
+      - 'Open AI Private Workspace.command'
+      - 'frontend/src-tauri/**'
       - 'docs/*PACKAGING*'
       - 'docs/*SUPERVISOR*'
       - '.github/workflows/desktop-packaging-checks.yml'
@@ -28,6 +33,10 @@ jobs:
           bash -n scripts/prepare_tauri_shell_scaffold.sh
           bash -n scripts/prepare_windows_packaging_foundation.sh
           bash -n scripts/desktop_supervisor_contract.sh
+          bash -n scripts/open_ai_private_workspace.sh
+          bash -n scripts/build_and_open_ai_private_workspace.sh
+          bash -n scripts/build_pyinstaller_backend_runtime.sh
+          bash -n 'Open AI Private Workspace.command'
       - name: Confirm PowerShell packaging script is present
         run: test -f scripts/windows_supervisor_contract.ps1
       - name: Run focused packaging tests

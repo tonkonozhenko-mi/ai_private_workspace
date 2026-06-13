@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from app.adapters.model_catalog.user_model_catalog_loader import UserModelCatalogLoader
 from app.api.routes import models as model_routes
 from app.core.domain.model_catalog_registry import ModelCatalogRegistry
+from app.core.domain.model_catalog_registry import build_custom_ollama_model_definition
 from app.main import app
 
 
@@ -89,6 +90,37 @@ def test_recommendations_use_reloaded_user_model(tmp_path, monkeypatch) -> None:
         recommendation["model"]["id"]
         for recommendation in response.json()["recommendations"]
     }
+
+
+def test_registered_custom_ollama_model_survives_registry_recreation(tmp_path) -> None:
+    path = _write_catalog(tmp_path, [])
+    registry = ModelCatalogRegistry(loader=UserModelCatalogLoader(str(path)))
+    registry.reload()
+
+    registry.register_user_model(
+        build_custom_ollama_model_definition(
+            "deepseek-r1:1.5b",
+            "llm",
+            display_name="DeepSeek R1 1.5B",
+            capabilities=["completion", "thinking"],
+            estimated_size="1.0 GB",
+        )
+    )
+
+    restarted_registry = ModelCatalogRegistry(
+        loader=UserModelCatalogLoader(str(path))
+    )
+    result = restarted_registry.reload()
+    custom = next(
+        model
+        for model in restarted_registry.list_models()
+        if model.model_name == "deepseek-r1:1.5b"
+    )
+
+    assert result.user_models_count == 1
+    assert custom.display_name == "DeepSeek R1 1.5B"
+    assert custom.capabilities == ["completion", "thinking"]
+    assert custom.estimated_size == "1.0 GB"
 
 
 def _configure_reloadable_catalog(monkeypatch, catalog_path: str) -> None:

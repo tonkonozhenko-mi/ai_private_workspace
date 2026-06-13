@@ -10,6 +10,11 @@ class LocalInstalledModel:
     display_name: str | None
     size_bytes: int | None
     modified_at: str | None
+    parameter_size: str | None
+    quantization_level: str | None
+    context_length: int | None
+    embedding_length: int | None
+    capabilities: list[str]
 
 
 @dataclass(frozen=True)
@@ -23,6 +28,12 @@ class LocalModelStatusItem:
     detail: str
     installed_as: str | None
     size_bytes: int | None
+    modified_at: str | None
+    parameter_size: str | None
+    quantization_level: str | None
+    context_length: int | None
+    embedding_length: int | None
+    capabilities: list[str]
     install_command: str
 
 
@@ -66,6 +77,17 @@ def build_local_model_install_status(
         install_targets = [model for model in catalog_models if model.provider == "ollama"][:3]
 
     installed_by_name = {model.name: model for model in installed_models}
+    known_target_keys = {
+        (model.provider, model.model_name, model.model_type)
+        for model in install_targets
+    }
+    install_targets.extend(
+        model
+        for model in catalog_models
+        if model.provider == "ollama"
+        and _find_installed(model.model_name, installed_by_name) is not None
+        and (model.provider, model.model_name, model.model_type) not in known_target_keys
+    )
     items = [
         _build_item(model, installed_by_name, recommended=index == 0 or model.model_type == "embedding")
         for index, model in enumerate(install_targets)
@@ -85,6 +107,12 @@ def build_local_model_install_status(
                 detail="Cannot verify until Ollama is reachable.",
                 installed_as=None,
                 size_bytes=None,
+                modified_at=None,
+                parameter_size=None,
+                quantization_level=None,
+                context_length=None,
+                embedding_length=None,
+                capabilities=list(item.capabilities),
                 install_command=item.install_command,
             )
             for item in items
@@ -129,6 +157,8 @@ def parse_ollama_installed_models(payload: dict[str, Any]) -> list[LocalInstalle
         if not isinstance(name, str) or not name.strip():
             continue
         size = raw_model.get("size")
+        details = raw_model.get("details") if isinstance(raw_model.get("details"), dict) else {}
+        capabilities = raw_model.get("capabilities")
         parsed.append(
             LocalInstalledModel(
                 name=name.strip(),
@@ -139,6 +169,33 @@ def parse_ollama_installed_models(payload: dict[str, Any]) -> list[LocalInstalle
                     if isinstance(raw_model.get("modified_at"), str)
                     else None
                 ),
+                parameter_size=(
+                    details.get("parameter_size")
+                    if isinstance(details.get("parameter_size"), str)
+                    else None
+                ),
+                quantization_level=(
+                    details.get("quantization_level")
+                    if isinstance(details.get("quantization_level"), str)
+                    else None
+                ),
+                context_length=(
+                    details.get("context_length")
+                    if isinstance(details.get("context_length"), int)
+                    else None
+                ),
+                embedding_length=(
+                    details.get("embedding_length")
+                    if isinstance(details.get("embedding_length"), int)
+                    else None
+                ),
+                capabilities=[
+                    capability
+                    for capability in capabilities
+                    if isinstance(capability, str)
+                ]
+                if isinstance(capabilities, list)
+                else [],
             )
         )
     return parsed
@@ -167,6 +224,12 @@ def _build_item(
         detail=detail,
         installed_as=installed.name if installed else None,
         size_bytes=installed.size_bytes if installed else None,
+        modified_at=installed.modified_at if installed else None,
+        parameter_size=installed.parameter_size if installed else None,
+        quantization_level=installed.quantization_level if installed else None,
+        context_length=installed.context_length if installed else None,
+        embedding_length=installed.embedding_length if installed else None,
+        capabilities=list(installed.capabilities if installed else catalog_model.capabilities),
         install_command=f"ollama pull {catalog_model.model_name}",
     )
 

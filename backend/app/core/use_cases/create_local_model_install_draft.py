@@ -10,7 +10,10 @@ from app.core.domain.local_model_install_draft import (
     build_local_model_install_draft,
 )
 from app.core.domain.model_catalog import LocalModelDefinition
-from app.core.domain.model_catalog_registry import ModelCatalogRegistry
+from app.core.domain.model_catalog_registry import (
+    ModelCatalogRegistry,
+    build_custom_ollama_model_definition,
+)
 from app.core.ports.command_repository import CommandRepositoryPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -129,4 +132,13 @@ class CreateLocalModelInstallDraftUseCase:
                     "Only Ollama model download drafts are supported for now"
                 )
             return candidate
-        raise LocalModelInstallDraftValidationError("Model is not present in the local catalog")
+        if provider == "ollama" and model_type in {"llm", "embedding"}:
+            try:
+                return self.model_catalog_registry.register_user_model(
+                    build_custom_ollama_model_definition(model, model_type)
+                )
+            except (OSError, ValueError) as exc:
+                raise LocalModelInstallDraftValidationError(str(exc)) from exc
+        raise LocalModelInstallDraftValidationError(
+            "Model is not present in the local catalog"
+        )

@@ -5,8 +5,10 @@ from fastapi.testclient import TestClient
 from app.adapters.memory.sqlite_workspace_model_selection_repository import (
     SQLiteWorkspaceModelSelectionRepository,
 )
+from app.api.dependencies import workspace_model_selection_repository
 from app.core.domain.workspace_model_selection import (
     EMBEDDING_CHANGE_NOTE,
+    PREFERENCE_ONLY_NOTE,
     UNKNOWN_CATALOG_NOTE,
     WorkspaceModelSelection,
     WorkspaceSelectedModel,
@@ -119,6 +121,29 @@ def test_unknown_model_is_allowed_with_note(tmp_path) -> None:
     assert response.status_code == 200
     assert response.json()["selected_llm"]["model"] == "private-model"
     assert UNKNOWN_CATALOG_NOTE in response.json()["notes"]
+
+
+def test_known_model_drops_stale_unknown_catalog_note(tmp_path) -> None:
+    workspace = _create_workspace(tmp_path)
+    workspace_model_selection_repository.save(
+        WorkspaceModelSelection(
+            workspace_id=workspace["id"],
+            selected_llm=WorkspaceSelectedModel(
+                provider="ollama",
+                model="qwen2.5-coder",
+                model_type="llm",
+                selected_at="2026-06-13T00:00:00+00:00",
+                selected_reason="Previously discovered model.",
+            ),
+            selected_embedding=None,
+            notes=[PREFERENCE_ONLY_NOTE, UNKNOWN_CATALOG_NOTE],
+        )
+    )
+
+    response = client.get(f"/workspaces/{workspace['id']}/models/selection")
+
+    assert response.status_code == 200
+    assert UNKNOWN_CATALOG_NOTE not in response.json()["notes"]
 
 
 def test_invalid_model_type_and_unknown_workspace_are_rejected(tmp_path) -> None:

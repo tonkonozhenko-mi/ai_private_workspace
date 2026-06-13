@@ -95,6 +95,7 @@ from app.core.domain.local_model_install_guide import build_local_model_install_
 from app.core.domain.ollama_model_recommendations import (
     build_ollama_model_recommendation_guide,
 )
+from app.core.domain.model_catalog_registry import build_custom_ollama_model_definition
 from app.core.domain.local_model_install_status import (
     build_local_model_install_status,
     parse_ollama_installed_models,
@@ -253,6 +254,7 @@ def get_local_model_install_status() -> LocalModelInstallStatusResponse:
         )
         response.raise_for_status()
         installed_models = parse_ollama_installed_models(response.json())
+        _register_discovered_ollama_models(installed_models)
         status_result = build_local_model_install_status(
             catalog_models=model_catalog_registry.list_models(),
             installed_models=installed_models,
@@ -269,6 +271,59 @@ def get_local_model_install_status() -> LocalModelInstallStatusResponse:
         )
 
     return to_local_model_install_status_response(status_result)
+
+
+def _register_discovered_ollama_models(installed_models) -> None:
+    for installed in installed_models:
+        normalized_name = installed.name.removesuffix(":latest")
+        known = next(
+            (
+                model
+                for model in model_catalog_registry.list_models()
+                if model.provider == "ollama"
+                and model.model_name.removesuffix(":latest").lower()
+                == normalized_name.lower()
+            ),
+            None,
+        )
+        model_type = known.model_type if known is not None else (
+            "embedding"
+            if "embedding" in installed.capabilities
+            and "completion" not in installed.capabilities
+            else "llm"
+        )
+        size = (
+            f"{installed.size_bytes / (1024 ** 3):.1f} GB"
+            if installed.size_bytes is not None
+            else None
+        )
+        notes = [
+            "Discovered from the local Ollama installation.",
+            *(
+                [f"Parameter size: {installed.parameter_size}."]
+                if installed.parameter_size
+                else []
+            ),
+            *(
+                [f"Quantization: {installed.quantization_level}."]
+                if installed.quantization_level
+                else []
+            ),
+        ]
+        model_catalog_registry.upsert_user_model(
+            build_custom_ollama_model_definition(
+                normalized_name,
+                model_type,
+                display_name=normalized_name,
+                capabilities=list(installed.capabilities),
+                estimated_size=size,
+                context_window=installed.context_length,
+                embedding_dimension=installed.embedding_length
+                if model_type == "embedding"
+                else None,
+                notes=notes,
+            )
+        )
 
 
 @router.get(

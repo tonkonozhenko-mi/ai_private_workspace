@@ -1929,6 +1929,12 @@ export interface LocalModelStatusItem {
   detail: string;
   installed_as: string | null;
   size_bytes: number | null;
+  modified_at: string | null;
+  parameter_size: string | null;
+  quantization_level: string | null;
+  context_length: number | null;
+  embedding_length: number | null;
+  capabilities: string[];
   install_command: string;
 }
 

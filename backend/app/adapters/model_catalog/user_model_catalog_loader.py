@@ -89,6 +89,41 @@ class UserModelCatalogLoader:
 
         return ModelCatalogResult(models=models, warnings=warnings)
 
+    def save(self, models: list[LocalModelDefinition]) -> None:
+        if not self.catalog_path.strip():
+            return
+        path = Path(self.catalog_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "models": [
+                {
+                    "id": model.id,
+                    "provider": model.provider,
+                    "model_name": model.model_name,
+                    "model_type": model.model_type,
+                    "display_name": model.display_name,
+                    "description": model.description,
+                    "capabilities": model.capabilities,
+                    "recommended_for_profiles": model.recommended_for_profiles,
+                    "recommended_laptop_profiles": model.recommended_laptop_profiles,
+                    "estimated_size": model.estimated_size,
+                    "context_window": model.context_window,
+                    "embedding_dimension": model.embedding_dimension,
+                    "quality_tier": model.quality_tier,
+                    "speed_tier": model.speed_tier,
+                    "local_only": model.local_only,
+                    "notes": model.notes,
+                }
+                for model in models
+            ]
+        }
+        temporary_path = path.with_suffix(path.suffix + ".tmp")
+        temporary_path.write_text(
+            json.dumps(payload, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        temporary_path.replace(path)
+
     @staticmethod
     def _warning_result(
         code: str,

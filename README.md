@@ -14,6 +14,8 @@ The v0.1 release candidate is a source handoff for developers and reviewers. It 
 - Answers questions from retrieved project sources instead of unsupported guesses.
 - Keeps conversations, answer history, model choices, reports, and timeline state locally.
 - Guides local Ollama/model setup and detects installed local models.
+- Remembers custom Ollama model tags and enriches them from the local Ollama
+  installation with size, parameter, quantization, and capability metadata.
 - Provides safe model download drafts and backend-owned download jobs behind explicit approval.
 - Provides working workspace model presets, comparisons, and an MCP registry with explicit approval planning.
 - Lets Ask turn an answer into a reviewed project-file draft; a file is written only after the user confirms its relative path, exact content, and overwrite intent.
@@ -38,7 +40,10 @@ The frontend keeps the common workflows focused and progressively reveals techni
 
 - **Ask** answers from workspace context and can prepare a safe, editable file draft.
 - **Models** separates Overview, Choose & install, Skills, Compare, MCP tools, and Advanced configuration.
-- **Choose & install** uses backend-provided recommendations and accepts custom Ollama model tags; downloads remain explicit and opt-in.
+- **Choose & install** uses backend-provided recommendations and accepts custom
+  Ollama model tags. A desktop-owned backend can safely run the exact approved
+  `ollama pull <model>` job, while browser development keeps downloads disabled
+  unless explicitly configured.
 - **Skills** saves workspace model presets, while **Compare** runs explicit model comparisons.
 - **MCP tools** provides an approval-first registry for creating, editing, enabling, disabling, and inspecting MCP server definitions. MCP tools are not executed automatically.
 - **Settings** shows a plain-language readiness checklist for the local backend, project scan, search context, and local AI.
@@ -97,7 +102,39 @@ chmod +x scripts/launch_macos.command scripts/create_macos_shortcut.sh
 For the desktop app bundle, double-click `Open AI Private Workspace.command` in
 the repository root. It rebuilds the packaged app when tracked application
 sources changed since the last successful build, otherwise it opens the
-existing app immediately.
+existing app immediately and brings its window to the front.
+When an update is detected while the app is already open, the launcher
+smoke-checks the new backend on an isolated port, then asks the known app bundle
+to close cleanly before opening the updated build. It never force-kills an
+unknown process.
+
+If the launcher cannot build or open the app, it keeps the Terminal window open
+and points to `build/desktop/open-ai-private-workspace.log`. The packaged app
+backend also writes diagnostics to:
+
+```text
+~/Library/Application Support/AI Private Workspace/logs/
+```
+
+### Use a custom Ollama model
+
+1. Open **Models → Choose & install**.
+2. Choose **Custom Ollama model** and enter the exact Ollama tag, for example
+   `deepseek-r1:1.5b`.
+3. Select **Use this AI answer model**.
+
+The app saves the workspace selection and custom model metadata. If Ollama
+already has the model, the read-only Installed Models check marks it ready. If
+it is missing and the packaged desktop download worker is enabled, the app
+creates and starts a narrowly validated `ollama pull` job. Download history and
+custom catalog metadata survive app restarts.
+Models pulled directly in Terminal are shown separately as recent detected
+Ollama installs, so the UI does not falsely claim that the app downloaded them.
+
+The guided LLM choice also pairs the workspace with `nomic-embed-text` when no
+embedding model has been selected yet. Changing the embedding model still
+requires an explicit context rebuild because it creates a different vector
+space.
 
 ## Validation
 

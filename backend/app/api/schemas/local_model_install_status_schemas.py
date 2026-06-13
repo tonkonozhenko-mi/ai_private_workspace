@@ -16,6 +16,12 @@ class LocalModelStatusItemResponse(BaseModel):
     detail: str
     installed_as: str | None
     size_bytes: int | None
+    modified_at: str | None
+    parameter_size: str | None
+    quantization_level: str | None
+    context_length: int | None
+    embedding_length: int | None
+    capabilities: list[str]
     install_command: str
 
 
@@ -44,6 +50,12 @@ def to_local_model_status_item_response(
         detail=item.detail,
         installed_as=item.installed_as,
         size_bytes=item.size_bytes,
+        modified_at=item.modified_at,
+        parameter_size=item.parameter_size,
+        quantization_level=item.quantization_level,
+        context_length=item.context_length,
+        embedding_length=item.embedding_length,
+        capabilities=item.capabilities,
         install_command=item.install_command,
     )
 

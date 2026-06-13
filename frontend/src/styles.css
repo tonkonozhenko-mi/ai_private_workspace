@@ -5381,6 +5381,32 @@ button:focus-visible {
   }
 }
 
+.recent-installed-models {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.recent-installed-models-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.recent-installed-models-heading p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .recent-installed-models-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 /* Product UI pass — calm, responsive, and readable at every window size. */
 html {
   overflow-x: hidden;
@@ -20811,5 +20837,204 @@ pre,
     color: #edf4f1 !important;
     background: color-mix(in srgb, var(--color-accent) 18%, #13231f) !important;
     border-color: rgba(125, 211, 174, 0.3) !important;
+  }
+}
+
+/* Daily-use reliability pass: keep Ask reachable and primary controls unclipped. */
+.ask-workspace-chat {
+  padding-bottom: 250px;
+}
+
+.ask-bottom-composer {
+  position: fixed !important;
+  z-index: 70;
+  right: 28px;
+  bottom: 18px;
+  left: calc(var(--sidebar-width) + 28px);
+  width: min(920px, calc(100vw - var(--sidebar-width) - 56px));
+  max-width: calc(100vw - var(--sidebar-width) - 56px);
+  margin-inline: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.24) !important;
+  backdrop-filter: blur(24px);
+}
+
+.user-bubble p,
+.user-bubble .ask-message-label,
+.user-bubble .text-button {
+  color: var(--color-text-strong) !important;
+  opacity: 1 !important;
+}
+
+:root[data-theme="dark"] .user-bubble p,
+:root[data-theme="dark"] .user-bubble .ask-message-label,
+:root[data-theme="dark"] .user-bubble .text-button {
+  color: #f6fbf8 !important;
+}
+
+.daily-use-main {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, auto) !important;
+  overflow: visible;
+}
+
+.daily-use-actions {
+  min-width: 0 !important;
+  justify-content: flex-end;
+}
+
+.daily-use-actions button {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.models-detail-simple > .models-section-nav {
+  grid-column: 1 / -1;
+  justify-self: center;
+}
+
+.models-section-nav {
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+  width: min(100%, 920px) !important;
+  margin-inline: auto;
+  padding: 6px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  box-shadow: var(--shadow-soft);
+}
+
+.models-section-nav button {
+  min-width: 0;
+  min-height: 40px;
+  padding-inline: 10px;
+  text-align: center;
+  white-space: normal;
+}
+
+.models-detail-simple > section,
+.models-detail-simple > .models-advanced-stack,
+.models-detail-simple > .mcp-registry-panel,
+.models-detail-simple > .model-experiment-planner-panel {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.installed-model-metadata {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 6px 0 0;
+}
+
+.installed-model-metadata div {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: 10px;
+}
+
+.installed-model-metadata dt,
+.installed-model-metadata dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.installed-model-metadata dt {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+}
+
+.installed-model-metadata dd {
+  margin-top: 3px;
+  color: var(--color-text-strong);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1100px) {
+  .daily-use-main {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .daily-use-actions {
+    justify-content: flex-start;
+  }
+
+  .models-section-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .ask-bottom-composer {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .ask-workspace-chat {
+    padding-bottom: 180px;
+  }
+
+  .ask-bottom-composer {
+    padding: 10px !important;
+    border-radius: 18px !important;
+  }
+
+  .ask-bottom-composer .ask-example-strip,
+  .ask-bottom-composer .ask-bottom-meta-row > span {
+    display: none !important;
+  }
+
+  .ask-bottom-input-row textarea {
+    min-height: 58px !important;
+  }
+
+  .models-section-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .installed-model-metadata {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Keep the primary segmented navigation legible in macOS/system dark mode. */
+:root[data-theme="dark"] .workspace-tabs > div {
+  background: rgba(18, 34, 29, 0.96) !important;
+  border-color: rgba(235, 242, 238, 0.16) !important;
+}
+
+:root[data-theme="dark"] .workspace-tabs button.is-selected,
+:root[data-theme="dark"] .workspace-tabs button.is-selected span {
+  color: #0b211a !important;
+  background: #e4ece8 !important;
+}
+
+:root[data-theme="dark"] .workspace-tabs button:not(.is-selected),
+:root[data-theme="dark"] .workspace-tabs button:not(.is-selected) span {
+  color: #c4d3cd !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .workspace-tabs > div {
+    background: rgba(18, 34, 29, 0.96) !important;
+    border-color: rgba(235, 242, 238, 0.16) !important;
+  }
+
+  :root[data-theme="system"] .workspace-tabs button.is-selected,
+  :root[data-theme="system"] .workspace-tabs button.is-selected span {
+    color: #0b211a !important;
+    background: #e4ece8 !important;
+  }
+
+  :root[data-theme="system"] .workspace-tabs button:not(.is-selected),
+  :root[data-theme="system"] .workspace-tabs button:not(.is-selected) span {
+    color: #c4d3cd !important;
   }
 }
