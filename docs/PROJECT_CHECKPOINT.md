@@ -389,7 +389,7 @@ Fixed the Settings `GET /runtime/v0.1-handoff` crash by aligning the endpoint re
 
 ## Task 249 — macOS frozen runtime and Tauri smoke runbook ✅
 
-Added `GET /runtime/macos-tauri-smoke-runbook`, `scripts/check_macos_tauri_smoke_runbook.sh`, `docs/TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md`, Settings UI wiring, and regression tests. Also added `docs/CONTINUE_MESSAGE.md` so the project can continue after token limits. Current position: Phase 21 v0.1 source RC effectively complete; Phase 22 v0.2 desktop runtime foundation strongly in progress. Estimated v1.0 remaining work: roughly 7–12 large tasks, depending on local PyInstaller/Tauri/macOS/Windows findings.
+Added `GET /runtime/macos-tauri-smoke-runbook`, `scripts/check_macos_tauri_smoke_runbook.sh`, `docs/MACOS_TAURI_SMOKE_RUNBOOK.md`, Settings UI wiring, and regression tests. Also added `docs/CONTINUE_MESSAGE.md` so the project can continue after token limits. Current position: Phase 21 v0.1 source RC effectively complete; Phase 22 v0.2 desktop runtime foundation strongly in progress. Estimated v1.0 remaining work: roughly 7–12 large tasks, depending on local PyInstaller/Tauri/macOS/Windows findings.
 
 
 ## Task 250 checkpoint
@@ -411,7 +411,7 @@ New/updated artifacts:
 - `frontend/package-lock.json` includes `@tauri-apps/cli`.
 - `scripts/check_macos_packaged_app_smoke_preflight.sh` validates local smoke readiness.
 - `GET /runtime/macos-packaged-app-smoke-preflight` exposes the checklist in Settings.
-- `docs/TASK251_MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md` documents the local smoke path.
+- `docs/MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md` documents the local smoke path.
 
 Status: Phase 22 is strongly in progress. v1.0 remains roughly 6–10 large tasks away.
 

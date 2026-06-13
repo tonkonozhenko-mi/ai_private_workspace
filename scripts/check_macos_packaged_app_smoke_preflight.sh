@@ -39,7 +39,7 @@ check_file "frontend/src-tauri/src/lib.rs" "Tauri supervisor bridge"
 check_file "scripts/build_pyinstaller_backend_runtime.sh" "PyInstaller build script"
 check_file "scripts/smoke_frozen_backend_runtime.sh" "frozen backend smoke script"
 check_file "scripts/check_tauri_backend_health_readiness.sh" "Tauri health readiness check"
-check_file "docs/TASK251_MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md" "Task 251 runbook"
+check_file "docs/MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md" "Task 251 runbook"
 
 check_contains "frontend/package.json" '"@tauri-apps/cli"' "Tauri CLI is pinned as an npm devDependency"
 check_contains "frontend/package.json" '"tauri": "tauri"' "npm run tauri dev command is available"

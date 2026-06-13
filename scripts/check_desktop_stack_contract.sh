@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ROUTE_FILE="$ROOT_DIR/backend/app/api/routes/local_data_safety.py"
 SCHEMA_FILE="$ROOT_DIR/backend/app/api/schemas/local_data_safety_schemas.py"
 TAURI_MAIN="$ROOT_DIR/frontend/src-tauri/src/lib.rs"
-DOC_FILE="$ROOT_DIR/docs/TASK242_DESKTOP_STACK_AND_RUNTIME_CONTRACT.md"
+DOC_FILE="$ROOT_DIR/docs/DESKTOP_STACK_AND_RUNTIME_CONTRACT.md"
 
 failures=0
 reviews=0

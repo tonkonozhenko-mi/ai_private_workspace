@@ -11,7 +11,7 @@ def test_macos_tauri_smoke_runbook_endpoint_returns_safe_local_runbook() -> None
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] in {"ready_for_local_macos_smoke", "blocked"}
-    assert payload["runbook_doc"] == "docs/TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md"
+    assert payload["runbook_doc"] == "docs/MACOS_TAURI_SMOKE_RUNBOOK.md"
     assert payload["check_script"] == "scripts/check_macos_tauri_smoke_runbook.sh"
     assert payload["platform"].startswith("macOS")
     assert any(step["id"] == "build-frozen-backend" for step in payload["smoke_steps"])

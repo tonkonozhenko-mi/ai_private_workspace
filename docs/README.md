@@ -32,8 +32,8 @@ Product, architecture, packaging, and release documentation for
 ## MCP & Agent
 
 - [MCP_AGENT_INTEGRATION.md](MCP_AGENT_INTEGRATION.md) — MCP and Agent integration model.
-- [MCP_SETUP_UX_TASK212.md](MCP_SETUP_UX_TASK212.md) — MCP setup UX (referenced by backend safety routes).
-- [AGENT_MCP_READINESS_TASK213.md](AGENT_MCP_READINESS_TASK213.md) — Agent/MCP readiness (referenced by backend safety routes).
+- [MCP_SETUP_UX.md](MCP_SETUP_UX.md) — MCP setup UX (referenced by backend safety routes).
+- [AGENT_MCP_READINESS.md](AGENT_MCP_READINESS.md) — Agent/MCP readiness (referenced by backend safety routes).
 
 ## Desktop packaging (macOS / Windows / Tauri)
 
@@ -41,9 +41,9 @@ Product, architecture, packaging, and release documentation for
 - [DESKTOP_PACKAGING_DESIGN_LOCK.md](DESKTOP_PACKAGING_DESIGN_LOCK.md) — locked packaging design decisions.
 - [MACOS_LAUNCHER.md](MACOS_LAUNCHER.md) — the macOS double-click launcher.
 - [WINDOWS_PACKAGING_FOUNDATION.md](WINDOWS_PACKAGING_FOUNDATION.md) — Windows packaging foundation.
-- [TASK242_DESKTOP_STACK_AND_RUNTIME_CONTRACT.md](TASK242_DESKTOP_STACK_AND_RUNTIME_CONTRACT.md) — desktop stack & runtime contract (referenced by scripts).
-- [TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md](TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md) — macOS/Tauri smoke runbook (referenced by backend and scripts).
-- [TASK251_MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md](TASK251_MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md) — packaged app smoke preflight (referenced by backend and scripts).
+- [DESKTOP_STACK_AND_RUNTIME_CONTRACT.md](DESKTOP_STACK_AND_RUNTIME_CONTRACT.md) — desktop stack & runtime contract (referenced by scripts).
+- [MACOS_TAURI_SMOKE_RUNBOOK.md](MACOS_TAURI_SMOKE_RUNBOOK.md) — macOS/Tauri smoke runbook (referenced by backend and scripts).
+- [MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md](MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md) — packaged app smoke preflight (referenced by backend and scripts).
 
 ## Runbooks & troubleshooting
 

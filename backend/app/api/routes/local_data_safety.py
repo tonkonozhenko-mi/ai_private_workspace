@@ -2129,7 +2129,7 @@ def get_macos_tauri_smoke_runbook() -> MacOSTauriSmokeRunbookResponse:
     root = Path(__file__).resolve().parents[4]
     frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
     tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
-    runbook = root / "docs" / "TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md"
+    runbook = root / "docs" / "MACOS_TAURI_SMOKE_RUNBOOK.md"
     check_script = root / "scripts" / "check_macos_tauri_smoke_runbook.sh"
 
     steps = [
@@ -2178,7 +2178,7 @@ def get_macos_tauri_smoke_runbook() -> MacOSTauriSmokeRunbookResponse:
         status=status,
         title="macOS frozen runtime and Tauri smoke runbook",
         summary="Defines the shortest safe local path from source to a developer-verified macOS desktop smoke: build frozen backend, smoke it, then verify Tauri app-owned startup without frontend shell execution.",
-        runbook_doc="docs/TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md",
+        runbook_doc="docs/MACOS_TAURI_SMOKE_RUNBOOK.md",
         check_script="scripts/check_macos_tauri_smoke_runbook.sh",
         platform="macOS first, Windows parity after macOS pass",
         prerequisites=[
@@ -2285,7 +2285,7 @@ def get_macos_packaged_app_smoke_preflight() -> MacOSPackagedAppSmokePreflightRe
         status=status,
         title="macOS packaged app smoke preflight",
         summary="Makes the macOS/Tauri smoke path reproducible by adding npm Tauri CLI wiring, lockfile support, and a single preflight checklist before packaged app smoke.",
-        runbook_doc="docs/TASK251_MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md",
+        runbook_doc="docs/MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md",
         check_script="scripts/check_macos_packaged_app_smoke_preflight.sh",
         package_manager="npm + package-lock.json",
         desktop_shell="Tauri + React",
@@ -3548,7 +3548,7 @@ def get_release_candidate_audit() -> ReleaseCandidateAuditResponse:
     else:
         add_item(passed, "database-files", "Runtime database files", "No *.db, *.sqlite, or *.sqlite3 files found in source tree.", "Runtime data is not present in the release source tree.")
 
-    safety_docs = ["docs/MODEL_DOWNLOAD_JOBS.md", "docs/MCP_SETUP_UX_TASK212.md", "docs/AGENT_MCP_READINESS_TASK213.md"]
+    safety_docs = ["docs/MODEL_DOWNLOAD_JOBS.md", "docs/MCP_SETUP_UX.md", "docs/AGENT_MCP_READINESS.md"]
     missing_safety = [path for path in safety_docs if not (project_root / path).exists()]
     if missing_safety:
         add_item(review, "safety-docs", "Model/MCP/Agent safety docs", "Some safety docs are missing.", ", ".join(missing_safety), "Restore safety docs before final release notes.")
