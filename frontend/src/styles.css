@@ -160,6 +160,15 @@ code {
   font-weight: 800;
 }
 
+.brand-mark-image {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  object-fit: contain;
+  background: #ffffff;
+}
+
 .brand div {
   display: grid;
   gap: 2px;
