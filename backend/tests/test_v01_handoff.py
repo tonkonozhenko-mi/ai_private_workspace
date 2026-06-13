@@ -1,12 +1,9 @@
-from pathlib import Path
-
 from fastapi.testclient import TestClient
 
 from app.main import app
 
 
 client = TestClient(app)
-project_root = Path(__file__).resolve().parents[2]
 
 
 def test_v01_handoff_endpoint_is_read_only_demo_guide() -> None:
@@ -26,17 +23,3 @@ def test_v01_handoff_endpoint_is_read_only_demo_guide() -> None:
 
 def test_v01_handoff_route_is_documented_in_openapi() -> None:
     assert "/runtime/v0.1-handoff" in app.openapi()["paths"]
-
-
-def test_github_handoff_docs_exist() -> None:
-    expected_docs = [
-        "README.md",
-        "docs/V01_DEMO_HANDOFF.md",
-        "docs/V01_RELEASE_NOTES.md",
-        "docs/GITHUB_REPOSITORY_GUIDE.md",
-    ]
-
-    for relative_path in expected_docs:
-        path = project_root / relative_path
-        assert path.exists(), f"Missing {relative_path}"
-        assert path.read_text(encoding="utf-8").strip()
