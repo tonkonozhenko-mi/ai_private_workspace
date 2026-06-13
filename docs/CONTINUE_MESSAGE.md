@@ -75,7 +75,7 @@ Task 251 — macOS packaged app smoke preflight ✅
 - Added backend endpoint `GET /runtime/macos-packaged-app-smoke-preflight`.
 - Added Settings section “macOS packaged app smoke preflight”.
 - Added script `scripts/check_macos_packaged_app_smoke_preflight.sh`.
-- Added doc `docs/TASK251_MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md`.
+- Added doc `docs/MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md`.
 - Next: local macOS smoke should run `scripts/build_pyinstaller_backend_runtime.sh`, `scripts/smoke_frozen_backend_runtime.sh`, `cargo check`, and `npm run tauri dev`.
 
 

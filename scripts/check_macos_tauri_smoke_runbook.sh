@@ -32,7 +32,7 @@ require_absent_text() {
   fi
 }
 
-require_file "docs/TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md"
+require_file "docs/MACOS_TAURI_SMOKE_RUNBOOK.md"
 require_file "scripts/build_pyinstaller_backend_runtime.sh"
 require_file "scripts/check_pyinstaller_backend_runtime.sh"
 require_file "scripts/smoke_frozen_backend_runtime.sh"
@@ -40,9 +40,9 @@ require_file "scripts/check_tauri_app_owned_backend_startup.sh"
 require_file "frontend/src-tauri/src/main.rs"
 require_file "frontend/src-tauri/src/lib.rs"
 
-require_text "docs/TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md" "macOS frozen runtime and Tauri smoke runbook"
-require_text "docs/TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md" "frontend does not execute shell commands"
-require_text "docs/TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md" "No scan, index, rebuild, MCP, Agent, or model download starts on launch"
+require_text "docs/MACOS_TAURI_SMOKE_RUNBOOK.md" "macOS frozen runtime and Tauri smoke runbook"
+require_text "docs/MACOS_TAURI_SMOKE_RUNBOOK.md" "frontend does not execute shell commands"
+require_text "docs/MACOS_TAURI_SMOKE_RUNBOOK.md" "No scan, index, rebuild, MCP, Agent, or model download starts on launch"
 require_text "frontend/src-tauri/src/lib.rs" "start_app_owned_backend_runtime"
 require_text "frontend/src-tauri/src/lib.rs" "stop_app_owned_backend_runtime"
 require_text "frontend/src-tauri/src/lib.rs" "get_app_owned_backend_process_status"
