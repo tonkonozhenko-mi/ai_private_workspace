@@ -41,6 +41,7 @@ jobs:
       - name: Build frontend
         run: |
           cd frontend
+          npm run typecheck
           npm run build
 
   release-audit:

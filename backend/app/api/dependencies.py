@@ -20,6 +20,9 @@ from app.adapters.memory.in_memory_mcp_repository import InMemoryMCPRepository
 from app.adapters.memory.in_memory_local_model_download_job_repository import (
     InMemoryLocalModelDownloadJobRepository,
 )
+from app.adapters.memory.sqlite_local_model_download_job_repository import (
+    SQLiteLocalModelDownloadJobRepository,
+)
 from app.adapters.memory.in_memory_model_experiment_rating_repository import (
     InMemoryModelExperimentRatingRepository,
 )
@@ -170,9 +173,10 @@ def build_command_repository() -> CommandRepositoryPort:
 
 
 def build_local_model_download_job_repository() -> LocalModelDownloadJobRepositoryPort:
-    # Model download jobs are runtime orchestration state for the trusted local backend.
-    # They are intentionally kept in memory for this foundation step.
-    return InMemoryLocalModelDownloadJobRepository()
+    settings = get_settings()
+    if settings.workspace_repository.lower() == "memory":
+        return InMemoryLocalModelDownloadJobRepository()
+    return SQLiteLocalModelDownloadJobRepository(settings.workspace_db_path)
 
 
 def build_index_status_repository() -> IndexStatusRepositoryPort:

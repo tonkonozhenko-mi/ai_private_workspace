@@ -57,7 +57,8 @@ class GetGuidedModelSetupUseCase:
                 ),
                 custom_model_hint=(
                     "Custom Ollama names are allowed, for example qwen2.5-coder:7b or llama3.1:8b. "
-                    "The app records the name but does not pull or start the model."
+                    "The app saves the model locally and can prepare or run a narrowly validated "
+                    "Ollama download when the trusted desktop worker is enabled."
                 ),
                 options=self._rank_options(
                     llm_models,
@@ -87,10 +88,10 @@ class GetGuidedModelSetupUseCase:
             packaging_notes=[
                 "The same guide can be shown during first launch after desktop packaging.",
                 "Defaults are local-first and can be preselected without running shell commands.",
-                "Manual model names keep the app usable with custom Ollama tags.",
+                "Custom Ollama tags are saved to the local user catalog and refreshed from installed-model metadata.",
             ],
             safety_notes=[
-                "Saving a choice does not install, pull, start, rebuild, or restart anything.",
+                "Saving a choice alone does not install a model, rebuild context, or restart the backend. The separate model download runs only after the user explicitly chooses it in a trusted desktop runtime.",
                 "The frontend only records explicit user choices through backend APIs.",
                 "Embedding changes are preference-only until the user explicitly rebuilds the local index.",
             ],

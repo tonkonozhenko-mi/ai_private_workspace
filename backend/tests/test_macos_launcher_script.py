@@ -66,3 +66,16 @@ def test_macos_shortcut_creator_exists_and_is_safe() -> None:
     ]
     for forbidden in forbidden_auto_actions:
         assert forbidden not in content
+
+
+def test_click_launcher_update_build_uses_isolated_smoke_and_graceful_restart() -> None:
+    script = PROJECT_ROOT / "scripts" / "build_and_open_ai_private_workspace.sh"
+
+    content = script.read_text()
+
+    assert 'AI_PRIVATE_WORKSPACE_BUILD_SMOKE_PORT:-8012' in content
+    assert "build-smoke-logs" in content
+    assert 'tell application id "local.ai-private-workspace" to quit' in content
+    assert "No process was force-killed." in content
+    assert "killall" not in content
+    assert "pkill" not in content

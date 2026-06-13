@@ -1,4 +1,5 @@
 import httpx
+from time import sleep
 
 
 class OllamaLLMProviderError(RuntimeError):
@@ -25,25 +26,7 @@ class OllamaLLMProvider:
         return self.model
 
     def generate(self, prompt: str) -> str:
-        try:
-            response = self.client.post(
-                f"{self.base_url}/api/generate",
-                json={
-                    "model": self.model,
-                    "prompt": prompt,
-                    "stream": False,
-                },
-                timeout=self.timeout_seconds,
-            )
-            response.raise_for_status()
-        except httpx.TimeoutException as exc:
-            raise OllamaLLMProviderError(
-                f"Ollama LLM request timed out after {self.timeout_seconds} seconds"
-            ) from exc
-        except httpx.HTTPError as exc:
-            raise OllamaLLMProviderError(
-                f"Unable to reach Ollama generation API at {self.base_url}"
-            ) from exc
+        response = self._request_with_one_local_retry(prompt)
 
         try:
             payload = response.json()
@@ -59,3 +42,44 @@ class OllamaLLMProvider:
             )
 
         return generated_text
+
+    def _request_with_one_local_retry(self, prompt: str) -> httpx.Response:
+        last_error: httpx.HTTPError | None = None
+        for attempt in range(2):
+            try:
+                response = self.client.post(
+                    f"{self.base_url}/api/generate",
+                    json={
+                        "model": self.model,
+                        "prompt": prompt,
+                        "stream": False,
+                    },
+                    timeout=self.timeout_seconds,
+                )
+                response.raise_for_status()
+                return response
+            except httpx.TimeoutException as exc:
+                last_error = exc
+            except httpx.HTTPStatusError as exc:
+                detail = exc.response.text.strip()[:300]
+                if exc.response.status_code == 404:
+                    raise OllamaLLMProviderError(
+                        f"Ollama model '{self.model}' is not installed at {self.base_url}. "
+                        f"Refresh Installed Models or download it first. {detail}"
+                    ) from exc
+                last_error = exc
+            except httpx.HTTPError as exc:
+                last_error = exc
+
+            if attempt == 0:
+                sleep(0.25)
+
+        if isinstance(last_error, httpx.TimeoutException):
+            raise OllamaLLMProviderError(
+                f"Ollama LLM request timed out after {self.timeout_seconds} seconds. "
+                f"The app retried model '{self.model}' once; the model may still be loading."
+            ) from last_error
+        raise OllamaLLMProviderError(
+            f"Unable to reach Ollama generation API at {self.base_url}. "
+            f"The app retried model '{self.model}' once."
+        ) from last_error

@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 
+from app.api.routes import models as model_routes
+from app.core.domain.model_catalog_registry import ModelCatalogRegistry
 from app.main import app
 
 
@@ -32,7 +34,12 @@ def test_local_model_install_draft_records_intent_without_execution(tmp_path) ->
     assert "does not download" in draft["safety_summary"]
 
 
-def test_local_model_install_draft_rejects_unknown_model(tmp_path) -> None:
+def test_local_model_install_draft_registers_custom_ollama_model(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    registry = ModelCatalogRegistry()
+    monkeypatch.setattr(model_routes, "model_catalog_registry", registry)
     workspace = _create_workspace(tmp_path)
 
     response = client.post(
@@ -45,8 +52,10 @@ def test_local_model_install_draft_rejects_unknown_model(tmp_path) -> None:
         },
     )
 
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Model is not present in the local catalog"
+    assert response.status_code == 201
+    assert response.json()["command"] == "ollama pull not-in-catalog"
+    catalog = client.get("/models/catalog?provider=ollama&model_type=llm").json()
+    assert "not-in-catalog" in {model["model_name"] for model in catalog}
 
 
 def test_local_model_install_draft_rejects_unknown_workspace() -> None:

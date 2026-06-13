@@ -1,3 +1,5 @@
+from threading import RLock
+
 from app.core.domain.model_catalog import (
     LocalModelDefinition,
     ModelCatalogReloadResult,
@@ -19,6 +21,7 @@ class ModelCatalogRegistry:
         self.user_models: list[LocalModelDefinition] = []
         self.warnings: list[ModelCatalogWarning] = []
         self.loader = loader
+        self._lock = RLock()
         self._replace_user_catalog(
             ModelCatalogResult(
                 models=list(user_models or []),
@@ -27,13 +30,15 @@ class ModelCatalogRegistry:
         )
 
     def list_models(self) -> list[LocalModelDefinition]:
-        return [*self.builtin_models, *self.user_models]
+        with self._lock:
+            return [*self.builtin_models, *self.user_models]
 
     def get_result(self) -> ModelCatalogResult:
-        return ModelCatalogResult(
-            models=self.list_models(),
-            warnings=list(self.warnings),
-        )
+        with self._lock:
+            return ModelCatalogResult(
+                models=self.list_models(),
+                warnings=list(self.warnings),
+            )
 
     def reload(self) -> ModelCatalogReloadResult:
         loaded = (
@@ -41,37 +46,82 @@ class ModelCatalogRegistry:
             if self.loader is not None
             else ModelCatalogResult(models=[], warnings=[])
         )
-        self._replace_user_catalog(loaded)
-        return ModelCatalogReloadResult(
-            models_count=len(self.list_models()),
-            user_models_count=len(self.user_models),
-            warnings_count=len(self.warnings),
-            warnings=list(self.warnings),
+        with self._lock:
+            self._replace_user_catalog(loaded)
+            return ModelCatalogReloadResult(
+                models_count=len(self.list_models()),
+                user_models_count=len(self.user_models),
+                warnings_count=len(self.warnings),
+                warnings=list(self.warnings),
+            )
+
+    def register_user_model(self, model: LocalModelDefinition) -> LocalModelDefinition:
+        with self._lock:
+            for known in self.list_models():
+                if self._same_model(known, model):
+                    return known
+
+            self.user_models.append(model)
+            self._save_user_models()
+            return model
+
+    def upsert_user_model(self, model: LocalModelDefinition) -> LocalModelDefinition:
+        """Persist refreshed metadata without allowing built-ins to be overridden."""
+        with self._lock:
+            for known in self.builtin_models:
+                if self._same_model(known, model):
+                    return known
+
+            for index, known in enumerate(self.user_models):
+                if self._same_model(known, model):
+                    self.user_models[index] = model
+                    self._save_user_models()
+                    return model
+
+            self.user_models.append(model)
+            self._save_user_models()
+            return model
+
+    def _save_user_models(self) -> None:
+        save = getattr(self.loader, "save", None)
+        if callable(save):
+            save(list(self.user_models))
+
+    @staticmethod
+    def _same_model(
+        first: LocalModelDefinition,
+        second: LocalModelDefinition,
+    ) -> bool:
+        return (
+            first.provider.lower() == second.provider.lower()
+            and first.model_name.lower() == second.model_name.lower()
+            and first.model_type == second.model_type
         )
 
     def _replace_user_catalog(self, catalog: ModelCatalogResult) -> None:
-        user_models: list[LocalModelDefinition] = []
-        warnings = list(catalog.warnings)
-        known_ids = {model.id for model in self.builtin_models}
+        with self._lock:
+            user_models: list[LocalModelDefinition] = []
+            warnings = list(catalog.warnings)
+            known_ids = {model.id for model in self.builtin_models}
 
-        for model in catalog.models:
-            if model.id in known_ids:
-                warnings.append(
-                    ModelCatalogWarning(
-                        code="duplicate_model_id",
-                        message=(
-                            f"User model '{model.id}' was skipped because its ID "
-                            "already exists in the catalog."
-                        ),
-                        source=model.id,
+            for model in catalog.models:
+                if model.id in known_ids:
+                    warnings.append(
+                        ModelCatalogWarning(
+                            code="duplicate_model_id",
+                            message=(
+                                f"User model '{model.id}' was skipped because its ID "
+                                "already exists in the catalog."
+                            ),
+                            source=model.id,
+                        )
                     )
-                )
-                continue
-            user_models.append(model)
-            known_ids.add(model.id)
+                    continue
+                user_models.append(model)
+                known_ids.add(model.id)
 
-        self.user_models = user_models
-        self.warnings = warnings
+            self.user_models = user_models
+            self.warnings = warnings
 
 
 ALL_ASSISTANT_PROFILES = [
@@ -205,3 +255,63 @@ DEFAULT_LOCAL_MODELS = [
         notes=["Testing and development only; vectors are not semantically meaningful."],
     ),
 ]
+
+
+def build_custom_ollama_model_definition(
+    model_name: str,
+    model_type: str,
+    *,
+    display_name: str | None = None,
+    capabilities: list[str] | None = None,
+    estimated_size: str | None = None,
+    context_window: int | None = None,
+    embedding_dimension: int | None = None,
+    notes: list[str] | None = None,
+) -> LocalModelDefinition:
+    normalized_name = model_name.strip()
+    normalized_type = model_type.strip().lower()
+    if normalized_type not in {"llm", "embedding"}:
+        raise ValueError(f"Unknown model type: {model_type}")
+    if not normalized_name or any(character.isspace() for character in normalized_name):
+        raise ValueError("Ollama model name must be a non-empty tag without spaces")
+
+    safe_id = "".join(
+        character.lower() if character.isalnum() else "-"
+        for character in normalized_name
+    ).strip("-")
+    default_capabilities = (
+        ["workspace_ask", "custom_ollama_model"]
+        if normalized_type == "llm"
+        else [
+            "workspace_indexing",
+            "context_search",
+            "rag_retrieval",
+            "custom_ollama_model",
+        ]
+    )
+    return LocalModelDefinition(
+        id=f"user-ollama-{normalized_type}-{safe_id}",
+        provider="ollama",
+        model_name=normalized_name,
+        model_type=normalized_type,
+        display_name=display_name or normalized_name,
+        description=(
+            "User-selected local Ollama answer model."
+            if normalized_type == "llm"
+            else "User-selected local Ollama embedding model."
+        ),
+        capabilities=capabilities or default_capabilities,
+        recommended_for_profiles=ALL_ASSISTANT_PROFILES,
+        recommended_laptop_profiles=["low_power", "balanced", "powerful"],
+        estimated_size=estimated_size,
+        context_window=context_window,
+        embedding_dimension=embedding_dimension,
+        quality_tier="experimental",
+        speed_tier="medium",
+        local_only=True,
+        notes=notes
+        or [
+            "Added from a custom Ollama model tag.",
+            "Runtime metadata is refreshed from the local Ollama installation.",
+        ],
+    )

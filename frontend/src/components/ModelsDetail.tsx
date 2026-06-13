@@ -60,6 +60,7 @@ import type {
   LocalAIActivationGuide,
   LocalModelInstallDraft,
   LocalModelInstallGuide,
+  LocalModelStatusItem,
   OllamaModelRecommendationGuide,
   LocalModelInstallStatus,
   LocalModelDownloadWorkerPlan,
@@ -206,6 +207,22 @@ export function ModelsDetail({
           ? "Chosen from guided local model setup."
           : "Chosen from guided local search model setup.",
     });
+    if (
+      modelType === "llm" &&
+      provider === "ollama" &&
+      (
+        dashboard.selected_embedding_model === null ||
+        dashboard.selected_embedding_provider !== "ollama"
+      )
+    ) {
+      await updateWorkspaceModelSelection(workspaceId, {
+        provider: "ollama",
+        model: "nomic-embed-text",
+        model_type: "embedding",
+        selected_reason:
+          "Automatically paired with the guided local AI answer model.",
+      });
+    }
     await onSelectionUpdated();
   }
 
@@ -286,7 +303,16 @@ export function ModelsDetail({
             workspaceId={workspaceId}
             onApplySelection={applyGuidedSelection}
           />
-          <LocalModelInstallPanel workspaceId={workspaceId} />
+          <LocalModelInstallPanel
+            key={[
+              workspaceId,
+              dashboard.selected_llm_provider,
+              dashboard.selected_llm_model,
+              dashboard.selected_embedding_provider,
+              dashboard.selected_embedding_model,
+            ].join("-")}
+            workspaceId={workspaceId}
+          />
         </>
       ) : null}
 
@@ -1684,6 +1710,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
       {jobList ? (
         <ModelDownloadJobsPanel
           jobs={jobList}
+          installedModels={installStatus?.items ?? []}
           isRefreshing={refreshingJobs}
           cancellingJobId={cancellingJobId}
           onRefresh={() => void refreshDownloadJobs()}
@@ -1854,18 +1881,28 @@ function ModelDownloadJobStatusCard({
 
 function ModelDownloadJobsPanel({
   jobs,
+  installedModels,
   isRefreshing,
   cancellingJobId,
   onRefresh,
   onCancel,
 }: {
   jobs: LocalModelDownloadJobList;
+  installedModels: LocalModelStatusItem[];
   isRefreshing: boolean;
   cancellingJobId: string | null;
   onRefresh: () => void;
   onCancel: (jobId: string) => void;
 }) {
   const visibleJobs = asArray(jobs.jobs).slice(0, 5);
+  const recentInstalled = asArray(installedModels)
+    .filter((item) => item.status === "installed" && item.modified_at)
+    .sort(
+      (left, right) =>
+        new Date(right.modified_at ?? 0).getTime() -
+        new Date(left.modified_at ?? 0).getTime(),
+    )
+    .slice(0, 5);
 
   return (
     <details className="model-download-history" open={jobs.running_count > 0}>
@@ -1893,8 +1930,8 @@ function ModelDownloadJobsPanel({
         </div>
         {visibleJobs.length === 0 ? (
           <p className="panel-intro">
-            No download jobs yet. Create a draft and start a backend job when
-            you are ready.
+            No app-managed download jobs yet. Models installed directly with
+            Ollama are detected separately below.
           </p>
         ) : (
           <div className="model-download-history-list">
@@ -1927,6 +1964,42 @@ function ModelDownloadJobsPanel({
             ))}
           </div>
         )}
+        {recentInstalled.length > 0 ? (
+          <section className="recent-installed-models">
+            <div className="recent-installed-models-heading">
+              <div>
+                <span className="eyebrow">Detected locally</span>
+                <strong>Recent Ollama installs</strong>
+                <p>
+                  Includes models downloaded in Terminal or through this app.
+                </p>
+              </div>
+              <StatusBadge label={`${recentInstalled.length} visible`} />
+            </div>
+            <div className="model-download-history-list">
+              {recentInstalled.map((item) => (
+                <article
+                  className="model-download-history-row"
+                  key={`recent-${item.provider}-${item.model}`}
+                >
+                  <div>
+                    <strong>{item.display_name}</strong>
+                    <p>
+                      {item.provider}/{item.installed_as ?? item.model}
+                    </p>
+                    <small>
+                      Installed or updated {formatModelTimestamp(item.modified_at)}
+                    </small>
+                  </div>
+                  <div className="model-download-history-row-actions">
+                    <StatusBadge label="Installed" />
+                    <span className="model-install-type">{item.model_type}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
     </details>
   );
@@ -2036,6 +2109,30 @@ function InstalledModelsStatusPanel({
                 ? `Installed as ${item.installed_as}`
                 : `${item.provider}/${item.model}`}
             </small>
+            {item.status === "installed" ? (
+              <dl className="installed-model-metadata">
+                <div>
+                  <dt>Size</dt>
+                  <dd>{formatModelBytes(item.size_bytes)}</dd>
+                </div>
+                <div>
+                  <dt>Parameters</dt>
+                  <dd>{item.parameter_size ?? "Not reported"}</dd>
+                </div>
+                <div>
+                  <dt>Quantization</dt>
+                  <dd>{item.quantization_level ?? "Not reported"}</dd>
+                </div>
+                <div>
+                  <dt>Installed / updated</dt>
+                  <dd>{formatModelTimestamp(item.modified_at)}</dd>
+                </div>
+                <div>
+                  <dt>Capabilities</dt>
+                  <dd>{asArray(item.capabilities).join(", ") || "Not reported"}</dd>
+                </div>
+              </dl>
+            ) : null}
           </article>
         ))}
       </div>
@@ -2045,6 +2142,21 @@ function InstalledModelsStatusPanel({
       </p>
     </div>
   );
+}
+
+function formatModelBytes(value: number | null): string {
+  if (value === null) {
+    return "Not reported";
+  }
+  return `${(value / (1024 ** 3)).toFixed(1)} GB`;
+}
+
+function formatModelTimestamp(value: string | null): string {
+  if (value === null) {
+    return "Not reported";
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
 function ModelDownloadExecutionCapabilityPanel({
@@ -2286,9 +2398,45 @@ function GuidedModelSetupPanel({
     setMessage(null);
     try {
       await onApplySelection(modelType, provider, model);
-      setMessage(
-        `${modelType === "llm" ? "AI answer model" : "Search context model"} saved as ${provider}/${model}.`,
+      if (provider !== "ollama") {
+        setMessage(
+          `${modelType === "llm" ? "AI answer model" : "Search context model"} saved as ${provider}/${model}.`,
+        );
+        return;
+      }
+
+      const installed = await getLocalModelInstallStatus();
+      const installedModel = asArray(installed.items).find(
+        (item) =>
+          item.provider === provider &&
+          [item.model, item.installed_as?.replace(/:latest$/, "")]
+            .filter(Boolean)
+            .some((name) => name === model || `${name}:latest` === model),
       );
+      if (installedModel?.status === "installed") {
+        setMessage(
+          `${provider}/${model} is selected, installed, and ready for ${modelType === "llm" ? "Ask" : "context building"}.`,
+        );
+        return;
+      }
+
+      const draft = await createLocalModelInstallDraft({
+        workspace_id: workspaceId,
+        provider,
+        model,
+        model_type: modelType,
+      });
+      const capability = await getLocalModelDownloadExecutionCapability();
+      if (capability.execution_enabled) {
+        const job = await startLocalModelDownloadJob(draft.command_proposal.id);
+        setMessage(
+          `${provider}/${model} is selected and download ${job.status}. Recent model downloads will keep the result after restart.`,
+        );
+      } else {
+        setMessage(
+          `${provider}/${model} is selected but not installed. A safe download draft is ready in the model manager below.`,
+        );
+      }
     } catch (saveError) {
       setError(errorMessage(saveError));
     } finally {
@@ -2428,7 +2576,11 @@ function GuidedModelSetupControl({
         disabled={disabled}
         onClick={onSave}
       >
-        {isSaving ? "Saving…" : `Use this ${section.title}`}
+        {isSaving
+          ? "Preparing…"
+          : isCustom
+            ? `Use & install ${section.title}`
+            : `Use this ${section.title}`}
       </button>
     </article>
   );

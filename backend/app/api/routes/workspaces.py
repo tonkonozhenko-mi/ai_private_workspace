@@ -2551,6 +2551,7 @@ def get_workspace_model_selection(
         selection = GetWorkspaceModelSelectionUseCase(
             workspace_repository=workspace_repository,
             selection_repository=workspace_model_selection_repository,
+            model_catalog_registry=model_catalog_registry,
             configuration=readiness_configuration,
         ).execute(GetWorkspaceModelSelectionInput(workspace_id=workspace_id))
     except WorkspaceModelSelectionNotFoundError as exc:
@@ -2671,6 +2672,7 @@ def _build_workspace_models_dashboard_use_case() -> GetWorkspaceModelsDashboardU
         selection_use_case=GetWorkspaceModelSelectionUseCase(
             workspace_repository=workspace_repository,
             selection_repository=workspace_model_selection_repository,
+            model_catalog_registry=model_catalog_registry,
             configuration=readiness_configuration,
         ),
         selection_status_use_case=GetWorkspaceModelSelectionStatusUseCase(

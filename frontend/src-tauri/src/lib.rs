@@ -139,6 +139,10 @@ fn workspace_db_path() -> PathBuf {
     data_dir().join("workspaces.db")
 }
 
+fn user_model_catalog_path() -> PathBuf {
+    data_dir().join("user-model-catalog.json")
+}
+
 fn backend_log_path() -> PathBuf {
     logs_dir().join("backend.log")
 }
@@ -617,6 +621,13 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
         workspace_db_path().display()
     );
     let _ = writeln!(stdout_log, "VECTOR_STORE=sqlite");
+    let _ = writeln!(stdout_log, "OLLAMA_BASE_URL=http://127.0.0.1:11434");
+    let _ = writeln!(stdout_log, "MODEL_DOWNLOAD_EXECUTION_ENABLED=true");
+    let _ = writeln!(
+        stdout_log,
+        "USER_MODEL_CATALOG_PATH={}",
+        user_model_catalog_path().display()
+    );
     let _ = writeln!(
         stdout_log,
         "VECTOR_STORE_PATH={}",
@@ -627,6 +638,11 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
         .try_clone()
         .map_err(|err| format!("Could not clone backend log file handle: {}", err))?;
 
+    let inherited_path = env::var("PATH").unwrap_or_default();
+    let desktop_path = format!(
+        "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:{}",
+        inherited_path
+    );
     let mut child = Command::new(&executable)
         .env("APP_ENV", "desktop")
         .env("HOST", "127.0.0.1")
@@ -635,6 +651,12 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
         .env("WORKSPACE_DB_PATH", workspace_db_path())
         .env("VECTOR_STORE", "sqlite")
         .env("VECTOR_STORE_PATH", vector_store_path())
+        .env("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+        .env("COMMAND_RUNNER", "local")
+        .env("COMMAND_TIMEOUT_SECONDS", "3600")
+        .env("MODEL_DOWNLOAD_EXECUTION_ENABLED", "true")
+        .env("USER_MODEL_CATALOG_PATH", user_model_catalog_path())
+        .env("PATH", desktop_path)
         .env("AI_WORKSPACE_VECTOR_STORE_PATH", vector_store_path())
         .env("AI_WORKSPACE_APP_DATA_DIR", app_data_dir())
         .env("AI_WORKBENCH_DB_PATH", workspace_db_path())

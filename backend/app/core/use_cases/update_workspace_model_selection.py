@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from app.core.domain.model_catalog_registry import ModelCatalogRegistry
+from app.core.domain.model_catalog_registry import (
+    ModelCatalogRegistry,
+    build_custom_ollama_model_definition,
+)
 from app.core.domain.workspace_model_selection import (
     EMBEDDING_CHANGE_NOTE,
     PREFERENCE_ONLY_NOTE,
@@ -74,6 +77,17 @@ class UpdateWorkspaceModelSelectionUseCase:
             raise UpdateWorkspaceModelSelectionValidationError(
                 f"Unknown model type: {request.model_type}"
             )
+        if provider == "ollama" and not self._is_known_provider_model(
+            provider,
+            model,
+            model_type,
+        ):
+            try:
+                self.model_catalog_registry.register_user_model(
+                    build_custom_ollama_model_definition(model, model_type)
+                )
+            except (OSError, ValueError) as exc:
+                raise UpdateWorkspaceModelSelectionValidationError(str(exc)) from exc
 
         selected_reason = (
             request.selected_reason.strip()
@@ -150,9 +164,21 @@ class UpdateWorkspaceModelSelectionUseCase:
         )
 
     def _is_known_model(self, selected: WorkspaceSelectedModel) -> bool:
+        return self._is_known_provider_model(
+            selected.provider,
+            selected.model,
+            selected.model_type,
+        )
+
+    def _is_known_provider_model(
+        self,
+        provider: str,
+        model_name: str,
+        model_type: str,
+    ) -> bool:
         return any(
-            model.provider.lower() == selected.provider.lower()
-            and model.model_name.lower() == selected.model.lower()
-            and model.model_type == selected.model_type
+            model.provider.lower() == provider.lower()
+            and model.model_name.lower() == model_name.lower()
+            and model.model_type == model_type
             for model in self.model_catalog_registry.list_models()
         )

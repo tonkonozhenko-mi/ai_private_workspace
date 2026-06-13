@@ -9,17 +9,23 @@ OUTPUT_DIR="${AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_DIR:-$ROOT_DIR/build/desktop/f
 WORK_DIR="$ROOT_DIR/build/desktop/pyinstaller-work"
 DIST_DIR="$ROOT_DIR/build/desktop/pyinstaller-dist"
 MANIFEST="$OUTPUT_DIR/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+PROJECT_VENV_PYTHON="$BACKEND_DIR/.venv/bin/python"
+PYTHON_BIN="${AI_PRIVATE_WORKSPACE_PACKAGING_PYTHON:-python3}"
+
+if [ -x "$PROJECT_VENV_PYTHON" ] && "$PROJECT_VENV_PYTHON" -m PyInstaller --version >/dev/null 2>&1; then
+  PYTHON_BIN="$PROJECT_VENV_PYTHON"
+fi
 
 fail() { echo "❌ $1" >&2; exit 1; }
 sha256_file() {
-  python3 - "$1" <<'PY'
+  "$PYTHON_BIN" - "$1" <<'PY'
 import hashlib, pathlib, sys
 path = pathlib.Path(sys.argv[1])
 print(hashlib.sha256(path.read_bytes()).hexdigest())
 PY
 }
 json_escape() {
-  python3 - "$1" <<'PY'
+  "$PYTHON_BIN" - "$1" <<'PY'
 import json, sys
 print(json.dumps(sys.argv[1]))
 PY
@@ -28,17 +34,17 @@ PY
 [ -f "$ENTRYPOINT" ] || fail "PyInstaller backend entrypoint missing: backend/packaging/pyinstaller_backend_entrypoint.py"
 [ -f "$SPEC_FILE" ] || fail "PyInstaller spec missing: backend/packaging/ai_private_workspace_backend.spec"
 [ -f "$BACKEND_DIR/requirements.txt" ] || fail "backend/requirements.txt missing"
-command -v python3 >/dev/null 2>&1 || fail "python3 is required"
+command -v "$PYTHON_BIN" >/dev/null 2>&1 || fail "Python is required"
 
-if ! python3 -m PyInstaller --version >/dev/null 2>&1; then
-  fail "PyInstaller is not installed in this Python environment. Install it in a local packaging venv, then rerun: python3 -m pip install pyinstaller"
+if ! "$PYTHON_BIN" -m PyInstaller --version >/dev/null 2>&1; then
+  fail "PyInstaller is not installed. Create backend/.venv and install packaging requirements, or set AI_PRIVATE_WORKSPACE_PACKAGING_PYTHON to a Python with PyInstaller."
 fi
 
 rm -rf "$OUTPUT_DIR" "$WORK_DIR" "$DIST_DIR"
 mkdir -p "$OUTPUT_DIR"
 
 cd "$ROOT_DIR"
-python3 -m PyInstaller \
+"$PYTHON_BIN" -m PyInstaller \
   --clean \
   --noconfirm \
   --workpath "$WORK_DIR" \
@@ -59,7 +65,7 @@ chmod +x "$OUTPUT_DIR/$(basename "$BINARY")" 2>/dev/null || true
 
 BINARY_SHA="$(sha256_file "$OUTPUT_DIR/$(basename "$BINARY")")"
 CREATED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-PYTHON_VERSION="$(python3 - <<'PY'
+PYTHON_VERSION="$("$PYTHON_BIN" - <<'PY'
 import platform
 print(platform.python_version())
 PY

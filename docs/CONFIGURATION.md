@@ -67,10 +67,12 @@ appear as warnings in `GET /models/catalog/details`. Valid user models are
 merged with the static catalog. User models with duplicate IDs are skipped and
 cannot override built-in definitions.
 
-The file is metadata only. Loading it does not call model providers, validate
-installed models, download artifacts, run benchmarks, or change active runtime
-settings. Restart the API after changing the configured path itself. After
-editing the file at the current configured path, reload its metadata with:
+The file is metadata only. Loading it does not call model providers, download
+artifacts, run benchmarks, or change active runtime settings. The desktop app
+uses this file to persist custom Ollama model tags and metadata discovered by
+the read-only Installed Models check. Restart the API after changing the
+configured path itself. After editing the file at the current configured path,
+reload its metadata with:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/models/catalog/reload
@@ -79,6 +81,13 @@ curl -X POST http://127.0.0.1:8000/models/catalog/reload
 Reload replaces the current in-memory user-model snapshot. If the file becomes
 invalid or unavailable, previous user models are removed, built-in models remain
 available, and the reload response plus catalog details expose warnings.
+
+The packaged macOS desktop runtime stores the catalog under its application data
+directory and configures the dedicated model download worker. Browser/developer
+backends remain conservative unless `MODEL_DOWNLOAD_EXECUTION_ENABLED=true` and
+`COMMAND_RUNNER=local` are both explicitly configured. The worker accepts only
+an exact `ollama pull <catalog-model-name>` command; normal workspace command
+approval and execution policy remain separate.
 
 
 ## Real Local AI Runtime

@@ -2,7 +2,12 @@ from time import sleep
 
 from fastapi.testclient import TestClient
 
+from app.adapters.memory.sqlite_local_model_download_job_repository import (
+    SQLiteLocalModelDownloadJobRepository,
+)
 from app.config.settings import get_settings
+from app.core.domain.command import CommandProposal
+from app.core.domain.local_model_download_job import build_queued_model_download_job
 from app.main import app
 
 
@@ -118,3 +123,43 @@ def test_model_download_job_cancel_rejects_unknown_job() -> None:
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Model download job not found"
+
+
+def test_model_download_job_survives_sqlite_repository_recreation(tmp_path) -> None:
+    db_path = tmp_path / "downloads.db"
+    repository = SQLiteLocalModelDownloadJobRepository(db_path)
+    command = CommandProposal(
+        id="command-1",
+        workspace_id="workspace-1",
+        command="ollama pull deepseek-r1:1.5b",
+        cwd="/tmp",
+        reason="Install a user-selected local model.",
+        risk="unknown",
+        status="approved",
+        created_at="2026-06-13T08:00:00+00:00",
+        approved_at="2026-06-13T08:00:01+00:00",
+        rejected_at=None,
+        executed_at=None,
+        stdout=None,
+        stderr=None,
+        exit_code=None,
+        policy_allowed=True,
+        policy_mode="model_download_background_job",
+        policy_reason="Exact Ollama pull validated by the download worker.",
+    )
+    job = build_queued_model_download_job(
+        job_id="job-1",
+        command_id=command.id,
+        workspace_id=command.workspace_id,
+        provider="ollama",
+        model="deepseek-r1:1.5b",
+        display_name="DeepSeek R1 1.5B",
+        created_at=command.created_at,
+        command_proposal=command,
+    )
+
+    repository.create(job)
+    restarted_repository = SQLiteLocalModelDownloadJobRepository(db_path)
+
+    assert restarted_repository.get(job.id) == job
+    assert restarted_repository.list(job.workspace_id) == [job]
