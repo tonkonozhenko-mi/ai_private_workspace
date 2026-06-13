@@ -54,6 +54,7 @@ class AskWorkspaceQuestionInput:
     skill_profile_name: str = "workspace"
     skill_profile_updated_at: str | None = None
     conversation_id: str | None = None
+    images: list[str] = field(default_factory=list)
 
 
 class AskWorkspaceQuestionNotFoundError(ValueError):
@@ -143,7 +144,9 @@ class AskWorkspaceQuestionUseCase:
             skill_instructions=request.skill_instructions,
         )
         try:
-            answer, usage = self._generate_answer_with_usage(llm_provider, prompt)
+            answer, usage = self._generate_answer_with_usage(
+                llm_provider, prompt, request.images
+            )
         except RuntimeError as exc:
             return self._record_question_event(
                 self._diagnostic_answer(
@@ -192,9 +195,10 @@ class AskWorkspaceQuestionUseCase:
         self,
         llm_provider: LLMProviderPort,
         prompt: str,
+        images: list[str] | None = None,
     ) -> tuple[str, LLMUsageMetrics]:
         started_at = perf_counter()
-        answer = llm_provider.generate(prompt)
+        answer = llm_provider.generate(prompt, images or None)
         latency_ms = max(0, round((perf_counter() - started_at) * 1000))
         usage = build_llm_usage_metrics(
             prompt=prompt,

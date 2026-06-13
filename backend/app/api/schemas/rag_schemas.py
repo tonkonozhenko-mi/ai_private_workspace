@@ -16,6 +16,7 @@ class AskWorkspaceQuestionRequest(BaseModel):
     llm_provider: str | None = None
     llm_model: str | None = None
     skill_context: list[SkillContextItemRequest] = Field(default_factory=list, max_length=5)
+    images: list[str] = Field(default_factory=list, max_length=4)
 
 
 class AskWorkspaceQuestionWithSelectedLLMRequest(BaseModel):
@@ -23,6 +24,7 @@ class AskWorkspaceQuestionWithSelectedLLMRequest(BaseModel):
     conversation_id: str | None = Field(default=None, min_length=1)
     limit: int = Field(default=5, ge=1, le=50)
     skill_context: list[SkillContextItemRequest] = Field(default_factory=list, max_length=5)
+    images: list[str] = Field(default_factory=list, max_length=4)
 
 
 class RagSourceResponse(BaseModel):
