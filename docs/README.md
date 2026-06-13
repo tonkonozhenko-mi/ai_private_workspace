@@ -1,12 +1,12 @@
 # Documentation Index
 
-This folder holds the product, architecture, packaging, and release documentation
-for **AI Private Workspace**, plus a historical engineering log.
+Product, architecture, packaging, and release documentation for
+**AI Private Workspace**.
 
-> **Note on structure.** Many task-numbered documents (`TASK###_*.md`) are
-> referenced directly by backend code, tests, and packaging scripts, so they are
-> intentionally kept in place rather than deleted. Treat them as an append-only
-> engineering log. The curated, current documents are listed first below.
+> The per-task development journal (`TASK###_*.md` files) and point-in-time
+> status snapshots were removed to keep this folder focused on current,
+> evergreen documentation. A few task-numbered files remain only because code,
+> tests, or packaging scripts reference them directly.
 
 ## Start here
 
@@ -15,6 +15,8 @@ for **AI Private Workspace**, plus a historical engineering log.
 - [CONFIGURATION.md](CONFIGURATION.md) — settings and environment variables.
 - [ROADMAP.md](ROADMAP.md) — current roadmap and remaining work.
 - [V1_PRODUCT_COMPLETION_ROADMAP.md](V1_PRODUCT_COMPLETION_ROADMAP.md) — path from v0.1 source release to v1.0 installer-grade product.
+- [PROJECT_CHECKPOINT.md](PROJECT_CHECKPOINT.md) — current project checkpoint.
+- [CONTINUE_MESSAGE.md](CONTINUE_MESSAGE.md) — development continuation notes.
 
 ## API & frontend
 
@@ -60,6 +62,9 @@ for **AI Private Workspace**, plus a historical engineering log.
 - [TAURI_SHELL_SCAFFOLD.md](TAURI_SHELL_SCAFFOLD.md)
 - [TAURI_SUPERVISOR_BRIDGE.md](TAURI_SUPERVISOR_BRIDGE.md)
 - [PRODUCT_PACKAGING_ROADMAP.md](PRODUCT_PACKAGING_ROADMAP.md)
+- [TASK242_DESKTOP_STACK_AND_RUNTIME_CONTRACT.md](TASK242_DESKTOP_STACK_AND_RUNTIME_CONTRACT.md) — referenced by packaging scripts.
+- [TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md](TASK249_MACOS_TAURI_SMOKE_RUNBOOK.md) — referenced by backend and scripts.
+- [TASK251_MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md](TASK251_MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md) — referenced by backend and scripts.
 
 ## Runbooks & troubleshooting
 
@@ -71,27 +76,7 @@ for **AI Private Workspace**, plus a historical engineering log.
 - [V01_DEMO_HANDOFF.md](V01_DEMO_HANDOFF.md)
 - [V01_RELEASE_NOTES.md](V01_RELEASE_NOTES.md)
 - [RELEASE_CANDIDATE_AUDIT.md](RELEASE_CANDIDATE_AUDIT.md)
-- [RELEASE_CANDIDATE_UI_REVIEW.md](RELEASE_CANDIDATE_UI_REVIEW.md)
 - [SOURCE_RELEASE_CHECKLIST.md](SOURCE_RELEASE_CHECKLIST.md)
 - [GITHUB_PUBLICATION_CHECKLIST.md](GITHUB_PUBLICATION_CHECKLIST.md)
 - [GITHUB_REPOSITORY_GUIDE.md](GITHUB_REPOSITORY_GUIDE.md)
 - [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md)
-
-## Status snapshots & process notes
-
-These are point-in-time snapshots from development. They may be partially stale;
-trust the curated documents above first.
-
-- [PROJECT_STATE.md](PROJECT_STATE.md)
-- [PROJECT_CHECKPOINT.md](PROJECT_CHECKPOINT.md)
-- [NEXT_STEPS.md](NEXT_STEPS.md)
-- [CONTINUE_MESSAGE.md](CONTINUE_MESSAGE.md)
-- [FINAL_PRODUCT_QUALITY_PASS.md](FINAL_PRODUCT_QUALITY_PASS.md)
-- [UI_POLISH_QA.md](UI_POLISH_QA.md)
-- [UI_LOVE_PASS_TASK201.md](UI_LOVE_PASS_TASK201.md)
-
-## Task engineering log (historical)
-
-`TASK###_*.md` files document individual development tasks in order. They are kept
-because backend code, tests, and `scripts/` reference several of them by path.
-Browse them directly if you need the detailed history of a specific change.
