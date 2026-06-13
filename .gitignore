@@ -4,12 +4,12 @@ backend/.ai-workbench/
 *.sqlite
 *.sqlite3
 
-# Python / frontend build artifacts
-*/.venv/
-*/__pycache__/
+# Python / frontend build artifacts (match at any depth)
+**/.venv/
+**/__pycache__/
 *.pyc
-*/.pytest_cache/
-frontend/node_modules/
+**/.pytest_cache/
+**/node_modules/
 frontend/dist/
 
 # Generated desktop package artifacts
@@ -27,3 +27,8 @@ frontend/src-tauri/target/
 
 # IDE and OS metadata
 .idea/
+**/.DS_Store
+
+# Guard: never re-commit accidental nested project copies
+frontend/frontend/
+frontend/backend/
