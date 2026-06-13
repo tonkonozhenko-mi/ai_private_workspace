@@ -401,6 +401,21 @@ code {
   white-space: nowrap;
 }
 
+.sidebar-privacy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--sidebar-accent);
+  font-weight: 600;
+}
+
+.sidebar-privacy-icon {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  opacity: 0.9;
+}
+
 .main-content {
   min-width: 0;
   padding: 28px 32px 52px;
