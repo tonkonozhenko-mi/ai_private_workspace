@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Callable
 from datetime import UTC, datetime
 
-from app.core.domain.chunking import chunk_text, estimate_tokens
+from app.core.domain.chunking import chunk_document, estimate_tokens
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import (
     IndexedDocumentSummary,
@@ -238,7 +238,7 @@ class IndexWorkspaceUseCase:
         project_file: ProjectFile,
     ) -> list[TextChunk]:
         content = self.file_system.read_text_file(project_path, project_file.path)
-        raw_chunks = chunk_text(content)
+        raw_chunks = chunk_document(content, file_type=project_file.detected_type)
 
         return [
             TextChunk(
