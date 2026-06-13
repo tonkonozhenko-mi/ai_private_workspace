@@ -24,9 +24,11 @@ class GetGuidedModelSetupUseCase:
         self,
         workspace_repository: WorkspaceRepositoryPort,
         model_catalog_registry: ModelCatalogRegistry,
+        total_ram_gb: float | None = None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.model_catalog_registry = model_catalog_registry
+        self.total_ram_gb = total_ram_gb
 
     def execute(self, request: GetGuidedModelSetupInput) -> GuidedModelSetupGuide:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -123,6 +125,7 @@ class GetGuidedModelSetupUseCase:
                 model,
                 recommendation_label=self._recommendation_label(model, preferred),
                 recommended=model.id in preferred,
+                total_ram_gb=self.total_ram_gb,
             )
             for model in ranked
         ]

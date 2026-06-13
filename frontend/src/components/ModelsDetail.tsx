@@ -2577,8 +2577,12 @@ function GuidedModelSetupControl({
             >
               <span className="guided-model-option-top">
                 <strong>{option.display_name}</strong>
-                {option.recommended ? (
-                  <span className="guided-model-option-badge">Best for you</span>
+                {option.fit_label ? (
+                  <span className={`guided-model-fit guided-model-fit-${option.fit ?? "unknown"}`}>
+                    {option.fit_label}
+                  </span>
+                ) : option.recommended ? (
+                  <span className="guided-model-option-badge">Recommended</span>
                 ) : option.recommendation_label ? (
                   <span className="guided-model-option-tag">{option.recommendation_label}</span>
                 ) : null}
@@ -2587,6 +2591,7 @@ function GuidedModelSetupControl({
                 <span className="guided-model-option-desc">{option.description}</span>
               ) : null}
               <span className="guided-model-option-meta">
+                {option.estimated_size ? <em>Download: {option.estimated_size}</em> : null}
                 {option.quality_tier ? <em>Quality: {option.quality_tier}</em> : null}
                 {option.speed_tier ? <em>Speed: {option.speed_tier}</em> : null}
                 {option.local_only ? <em>Runs offline</em> : null}

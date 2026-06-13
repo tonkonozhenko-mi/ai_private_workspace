@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from app.core.domain.model_catalog import LocalModelDefinition
+from app.core.domain.model_fit import assess_model_fit
 
 
 @dataclass(frozen=True)
@@ -15,6 +16,9 @@ class GuidedModelSetupOption:
     local_only: bool
     quality_tier: str
     speed_tier: str
+    estimated_size: str | None
+    fit: str | None
+    fit_label: str | None
     notes: list[str]
 
 
@@ -44,7 +48,9 @@ def to_guided_model_option(
     *,
     recommendation_label: str,
     recommended: bool,
+    total_ram_gb: float | None = None,
 ) -> GuidedModelSetupOption:
+    fit, fit_label = assess_model_fit(model.estimated_size, total_ram_gb)
     return GuidedModelSetupOption(
         provider=model.provider,
         model=model.model_name,
@@ -56,5 +62,8 @@ def to_guided_model_option(
         local_only=model.local_only,
         quality_tier=model.quality_tier,
         speed_tier=model.speed_tier,
+        estimated_size=model.estimated_size,
+        fit=fit,
+        fit_label=fit_label,
         notes=list(model.notes),
     )
