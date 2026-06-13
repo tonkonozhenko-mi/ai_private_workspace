@@ -57,5 +57,3 @@ Product, architecture, packaging, and release documentation for
 - [RELEASE_CANDIDATE_AUDIT.md](RELEASE_CANDIDATE_AUDIT.md) — release audit and archive policy.
 - [SOURCE_RELEASE_CHECKLIST.md](SOURCE_RELEASE_CHECKLIST.md) — source release checklist.
 - [GITHUB_PUBLICATION_CHECKLIST.md](GITHUB_PUBLICATION_CHECKLIST.md) — GitHub publication checklist.
-- [GITHUB_REPOSITORY_GUIDE.md](GITHUB_REPOSITORY_GUIDE.md) — repository structure guide.
-- [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) — production readiness criteria.
