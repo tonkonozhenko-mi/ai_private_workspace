@@ -666,6 +666,7 @@ function App() {
                   skillPreferences={preferences.skillPreferences}
                   skillProfileSource={workspaceSkillProfile?.source ?? "default"}
                   skillProfileUpdatedAt={workspaceSkillProfile?.updated_at ?? null}
+                  developerMode={preferences.developerMode}
                   onAsked={() => refreshAfterAsk(detail.dashboard.workspace_id)}
                 />
               </div>
