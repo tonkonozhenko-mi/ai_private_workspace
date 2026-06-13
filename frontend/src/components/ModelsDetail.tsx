@@ -305,6 +305,7 @@ export function ModelsDetail({
         <>
           <GuidedModelSetupPanel
             workspaceId={workspaceId}
+            developerMode={developerMode}
             onApplySelection={applyGuidedSelection}
           />
           <LocalModelInstallPanel
@@ -2334,9 +2335,11 @@ function FirstLaunchSetupPanel() {
 
 function GuidedModelSetupPanel({
   workspaceId,
+  developerMode = false,
   onApplySelection,
 }: {
   workspaceId: string;
+  developerMode?: boolean;
   onApplySelection: (
     modelType: "llm" | "embedding",
     provider: string,
@@ -2484,16 +2487,23 @@ function GuidedModelSetupPanel({
           onCustomChange={setCustomLlm}
           onSave={() => void saveGuidedSelection("llm")}
         />
-        <GuidedModelSetupControl
-          section={embeddingSection}
-          value={embeddingChoice}
-          customValue={customEmbedding}
-          disabled={saving !== null}
-          isSaving={saving === "embedding"}
-          onChange={setEmbeddingChoice}
-          onCustomChange={setCustomEmbedding}
-          onSave={() => void saveGuidedSelection("embedding")}
-        />
+        {developerMode ? (
+          <GuidedModelSetupControl
+            section={embeddingSection}
+            value={embeddingChoice}
+            customValue={customEmbedding}
+            disabled={saving !== null}
+            isSaving={saving === "embedding"}
+            onChange={setEmbeddingChoice}
+            onCustomChange={setCustomEmbedding}
+            onSave={() => void saveGuidedSelection("embedding")}
+          />
+        ) : (
+          <p className="guided-model-embedding-note">
+            The search model that lets the AI find relevant parts of your project is
+            chosen automatically. Turn on Developer mode to change it.
+          </p>
+        )}
       </div>
       <div className="guided-model-note-grid">
         <GuidedModelNotes
@@ -2539,25 +2549,53 @@ function GuidedModelSetupControl({
       </div>
       <p>{section.purpose}</p>
       <small>{section.recommendation_summary}</small>
-      <label>
-        <span>Choose model</span>
-        <select
-          value={value}
-          disabled={disabled}
-          onChange={(event) => onChange(event.target.value)}
-        >
-          {asArray(section.options).map((option) => (
-            <option
+      <div className="guided-model-options" role="radiogroup" aria-label={`Choose ${section.title}`}>
+        {asArray(section.options).map((option) => {
+          const optionValue = toSetupChoiceValue(option.provider, option.model);
+          const selected = value === optionValue;
+          return (
+            <button
               key={`${option.provider}/${option.model}`}
-              value={toSetupChoiceValue(option.provider, option.model)}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              disabled={disabled}
+              className={`guided-model-option${selected ? " is-selected" : ""}${option.recommended ? " is-recommended" : ""}`}
+              onClick={() => onChange(optionValue)}
             >
-              {option.recommendation_label}: {option.display_name} (
-              {option.provider}/{option.model})
-            </option>
-          ))}
-          <option value="ollama||__custom__">Custom Ollama model…</option>
-        </select>
-      </label>
+              <span className="guided-model-option-top">
+                <strong>{option.display_name}</strong>
+                {option.recommended ? (
+                  <span className="guided-model-option-badge">Best for you</span>
+                ) : option.recommendation_label ? (
+                  <span className="guided-model-option-tag">{option.recommendation_label}</span>
+                ) : null}
+              </span>
+              {option.description ? (
+                <span className="guided-model-option-desc">{option.description}</span>
+              ) : null}
+              <span className="guided-model-option-meta">
+                {option.quality_tier ? <em>Quality: {option.quality_tier}</em> : null}
+                {option.speed_tier ? <em>Speed: {option.speed_tier}</em> : null}
+                {option.local_only ? <em>Runs offline</em> : null}
+              </span>
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          role="radio"
+          aria-checked={isCustom}
+          disabled={disabled}
+          className={`guided-model-option guided-model-option-custom${isCustom ? " is-selected" : ""}`}
+          onClick={() => onChange("ollama||__custom__")}
+        >
+          <span className="guided-model-option-top">
+            <strong>Custom Ollama model…</strong>
+          </span>
+          <span className="guided-model-option-desc">Enter any Ollama model tag manually.</span>
+        </button>
+      </div>
       {isCustom ? (
         <label>
           <span>Custom model name</span>

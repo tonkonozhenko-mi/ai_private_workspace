@@ -490,6 +490,89 @@ code {
   line-height: 1.4;
 }
 
+.guided-model-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.guided-model-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.guided-model-option:hover {
+  border-color: var(--color-accent-border);
+}
+
+.guided-model-option.is-selected {
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+  background: var(--color-accent-soft);
+}
+
+.guided-model-option-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.guided-model-option-top strong {
+  color: var(--color-text-strong);
+  font-size: var(--text-lg);
+}
+
+.guided-model-option-badge {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.guided-model-option-tag {
+  flex: none;
+  color: var(--color-text-subtle);
+  font-size: var(--text-sm);
+}
+
+.guided-model-option-desc {
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  line-height: 1.4;
+}
+
+.guided-model-option-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.guided-model-option-meta em {
+  color: var(--color-text-subtle);
+  font-size: var(--text-sm);
+  font-style: normal;
+}
+
+.guided-model-embedding-note {
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  line-height: 1.45;
+}
+
 .main-content {
   min-width: 0;
   padding: 28px 32px 52px;
