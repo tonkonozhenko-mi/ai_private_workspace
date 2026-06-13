@@ -202,7 +202,7 @@ export function SettingsPanel({
         <div>
           <p className="eyebrow">Settings</p>
           <h2>Keep daily use simple.</h2>
-          <p>Change only daily-use preferences. Model setup lives in Models, and advanced diagnostics stay out of the main flow.</p>
+          <p>A few everyday preferences. Choosing your AI lives in the Models tab.</p>
         </div>
         <div className="settings-clean-status">
           <StatusBadge label={contextReady ? "Context ready" : "Context needs build"} />
@@ -262,18 +262,20 @@ export function SettingsPanel({
               </button>
             ))}
           </div>
-          <div className="segmented-control" aria-label="Density">
-            {(["comfortable", "compact"] as const).map((density) => (
-              <button
-                key={density}
-                type="button"
-                className={preferences.density === density ? "is-selected" : ""}
-                onClick={() => updatePreference({ density })}
-              >
-                {formatLabel(density)}
-              </button>
-            ))}
-          </div>
+          {preferences.developerMode ? (
+            <div className="segmented-control" aria-label="Density">
+              {(["comfortable", "compact"] as const).map((density) => (
+                <button
+                  key={density}
+                  type="button"
+                  className={preferences.density === density ? "is-selected" : ""}
+                  onClick={() => updatePreference({ density })}
+                >
+                  {formatLabel(density)}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <label className="settings-developer-toggle">
             <input
               type="checkbox"
