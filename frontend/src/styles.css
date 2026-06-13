@@ -12931,15 +12931,6 @@ pre {
  * consistent cards, aligned grids, and readable copy/code blocks.
  */
 :root {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Inter, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
-  --text-xs: 0.6875rem;
-  --text-sm: 0.75rem;
-  --text-md: 0.875rem;
-  --text-lg: 1rem;
-  --text-xl: 1.25rem;
-  --text-2xl: clamp(1.5rem, 2.3vw, 2rem);
-  --text-hero: clamp(2.25rem, 5vw, 3.625rem);
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 18px;
@@ -13405,13 +13396,6 @@ pre {
 
 /* Task 186 — strict visual QA pass: dark/light parity, alignment, typography */
 :root {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Inter, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
-  --text-xs: 0.6875rem;
-  --text-sm: 0.75rem;
-  --text-md: 0.875rem;
-  --text-lg: 1rem;
-  --text-xl: 1.25rem;
-  --text-2xl: clamp(1.75rem, 2.6vw, 2.25rem);
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
@@ -15314,8 +15298,6 @@ pre,
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-xl: 22px;
-  --text-sm: 0.6875rem;
-  --text-md: 0.8125rem;
 }
 
 .workspace-navigation-shell,
@@ -17815,13 +17797,6 @@ select,
  * when a screen has many advanced capabilities behind progressive disclosure.
  */
 :root {
-  --text-xs: 0.72rem;
-  --text-sm: 0.82rem;
-  --text-md: 0.94rem;
-  --text-lg: 1.05rem;
-  --text-xl: 1.25rem;
-  --text-2xl: clamp(1.75rem, 2.8vw, 2.25rem);
-  --text-hero: clamp(2.15rem, 4vw, 3rem);
   --section-gap: clamp(1rem, 2vw, 1.5rem);
   --panel-padding: clamp(1.1rem, 2vw, 1.55rem);
   --control-height: 2.65rem;
@@ -20539,16 +20514,6 @@ select {
 }
 
 /* Task 273 — daily-use visual hardening, dark theme, and compact Ask */
-:root {
-  --text-xs: 0.6875rem;
-  --text-sm: 0.8125rem;
-  --text-md: 0.9375rem;
-  --text-lg: 1.0625rem;
-  --text-xl: 1.35rem;
-  --text-2xl: clamp(1.6rem, 2.5vw, 2.15rem);
-  --text-hero: clamp(1.85rem, 3vw, 2.4rem);
-}
-
 .workspace-tabs,
 .workspace-navigation-shell,
 .panel,
