@@ -39,7 +39,8 @@ def test_rag_prompt_requires_grounded_source_aware_answer() -> None:
         ],
     )
 
-    assert "Use only the provided context chunks" in prompt
+    assert "Prefer the provided context" in prompt
+    assert "you may answer from your general knowledge" in prompt
     assert "When making any technical claim, name the actual source_path exactly" in prompt
     assert "If multiple files contain relevant configuration, compare them" in prompt
     assert "Available source paths: main.tf" in prompt
