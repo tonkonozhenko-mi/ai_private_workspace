@@ -338,6 +338,29 @@ export function SettingsPanel({
             </p>
           </div>
         </div>
+        <details className="settings-skill-help">
+          <summary>What is this, and how do I get good answers?</summary>
+          <div className="settings-skill-help-body">
+            <p>
+              A skill is simply a short note that tells the assistant what to focus on when it
+              answers questions about this project. Pick a template that matches your work
+              (for example DevOps, code, or documentation), then fine-tune the note below.
+            </p>
+            <p className="settings-skill-help-label">Good instructions</p>
+            <ul>
+              <li>Describe the focus: "Prioritise infrastructure and deployment files."</li>
+              <li>Set the tone: "Answer in short, plain steps a new teammate can follow."</li>
+              <li>Name what matters: "Always mention rollback steps and risks."</li>
+            </ul>
+            <p className="settings-skill-help-label">Avoid</p>
+            <ul>
+              <li>Don't ask it to invent facts — it answers from your project's real files.</li>
+              <li>Don't paste long essays; a few clear sentences work best.</li>
+              <li>Don't contradict yourself, or answers become vague.</li>
+            </ul>
+            <p>Changes only affect how answers are written. They never touch your files.</p>
+          </div>
+        </details>
         <div className="settings-clean-template-row">
           <select value={selectedTemplateId} onChange={(event) => setSelectedTemplateId(event.target.value as SkillProfileTemplateId)}>
             {SKILL_TEMPLATES.map((template) => (
