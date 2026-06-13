@@ -181,4 +181,7 @@ Do not commit:
 
 ## License
 
-License has not been finalized yet. Add a `LICENSE` file before public production distribution.
+Licensed under the [Apache License 2.0](LICENSE). You are free to use, modify,
+and distribute this software, including in commercial and enterprise settings.
+Apache-2.0 was chosen so companies can adopt the product without the legal
+friction that more restrictive copyleft licenses introduce.
