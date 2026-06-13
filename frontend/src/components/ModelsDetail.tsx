@@ -92,6 +92,7 @@ import {
 interface ModelsDetailProps {
   workspaceId: string;
   hasScan: boolean;
+  developerMode?: boolean;
   dashboard: WorkspaceModelsDashboard;
   activationGuide: LocalAIActivationGuide;
   onSelectionUpdated: () => Promise<void> | void;
@@ -111,6 +112,7 @@ type ModelsSection = "setup" | "catalog" | "skills" | "compare" | "tools" | "adv
 export function ModelsDetail({
   workspaceId,
   hasScan,
+  developerMode = false,
   dashboard,
   activationGuide,
   onSelectionUpdated,
@@ -240,14 +242,16 @@ export function ModelsDetail({
       </section>
 
       <nav className="models-section-nav" aria-label="Model settings sections">
-        {([
+        {(([
           ["setup", "Overview"],
           ["catalog", "Choose & install"],
           ["skills", "Skills"],
           ["compare", "Compare"],
           ["tools", "MCP tools"],
           ["advanced", "Advanced"],
-        ] as Array<[ModelsSection, string]>).map(([id, label]) => (
+        ] as Array<[ModelsSection, string]>).filter(
+          ([id]) => developerMode || id === "setup" || id === "catalog",
+        )).map(([id, label]) => (
           <button
             key={id}
             type="button"
