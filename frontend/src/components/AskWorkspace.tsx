@@ -1,4 +1,8 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, createContext, useContext, useEffect, useRef, useState } from "react";
+
+// Lets deeply-nested answer rows know whether to show developer-only telemetry
+// (token counts, verification notes) without prop-drilling through the chat tree.
+const AskDeveloperModeContext = createContext(false);
 
 import {
   askSelectedWorkspace,
@@ -524,6 +528,7 @@ export function AskWorkspace({
     error?.toLowerCase().includes("unable to reach");
 
   return (
+    <AskDeveloperModeContext.Provider value={developerMode}>
     <div className="ask-workspace ask-workspace-chat ask-workspace-centered">
       <aside className="ask-context-sidebar ask-context-sidebar-compact">
         <details className="ask-guidance-disclosure">
@@ -701,6 +706,7 @@ export function AskWorkspace({
         </section>
       </section>
     </div>
+    </AskDeveloperModeContext.Provider>
   );
 }
 
@@ -1298,9 +1304,15 @@ function AnswerResult({
   createdAt: string;
   onSaveAnswerNote: (answer: WorkspaceQuestionAnswer) => void;
 }) {
-  const warnings = answer.quality_warnings ?? [];
+  const developerMode = useContext(AskDeveloperModeContext);
+  const allWarnings = answer.quality_warnings ?? [];
+  // By default keep the answer calm: only show important (high-severity) notices,
+  // such as "you're on the test model". Full verification notes are for developers.
+  const warnings = developerMode
+    ? allWarnings
+    : allWarnings.filter((warning) => warning.severity === "high");
   const reindexReason = getAskReindexReason(answer);
-  const isMissingSourcePaths = warnings.some(
+  const isMissingSourcePaths = allWarnings.some(
     (warning) => warning.code === "answer_missing_source_paths",
   );
   const [showFileDraft, setShowFileDraft] = useState(false);
@@ -1344,14 +1356,16 @@ function AnswerResult({
           </div>
           <div className="answer-stats">
             <span>
-              <strong>{answer.used_context_chunks}</strong> context pieces
-            </span>
-            <span>
               <strong>{answer.sources.length}</strong> sources
             </span>
+            {developerMode ? (
+              <span>
+                <strong>{answer.used_context_chunks}</strong> context pieces
+              </span>
+            ) : null}
           </div>
-          <LLMUsageSummary answer={answer} />
-          <AskSkillProfileAuditSummary answer={answer} />
+          {developerMode ? <LLMUsageSummary answer={answer} /> : null}
+          {developerMode ? <AskSkillProfileAuditSummary answer={answer} /> : null}
         </article>
 
         {showFileDraft ? (
@@ -1378,7 +1392,7 @@ function AnswerResult({
 
         {warnings.length > 0 ? <QualityWarnings warnings={warnings} /> : null}
 
-        {isMissingSourcePaths ? (
+        {developerMode && isMissingSourcePaths ? (
           <p className="ask-source-path-note">
             The model answered without mentioning source paths. Check retrieved
             sources below.
@@ -1846,12 +1860,19 @@ function MarkdownAnswer({ content }: { content: string }) {
 }
 
 function InlineMarkdown({ text }: { text: string }) {
-  const parts = text.split(/(`[^`]+`)/g);
+  // Handle inline code, **bold**, and *italic* (in that precedence order).
+  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g);
   return (
     <>
       {parts.map((part, index) => {
         if (part.startsWith("`") && part.endsWith("`") && part.length > 1) {
           return <code key={index}>{part.slice(1, -1)}</code>;
+        }
+        if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+          return <strong key={index}>{part.slice(2, -2)}</strong>;
+        }
+        if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+          return <em key={index}>{part.slice(1, -1)}</em>;
         }
         return <span key={index}>{part}</span>;
       })}
