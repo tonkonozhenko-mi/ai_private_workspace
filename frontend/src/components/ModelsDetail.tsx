@@ -89,10 +89,14 @@ import {
   type SkillProfileTemplateId,
 } from "./skillLibrary";
 
+type AnswerCreativity = "precise" | "balanced" | "creative";
+
 interface ModelsDetailProps {
   workspaceId: string;
   hasScan: boolean;
   developerMode?: boolean;
+  answerCreativity?: AnswerCreativity;
+  onAnswerCreativityChange?: (value: AnswerCreativity) => void;
   dashboard: WorkspaceModelsDashboard;
   activationGuide: LocalAIActivationGuide;
   onSelectionUpdated: () => Promise<void> | void;
@@ -113,6 +117,8 @@ export function ModelsDetail({
   workspaceId,
   hasScan,
   developerMode = false,
+  answerCreativity = "precise",
+  onAnswerCreativityChange,
   dashboard,
   activationGuide,
   onSelectionUpdated,
@@ -349,6 +355,29 @@ export function ModelsDetail({
 
       {activeSection === "advanced" ? (
         <div className="models-advanced-stack">
+          <section className="panel models-simple-panel">
+            <PanelHeading
+              eyebrow="Answer tuning"
+              title="Answer creativity"
+            />
+            <p className="panel-helper">
+              How freely the AI words its answers. <strong>Precise</strong> sticks closely to
+              your project (best for code and facts); <strong>Creative</strong> allows more
+              varied phrasing. Applies to new questions in Ask.
+            </p>
+            <div className="segmented-control" aria-label="Answer creativity">
+              {(["precise", "balanced", "creative"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={answerCreativity === value ? "is-selected" : ""}
+                  onClick={() => onAnswerCreativityChange?.(value)}
+                >
+                  {value.charAt(0).toUpperCase() + value.slice(1)}
+                </button>
+              ))}
+            </div>
+          </section>
           <ModelSelectionEditor
             workspaceId={workspaceId}
             selectedLlmProvider={dashboard.selected_llm_provider}

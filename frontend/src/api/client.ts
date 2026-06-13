@@ -1124,7 +1124,12 @@ export function askSelectedWorkspace(
   question: string,
   limit: number,
   skillContext: SkillContextRequest[] = [],
-  options: { signal?: AbortSignal; conversationId?: string | null; images?: string[] } = {},
+  options: {
+    signal?: AbortSignal;
+    conversationId?: string | null;
+    images?: string[];
+    temperature?: number | null;
+  } = {},
 ): Promise<WorkspaceQuestionAnswer> {
   return requestJson<WorkspaceQuestionAnswer>(
     `/workspaces/${workspaceId}/ask-selected`,
@@ -1140,6 +1145,7 @@ export function askSelectedWorkspace(
         skill_context: skillContext,
         conversation_id: options.conversationId ?? null,
         images: options.images ?? [],
+        temperature: options.temperature ?? null,
       }),
       signal: options.signal,
     },

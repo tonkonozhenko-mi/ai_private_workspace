@@ -10,11 +10,17 @@ class LLMProviderPort(Protocol):
     def model_name(self) -> str | None:
         """Return the LLM model identifier, if available."""
 
-    def generate(self, prompt: str, images: list[str] | None = None) -> str:
+    def generate(
+        self,
+        prompt: str,
+        images: list[str] | None = None,
+        temperature: float | None = None,
+    ) -> str:
         """Generate a response from a language model.
 
         ``images`` is an optional list of base64-encoded images for vision-capable
-        models. Text-only providers ignore it.
+        models. ``temperature`` optionally tunes randomness (lower = more precise,
+        higher = more creative). Providers that don't support these ignore them.
         """
 
 

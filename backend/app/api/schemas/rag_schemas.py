@@ -17,6 +17,7 @@ class AskWorkspaceQuestionRequest(BaseModel):
     llm_model: str | None = None
     skill_context: list[SkillContextItemRequest] = Field(default_factory=list, max_length=5)
     images: list[str] = Field(default_factory=list, max_length=4)
+    temperature: float | None = Field(default=None, ge=0.0, le=2.0)
 
 
 class AskWorkspaceQuestionWithSelectedLLMRequest(BaseModel):
@@ -25,6 +26,7 @@ class AskWorkspaceQuestionWithSelectedLLMRequest(BaseModel):
     limit: int = Field(default=5, ge=1, le=50)
     skill_context: list[SkillContextItemRequest] = Field(default_factory=list, max_length=5)
     images: list[str] = Field(default_factory=list, max_length=4)
+    temperature: float | None = Field(default=None, ge=0.0, le=2.0)
 
 
 class RagSourceResponse(BaseModel):
