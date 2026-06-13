@@ -33,6 +33,7 @@ class AskWorkspaceQuestionWithSelectedLLMInput:
     skill_profile_updated_at: str | None = None
     conversation_id: str | None = None
     images: list[str] | None = None
+    temperature: float | None = None
 
 
 class AskWorkspaceQuestionWithSelectedLLMNotFoundError(ValueError):
@@ -117,6 +118,7 @@ class AskWorkspaceQuestionWithSelectedLLMUseCase:
                     skill_profile_updated_at=request.skill_profile_updated_at,
                     conversation_id=request.conversation_id,
                     images=request.images or [],
+                    temperature=request.temperature,
                 )
             )
         except AskWorkspaceQuestionNotFoundError as exc:

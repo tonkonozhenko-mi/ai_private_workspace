@@ -70,9 +70,18 @@ export interface WorkbenchPreferences {
   accentColor: AccentColorPreference;
   demoMode: DemoModePreference;
   developerMode: boolean;
+  answerCreativity: AnswerCreativityPreference;
   skillPreferences: SkillPreferences;
   fileIndexingPreferences: FileIndexingPreferences;
 }
+
+export type AnswerCreativityPreference = "precise" | "balanced" | "creative";
+
+export const ANSWER_CREATIVITY_TEMPERATURE: Record<AnswerCreativityPreference, number> = {
+  precise: 0.1,
+  balanced: 0.5,
+  creative: 0.9,
+};
 
 const PREFERENCES_STORAGE_KEY = "ai-private-workspace.preferences.v1";
 const LEGACY_PREFERENCES_STORAGE_KEY = "private-project-ai-workbench.preferences.v1";
@@ -88,6 +97,7 @@ const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   accentColor: "green",
   demoMode: "off",
   developerMode: false,
+  answerCreativity: "precise",
   skillPreferences: DEFAULT_SKILL_PREFERENCES,
   fileIndexingPreferences: DEFAULT_FILE_INDEXING_PREFERENCES,
 };
@@ -671,6 +681,7 @@ function App() {
                   skillProfileSource={workspaceSkillProfile?.source ?? "default"}
                   skillProfileUpdatedAt={workspaceSkillProfile?.updated_at ?? null}
                   developerMode={preferences.developerMode}
+                  answerTemperature={ANSWER_CREATIVITY_TEMPERATURE[preferences.answerCreativity]}
                   onAsked={() => refreshAfterAsk(detail.dashboard.workspace_id)}
                 />
               </div>
@@ -705,6 +716,10 @@ function App() {
                         workspaceId={detail.dashboard.workspace_id}
                         hasScan={detail.dashboard.summary.has_scan}
                         developerMode={preferences.developerMode}
+                        answerCreativity={preferences.answerCreativity}
+                        onAnswerCreativityChange={(value) =>
+                          setPreferences((current) => ({ ...current, answerCreativity: value }))
+                        }
                         dashboard={modelsDetail.dashboard}
                         activationGuide={modelsDetail.activationGuide}
                         onSelectionUpdated={() =>
@@ -818,6 +833,12 @@ function loadStoredPreferences(): WorkbenchPreferences {
         typeof parsed.developerMode === "boolean"
           ? parsed.developerMode
           : DEFAULT_PREFERENCES.developerMode,
+      answerCreativity:
+        parsed.answerCreativity === "precise" ||
+        parsed.answerCreativity === "balanced" ||
+        parsed.answerCreativity === "creative"
+          ? parsed.answerCreativity
+          : DEFAULT_PREFERENCES.answerCreativity,
       skillPreferences: normalizeSkillPreferences(parsed.skillPreferences),
       fileIndexingPreferences: normalizeFileIndexingPreferences(
         parsed.fileIndexingPreferences,

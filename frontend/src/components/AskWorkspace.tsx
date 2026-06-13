@@ -42,6 +42,7 @@ interface AskWorkspaceProps {
   skillProfileSource?: string;
   skillProfileUpdatedAt?: string | null;
   developerMode?: boolean;
+  answerTemperature?: number;
   onAsked?: () => void | Promise<void>;
 }
 
@@ -109,6 +110,7 @@ export function AskWorkspace({
   skillProfileSource = "default",
   skillProfileUpdatedAt = null,
   developerMode = false,
+  answerTemperature,
   onAsked,
 }: AskWorkspaceProps) {
   const [question, setQuestion] = useState("");
@@ -467,6 +469,7 @@ export function AskWorkspace({
             const comma = image.indexOf(",");
             return comma >= 0 ? image.slice(comma + 1) : image;
           }),
+          temperature: answerTemperature ?? null,
         },
       );
       const historyItem = createHistoryItem(result);

@@ -25,8 +25,13 @@ class OllamaLLMProvider:
     def model_name(self) -> str:
         return self.model
 
-    def generate(self, prompt: str, images: list[str] | None = None) -> str:
-        response = self._request_with_one_local_retry(prompt, images)
+    def generate(
+        self,
+        prompt: str,
+        images: list[str] | None = None,
+        temperature: float | None = None,
+    ) -> str:
+        response = self._request_with_one_local_retry(prompt, images, temperature)
 
         try:
             payload = response.json()
@@ -44,7 +49,10 @@ class OllamaLLMProvider:
         return generated_text
 
     def _request_with_one_local_retry(
-        self, prompt: str, images: list[str] | None = None
+        self,
+        prompt: str,
+        images: list[str] | None = None,
+        temperature: float | None = None,
     ) -> httpx.Response:
         last_error: httpx.HTTPError | None = None
         payload: dict[str, object] = {
@@ -55,6 +63,9 @@ class OllamaLLMProvider:
         if images:
             # Ollama accepts base64-encoded images for vision-capable models.
             payload["images"] = images
+        if temperature is not None:
+            # Ollama generation tuning goes under "options".
+            payload["options"] = {"temperature": temperature}
         for attempt in range(2):
             try:
                 response = self.client.post(
