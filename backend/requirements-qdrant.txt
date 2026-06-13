@@ -1,0 +1,9 @@
+# Optional dependency: Qdrant vector store backend.
+#
+# The default local-first setup uses the built-in SQLite vector store, which
+# needs no extra packages and no running server. Qdrant is only required if you
+# explicitly set VECTOR_STORE=qdrant to use an external Qdrant instance.
+#
+# Install with:
+#   pip install -r requirements-qdrant.txt
+qdrant-client>=1.12,<2.0
