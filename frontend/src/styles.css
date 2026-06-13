@@ -416,6 +416,46 @@ code {
   opacity: 0.9;
 }
 
+.settings-skill-help {
+  margin: 4px 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+}
+
+.settings-skill-help > summary {
+  cursor: pointer;
+  color: var(--color-text-strong);
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.settings-skill-help-body {
+  margin-top: 8px;
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  line-height: 1.5;
+}
+
+.settings-skill-help-body p {
+  margin: 6px 0;
+}
+
+.settings-skill-help-body ul {
+  margin: 4px 0 8px;
+  padding-left: 18px;
+}
+
+.settings-skill-help-body li {
+  margin: 3px 0;
+}
+
+.settings-skill-help-label {
+  color: var(--color-text-strong);
+  font-weight: 600;
+}
+
 .main-content {
   min-width: 0;
   padding: 28px 32px 52px;
