@@ -1842,6 +1842,9 @@ export interface GuidedModelSetupOption {
   local_only: boolean;
   quality_tier: string;
   speed_tier: string;
+  estimated_size?: string | null;
+  fit?: "comfortable" | "works_slower" | "too_big" | string | null;
+  fit_label?: string | null;
   notes: string[];
 }
 

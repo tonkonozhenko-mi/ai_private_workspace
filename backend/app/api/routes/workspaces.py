@@ -2527,10 +2527,13 @@ def explain_workspace_model_recommendation(
 def get_guided_model_setup(
     workspace_id: str,
 ) -> GuidedModelSetupGuideResponse:
+    from app.adapters.system.hardware_probe import detect_total_ram_gb
+
     try:
         guide = GetGuidedModelSetupUseCase(
             workspace_repository=workspace_repository,
             model_catalog_registry=model_catalog_registry,
+            total_ram_gb=detect_total_ram_gb(),
         ).execute(GetGuidedModelSetupInput(workspace_id=workspace_id))
     except GuidedModelSetupNotFoundError as exc:
         raise HTTPException(

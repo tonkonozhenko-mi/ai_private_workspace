@@ -549,6 +549,33 @@ code {
   font-size: var(--text-sm);
 }
 
+.guided-model-fit {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.guided-model-fit-comfortable {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-border);
+  color: var(--color-accent-strong);
+}
+
+.guided-model-fit-works_slower {
+  background: var(--color-warning-soft);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning);
+}
+
+.guided-model-fit-too_big {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger);
+}
+
 .guided-model-option-desc {
   color: var(--color-text-muted);
   font-size: var(--text-md);

@@ -18,6 +18,9 @@ class GuidedModelSetupOptionResponse(BaseModel):
     local_only: bool
     quality_tier: str
     speed_tier: str
+    estimated_size: str | None = None
+    fit: str | None = None
+    fit_label: str | None = None
     notes: list[str]
 
 
