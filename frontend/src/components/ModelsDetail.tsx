@@ -2488,16 +2488,28 @@ function GuidedModelSetupPanel({
           onSave={() => void saveGuidedSelection("llm")}
         />
         {developerMode ? (
-          <GuidedModelSetupControl
-            section={embeddingSection}
-            value={embeddingChoice}
-            customValue={customEmbedding}
-            disabled={saving !== null}
-            isSaving={saving === "embedding"}
-            onChange={setEmbeddingChoice}
-            onCustomChange={setCustomEmbedding}
-            onSave={() => void saveGuidedSelection("embedding")}
-          />
+          <div className="guided-model-embedding-advanced">
+            <p className="guided-model-embedding-explainer">
+              The search (embedding) model turns your project into a form the AI can
+              search. <strong>nomic-embed-text</strong> is a strong, fast default and
+              fits almost every project — you rarely need to change it.
+            </p>
+            <p className="guided-model-embedding-warning">
+              <strong>Important:</strong> changing the search model rebuilds the whole
+              project index from scratch (it creates a different, incompatible search
+              space). Only switch if you have a specific reason.
+            </p>
+            <GuidedModelSetupControl
+              section={embeddingSection}
+              value={embeddingChoice}
+              customValue={customEmbedding}
+              disabled={saving !== null}
+              isSaving={saving === "embedding"}
+              onChange={setEmbeddingChoice}
+              onCustomChange={setCustomEmbedding}
+              onSave={() => void saveGuidedSelection("embedding")}
+            />
+          </div>
         ) : (
           <p className="guided-model-embedding-note">
             The search model that lets the AI find relevant parts of your project is
