@@ -299,7 +299,15 @@ def build_vector_store() -> VectorStorePort:
     if vector_store_type == "sqlite":
         return SQLiteVectorStore(settings.vector_store_path)
     if vector_store_type == "qdrant":
-        from app.adapters.vector_store.qdrant_vector_store import QdrantVectorStore
+        try:
+            from app.adapters.vector_store.qdrant_vector_store import QdrantVectorStore
+        except ModuleNotFoundError as exc:
+            raise ValueError(
+                "VECTOR_STORE=qdrant requires the optional 'qdrant-client' package, "
+                "which is not installed. The default SQLite vector store needs no "
+                "extra packages. To use Qdrant, install it with: "
+                "pip install -r requirements-qdrant.txt"
+            ) from exc
 
         return QdrantVectorStore(
             url=settings.qdrant_url,
