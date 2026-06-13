@@ -576,6 +576,77 @@ code {
   color: var(--color-danger);
 }
 
+.ask-attach-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.ask-attach-button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-strong);
+  font-size: var(--text-md);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ask-attach-button:hover {
+  border-color: var(--color-accent-border);
+}
+
+.ask-attach-button input {
+  display: none;
+}
+
+.ask-attach-hint {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.ask-attach-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ask-attach-thumb {
+  position: relative;
+}
+
+.ask-attach-thumb img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.ask-attach-thumb button {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  line-height: 1;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .guided-model-option-desc {
   color: var(--color-text-muted);
   font-size: var(--text-md);
