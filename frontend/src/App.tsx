@@ -483,9 +483,13 @@ function App() {
     <div className={`app-shell${preferences.demoMode === "on" ? " is-demo-mode" : ""}`}>
       <aside className="sidebar">
         <header className="brand">
-          <span className="brand-mark" aria-hidden="true">
-            {preferences.brandInitials}
-          </span>
+          <img
+            className="brand-mark-image"
+            src="/app-icon.png"
+            alt={preferences.productName}
+            width={36}
+            height={36}
+          />
           <div>
             <strong>{preferences.productName}</strong>
             <span>Local-first</span>
