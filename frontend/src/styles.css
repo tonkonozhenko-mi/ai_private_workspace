@@ -456,6 +456,40 @@ code {
   font-weight: 600;
 }
 
+.settings-developer-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+  cursor: pointer;
+}
+
+.settings-developer-toggle input {
+  margin-top: 2px;
+  flex: none;
+}
+
+.settings-developer-toggle span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-developer-toggle strong {
+  color: var(--color-text-strong);
+  font-size: var(--text-lg);
+}
+
+.settings-developer-toggle small {
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  line-height: 1.4;
+}
+
 .main-content {
   min-width: 0;
   padding: 28px 32px 52px;

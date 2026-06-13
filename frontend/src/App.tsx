@@ -69,6 +69,7 @@ export interface WorkbenchPreferences {
   productName: string;
   accentColor: AccentColorPreference;
   demoMode: DemoModePreference;
+  developerMode: boolean;
   skillPreferences: SkillPreferences;
   fileIndexingPreferences: FileIndexingPreferences;
 }
@@ -86,6 +87,7 @@ const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   productName: "AI Private Workspace",
   accentColor: "green",
   demoMode: "off",
+  developerMode: false,
   skillPreferences: DEFAULT_SKILL_PREFERENCES,
   fileIndexingPreferences: DEFAULT_FILE_INDEXING_PREFERENCES,
 };
@@ -697,6 +699,7 @@ function App() {
                       <ModelsDetail
                         workspaceId={detail.dashboard.workspace_id}
                         hasScan={detail.dashboard.summary.has_scan}
+                        developerMode={preferences.developerMode}
                         dashboard={modelsDetail.dashboard}
                         activationGuide={modelsDetail.activationGuide}
                         onSelectionUpdated={() =>
@@ -806,6 +809,10 @@ function loadStoredPreferences(): WorkbenchPreferences {
       demoMode: isDemoModePreference(parsed.demoMode)
         ? parsed.demoMode
         : DEFAULT_PREFERENCES.demoMode,
+      developerMode:
+        typeof parsed.developerMode === "boolean"
+          ? parsed.developerMode
+          : DEFAULT_PREFERENCES.developerMode,
       skillPreferences: normalizeSkillPreferences(parsed.skillPreferences),
       fileIndexingPreferences: normalizeFileIndexingPreferences(
         parsed.fileIndexingPreferences,

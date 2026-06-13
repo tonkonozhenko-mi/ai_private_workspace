@@ -274,12 +274,24 @@ export function SettingsPanel({
               </button>
             ))}
           </div>
+          <label className="settings-developer-toggle">
+            <input
+              type="checkbox"
+              checked={preferences.developerMode}
+              onChange={(event) => updatePreference({ developerMode: event.target.checked })}
+            />
+            <span>
+              <strong>Developer mode</strong>
+              <small>Show advanced model, file, and integration settings. Off by default for a simpler experience.</small>
+            </span>
+          </label>
           <button className="secondary-action" type="button" onClick={onResetPreferences}>
             Reset appearance
           </button>
         </article>
       </section>
 
+      {preferences.developerMode ? (
       <section className="panel settings-clean-card">
         <div className="panel-heading compact-heading">
           <div>
@@ -327,6 +339,7 @@ export function SettingsPanel({
           </div>
         ) : null}
       </section>
+      ) : null}
 
       <section className="panel settings-clean-card">
         <div className="panel-heading compact-heading">
