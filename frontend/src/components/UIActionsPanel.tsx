@@ -32,10 +32,10 @@ export function UIActionsPanel({ catalog }: UIActionsPanelProps) {
       <div className="panel action-catalog-panel native-action-panel">
         <div className="panel-heading action-catalog-heading">
           <div>
-            <p className="eyebrow">Workspace capabilities</p>
-            <h2>Workspace capabilities</h2>
+            <p className="eyebrow">Capabilities</p>
+            <h2>What this workspace can do</h2>
             <p className="panel-intro action-catalog-subtitle">
-              Capabilities are grouped by purpose. This page explains what the assistant can do. Capabilities are shown for transparency and are not run from here.
+              A transparent list of what the assistant can do, grouped by purpose. Nothing runs from this page.
             </p>
           </div>
           <span className="panel-count">{catalog.actions.length}</span>
