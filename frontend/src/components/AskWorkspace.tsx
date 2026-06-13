@@ -1399,11 +1399,13 @@ function AnswerResult({
           </p>
         ) : null}
 
-        <Sources
-          workspaceId={answer.workspace_id}
-          sources={answer.sources}
-          suppressReindexGuidance={reindexReason !== null}
-        />
+        {answer.sources.length > 0 ? (
+          <Sources
+            workspaceId={answer.workspace_id}
+            sources={answer.sources}
+            suppressReindexGuidance={reindexReason !== null}
+          />
+        ) : null}
       </div>
     </div>
   );
