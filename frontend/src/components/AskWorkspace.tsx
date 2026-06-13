@@ -41,6 +41,7 @@ interface AskWorkspaceProps {
   skillPreferences: SkillPreferences;
   skillProfileSource?: string;
   skillProfileUpdatedAt?: string | null;
+  developerMode?: boolean;
   onAsked?: () => void | Promise<void>;
 }
 
@@ -107,6 +108,7 @@ export function AskWorkspace({
   skillPreferences,
   skillProfileSource = "default",
   skillProfileUpdatedAt = null,
+  developerMode = false,
   onAsked,
 }: AskWorkspaceProps) {
   const [question, setQuestion] = useState("");
@@ -617,20 +619,22 @@ export function AskWorkspace({
             </div>
 
             <div className="ask-bottom-meta-row">
-              <span>Local answers with attached sources.</span>
-              <label>
-                Source snippets
-                <select
-                  value={limit}
-                  onChange={(event) => setLimit(parseSourceSnippetLimit(event.target.value))}
-                >
-                  {SOURCE_SNIPPET_LIMITS.map((snippetLimit) => (
-                    <option key={snippetLimit} value={snippetLimit}>
-                      {snippetLimit}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <span>Answers stay on your computer, with sources attached.</span>
+              {developerMode ? (
+                <label>
+                  Source snippets
+                  <select
+                    value={limit}
+                    onChange={(event) => setLimit(parseSourceSnippetLimit(event.target.value))}
+                  >
+                    {SOURCE_SNIPPET_LIMITS.map((snippetLimit) => (
+                      <option key={snippetLimit} value={snippetLimit}>
+                        {snippetLimit}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
             </div>
 
             <div className="ask-attach-row">
@@ -838,21 +842,10 @@ function ConversationPanel({
         onToggleShowArchived={onToggleShowArchived}
         onTogglePinnedOnly={onTogglePinnedOnly}
       />
-      <div className="panel ask-conversation-header">
-        <div>
-          <p className="eyebrow">Current conversation</p>
-          <h2>Workspace chat</h2>
-          <p>
-            Questions and answers are saved with this workspace. Copy answers, edit a
-            question, or ask again without changing workspace setup.
-          </p>
-        </div>
-        <div className="ask-conversation-actions">
-          <span className="panel-count">{history.length}</span>
-          <button className="secondary-button" type="button" onClick={onClear}>
-            Clear
-          </button>
-        </div>
+      <div className="ask-thread-bar">
+        <button className="text-button" type="button" onClick={onClear}>
+          Clear chat
+        </button>
       </div>
 
       <div className="ask-message-list">
@@ -939,16 +932,20 @@ function ConversationHistoryBar({
   const activeConversation = conversations.find((conversation) => conversation.id === activeConversationId) ?? null;
 
   return (
-    <section className="panel conversation-history-panel" aria-label="Saved conversations">
+    <div className="ask-chats-zone">
+      <div className="ask-chats-toolbar">
+        <button className="ask-new-chat-button" type="button" disabled={loading} onClick={onNewConversation}>
+          + New chat
+        </button>
+        <details className="ask-chats-drawer">
+          <summary>Saved chats &amp; notes</summary>
+          <section className="panel conversation-history-panel" aria-label="Saved conversations">
       <div className="panel-heading conversation-history-heading">
         <div>
           <p className="eyebrow">Saved conversations</p>
           <h2>Workspace answer history</h2>
           <p>Conversations persist in the local workspace database and can be reopened later.</p>
         </div>
-        <button className="secondary-button" type="button" disabled={loading} onClick={onNewConversation}>
-          New conversation
-        </button>
       </div>
 
       <div className="conversation-history-tools">
@@ -1098,7 +1095,10 @@ function ConversationHistoryBar({
       {activeConversation ? (
         <ConversationDetailsCard conversation={activeConversation} />
       ) : null}
-    </section>
+          </section>
+        </details>
+      </div>
+    </div>
   );
 }
 
@@ -1309,7 +1309,6 @@ function AnswerResult({
         <article className="ask-message-bubble assistant-bubble">
           <div className="assistant-bubble-header">
             <div>
-              <span className="ask-message-label">AI Private Workspace</span>
               <small>
                 {answer.llm_provider}/{answer.llm_model ?? "default"} · {formatTime(createdAt)}
               </small>
