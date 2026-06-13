@@ -162,8 +162,8 @@ code {
 
 .brand-mark-image {
   flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
   object-fit: contain;
   background: #ffffff;

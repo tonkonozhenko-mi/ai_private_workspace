@@ -487,8 +487,8 @@ function App() {
             className="brand-mark-image"
             src="/app-icon.png"
             alt={preferences.productName}
-            width={36}
-            height={36}
+            width={44}
+            height={44}
           />
           <div>
             <strong>{preferences.productName}</strong>
