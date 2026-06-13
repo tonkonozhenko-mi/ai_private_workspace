@@ -271,10 +271,10 @@ export function ReportsPanel({ workspaceId, hasScan }: ReportsPanelProps) {
       <div className="panel reports-hero">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Documentation generation</p>
+            <p className="eyebrow">Reports</p>
             <h2>Project reports</h2>
             <p className="panel-intro">
-              Generate, save, search, pin, and export read-only report drafts from local workspace evidence.
+              Create, save, and export read-only reports built from your project — generated locally.
             </p>
           </div>
           <StatusBadge label={hasScan ? "Scan ready" : "Scan required"} tone={hasScan ? "neutral" : "warning"} />

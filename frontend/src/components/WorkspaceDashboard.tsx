@@ -59,6 +59,10 @@ export function WorkspaceDashboard({
 }: WorkspaceDashboardProps) {
   const summary = dashboard.summary;
   const indexStatus = summary.index_status;
+  const fullyReady =
+    summary.has_scan &&
+    indexStatus.status === "indexed" &&
+    modelsSummary.overall_status === "ready";
 
   return (
     <>
@@ -91,22 +95,24 @@ export function WorkspaceDashboard({
         />
       ) : null}
 
-      <WorkspaceOnboardingGuide
-        dashboard={dashboard}
-        modelsSummary={modelsSummary}
-        onOpenAsk={onOpenAsk}
-        onOpenModels={onOpenModels}
-        onOpenCapabilities={onOpenCapabilities}
-        onPreviewSavedFileSelection={onPreviewSavedFileSelection}
-        onPreviewDraftFileSelection={onPreviewDraftFileSelection}
-        onStartScanJob={onStartScanJob}
-        onStartIndexJob={onStartIndexJob}
-        onGetWorkspaceJob={onGetWorkspaceJob}
-        onListWorkspaceJobs={onListWorkspaceJobs}
-        onCancelWorkspaceJob={onCancelWorkspaceJob}
-        onRefreshWorkspaceState={onRefreshWorkspaceState}
-        fileIndexingPreferences={fileIndexingPreferences}
-      />
+      {!fullyReady ? (
+        <WorkspaceOnboardingGuide
+          dashboard={dashboard}
+          modelsSummary={modelsSummary}
+          onOpenAsk={onOpenAsk}
+          onOpenModels={onOpenModels}
+          onOpenCapabilities={onOpenCapabilities}
+          onPreviewSavedFileSelection={onPreviewSavedFileSelection}
+          onPreviewDraftFileSelection={onPreviewDraftFileSelection}
+          onStartScanJob={onStartScanJob}
+          onStartIndexJob={onStartIndexJob}
+          onGetWorkspaceJob={onGetWorkspaceJob}
+          onListWorkspaceJobs={onListWorkspaceJobs}
+          onCancelWorkspaceJob={onCancelWorkspaceJob}
+          onRefreshWorkspaceState={onRefreshWorkspaceState}
+          fileIndexingPreferences={fileIndexingPreferences}
+        />
+      ) : null}
 
       <details className="panel overview-advanced-disclosure">
         <summary>
