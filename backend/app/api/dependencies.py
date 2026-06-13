@@ -417,9 +417,19 @@ def build_runtime_health_checkers() -> list[RuntimeHealthCheckerPort]:
 
 def build_model_catalog_registry() -> ModelCatalogRegistry:
     settings = get_settings()
-    registry = ModelCatalogRegistry(
-        loader=UserModelCatalogLoader(settings.user_model_catalog_path),
-    )
+    if settings.user_model_catalog_url.strip():
+        from app.adapters.model_catalog.remote_model_catalog_loader import (
+            RemoteModelCatalogLoader,
+        )
+
+        loader = RemoteModelCatalogLoader(
+            url=settings.user_model_catalog_url,
+            cache_path=str(settings.user_model_catalog_cache_path),
+            timeout_seconds=settings.user_model_catalog_fetch_timeout_seconds,
+        )
+    else:
+        loader = UserModelCatalogLoader(settings.user_model_catalog_path)
+    registry = ModelCatalogRegistry(loader=loader)
     registry.reload()
     return registry
 

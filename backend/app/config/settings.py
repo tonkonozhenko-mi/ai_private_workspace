@@ -57,6 +57,9 @@ class Settings(BaseModel):
     OLLAMA_LLM_TIMEOUT_SECONDS: int = 120
     RUNTIME_HEALTH_TIMEOUT_SECONDS: int = 3
     USER_MODEL_CATALOG_PATH: str = ""
+    USER_MODEL_CATALOG_URL: str = ""
+    USER_MODEL_CATALOG_CACHE_PATH: Path = DEFAULT_APP_DATA_DIR / "data" / "model_catalog_cache.json"
+    USER_MODEL_CATALOG_FETCH_TIMEOUT_SECONDS: int = 5
     MODEL_DOWNLOAD_EXECUTION_ENABLED: bool = False
 
     @property
@@ -138,6 +141,18 @@ class Settings(BaseModel):
     @property
     def user_model_catalog_path(self) -> str:
         return self.USER_MODEL_CATALOG_PATH
+
+    @property
+    def user_model_catalog_url(self) -> str:
+        return self.USER_MODEL_CATALOG_URL
+
+    @property
+    def user_model_catalog_cache_path(self) -> Path:
+        return self.USER_MODEL_CATALOG_CACHE_PATH
+
+    @property
+    def user_model_catalog_fetch_timeout_seconds(self) -> int:
+        return self.USER_MODEL_CATALOG_FETCH_TIMEOUT_SECONDS
 
     @property
     def model_download_execution_enabled(self) -> bool:
@@ -226,6 +241,7 @@ def get_settings() -> Settings:
             os.getenv("RUNTIME_HEALTH_TIMEOUT_SECONDS", "3")
         ),
         USER_MODEL_CATALOG_PATH=os.getenv("USER_MODEL_CATALOG_PATH", ""),
+        USER_MODEL_CATALOG_URL=os.getenv("USER_MODEL_CATALOG_URL", ""),
         MODEL_DOWNLOAD_EXECUTION_ENABLED=os.getenv("MODEL_DOWNLOAD_EXECUTION_ENABLED", "false").lower()
         in {"1", "true", "yes", "on"},
     )
