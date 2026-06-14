@@ -65,6 +65,35 @@ def build_workspace_question_prompt(
     )
 
 
+def build_general_chat_prompt(
+    question: str,
+    skill_instructions: list[SkillPromptInstruction] | None = None,
+    current_time: str | None = None,
+) -> str:
+    normalized_skill_instructions = _normalize_skill_instructions(skill_instructions or [])
+    skill_section = _build_skill_section(normalized_skill_instructions)
+    time_line = (
+        f"For reference, the current local date and time is: {current_time}.\n\n"
+        if current_time
+        else ""
+    )
+
+    return (
+        "You are a friendly, helpful local AI assistant. The user is making "
+        "general conversation that is not about their project files, so answer "
+        "naturally and directly like a normal chat assistant.\n\n"
+        f"{time_line}"
+        f"{skill_section}"
+        f"Question:\n{question}\n\n"
+        "Answer requirements:\n"
+        "- Answer directly and conversationally.\n"
+        "- Do not mention project files, source paths, or context chunks.\n"
+        "- Do not pretend the question was about the project.\n"
+        "- If you genuinely do not know, say so briefly.\n"
+        "- Do not invent facts."
+    )
+
+
 def _normalize_skill_instructions(
     skill_instructions: list[SkillPromptInstruction],
 ) -> list[SkillPromptInstruction]:
