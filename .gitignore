@@ -32,3 +32,4 @@ frontend/src-tauri/target/
 # Guard: never re-commit accidental nested project copies
 frontend/frontend/
 frontend/backend/
+backend/.venv_t/
