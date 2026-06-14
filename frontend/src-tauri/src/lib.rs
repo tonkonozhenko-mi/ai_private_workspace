@@ -755,6 +755,21 @@ fn choose_project_directory() -> Result<Option<String>, String> {
 
 pub fn run() {
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .setup(|app| {
+            // On launch, quietly check GitHub for a newer signed release and
+            // install it in the background. The update applies on the next launch.
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                use tauri_plugin_updater::UpdaterExt;
+                if let Ok(updater) = handle.updater() {
+                    if let Ok(Some(update)) = updater.check().await {
+                        let _ = update.download_and_install(|_, _| {}, || {}).await;
+                    }
+                }
+            });
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             get_supervisor_status,
             get_supervisor_log_paths,
