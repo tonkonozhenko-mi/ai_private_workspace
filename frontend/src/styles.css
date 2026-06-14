@@ -1014,6 +1014,26 @@ a {
   margin-bottom: 4px;
 }
 
+/* scan/index guidance panel (was light-themed) */
+:root[data-theme] .reindex-guidance,
+.reindex-guidance {
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+  color: var(--c-text-2);
+}
+.reindex-guidance p,
+.reindex-guidance span,
+.reindex-guidance li {
+  color: var(--c-text-2);
+}
+.reindex-guidance strong,
+.reindex-guidance h3,
+.reindex-guidance h4 {
+  color: var(--c-text);
+}
+
 /* the "answered as general conversation" note: a quiet footnote, never louder
    than the answer itself */
 .ask-diagnostic {

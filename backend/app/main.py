@@ -1,3 +1,9 @@
+from dotenv import load_dotenv
+
+# Load backend/.env (if present) before reading any settings, so local dev can
+# point at the desktop app's data directory without exporting variables by hand.
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
