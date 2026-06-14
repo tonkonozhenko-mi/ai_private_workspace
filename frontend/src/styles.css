@@ -1485,6 +1485,19 @@ a {
   color: var(--c-text-2);
 }
 
+:root[data-theme] .model-download-history,
+.model-download-history,
+.model-download-history-body {
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  color: var(--c-text-2);
+}
+.model-download-history > summary {
+  color: var(--c-text);
+  cursor: pointer;
+}
+
 .local-ai-models-button {
   background: var(--c-accent);
   color: var(--c-accent-ink);
