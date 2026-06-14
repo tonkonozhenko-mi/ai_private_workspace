@@ -224,15 +224,14 @@ export function AskWorkspace({
       setAnswerNotesPinnedOnly(false);
       setConversationContextPreview(null);
 
-      const [conversationItems] = await Promise.all([
+      // Start each launch with a fresh chat. Past chats stay available in the
+      // "Saved chats & notes" drawer. We intentionally do NOT auto-open the most
+      // recent conversation, because re-opening it made every new question append
+      // to the same conversation forever, so it grew to show the entire history.
+      await Promise.all([
         refreshConversations({ search: "", includeArchived: false, pinnedOnly: false }),
         refreshAnswerNotes({ search: "", pinnedOnly: false }),
       ]);
-
-      const latestConversation = conversationItems[0];
-      if (!cancelled && latestConversation) {
-        await openConversation(latestConversation.id);
-      }
     }
 
     void initializeAskState();
