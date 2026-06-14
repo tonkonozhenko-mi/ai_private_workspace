@@ -115,6 +115,11 @@
   --text-muted: rgba(214, 228, 222, 0.55);
   --accent-strong: #3ad08a;
   --apple-green: #34c27e;
+  /* brand accent everywhere (selection ticks, highlights); Ask user bubbles
+     use --ask-user-accent instead, which follows the Settings palette */
+  --accent: #34c27e;
+  --accent-border: rgba(52, 194, 126, 0.4);
+  --accent-soft: rgba(52, 194, 126, 0.14);
 }
 
 /* ---------- Base reset ---------- */
@@ -173,6 +178,51 @@ a {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
   background-clip: content-box;
+}
+
+/* primary buttons: brand green (legacy made them a purple gradient) */
+:root[data-theme] .primary-button,
+.primary-button {
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+  border: none;
+  border-radius: var(--r-md);
+  font-weight: 600;
+}
+:root[data-theme] .primary-button:hover:not(:disabled),
+.primary-button:hover:not(:disabled) {
+  background: var(--c-accent-hover);
+}
+.primary-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* create-workspace "three clicks" steps: description was landing in the
+   narrow number column; lay out number+title on top, description full width */
+:root[data-theme] .create-workspace-guide-simple .onboarding-step-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-4);
+}
+:root[data-theme] .create-workspace-guide-simple .onboarding-step-list > li {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  grid-template-areas:
+    "num title"
+    "desc desc";
+  align-items: center;
+  gap: 6px var(--s-3);
+}
+.create-workspace-guide-simple .onboarding-step-list > li::before {
+  grid-area: num;
+}
+.create-workspace-guide-simple .onboarding-step-list > li strong {
+  grid-area: title;
+}
+.create-workspace-guide-simple .onboarding-step-list > li span {
+  grid-area: desc;
+  color: var(--c-text-2);
 }
 
 /* ---------- Unified buttons (consistent across the app) ----------
