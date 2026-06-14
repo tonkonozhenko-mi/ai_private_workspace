@@ -23,12 +23,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest # Apple Silicon
+          - platform: macos-latest # Apple Silicon (M1/M2/M3)
             args: "--target aarch64-apple-darwin"
-          - platform: macos-latest # Intel
+          - platform: macos-latest # Intel Macs
             args: "--target x86_64-apple-darwin"
-          - platform: windows-latest
-            args: ""
+          # Windows is disabled until the frozen-backend build script is made
+          # Windows-proof. Re-enable by uncommenting:
+          # - platform: windows-latest
+          #   args: ""
 
     runs-on: ${{ matrix.platform }}
 
@@ -41,12 +43,13 @@ jobs:
           python-version: "3.12"
       - name: Build frozen backend runtime
         shell: bash
+        env:
+          # Tell the build script exactly which Python to use (the one we just
+          # installed PyInstaller into), avoiding per-OS venv path differences.
+          AI_PRIVATE_WORKSPACE_PACKAGING_PYTHON: python
         run: |
-          cd backend
-          python -m venv .venv
-          source .venv/bin/activate || source .venv/Scripts/activate
-          pip install -r requirements.txt pyinstaller
-          cd ..
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt pyinstaller
           # Produces build/desktop/frozen-backend-runtime (referenced by tauri.conf resources).
           bash scripts/build_pyinstaller_backend_runtime.sh
 
