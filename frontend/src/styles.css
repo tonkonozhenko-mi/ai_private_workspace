@@ -67,7 +67,15 @@
   --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.4);
 
   --sidebar-w: 300px;
+
+  /* the accent used to tint the user's own Ask messages; follows the palette
+     chosen in Settings (data-accent) but defaults to the brand green */
+  --ask-user-accent: var(--c-accent);
 }
+:root[data-accent="green"] { --ask-user-accent: #34c27e; }
+:root[data-accent="blue"] { --ask-user-accent: #4aa3f0; }
+:root[data-accent="purple"] { --ask-user-accent: #a78bfa; }
+:root[data-accent="orange"] { --ask-user-accent: #f0a85a; }
 
 /* ---------- Legacy token bridge ----------
    The previous stylesheet is light-by-default and only turns dark under
@@ -668,18 +676,19 @@ a {
   align-items: flex-start;
 }
 
-.ask-avatar {
+.ask-avatar-img {
   flex: none;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--r-pill);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--c-accent);
-  color: var(--c-accent-ink);
-  font-size: 11px;
-  font-weight: 700;
+  object-fit: contain;
+}
+.ask-label-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-pill);
+  object-fit: contain;
+  vertical-align: middle;
 }
 
 .ask-message-bubble {
@@ -690,8 +699,11 @@ a {
 .ask-message-bubble.user-bubble {
   max-width: 68%;
   padding: var(--s-3) var(--s-4);
+  /* tinted with the chosen palette; static fallback first for older webviews */
   background: var(--c-accent-soft);
+  background: color-mix(in srgb, var(--ask-user-accent) 14%, transparent);
   border: 1px solid var(--c-accent-border);
+  border-color: color-mix(in srgb, var(--ask-user-accent) 34%, transparent);
 }
 .ask-message-actions {
   gap: var(--s-4);
@@ -728,7 +740,7 @@ a {
   margin-bottom: var(--s-2);
 }
 .ask-cat-glyph {
-  color: var(--c-accent);
+  color: var(--ask-user-accent);
 }
 .ask-message-bubble.user-bubble p {
   color: var(--c-text);
