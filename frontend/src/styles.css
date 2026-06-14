@@ -1071,6 +1071,176 @@ a {
   cursor: pointer;
 }
 
+/* =====================================================================
+   Ask: saved chats / history drawer (calm, scannable)
+   ===================================================================== */
+.ask-chats-zone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.ask-chats-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+.ask-new-chat-button {
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface-2);
+  color: var(--c-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.ask-new-chat-button:hover {
+  background: var(--c-surface-3);
+}
+.ask-chats-drawer > summary {
+  cursor: pointer;
+  list-style: none;
+  color: var(--c-text-2);
+  font-size: 13px;
+  padding: var(--s-2) 0;
+}
+.ask-chats-drawer > summary::-webkit-details-marker {
+  display: none;
+}
+
+.conversation-history-panel {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: var(--s-3) 0 0;
+}
+.conversation-history-heading h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.conversation-history-heading > div > p:last-child {
+  font-size: 12px;
+  color: var(--c-text-3);
+}
+
+.conversation-history-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-4);
+  margin: var(--s-3) 0;
+  font-size: 12px;
+  color: var(--c-text-3);
+}
+.conversation-history-tools input[type="search"],
+.conversation-history-tools input[type="text"] {
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  color: var(--c-text);
+  padding: 6px 10px;
+  font: inherit;
+}
+.conversation-history-tools input[type="checkbox"] {
+  accent-color: var(--c-accent);
+}
+
+/* a conversation is a quiet row; actions appear on hover */
+.conversation-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.conversation-history-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  border: none;
+  border-radius: var(--r-md);
+  padding: 2px;
+  background: transparent;
+}
+.conversation-history-item:hover,
+.conversation-history-item.is-active {
+  background: var(--c-surface-2);
+}
+.conversation-history-item > button:first-child {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: var(--s-2) var(--s-3);
+}
+.conversation-history-item > button:first-child strong {
+  color: var(--c-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.conversation-history-item > button:first-child span {
+  color: var(--c-text-3);
+  font-size: 12px;
+}
+.conversation-history-item > button:first-child em {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: normal;
+  color: var(--c-text-3);
+  font-size: 12px;
+}
+
+.conversation-history-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex: none;
+  padding-right: var(--s-2);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.conversation-history-item:hover .conversation-history-actions,
+.conversation-history-item:focus-within .conversation-history-actions {
+  opacity: 1;
+}
+/* collapse the three export buttons to a single "Export md" */
+.conversation-history-actions button:nth-child(3),
+.conversation-history-actions button:nth-child(4) {
+  display: none;
+}
+.danger-text-button,
+.danger-text-button:hover {
+  color: var(--c-danger);
+}
+
+.conversation-history-status {
+  font-size: 12px;
+  color: var(--c-text-3);
+}
+
+.conversation-context-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  margin-top: var(--s-3);
+  font-size: 12px;
+  color: var(--c-text-3);
+}
+
+.conversation-details-card {
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+  margin-top: var(--s-3);
+}
+
 /* ---------- Scroll up/down control ---------- */
 .ask-scroll-buttons {
   position: fixed;
