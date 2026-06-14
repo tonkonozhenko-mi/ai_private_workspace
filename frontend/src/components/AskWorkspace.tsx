@@ -157,12 +157,9 @@ export function AskWorkspace({
   onAsked,
 }: AskWorkspaceProps) {
   const [question, setQuestion] = useState("");
-  // Developer details can be toggled right here on the Ask screen. It starts
-  // from the saved preference but can be flipped per session.
-  const [devMode, setDevMode] = useState(developerMode);
-  useEffect(() => {
-    setDevMode(developerMode);
-  }, [developerMode]);
+  // Developer details are off by default and can be toggled right here on the
+  // Ask screen.
+  const [devMode, setDevMode] = useState(false);
   const [limit, setLimit] = useState(defaultSourceSnippets);
   const [history, setHistory] = useState<AskHistoryItem[]>([]);
   const [conversations, setConversations] = useState<WorkspaceConversation[]>([]);

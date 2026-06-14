@@ -267,15 +267,21 @@ a {
   align-items: flex-end;
 }
 
+/* high specificity to override legacy :root[data-theme="dark"] .text-button,
+   which boxed these into heavy buttons */
+:root[data-theme] .text-button,
 .text-button {
   background: none;
   border: none;
+  box-shadow: none;
   padding: 2px 0;
   font-size: 12px;
   font-weight: 500;
   color: var(--c-accent);
 }
+:root[data-theme] .text-button:hover,
 .text-button:hover {
+  background: none;
   color: var(--c-accent-hover);
 }
 
@@ -618,9 +624,14 @@ a {
   line-height: 1.55;
 }
 .ask-message-bubble.user-bubble {
-  max-width: 80%;
+  max-width: 68%;
+  padding: var(--s-3) var(--s-4);
   background: var(--c-accent-soft);
   border: 1px solid var(--c-accent-border);
+}
+.ask-message-actions {
+  gap: var(--s-4);
+  margin-top: var(--s-2);
 }
 /* Ive-clean: the answer reads as plain text, not a heavy box */
 .ask-message-bubble.assistant-bubble {
@@ -899,8 +910,7 @@ a {
 
 /* error / status messages in the column */
 .ask-error,
-.ask-cancel-message,
-.ask-diagnostic {
+.ask-cancel-message {
   border-radius: var(--r-md);
   padding: var(--s-3) var(--s-4);
   background: var(--c-surface-2);
@@ -912,6 +922,30 @@ a {
   display: block;
   color: var(--c-text);
   margin-bottom: 4px;
+}
+
+/* the "answered as general conversation" note: a quiet footnote, never louder
+   than the answer itself */
+.ask-diagnostic {
+  background: none;
+  border: none;
+  border-top: 1px solid var(--c-border);
+  border-radius: 0;
+  padding: var(--s-3) 0 0;
+  font-size: 12px;
+  color: var(--c-text-3);
+}
+.ask-diagnostic span {
+  display: block;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--c-text-3);
+  margin-bottom: 2px;
+}
+.ask-diagnostic p {
+  font-size: 12px;
+  color: var(--c-text-3);
 }
 
 /* ---------- Quiet the answer sub-panels (progressive disclosure) ---------- */
