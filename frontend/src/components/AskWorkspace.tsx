@@ -157,6 +157,12 @@ export function AskWorkspace({
   onAsked,
 }: AskWorkspaceProps) {
   const [question, setQuestion] = useState("");
+  // Developer details can be toggled right here on the Ask screen. It starts
+  // from the saved preference but can be flipped per session.
+  const [devMode, setDevMode] = useState(developerMode);
+  useEffect(() => {
+    setDevMode(developerMode);
+  }, [developerMode]);
   const [limit, setLimit] = useState(defaultSourceSnippets);
   const [history, setHistory] = useState<AskHistoryItem[]>([]);
   const [conversations, setConversations] = useState<WorkspaceConversation[]>([]);
@@ -567,7 +573,7 @@ export function AskWorkspace({
     error?.toLowerCase().includes("unable to reach");
 
   return (
-    <AskDeveloperModeContext.Provider value={developerMode}>
+    <AskDeveloperModeContext.Provider value={devMode}>
     <div className="ask-workspace ask-workspace-chat ask-workspace-centered">
       <aside className="ask-context-sidebar ask-context-sidebar-compact">
         <details className="ask-guidance-disclosure">
@@ -675,21 +681,31 @@ export function AskWorkspace({
 
             <div className="ask-bottom-meta-row">
               <span>Answers stay on your computer, with sources attached.</span>
-              {developerMode ? (
-                <label>
-                  Source snippets
-                  <select
-                    value={limit}
-                    onChange={(event) => setLimit(parseSourceSnippetLimit(event.target.value))}
-                  >
-                    {SOURCE_SNIPPET_LIMITS.map((snippetLimit) => (
-                      <option key={snippetLimit} value={snippetLimit}>
-                        {snippetLimit}
-                      </option>
-                    ))}
-                  </select>
+              <div className="ask-meta-controls">
+                {devMode ? (
+                  <label>
+                    Source snippets
+                    <select
+                      value={limit}
+                      onChange={(event) => setLimit(parseSourceSnippetLimit(event.target.value))}
+                    >
+                      {SOURCE_SNIPPET_LIMITS.map((snippetLimit) => (
+                        <option key={snippetLimit} value={snippetLimit}>
+                          {snippetLimit}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                <label className="ask-dev-toggle">
+                  <input
+                    type="checkbox"
+                    checked={devMode}
+                    onChange={(event) => setDevMode(event.target.checked)}
+                  />
+                  Developer details
                 </label>
-              ) : null}
+              </div>
             </div>
 
             <div className="ask-attach-row">
@@ -1429,18 +1445,20 @@ function AnswerResult({
               "The chosen AI model returned an empty answer."
             )}
           </div>
-          <div className="answer-stats">
-            <span>
-              <strong>{answer.sources.length}</strong> sources
-            </span>
-            {developerMode ? (
-              <span>
-                <strong>{answer.used_context_chunks}</strong> context pieces
-              </span>
-            ) : null}
-          </div>
-          {developerMode ? <LLMUsageSummary answer={answer} /> : null}
-          {developerMode ? <AskSkillProfileAuditSummary answer={answer} /> : null}
+          {developerMode ? (
+            <div className="ask-answer-details">
+              <div className="answer-stats">
+                <span>
+                  <strong>{answer.sources.length}</strong> sources
+                </span>
+                <span>
+                  <strong>{answer.used_context_chunks}</strong> context pieces
+                </span>
+              </div>
+              <LLMUsageSummary answer={answer} />
+              <AskSkillProfileAuditSummary answer={answer} />
+            </div>
+          ) : null}
         </article>
 
         {showFileDraft ? (
