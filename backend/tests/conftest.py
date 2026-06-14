@@ -22,3 +22,7 @@ os.environ["LLM_PROVIDER"] = "fake"
 os.environ["LLM_MODEL"] = "fake-llm"
 os.environ["COMMAND_RUNNER"] = "fake"
 os.environ["MODEL_DOWNLOAD_EXECUTION_ENABLED"] = "false"
+# Pin runtime defaults so a developer shell or backend/.env (Ollama host, custom
+# model catalog) cannot leak into the deterministic test environment.
+os.environ["OLLAMA_BASE_URL"] = "http://localhost:11434"
+os.environ["USER_MODEL_CATALOG_PATH"] = str(test_data_dir / "user-model-catalog.json")
