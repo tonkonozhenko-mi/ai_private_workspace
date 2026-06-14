@@ -1,0 +1,83 @@
+name: Release (build, sign updater, publish)
+
+# Builds the desktop app for macOS and Windows on every version tag, signs the
+# Tauri updater artifacts, and publishes the installers + a `latest.json` update
+# manifest to a GitHub Release. Installed apps poll that manifest and update
+# themselves. See docs/RELEASE_AND_UPDATES.md for the full setup and the secrets
+# this workflow needs.
+#
+# This is a starting template — CI workflows always need a couple of real runs to
+# get exactly right for your machine matrix. Adjust paths/steps as needed.
+
+on:
+  push:
+    tags:
+      - "v*" # e.g. v0.2.0
+
+permissions:
+  contents: write # needed to create the GitHub Release
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest # Apple Silicon
+            args: "--target aarch64-apple-darwin"
+          - platform: macos-latest # Intel
+            args: "--target x86_64-apple-darwin"
+          - platform: windows-latest
+            args: ""
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Backend: build the frozen Python runtime the app bundles ---
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build frozen backend runtime
+        shell: bash
+        run: |
+          cd backend
+          python -m venv .venv
+          source .venv/bin/activate || source .venv/Scripts/activate
+          pip install -r requirements.txt pyinstaller
+          cd ..
+          # Produces build/desktop/frozen-backend-runtime (referenced by tauri.conf resources).
+          bash scripts/build_pyinstaller_backend_runtime.sh
+
+      # --- Frontend toolchain ---
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      # --- Rust toolchain (with macOS cross targets) ---
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      # --- Build, sign the updater artifacts, and publish the release ---
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Generated locally with `npm run tauri signer generate`. Store the
+          # private key and its password as repository secrets (never commit them).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: frontend
+          tagName: ${{ github.ref_name }}
+          releaseName: "AI Private Workspace ${{ github.ref_name }}"
+          releaseBody: "See the assets below to download and install. The app updates itself after the first install."
+          releaseDraft: false
+          prerelease: false
+          # Generates latest.json (the update manifest) alongside the installers.
+          includeUpdaterJson: true
+          args: ${{ matrix.args }}
