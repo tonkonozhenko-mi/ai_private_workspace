@@ -765,50 +765,6 @@ export function AskWorkspace({
   );
 }
 
-function RobotIcon() {
-  return (
-    <svg
-      className="ask-avatar-glyph"
-      viewBox="0 0 24 24"
-      width="18"
-      height="18"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="5" y="8.5" width="14" height="10" rx="3" />
-      <path d="M12 4.5v4" />
-      <circle cx="12" cy="3.6" r="1.1" fill="currentColor" stroke="none" />
-      <circle cx="9.6" cy="13" r="1.05" fill="currentColor" stroke="none" />
-      <circle cx="14.4" cy="13" r="1.05" fill="currentColor" stroke="none" />
-      <path d="M3.5 12v3M20.5 12v3" />
-    </svg>
-  );
-}
-
-function PersonIcon() {
-  return (
-    <svg
-      className="ask-cat-glyph"
-      viewBox="0 0 24 24"
-      width="13"
-      height="13"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="8" r="3.4" />
-      <path d="M5.5 19a6.5 6.5 0 0 1 13 0" />
-    </svg>
-  );
-}
-
 function AskScrollButtons() {
   const scroller = () => document.querySelector<HTMLElement>(".main-content");
   return (
@@ -995,7 +951,7 @@ function ConversationPanel({
         ))}
         {loading ? (
           <article className="ask-message-row is-assistant">
-            <div className="ask-avatar"><RobotIcon /></div>
+            <img className="ask-avatar-img" src="/avatar-ai-robot-512.png" alt="AI" width={32} height={32} />
             <div className="ask-message-bubble assistant-bubble is-loading">
               <span>Thinking with workspace context...</span>
             </div>
@@ -1068,6 +1024,21 @@ function ConversationHistoryBar({
   const [open, setOpen] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const activeConversation = conversations.find((conversation) => conversation.id === activeConversationId) ?? null;
+
+  // Close the per-row "⋯" menu when clicking anywhere outside of it.
+  useEffect(() => {
+    if (!menuFor) {
+      return;
+    }
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest(".conversation-row-menu-wrap")) {
+        setMenuFor(null);
+      }
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [menuFor]);
 
   return (
     <div className="ask-chats-zone">
@@ -1399,7 +1370,7 @@ function ConversationTurn({
     <article className="ask-conversation-turn">
       <div className="ask-message-row is-user">
         <div className="ask-message-bubble user-bubble">
-          <span className="ask-message-label"><PersonIcon /> You</span>
+          <span className="ask-message-label"><img className="ask-label-avatar" src="/avatar-user-cat-512.png" alt="" width={18} height={18} /> You</span>
           <p>{item.question}</p>
           <div className="ask-message-actions">
             <button
@@ -1449,7 +1420,7 @@ function AnswerResult({
 
   return (
     <div className="ask-message-row is-assistant">
-      <div className="ask-avatar"><RobotIcon /></div>
+      <img className="ask-avatar-img" src="/avatar-ai-robot-512.png" alt="AI" width={32} height={32} />
       <div className="ask-assistant-stack">
         <article className="ask-message-bubble assistant-bubble">
           <div className="assistant-bubble-header">
