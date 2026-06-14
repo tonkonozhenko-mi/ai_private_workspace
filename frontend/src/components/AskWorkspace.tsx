@@ -770,6 +770,52 @@ export function AskWorkspace({
   );
 }
 
+function RobotIcon() {
+  return (
+    <svg
+      className="ask-avatar-glyph"
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="5" y="8.5" width="14" height="10" rx="3" />
+      <path d="M12 4.5v4" />
+      <circle cx="12" cy="3.6" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="9.6" cy="13" r="1.05" fill="currentColor" stroke="none" />
+      <circle cx="14.4" cy="13" r="1.05" fill="currentColor" stroke="none" />
+      <path d="M3.5 12v3M20.5 12v3" />
+    </svg>
+  );
+}
+
+function CatIcon() {
+  return (
+    <svg
+      className="ask-cat-glyph"
+      viewBox="0 0 24 24"
+      width="13"
+      height="13"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M5 4.5l2.5 4M19 4.5l-2.5 4" />
+      <path d="M5 10c0-1.4 2.4-2.5 7-2.5s7 1.1 7 2.5c0 5.4-3 9-7 9s-7-3.6-7-9z" />
+      <circle cx="9.8" cy="12.2" r="0.85" fill="currentColor" stroke="none" />
+      <circle cx="14.2" cy="12.2" r="0.85" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 function AskScrollButtons() {
   const scroller = () => document.querySelector<HTMLElement>(".main-content");
   return (
@@ -956,7 +1002,7 @@ function ConversationPanel({
         ))}
         {loading ? (
           <article className="ask-message-row is-assistant">
-            <div className="ask-avatar">AI</div>
+            <div className="ask-avatar"><RobotIcon /></div>
             <div className="ask-message-bubble assistant-bubble is-loading">
               <span>Thinking with workspace context...</span>
             </div>
@@ -1082,9 +1128,12 @@ function ConversationHistoryBar({
               <article className={`conversation-history-item ${isActive ? "is-active" : ""}`} key={conversation.id}>
                 <button type="button" onClick={() => onOpenConversation(conversation.id)} disabled={loading}>
                   <strong>{conversation.is_pinned ? "★ " : ""}{conversation.title}</strong>
-                  <span>
-                    {conversation.user_messages_count} question{conversation.user_messages_count === 1 ? "" : "s"} · {conversation.assistant_messages_count} answer{conversation.assistant_messages_count === 1 ? "" : "s"} · {formatDateTime(conversation.updated_at)}
-                    {conversation.is_archived ? " · archived" : ""}
+                  <span className="conversation-history-meta">
+                    <span>
+                      {conversation.user_messages_count} question{conversation.user_messages_count === 1 ? "" : "s"} · {conversation.assistant_messages_count} answer{conversation.assistant_messages_count === 1 ? "" : "s"}
+                    </span>
+                    <time className="conversation-when">{formatDateTime(conversation.updated_at)}</time>
+                    {conversation.is_archived ? <span className="conversation-archived-tag">archived</span> : null}
                   </span>
                   {conversation.last_answer_preview ? (
                     <em>{conversation.last_answer_preview}</em>
@@ -1356,7 +1405,7 @@ function ConversationTurn({
     <article className="ask-conversation-turn">
       <div className="ask-message-row is-user">
         <div className="ask-message-bubble user-bubble">
-          <span className="ask-message-label">You</span>
+          <span className="ask-message-label"><CatIcon /> You</span>
           <p>{item.question}</p>
           <div className="ask-message-actions">
             <button
@@ -1406,7 +1455,7 @@ function AnswerResult({
 
   return (
     <div className="ask-message-row is-assistant">
-      <div className="ask-avatar">AI</div>
+      <div className="ask-avatar"><RobotIcon /></div>
       <div className="ask-assistant-stack">
         <article className="ask-message-bubble assistant-bubble">
           <div className="assistant-bubble-header">

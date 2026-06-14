@@ -639,26 +639,32 @@ a {
   border: none;
   padding: 0;
 }
-.answer-content {
-  color: var(--c-text);
-  line-height: 1.6;
-}
 .ask-assistant-stack {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--s-3);
+  gap: var(--s-4);
+}
+.answer-content {
+  color: var(--c-text);
+  font-size: 15px;
+  line-height: 1.65;
 }
 
 .ask-message-label {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--c-text-3);
   margin-bottom: var(--s-2);
+}
+.ask-cat-glyph {
+  color: var(--c-accent);
 }
 .ask-message-bubble.user-bubble p {
   color: var(--c-text);
@@ -686,17 +692,21 @@ a {
   gap: var(--s-2);
   flex-wrap: wrap;
 }
-.answer-header-actions button {
-  padding: 4px 10px;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--c-border);
-  background: var(--c-surface-3);
-  color: var(--c-text-2);
+/* all answer header actions read as light links (incl. Copy, which legacy boxed) */
+.answer-header-actions button,
+:root[data-theme] .answer-header-actions .copy-button {
+  padding: 4px 6px;
+  border: none;
+  background: none;
+  box-shadow: none;
+  color: var(--c-accent);
   font-size: 12px;
+  font-weight: 500;
 }
-.answer-header-actions button:hover {
-  color: var(--c-text);
-  border-color: var(--c-border-strong);
+.answer-header-actions button:hover,
+:root[data-theme] .answer-header-actions .copy-button:hover {
+  background: none;
+  color: var(--c-accent-hover);
 }
 
 .ask-message-bubble.is-loading {
@@ -1176,13 +1186,33 @@ a {
   padding: var(--s-2) var(--s-3);
 }
 .conversation-history-item > button:first-child strong {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--c-text);
   font-size: 13px;
   font-weight: 600;
 }
-.conversation-history-item > button:first-child span {
+/* meta is a quiet caption, clearly not part of the dialog; the date is a chip */
+.conversation-history-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  font-size: 11px;
   color: var(--c-text-3);
-  font-size: 12px;
+}
+.conversation-when {
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-3);
+  color: var(--c-text-2);
+  font-variant-numeric: tabular-nums;
+}
+.conversation-archived-tag {
+  color: var(--c-warning);
 }
 .conversation-history-item > button:first-child em {
   display: block;
