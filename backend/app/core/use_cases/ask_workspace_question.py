@@ -1,11 +1,17 @@
+import os
 from dataclasses import dataclass, field
+from datetime import datetime
 from time import perf_counter
 
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
 from app.core.domain.rag import RagQualityWarning, RagSource, SkillProfileAudit, WorkspaceQuestionAnswer
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
-from app.core.domain.rag_prompt import SkillPromptInstruction, build_workspace_question_prompt
+from app.core.domain.rag_prompt import (
+    SkillPromptInstruction,
+    build_general_chat_prompt,
+    build_workspace_question_prompt,
+)
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.llm_provider import LLMProviderPort
@@ -43,6 +49,20 @@ NO_RELEVANT_CONTEXT_ANSWER = (
 )
 NO_RELEVANT_CONTEXT_MESSAGE = (
     "The active vector store returned no context chunks for this question."
+)
+
+# When the best retrieved chunk is below this cosine-similarity score, the
+# question is treated as general conversation (e.g. "what time is it", "how are
+# you") and answered directly by the model instead of being grounded in
+# unrelated project files. Score scales differ by embedding model, so the
+# default depends on the provider and can be overridden via environment.
+RELEVANCE_THRESHOLD_ENV_VAR = "AI_WORKSPACE_ASK_RELEVANCE_THRESHOLD"
+DEFAULT_RELEVANCE_THRESHOLD = 0.38
+FAKE_EMBEDDING_RELEVANCE_THRESHOLD = 0.2
+GENERAL_CHAT_DIAGNOSTIC_CODE = "answered_as_general_conversation"
+GENERAL_CHAT_DIAGNOSTIC_MESSAGE = (
+    "No project files were relevant to this question, so it was answered as "
+    "general conversation instead of from project context."
 )
 
 
@@ -145,6 +165,13 @@ class AskWorkspaceQuestionUseCase:
                 request,
             )
 
+        best_score = max((result.score for result in context_results), default=0.0)
+        if best_score < self._relevance_threshold():
+            return self._record_question_event(
+                self._answer_general_conversation(request, llm_provider),
+                request,
+            )
+
         prompt = build_workspace_question_prompt(
             question=request.question,
             context_results=context_results,
@@ -217,6 +244,60 @@ class AskWorkspaceQuestionUseCase:
             estimated=True,
         )
         return answer, usage
+
+    def _relevance_threshold(self) -> float:
+        override = os.environ.get(RELEVANCE_THRESHOLD_ENV_VAR)
+        if override:
+            try:
+                return float(override)
+            except ValueError:
+                pass
+        if getattr(self.embedding_provider, "provider_name", "") == "fake":
+            return FAKE_EMBEDDING_RELEVANCE_THRESHOLD
+        return DEFAULT_RELEVANCE_THRESHOLD
+
+    def _answer_general_conversation(
+        self,
+        request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort,
+    ) -> WorkspaceQuestionAnswer:
+        prompt = build_general_chat_prompt(
+            question=request.question,
+            skill_instructions=request.skill_instructions,
+            current_time=datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z"),
+        )
+        try:
+            answer, usage = self._generate_answer_with_usage(
+                llm_provider, prompt, request.images, request.temperature
+            )
+        except RuntimeError as exc:
+            return self._diagnostic_answer(
+                request=request,
+                llm_provider=llm_provider,
+                answer=(
+                    "The selected local model could not answer right now. "
+                    "Check that Ollama is running and that this model is installed, "
+                    "or choose another ready model in Models."
+                ),
+                diagnostic_code="selected_llm_runtime_unavailable",
+                diagnostic_message=str(exc),
+            )
+
+        return WorkspaceQuestionAnswer(
+            workspace_id=request.workspace_id,
+            question=request.question,
+            answer=answer,
+            sources=[],
+            used_context_chunks=0,
+            llm_provider=llm_provider.provider_name,
+            llm_model=llm_provider.model_name,
+            diagnostic_code=GENERAL_CHAT_DIAGNOSTIC_CODE,
+            diagnostic_message=GENERAL_CHAT_DIAGNOSTIC_MESSAGE,
+            quality_warnings=list(request.additional_quality_warnings),
+            usage=usage,
+            skill_profile=self._skill_profile_audit(request),
+            conversation_id=request.conversation_id,
+        )
 
     def _diagnostic_answer(
         self,

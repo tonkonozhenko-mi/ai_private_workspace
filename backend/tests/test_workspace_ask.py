@@ -209,6 +209,25 @@ def test_ask_source_preview_is_limited_to_200_characters(tmp_path) -> None:
     assert len(source["preview"]) == 200
 
 
+def test_ask_general_conversation_answers_without_project_context(tmp_path) -> None:
+    _write_text(
+        tmp_path / "README.md",
+        "raganswertoken describes the workspace architecture and indexing flow.",
+    )
+    workspace = _create_workspace(tmp_path)
+    assert client.post(f"/workspaces/{workspace['id']}/scan").status_code == 200
+    assert client.post(f"/workspaces/{workspace['id']}/index").status_code == 200
+
+    response = _ask(workspace["id"], "what time is it")
+
+    assert response.status_code == 200
+    result = response.json()
+    assert "Fake answer" in result["answer"]
+    assert result["sources"] == []
+    assert result["used_context_chunks"] == 0
+    assert result["diagnostic_code"] == "answered_as_general_conversation"
+
+
 def _create_workspace(project_path: Path) -> dict:
     response = client.post(
         "/workspaces",
