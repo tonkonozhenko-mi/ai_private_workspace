@@ -576,17 +576,24 @@ a {
 
 /* --- Models section nav (Overview / Choose & install / …) --- */
 .models-section-nav {
+  grid-column: 1 / -1;
+  align-self: start;
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 2px;
   width: fit-content;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0 auto var(--s-2);
   padding: 4px;
   background: var(--c-surface-2);
   border: 1px solid var(--c-border);
   border-radius: var(--r-pill);
 }
 .models-section-nav button {
+  flex: none;
+  align-self: center;
+  height: auto;
   border: none;
   background: transparent;
   color: var(--c-text-2);
@@ -931,7 +938,9 @@ a {
 }
 
 /* Eyebrow / section labels */
+.eyebrow,
 .section-eyebrow {
+  display: block;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -2325,7 +2334,6 @@ a {
 .model-worker-guardrails { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
 .models-detail { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .models-secondary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.models-section-nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
 .models-simple-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .models-workflow-panel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .native-action-catalog { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 0.42fr); gap: var(--space-5); }
@@ -2442,74 +2450,38 @@ a {
 .workspace-card-action { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: var(--s-4); }
 .workspace-list-item { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: var(--s-4); }
 /* ===== Flex layouts preserved in the clean layer ===== */
-.action-card-badges { display: flex; gap: 6px; flex-wrap: wrap; }
-.action-card-topline { display: flex; align-items: center; gap: var(--space-2); }
-.action-group-heading { display: flex; justify-content: space-between; align-items: start; gap: var(--space-4); }
-.activation-step-heading { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
-.activity-day-heading { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
-.activity-summary-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.agent-guardrail-strip { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
 .ask-controls { display: flex; justify-content: space-between; align-items: end; gap: 12px; }
 .ask-file-draft-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-.ask-file-draft-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
 .ask-file-overwrite { display: flex; align-items: center; gap: 9px; }
-.ask-safety-note { display: flex; align-items: center; gap: 8px; }
 .ask-thread-bar { display: flex; justify-content: flex-end; }
-.context-build-callout-action { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
 .create-form-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-.create-workspace-hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
 .custom-report-column { display: flex; flex-direction: column; gap: 8px; }
 .daily-use-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 .daily-use-help { display: flex; align-items: center; gap: 12px; }
 .experiment-rating-checkbox { display: flex; align-items: center; gap: 8px; }
-.experiment-rating-heading { display: flex; align-items: flex-start; gap: 10px; }
 .experiment-rating-tags { display: flex; gap: 8px; flex-wrap: wrap; }
-.file-preview-heading { display: flex; flex-direction: column; gap: 0.25rem; }
 .file-rules-plan-actions { display: flex; justify-content: flex-end; align-items: center; gap: 0.55rem; flex-wrap: wrap; }
-.guided-model-card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .guided-model-embedding-advanced { display: flex; flex-direction: column; gap: 8px; }
 .guided-model-option { display: flex; flex-direction: column; gap: 4px; }
 .guided-model-option-meta { display: flex; gap: 10px; flex-wrap: wrap; }
 .guided-model-option-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .guided-model-options { display: flex; flex-direction: column; gap: 8px; }
-.installed-models-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-.installed-models-header-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; flex-wrap: wrap; }
 .job-confirmation-actions { display: flex; flex-direction: column; gap: 0.5rem; }
-.llm-override-note { display: flex; align-items: flex-start; gap: 10px; }
-.local-ai-setup-messages { display: flex; gap: 6px; flex-wrap: wrap; }
 .local-ai-setup-next { display: flex; justify-content: space-between; align-items: end; gap: 18px; }
-.local-ai-setup-warning-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
-.mcp-flow-strip { display: flex; gap: 0.65rem; flex-wrap: wrap; }
-.mcp-safety-note { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; }
-.model-catalog-card { display: flex; flex-direction: column; gap: 10px; }
 .model-download-execution-capability { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; }
 .model-download-history-actions { display: flex; justify-content: flex-end; }
 .model-download-history-row-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
-.model-download-job-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .model-download-job-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .model-experiment-candidate-badges { display: flex; gap: 6px; flex-wrap: wrap; }
-.model-experiment-history-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-.model-experiment-plan-summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.model-experiment-run-heading { display: flex; align-items: flex-start; gap: 10px; }
 .model-experiment-run-meta { display: flex; gap: 10px; flex-wrap: wrap; }
 .model-install-draft-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .model-ranking-metrics { display: flex; gap: 12px; }
 .model-ranking-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-.model-selection-card-heading { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
-.model-selection-safety-note { display: flex; align-items: center; gap: 10px; }
-.model-worker-plan-summary { display: flex; align-items: flex-start; gap: 12px; }
-.models-native-hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
-.models-native-hero-badges { display: flex; justify-content: flex-end; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
-.models-simple-status { display: flex; align-items: center; gap: 10px; }
-.onboarding-safety-note { display: flex; }
 .overview-next-action { display: flex; justify-content: space-between; align-items: flex-start; gap: 22px; }
 .preferred-apply-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 .preferred-apply-control { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-.product-status-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-5); }
-.recent-installed-models-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .report-action-row { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
 .report-preview-actions { display: flex; justify-content: flex-end; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-.report-quality-header { display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; }
 .report-section-toggle { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
 .report-section-toggle-actions { display: flex; gap: 0.35rem; }
 .report-share-actions { display: flex; justify-content: flex-end; gap: var(--space-2); flex-wrap: wrap; }
@@ -2521,26 +2493,15 @@ a {
 .settings-clean-template-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .settings-developer-toggle { display: flex; align-items: flex-start; gap: 10px; }
 .settings-disclosure-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
-.settings-hero-panel { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
 .settings-inline-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 .settings-reset-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
 .settings-reset-panel { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
 .settings-safety-list { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
-.settings-section-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .settings-segmented-control { display: flex; gap: 4px; flex-wrap: wrap; }
 .settings-transfer-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.settings-transfer-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .settings-url-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .skill-settings-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.skill-settings-card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .skill-template-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
-.startup-checklist-item { display: flex; flex-direction: column; justify-content: flex-start; }
-.startup-checklist-item-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.85rem; }
-.tab-section-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
-.timeline-item-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .timeline-rail { display: flex; justify-content: center; }
 .update-notice { display: flex; align-items: center; gap: 10px; }
-.workspace-card-actions { display: flex; justify-content: flex-end; gap: 6px; }
-.workspace-header { display: flex; align-items: flex-start; }
 .workspace-setup-action-buttons { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
-.workspace-skills-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; }
