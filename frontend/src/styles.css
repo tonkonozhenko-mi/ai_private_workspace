@@ -482,8 +482,49 @@ a {
   flex-direction: column;
   gap: var(--s-4);
   width: 100%;
-  max-width: 860px;
+  max-width: 940px;
   margin: 0 auto;
+}
+
+/* de-box the conversation container and empty state */
+.ask-conversation-panel {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+.ask-conversation-panel .empty-state,
+.ask-workspace .empty-state {
+  background: transparent;
+  border: 1px dashed var(--c-border);
+  box-shadow: none;
+  text-align: center;
+  padding: var(--s-8) var(--s-6);
+}
+
+/* calm section labels everywhere (no gray pill behind the eyebrow) */
+.eyebrow {
+  background: none;
+  padding: 0;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-text-3);
+}
+.panel-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  color: var(--c-text-2);
+  font-size: 11px;
 }
 
 /* "Answer style and sources" disclosure */
@@ -569,9 +610,15 @@ a {
   background: var(--c-accent-soft);
   border: 1px solid var(--c-accent-border);
 }
+/* Ive-clean: the answer reads as plain text, not a heavy box */
 .ask-message-bubble.assistant-bubble {
-  background: var(--c-surface-2);
-  border: 1px solid var(--c-border);
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.answer-content {
+  color: var(--c-text);
+  line-height: 1.6;
 }
 .ask-assistant-stack {
   flex: 1;
@@ -824,4 +871,159 @@ a {
   display: block;
   color: var(--c-text);
   margin-bottom: 4px;
+}
+
+/* ---------- Quiet the answer sub-panels (progressive disclosure) ---------- */
+.ask-assistant-stack .panel {
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--c-border);
+  border-radius: 0;
+  box-shadow: none;
+  padding: var(--s-4) 0 0;
+  margin: 0;
+}
+.ask-assistant-stack .panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+.ask-assistant-stack .panel-heading h2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+/* answer metadata chips — small, muted, consistent */
+.answer-stats,
+.llm-usage-summary,
+.ask-skill-audit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  align-items: center;
+}
+.answer-stats span,
+.llm-usage-summary span,
+.llm-usage-summary li,
+.ask-skill-audit span,
+.ask-skill-audit li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  color: var(--c-text-3);
+  font-size: 12px;
+  list-style: none;
+}
+.answer-stats strong,
+.llm-usage-summary strong {
+  color: var(--c-text-2);
+  font-weight: 600;
+}
+.llm-usage-summary,
+.ask-skill-audit {
+  padding: 0;
+}
+.llm-usage-summary ul,
+.ask-skill-audit ul {
+  display: contents;
+  margin: 0;
+  padding: 0;
+}
+
+.quality-warning-list article {
+  display: flex;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  border-top: 1px solid var(--c-border);
+}
+.quality-warning-list article:first-child {
+  border-top: none;
+}
+.quality-warning-list strong {
+  color: var(--c-text);
+}
+.quality-warning-list p {
+  color: var(--c-text-2);
+  margin-top: 2px;
+}
+
+/* ---------- Source cards ---------- */
+.source-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.source-list > * {
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+}
+.source-list .top-source-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--c-accent-soft);
+  border: none;
+  color: var(--c-success);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.source-score {
+  color: var(--c-text-3);
+  font-size: 12px;
+}
+.source-card-heading {
+  font-family: var(--font-mono);
+  color: var(--c-text);
+}
+/* keep Preview / source links on-brand */
+.source-preview-toggle,
+.source-preview-toggle:visited {
+  color: var(--c-accent);
+  font-weight: 600;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* ---------- Scroll up/down control ---------- */
+.ask-scroll-buttons {
+  position: fixed;
+  right: 22px;
+  bottom: 26px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ask-scroll-buttons button {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--c-border-strong);
+  background: var(--c-surface-2);
+  color: var(--c-text);
+  font-size: 16px;
+  line-height: 1;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.ask-scroll-buttons button:hover {
+  background: var(--c-surface-3);
+}
+.ask-scroll-buttons button:active {
+  transform: scale(0.94);
 }
