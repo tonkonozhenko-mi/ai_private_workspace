@@ -676,6 +676,22 @@ a {
   gap: var(--s-2);
 }
 
+/* classless primary action buttons (e.g. MCP "Preview config") were browser-white */
+.mcp-calm-actions button:not(.secondary-button):not(.text-button),
+.agent-plan-actions button:not(.secondary-button):not(.text-button) {
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+  border: none;
+  border-radius: var(--r-md);
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.mcp-calm-actions button:not(.secondary-button):hover:not(:disabled),
+.agent-plan-actions button:not(.secondary-button):hover:not(:disabled) {
+  background: var(--c-accent-hover);
+}
+
 /* --- MCP tools setup: these are <details>/wrappers, not grids --- */
 .mcp-calm-section,
 .mcp-calm-hero,
@@ -1335,19 +1351,56 @@ a {
   color: var(--c-text-2);
 }
 
-/* Common content headings */
+/* =====================================================================
+   Typography scale — one consistent rhythm across the app
+   title 28 · section 19 · card 15 · body 14.5 · caption 12 · eyebrow 11
+   ===================================================================== */
 .main-content h1 {
   font-size: 28px;
   font-weight: 700;
   line-height: 1.15;
+  letter-spacing: -0.01em;
   color: var(--c-text);
 }
-.main-content h2 {
+.main-content h2,
+.panel-heading h2,
+.compact-heading h2 {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.005em;
   color: var(--c-text);
 }
 .main-content h3 {
-  color: var(--c-text);
+  font-size: 15px;
   font-weight: 600;
+  line-height: 1.3;
+  color: var(--c-text);
+}
+.main-content h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.main-content p {
+  font-size: 14px;
+  line-height: 1.55;
+}
+/* keep the answer body comfortable to read */
+.answer-content,
+.answer-content p {
+  font-size: 15px;
+}
+/* secondary / helper paragraphs read calmer */
+.panel-helper,
+.panel-heading > div > p,
+.compact-heading > div > p {
+  color: var(--c-text-2);
+}
+.main-content small,
+.workspace-path,
+.conversation-when {
+  font-size: 12px;
 }
 
 /* ---------- Main content ---------- */
