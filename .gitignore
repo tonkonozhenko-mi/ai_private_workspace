@@ -21,6 +21,11 @@ frontend/.vite/
 *.tsbuildinfo
 .DS_Store
 
+# Local environment files (e.g. backend/.env for local dev config)
+.env
+**/.env
+!*.env.example
+
 # Release archives are generated artifacts
 build/release/
 frontend/src-tauri/target/
