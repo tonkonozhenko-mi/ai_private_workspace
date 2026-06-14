@@ -1,3 +1,4 @@
+@layer legacy {
 /*
  * AI Private Workspace design system foundation.
  * The goal is a calm, native-feeling interface inspired by macOS/iPadOS:
@@ -16174,4 +16175,6 @@ button,
 :root[data-theme="dark"] .workspace-tabs > div {
   background: rgba(18, 34, 29, 0.96);
   border-color: rgba(235, 242, 238, 0.16);
+}
+
 }
