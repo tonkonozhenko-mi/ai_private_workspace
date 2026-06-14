@@ -675,6 +675,7 @@ a {
 }
 .ask-message-row.is-user {
   justify-content: flex-end;
+  align-items: flex-start;
 }
 .ask-message-row.is-assistant {
   align-items: flex-start;
@@ -1059,6 +1060,8 @@ a {
 }
 
 /* ---------- Quiet the answer sub-panels (progressive disclosure) ---------- */
+/* high specificity to beat legacy :root[data-theme="dark"] .panel gradient */
+:root[data-theme] .ask-assistant-stack .panel,
 .ask-assistant-stack .panel {
   background: transparent;
   border: none;
@@ -1067,6 +1070,22 @@ a {
   box-shadow: none;
   padding: var(--s-4) 0 0;
   margin: 0;
+}
+/* verification severity badge: a small, calm pill */
+.quality-warning-list .status-badge {
+  flex: none;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-3);
+  border: 1px solid var(--c-border);
+  color: var(--c-text-2);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 .ask-assistant-stack .panel-heading {
   display: flex;
