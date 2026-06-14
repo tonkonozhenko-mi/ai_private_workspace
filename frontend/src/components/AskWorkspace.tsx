@@ -1370,7 +1370,6 @@ function ConversationTurn({
     <article className="ask-conversation-turn">
       <div className="ask-message-row is-user">
         <div className="ask-message-bubble user-bubble">
-          <span className="ask-message-label"><img className="ask-label-avatar" src="/avatar-user-cat-512.png" alt="" width={18} height={18} /> You</span>
           <p>{item.question}</p>
           <div className="ask-message-actions">
             <button
@@ -1389,6 +1388,7 @@ function ConversationTurn({
             </button>
           </div>
         </div>
+        <img className="ask-avatar-img" src="/avatar-user-cat-512.png" alt="You" width={32} height={32} />
       </div>
 
       <AnswerResult answer={item.response} createdAt={item.createdAt} onSaveAnswerNote={onSaveAnswerNote} />
