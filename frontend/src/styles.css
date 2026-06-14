@@ -207,11 +207,15 @@ a {
   background: none;
 }
 
+:root[data-theme] .brand-mark-image,
 .brand-mark-image {
   width: 44px;
   height: 44px;
   border-radius: var(--r-md);
   flex: none;
+  background: transparent;
+  box-shadow: none;
+  border: none;
 }
 
 .sidebar .brand strong {
