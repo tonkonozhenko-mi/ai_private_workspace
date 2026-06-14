@@ -50,6 +50,7 @@ import {
   type FileIndexingPreferences,
 } from "./components/fileIndexingPreferences";
 import { DEFAULT_SKILL_PREFERENCES, normalizeSkillPreferences, skillPreferencesFromProfile, type SkillPreferences } from "./components/skillLibrary";
+import UpdateNotice from "./components/UpdateNotice";
 
 type WorkspaceTab = "overview" | "ask" | "models" | "reports" | "actions" | "activity" | "settings";
 
@@ -510,6 +511,7 @@ function App() {
 
   return (
     <div className={`app-shell${preferences.demoMode === "on" ? " is-demo-mode" : ""}`}>
+      <UpdateNotice />
       <aside className="sidebar">
         <header className="brand">
           <img
@@ -597,6 +599,7 @@ function App() {
             Private — your files stay on this computer
           </span>
           <span>Local backend ready</span>
+          <span className="sidebar-version">Version {__APP_VERSION__}</span>
         </footer>
       </aside>
 

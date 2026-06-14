@@ -759,12 +759,39 @@ pub fn run() {
         .setup(|app| {
             // On launch, quietly check GitHub for a newer signed release and
             // install it in the background. The update applies on the next launch.
+            // Each stage is emitted to the UI so the user can see what happened
+            // (checking, found a version, downloading, ready, up to date, error).
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
+                use tauri::Emitter;
                 use tauri_plugin_updater::UpdaterExt;
-                if let Ok(updater) = handle.updater() {
-                    if let Ok(Some(update)) = updater.check().await {
-                        let _ = update.download_and_install(|_, _| {}, || {}).await;
+
+                let _ = handle.emit("update://checking", ());
+                let updater = match handle.updater() {
+                    Ok(updater) => updater,
+                    Err(error) => {
+                        let _ = handle.emit("update://error", error.to_string());
+                        return;
+                    }
+                };
+                match updater.check().await {
+                    Ok(Some(update)) => {
+                        let version = update.version.clone();
+                        let _ = handle.emit("update://available", version.clone());
+                        match update.download_and_install(|_, _| {}, || {}).await {
+                            Ok(_) => {
+                                let _ = handle.emit("update://ready", version);
+                            }
+                            Err(error) => {
+                                let _ = handle.emit("update://error", error.to_string());
+                            }
+                        }
+                    }
+                    Ok(None) => {
+                        let _ = handle.emit("update://none", ());
+                    }
+                    Err(error) => {
+                        let _ = handle.emit("update://error", error.to_string());
                     }
                 }
             });

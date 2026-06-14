@@ -441,6 +441,90 @@ code {
   opacity: 0.9;
 }
 
+.sidebar-version {
+  color: var(--sidebar-muted);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.update-notice {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 360px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(28, 28, 30, 0.92);
+  color: #f5f5f7;
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
+  animation: update-notice-in 0.25s ease;
+}
+
+@keyframes update-notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.update-notice-error {
+  background: rgba(120, 32, 32, 0.94);
+}
+
+.update-notice-text {
+  flex: 1;
+}
+
+.update-notice-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #30d158;
+}
+
+.update-notice-spinner {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  animation: update-notice-spin 0.8s linear infinite;
+}
+
+@keyframes update-notice-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.update-notice-dismiss {
+  flex: none;
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+
+.update-notice-dismiss:hover {
+  opacity: 1;
+}
+
 .settings-skill-help {
   margin: 4px 0 12px;
   padding: 10px 14px;
