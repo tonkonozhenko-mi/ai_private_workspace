@@ -52,6 +52,7 @@ Product, architecture, packaging, and release documentation for
 
 ## Release & publication
 
+- [RELEASE_AND_UPDATES.md](RELEASE_AND_UPDATES.md) — free distribution + auto-update setup (Tauri updater + GitHub), step by step.
 - [V01_DEMO_HANDOFF.md](V01_DEMO_HANDOFF.md) — v0.1 demo scenario and handoff guide.
 - [V01_RELEASE_NOTES.md](V01_RELEASE_NOTES.md) — v0.1 release notes.
 - [RELEASE_CANDIDATE_AUDIT.md](RELEASE_CANDIDATE_AUDIT.md) — release audit and archive policy.
