@@ -6,6 +6,22 @@ The v0.1 release candidate is a source handoff for developers and reviewers. It 
 
 ![AI Private Workspace flow](docs/assets/product-flow.svg)
 
+## Installing on macOS (first launch)
+
+The app is not signed with a paid Apple certificate yet, so on first launch macOS
+may say the app "is damaged and can't be opened." It is not damaged — that is
+just macOS blocking unsigned downloaded apps. After dragging the app into
+**Applications**, run this once in Terminal to clear the download quarantine,
+then open it normally:
+
+```bash
+xattr -cr "/Applications/AI Private Workspace.app"
+```
+
+On a managed/work Mac (one with a configuration profile), this may be blocked by
+IT policy; in that case the app needs to be signed/notarized or deployed through
+your organization's device management.
+
 ## What it does
 
 - Creates local workspaces for private projects.

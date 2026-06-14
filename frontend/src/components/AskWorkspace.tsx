@@ -97,6 +97,45 @@ const EXAMPLE_QUESTIONS = [
   "What files are related to Kubernetes or Helm?",
 ];
 
+// Example prompts tailored to the workspace's assistant mode / skill, so the
+// suggestions match what the user actually picked (e.g. developer vs devops).
+const EXAMPLE_QUESTIONS_BY_MODE: Record<string, string[]> = {
+  devops: [
+    "How is Terraform backend configured?",
+    "Which CI/CD systems are detected?",
+    "What files are related to Kubernetes or Helm?",
+  ],
+  developer: [
+    "What does the main module do?",
+    "Where are the tests and what do they cover?",
+    "Explain the overall architecture of this project.",
+  ],
+  code: [
+    "What does the main module do?",
+    "Where are the tests and what do they cover?",
+    "Explain the overall architecture of this project.",
+  ],
+  documentation: [
+    "Summarize what this project is about.",
+    "How do I set up and run this project?",
+    "What are the main components and how do they fit together?",
+  ],
+  incident_support: [
+    "What could cause a failure at startup?",
+    "Where are logs and error handling defined?",
+    "What are the rollback or recovery steps?",
+  ],
+  manager_summary: [
+    "Give a short summary of this project for a stakeholder.",
+    "What are the main risks in this codebase?",
+    "What does this project do, in plain terms?",
+  ],
+};
+
+function exampleQuestionsForMode(mode: string): string[] {
+  return EXAMPLE_QUESTIONS_BY_MODE[mode] ?? EXAMPLE_QUESTIONS.slice(0, 3);
+}
+
 const SOURCE_SNIPPET_LIMITS: SourceSnippetLimit[] = [3, 5, 8, 10];
 
 function parseSourceSnippetLimit(value: string): SourceSnippetLimit {
@@ -607,10 +646,18 @@ export function AskWorkspace({
               </label>
               <textarea
                 id="workspace-question"
-                placeholder="Ask about this project, code, infrastructure, CI/CD, or setup..."
+                placeholder="Ask about this project, code, infrastructure, CI/CD, or setup... (Enter to send, Shift+Enter for a new line)"
                 rows={2}
                 value={question}
                 onChange={(event) => setQuestion(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    if (!loading && question.trim().length > 0) {
+                      void askQuestion(question, { clearComposer: true });
+                    }
+                  }
+                }}
               />
               <button
                 className="primary-button ask-send-button"
@@ -689,7 +736,7 @@ export function AskWorkspace({
             ) : null}
 
             <div className="ask-example-strip" aria-label="Example questions">
-              {EXAMPLE_QUESTIONS.slice(0, 3).map((example) => (
+              {exampleQuestionsForMode(assistantMode).map((example) => (
                 <button
                   key={example}
                   type="button"

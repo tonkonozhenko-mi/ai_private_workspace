@@ -162,6 +162,25 @@ function App() {
   const [resumeMessage, setResumeMessage] = useState<string | null>(null);
   const [desktopStartupMessage, setDesktopStartupMessage] = useState<string | null>(null);
 
+  // Auto-dismiss successful startup messages so they don't linger over the UI.
+  // Errors stay until something changes them.
+  useEffect(() => {
+    if (!desktopStartupMessage) {
+      return;
+    }
+    const lower = desktopStartupMessage.toLowerCase();
+    const isError =
+      lower.includes("failed") ||
+      lower.includes("unavailable") ||
+      lower.includes("did not become") ||
+      lower.includes("check ");
+    if (isError) {
+      return;
+    }
+    const timer = window.setTimeout(() => setDesktopStartupMessage(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [desktopStartupMessage]);
+
   const loadModelsDetail = useCallback(async (workspaceId: string) => {
     setModelsDetail(null);
     setModelsDetailLoading(true);
