@@ -250,7 +250,12 @@ class _RecordingLLMProvider:
     provider_name = "ollama"
     model_name = "qwen2.5-coder"
 
-    def generate(self, prompt: str) -> str:
+    def generate(
+        self,
+        prompt: str,
+        images: list[str] | None = None,
+        temperature: float | None = None,
+    ) -> str:
         assert "selectedprovidertoken" in prompt
         assert "README.md" in prompt
         return "Recorded override answer from README.md."
