@@ -574,6 +574,100 @@ a {
   padding: var(--s-2) var(--s-3) var(--s-3);
 }
 
+/* --- Models section nav (Overview / Choose & install / …) --- */
+.models-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 4px;
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-pill);
+}
+.models-section-nav button {
+  border: none;
+  background: transparent;
+  color: var(--c-text-2);
+  padding: 7px 16px;
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.models-section-nav button:hover {
+  color: var(--c-text);
+}
+.models-section-nav button.is-selected {
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+  font-weight: 600;
+}
+
+/* --- CTA buttons must not stretch to fill their grid/flex cell --- */
+.overview-cta-button {
+  align-self: flex-start;
+  justify-self: start;
+  width: auto;
+  height: auto;
+  white-space: nowrap;
+}
+.daily-use-actions {
+  display: flex;
+  gap: var(--s-2);
+  align-items: flex-start;
+  align-self: start;
+}
+.onboarding-guide-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--s-4);
+}
+.onboarding-guide-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+/* --- Form labels that wrap a control: stack label above the control --- */
+.main-content label:has(> textarea),
+.main-content label:has(> select),
+.main-content label:has(> input:not([type="checkbox"]):not([type="radio"])) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--c-text-2);
+  font-size: 13px;
+}
+.main-content label > textarea,
+.main-content label > select,
+.main-content label > input {
+  width: 100%;
+}
+.main-content label > small {
+  color: var(--c-text-3);
+  font-size: 12px;
+}
+
+/* file rules + guidance editors: two columns of textareas, actions below */
+.settings-clean-file-form,
+.settings-clean-guidance-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-4);
+  align-items: start;
+}
+.settings-clean-guidance-list-focused {
+  grid-template-columns: minmax(0, 1fr);
+}
+.settings-clean-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: var(--s-2);
+}
+
 /* --- Definition lists (model comparison "Chosen / Backend default") --- */
 .main-content dl {
   margin: var(--s-2) 0 0;
