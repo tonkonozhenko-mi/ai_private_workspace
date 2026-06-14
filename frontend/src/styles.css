@@ -77,6 +77,21 @@
 :root[data-accent="purple"] { --ask-user-accent: #a78bfa; }
 :root[data-accent="orange"] { --ask-user-accent: #f0a85a; }
 
+/* Force the brand-green accent everywhere, overriding the legacy per-palette
+   accent vars (e.g. :root[data-theme="dark"][data-accent="purple"], 0,0,3,0).
+   Only the Ask user bubble follows the chosen palette, via --ask-user-accent. */
+:root[data-theme][data-accent] {
+  --color-accent: #34c27e;
+  --color-accent-strong: #3ad08a;
+  --color-accent-soft: rgba(52, 194, 126, 0.14);
+  --color-accent-border: rgba(52, 194, 126, 0.4);
+  --accent: #34c27e;
+  --accent-strong: #3ad08a;
+  --accent-soft: rgba(52, 194, 126, 0.14);
+  --accent-border: rgba(52, 194, 126, 0.4);
+  --sidebar-accent: #3ad08a;
+}
+
 /* ---------- Legacy token bridge ----------
    The previous stylesheet is light-by-default and only turns dark under
    @media (prefers-color-scheme: dark) for :root[data-theme="system"]. To keep
@@ -182,7 +197,9 @@ a {
 
 /* primary buttons: brand green (legacy made them a purple gradient) */
 :root[data-theme] .primary-button,
-.primary-button {
+.primary-button,
+:root[data-theme] .primary-action,
+.primary-action {
   background: var(--c-accent);
   color: var(--c-accent-ink);
   border: none;
@@ -190,10 +207,13 @@ a {
   font-weight: 600;
 }
 :root[data-theme] .primary-button:hover:not(:disabled),
-.primary-button:hover:not(:disabled) {
+.primary-button:hover:not(:disabled),
+:root[data-theme] .primary-action:hover:not(:disabled),
+.primary-action:hover:not(:disabled) {
   background: var(--c-accent-hover);
 }
-.primary-button:disabled {
+.primary-button:disabled,
+.primary-action:disabled {
   opacity: 0.5;
   cursor: default;
 }
