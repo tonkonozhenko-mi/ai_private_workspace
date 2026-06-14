@@ -1436,6 +1436,74 @@ a {
   margin-top: var(--s-3);
 }
 
+/* =====================================================================
+   Legacy dark patches — classes that had a hardcoded light background and
+   no dark variant (Models, Settings, forms, misc cards). Removed as each
+   section is fully rewritten.
+   ===================================================================== */
+.main-content input[type="text"],
+.main-content input[type="search"],
+.main-content input[type="number"],
+.main-content input:not([type]),
+.main-content textarea,
+.main-content select {
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  color: var(--c-text);
+  font: inherit;
+}
+.main-content input::placeholder,
+.main-content textarea::placeholder {
+  color: var(--c-text-3);
+}
+
+.local-ai-setup-warning,
+.model-experiment-run-panel,
+.runtime-next-action-panel-ready,
+.answer-note-card,
+.activity-summary-item,
+.ask-history-item,
+.daily-use-help,
+.model-selection-error {
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  color: var(--c-text-2);
+}
+.model-selection-error {
+  border-color: rgba(240, 144, 141, 0.35);
+  color: var(--c-danger);
+}
+
+.local-data-grid > div,
+.timeline-metadata-details div,
+.timeline-metadata-preview div,
+.conversation-detail-grid span,
+.model-experiment-history-candidates span {
+  background: var(--c-surface-2);
+  color: var(--c-text-2);
+}
+
+.local-ai-models-button {
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+  border: none;
+  border-radius: var(--r-sm);
+  font-weight: 600;
+}
+.local-ai-models-button:hover {
+  background: var(--c-accent-hover);
+}
+
+.markdown-code-block pre,
+.runtime-next-action-copy code {
+  background: var(--c-bg);
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+}
+
 /* ---------- Scroll up/down control ---------- */
 .ask-scroll-buttons {
   position: fixed;
