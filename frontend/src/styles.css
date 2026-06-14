@@ -1106,31 +1106,41 @@ a {
 .ask-new-chat-button:hover {
   background: var(--c-surface-3);
 }
-.ask-chats-drawer > summary {
-  cursor: pointer;
-  list-style: none;
+/* "Saved chats" reads as a real toggle button */
+.ask-saved-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface-2);
   color: var(--c-text-2);
   font-size: 13px;
-  padding: var(--s-2) 0;
+  font-weight: 500;
 }
-.ask-chats-drawer > summary::-webkit-details-marker {
-  display: none;
-}
-
-.conversation-history-panel {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  padding: var(--s-3) 0 0;
-}
-.conversation-history-heading h2 {
-  font-size: 15px;
-  font-weight: 600;
+.ask-saved-toggle:hover,
+.ask-saved-toggle.is-open {
+  background: var(--c-surface-3);
   color: var(--c-text);
 }
-.conversation-history-heading > div > p:last-child {
-  font-size: 12px;
+.ask-saved-chevron {
+  font-size: 10px;
   color: var(--c-text-3);
+}
+
+/* the history panel is a clearly bounded, scrollable card */
+.conversation-history-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  max-height: 58vh;
+  overflow-y: auto;
+  padding: var(--s-4);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-md);
 }
 
 .conversation-history-tools {
@@ -1155,24 +1165,26 @@ a {
   accent-color: var(--c-accent);
 }
 
-/* a conversation is a quiet row; actions appear on hover */
+/* a conversation is a quiet row, separated by hairlines */
 .conversation-history-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
 .conversation-history-item {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--s-3);
-  border: none;
-  border-radius: var(--r-md);
+  gap: var(--s-2);
   padding: 2px;
   background: transparent;
+}
+.conversation-history-item + .conversation-history-item {
+  border-top: 1px solid var(--c-border);
 }
 .conversation-history-item:hover,
 .conversation-history-item.is-active {
   background: var(--c-surface-2);
+  border-radius: var(--r-md);
 }
 .conversation-history-item > button:first-child {
   flex: 1;
@@ -1225,23 +1237,57 @@ a {
   font-size: 12px;
 }
 
-.conversation-history-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
+/* per-row actions collapsed into a single ⋯ menu */
+.conversation-row-menu-wrap {
+  position: relative;
   flex: none;
-  padding-right: var(--s-2);
+}
+.conversation-menu-button {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  border: none;
+  background: none;
+  color: var(--c-text-3);
+  font-size: 18px;
+  line-height: 1;
   opacity: 0;
   transition: opacity 0.12s ease;
 }
-.conversation-history-item:hover .conversation-history-actions,
-.conversation-history-item:focus-within .conversation-history-actions {
+.conversation-history-item:hover .conversation-menu-button,
+.conversation-menu-button[aria-expanded="true"] {
   opacity: 1;
 }
-/* collapse the three export buttons to a single "Export md" */
-.conversation-history-actions button:nth-child(3),
-.conversation-history-actions button:nth-child(4) {
-  display: none;
+.conversation-menu-button:hover {
+  background: var(--c-surface-3);
+  color: var(--c-text);
+}
+.conversation-row-menu {
+  position: absolute;
+  right: 0;
+  top: 32px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  padding: 4px;
+  background: var(--c-surface-3);
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+}
+.conversation-row-menu button {
+  text-align: left;
+  padding: 7px 10px;
+  border: none;
+  background: none;
+  color: var(--c-text-2);
+  font-size: 13px;
+  border-radius: var(--r-sm);
+}
+.conversation-row-menu button:hover {
+  background: var(--c-surface-2);
+  color: var(--c-text);
 }
 .danger-text-button,
 .danger-text-button:hover {
