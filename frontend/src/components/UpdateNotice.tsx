@@ -17,8 +17,7 @@ type TauriGlobal = {
 type UpdateState =
   | { kind: "idle" }
   | { kind: "available"; version: string }
-  | { kind: "ready"; version: string; at: string }
-  | { kind: "error"; message: string };
+  | { kind: "ready"; version: string; at: string };
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -53,9 +52,13 @@ export default function UpdateNotice() {
         setState({ kind: "ready", version: event.payload, at: formatTime(new Date()) }),
       ),
     );
+    // While the release repository is private the updater endpoint is not
+    // reachable, so checks fail on every launch. We keep these quiet (console
+    // only) instead of showing a banner; once the releases are public the
+    // available/ready notices above light up on their own.
     register(
       listen<string>("update://error", (event) =>
-        setState({ kind: "error", message: event.payload }),
+        console.warn("Update check failed:", event.payload),
       ),
     );
 
@@ -85,21 +88,6 @@ export default function UpdateNotice() {
           <span className="update-notice-text">
             Update {state.version} downloaded at {state.at}. Quit and reopen the
             app to apply it.
-          </span>
-          <button
-            type="button"
-            className="update-notice-dismiss"
-            onClick={() => setState({ kind: "idle" })}
-            aria-label="Dismiss"
-          >
-            ✕
-          </button>
-        </>
-      )}
-      {state.kind === "error" && (
-        <>
-          <span className="update-notice-text">
-            Update check failed: {state.message}
           </span>
           <button
             type="button"
