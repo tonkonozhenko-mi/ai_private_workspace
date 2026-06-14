@@ -175,6 +175,44 @@ a {
   background-clip: content-box;
 }
 
+/* ---------- Unified buttons (consistent across the app) ----------
+   Copy, ghost, and disclosure toggles share one calm dark style so nothing
+   looks out of place. (Answer-header Copy stays a green link via a more
+   specific rule, matching Save note / Create file next to it.) */
+:root[data-theme] .copy-button,
+.copy-button,
+:root[data-theme] .ghost-button,
+.ghost-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface-2);
+  color: var(--c-text-2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+:root[data-theme] .copy-button:hover,
+.copy-button:hover,
+:root[data-theme] .ghost-button:hover,
+.ghost-button:hover {
+  background: var(--c-surface-3);
+  color: var(--c-text);
+  border-color: var(--c-border-strong);
+}
+.ghost-button.small,
+.copy-button.small {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.copy-button.is-copied {
+  color: var(--c-success);
+  border-color: var(--c-accent-border);
+}
+
 /* ---------- App shell ---------- */
 .app-shell {
   display: grid;
