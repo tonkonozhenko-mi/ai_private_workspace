@@ -4,7 +4,7 @@
   "version": "0.1.4",
   "identifier": "local.ai-private-workspace",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "npm run dev:vite",
     "devUrl": "http://localhost:5173",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
