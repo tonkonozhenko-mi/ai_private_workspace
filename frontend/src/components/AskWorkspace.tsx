@@ -6,7 +6,6 @@ const AskDeveloperModeContext = createContext(false);
 
 import {
   askSelectedWorkspace,
-  createWorkspaceConversation,
   deleteWorkspaceAnswerNote,
   deleteWorkspaceConversation,
   exportWorkspaceConversation,
@@ -394,19 +393,15 @@ export function AskWorkspace({
     }
   }
 
-  async function startNewConversation() {
-    setConversationLoading(true);
+  function startNewConversation() {
+    // Start a clean dialog without persisting an empty conversation. The next
+    // question creates the conversation on the backend automatically.
     setError(null);
-    try {
-      const conversation = await createWorkspaceConversation(workspaceId, "New conversation");
-      setActiveConversationId(conversation.id);
-      setHistory([]);
-      await refreshConversations();
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Could not create conversation.");
-    } finally {
-      setConversationLoading(false);
-    }
+    setHistory([]);
+    setActiveConversationId(null);
+    setQuestion("");
+    setAttachedImages([]);
+    setCancelMessage(null);
   }
 
   async function renameConversation(conversationId: string, currentTitle: string) {
@@ -794,7 +789,7 @@ function RobotIcon() {
   );
 }
 
-function CatIcon() {
+function PersonIcon() {
   return (
     <svg
       className="ask-cat-glyph"
@@ -808,10 +803,8 @@ function CatIcon() {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M5 4.5l2.5 4M19 4.5l-2.5 4" />
-      <path d="M5 10c0-1.4 2.4-2.5 7-2.5s7 1.1 7 2.5c0 5.4-3 9-7 9s-7-3.6-7-9z" />
-      <circle cx="9.8" cy="12.2" r="0.85" fill="currentColor" stroke="none" />
-      <circle cx="14.2" cy="12.2" r="0.85" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="8" r="3.4" />
+      <path d="M5.5 19a6.5 6.5 0 0 1 13 0" />
     </svg>
   );
 }
@@ -1071,25 +1064,39 @@ function ConversationHistoryBar({
   onToggleShowArchived: (showArchived: boolean) => void;
   onTogglePinnedOnly: (pinnedOnly: boolean) => void;
 }) {
+  const developerMode = useContext(AskDeveloperModeContext);
+  const [open, setOpen] = useState(false);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
   const activeConversation = conversations.find((conversation) => conversation.id === activeConversationId) ?? null;
 
   return (
     <div className="ask-chats-zone">
       <div className="ask-chats-toolbar">
-        <button className="ask-new-chat-button" type="button" disabled={loading} onClick={onNewConversation}>
+        <button
+          className="ask-new-chat-button"
+          type="button"
+          disabled={loading}
+          onClick={() => {
+            onNewConversation();
+            setOpen(false);
+            setMenuFor(null);
+          }}
+        >
           + New chat
         </button>
-        <details className="ask-chats-drawer">
-          <summary>Saved chats &amp; notes</summary>
-          <section className="panel conversation-history-panel" aria-label="Saved conversations">
-      <div className="panel-heading conversation-history-heading">
-        <div>
-          <p className="eyebrow">Saved conversations</p>
-          <h2>Workspace answer history</h2>
-          <p>Conversations persist in the local workspace database and can be reopened later.</p>
-        </div>
+        <button
+          className={`ask-saved-toggle ${open ? "is-open" : ""}`}
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+        >
+          Saved chats &amp; notes
+          <span className="ask-saved-chevron" aria-hidden="true">{open ? "▴" : "▾"}</span>
+        </button>
       </div>
 
+      {open ? (
+        <section className="conversation-history-panel" aria-label="Saved conversations">
       <div className="conversation-history-tools">
         <label>
           Search history
@@ -1126,7 +1133,16 @@ function ConversationHistoryBar({
             const isActive = conversation.id === activeConversationId;
             return (
               <article className={`conversation-history-item ${isActive ? "is-active" : ""}`} key={conversation.id}>
-                <button type="button" onClick={() => onOpenConversation(conversation.id)} disabled={loading}>
+                <button
+                  type="button"
+                  className="conversation-open"
+                  onClick={() => {
+                    onOpenConversation(conversation.id);
+                    setOpen(false);
+                    setMenuFor(null);
+                  }}
+                  disabled={loading}
+                >
                   <strong>{conversation.is_pinned ? "★ " : ""}{conversation.title}</strong>
                   <span className="conversation-history-meta">
                     <span>
@@ -1139,63 +1155,42 @@ function ConversationHistoryBar({
                     <em>{conversation.last_answer_preview}</em>
                   ) : null}
                 </button>
-                <div className="conversation-history-actions">
+                <div className="conversation-row-menu-wrap">
                   <button
-                    className="text-button"
                     type="button"
+                    className="conversation-menu-button"
+                    aria-label="Conversation actions"
+                    aria-expanded={menuFor === conversation.id}
                     disabled={loading}
-                    onClick={() => onTogglePinned(conversation.id, !conversation.is_pinned)}
+                    onClick={() => setMenuFor(menuFor === conversation.id ? null : conversation.id)}
                   >
-                    {conversation.is_pinned ? "Unpin" : "Pin"}
+                    ⋯
                   </button>
-                  <button
-                    className="text-button"
-                    type="button"
-                    disabled={loading}
-                    onClick={() => onExportConversation(conversation.id, "markdown")}
-                  >
-                    Export md
-                  </button>
-                  <button
-                    className="text-button"
-                    type="button"
-                    disabled={loading}
-                    onClick={() => onExportConversation(conversation.id, "text")}
-                  >
-                    txt
-                  </button>
-                  <button
-                    className="text-button"
-                    type="button"
-                    disabled={loading}
-                    onClick={() => onExportConversation(conversation.id, "json")}
-                  >
-                    json
-                  </button>
-                  <button
-                    className="text-button"
-                    type="button"
-                    disabled={loading}
-                    onClick={() => onRenameConversation(conversation.id, conversation.title)}
-                  >
-                    Rename
-                  </button>
-                  <button
-                    className="text-button"
-                    type="button"
-                    disabled={loading}
-                    onClick={() => onToggleArchived(conversation.id, !conversation.is_archived)}
-                  >
-                    {conversation.is_archived ? "Restore" : "Archive"}
-                  </button>
-                  <button
-                    className="text-button danger-text-button"
-                    type="button"
-                    disabled={loading}
-                    onClick={() => onDeleteConversation(conversation.id)}
-                  >
-                    Delete
-                  </button>
+                  {menuFor === conversation.id ? (
+                    <div className="conversation-row-menu" role="menu">
+                      <button type="button" role="menuitem" onClick={() => { onTogglePinned(conversation.id, !conversation.is_pinned); setMenuFor(null); }}>
+                        {conversation.is_pinned ? "Unpin" : "Pin"}
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => { onRenameConversation(conversation.id, conversation.title); setMenuFor(null); }}>
+                        Rename
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => { onExportConversation(conversation.id, "markdown"); setMenuFor(null); }}>
+                        Export Markdown
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => { onExportConversation(conversation.id, "text"); setMenuFor(null); }}>
+                        Export text
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => { onExportConversation(conversation.id, "json"); setMenuFor(null); }}>
+                        Export JSON
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => { onToggleArchived(conversation.id, !conversation.is_archived); setMenuFor(null); }}>
+                        {conversation.is_archived ? "Restore" : "Archive"}
+                      </button>
+                      <button type="button" role="menuitem" className="danger-text-button" onClick={() => { onDeleteConversation(conversation.id); setMenuFor(null); }}>
+                        Delete
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               </article>
             );
@@ -1219,10 +1214,10 @@ function ConversationHistoryBar({
         />
       ) : null}
 
-      {activeConversation ? (
+      {developerMode && activeConversation ? (
         <div className="conversation-context-actions">
           <button
-            className="secondary-button"
+            className="text-button"
             type="button"
             disabled={loading}
             onClick={() => onPreviewConversationContext(activeConversation.id)}
@@ -1233,16 +1228,15 @@ function ConversationHistoryBar({
         </div>
       ) : null}
 
-      {conversationContextPreview ? (
+      {developerMode && conversationContextPreview ? (
         <ConversationContextPreviewCard preview={conversationContextPreview} />
       ) : null}
 
-      {activeConversation ? (
+      {developerMode && activeConversation ? (
         <ConversationDetailsCard conversation={activeConversation} />
       ) : null}
-          </section>
-        </details>
-      </div>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -1405,7 +1399,7 @@ function ConversationTurn({
     <article className="ask-conversation-turn">
       <div className="ask-message-row is-user">
         <div className="ask-message-bubble user-bubble">
-          <span className="ask-message-label"><CatIcon /> You</span>
+          <span className="ask-message-label"><PersonIcon /> You</span>
           <p>{item.question}</p>
           <div className="ask-message-actions">
             <button
