@@ -752,8 +752,36 @@ export function AskWorkspace({
           </form>
         </section>
       </section>
+      <AskScrollButtons />
     </div>
     </AskDeveloperModeContext.Provider>
+  );
+}
+
+function AskScrollButtons() {
+  const scroller = () => document.querySelector<HTMLElement>(".main-content");
+  return (
+    <div className="ask-scroll-buttons">
+      <button
+        type="button"
+        aria-label="Scroll to top"
+        title="Scroll to top"
+        onClick={() => scroller()?.scrollTo({ top: 0, behavior: "smooth" })}
+      >
+        ↑
+      </button>
+      <button
+        type="button"
+        aria-label="Scroll to bottom"
+        title="Scroll to bottom"
+        onClick={() => {
+          const el = scroller();
+          el?.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+        }}
+      >
+        ↓
+      </button>
+    </div>
   );
 }
 
