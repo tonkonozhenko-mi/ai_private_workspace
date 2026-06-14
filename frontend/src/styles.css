@@ -175,6 +175,11 @@ button {
   cursor: pointer;
 }
 
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--c-accent);
+}
+
 a {
   color: var(--c-accent);
   text-decoration: none;
