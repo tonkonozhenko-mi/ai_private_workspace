@@ -30,7 +30,8 @@
     "active": true,
     "createUpdaterArtifacts": true,
     "targets": [
-      "app"
+      "app",
+      "dmg"
     ],
     "category": "DeveloperTool",
     "shortDescription": "Local-first AI workspace for private project onboarding.",
