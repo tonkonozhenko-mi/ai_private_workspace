@@ -573,6 +573,70 @@ a {
   min-height: 0;
 }
 
+/* "Answer style and sources" focus panel */
+.ask-focus-hint {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+}
+.ask-focus-compact-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+.ask-focus-compact-header h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.ask-focus-compact-header > span {
+  flex: none;
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  background: var(--c-accent-soft);
+  color: var(--c-success);
+  font-size: 11px;
+  font-weight: 600;
+}
+.ask-focus-compact-summary {
+  margin-top: var(--s-2);
+  font-size: 13px;
+  color: var(--c-text-2);
+}
+.ask-focus-compact-rows {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--s-3);
+}
+.ask-focus-compact-rows > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: 7px 0;
+  border-top: 1px solid var(--c-border);
+}
+.ask-focus-compact-rows > div:first-child {
+  border-top: none;
+}
+.ask-focus-compact-rows span {
+  font-size: 13px;
+  color: var(--c-text-3);
+}
+.ask-focus-compact-rows strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text);
+  text-align: right;
+}
+.ask-focus-compact-note {
+  margin-top: var(--s-3);
+  font-size: 12px;
+  color: var(--c-text-3);
+}
+
 .ask-conversation-panel {
   display: flex;
   flex-direction: column;
