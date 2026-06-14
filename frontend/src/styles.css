@@ -450,6 +450,147 @@ a {
   pointer-events: none;
 }
 
+/* =====================================================================
+   Shared components — the clean design system used across every tab.
+   These are unlayered, so they win over @layer legacy automatically.
+   ===================================================================== */
+
+/* Section panels */
+.panel,
+.surface-panel,
+.first-launch-panel {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-xl);
+  padding: var(--s-6);
+}
+
+/* Panel headings: eyebrow + title on the left, status/badge/count on the right */
+.panel-heading,
+.compact-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-bottom: var(--s-4);
+}
+.panel-heading h2,
+.compact-heading h2 {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--c-text);
+}
+.panel-heading > div > p,
+.panel-helper {
+  margin-top: var(--s-2);
+  color: var(--c-text-2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Eyebrow / section labels */
+.section-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-text-3);
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface-3);
+  border: 1px solid var(--c-border);
+  color: var(--c-text-2);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.status-badge--success,
+.status-badge--ready {
+  background: var(--c-accent-soft);
+  border-color: var(--c-accent-border);
+  color: var(--c-success);
+}
+.status-badge--warning {
+  background: rgba(242, 201, 107, 0.12);
+  border-color: rgba(242, 201, 107, 0.32);
+  color: var(--c-warning);
+}
+.status-badge--danger {
+  background: rgba(240, 144, 141, 0.12);
+  border-color: rgba(240, 144, 141, 0.32);
+  color: var(--c-danger);
+}
+.status-badge--info {
+  background: rgba(70, 130, 180, 0.12);
+  border-color: rgba(70, 130, 180, 0.32);
+  color: #8ec4ea;
+}
+
+/* Metric / info cards and grids */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--s-4);
+}
+.metric-card,
+.product-status-card {
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+}
+.metric-card strong {
+  color: var(--c-text);
+}
+
+/* State cards (empty / loading / error) */
+.state-card {
+  display: grid;
+  place-items: center;
+  gap: var(--s-2);
+  text-align: center;
+  padding: var(--s-8) var(--s-6);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+}
+.state-card--compact {
+  min-height: auto;
+  padding: var(--s-5);
+}
+.state-title {
+  color: var(--c-text);
+  font-weight: 600;
+}
+.state-message {
+  color: var(--c-text-2);
+}
+
+/* Common content headings */
+.main-content h1 {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--c-text);
+}
+.main-content h2 {
+  color: var(--c-text);
+}
+.main-content h3 {
+  color: var(--c-text);
+  font-weight: 600;
+}
+
 /* ---------- Main content ---------- */
 .main-content {
   min-width: 0;
