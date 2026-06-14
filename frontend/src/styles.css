@@ -438,3 +438,38 @@ a {
   font-weight: 600;
   text-transform: capitalize;
 }
+
+/* ---------- Legacy content patches (dark) ----------
+   Targeted dark styling for a few legacy cards that still rendered light.
+   These are removed when their tab is fully rewritten. */
+.local-ai-runtime-comparison > div {
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+  color: var(--c-text-2);
+}
+
+.local-ai-runtime-comparison dt {
+  color: var(--c-text-3);
+}
+
+.local-ai-runtime-comparison dd {
+  color: var(--c-text);
+}
+
+.local-ai-setup-messages .is-available {
+  background: var(--c-accent-soft);
+  border: 1px solid var(--c-accent-border);
+  color: var(--c-success);
+  border-radius: var(--r-sm);
+  padding: var(--s-2) var(--s-3);
+}
+
+.local-ai-setup-messages .is-warning {
+  background: rgba(242, 201, 107, 0.12);
+  border: 1px solid rgba(242, 201, 107, 0.32);
+  color: var(--c-warning);
+  border-radius: var(--r-sm);
+  padding: var(--s-2) var(--s-3);
+}
