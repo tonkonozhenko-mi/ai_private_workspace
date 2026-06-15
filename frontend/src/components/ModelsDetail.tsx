@@ -1740,12 +1740,15 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
 
       <details
         className="model-manager-section"
-        open={!installStatus?.runtime_reachable}
+        open={
+          (installStatus?.installed_count ?? 0) > 0 ||
+          !installStatus?.runtime_reachable
+        }
       >
         <summary>
           <div>
-            <span className="eyebrow">Verify</span>
-            <strong>Installed models</strong>
+            <span className="eyebrow">Manage</span>
+            <strong>Installed models & disk space</strong>
             <p>See installed models with their size on disk, and delete ones you no longer need.</p>
           </div>
         </summary>
