@@ -1824,7 +1824,7 @@ function ConversationTurn({
         <img className="ask-avatar-img" src="/avatar-user-cat-512.png" alt="You" width={32} height={32} />
       </div>
 
-      <AnswerResult answer={item.response} createdAt={item.createdAt} onSaveAnswerNote={onSaveAnswerNote} />
+      <AnswerResult answer={item.response} createdAt={item.createdAt} attachedFileNames={item.attachedFileNames} onSaveAnswerNote={onSaveAnswerNote} />
     </article>
   );
 }
@@ -1832,10 +1832,12 @@ function ConversationTurn({
 function AnswerResult({
   answer,
   createdAt,
+  attachedFileNames,
   onSaveAnswerNote,
 }: {
   answer: WorkspaceQuestionAnswer;
   createdAt: string;
+  attachedFileNames: string[];
   onSaveAnswerNote: (answer: WorkspaceQuestionAnswer) => void;
 }) {
   const developerMode = useContext(AskDeveloperModeContext);
@@ -1955,10 +1957,11 @@ function AnswerResult({
           </p>
         ) : null}
 
-        {answer.sources.length > 0 ? (
+        {answer.sources.length > 0 || attachedFileNames.length > 0 ? (
           <Sources
             workspaceId={answer.workspace_id}
             sources={answer.sources}
+            attachedFileNames={attachedFileNames}
             suppressReindexGuidance={reindexReason !== null}
           />
         ) : null}
@@ -2150,10 +2153,12 @@ function QualityWarnings({ warnings }: { warnings: RagQualityWarning[] }) {
 function Sources({
   workspaceId,
   sources,
+  attachedFileNames = [],
   suppressReindexGuidance = false,
 }: {
   workspaceId: string;
   sources: RagSource[];
+  attachedFileNames?: string[];
   suppressReindexGuidance?: boolean;
 }) {
   const [showSources, setShowSources] = useState(false);
@@ -2164,6 +2169,7 @@ function Sources({
   const topSourceScoreIsLow = sources.length > 0 && sources[0].score < 0.25;
   const visibleSources = showAllSources ? sources : sources.slice(0, 2);
   const hiddenSourcesCount = Math.max(sources.length - visibleSources.length, 0);
+  const hasAttached = attachedFileNames.length > 0;
 
   useEffect(() => {
     setShowSources(false);
@@ -2184,107 +2190,106 @@ function Sources({
   }
 
   return (
-    <section className={`panel source-panel ${showSources ? "is-open" : "is-collapsed"}`}>
-      <div className="panel-heading source-panel-heading">
-        <div>
-          <p className="eyebrow">Retrieved context</p>
-          <h2>{sources.length > 0 ? `${sources.length} sources attached` : "No sources attached"}</h2>
-        </div>
+    <section className="answer-context">
+      <div className="answer-context-head">
+        <p className="eyebrow">Context for this answer</p>
         {sources.length > 0 ? (
           <button
-            className="secondary-button source-panel-toggle"
+            className="answer-context-toggle"
             type="button"
             onClick={() => setShowSources((current) => !current)}
           >
-            {showSources ? "Hide sources" : "Show sources"}
+            {showSources ? "Hide project sources" : "Show project sources"}
           </button>
         ) : null}
       </div>
-      {sources.length > 0 && !showSources ? (
-        <p className="source-panel-subtitle">
-          Sources stay attached to this answer. Open them when you need to verify a claim.
-        </p>
-      ) : null}
-      {sources.length > 0 && showSources ? (
-        <>
-          <p className="source-panel-subtitle">
-            Showing the strongest sources first. Expand previews only when you
-            need to verify a claim.
-          </p>
-          {topSourceScoreIsLow ? (
-            <p className="source-quality-hint">
-              Top source score is low; answer may be weakly grounded.
-            </p>
-          ) : null}
-          <div className="source-list">
-            {visibleSources.map((source) => {
-              const detectedType = source.metadata?.detected_type;
-              const extension = source.metadata?.extension;
-              const isExpanded = expandedSourceIds.has(source.chunk_id);
-              const globalContext = sources.findIndex(
-                (candidate) => candidate.chunk_id === source.chunk_id,
-              );
 
-              return (
-                <article
-                  className={globalContext === 0 ? "is-top-source" : undefined}
-                  key={source.chunk_id}
-                >
-                  <div className="source-card-heading">
-                    <div>
-                      {globalContext === 0 ? (
-                        <span className="top-source-badge">Top source</span>
-                      ) : null}
-                      <strong title={source.source_path}>
-                        {source.source_path}
-                      </strong>
-                    </div>
-                    <span className="source-score">
-                      {formatSourceScore(source.score)} match
-                    </span>
-                  </div>
-                  {detectedType || extension ? (
-                    <div className="source-metadata">
-                      {detectedType ? (
-                        <span>{formatLabel(detectedType)}</span>
-                      ) : null}
-                      {extension ? <span>{extension}</span> : null}
-                    </div>
-                  ) : null}
-                  <button
-                    className="source-preview-toggle"
-                    type="button"
-                    aria-expanded={isExpanded}
-                    onClick={() => toggleSourcePreview(source.chunk_id)}
-                  >
-                    {isExpanded ? "Hide" : "Preview"}
-                  </button>
-                  {isExpanded ? (
-                    <pre className="source-preview">{source.preview}</pre>
-                  ) : null}
-                </article>
-              );
-            })}
+      {hasAttached ? (
+        <div className="answer-context-group">
+          <span className="answer-context-label">Files you attached</span>
+          <div className="answer-context-files">
+            {attachedFileNames.map((name) => (
+              <span key={name} className="answer-context-file" title={name}>
+                <span className="answer-context-file-icon" aria-hidden="true">▤</span>
+                {name}
+              </span>
+            ))}
           </div>
-          {sources.length > 2 ? (
-            <div className="source-disclosure-footer">
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={() => setShowAllSources((current) => !current)}
-              >
-                {showAllSources
-                  ? "Show top sources only"
-                  : `Show all sources (${hiddenSourcesCount} more)`}
-              </button>
-            </div>
-          ) : null}
-        </>
+        </div>
       ) : null}
-      {sources.length === 0 ? (
+
+      {sources.length > 0 ? (
+        <div className="answer-context-group">
+          <span className="answer-context-label">
+            From your project · {sources.length} source{sources.length === 1 ? "" : "s"}
+          </span>
+          {!showSources ? (
+            <p className="answer-context-hint">
+              Strongest matches stay attached to this answer. Open them to verify a claim.
+            </p>
+          ) : (
+            <>
+              {topSourceScoreIsLow ? (
+                <p className="answer-context-warn">
+                  Top match is weak — the answer may be loosely grounded.
+                </p>
+              ) : null}
+              <div className="answer-context-source-list">
+                {visibleSources.map((source, index) => {
+                  const isExpanded = expandedSourceIds.has(source.chunk_id);
+                  const matchPercent = Math.min(
+                    100,
+                    Math.max(3, Math.round(source.score * 100)),
+                  );
+                  return (
+                    <article
+                      className={`answer-context-source${index === 0 && !showAllSources ? " is-top" : ""}`}
+                      key={source.chunk_id}
+                    >
+                      <div className="answer-context-source-head">
+                        <strong title={source.source_path}>
+                          {source.source_path}
+                        </strong>
+                        <span className="answer-context-score">
+                          {formatSourceScore(source.score)}
+                        </span>
+                      </div>
+                      <span className="answer-context-match" aria-hidden="true">
+                        <span style={{ width: `${matchPercent}%` }} />
+                      </span>
+                      <button
+                        className="answer-context-preview-toggle"
+                        type="button"
+                        aria-expanded={isExpanded}
+                        onClick={() => toggleSourcePreview(source.chunk_id)}
+                      >
+                        {isExpanded ? "Hide preview" : "Preview"}
+                      </button>
+                      {isExpanded ? (
+                        <pre className="answer-context-preview">{source.preview}</pre>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+              {sources.length > 2 ? (
+                <button
+                  className="answer-context-more"
+                  type="button"
+                  onClick={() => setShowAllSources((current) => !current)}
+                >
+                  {showAllSources
+                    ? "Show top matches only"
+                    : `Show all ${sources.length} sources (${hiddenSourcesCount} more)`}
+                </button>
+              ) : null}
+            </>
+          )}
+        </div>
+      ) : !hasAttached ? (
         <>
           <EmptyState
-            title="No sources returned"
+            title="No project sources"
             message="Try rebuilding search context or asking a more project-specific question."
             compact
           />

@@ -1404,6 +1404,31 @@ details.onboarding-guide-panel[open] > summary {
 .install-progress-label { flex: 0 0 auto; font-size: 12.5px; font-weight: 600; color: var(--c-text-2); font-variant-numeric: tabular-nums; min-width: 64px; text-align: right; }
 .ask-thinking-note { display: block; margin-top: 6px; font-size: 12px; color: var(--c-text-3); line-height: 1.5; }
 .ask-assistant-stack { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.answer-context { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--c-border); display: flex; flex-direction: column; gap: 14px; }
+.answer-context-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.answer-context-head .eyebrow { margin: 0; }
+.answer-context-toggle { border: none; background: transparent; color: var(--c-accent); font-size: 12.5px; cursor: pointer; padding: 0; }
+.answer-context-toggle:hover { text-decoration: underline; }
+.answer-context-group { display: flex; flex-direction: column; gap: 10px; }
+.answer-context-label { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--c-text-3); font-weight: 600; }
+.answer-context-hint, .answer-context-warn { margin: 0; font-size: 12.5px; color: var(--c-text-3); line-height: 1.5; }
+.answer-context-warn { color: var(--c-warning, #e0a93a); }
+.answer-context-files { display: flex; flex-wrap: wrap; gap: 8px; }
+.answer-context-file { display: inline-flex; align-items: center; gap: 7px; max-width: 280px; padding: 6px 12px; font-size: 12.5px; background: color-mix(in srgb, var(--c-accent) 8%, var(--c-surface-2)); border: 1px solid color-mix(in srgb, var(--c-accent) 30%, var(--c-border)); border-radius: var(--r-md); color: var(--c-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.answer-context-file-icon { color: var(--c-accent); font-size: 11px; }
+.answer-context-source-list { display: flex; flex-direction: column; gap: 8px; }
+.answer-context-source { padding: 12px 14px; border: 1px solid var(--c-border); border-radius: var(--r-md); background: var(--c-surface-2); display: flex; flex-direction: column; gap: 8px; }
+.answer-context-source.is-top { border-color: color-mix(in srgb, var(--c-accent) 45%, var(--c-border)); }
+.answer-context-source-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.answer-context-source-head strong { font-size: 13.5px; font-family: var(--font-mono, monospace); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.answer-context-score { flex: none; font-size: 12px; color: var(--c-text-3); font-variant-numeric: tabular-nums; }
+.answer-context-match { position: relative; display: block; height: 3px; border-radius: 999px; background: var(--c-surface-3); overflow: hidden; }
+.answer-context-match > span { position: absolute; inset: 0 auto 0 0; background: var(--c-accent); border-radius: 999px; }
+.answer-context-preview-toggle { align-self: flex-start; border: none; background: transparent; color: var(--c-accent); font-size: 12.5px; padding: 0; cursor: pointer; }
+.answer-context-preview-toggle:hover { text-decoration: underline; }
+.answer-context-preview { margin: 0; padding: 10px 12px; background: var(--c-bg); border: 1px solid var(--c-border); border-radius: var(--r-sm); font-size: 12px; white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow: auto; }
+.answer-context-more { align-self: flex-start; border: 1px solid var(--c-border); background: transparent; color: var(--c-text-2); font-size: 12.5px; padding: 6px 13px; border-radius: var(--r-pill); cursor: pointer; }
+.answer-context-more:hover { color: var(--c-text); background: var(--c-surface-2); }
 .ask-message-files { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .ask-message-file-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 240px; padding: 3px 10px; font-size: 12px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-pill); color: var(--c-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ask-message-file-icon { color: var(--c-accent); font-size: 11px; }
