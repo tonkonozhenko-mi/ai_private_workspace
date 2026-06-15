@@ -1,6 +1,7 @@
 from collections.abc import Iterator
 from dataclasses import dataclass
 
+from app.core.domain.attached_documents import AttachedDocument
 from app.core.domain.rag import RagQualityWarning, WorkspaceQuestionAnswer
 from app.core.domain.rag_prompt import SkillPromptInstruction
 from app.core.domain.workspace_model_selection import WorkspaceSelectedModel
@@ -37,6 +38,7 @@ class AskWorkspaceQuestionWithSelectedLLMInput:
     images: list[str] | None = None
     temperature: float | None = None
     think: bool | None = None
+    attached_documents: list[AttachedDocument] | None = None
 
 
 class AskWorkspaceQuestionWithSelectedLLMNotFoundError(ValueError):
@@ -159,6 +161,7 @@ class AskWorkspaceQuestionWithSelectedLLMUseCase:
             images=request.images or [],
             temperature=request.temperature,
             think=request.think,
+            attached_documents=request.attached_documents or [],
         )
 
     def _embedding_matches_active(self, selected: WorkspaceSelectedModel) -> bool:

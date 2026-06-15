@@ -9,6 +9,12 @@ class SkillContextItemRequest(BaseModel):
     custom_instructions: str = Field(..., min_length=1, max_length=1200)
 
 
+class AttachedDocumentRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    # Up to ~400 KB of raw text per file; the backend selects relevant excerpts.
+    content: str = Field(..., min_length=1, max_length=400_000)
+
+
 class AskWorkspaceQuestionRequest(BaseModel):
     question: str = Field(..., min_length=1)
     conversation_id: str | None = Field(default=None, min_length=1)
@@ -19,6 +25,9 @@ class AskWorkspaceQuestionRequest(BaseModel):
     images: list[str] = Field(default_factory=list, max_length=4)
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
     think: bool | None = None
+    attached_documents: list[AttachedDocumentRequest] = Field(
+        default_factory=list, max_length=6
+    )
 
 
 class AskWorkspaceQuestionWithSelectedLLMRequest(BaseModel):
@@ -29,6 +38,9 @@ class AskWorkspaceQuestionWithSelectedLLMRequest(BaseModel):
     images: list[str] = Field(default_factory=list, max_length=4)
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
     think: bool | None = None
+    attached_documents: list[AttachedDocumentRequest] = Field(
+        default_factory=list, max_length=6
+    )
 
 
 class RagSourceResponse(BaseModel):

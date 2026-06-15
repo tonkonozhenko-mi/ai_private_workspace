@@ -1172,6 +1172,11 @@ export function deleteWorkspaceConversation(
   });
 }
 
+export type AttachedDocumentInput = {
+  name: string;
+  content: string;
+};
+
 export function askSelectedWorkspace(
   workspaceId: string,
   question: string,
@@ -1183,6 +1188,7 @@ export function askSelectedWorkspace(
     images?: string[];
     temperature?: number | null;
     think?: boolean | null;
+    attachedDocuments?: AttachedDocumentInput[];
   } = {},
 ): Promise<WorkspaceQuestionAnswer> {
   return requestJson<WorkspaceQuestionAnswer>(
@@ -1201,6 +1207,7 @@ export function askSelectedWorkspace(
         images: options.images ?? [],
         temperature: options.temperature ?? null,
         think: options.think ?? null,
+        attached_documents: options.attachedDocuments ?? [],
       }),
       signal: options.signal,
     },
@@ -1218,6 +1225,7 @@ export async function askSelectedWorkspaceStream(
     images?: string[];
     temperature?: number | null;
     think?: boolean | null;
+    attachedDocuments?: AttachedDocumentInput[];
     onToken?: (text: string) => void;
   } = {},
 ): Promise<WorkspaceQuestionAnswer> {
@@ -1237,6 +1245,7 @@ export async function askSelectedWorkspaceStream(
         images: options.images ?? [],
         temperature: options.temperature ?? null,
         think: options.think ?? null,
+        attached_documents: options.attachedDocuments ?? [],
       }),
       signal: options.signal,
     },
