@@ -2,6 +2,8 @@ import { useMemo, useState, type FormEvent } from "react";
 
 import type { WorkbenchPreferences } from "../App";
 import {
+  deleteWorkspace,
+  getWorkspacesOverview,
   previewWorkspaceFileSelection,
   updateWorkspaceIndexingRules,
   updateWorkspaceSkillProfile,
@@ -99,6 +101,32 @@ export function SettingsPanel({
   const [skillMessage, setSkillMessage] = useState("Ask uses this workspace guidance when preparing answers.");
   const [savingSkills, setSavingSkills] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<SkillProfileTemplateId>("devops_review");
+  const [resetConfirming, setResetConfirming] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+
+  async function resetAllAppData() {
+    setResetting(true);
+    setResetMessage(null);
+    try {
+      const overview = await getWorkspacesOverview();
+      for (const item of overview.items) {
+        await deleteWorkspace(item.workspace_id);
+      }
+      setResetMessage(
+        `Removed ${overview.items.length} project(s) and their local index data. Reloading…`,
+      );
+      // A reload re-fetches a now-empty state, the cleanest way to land back at
+      // the first-run screen. Project files on disk are never touched.
+      window.setTimeout(() => window.location.reload(), 700);
+    } catch (resetError) {
+      setResetMessage(
+        resetError instanceof Error ? resetError.message : "Could not reset app data.",
+      );
+      setResetting(false);
+      setResetConfirming(false);
+    }
+  }
 
   const includeCount = countPatterns(fileRulesDraft.includePatterns);
   const excludeCount = countPatterns(fileRulesDraft.excludePatterns);
@@ -416,6 +444,52 @@ export function SettingsPanel({
           </button>
         </div>
         <p className="settings-message">{skillMessage}</p>
+      </section>
+
+      <section className="panel settings-clean-card settings-danger-card">
+        <div className="panel-heading compact-heading">
+          <div>
+            <p className="eyebrow">Reset</p>
+            <h3>Start over from scratch</h3>
+            <p className="panel-helper">
+              Removes every project from this app and its local search index, returning
+              you to the first-run screen. Your actual project files on disk are never
+              touched, and installed Ollama models are left alone.
+            </p>
+          </div>
+        </div>
+        <div className="settings-clean-actions">
+          {resetConfirming ? (
+            <>
+              <span className="settings-danger-confirm">This can't be undone. Reset the app?</span>
+              <button
+                className="primary-button settings-danger-button"
+                type="button"
+                disabled={resetting}
+                onClick={() => void resetAllAppData()}
+              >
+                {resetting ? "Resetting…" : "Yes, reset everything"}
+              </button>
+              <button
+                className="secondary-action"
+                type="button"
+                disabled={resetting}
+                onClick={() => setResetConfirming(false)}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              className="secondary-action settings-danger-button"
+              type="button"
+              onClick={() => setResetConfirming(true)}
+            >
+              Reset app data
+            </button>
+          )}
+        </div>
+        {resetMessage ? <p className="settings-message">{resetMessage}</p> : null}
       </section>
     </div>
   );

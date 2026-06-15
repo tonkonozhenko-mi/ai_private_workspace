@@ -2598,44 +2598,27 @@ function GuidedModelSetupPanel({
           disabled={saving !== null}
           isSaving={saving === "llm"}
           installPercent={installPercent}
+          note="The model that writes the answers when you ask questions."
           onChange={setLlmChoice}
           onCustomChange={setCustomLlm}
           onSave={() => void saveGuidedSelection("llm")}
         />
-        {developerMode ? (
-          <div className="guided-model-embedding-advanced">
-            <p className="guided-model-embedding-explainer">
-              The search (embedding) model turns your project into a form the AI can
-              search. <strong>nomic-embed-text</strong> is a strong, fast default and
-              fits almost every project — you rarely need to change it.
-            </p>
-            <p className="guided-model-embedding-warning">
-              <strong>Important:</strong> changing the search model rebuilds the whole
-              project index from scratch (it creates a different, incompatible search
-              space). Only switch if you have a specific reason.
-            </p>
-            <GuidedModelSetupControl
-              section={embeddingSection}
-              value={embeddingChoice}
-              customValue={customEmbedding}
-              disabled={saving !== null}
-              isSaving={saving === "embedding"}
-              installPercent={installPercent}
-              onChange={setEmbeddingChoice}
-              onCustomChange={setCustomEmbedding}
-              onSave={() => void saveGuidedSelection("embedding")}
-            />
-          </div>
-        ) : (
-          <p className="guided-model-embedding-note">
-            The search model that lets the AI find relevant parts of your project is
-            chosen automatically. Turn on Developer mode to change it.
-          </p>
-        )}
+        <GuidedModelSetupControl
+          section={embeddingSection}
+          value={embeddingChoice}
+          customValue={customEmbedding}
+          disabled={saving !== null}
+          isSaving={saving === "embedding"}
+          installPercent={installPercent}
+          note="Turns your project into searchable form so the AI can find relevant files. nomic-embed-text is a great default; changing it later rebuilds the index."
+          onChange={setEmbeddingChoice}
+          onCustomChange={setCustomEmbedding}
+          onSave={() => void saveGuidedSelection("embedding")}
+        />
       </div>
       <p className="guided-model-safety-note">
-        Choosing a model only saves a preference for this project — nothing is
-        installed, rebuilt, or restarted until you explicitly do it.
+        Picking a model that isn't installed yet downloads it (you'll see progress).
+        Your project files, backend, and existing index aren't touched until you act.
       </p>
       {message ? <p className="model-selection-message">{message}</p> : null}
       {error ? <p className="model-selection-error">{error}</p> : null}
@@ -2650,6 +2633,7 @@ function GuidedModelSetupControl({
   disabled,
   isSaving,
   installPercent,
+  note,
   onChange,
   onCustomChange,
   onSave,
@@ -2660,6 +2644,7 @@ function GuidedModelSetupControl({
   disabled: boolean;
   isSaving: boolean;
   installPercent: number | null;
+  note?: string;
   onChange: (value: string) => void;
   onCustomChange: (value: string) => void;
   onSave: () => void;
@@ -2674,6 +2659,7 @@ function GuidedModelSetupControl({
         </div>
         <StatusBadge label="recommended defaults" />
       </div>
+      {note ? <p className="guided-model-note">{note}</p> : null}
       <p>{section.purpose}</p>
       <small>{section.recommendation_summary}</small>
       <div className="guided-model-options" role="radiogroup" aria-label={`Choose ${section.title}`}>
@@ -2751,10 +2737,8 @@ function GuidedModelSetupControl({
         onClick={onSave}
       >
         {isSaving
-          ? "Preparing…"
-          : isCustom
-            ? `Use & install ${section.title}`
-            : `Use this ${section.title}`}
+          ? "Setting up…"
+          : `Use & install ${section.title}`}
       </button>
       {isSaving ? (
         <div className="install-progress" role="status" aria-label="Model download progress">
