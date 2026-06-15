@@ -159,13 +159,14 @@ function DailyUseStatusPanel({
   const summary = dashboard.summary;
   const hasScan = summary.has_scan;
   const indexReady = summary.index_status.status === "indexed";
-  const modelsReady = modelsSummary.overall_status === "ready";
-  const readyToUse = hasScan && indexReady && modelsReady;
+  const embeddingReady = modelsSummary.can_search_with_selected_embedding;
+  const llmReady = modelsSummary.can_ask_with_selected_llm;
+  const readyToUse = hasScan && embeddingReady && indexReady && llmReady;
   const nextAction = getDailyUseNextAction({
     hasScan,
+    embeddingReady,
     indexReady,
-    modelsReady,
-    modelsStatus: modelsSummary.overall_status,
+    llmReady,
   });
   const [confirming, setConfirming] = useState<"scan" | "index" | null>(null);
   const [starting, setStarting] = useState<"scan" | "index" | null>(null);
@@ -238,11 +239,11 @@ function DailyUseStatusPanel({
         </div>
       </div>
 
-      <div className="daily-use-checklist" aria-label="Workspace ready-to-use checklist">
-        <DailyUseCheck label="Project scan" ready={hasScan} detail={hasScan ? `${summary.detected_skills_count} skill(s) found` : "Not scanned yet"} />
-        <DailyUseCheck label="Search context" ready={indexReady} detail={indexReady ? `${summary.index_status.chunks_count} chunk(s) indexed` : formatLabel(summary.index_status.status)} />
-        <DailyUseCheck label="Models" ready={modelsReady} detail={modelsReady ? "Ready" : formatLabel(modelsSummary.overall_status)} />
-        <DailyUseCheck label="Ask history" ready detail="Saved after restart" />
+      <div className="daily-use-checklist" aria-label="Workspace setup steps">
+        <DailyUseCheck label="1 · Scan project" ready={hasScan} detail={hasScan ? `${summary.detected_skills_count} skill(s) found` : "Lists your files"} />
+        <DailyUseCheck label="2 · Search model" ready={embeddingReady} detail={embeddingReady ? (modelsSummary.selected_embedding ?? "Ready") : "Pick & install"} />
+        <DailyUseCheck label="3 · Search context" ready={indexReady} detail={indexReady ? `${summary.index_status.chunks_count} chunk(s) indexed` : embeddingReady ? "Ready to build" : "Needs search model"} />
+        <DailyUseCheck label="4 · Answer model" ready={llmReady} detail={llmReady ? (modelsSummary.selected_llm ?? "Ready") : "Pick & install"} />
       </div>
 
       {!readyToUse ? (
@@ -272,40 +273,54 @@ function DailyUseCheck({ label, ready, detail }: { label: string; ready: boolean
 
 function getDailyUseNextAction({
   hasScan,
+  embeddingReady,
   indexReady,
-  modelsReady,
-  modelsStatus,
+  llmReady,
 }: {
   hasScan: boolean;
+  embeddingReady: boolean;
   indexReady: boolean;
-  modelsReady: boolean;
-  modelsStatus: string;
+  llmReady: boolean;
 }) {
+  // Order matters: each step unlocks the next. Indexing needs a search model,
+  // so the search model must be set up before "Build search context".
   if (!hasScan) {
     return {
       id: "scan",
       label: "Scan project",
-      description: "Start with a safe local scan. It reads matching files through the backend and detects project skills.",
+      description:
+        "A safe local scan — it just lists the project's files (skipping junk like node_modules) so the app knows what it can search. Nothing leaves your computer.",
+    };
+  }
+  if (!embeddingReady) {
+    return {
+      id: "models",
+      label: "Set up the search model",
+      description:
+        "Indexing turns your files into searchable context, which needs a small search (embedding) model. Pick and install it in Models first.",
     };
   }
   if (!indexReady) {
     return {
       id: "index",
       label: "Build search context",
-      description: "Create persistent local context so Ask can find sources without reindexing after restart.",
+      description:
+        "Turn the scanned files into searchable local context with your search model, so Ask can find the right sources.",
     };
   }
-  if (!modelsReady) {
+  if (!llmReady) {
     return {
       id: "models",
-      label: "Choose a model to chat",
-      description: "Pick the local AI model this project uses to answer your questions, then you're ready to ask.",
+      label: "Set up the answer model",
+      description:
+        "Pick (and install) the local AI model this project uses to actually answer your questions.",
     };
   }
   return {
     id: "ask",
     label: "Ask this workspace",
-    description: "Everything needed for daily use is ready. Ask will use local context and keep sources attached.",
+    description:
+      "Everything is ready. Ask uses your local context and keeps sources attached.",
   };
 }
 
@@ -346,6 +361,8 @@ function WorkspaceOnboardingGuide({
   const hasScan = summary.has_scan;
   const indexReady = summary.index_status.status === "indexed";
   const localAIReady = modelsSummary.overall_status === "ready";
+  const embeddingReady = modelsSummary.can_search_with_selected_embedding;
+  const llmReady = modelsSummary.can_ask_with_selected_llm;
   const readyToAsk = hasScan && indexReady && localAIReady;
   const includeRuleCount = countPatterns(
     fileIndexingPreferences.includePatterns,
@@ -583,50 +600,76 @@ function WorkspaceOnboardingGuide({
 
   const steps = [
     {
-      title: "Scan project",
+      title: "1 · Scan project",
       description: hasScan
         ? `${summary.detected_skills_count} technologies were found.`
-        : "Start by detecting project files, technologies, and setup signals.",
+        : "List the project's files so the app knows what it can search. Nothing leaves your computer.",
       status: hasScan ? "done" : "next",
     },
     {
-      title: "Build search context",
+      title: "2 · Set up the search model",
+      description: embeddingReady
+        ? `Search model ready: ${modelsSummary.selected_embedding ?? "configured"}.`
+        : "Indexing needs a small search (embedding) model. Pick and install it in Models.",
+      status: embeddingReady ? "done" : hasScan ? "next" : "waiting",
+    },
+    {
+      title: "3 · Build search context",
       description: indexReady
         ? `${summary.index_status.chunks_count} context pieces are ready for search.`
-        : "Create searchable local context before asking grounded questions.",
-      status: indexReady ? "done" : hasScan ? "next" : "waiting",
+        : embeddingReady
+          ? "Turn the scanned files into searchable local context."
+          : "Available once the search model is set up.",
+      status: indexReady
+        ? "done"
+        : hasScan && embeddingReady
+          ? "next"
+          : "waiting",
     },
     {
-      title: "Ask a question",
+      title: "4 · Set up the answer model",
+      description: llmReady
+        ? `Answer model ready: ${modelsSummary.selected_llm ?? "configured"}.`
+        : "Pick (and install) the local AI model that answers your questions.",
+      status: llmReady ? "done" : indexReady ? "next" : "waiting",
+    },
+    {
+      title: "5 · Ask a question",
       description: readyToAsk
         ? "Ask is ready and will keep retrieved sources visible."
-        : "Ask becomes useful after scan, context, and local AI are ready.",
+        : "Ask becomes useful once all the steps above are done.",
       status: readyToAsk ? "next" : "waiting",
-    },
-    {
-      title: "Compare models later",
-      description:
-        "Optional: compare local models only when you want to improve answer quality.",
-      status: "optional",
     },
   ];
 
+  // Wizard order: scan -> search model -> index -> answer model -> ask.
+  // Index stays locked until a search (embedding) model is ready.
   const primaryAction = !hasScan
     ? {
         label: setupAction === "scan" ? "Scanning..." : "Scan project",
         onClick: () => void requestSetupAction("scan"),
         disabled: setupAction !== null,
       }
-    : !indexReady
+    : !embeddingReady
       ? {
-          label:
-            setupAction === "index" ? "Building..." : "Build search context",
-          onClick: () => void requestSetupAction("index"),
-          disabled: setupAction !== null,
+          label: "Set up the search model",
+          onClick: onOpenModels,
+          disabled: false,
         }
-      : !localAIReady
-        ? { label: "Review Models", onClick: onOpenModels, disabled: false }
-        : { label: "Go to Ask", onClick: onOpenAsk, disabled: false };
+      : !indexReady
+        ? {
+            label:
+              setupAction === "index" ? "Building..." : "Build search context",
+            onClick: () => void requestSetupAction("index"),
+            disabled: setupAction !== null,
+          }
+        : !llmReady
+          ? {
+              label: "Set up the answer model",
+              onClick: onOpenModels,
+              disabled: false,
+            }
+          : { label: "Go to Ask", onClick: onOpenAsk, disabled: false };
 
   useEffect(() => {
     if (setupAction) {
