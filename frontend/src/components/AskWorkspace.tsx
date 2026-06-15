@@ -60,6 +60,7 @@ interface AskHistoryItem {
   sourcesCount: number;
   warningsCount: number;
   createdAt: string;
+  attachedFileNames: string[];
   response: WorkspaceQuestionAnswer;
 }
 
@@ -193,6 +194,7 @@ export function AskWorkspace({
   const [cancelMessage, setCancelMessage] = useState<string | null>(null);
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const [attachedFiles, setAttachedFiles] = useState<AttachedTextFile[]>([]);
+  const [sessionFiles, setSessionFiles] = useState<AttachedTextFile[]>([]);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const askAbortControllerRef = useRef<AbortController | null>(null);
 
@@ -275,6 +277,7 @@ export function AskWorkspace({
 
     async function initializeAskState() {
       setHistory([]);
+      setSessionFiles([]);
       setActiveConversationId(null);
       setConversationSearch("");
       setShowArchivedConversations(false);
@@ -621,9 +624,23 @@ export function AskWorkspace({
           askOptions,
         );
       }
-      const historyItem = createHistoryItem(result);
+      const sentFiles = attachedFiles;
+      const historyItem = createHistoryItem(
+        result,
+        sentFiles.map((file) => file.name),
+      );
       setActiveConversationId(result.conversation_id ?? activeConversationId);
       setHistory((current) => [historyItem, ...current].slice(0, 50));
+      if (sentFiles.length > 0) {
+        // Remember files used in this chat so they can be reviewed and reused.
+        setSessionFiles((current) => {
+          const byName = new Map(current.map((file) => [file.name, file]));
+          for (const file of sentFiles) {
+            byName.set(file.name, file);
+          }
+          return Array.from(byName.values());
+        });
+      }
       await refreshConversations();
       if (options.clearComposer) {
         setQuestion("");
@@ -947,6 +964,28 @@ export function AskWorkspace({
                 </button>
               ))}
             </div>
+            {sessionFiles.length > 0 ? (
+              <ChatFilesPanel
+                files={sessionFiles}
+                attachedNames={attachedFiles.map((file) => file.name)}
+                onReuse={(reuse) =>
+                  setAttachedFiles((current) => {
+                    const byName = new Map(
+                      current.map((file) => [file.name, file]),
+                    );
+                    for (const file of reuse) {
+                      byName.set(file.name, file);
+                    }
+                    return Array.from(byName.values());
+                  })
+                }
+                onRemove={(name) =>
+                  setSessionFiles((current) =>
+                    current.filter((file) => file.name !== name),
+                  )
+                }
+              />
+            ) : null}
           </form>
         </section>
       </section>
@@ -1057,6 +1096,13 @@ function ConversationPanel({
   onTogglePinnedOnly: (pinnedOnly: boolean) => void;
 }) {
   const chronologicalHistory = [...history].reverse();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Jump to the newest message (or the "thinking" indicator) whenever a new
+  // turn starts or arrives, so the answer is in view without manual scrolling.
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [loading, chronologicalHistory.length]);
 
   if (history.length === 0) {
     return (
@@ -1158,11 +1204,105 @@ function ConversationPanel({
             </div>
           </article>
         ) : null}
+        <div ref={messagesEndRef} aria-hidden="true" />
       </div>
     </section>
   );
 }
 
+
+function ChatFilesPanel({
+  files,
+  attachedNames,
+  onReuse,
+  onRemove,
+}: {
+  files: AttachedTextFile[];
+  attachedNames: string[];
+  onReuse: (files: AttachedTextFile[]) => void;
+  onRemove: (name: string) => void;
+}) {
+  const [selected, setSelected] = useState<string[]>([]);
+  const [open, setOpen] = useState(true);
+
+  const toggle = (name: string) =>
+    setSelected((current) =>
+      current.includes(name)
+        ? current.filter((item) => item !== name)
+        : [...current, name],
+    );
+
+  const reuseSelected = () => {
+    const picked = files.filter((file) => selected.includes(file.name));
+    if (picked.length > 0) {
+      onReuse(picked);
+      setSelected([]);
+    }
+  };
+
+  return (
+    <section className="chat-files-panel" aria-label="Files used in this chat">
+      <button
+        type="button"
+        className="chat-files-head"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="chat-files-title">
+          <i className="chat-files-chevron" data-open={open} aria-hidden="true" />
+          Files in this chat
+        </span>
+        <span className="chat-files-count">{files.length}</span>
+      </button>
+      {open ? (
+        <>
+          <ul className="chat-files-list">
+            {files.map((file) => {
+              const isSelected = selected.includes(file.name);
+              const isAttached = attachedNames.includes(file.name);
+              return (
+                <li key={file.name} className="chat-file-row">
+                  <label className="chat-file-pick">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggle(file.name)}
+                    />
+                    <span className="chat-file-name" title={file.name}>
+                      {file.name}
+                    </span>
+                  </label>
+                  <span className="chat-file-size">{file.sizeKb}KB</span>
+                  {isAttached ? (
+                    <span className="chat-file-attached" title="Attached to your next question">
+                      attached
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="chat-file-remove"
+                    aria-label={`Remove ${file.name} from this chat`}
+                    title="Remove from this chat"
+                    onClick={() => onRemove(file.name)}
+                  >
+                    &times;
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <button
+            type="button"
+            className="chat-files-reuse"
+            disabled={selected.length === 0}
+            onClick={reuseSelected}
+          >
+            Ask about selected ({selected.length})
+          </button>
+        </>
+      ) : null}
+    </section>
+  );
+}
 
 function formatGb(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
@@ -1654,6 +1794,16 @@ function ConversationTurn({
       <div className="ask-message-row is-user">
         <div className="ask-message-bubble user-bubble">
           <p>{item.question}</p>
+          {item.attachedFileNames.length > 0 ? (
+            <div className="ask-message-files" aria-label="Attached files">
+              {item.attachedFileNames.map((name) => (
+                <span key={name} className="ask-message-file-chip" title={name}>
+                  <span className="ask-message-file-icon" aria-hidden="true">▤</span>
+                  {name}
+                </span>
+              ))}
+            </div>
+          ) : null}
           <div className="ask-message-actions">
             <button
               className="text-button"
@@ -2556,13 +2706,17 @@ function conversationToHistory(conversation: WorkspaceConversation): AskHistoryI
       sourcesCount: assistantMessage.sources_count,
       warningsCount: 0,
       createdAt: assistantMessage.created_at,
+      attachedFileNames: [],
       response,
     });
   }
   return items;
 }
 
-function createHistoryItem(response: WorkspaceQuestionAnswer): AskHistoryItem {
+function createHistoryItem(
+  response: WorkspaceQuestionAnswer,
+  attachedFileNames: string[] = [],
+): AskHistoryItem {
   return {
     id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
     question: response.question,
@@ -2571,6 +2725,7 @@ function createHistoryItem(response: WorkspaceQuestionAnswer): AskHistoryItem {
     sourcesCount: response.sources.length,
     warningsCount: response.quality_warnings?.length ?? 0,
     createdAt: new Date().toISOString(),
+    attachedFileNames,
     response,
   };
 }
