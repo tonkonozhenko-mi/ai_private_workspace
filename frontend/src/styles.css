@@ -1453,7 +1453,7 @@ details.onboarding-guide-panel[open] > summary {
 .runtime-mem-fill { position: absolute; inset: 0 auto 0 0; background: var(--c-accent); border-radius: 999px; transition: width 0.5s ease; }
 .runtime-mem-label { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .runtime-mem-label span { color: var(--c-text-3); opacity: 0.75; }
-.assistant-bubble.is-streaming { white-space: pre-wrap; }
+.assistant-bubble.is-streaming { white-space: pre-wrap; max-width: 100%; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
 .ask-stream-caret { display: inline-block; width: 7px; height: 1.05em; margin-left: 2px; vertical-align: -2px; background: var(--c-accent); border-radius: 1px; animation: ask-stream-blink 1s step-end infinite; }
 @keyframes ask-stream-blink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
 .models-overview-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--s-4); }
@@ -3486,6 +3486,18 @@ details.onboarding-guide-panel[open] > summary {
   border: 1px solid var(--c-border);
   border-radius: var(--r-sm);
 }
+/* Keep long code/JSON inside the answer width: scroll it, never blow the layout. */
+.answer-content { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.markdown-code-block { max-width: 100%; min-width: 0; }
+.markdown-code-block pre {
+  max-width: 100%;
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre;
+  padding: var(--s-3);
+}
+.answer-content :not(pre) > code { overflow-wrap: anywhere; word-break: break-word; }
+.ask-message-row { min-width: 0; max-width: 100%; }
 
 /* ---------- Scroll up/down control ---------- */
 .ask-scroll-buttons {
