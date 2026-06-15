@@ -1374,6 +1374,7 @@ export interface ModelExperimentPlanRequest {
   workspace_id: string;
   question: string;
   candidates: ModelExperimentCandidateRequest[];
+  attached_documents?: { name: string; content: string }[];
 }
 
 export interface ModelExperimentPlanCandidate {

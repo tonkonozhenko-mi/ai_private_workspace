@@ -11,12 +11,20 @@ class ModelExperimentRunCandidateRequest(BaseModel):
     model: str
 
 
+class ModelExperimentAttachedDocumentRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    content: str = Field(..., min_length=1, max_length=400_000)
+
+
 class RunModelExperimentRequest(BaseModel):
     workspace_id: str
     question: str
     experiment_type: str = "llm_comparison"
     candidates: list[ModelExperimentRunCandidateRequest]
     limit: int = Field(default=3, ge=1, le=50)
+    attached_documents: list[ModelExperimentAttachedDocumentRequest] = Field(
+        default_factory=list, max_length=6
+    )
 
 
 class ModelExperimentCandidateResultResponse(BaseModel):
