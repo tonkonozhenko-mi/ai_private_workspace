@@ -77,12 +77,14 @@ def test_public_routes_have_openapi_tags() -> None:
 
 
 def test_workspaces_overview_does_not_conflict_with_workspace_id_route() -> None:
-    # Newer Starlette includes router objects in app.routes that have no
-    # `.path`; only compare real path routes.
-    route_paths = [route.path for route in app.routes if hasattr(route, "path")]
+    # Both routes must be registered.
+    openapi_paths = set(app.openapi()["paths"])
+    assert "/workspaces/overview" in openapi_paths
+    assert "/workspaces/{workspace_id}" in openapi_paths
 
-    assert route_paths.index("/workspaces/overview") < route_paths.index(
-        "/workspaces/{workspace_id}"
-    )
+    # The literal /workspaces/overview route must take precedence over the
+    # /workspaces/{workspace_id} parameter route. Verify behaviorally (robust
+    # across FastAPI/Starlette versions): if precedence were wrong, this would
+    # be captured by the {workspace_id} handler and not return 200.
     response = client.get("/workspaces/overview")
     assert response.status_code == 200
