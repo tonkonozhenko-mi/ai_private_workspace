@@ -952,9 +952,7 @@ function ConversationPanel({
         {loading ? (
           <article className="ask-message-row is-assistant">
             <img className="ask-avatar-img" src="/avatar-ai-robot-512.png" alt="AI" width={32} height={32} />
-            <div className="ask-message-bubble assistant-bubble is-loading">
-              <span>Thinking with workspace context...</span>
-            </div>
+            <ThinkingIndicator />
           </article>
         ) : null}
       </div>
@@ -962,6 +960,27 @@ function ConversationPanel({
   );
 }
 
+
+function ThinkingIndicator() {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setSeconds((value) => value + 1), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  return (
+    <div className="ask-message-bubble assistant-bubble is-loading">
+      <span>
+        Thinking with workspace context… <strong>{seconds}s</strong>
+      </span>
+      {seconds >= 10 ? (
+        <span className="ask-thinking-note">
+          Reasoning models run locally on your CPU and can take a while —
+          the answer appears here when it's ready. Press Stop to cancel.
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 function ConversationHistoryBar({
   conversations,
