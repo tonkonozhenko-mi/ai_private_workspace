@@ -1590,6 +1590,20 @@ details.onboarding-guide-panel[open] > summary {
 .guided-model-selected-meta em { font-style: normal; }
 .installed-models-group + .installed-models-group { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--c-border); }
 .installed-models-group-label { margin: 0 0 10px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-text-3); font-weight: 600; }
+.first-run { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 24px; background: var(--c-bg); }
+.first-run-inner { display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 540px; }
+.first-run-mark { width: 84px; height: 84px; border-radius: 22px; background: var(--c-surface); border: 1px solid var(--c-border); display: flex; align-items: center; justify-content: center; color: var(--c-accent); margin-bottom: 30px; }
+.first-run-eyebrow { margin: 0 0 18px; color: var(--c-text-3); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; }
+.first-run-title { margin: 0; color: var(--c-text); font-size: 32px; font-weight: 500; line-height: 1.25; max-width: 15ch; }
+.first-run-sub { margin: 18px 0 0; color: var(--c-text-2); font-size: 16px; line-height: 1.65; max-width: 46ch; }
+.first-run-cta { margin-top: 38px; background: var(--c-accent); color: var(--c-accent-ink); font-size: 16px; font-weight: 500; padding: 15px 34px; border: none; border-radius: 14px; cursor: pointer; }
+.first-run-cta:hover { background: var(--c-accent-hover); }
+.first-run-foot { margin-top: 52px; padding-top: 22px; border-top: 1px solid var(--c-border); display: flex; align-items: center; gap: 9px; color: var(--c-text-3); font-size: 12.5px; }
+.settings-skill-select { display: block; margin-bottom: 12px; }
+.settings-skill-select select { width: 100%; }
+.settings-skill-editor { display: flex; flex-direction: column; gap: 10px; }
+.settings-skill-editor textarea { resize: vertical; }
+.settings-skill-editor-note { font-size: 12.5px; color: var(--c-text-3); line-height: 1.5; align-self: center; }
 .settings-skills-group-label { display: block; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-text-3); font-weight: 600; margin: 4px 0 2px; }
 .settings-skill-edit-list { display: flex; flex-direction: column; gap: 14px; }
 .settings-skill-edit { display: flex; flex-direction: column; gap: 6px; }

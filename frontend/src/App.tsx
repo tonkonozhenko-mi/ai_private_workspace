@@ -180,6 +180,45 @@ async function waitForBackendApi(baseUrl: string, attempts = 20): Promise<boolea
   return false;
 }
 
+function FirstRunWelcome({
+  productName,
+  onOpen,
+}: {
+  productName: string;
+  onOpen: () => void;
+}) {
+  return (
+    <div className="first-run">
+      <div className="first-run-inner">
+        <div className="first-run-mark" aria-hidden="true">
+          <svg width="44" height="44" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 22 24 9l15 13" />
+            <path d="M12 20v16h24V20" />
+            <rect x="20" y="27" width="8" height="9" rx="2" fill="var(--c-surface-2)" />
+            <path d="M21.5 27v-2a2.5 2.5 0 0 1 5 0v2" />
+          </svg>
+        </div>
+        <p className="first-run-eyebrow">Local-first</p>
+        <h1 className="first-run-title">A quiet place to think with your own projects</h1>
+        <p className="first-run-sub">
+          Point {productName} at a folder on this Mac and ask anything. Your files,
+          your answers — nothing leaves this computer.
+        </p>
+        <button className="first-run-cta" type="button" onClick={onOpen}>
+          Open a project folder
+        </button>
+        <div className="first-run-foot">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="5" y="11" width="14" height="9" rx="2" />
+            <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+          </svg>
+          Runs entirely offline · no cloud · no accounts
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [workspaces, setWorkspaces] = useState<WorkspaceOverviewItem[]>([]);
   const [archivedWorkspaces, setArchivedWorkspaces] = useState<WorkspaceOverviewItem[]>([]);
@@ -718,6 +757,22 @@ function App() {
       cancelled = true;
     };
   }, [loadWorkspaces, preferences.apiBaseUrl]);
+
+  const isFirstRun =
+    !workspacesLoading &&
+    !workspacesError &&
+    workspaces.length === 0 &&
+    archivedWorkspaces.length === 0 &&
+    !showCreateWorkspace;
+
+  if (isFirstRun) {
+    return (
+      <FirstRunWelcome
+        productName={preferences.productName}
+        onOpen={() => setShowCreateWorkspace(true)}
+      />
+    );
+  }
 
   return (
     <div className={`app-shell${preferences.demoMode === "on" ? " is-demo-mode" : ""}`}>
