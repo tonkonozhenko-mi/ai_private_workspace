@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -22,6 +22,8 @@ class WorkspaceOverviewItem:
     last_event_title: str | None
     last_event_type: str | None
     last_event_at: str | None
+    storage_total_bytes: int = 0
+    storage_breakdown: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

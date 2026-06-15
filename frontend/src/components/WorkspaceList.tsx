@@ -11,10 +11,14 @@ interface WorkspaceListProps {
   showArchived: boolean;
   archivingWorkspaceId?: string | null;
   restoringWorkspaceId?: string | null;
+  deletingWorkspaceId?: string | null;
+  clearingIndexWorkspaceId?: string | null;
   onToggleArchived: () => void;
   onSelect: (workspaceId: string) => void;
   onArchive: (workspace: WorkspaceOverviewItem) => void;
   onRestore: (workspace: WorkspaceOverviewItem) => void;
+  onDelete: (workspace: WorkspaceOverviewItem) => void;
+  onClearIndex: (workspace: WorkspaceOverviewItem) => void;
 }
 
 export function WorkspaceList({
@@ -24,15 +28,15 @@ export function WorkspaceList({
   showArchived,
   archivingWorkspaceId,
   restoringWorkspaceId,
+  deletingWorkspaceId,
+  clearingIndexWorkspaceId,
   onToggleArchived,
   onSelect,
   onArchive,
   onRestore,
+  onDelete,
+  onClearIndex,
 }: WorkspaceListProps) {
-  const [confirmingWorkspaceId, setConfirmingWorkspaceId] = useState<string | null>(
-    null,
-  );
-
   if (workspaces.length === 0 && archivedWorkspaces.length === 0) {
     return (
       <EmptyState
@@ -59,23 +63,17 @@ export function WorkspaceList({
         ) : (
           workspaces.map((workspace) => (
             <WorkspaceCard
-            key={workspace.workspace_id}
-            workspace={workspace}
-            selected={workspace.workspace_id === selectedWorkspaceId}
-            confirming={confirmingWorkspaceId === workspace.workspace_id}
-            busy={archivingWorkspaceId === workspace.workspace_id}
-            actionLabel="Archive"
-            confirmingLabel="Confirm archive"
-            busyLabel="Archiving..."
-            danger
-            onSelect={() => {
-              setConfirmingWorkspaceId(null);
-              onSelect(workspace.workspace_id);
-            }}
-            onStartConfirm={() => setConfirmingWorkspaceId(workspace.workspace_id)}
-            onCancelConfirm={() => setConfirmingWorkspaceId(null)}
-            onConfirm={() => onArchive(workspace)}
-          />
+              key={workspace.workspace_id}
+              workspace={workspace}
+              selected={workspace.workspace_id === selectedWorkspaceId}
+              archivingBusy={archivingWorkspaceId === workspace.workspace_id}
+              deletingBusy={deletingWorkspaceId === workspace.workspace_id}
+              clearingBusy={clearingIndexWorkspaceId === workspace.workspace_id}
+              onSelect={() => onSelect(workspace.workspace_id)}
+              onArchive={() => onArchive(workspace)}
+              onDelete={() => onDelete(workspace)}
+              onClearIndex={() => onClearIndex(workspace)}
+            />
           ))
         )}
       </div>
@@ -106,14 +104,11 @@ export function WorkspaceList({
                 workspace={workspace}
                 selected={false}
                 archived
-                confirming={false}
-                busy={restoringWorkspaceId === workspace.workspace_id}
-                actionLabel="Restore"
-                busyLabel="Restoring..."
+                restoringBusy={restoringWorkspaceId === workspace.workspace_id}
+                deletingBusy={deletingWorkspaceId === workspace.workspace_id}
                 onSelect={() => undefined}
-                onStartConfirm={() => onRestore(workspace)}
-                onCancelConfirm={() => undefined}
-                onConfirm={() => undefined}
+                onRestore={() => onRestore(workspace)}
+                onDelete={() => onDelete(workspace)}
               />
             ))
           )}
@@ -123,37 +118,47 @@ export function WorkspaceList({
   );
 }
 
+type CardMode =
+  | { kind: "idle" }
+  | { kind: "menu" }
+  | { kind: "confirm"; action: "archive" | "delete" | "clear" };
+
 interface WorkspaceCardProps {
   workspace: WorkspaceOverviewItem;
   selected: boolean;
-  confirming: boolean;
-  busy: boolean;
   archived?: boolean;
-  danger?: boolean;
-  actionLabel: string;
-  confirmingLabel?: string;
-  busyLabel: string;
+  archivingBusy?: boolean;
+  restoringBusy?: boolean;
+  deletingBusy?: boolean;
+  clearingBusy?: boolean;
   onSelect: () => void;
-  onStartConfirm: () => void;
-  onCancelConfirm: () => void;
-  onConfirm: () => void;
+  onArchive?: () => void;
+  onRestore?: () => void;
+  onDelete?: () => void;
+  onClearIndex?: () => void;
 }
 
 function WorkspaceCard({
   workspace,
   selected,
-  confirming,
-  busy,
   archived = false,
-  danger = false,
-  actionLabel,
-  confirmingLabel,
-  busyLabel,
+  archivingBusy = false,
+  restoringBusy = false,
+  deletingBusy = false,
+  clearingBusy = false,
   onSelect,
-  onStartConfirm,
-  onCancelConfirm,
-  onConfirm,
+  onArchive,
+  onRestore,
+  onDelete,
+  onClearIndex,
 }: WorkspaceCardProps) {
+  const [mode, setMode] = useState<CardMode>({ kind: "idle" });
+
+  const busy = archivingBusy || restoringBusy || deletingBusy || clearingBusy;
+  const canClearIndex = workspace.index_status === "indexed";
+
+  const reset = () => setMode({ kind: "idle" });
+
   return (
     <div
       className={`workspace-list-card${selected ? " is-selected" : ""}${archived ? " is-archived" : ""}`}
@@ -163,7 +168,10 @@ function WorkspaceCard({
         type="button"
         aria-current={selected ? "page" : undefined}
         disabled={archived}
-        onClick={onSelect}
+        onClick={() => {
+          reset();
+          onSelect();
+        }}
       >
         <span className="workspace-list-heading">
           <strong>{workspace.name}</strong>
@@ -187,39 +195,191 @@ function WorkspaceCard({
           </span>
         ) : null}
       </button>
+
       <div className="workspace-card-actions" aria-label={`${workspace.name} actions`}>
-        {confirming ? (
-          <>
+        <StorageSize workspace={workspace} />
+
+        <div className="workspace-card-action-controls">
+          {mode.kind === "confirm" ? (
+            <ConfirmBar
+              action={mode.action}
+              busy={busy}
+              onConfirm={() => {
+                if (mode.action === "archive") onArchive?.();
+                else if (mode.action === "delete") onDelete?.();
+                else onClearIndex?.();
+                reset();
+              }}
+              onCancel={reset}
+            />
+          ) : archived ? (
+            <>
+              <button
+                className="workspace-card-action is-restore"
+                type="button"
+                disabled={busy}
+                onClick={() => onRestore?.()}
+              >
+                {restoringBusy ? "Restoring..." : "Restore"}
+              </button>
+              <button
+                className="workspace-card-action is-danger"
+                type="button"
+                disabled={busy}
+                onClick={() => setMode({ kind: "confirm", action: "delete" })}
+              >
+                {deletingBusy ? "Deleting..." : "Delete"}
+              </button>
+            </>
+          ) : mode.kind === "menu" ? (
+            <>
+              {canClearIndex ? (
+                <button
+                  className="workspace-card-action"
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setMode({ kind: "confirm", action: "clear" })}
+                >
+                  Clear index
+                </button>
+              ) : null}
+              <button
+                className="workspace-card-action"
+                type="button"
+                disabled={busy}
+                onClick={() => setMode({ kind: "confirm", action: "archive" })}
+              >
+                Archive
+              </button>
+              <button
+                className="workspace-card-action is-danger"
+                type="button"
+                disabled={busy}
+                onClick={() => setMode({ kind: "confirm", action: "delete" })}
+              >
+                Delete
+              </button>
+              <button
+                className="workspace-card-action"
+                type="button"
+                disabled={busy}
+                onClick={reset}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
             <button
-              className={`workspace-card-action${danger ? " is-danger" : ""}`}
+              className="workspace-card-action workspace-card-manage"
               type="button"
               disabled={busy}
-              onClick={onConfirm}
+              aria-label={`Manage ${workspace.name}`}
+              onClick={() => setMode({ kind: "menu" })}
             >
-              {busy ? busyLabel : confirmingLabel ?? actionLabel}
+              {busy ? busyLabel(archivingBusy, clearingBusy, deletingBusy) : "Manage"}
             </button>
-            <button
-              className="workspace-card-action"
-              type="button"
-              disabled={busy}
-              onClick={onCancelConfirm}
-            >
-              Cancel
-            </button>
-          </>
-        ) : (
-          <button
-            className={`workspace-card-action${danger ? " is-danger" : " is-restore"}`}
-            type="button"
-            disabled={busy}
-            onClick={onStartConfirm}
-          >
-            {busy ? busyLabel : actionLabel}
-          </button>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
+}
+
+function ConfirmBar({
+  action,
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  action: "archive" | "delete" | "clear";
+  busy: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const copy = {
+    archive: { label: "Archive project?", confirm: "Archive", danger: false },
+    delete: { label: "Delete permanently?", confirm: "Delete", danger: true },
+    clear: { label: "Clear search index?", confirm: "Clear", danger: false },
+  }[action];
+
+  return (
+    <div className="workspace-confirm">
+      <span className="workspace-confirm-label">{copy.label}</span>
+      <span className="workspace-confirm-buttons">
+        <button
+          className={`workspace-card-action${copy.danger ? " is-danger" : ""}`}
+          type="button"
+          disabled={busy}
+          onClick={onConfirm}
+        >
+          {copy.confirm}
+        </button>
+        <button
+          className="workspace-card-action"
+          type="button"
+          disabled={busy}
+          onClick={onCancel}
+        >
+          Cancel
+        </button>
+      </span>
+    </div>
+  );
+}
+
+function StorageSize({ workspace }: { workspace: WorkspaceOverviewItem }) {
+  const total = workspace.storage_total_bytes ?? 0;
+  const breakdown = workspace.storage_breakdown ?? {};
+  const rows = STORAGE_CATEGORIES.map(([key, label]) => [label, breakdown[key] ?? 0] as const);
+
+  return (
+    <span className="workspace-size" tabIndex={0} aria-label={`Storage used: ${formatBytes(total)}`}>
+      <span className="workspace-size-value">{formatBytes(total)}</span>
+      <span className="workspace-size-tooltip" role="tooltip">
+        <span className="workspace-size-tooltip-title">App data for this project</span>
+        {rows.map(([label, value]) => (
+          <span className="workspace-size-tooltip-row" key={label}>
+            <span>{label}</span>
+            <span>{formatBytes(value)}</span>
+          </span>
+        ))}
+        <span className="workspace-size-tooltip-row is-total">
+          <span>Total</span>
+          <span>{formatBytes(total)}</span>
+        </span>
+        <span className="workspace-size-tooltip-note">
+          Your project files on disk are not counted.
+        </span>
+      </span>
+    </span>
+  );
+}
+
+const STORAGE_CATEGORIES: ReadonlyArray<readonly [string, string]> = [
+  ["index", "Search index"],
+  ["conversations", "Conversations"],
+  ["notes", "Notes & reports"],
+  ["scan", "Project scan"],
+  ["other", "Other"],
+];
+
+function busyLabel(archiving: boolean, clearing: boolean, deleting: boolean) {
+  if (deleting) return "Deleting...";
+  if (clearing) return "Clearing...";
+  if (archiving) return "Archiving...";
+  return "Working...";
+}
+
+function formatBytes(bytes: number): string {
+  if (!bytes || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const exponent = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  );
+  const value = bytes / Math.pow(1024, exponent);
+  const rounded = value >= 100 || exponent === 0 ? Math.round(value) : Math.round(value * 10) / 10;
+  return `${rounded} ${units[exponent]}`;
 }
 
 function formatLabel(value: string) {

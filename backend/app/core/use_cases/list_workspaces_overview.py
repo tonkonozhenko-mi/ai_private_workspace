@@ -12,6 +12,7 @@ from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.ports.workspace_storage_gateway import WorkspaceStorageGatewayPort
 
 
 class ListWorkspacesOverviewUseCase:
@@ -23,6 +24,7 @@ class ListWorkspacesOverviewUseCase:
         command_repository: CommandRepositoryPort,
         timeline_repository: TimelineRepositoryPort,
         configuration: dict[str, str],
+        storage_gateway: WorkspaceStorageGatewayPort | None = None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.project_scan_repository = project_scan_repository
@@ -30,6 +32,7 @@ class ListWorkspacesOverviewUseCase:
         self.command_repository = command_repository
         self.timeline_repository = timeline_repository
         self.configuration = configuration
+        self.storage_gateway = storage_gateway
 
     def execute(self, include_archived: bool = False) -> WorkspacesOverview:
         items = [
@@ -61,6 +64,7 @@ class ListWorkspacesOverviewUseCase:
             "memory",
         )
         next_action_id, next_action_title = self._next_action(has_scan, is_indexed)
+        storage_total_bytes, storage_breakdown = self._storage(workspace.id)
 
         return WorkspaceOverviewItem(
             workspace_id=workspace.id,
@@ -93,7 +97,18 @@ class ListWorkspacesOverviewUseCase:
             last_event_title=last_event.title if last_event is not None else None,
             last_event_type=last_event.event_type if last_event is not None else None,
             last_event_at=last_event.created_at if last_event is not None else None,
+            storage_total_bytes=storage_total_bytes,
+            storage_breakdown=storage_breakdown,
         )
+
+    def _storage(self, workspace_id: str) -> tuple[int, dict[str, int]]:
+        if self.storage_gateway is None:
+            return 0, {}
+        try:
+            breakdown = self.storage_gateway.get_or_compute(workspace_id)
+        except Exception:  # noqa: BLE001 - storage stats must never break the overview
+            return 0, {}
+        return breakdown.total_bytes, dict(breakdown.categories)
 
     def _configured_provider_is_real(self, key: str, development_value: str) -> bool:
         value = self.configuration.get(key, "").lower()

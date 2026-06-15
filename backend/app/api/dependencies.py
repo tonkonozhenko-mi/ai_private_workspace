@@ -53,6 +53,12 @@ from app.adapters.memory.sqlite_report_repository import SQLiteReportRepository
 from app.adapters.memory.sqlite_skill_profile_repository import SQLiteSkillProfileRepository
 from app.adapters.memory.sqlite_timeline_repository import SQLiteTimelineRepository
 from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
+from app.adapters.memory.in_memory_workspace_storage_gateway import (
+    InMemoryWorkspaceStorageGateway,
+)
+from app.adapters.memory.sqlite_workspace_storage_gateway import (
+    SQLiteWorkspaceStorageGateway,
+)
 from app.adapters.memory.sqlite_workspace_model_selection_repository import (
     SQLiteWorkspaceModelSelectionRepository,
 )
@@ -93,6 +99,7 @@ from app.core.ports.skill_profile_repository import SkillProfileRepositoryPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.ports.workspace_storage_gateway import WorkspaceStorageGatewayPort
 from app.core.ports.workspace_model_selection_repository import (
     WorkspaceModelSelectionRepositoryPort,
 )
@@ -275,6 +282,21 @@ def build_workspace_model_selection_repository() -> WorkspaceModelSelectionRepos
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
 
+def build_workspace_storage_gateway() -> WorkspaceStorageGatewayPort:
+    settings = get_settings()
+    if settings.workspace_repository.lower() == "memory":
+        return InMemoryWorkspaceStorageGateway()
+    vector_store_path = (
+        settings.vector_store_path
+        if settings.vector_store.lower() == "sqlite"
+        else None
+    )
+    return SQLiteWorkspaceStorageGateway(
+        workspace_db_path=settings.workspace_db_path,
+        vector_store_path=vector_store_path,
+    )
+
+
 def build_command_runner() -> CommandRunnerPort:
     settings = get_settings()
     runner_type = settings.command_runner.lower()
@@ -449,6 +471,7 @@ conversation_repository = build_conversation_repository()
 model_experiment_repository = build_model_experiment_repository()
 model_experiment_rating_repository = build_model_experiment_rating_repository()
 workspace_model_selection_repository = build_workspace_model_selection_repository()
+workspace_storage_gateway = build_workspace_storage_gateway()
 file_system = LocalFileSystem()
 command_runner = build_command_runner()
 embedding_provider = build_embedding_provider()

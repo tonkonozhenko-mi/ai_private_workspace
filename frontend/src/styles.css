@@ -571,8 +571,114 @@ a {
 }
 .workspace-card-actions {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--s-2);
   padding: var(--s-2) var(--s-3) var(--s-3);
+}
+.workspace-card-action-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--s-2);
+}
+.workspace-card-action.workspace-card-manage {
+  padding: 5px 12px;
+  font-size: 12px;
+}
+
+/* --- Per-project storage size + breakdown tooltip --- */
+.workspace-size {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--c-text-3);
+  cursor: default;
+  outline: none;
+}
+.workspace-size-value {
+  padding: 2px 7px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--c-surface-2);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.workspace-size:hover .workspace-size-value,
+.workspace-size:focus-visible .workspace-size-value {
+  color: var(--c-text);
+  border-color: var(--c-border-strong);
+}
+.workspace-size-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  min-width: 210px;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-md);
+  background: var(--c-surface-3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  color: var(--c-text-2);
+  font-weight: 400;
+  cursor: default;
+}
+.workspace-size:hover .workspace-size-tooltip,
+.workspace-size:focus-within .workspace-size-tooltip,
+.workspace-size:focus-visible .workspace-size-tooltip {
+  display: flex;
+}
+.workspace-size-tooltip-title {
+  color: var(--c-text);
+  font-weight: 600;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+.workspace-size-tooltip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  font-size: 12px;
+}
+.workspace-size-tooltip-row span:last-child {
+  font-family: var(--font-mono);
+  color: var(--c-text);
+}
+.workspace-size-tooltip-row.is-total {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--c-border);
+  font-weight: 600;
+}
+.workspace-size-tooltip-note {
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: var(--c-text-3);
+  line-height: 1.4;
+}
+
+/* --- Inline confirm bar for archive / clear / delete --- */
+.workspace-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.workspace-confirm-label {
+  font-size: 12px;
+  color: var(--c-text-2);
+}
+.workspace-confirm-buttons {
+  display: flex;
+  gap: var(--s-2);
 }
 
 /* --- Models section nav (Overview / Choose & install / …) --- */

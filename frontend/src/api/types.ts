@@ -124,11 +124,20 @@ export interface WorkspaceOverviewItem {
   last_event_title: string | null;
   last_event_type: string | null;
   last_event_at: string | null;
+  storage_total_bytes: number;
+  storage_breakdown: Record<string, number>;
 }
 
 export interface WorkspacesOverview {
   total_workspaces: number;
   items: WorkspaceOverviewItem[];
+}
+
+export interface WorkspaceStorage {
+  workspace_id: string;
+  total_bytes: number;
+  breakdown: Record<string, number>;
+  computed_at: string | null;
 }
 
 export interface LocalDataBackupHint {

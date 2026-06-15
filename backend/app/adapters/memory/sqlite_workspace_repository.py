@@ -116,6 +116,15 @@ class SQLiteWorkspaceRepository:
             connection.commit()
         return workspace
 
+    def delete(self, workspace_id: str) -> bool:
+        with self._connect() as connection:
+            cursor = connection.execute(
+                "DELETE FROM workspaces WHERE id = ?",
+                (workspace_id,),
+            )
+            connection.commit()
+            return cursor.rowcount > 0
+
     def _connect(self) -> sqlite3.Connection:
         try:
             self.db_path.parent.mkdir(parents=True, exist_ok=True)

@@ -27,6 +27,7 @@ from app.api.dependencies import (
     vector_store,
     workspace_model_selection_repository,
     workspace_repository,
+    workspace_storage_gateway,
 )
 
 
@@ -257,6 +258,25 @@ from app.core.use_cases.create_workspace import (
     CreateWorkspaceInput,
     CreateWorkspaceUseCase,
 )
+from app.core.use_cases.delete_workspace import (
+    DeleteWorkspaceInput,
+    DeleteWorkspaceNotFoundError,
+    DeleteWorkspaceUseCase,
+)
+from app.core.use_cases.clear_workspace_index import (
+    ClearWorkspaceIndexInput,
+    ClearWorkspaceIndexNotFoundError,
+    ClearWorkspaceIndexUseCase,
+)
+from app.core.use_cases.get_workspace_storage import (
+    GetWorkspaceStorageInput,
+    GetWorkspaceStorageNotFoundError,
+    GetWorkspaceStorageUseCase,
+)
+from app.api.schemas.workspace_storage_schemas import (
+    WorkspaceStorageResponse,
+    to_workspace_storage_response,
+)
 from app.core.use_cases.get_workspace_latest_scan import (
     GetWorkspaceLatestScanInput,
     GetWorkspaceLatestScanUseCase,
@@ -461,6 +481,18 @@ from app.core.use_cases.write_workspace_file import (
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 
 
+def _safe_invalidate_storage(workspace_id: str) -> None:
+    """Drop the cached storage size so the next read recomputes it.
+
+    Storage stats are best-effort: never let a cache refresh failure break the
+    surrounding scan/index request.
+    """
+    try:
+        workspace_storage_gateway.invalidate(workspace_id)
+    except Exception:  # noqa: BLE001
+        logger.warning("Could not invalidate storage stats for %s", workspace_id)
+
+
 class CreateWorkspaceRequest(BaseModel):
     name: str = Field(..., min_length=1)
     project_path: str = Field(..., min_length=1)
@@ -530,6 +562,7 @@ def list_workspaces_overview(
         command_repository=command_repository,
         timeline_repository=timeline_repository,
         configuration=readiness_configuration,
+        storage_gateway=workspace_storage_gateway,
     ).execute(include_archived=include_archived)
     return to_workspaces_overview_response(overview)
 
@@ -662,6 +695,60 @@ def archive_workspace(workspace_id: str) -> WorkspaceResponse:
             detail=str(exc),
         ) from exc
     return to_workspace_response(workspace)
+
+
+@router.get("/{workspace_id}/storage", response_model=WorkspaceStorageResponse)
+def get_workspace_storage(
+    workspace_id: str,
+    recompute: bool = False,
+) -> WorkspaceStorageResponse:
+    try:
+        breakdown = GetWorkspaceStorageUseCase(
+            workspace_repository=workspace_repository,
+            storage_gateway=workspace_storage_gateway,
+        ).execute(
+            GetWorkspaceStorageInput(workspace_id=workspace_id, recompute=recompute)
+        )
+    except GetWorkspaceStorageNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return to_workspace_storage_response(breakdown)
+
+
+@router.post("/{workspace_id}/index/clear", response_model=WorkspaceStorageResponse)
+def clear_workspace_index(workspace_id: str) -> WorkspaceStorageResponse:
+    try:
+        breakdown = ClearWorkspaceIndexUseCase(
+            workspace_repository=workspace_repository,
+            vector_store=vector_store,
+            index_status_repository=index_status_repository,
+            storage_gateway=workspace_storage_gateway,
+            timeline_repository=timeline_repository,
+        ).execute(ClearWorkspaceIndexInput(workspace_id=workspace_id))
+    except ClearWorkspaceIndexNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return to_workspace_storage_response(breakdown)
+
+
+@router.delete("/{workspace_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_workspace(workspace_id: str) -> None:
+    try:
+        DeleteWorkspaceUseCase(
+            workspace_repository=workspace_repository,
+            storage_gateway=workspace_storage_gateway,
+            vector_store=vector_store,
+        ).execute(DeleteWorkspaceInput(workspace_id=workspace_id))
+    except DeleteWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return None
 
 
 @router.post("/{workspace_id}/restore", response_model=WorkspaceResponse)
@@ -889,6 +976,7 @@ def start_index_workspace_job(workspace_id: str) -> WorkspaceJobResponse:
         except IndexWorkspaceCancelledError as exc:
             raise WorkspaceJobCancelledError(str(exc)) from exc
         job_control.checkpoint("Finalizing search context build...")
+        _safe_invalidate_storage(workspace_id)
         return _index_workspace_result_summary(result)
 
     job = workspace_job_runner.start_job(
@@ -991,6 +1079,7 @@ def scan_workspace_project(
             detail=str(exc),
         ) from exc
 
+    _safe_invalidate_storage(workspace_id)
     return to_project_scan_response(result)
 
 
@@ -1033,6 +1122,7 @@ def index_workspace(workspace_id: str) -> WorkspaceIndexResponse:
             detail=str(exc),
         ) from exc
 
+    _safe_invalidate_storage(workspace_id)
     return to_workspace_index_response(result)
 
 

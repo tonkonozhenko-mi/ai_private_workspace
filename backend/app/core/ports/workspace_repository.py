@@ -16,5 +16,8 @@ class WorkspaceRepositoryPort(Protocol):
     def update(self, workspace: Workspace) -> Workspace:
         """Persist changes to an existing workspace."""
 
+    def delete(self, workspace_id: str) -> bool:
+        """Permanently remove a workspace. Returns True if a row was deleted."""
+
 
 WorkspaceRepository = WorkspaceRepositoryPort

@@ -273,6 +273,16 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             )
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS workspace_storage_stats (
+                workspace_id TEXT PRIMARY KEY,
+                total_bytes INTEGER NOT NULL,
+                breakdown_json TEXT NOT NULL,
+                computed_at TEXT NOT NULL
+            )
+            """
+        )
         _add_column_if_missing(
             connection,
             table_name="workspaces",

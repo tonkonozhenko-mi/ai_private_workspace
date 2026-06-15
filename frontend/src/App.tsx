@@ -4,6 +4,8 @@ import {
   DEFAULT_API_BASE_URL,
   archiveWorkspace,
   restoreWorkspace,
+  deleteWorkspace,
+  clearWorkspaceIndex,
   getLocalAIActivationGuide,
   getModelsDashboardSummary,
   getWorkspaceDashboard,
@@ -151,6 +153,8 @@ function App() {
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
   const [archivingWorkspaceId, setArchivingWorkspaceId] = useState<string | null>(null);
   const [restoringWorkspaceId, setRestoringWorkspaceId] = useState<string | null>(null);
+  const [deletingWorkspaceId, setDeletingWorkspaceId] = useState<string | null>(null);
+  const [clearingIndexWorkspaceId, setClearingIndexWorkspaceId] = useState<string | null>(null);
   const [showArchivedWorkspaces, setShowArchivedWorkspaces] = useState(false);
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<WorkbenchPreferences>(() =>
@@ -396,6 +400,37 @@ function App() {
     }
   }, [loadWorkspaceDetail, loadWorkspaces]);
 
+  const handleDeleteWorkspace = useCallback(async (workspace: WorkspaceOverviewItem) => {
+    setDeletingWorkspaceId(workspace.workspace_id);
+    setArchiveError(null);
+    try {
+      await deleteWorkspace(workspace.workspace_id);
+      await loadWorkspaces();
+    } catch (error) {
+      setArchiveError(`Could not delete ${workspace.name}: ${errorMessage(error)}`);
+    } finally {
+      setDeletingWorkspaceId(null);
+    }
+  }, [loadWorkspaces]);
+
+  const handleClearWorkspaceIndex = useCallback(async (workspace: WorkspaceOverviewItem) => {
+    setClearingIndexWorkspaceId(workspace.workspace_id);
+    setArchiveError(null);
+    try {
+      await clearWorkspaceIndex(workspace.workspace_id);
+      await loadWorkspaces();
+      if (selectedWorkspaceIdRef.current === workspace.workspace_id) {
+        await loadWorkspaceDetail(workspace.workspace_id);
+      }
+    } catch (error) {
+      setArchiveError(
+        `Could not clear the index for ${workspace.name}: ${errorMessage(error)}`,
+      );
+    } finally {
+      setClearingIndexWorkspaceId(null);
+    }
+  }, [loadWorkspaceDetail, loadWorkspaces]);
+
 
 
   const handlePreviewFileSelection = useCallback((workspaceId: string): Promise<FileSelectionPreview> => {
@@ -576,6 +611,8 @@ function App() {
               showArchived={showArchivedWorkspaces}
               archivingWorkspaceId={archivingWorkspaceId}
               restoringWorkspaceId={restoringWorkspaceId}
+              deletingWorkspaceId={deletingWorkspaceId}
+              clearingIndexWorkspaceId={clearingIndexWorkspaceId}
               onToggleArchived={() => setShowArchivedWorkspaces((current) => !current)}
               onSelect={(workspaceId) => {
                 setShowCreateWorkspace(false);
@@ -584,6 +621,8 @@ function App() {
               }}
               onArchive={(workspace) => void handleArchiveWorkspace(workspace)}
               onRestore={(workspace) => void handleRestoreWorkspace(workspace)}
+              onDelete={(workspace) => void handleDeleteWorkspace(workspace)}
+              onClearIndex={(workspace) => void handleClearWorkspaceIndex(workspace)}
             />
           </>
         )}

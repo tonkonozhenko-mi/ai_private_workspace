@@ -23,6 +23,8 @@ class WorkspaceOverviewItemResponse(BaseModel):
     last_event_title: str | None
     last_event_type: str | None
     last_event_at: str | None
+    storage_total_bytes: int = 0
+    storage_breakdown: dict[str, int] = {}
 
 
 class WorkspacesOverviewResponse(BaseModel):
@@ -53,6 +55,8 @@ def to_workspace_overview_item_response(
         last_event_title=item.last_event_title,
         last_event_type=item.last_event_type,
         last_event_at=item.last_event_at,
+        storage_total_bytes=item.storage_total_bytes,
+        storage_breakdown=dict(item.storage_breakdown),
     )
 
 

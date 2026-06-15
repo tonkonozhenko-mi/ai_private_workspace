@@ -79,6 +79,9 @@ models, run benchmarks, or change active runtime configuration.
 | `PATCH /workspaces/{workspace_id}` | Update name, assistant mode, or privacy mode. | Workspace and timeline | No | No | Workspace settings |
 | `POST /workspaces/{workspace_id}/archive` | Reversibly archive a workspace. | Workspace and timeline | No | No | App home/settings |
 | `POST /workspaces/{workspace_id}/restore` | Restore an archived workspace. | Workspace and timeline | No | No | Archived workspaces |
+| `DELETE /workspaces/{workspace_id}` | Permanently delete a workspace and all of its app-owned data (index, conversations, notes, scan, metadata). Project files on disk are never touched. | Workspace and all per-workspace tables, vector store | No | No | App home/settings |
+| `GET /workspaces/{workspace_id}/storage` | Report the approximate app storage used by a workspace, broken down by category (index, conversations, notes, scan, other). Pass `recompute=true` to refresh the cached value. | Storage stats cache | No | No | Sidebar project size |
+| `POST /workspaces/{workspace_id}/index/clear` | Clear the workspace search index (embeddings) to reclaim space and reset index status. Conversations and notes are kept. | Index status, vector store, timeline, storage stats cache | No | No | Sidebar project actions |
 
 ## Workspace Dashboard And Setup
 
