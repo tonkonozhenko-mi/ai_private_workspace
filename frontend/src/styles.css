@@ -1571,6 +1571,80 @@ a {
 }
 
 /* =====================================================================
+   Card label / value stacking — restore vertical rhythm.
+   A bold label was rendering inline-adjacent to its value/description,
+   so they ran together (e.g. "DevOps modeInfrastructure…"). These
+   containers must stack their label above the value/description.
+   ===================================================================== */
+
+/* label + value/description as direct children → stack vertically */
+.choice-card,
+.selected-mode-preview,
+.guided-model-notes,
+.product-fit-grid > article,
+.assistant-focus-card > div,
+.simple-model-card,
+.simple-model-card > div,
+.local-ai-setup-next > div:first-child,
+.settings-selected-guidance-card > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* heading rows: stacked label/title on the left, badge on the right */
+.guided-model-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.guided-model-card-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* settings readiness checklist: badge beside a stacked label + description */
+.settings-readiness-list > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.settings-readiness-list > div > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* settings cards stack their content full width (defeats stray row/grid) */
+.settings-clean-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* developer-mode toggle: checkbox beside a stacked label + description,
+   filling the full card width instead of a cramped right-edge column */
+.settings-developer-toggle {
+  width: 100%;
+}
+.settings-developer-toggle > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+/* Ask developer-details toggle stays on one line at the row's right edge */
+.ask-dev-toggle {
+  white-space: nowrap;
+}
+.ask-meta-controls {
+  flex-shrink: 0;
+}
+
+/* =====================================================================
    Stage 2 — Ask tab
    ===================================================================== */
 .ask-workspace-centered {
