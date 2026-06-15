@@ -64,17 +64,6 @@ export function WorkspaceDashboard({
     indexStatus.status === "indexed" &&
     modelsSummary.overall_status === "ready";
 
-  // Signal used by the "Use it now" primary button to trigger the guided
-  // scan/index flow (file preview + confirm) that lives in the setup-steps
-  // panel, so there is a single action with confirmation instead of a silent
-  // direct start.
-  const [setupRequest, setSetupRequest] = useState<{
-    action: "scan" | "index";
-    nonce: number;
-  } | null>(null);
-  const requestSetup = (action: "scan" | "index") =>
-    setSetupRequest({ action, nonce: Date.now() });
-
   return (
     <>
       <header className="workspace-header">
@@ -95,8 +84,8 @@ export function WorkspaceDashboard({
         onOpenAsk={onOpenAsk}
         onOpenModels={onOpenModels}
         onOpenCapabilities={onOpenCapabilities}
-        onStartScan={() => requestSetup("scan")}
-        onStartIndex={() => requestSetup("index")}
+        onStartScan={() => void onStartScanJob()}
+        onStartIndex={() => void onStartIndexJob()}
       />
 
       {modelsSummary.overall_status !== "ready" ? (
@@ -122,7 +111,6 @@ export function WorkspaceDashboard({
           onCancelWorkspaceJob={onCancelWorkspaceJob}
           onRefreshWorkspaceState={onRefreshWorkspaceState}
           fileIndexingPreferences={fileIndexingPreferences}
-          externalSetupRequest={setupRequest}
         />
       ) : null}
 
@@ -179,14 +167,11 @@ function DailyUseStatusPanel({
     modelsReady,
     modelsStatus: modelsSummary.overall_status,
   });
+  const [confirming, setConfirming] = useState<"scan" | "index" | null>(null);
 
   function handlePrimaryAction() {
-    if (nextAction.id === "scan") {
-      onStartScan();
-      return;
-    }
-    if (nextAction.id === "index") {
-      onStartIndex();
+    if (nextAction.id === "scan" || nextAction.id === "index") {
+      setConfirming(nextAction.id);
       return;
     }
     if (nextAction.id === "models") {
@@ -194,6 +179,15 @@ function DailyUseStatusPanel({
       return;
     }
     onOpenAsk();
+  }
+
+  function confirmStart() {
+    if (confirming === "scan") {
+      onStartScan();
+    } else if (confirming === "index") {
+      onStartIndex();
+    }
+    setConfirming(null);
   }
 
   return (
@@ -205,12 +199,30 @@ function DailyUseStatusPanel({
           <p>{nextAction.description}</p>
         </div>
         <div className="daily-use-actions">
-          <button className="overview-cta-button" type="button" onClick={handlePrimaryAction}>
-            {nextAction.label}
-          </button>
-          <button className="secondary-action" type="button" onClick={onOpenModels}>
-            Check models
-          </button>
+          {confirming ? (
+            <>
+              <span className="daily-use-confirm-label">
+                {confirming === "scan"
+                  ? "Scan this project now?"
+                  : "Build search context now?"}
+              </span>
+              <button className="overview-cta-button" type="button" onClick={confirmStart}>
+                {confirming === "scan" ? "Confirm scan" : "Confirm build"}
+              </button>
+              <button className="secondary-action" type="button" onClick={() => setConfirming(null)}>
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="overview-cta-button" type="button" onClick={handlePrimaryAction}>
+                {nextAction.label}
+              </button>
+              <button className="secondary-action" type="button" onClick={onOpenModels}>
+                Check models
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -274,8 +286,8 @@ function getDailyUseNextAction({
   if (!modelsReady) {
     return {
       id: "models",
-      label: "Fix model setup",
-      description: `Model setup still needs attention: ${formatLabel(modelsStatus)}. Open Models for the exact next action on the same screen.`,
+      label: "Choose a model to chat",
+      description: "Pick the local AI model this project uses to answer your questions, then you're ready to ask.",
     };
   }
   return {
