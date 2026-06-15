@@ -881,6 +881,11 @@ details.onboarding-guide-panel > summary::-webkit-details-marker {
 .workspace-skills-heading h2 {
   font-size: 16px;
 }
+.daily-use-confirm-label {
+  align-self: center;
+  font-size: 13px;
+  color: var(--c-text-2);
+}
 details.onboarding-guide-panel > summary::after {
   content: "▸";
   margin-left: auto;
