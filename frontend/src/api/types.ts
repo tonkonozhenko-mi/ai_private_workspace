@@ -143,6 +143,19 @@ export interface WorkspacesOverview {
   items: WorkspaceOverviewItem[];
 }
 
+export interface RuntimeMemoryModelInfo {
+  name: string;
+  size_bytes: number;
+  size_vram_bytes: number;
+}
+
+export interface RuntimeMemory {
+  runtime_reachable: boolean;
+  total_ram_bytes: number;
+  loaded_bytes: number;
+  models: RuntimeMemoryModelInfo[];
+}
+
 export interface WorkspaceStorage {
   workspace_id: string;
   total_bytes: number;

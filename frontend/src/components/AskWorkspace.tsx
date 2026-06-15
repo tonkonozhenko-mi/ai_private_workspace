@@ -7,6 +7,7 @@ const AskDeveloperModeContext = createContext(false);
 import {
   askSelectedWorkspace,
   askSelectedWorkspaceStream,
+  getRuntimeMemory,
   deleteWorkspaceAnswerNote,
   deleteWorkspaceConversation,
   exportWorkspaceConversation,
@@ -31,6 +32,7 @@ import type {
   ConversationAnswerNote,
   ConversationContextPreview,
   WorkspaceConversation,
+  RuntimeMemory,
 } from "../api/types";
 import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
@@ -1143,14 +1145,17 @@ function ConversationPanel({
         {loading ? (
           <article className="ask-message-row is-assistant">
             <img className="ask-avatar-img" src="/avatar-ai-robot-512.png" alt="AI" width={32} height={32} />
-            {streamingText ? (
-              <div className="ask-message-bubble assistant-bubble is-streaming">
-                {streamingText.replace(/<\/?think>/g, "").trimStart()}
-                <span className="ask-stream-caret" aria-hidden="true" />
-              </div>
-            ) : (
-              <ThinkingIndicator />
-            )}
+            <div className="ask-assistant-stack">
+              {streamingText ? (
+                <div className="ask-message-bubble assistant-bubble is-streaming">
+                  {streamingText.replace(/<\/?think>/g, "").trimStart()}
+                  <span className="ask-stream-caret" aria-hidden="true" />
+                </div>
+              ) : (
+                <ThinkingIndicator />
+              )}
+              <RuntimeMemoryBar active={loading} />
+            </div>
           </article>
         ) : null}
       </div>
@@ -1158,6 +1163,67 @@ function ConversationPanel({
   );
 }
 
+
+function formatGb(bytes: number): string {
+  return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
+}
+
+function RuntimeMemoryBar({ active }: { active: boolean }) {
+  const [memory, setMemory] = useState<RuntimeMemory | null>(null);
+
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const next = await getRuntimeMemory();
+        if (!cancelled) {
+          setMemory(next);
+        }
+      } catch {
+        // Ignore transient errors while polling.
+      }
+    };
+    void tick();
+    const id = window.setInterval(() => void tick(), 1500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [active]);
+
+  if (
+    !memory ||
+    !memory.runtime_reachable ||
+    memory.total_ram_bytes <= 0 ||
+    memory.models.length === 0
+  ) {
+    return null;
+  }
+
+  const used = memory.loaded_bytes;
+  const total = memory.total_ram_bytes;
+  const percent = Math.min(100, Math.max(2, Math.round((used / total) * 100)));
+  const modelName = memory.models[0]?.name ?? "model";
+
+  return (
+    <div
+      className="runtime-mem"
+      title={`${modelName} is using ${formatGb(used)} of ${formatGb(total)} system RAM`}
+      aria-label={`Model memory ${formatGb(used)} of ${formatGb(total)}`}
+    >
+      <span className="runtime-mem-dot" aria-hidden="true" />
+      <span className="runtime-mem-track" aria-hidden="true">
+        <span className="runtime-mem-fill" style={{ width: `${percent}%` }} />
+      </span>
+      <span className="runtime-mem-label">
+        {formatGb(used)} <span>/ {formatGb(total)} RAM</span>
+      </span>
+    </div>
+  );
+}
 
 function ThinkingIndicator() {
   const [seconds, setSeconds] = useState(0);

@@ -42,6 +42,7 @@ import type {
   DatabaseMigrationSafety,
   DatabaseRestorePlan,
   LocalDataSafety,
+  RuntimeMemory,
   StartupChecklist,
   RuntimeTroubleshooting,
   SafeUpdateWorkflow,
@@ -171,6 +172,10 @@ async function assertOk(response: Response): Promise<void> {
 
 export function getLocalDataSafety(): Promise<LocalDataSafety> {
   return getJson<LocalDataSafety>("/runtime/local-data");
+}
+
+export function getRuntimeMemory(): Promise<RuntimeMemory> {
+  return getJson<RuntimeMemory>("/models/runtime-memory");
 }
 
 export function getStartupChecklist(): Promise<StartupChecklist> {

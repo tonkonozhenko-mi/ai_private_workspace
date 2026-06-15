@@ -243,6 +243,8 @@ models, and commands. This document provides the finer product-oriented grouping
 
 - `GET /models/local-install-status`
   - Read-only Ollama model detection via `/api/tags`.
+- `GET /models/runtime-memory`
+  - Read-only memory footprint of currently loaded local models via Ollama `/api/ps`, plus total physical RAM.
   - Returns recommended model status: `installed`, `missing`, or `unknown`.
   - Does not pull, delete, rebuild, execute MCP tools, or run frontend shell commands.
 
