@@ -75,6 +75,7 @@ class ListWorkspacesOverviewUseCase:
             created_at=workspace.created_at.isoformat(),
             archived_at=workspace.archived_at,
             is_archived=workspace.archived_at is not None,
+            persistence=workspace.persistence,
             readiness_status=self._readiness_status(
                 has_scan=has_scan,
                 is_indexed=is_indexed,

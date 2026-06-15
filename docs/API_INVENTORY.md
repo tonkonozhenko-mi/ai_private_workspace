@@ -82,6 +82,8 @@ models, run benchmarks, or change active runtime configuration.
 | `DELETE /workspaces/{workspace_id}` | Permanently delete a workspace and all of its app-owned data (index, conversations, notes, scan, metadata). Project files on disk are never touched. | Workspace and all per-workspace tables, vector store | No | No | App home/settings |
 | `GET /workspaces/{workspace_id}/storage` | Report the approximate app storage used by a workspace, broken down by category (index, conversations, notes, scan, other). Pass `recompute=true` to refresh the cached value. | Storage stats cache | No | No | Sidebar project size |
 | `POST /workspaces/{workspace_id}/index/clear` | Clear the workspace search index (embeddings) to reclaim space and reset index status. Conversations and notes are kept. | Index status, vector store, timeline, storage stats cache | No | No | Sidebar project actions |
+| `POST /workspaces/{workspace_id}/persistence` | Set whether a workspace is permanent (`saved`) or ephemeral (`temporary`). Used by the "Keep forever" action to promote a temporary project. | Workspace and timeline | No | No | Sidebar project actions |
+| `POST /workspaces/temporary/purge` | Delete all temporary workspaces and their app-owned data. Triggered when the user confirms, on quit, that ephemeral projects should be forgotten. Project files on disk are never touched. | Workspaces and all per-workspace tables, vector store | No | No | Quit confirmation |
 
 ## Workspace Dashboard And Setup
 

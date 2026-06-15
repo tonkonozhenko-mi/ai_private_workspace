@@ -30,6 +30,7 @@ import type {
   WorkspaceUIActionCatalog,
   WorkspacesOverview,
   WorkspaceStorage,
+  PurgeTemporaryResult,
   ReportCatalog,
   WorkspaceReport,
   BuildCustomWorkspaceReportRequest,
@@ -437,6 +438,29 @@ export function getWorkspaceStorage(
 ): Promise<WorkspaceStorage> {
   const query = options.recompute ? "?recompute=true" : "";
   return getJson<WorkspaceStorage>(`/workspaces/${workspaceId}/storage${query}`);
+}
+
+export function setWorkspacePersistence(
+  workspaceId: string,
+  persistence: "saved" | "temporary",
+): Promise<void> {
+  return requestWithoutBody(`/workspaces/${workspaceId}/persistence`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ persistence }),
+  });
+}
+
+export function purgeTemporaryWorkspaces(): Promise<PurgeTemporaryResult> {
+  return requestJson<PurgeTemporaryResult>("/workspaces/temporary/purge", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+    },
+  });
 }
 
 

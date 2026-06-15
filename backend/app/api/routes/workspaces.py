@@ -273,6 +273,15 @@ from app.core.use_cases.get_workspace_storage import (
     GetWorkspaceStorageNotFoundError,
     GetWorkspaceStorageUseCase,
 )
+from app.core.use_cases.set_workspace_persistence import (
+    SetWorkspacePersistenceInput,
+    SetWorkspacePersistenceNotFoundError,
+    SetWorkspacePersistenceUseCase,
+    SetWorkspacePersistenceValidationError,
+)
+from app.core.use_cases.purge_temporary_workspaces import (
+    PurgeTemporaryWorkspacesUseCase,
+)
 from app.api.schemas.workspace_storage_schemas import (
     WorkspaceStorageResponse,
     to_workspace_storage_response,
@@ -498,6 +507,11 @@ class CreateWorkspaceRequest(BaseModel):
     project_path: str = Field(..., min_length=1)
     assistant_mode: str = Field(default="local")
     privacy_mode: str = Field(default="private")
+    persistence: str = Field(default="saved")
+
+
+class SetWorkspacePersistenceRequest(BaseModel):
+    persistence: str = Field(default="saved")
 
 
 class UpdateWorkspaceMetadataRequest(BaseModel):
@@ -514,6 +528,12 @@ class WorkspaceResponse(BaseModel):
     privacy_mode: str
     created_at: datetime
     archived_at: str | None
+    persistence: str = "saved"
+
+
+class PurgeTemporaryWorkspacesResponse(BaseModel):
+    deleted_count: int
+    deleted_ids: list[str]
 
 
 def to_workspace_response(workspace: Workspace) -> WorkspaceResponse:
@@ -525,6 +545,7 @@ def to_workspace_response(workspace: Workspace) -> WorkspaceResponse:
         privacy_mode=workspace.privacy_mode,
         created_at=workspace.created_at,
         archived_at=workspace.archived_at,
+        persistence=workspace.persistence,
     )
 
 
@@ -540,6 +561,7 @@ def create_workspace(request: CreateWorkspaceRequest) -> WorkspaceResponse:
             project_path=request.project_path,
             assistant_mode=request.assistant_mode,
             privacy_mode=request.privacy_mode,
+            persistence=request.persistence,
         )
     )
     return to_workspace_response(workspace)
@@ -749,6 +771,47 @@ def delete_workspace(workspace_id: str) -> None:
             detail=str(exc),
         ) from exc
     return None
+
+
+@router.post("/temporary/purge", response_model=PurgeTemporaryWorkspacesResponse)
+def purge_temporary_workspaces() -> PurgeTemporaryWorkspacesResponse:
+    result = PurgeTemporaryWorkspacesUseCase(
+        workspace_repository=workspace_repository,
+        storage_gateway=workspace_storage_gateway,
+        vector_store=vector_store,
+    ).execute()
+    return PurgeTemporaryWorkspacesResponse(
+        deleted_count=result.deleted_count,
+        deleted_ids=result.deleted_ids,
+    )
+
+
+@router.post("/{workspace_id}/persistence", response_model=WorkspaceResponse)
+def set_workspace_persistence(
+    workspace_id: str,
+    request: SetWorkspacePersistenceRequest,
+) -> WorkspaceResponse:
+    try:
+        workspace = SetWorkspacePersistenceUseCase(
+            workspace_repository=workspace_repository,
+            timeline_repository=timeline_repository,
+        ).execute(
+            SetWorkspacePersistenceInput(
+                workspace_id=workspace_id,
+                persistence=request.persistence,
+            )
+        )
+    except SetWorkspacePersistenceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except SetWorkspacePersistenceValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    return to_workspace_response(workspace)
 
 
 @router.post("/{workspace_id}/restore", response_model=WorkspaceResponse)
