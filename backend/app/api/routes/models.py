@@ -1,3 +1,5 @@
+import os
+
 import httpx
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
@@ -275,6 +277,71 @@ def get_local_model_install_status() -> LocalModelInstallStatusResponse:
         )
 
     return to_local_model_install_status_response(status_result)
+
+
+class RuntimeMemoryModelInfo(BaseModel):
+    name: str
+    size_bytes: int
+    size_vram_bytes: int
+
+
+class RuntimeMemoryResponse(BaseModel):
+    runtime_reachable: bool
+    total_ram_bytes: int
+    loaded_bytes: int
+    models: list[RuntimeMemoryModelInfo]
+
+
+def _total_physical_ram_bytes() -> int:
+    try:
+        return int(os.sysconf("SC_PAGE_SIZE")) * int(os.sysconf("SC_PHYS_PAGES"))
+    except (ValueError, OSError, AttributeError):
+        return 0
+
+
+@router.get("/runtime-memory", response_model=RuntimeMemoryResponse)
+def get_runtime_memory() -> RuntimeMemoryResponse:
+    """Report the memory footprint of currently loaded local models.
+
+    Reads Ollama's ``/api/ps`` (running models with their memory size) and the
+    machine's total physical RAM. Read-only; it never loads or unloads models.
+    """
+    settings = get_settings()
+    runtime_url = settings.ollama_base_url.rstrip("/")
+    models: list[RuntimeMemoryModelInfo] = []
+    reachable = False
+    try:
+        response = httpx.get(
+            f"{runtime_url}/api/ps",
+            timeout=settings.runtime_health_timeout_seconds,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        reachable = True
+        raw_models = payload.get("models", []) if isinstance(payload, dict) else []
+        for item in raw_models:
+            if not isinstance(item, dict):
+                continue
+            name = item.get("name") or item.get("model") or "model"
+            try:
+                size = int(item.get("size") or 0)
+                vram = int(item.get("size_vram") or 0)
+            except (TypeError, ValueError):
+                size, vram = 0, 0
+            models.append(
+                RuntimeMemoryModelInfo(
+                    name=str(name), size_bytes=size, size_vram_bytes=vram
+                )
+            )
+    except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPError, ValueError):
+        reachable = False
+
+    return RuntimeMemoryResponse(
+        runtime_reachable=reachable,
+        total_ram_bytes=_total_physical_ram_bytes(),
+        loaded_bytes=sum(model.size_bytes for model in models),
+        models=models,
+    )
 
 
 class DeleteInstalledModelRequest(BaseModel):
