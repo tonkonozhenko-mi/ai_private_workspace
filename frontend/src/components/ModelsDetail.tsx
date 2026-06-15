@@ -1937,14 +1937,6 @@ function ModelDownloadJobsPanel({
   onCancel: (jobId: string) => void;
 }) {
   const visibleJobs = asArray(jobs.jobs).slice(0, 5);
-  const recentInstalled = asArray(installedModels)
-    .filter((item) => item.status === "installed" && item.modified_at)
-    .sort(
-      (left, right) =>
-        new Date(right.modified_at ?? 0).getTime() -
-        new Date(left.modified_at ?? 0).getTime(),
-    )
-    .slice(0, 5);
 
   return (
     <details className="model-download-history" open={jobs.running_count > 0}>
@@ -2006,42 +1998,6 @@ function ModelDownloadJobsPanel({
             ))}
           </div>
         )}
-        {recentInstalled.length > 0 ? (
-          <section className="recent-installed-models">
-            <div className="recent-installed-models-heading">
-              <div>
-                <span className="eyebrow">Detected locally</span>
-                <strong>Recent Ollama installs</strong>
-                <p>
-                  Includes models downloaded in Terminal or through this app.
-                </p>
-              </div>
-              <StatusBadge label={`${recentInstalled.length} visible`} />
-            </div>
-            <div className="model-download-history-list">
-              {recentInstalled.map((item) => (
-                <article
-                  className="model-download-history-row"
-                  key={`recent-${item.provider}-${item.model}`}
-                >
-                  <div>
-                    <strong>{item.display_name}</strong>
-                    <p>
-                      {item.provider}/{item.installed_as ?? item.model}
-                    </p>
-                    <small>
-                      Installed or updated {formatModelTimestamp(item.modified_at)}
-                    </small>
-                  </div>
-                  <div className="model-download-history-row-actions">
-                    <StatusBadge label="Installed" />
-                    <span className="model-install-type">{item.model_type}</span>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        ) : null}
       </div>
     </details>
   );
@@ -2134,99 +2090,142 @@ function InstalledModelsStatusPanel({
           </button>
         </div>
       </div>
-      <div
-        className="installed-models-grid"
-        aria-label="Installed local model status"
-      >
-        {asArray(status.items).map((item) => (
-          <article
-            className="installed-model-card"
-            key={`${item.provider}-${item.model}`}
-          >
-            <div>
-              <span className="model-install-type">{item.model_type}</span>
-              <strong>{item.display_name}</strong>
-              <p>{item.detail}</p>
-            </div>
-            <span className={`model-status-pill model-status-${item.status}`}>
-              {item.status}
-            </span>
-            <small>
-              {item.installed_as
-                ? `Installed as ${item.installed_as}`
-                : `${item.provider}/${item.model}`}
-            </small>
-            {item.status === "installed" ? (
-              <dl className="installed-model-metadata">
-                <div>
-                  <dt>Size</dt>
-                  <dd>{formatModelBytes(item.size_bytes)}</dd>
-                </div>
-                <div>
-                  <dt>Parameters</dt>
-                  <dd>{item.parameter_size ?? "Not reported"}</dd>
-                </div>
-                <div>
-                  <dt>Quantization</dt>
-                  <dd>{item.quantization_level ?? "Not reported"}</dd>
-                </div>
-                <div>
-                  <dt>Installed / updated</dt>
-                  <dd>{formatModelTimestamp(item.modified_at)}</dd>
-                </div>
-                <div>
-                  <dt>Capabilities</dt>
-                  <dd>{asArray(item.capabilities).join(", ") || "Not reported"}</dd>
-                </div>
-              </dl>
-            ) : null}
-            {item.status === "installed" ? (
-              <div className="installed-model-actions">
-                {confirmName === (item.installed_as ?? item.model) ? (
-                  <>
-                    <button
-                      type="button"
-                      className="workspace-card-action is-danger"
-                      disabled={deletingModelName !== null}
-                      onClick={() => {
-                        onDelete(item.installed_as ?? item.model);
-                        setConfirmName(null);
-                      }}
-                    >
-                      {deletingModelName === (item.installed_as ?? item.model)
-                        ? "Deleting…"
-                        : "Confirm delete"}
-                    </button>
-                    <button
-                      type="button"
-                      className="workspace-card-action"
-                      disabled={deletingModelName !== null}
-                      onClick={() => setConfirmName(null)}
-                    >
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    className="workspace-card-action is-danger"
-                    disabled={deletingModelName !== null}
-                    onClick={() => setConfirmName(item.installed_as ?? item.model)}
-                  >
-                    Delete model
-                  </button>
-                )}
+      {(() => {
+        const items = asArray(status.items);
+        const answerItems = items.filter((item) => item.model_type === "llm");
+        const searchItems = items.filter(
+          (item) => item.model_type === "embedding",
+        );
+        const otherItems = items.filter(
+          (item) => item.model_type !== "llm" && item.model_type !== "embedding",
+        );
+        const renderGroup = (label: string, groupItems: typeof items) =>
+          groupItems.length > 0 ? (
+            <div className="installed-models-group">
+              <h4 className="installed-models-group-label">{label}</h4>
+              <div
+                className="installed-models-grid"
+                aria-label={`${label} status`}
+              >
+                {groupItems.map((item) => (
+                  <InstalledModelCard
+                    key={`${item.provider}-${item.model}`}
+                    item={item}
+                    confirmName={confirmName}
+                    deletingModelName={deletingModelName}
+                    onRequestConfirm={setConfirmName}
+                    onDelete={onDelete}
+                  />
+                ))}
               </div>
-            ) : null}
-          </article>
-        ))}
-      </div>
+            </div>
+          ) : null;
+        return (
+          <>
+            {renderGroup("Answer models", answerItems)}
+            {renderGroup("Search models", searchItems)}
+            {renderGroup("Other", otherItems)}
+          </>
+        );
+      })()}
       <p className="installed-models-note">
         Reads {status.runtime_url}/api/tags. Delete removes the model from your
         local Ollama runtime to free disk space; your project files are never
         touched.
       </p>
     </div>
+  );
+}
+
+function InstalledModelCard({
+  item,
+  confirmName,
+  deletingModelName,
+  onRequestConfirm,
+  onDelete,
+}: {
+  item: LocalModelInstallStatus["items"][number];
+  confirmName: string | null;
+  deletingModelName: string | null;
+  onRequestConfirm: (name: string | null) => void;
+  onDelete: (name: string) => void;
+}) {
+  const deleteName = item.installed_as ?? item.model;
+  return (
+    <article className="installed-model-card">
+      <div>
+        <strong>{item.display_name}</strong>
+        <p>{item.detail}</p>
+      </div>
+      <span className={`model-status-pill model-status-${item.status}`}>
+        {item.status}
+      </span>
+      <small>
+        {item.installed_as
+          ? `Installed as ${item.installed_as}`
+          : `${item.provider}/${item.model}`}
+      </small>
+      {item.status === "installed" ? (
+        <dl className="installed-model-metadata">
+          <div>
+            <dt>Size</dt>
+            <dd>{formatModelBytes(item.size_bytes)}</dd>
+          </div>
+          <div>
+            <dt>Parameters</dt>
+            <dd>{item.parameter_size ?? "Not reported"}</dd>
+          </div>
+          <div>
+            <dt>Quantization</dt>
+            <dd>{item.quantization_level ?? "Not reported"}</dd>
+          </div>
+          <div>
+            <dt>Installed / updated</dt>
+            <dd>{formatModelTimestamp(item.modified_at)}</dd>
+          </div>
+          <div>
+            <dt>Capabilities</dt>
+            <dd>{asArray(item.capabilities).join(", ") || "Not reported"}</dd>
+          </div>
+        </dl>
+      ) : null}
+      {item.status === "installed" ? (
+        <div className="installed-model-actions">
+          {confirmName === deleteName ? (
+            <>
+              <button
+                type="button"
+                className="workspace-card-action is-danger"
+                disabled={deletingModelName !== null}
+                onClick={() => {
+                  onDelete(deleteName);
+                  onRequestConfirm(null);
+                }}
+              >
+                {deletingModelName === deleteName ? "Deleting…" : "Confirm delete"}
+              </button>
+              <button
+                type="button"
+                className="workspace-card-action"
+                disabled={deletingModelName !== null}
+                onClick={() => onRequestConfirm(null)}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="workspace-card-action is-danger"
+              disabled={deletingModelName !== null}
+              onClick={() => onRequestConfirm(deleteName)}
+            >
+              Delete model
+            </button>
+          )}
+        </div>
+      ) : null}
+    </article>
   );
 }
 
