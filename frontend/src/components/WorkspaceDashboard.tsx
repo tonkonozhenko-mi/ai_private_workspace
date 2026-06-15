@@ -579,26 +579,11 @@ function WorkspaceOnboardingGuide({
         </span>
       </summary>
       <div className="onboarding-guide-heading">
-        <div>
-          <p className="eyebrow">Guided path</p>
-          <h2>
-            {readyToAsk ? "Ready to ask questions" : "Set up this workspace"}
-          </h2>
-          <p>
-            A short, safe path from local folder to source-backed answers.
-          </p>
-          <span className="onboarding-safety-note">
-            Each step is explicit and reversible. No hidden shell commands.
-          </span>
-        </div>
-        <button
-          className="overview-cta-button"
-          type="button"
-          disabled={primaryAction.disabled}
-          onClick={primaryAction.onClick}
-        >
-          {primaryAction.label}
-        </button>
+        <span className="onboarding-safety-note">
+          The checklist below mirrors your progress. Start each step from “Use it
+          now” above — every step is explicit and reversible, with no hidden
+          shell commands.
+        </span>
         {setupAction ? (
           <button
             className="secondary-action"
@@ -609,39 +594,6 @@ function WorkspaceOnboardingGuide({
           </button>
         ) : null}
       </div>
-
-      {!readyToAsk ? (
-        <div
-          className="workspace-setup-actions"
-          aria-label="Current workspace setup step"
-        >
-          <div>
-            <strong>
-              {!hasScan
-                ? "Next: scan the project"
-                : !indexReady
-                  ? "Next: build search context"
-                  : "Next: review local AI"}
-            </strong>
-            <p>
-              {!hasScan
-                ? "The scan reads project metadata through the backend and records detected technologies."
-                : !indexReady
-                  ? "Search context makes answers grounded in local project sources."
-                  : "Confirm the selected models before asking source-backed questions."}
-            </p>
-          </div>
-          <div className="workspace-setup-action-buttons">
-            <button
-              className="secondary-action"
-              type="button"
-              onClick={onOpenCapabilities}
-            >
-              View capabilities
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       <details className="file-rules-plan file-rules-disclosure" aria-label="File selection plan">
         <summary>
