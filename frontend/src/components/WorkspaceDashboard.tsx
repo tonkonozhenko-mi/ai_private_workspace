@@ -64,6 +64,17 @@ export function WorkspaceDashboard({
     indexStatus.status === "indexed" &&
     modelsSummary.overall_status === "ready";
 
+  // Signal used by the "Use it now" primary button to trigger the guided
+  // scan/index flow (file preview + confirm) that lives in the setup-steps
+  // panel, so there is a single action with confirmation instead of a silent
+  // direct start.
+  const [setupRequest, setSetupRequest] = useState<{
+    action: "scan" | "index";
+    nonce: number;
+  } | null>(null);
+  const requestSetup = (action: "scan" | "index") =>
+    setSetupRequest({ action, nonce: Date.now() });
+
   return (
     <>
       <header className="workspace-header">
@@ -84,8 +95,8 @@ export function WorkspaceDashboard({
         onOpenAsk={onOpenAsk}
         onOpenModels={onOpenModels}
         onOpenCapabilities={onOpenCapabilities}
-        onStartScan={() => void onStartScanJob()}
-        onStartIndex={() => void onStartIndexJob()}
+        onStartScan={() => requestSetup("scan")}
+        onStartIndex={() => requestSetup("index")}
       />
 
       {modelsSummary.overall_status !== "ready" ? (
@@ -111,6 +122,7 @@ export function WorkspaceDashboard({
           onCancelWorkspaceJob={onCancelWorkspaceJob}
           onRefreshWorkspaceState={onRefreshWorkspaceState}
           fileIndexingPreferences={fileIndexingPreferences}
+          externalSetupRequest={setupRequest}
         />
       ) : null}
 
@@ -288,6 +300,7 @@ function WorkspaceOnboardingGuide({
   onCancelWorkspaceJob,
   onRefreshWorkspaceState,
   fileIndexingPreferences,
+  externalSetupRequest,
 }: {
   dashboard: WorkspaceDashboardData;
   modelsSummary: WorkspaceModelsDashboardSummary;
@@ -303,6 +316,7 @@ function WorkspaceOnboardingGuide({
   onCancelWorkspaceJob: (jobId: string) => Promise<WorkspaceJob>;
   onRefreshWorkspaceState: () => Promise<void>;
   fileIndexingPreferences: FileIndexingPreferences;
+  externalSetupRequest?: { action: "scan" | "index"; nonce: number } | null;
 }) {
   const summary = dashboard.summary;
   const hasScan = summary.has_scan;
@@ -510,6 +524,18 @@ function WorkspaceOnboardingGuide({
       window.clearInterval(intervalId);
     };
   }, [onListWorkspaceJobs]);
+
+  // When the "Use it now" panel asks to scan/index, open the steps and run the
+  // guided flow (file preview + confirm) instead of a silent direct start.
+  useEffect(() => {
+    if (!externalSetupRequest) {
+      return;
+    }
+    setStepsOpen(true);
+    void requestSetupAction(externalSetupRequest.action);
+    // Only react to a new request (nonce), not to identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalSetupRequest?.nonce]);
 
   const steps = [
     {
