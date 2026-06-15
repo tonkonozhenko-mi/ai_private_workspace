@@ -1303,6 +1303,22 @@ export function getLocalModelInstallStatus(): Promise<LocalModelInstallStatus> {
   return getJson<LocalModelInstallStatus>("/models/local-install-status");
 }
 
+export function deleteInstalledModel(
+  name: string,
+): Promise<{ deleted: string; runtime_url: string }> {
+  return requestJson<{ deleted: string; runtime_url: string }>(
+    "/models/local-install/delete",
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name }),
+    },
+  );
+}
+
 export function getLocalModelDownloadWorkerPlan(): Promise<LocalModelDownloadWorkerPlan> {
   return getJson<LocalModelDownloadWorkerPlan>("/models/local-download-worker-plan");
 }

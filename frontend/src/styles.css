@@ -749,6 +749,143 @@ a {
   color: var(--c-warning);
   font-weight: 600;
 }
+
+/* --- Create workspace form (full-width, single column) --- */
+.create-workspace-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  max-width: 820px;
+  margin: 0 auto;
+}
+.create-workspace-intro h1 {
+  margin: 4px 0 6px;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--c-text);
+}
+.create-workspace-intro p {
+  margin: 0;
+  color: var(--c-text-2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.create-workspace-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+}
+.create-field-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.create-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.create-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.create-field input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface-2);
+  color: var(--c-text);
+  font-size: 14px;
+}
+.create-field input:focus {
+  outline: none;
+  border-color: var(--c-accent-border);
+}
+.create-field small {
+  color: var(--c-text-3);
+  font-size: 12px;
+}
+.path-picker-row {
+  display: flex;
+  gap: var(--s-2);
+}
+.path-picker-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.path-picker-row .secondary-action {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.create-section-head {
+  margin-bottom: var(--s-3);
+}
+.create-section-head p {
+  margin: 4px 0 0;
+  color: var(--c-text-2);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.choice-card-title {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.choice-card-tag {
+  padding: 1px 7px;
+  border: 1px dashed var(--c-border-strong);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c-text-3);
+}
+.choice-card.is-temporary {
+  border-style: dashed;
+}
+.choice-card.is-temporary.is-selected {
+  border-color: var(--c-accent-border);
+  border-style: dashed;
+}
+
+/* --- Collapsible setup-steps panel (dedups the overview) --- */
+details.onboarding-guide-panel > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  user-select: none;
+}
+details.onboarding-guide-panel > summary::-webkit-details-marker {
+  display: none;
+}
+.onboarding-guide-summary-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+details.onboarding-guide-panel > summary::after {
+  content: "▸";
+  margin-left: auto;
+  color: var(--c-text-3);
+  transition: transform 0.15s ease;
+}
+details.onboarding-guide-panel[open] > summary::after {
+  transform: rotate(90deg);
+}
+details.onboarding-guide-panel[open] > summary {
+  margin-bottom: var(--s-5);
+}
+.installed-model-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
 .primary-action.is-danger {
   background: var(--c-danger);
   border-color: var(--c-danger);

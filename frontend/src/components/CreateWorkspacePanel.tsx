@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { createWorkspace } from "../api/client";
 import { chooseProjectDirectory, isRunningInsideTauri } from "../desktopRuntime";
@@ -11,7 +11,6 @@ interface CreateWorkspacePanelProps {
 }
 
 type AssistantMode = "devops" | "developer" | "documentation" | "support_incident" | "manager_summary";
-type PrivacyMode = "local_only" | "manual_network";
 
 const assistantModes: Array<{
   id: AssistantMode;
@@ -20,28 +19,28 @@ const assistantModes: Array<{
 }> = [
   {
     id: "devops",
-    label: "DevOps mode",
+    label: "DevOps",
     description: "Infrastructure, CI/CD, Terraform, Kubernetes, and runtime setup.",
   },
   {
     id: "developer",
-    label: "Developer mode",
+    label: "Developer",
     description: "Application code, structure, implementation notes, and tests.",
   },
   {
     id: "documentation",
-    label: "Documentation mode",
-    description: "README files, architecture notes, onboarding, and project summaries.",
+    label: "Documentation",
+    description: "READMEs, architecture notes, onboarding, and project summaries.",
   },
   {
     id: "support_incident",
-    label: "Support mode",
+    label: "Support",
     description: "Incidents, troubleshooting notes, logs, and operational questions.",
   },
   {
     id: "manager_summary",
-    label: "Manager summary mode",
-    description: "High-level summaries, risks, progress, and stakeholder-friendly notes.",
+    label: "Manager summary",
+    description: "High-level summaries, risks, progress, and stakeholder notes.",
   },
 ];
 
@@ -53,7 +52,7 @@ const persistenceModes: Array<{
   {
     id: "saved",
     label: "Permanent",
-    description: "Remembers everything. The index and your conversations are saved — come back to it in weeks.",
+    description: "Remembers everything. The index and your conversations are saved — come back in weeks.",
   },
   {
     id: "temporary",
@@ -62,28 +61,10 @@ const persistenceModes: Array<{
   },
 ];
 
-const privacyModes: Array<{
-  id: PrivacyMode;
-  label: string;
-  description: string;
-}> = [
-  {
-    id: "local_only",
-    label: "Local only",
-    description: "Keep work local. The frontend never executes shell commands.",
-  },
-  {
-    id: "manual_network",
-    label: "Manual network later",
-    description: "Reserved for future explicit, user-approved network flows.",
-  },
-];
-
 export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePanelProps) {
   const [name, setName] = useState("");
   const [projectPath, setProjectPath] = useState("");
   const [assistantMode, setAssistantMode] = useState<AssistantMode>("devops");
-  const [privacyMode, setPrivacyMode] = useState<PrivacyMode>("local_only");
   const [persistence, setPersistence] = useState<WorkspacePersistence>("saved");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,10 +73,6 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
   const trimmedName = name.trim();
   const trimmedPath = projectPath.trim();
   const canSubmit = trimmedName.length > 0 && trimmedPath.length > 0 && !submitting;
-  const selectedMode = useMemo(
-    () => assistantModes.find((mode) => mode.id === assistantMode),
-    [assistantMode],
-  );
 
   async function handleChooseDirectory() {
     setPickingDirectory(true);
@@ -111,10 +88,10 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
           }
         }
       } else if (!isRunningInsideTauri()) {
-        setError("Native folder picker is available in the packaged desktop app. Paste the path here while using the browser dev server.");
+        setError("The native folder picker is available in the packaged desktop app. Paste an absolute path here while using the browser dev server.");
       }
     } catch (pickerError) {
-      setError(pickerError instanceof Error ? pickerError.message : "Could not open folder picker.");
+      setError(pickerError instanceof Error ? pickerError.message : "Could not open the folder picker.");
     } finally {
       setPickingDirectory(false);
     }
@@ -132,15 +109,13 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
         name: trimmedName,
         project_path: trimmedPath,
         assistant_mode: assistantMode,
-        privacy_mode: privacyMode,
+        privacy_mode: "local_only",
         persistence,
       });
       onCreated(workspace);
     } catch (createError) {
       setError(
-        createError instanceof Error
-          ? createError.message
-          : "Could not create workspace.",
+        createError instanceof Error ? createError.message : "Could not create the workspace.",
       );
     } finally {
       setSubmitting(false);
@@ -149,141 +124,103 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
 
   return (
     <div className="create-workspace-page">
-      <section className="create-workspace-hero surface-panel create-workspace-hero-simple">
-        <div>
-          <span className="section-eyebrow">New workspace</span>
-          <h1>Choose a local project.</h1>
-          <p>
-            Pick a folder, create the workspace, then use the Overview buttons to scan, build context, and ask.
-          </p>
-        </div>
-        <button className="primary-action" type="button" onClick={() => void handleChooseDirectory()} disabled={pickingDirectory}>
-          {pickingDirectory ? "Opening Finder…" : "Choose folder"}
-        </button>
-      </section>
+      <header className="create-workspace-intro">
+        <span className="section-eyebrow">New workspace</span>
+        <h1>Create a local workspace</h1>
+        <p>Point the app at a project folder. Everything — scan, context, and answers — stays on your machine.</p>
+      </header>
 
-      <section className="create-workspace-grid create-workspace-grid-simple">
-        <form className="create-workspace-form surface-panel" onSubmit={handleSubmit}>
-          <div className="panel-heading">
-            <div>
-              <span className="section-eyebrow">Project details</span>
-              <h2>Create workspace</h2>
-              <p className="panel-helper">Use Choose folder in the packaged app, or paste an absolute path in dev mode.</p>
-            </div>
-            <span className="status-pill">Local backend</span>
-          </div>
-
-          <label className="settings-field-row create-field-row">
-            <span>Workspace name</span>
-            <small>Use a clear name you will recognize in the sidebar.</small>
+      <form className="create-workspace-form surface-panel" onSubmit={handleSubmit}>
+        <div className="create-field-block">
+          <label className="create-field" htmlFor="workspace-name">
+            <span className="create-field-label">Workspace name</span>
             <input
+              id="workspace-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Example: CIF MSK Debezium"
+              placeholder="e.g. Brand site"
+              autoFocus
             />
           </label>
 
-          <label className="settings-field-row create-field-row">
-            <span>Local project path</span>
-            <small>The path is sent only to your local backend.</small>
+          <label className="create-field" htmlFor="workspace-path">
+            <span className="create-field-label">Project folder</span>
             <div className="path-picker-row">
               <input
+                id="workspace-path"
                 value={projectPath}
                 onChange={(event) => setProjectPath(event.target.value)}
-                placeholder="/Users/maks/Documents/my-project"
+                placeholder="/Users/you/Documents/my-project"
               />
-              <button className="secondary-action" type="button" onClick={() => void handleChooseDirectory()} disabled={pickingDirectory}>
-                {pickingDirectory ? "Opening…" : "Browse"}
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={() => void handleChooseDirectory()}
+                disabled={pickingDirectory}
+              >
+                {pickingDirectory ? "Opening…" : "Choose folder"}
               </button>
             </div>
+            <small>The path is sent only to your local backend.</small>
           </label>
+        </div>
 
-          <div className="create-mode-section">
-            <div>
-              <span className="section-eyebrow">Assistant mode</span>
-              <p>Choose the starting lens. It only changes guidance and wording; it does not run anything.</p>
-            </div>
-            <div className="choice-card-grid">
-              {assistantModes.map((mode) => (
-                <button
-                  key={mode.id}
-                  type="button"
-                  className={`choice-card${assistantMode === mode.id ? " is-selected" : ""}`}
-                  onClick={() => setAssistantMode(mode.id)}
-                >
+        <div className="create-mode-section">
+          <div className="create-section-head">
+            <span className="section-eyebrow">Assistant mode</span>
+            <p>Sets the starting lens — guidance and wording only. It never runs anything.</p>
+          </div>
+          <div className="choice-card-grid compact">
+            {assistantModes.map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                className={`choice-card${assistantMode === mode.id ? " is-selected" : ""}`}
+                onClick={() => setAssistantMode(mode.id)}
+              >
+                <strong>{mode.label}</strong>
+                <span>{mode.description}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="create-mode-section">
+          <div className="create-section-head">
+            <span className="section-eyebrow">Project memory</span>
+            <p>Is this project kept between sessions? You can promote a temporary project to permanent anytime.</p>
+          </div>
+          <div className="choice-card-grid compact">
+            {persistenceModes.map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                className={`choice-card${persistence === mode.id ? " is-selected" : ""}${mode.id === "temporary" ? " is-temporary" : ""}`}
+                onClick={() => setPersistence(mode.id)}
+              >
+                <span className="choice-card-title">
                   <strong>{mode.label}</strong>
-                  <span>{mode.description}</span>
-                </button>
-              ))}
-            </div>
+                  {mode.id === "temporary" ? (
+                    <span className="choice-card-tag">forgets on quit</span>
+                  ) : null}
+                </span>
+                <span>{mode.description}</span>
+              </button>
+            ))}
           </div>
+        </div>
 
-          <div className="create-mode-section">
-            <div>
-              <span className="section-eyebrow">Privacy mode</span>
-              <p>Keep setup predictable. Network-capable flows can be added later with explicit approval.</p>
-            </div>
-            <div className="choice-card-grid compact">
-              {privacyModes.map((mode) => (
-                <button
-                  key={mode.id}
-                  type="button"
-                  className={`choice-card${privacyMode === mode.id ? " is-selected" : ""}`}
-                  onClick={() => setPrivacyMode(mode.id)}
-                >
-                  <strong>{mode.label}</strong>
-                  <span>{mode.description}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+        {error ? <p className="settings-message error">{error}</p> : null}
 
-          <div className="create-mode-section">
-            <div>
-              <span className="section-eyebrow">Project memory</span>
-              <p>Decide whether this project is kept between sessions. You can always promote a temporary project to permanent later.</p>
-            </div>
-            <div className="choice-card-grid compact">
-              {persistenceModes.map((mode) => (
-                <button
-                  key={mode.id}
-                  type="button"
-                  className={`choice-card${persistence === mode.id ? " is-selected" : ""}${mode.id === "temporary" ? " is-temporary" : ""}`}
-                  onClick={() => setPersistence(mode.id)}
-                >
-                  <strong>{mode.label}</strong>
-                  <span>{mode.description}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {error ? <p className="settings-message error">{error}</p> : null}
-
-          <div className="create-form-actions">
-            <button className="primary-action" type="submit" disabled={!canSubmit}>
-              {submitting ? "Creating..." : "Create workspace"}
-            </button>
-            <button className="secondary-action" type="button" onClick={onCancel}>
-              Cancel
-            </button>
-          </div>
-        </form>
-
-        <aside className="create-workspace-guide surface-panel create-workspace-guide-simple">
-          <span className="section-eyebrow">Next</span>
-          <h2>Three clicks after create</h2>
-          <ol className="onboarding-step-list compact-list">
-            <li><strong>Scan</strong><span>Detect local files and technologies.</span></li>
-            <li><strong>Build context</strong><span>Create searchable local sources.</span></li>
-            <li><strong>Ask</strong><span>Chat with saved history and sources.</span></li>
-          </ol>
-          <div className="selected-mode-preview">
-            <span>Selected mode</span>
-            <strong>{selectedMode?.label ?? "DevOps mode"}</strong>
-          </div>
-        </aside>
-      </section>
+        <div className="create-form-actions">
+          <button className="primary-action" type="submit" disabled={!canSubmit}>
+            {submitting ? "Creating…" : "Create workspace"}
+          </button>
+          <button className="secondary-action" type="button" onClick={onCancel}>
+            Cancel
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
