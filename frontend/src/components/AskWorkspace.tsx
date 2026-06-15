@@ -1,4 +1,4 @@
-import { FormEvent, createContext, useContext, useEffect, useRef, useState } from "react";
+import { FormEvent, createContext, useContext, useEffect, useRef, useState, type CSSProperties } from "react";
 
 // Lets deeply-nested answer rows know whether to show developer-only telemetry
 // (token counts, verification notes) without prop-drilling through the chat tree.
@@ -196,6 +196,23 @@ export function AskWorkspace({
   const [attachedFiles, setAttachedFiles] = useState<AttachedTextFile[]>([]);
   const [sessionFiles, setSessionFiles] = useState<AttachedTextFile[]>([]);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const composerRef = useRef<HTMLElement>(null);
+  const [composerHeight, setComposerHeight] = useState(0);
+
+  // The composer is sticky at the bottom and overlaps the transcript, so the
+  // auto-scroll anchor needs to clear its height. Track it live as it grows
+  // (file chips, suggestions, etc.).
+  useEffect(() => {
+    const node = composerRef.current;
+    if (!node) {
+      return;
+    }
+    const update = () => setComposerHeight(node.offsetHeight);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
   const askAbortControllerRef = useRef<AbortController | null>(null);
 
   async function handleImageFiles(files: FileList | File[] | null) {
@@ -693,7 +710,10 @@ export function AskWorkspace({
 
   return (
     <AskDeveloperModeContext.Provider value={devMode}>
-    <div className="ask-workspace ask-workspace-chat ask-workspace-centered">
+    <div
+      className="ask-workspace ask-workspace-chat ask-workspace-centered"
+      style={{ "--composer-height": `${composerHeight}px` } as CSSProperties}
+    >
       <aside className="ask-context-sidebar ask-context-sidebar-compact">
         <details className="ask-guidance-disclosure">
           <summary>Answer style and sources</summary>
@@ -764,7 +784,7 @@ export function AskWorkspace({
           </div>
         ) : null}
 
-        <section className="panel ask-bottom-composer" aria-label="Ask this workspace">
+        <section className="panel ask-bottom-composer" aria-label="Ask this workspace" ref={composerRef}>
           <form onSubmit={submitQuestion}>
             <div
               className={`ask-bottom-input-row${isDraggingFile ? " is-drag-over" : ""}`}
@@ -950,20 +970,22 @@ export function AskWorkspace({
               </p>
             ) : null}
 
-            <div className="ask-example-strip" aria-label="Example questions">
-              {exampleQuestionsForMode(assistantMode).map((example) => (
-                <button
-                  key={example}
-                  type="button"
-                  onClick={() => {
-                    setQuestion(example);
-                    setError(null);
-                  }}
-                >
-                  {example}
-                </button>
-              ))}
-            </div>
+            {history.length === 0 ? (
+              <div className="ask-example-strip" aria-label="Example questions">
+                {exampleQuestionsForMode(assistantMode).map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    onClick={() => {
+                      setQuestion(example);
+                      setError(null);
+                    }}
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             {sessionFiles.length > 0 ? (
               <ChatFilesPanel
                 files={sessionFiles}
@@ -1204,7 +1226,7 @@ function ConversationPanel({
             </div>
           </article>
         ) : null}
-        <div ref={messagesEndRef} aria-hidden="true" />
+        <div ref={messagesEndRef} className="ask-scroll-anchor" aria-hidden="true" />
       </div>
     </section>
   );
@@ -1223,7 +1245,6 @@ function ChatFilesPanel({
   onRemove: (name: string) => void;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
-  const [open, setOpen] = useState(true);
 
   const toggle = (name: string) =>
     setSelected((current) =>
@@ -1241,66 +1262,43 @@ function ChatFilesPanel({
   };
 
   return (
-    <section className="chat-files-panel" aria-label="Files used in this chat">
-      <button
-        type="button"
-        className="chat-files-head"
-        onClick={() => setOpen((value) => !value)}
-      >
-        <span className="chat-files-title">
-          <i className="chat-files-chevron" data-open={open} aria-hidden="true" />
-          Files in this chat
-        </span>
-        <span className="chat-files-count">{files.length}</span>
-      </button>
-      {open ? (
-        <>
-          <ul className="chat-files-list">
-            {files.map((file) => {
-              const isSelected = selected.includes(file.name);
-              const isAttached = attachedNames.includes(file.name);
-              return (
-                <li key={file.name} className="chat-file-row">
-                  <label className="chat-file-pick">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggle(file.name)}
-                    />
-                    <span className="chat-file-name" title={file.name}>
-                      {file.name}
-                    </span>
-                  </label>
-                  <span className="chat-file-size">{file.sizeKb}KB</span>
-                  {isAttached ? (
-                    <span className="chat-file-attached" title="Attached to your next question">
-                      attached
-                    </span>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="chat-file-remove"
-                    aria-label={`Remove ${file.name} from this chat`}
-                    title="Remove from this chat"
-                    onClick={() => onRemove(file.name)}
-                  >
-                    &times;
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-          <button
-            type="button"
-            className="chat-files-reuse"
-            disabled={selected.length === 0}
-            onClick={reuseSelected}
+    <div className="chat-files" aria-label="Files used in this chat">
+      <span className="chat-files-lead">Files in chat</span>
+      {files.map((file) => {
+        const isSelected = selected.includes(file.name);
+        const isAttached = attachedNames.includes(file.name);
+        return (
+          <span
+            key={file.name}
+            className={`chat-file-tag${isSelected ? " is-selected" : ""}${isAttached ? " is-attached" : ""}`}
           >
-            Ask about selected ({selected.length})
-          </button>
-        </>
+            <button
+              type="button"
+              className="chat-file-tag-main"
+              title={isAttached ? "Attached to your next question" : "Select to re-ask about this file"}
+              onClick={() => toggle(file.name)}
+            >
+              <span className="chat-file-tag-icon" aria-hidden="true">▤</span>
+              <span className="chat-file-tag-name">{file.name}</span>
+            </button>
+            <button
+              type="button"
+              className="chat-file-tag-x"
+              aria-label={`Remove ${file.name} from this chat`}
+              title="Remove from this chat"
+              onClick={() => onRemove(file.name)}
+            >
+              &times;
+            </button>
+          </span>
+        );
+      })}
+      {selected.length > 0 ? (
+        <button type="button" className="chat-files-reask" onClick={reuseSelected}>
+          Re-ask about {selected.length}
+        </button>
       ) : null}
-    </section>
+    </div>
   );
 }
 
@@ -2222,6 +2220,9 @@ function Sources({
         <div className="answer-context-group">
           <span className="answer-context-label">
             From your project · {sources.length} source{sources.length === 1 ? "" : "s"}
+            <span className="answer-context-sublabel">
+              {" "}· % = how closely it matches your question
+            </span>
           </span>
           {!showSources ? (
             <p className="answer-context-hint">
