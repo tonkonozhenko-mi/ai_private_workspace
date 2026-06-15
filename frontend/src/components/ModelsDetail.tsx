@@ -2542,7 +2542,6 @@ function GuidedModelSetupPanel({
           setMessage(
             `${provider}/${model} installed and selected — ready for ${modelType === "llm" ? "Ask" : "context building"}.`,
           );
-          void refreshInstallStatus();
         } else if (current.status === "failed") {
           setError(
             `Could not install ${provider}/${model}. ${current.stderr_preview ?? current.progress_message ?? "Check the exact model tag and that Ollama is running, then try again."}`,
