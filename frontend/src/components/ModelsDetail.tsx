@@ -281,7 +281,6 @@ export function ModelsDetail({
           onSelectionUpdated={onSelectionUpdated}
         />
       </section>
-      <ProductFitPanel />
       </div>
 
       <nav className="models-section-nav" aria-label="Model settings sections">
@@ -1762,31 +1761,6 @@ function LocalModelInstallPanel({
         ) : null}
       </details>
 
-      {jobList ? (
-        <ModelDownloadJobsPanel
-          jobs={jobList}
-          installedModels={installStatus?.items ?? []}
-          isRefreshing={refreshingJobs}
-          cancellingJobId={cancellingJobId}
-          onRefresh={() => void refreshDownloadJobs()}
-          onCancel={(jobId) => void requestCancelJob(jobId)}
-        />
-      ) : null}
-
-      <details className="model-manager-section is-quiet">
-        <summary>
-          <div>
-            <span className="eyebrow">Manual install</span>
-            <strong>Install a model yourself</strong>
-            <p>Prefer the terminal? Here is how to pull a model and use it.</p>
-          </div>
-        </summary>
-        <ol className="model-manual-install-steps">
-          {asArray(guide.next_steps).map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
-      </details>
     </section>
   );
 }
@@ -2649,73 +2623,42 @@ function GuidedModelSetupControl({
   onSave: () => void;
 }) {
   const isCustom = parseSetupChoiceValue(value)?.model === "__custom__";
+  const options = asArray(section.options);
+  const selectedOption = options.find(
+    (option) => toSetupChoiceValue(option.provider, option.model) === value,
+  );
   return (
     <article className="guided-model-card">
       <div className="guided-model-card-heading">
         <div>
-          <span>{section.model_type}</span>
+          <span>{section.model_type === "llm" ? "Answer model" : "Search model"}</span>
           <strong>{section.title}</strong>
         </div>
-        <StatusBadge label="recommended defaults" />
       </div>
       {note ? <p className="guided-model-note">{note}</p> : null}
-      <p>{section.purpose}</p>
-      <small>{section.recommendation_summary}</small>
-      <div className="guided-model-options" role="radiogroup" aria-label={`Choose ${section.title}`}>
-        {asArray(section.options).map((option) => {
-          const optionValue = toSetupChoiceValue(option.provider, option.model);
-          const selected = value === optionValue;
-          return (
-            <button
-              key={`${option.provider}/${option.model}`}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              disabled={disabled}
-              className={`guided-model-option${selected ? " is-selected" : ""}${option.recommended ? " is-recommended" : ""}`}
-              onClick={() => onChange(optionValue)}
-            >
-              <span className="guided-model-option-top">
-                <strong>{option.display_name}</strong>
-                {option.fit_label ? (
-                  <span className={`guided-model-fit guided-model-fit-${option.fit ?? "unknown"}`}>
-                    {option.fit_label}
-                  </span>
-                ) : option.recommended ? (
-                  <span className="guided-model-option-badge">Recommended</span>
-                ) : option.recommendation_label ? (
-                  <span className="guided-model-option-tag">{option.recommendation_label}</span>
-                ) : null}
-              </span>
-              {option.description ? (
-                <span className="guided-model-option-desc">{option.description}</span>
-              ) : null}
-              <span className="guided-model-option-meta">
-                {option.estimated_size ? <em>Download: {option.estimated_size}</em> : null}
-                {option.quality_tier ? <em>Quality: {option.quality_tier}</em> : null}
-                {option.speed_tier ? <em>Speed: {option.speed_tier}</em> : null}
-                {option.local_only ? <em>Runs offline</em> : null}
-              </span>
-            </button>
-          );
-        })}
-        <button
-          type="button"
-          role="radio"
-          aria-checked={isCustom}
+      <label className="guided-model-select">
+        <span className="sr-only">Choose {section.title}</span>
+        <select
+          value={value}
           disabled={disabled}
-          className={`guided-model-option guided-model-option-custom${isCustom ? " is-selected" : ""}`}
-          onClick={() => onChange("ollama||__custom__")}
+          onChange={(event) => onChange(event.target.value)}
         >
-          <span className="guided-model-option-top">
-            <strong>Custom Ollama model…</strong>
-          </span>
-          <span className="guided-model-option-desc">Enter any Ollama model tag manually.</span>
-        </button>
-      </div>
+          {options.map((option) => (
+            <option
+              key={`${option.provider}/${option.model}`}
+              value={toSetupChoiceValue(option.provider, option.model)}
+            >
+              {option.display_name}
+              {option.estimated_size ? ` · ${option.estimated_size}` : ""}
+              {option.recommended ? " · recommended" : ""}
+            </option>
+          ))}
+          <option value="ollama||__custom__">Custom Ollama model…</option>
+        </select>
+      </label>
       {isCustom ? (
-        <label>
-          <span>Custom model name</span>
+        <label className="guided-model-custom-field">
+          <span className="sr-only">Custom model name</span>
           <input
             value={customValue}
             disabled={disabled}
@@ -2727,8 +2670,19 @@ function GuidedModelSetupControl({
             onChange={(event) => onCustomChange(event.target.value)}
           />
         </label>
+      ) : selectedOption ? (
+        <div className="guided-model-selected-meta">
+          {selectedOption.fit_label ? (
+            <span className={`guided-model-fit guided-model-fit-${selectedOption.fit ?? "unknown"}`}>
+              {selectedOption.fit_label}
+            </span>
+          ) : null}
+          {selectedOption.estimated_size ? <em>↓ {selectedOption.estimated_size}</em> : null}
+          {selectedOption.quality_tier ? <em>Quality: {selectedOption.quality_tier}</em> : null}
+          {selectedOption.speed_tier ? <em>Speed: {selectedOption.speed_tier}</em> : null}
+          {selectedOption.local_only ? <em>Offline</em> : null}
+        </div>
       ) : null}
-      <p className="guided-model-custom-hint">{section.custom_model_hint}</p>
       <button
         className="model-selection-save-button"
         type="button"
