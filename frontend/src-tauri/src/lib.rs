@@ -622,6 +622,8 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
     );
     let _ = writeln!(stdout_log, "VECTOR_STORE=sqlite");
     let _ = writeln!(stdout_log, "OLLAMA_BASE_URL=http://127.0.0.1:11434");
+    let _ = writeln!(stdout_log, "LLM_PROVIDER=ollama");
+    let _ = writeln!(stdout_log, "EMBEDDING_PROVIDER=ollama");
     let _ = writeln!(stdout_log, "MODEL_DOWNLOAD_EXECUTION_ENABLED=true");
     let _ = writeln!(
         stdout_log,
@@ -652,6 +654,11 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
         .env("VECTOR_STORE", "sqlite")
         .env("VECTOR_STORE_PATH", vector_store_path())
         .env("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+        // Run real local AI by default. Without these the backend falls back to
+        // the built-in 'fake' providers, so Ask returns placeholder text and the
+        // workspace's selected Ollama models never match the active runtime.
+        .env("LLM_PROVIDER", "ollama")
+        .env("EMBEDDING_PROVIDER", "ollama")
         .env("COMMAND_RUNNER", "local")
         .env("COMMAND_TIMEOUT_SECONDS", "3600")
         .env("MODEL_DOWNLOAD_EXECUTION_ENABLED", "true")

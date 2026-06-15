@@ -333,6 +333,7 @@ function WorkspaceOnboardingGuide({
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
   const [filePreviewMode, setFilePreviewMode] = useState<"saved" | "draft" | null>(null);
   const [confirmationAction, setConfirmationAction] = useState<"scan" | "index" | null>(null);
+  const [stepsOpen, setStepsOpen] = useState(false);
   const pollingJobIdRef = useRef<string | null>(null);
 
   async function refreshJobHistory() {
@@ -474,6 +475,42 @@ function WorkspaceOnboardingGuide({
     void refreshJobHistory();
   }, []);
 
+  // Adopt a scan/index job started elsewhere (e.g. the "Use it now" panel) so
+  // its progress is visible here and the steps panel expands automatically.
+  useEffect(() => {
+    let cancelled = false;
+    const adoptRunningJob = async () => {
+      if (pollingJobIdRef.current) {
+        return;
+      }
+      try {
+        const jobs = await onListWorkspaceJobs();
+        if (cancelled || pollingJobIdRef.current) {
+          return;
+        }
+        const running = jobs.find(
+          (job) =>
+            (job.job_type === "scan" || job.job_type === "index") &&
+            !["completed", "failed", "cancelled"].includes(job.status),
+        );
+        if (running) {
+          pollingJobIdRef.current = running.job_id;
+          setSetupJob(running);
+          setSetupAction(running.job_type === "scan" ? "scan" : "index");
+          setStepsOpen(true);
+        }
+      } catch {
+        // best-effort: never break the dashboard over a polling hiccup
+      }
+    };
+    void adoptRunningJob();
+    const intervalId = window.setInterval(() => void adoptRunningJob(), 1500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [onListWorkspaceJobs]);
+
   const steps = [
     {
       title: "Scan project",
@@ -521,7 +558,6 @@ function WorkspaceOnboardingGuide({
         ? { label: "Review Models", onClick: onOpenModels, disabled: false }
         : { label: "Go to Ask", onClick: onOpenAsk, disabled: false };
 
-  const [stepsOpen, setStepsOpen] = useState(false);
   useEffect(() => {
     if (setupAction) {
       setStepsOpen(true);
