@@ -145,6 +145,23 @@ function parseSourceSnippetLimit(value: string): SourceSnippetLimit {
     : 5;
 }
 
+type AttachedTextFile = {
+  id: string;
+  name: string;
+  content: string;
+  truncated: boolean;
+  sizeKb: number;
+};
+
+const ATTACHED_FILE_MAX_BYTES = 200 * 1024;
+
+function buildAttachedFileBlock(file: AttachedTextFile): string {
+  const note = file.truncated
+    ? `\n…(truncated — first ${Math.round(ATTACHED_FILE_MAX_BYTES / 1024)} KB of ${file.sizeKb} KB)`
+    : "";
+  return `\n\n--- file: ${file.name} ---\n${file.content}${note}\n--- end of ${file.name} ---\n`;
+}
+
 export function AskWorkspace({
   workspaceId,
   assistantMode,
@@ -180,6 +197,7 @@ export function AskWorkspace({
   const [loading, setLoading] = useState(false);
   const [cancelMessage, setCancelMessage] = useState<string | null>(null);
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedTextFile[]>([]);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const askAbortControllerRef = useRef<AbortController | null>(null);
 
@@ -225,29 +243,30 @@ export function AskWorkspace({
       return;
     }
 
-    const maxBytes = 200 * 1024;
-    const blocks = await Promise.all(
-      textFiles.map(async (file) => {
-        const slice = file.size > maxBytes ? file.slice(0, maxBytes) : file;
-        let text = "";
+    const parsed = await Promise.all(
+      textFiles.map(async (file): Promise<AttachedTextFile | null> => {
+        const truncated = file.size > ATTACHED_FILE_MAX_BYTES;
+        const slice = truncated ? file.slice(0, ATTACHED_FILE_MAX_BYTES) : file;
+        let content = "";
         try {
-          text = await slice.text();
+          content = await slice.text();
         } catch {
-          return `\n\n--- could not read ${file.name} ---\n`;
+          return null;
         }
-        const truncated = file.size > maxBytes;
-        const note = truncated
-          ? `\n…(truncated — first ${Math.round(maxBytes / 1024)} KB of ${Math.round(file.size / 1024)} KB)`
-          : "";
-        return `\n\n--- file: ${file.name} ---\n${text}${note}\n--- end of ${file.name} ---\n`;
+        return {
+          id: `${Date.now()}-${file.name}-${Math.random().toString(36).slice(2, 8)}`,
+          name: file.name,
+          content,
+          truncated,
+          sizeKb: Math.max(1, Math.round(file.size / 1024)),
+        };
       }),
     );
 
-    setQuestion((current) => {
-      const prefix =
-        current.trim().length === 0 ? "Analyze this file:" : current;
-      return `${prefix}${blocks.join("")}`;
-    });
+    const readable = parsed.filter((file): file is AttachedTextFile => file !== null);
+    if (readable.length > 0) {
+      setAttachedFiles((current) => [...current, ...readable].slice(0, 6));
+    }
   }
   const showGeneralQuestionHint =
     question.trim().length > 0 && !isLikelyProjectQuestion(question);
@@ -534,10 +553,19 @@ export function AskWorkspace({
 
   async function askQuestion(questionText: string, options: { clearComposer?: boolean } = {}) {
     const trimmedQuestion = questionText.trim();
-    if (!trimmedQuestion) {
+    if (!trimmedQuestion && attachedFiles.length === 0) {
       setError("Enter a workspace question before asking.");
       return;
     }
+
+    // Attached files are folded into the question only at send time, so the
+    // composer stays clean and the chips remain removable until you ask.
+    const effectiveQuestion =
+      attachedFiles.length > 0
+        ? `${trimmedQuestion || "Analyze the attached file(s):"}${attachedFiles
+            .map(buildAttachedFileBlock)
+            .join("")}`
+        : trimmedQuestion;
 
     askAbortControllerRef.current?.abort();
     const abortController = new AbortController();
@@ -564,7 +592,7 @@ export function AskWorkspace({
         try {
           result = await askSelectedWorkspaceStream(
             workspaceId,
-            trimmedQuestion,
+            effectiveQuestion,
             limit,
             skillContext,
             {
@@ -582,7 +610,7 @@ export function AskWorkspace({
           setStreamingText("");
           result = await askSelectedWorkspace(
             workspaceId,
-            trimmedQuestion,
+            effectiveQuestion,
             limit,
             skillContext,
             askOptions,
@@ -591,7 +619,7 @@ export function AskWorkspace({
       } else {
         result = await askSelectedWorkspace(
           workspaceId,
-          trimmedQuestion,
+          effectiveQuestion,
           limit,
           skillContext,
           askOptions,
@@ -604,6 +632,7 @@ export function AskWorkspace({
       if (options.clearComposer) {
         setQuestion("");
         setAttachedImages([]);
+        setAttachedFiles([]);
       }
       await onAsked?.();
     } catch (requestError) {
@@ -757,7 +786,7 @@ export function AskWorkspace({
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
-                    if (!loading && question.trim().length > 0) {
+                    if (!loading && (question.trim().length > 0 || attachedFiles.length > 0)) {
                       void askQuestion(question, { clearComposer: true });
                     }
                   }
@@ -771,7 +800,7 @@ export function AskWorkspace({
               <button
                 className="primary-button ask-send-button"
                 type="submit"
-                disabled={loading || question.trim().length === 0}
+                disabled={loading || (question.trim().length === 0 && attachedFiles.length === 0)}
               >
                 {loading ? "Thinking..." : "Ask"}
               </button>
@@ -871,6 +900,33 @@ export function AskWorkspace({
                       &times;
                     </button>
                   </div>
+                ))}
+              </div>
+            ) : null}
+
+            {attachedFiles.length > 0 ? (
+              <div className="ask-file-chips" aria-label="Attached files">
+                {attachedFiles.map((file) => (
+                  <span key={file.id} className="ask-file-chip">
+                    <span className="ask-file-chip-icon" aria-hidden="true">
+                      ▤
+                    </span>
+                    <span className="ask-file-chip-name" title={file.name}>
+                      {file.name}
+                    </span>
+                    <span className="ask-file-chip-size">
+                      {file.truncated ? `${Math.round(ATTACHED_FILE_MAX_BYTES / 1024)}KB+` : `${file.sizeKb}KB`}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${file.name}`}
+                      onClick={() =>
+                        setAttachedFiles((current) => current.filter((item) => item.id !== file.id))
+                      }
+                    >
+                      &times;
+                    </button>
+                  </span>
                 ))}
               </div>
             ) : null}
