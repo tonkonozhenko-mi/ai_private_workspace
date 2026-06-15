@@ -237,16 +237,62 @@ export function ModelsDetail({
 
   return (
     <div className="models-detail models-detail-simple">
+      <div className="models-overview-top">
+      <section className="panel models-simple-panel models-simple-panel-clean">
+        <PanelHeading
+          eyebrow="Current setup"
+          title="Models used by this workspace"
+          status={dashboard.overall_status}
+        />
+        <div className="models-simple-grid">
+          <SimpleModelCard
+            label="AI answer model"
+            provider={dashboard.selected_llm_provider ?? usage.active_llm_provider}
+            model={dashboard.selected_llm_model ?? usage.active_llm_model}
+            description="Used when you ask questions."
+            status={usage.can_ask_with_selected_llm ? "Ready" : "Needs setup"}
+          />
+          <SimpleModelCard
+            label="Search context model"
+            provider={dashboard.selected_embedding_provider ?? usage.active_embedding_provider}
+            model={dashboard.selected_embedding_model ?? usage.active_embedding_model}
+            description="Used to build and search local project context."
+            status={getSearchContextStatusLabel(dashboard)}
+          />
+        </div>
+        {dashboard.overall_status !== "ready" ? (
+          <div className="models-setup-cta">
+            <button
+              className="overview-cta-button"
+              type="button"
+              onClick={() => setActiveSection("catalog")}
+            >
+              Choose &amp; install models
+            </button>
+            <span>Pick the models this project uses, then build context.</span>
+          </div>
+        ) : null}
+        <RuntimeNextActionPanel
+          dashboard={dashboard}
+          workspaceId={workspaceId}
+          contextBuildJob={contextBuildJob}
+          contextBuildError={contextBuildError}
+          onBuildContext={handleBuildContext}
+          onSelectionUpdated={onSelectionUpdated}
+        />
+      </section>
+      <ProductFitPanel />
+      </div>
+
       <nav className="models-section-nav" aria-label="Model settings sections">
         {(([
-          ["setup", "Overview"],
           ["catalog", "Choose & install"],
           ["skills", "Skills"],
           ["compare", "Compare"],
           ["tools", "MCP tools"],
           ["advanced", "Advanced"],
         ] as Array<[ModelsSection, string]>).filter(
-          ([id]) => developerMode || id === "setup" || id === "catalog",
+          ([id]) => developerMode || id === "catalog",
         )).map(([id, label]) => (
           <button
             key={id}
@@ -259,55 +305,6 @@ export function ModelsDetail({
           </button>
         ))}
       </nav>
-
-      {activeSection === "setup" ? (
-        <>
-          <section className="panel models-simple-panel models-simple-panel-clean">
-            <PanelHeading
-              eyebrow="Current setup"
-              title="Models used by this workspace"
-              status={dashboard.overall_status}
-            />
-            <div className="models-simple-grid">
-              <SimpleModelCard
-                label="AI answer model"
-                provider={dashboard.selected_llm_provider ?? usage.active_llm_provider}
-                model={dashboard.selected_llm_model ?? usage.active_llm_model}
-                description="Used when you ask questions."
-                status={usage.can_ask_with_selected_llm ? "Ready" : "Needs setup"}
-              />
-              <SimpleModelCard
-                label="Search context model"
-                provider={dashboard.selected_embedding_provider ?? usage.active_embedding_provider}
-                model={dashboard.selected_embedding_model ?? usage.active_embedding_model}
-                description="Used to build and search local project context."
-                status={getSearchContextStatusLabel(dashboard)}
-              />
-            </div>
-            {dashboard.overall_status !== "ready" ? (
-              <div className="models-setup-cta">
-                <button
-                  className="overview-cta-button"
-                  type="button"
-                  onClick={() => setActiveSection("catalog")}
-                >
-                  Choose &amp; install models
-                </button>
-                <span>Pick the models this project uses, then build context.</span>
-              </div>
-            ) : null}
-            <RuntimeNextActionPanel
-              dashboard={dashboard}
-              workspaceId={workspaceId}
-              contextBuildJob={contextBuildJob}
-              contextBuildError={contextBuildError}
-              onBuildContext={handleBuildContext}
-              onSelectionUpdated={onSelectionUpdated}
-            />
-          </section>
-          <ProductFitPanel />
-        </>
-      ) : null}
 
       {activeSection === "catalog" ? (
         <>
@@ -2590,6 +2587,7 @@ function GuidedModelSetupPanel({
           customValue={customLlm}
           disabled={saving !== null}
           isSaving={saving === "llm"}
+          installPercent={installPercent}
           onChange={setLlmChoice}
           onCustomChange={setCustomLlm}
           onSave={() => void saveGuidedSelection("llm")}
@@ -2612,6 +2610,7 @@ function GuidedModelSetupPanel({
               customValue={customEmbedding}
               disabled={saving !== null}
               isSaving={saving === "embedding"}
+              installPercent={installPercent}
               onChange={setEmbeddingChoice}
               onCustomChange={setCustomEmbedding}
               onSave={() => void saveGuidedSelection("embedding")}
@@ -2628,20 +2627,6 @@ function GuidedModelSetupPanel({
         Choosing a model only saves a preference for this project — nothing is
         installed, rebuilt, or restarted until you explicitly do it.
       </p>
-      {saving ? (
-        <div className="install-progress" role="status" aria-label="Model download progress">
-          <div
-            className={`install-progress-bar${installPercent === null ? " is-indeterminate" : ""}`}
-          >
-            <span
-              style={installPercent === null ? undefined : { width: `${installPercent}%` }}
-            />
-          </div>
-          <span className="install-progress-label">
-            {installPercent === null ? "Preparing…" : `${installPercent}%`}
-          </span>
-        </div>
-      ) : null}
       {message ? <p className="model-selection-message">{message}</p> : null}
       {error ? <p className="model-selection-error">{error}</p> : null}
     </section>
@@ -2654,6 +2639,7 @@ function GuidedModelSetupControl({
   customValue,
   disabled,
   isSaving,
+  installPercent,
   onChange,
   onCustomChange,
   onSave,
@@ -2663,6 +2649,7 @@ function GuidedModelSetupControl({
   customValue: string;
   disabled: boolean;
   isSaving: boolean;
+  installPercent: number | null;
   onChange: (value: string) => void;
   onCustomChange: (value: string) => void;
   onSave: () => void;
@@ -2759,6 +2746,20 @@ function GuidedModelSetupControl({
             ? `Use & install ${section.title}`
             : `Use this ${section.title}`}
       </button>
+      {isSaving ? (
+        <div className="install-progress" role="status" aria-label="Model download progress">
+          <div
+            className={`install-progress-bar${installPercent === null ? " is-indeterminate" : ""}`}
+          >
+            <span
+              style={installPercent === null ? undefined : { width: `${installPercent}%` }}
+            />
+          </div>
+          <span className="install-progress-label">
+            {installPercent === null ? "Preparing…" : `${installPercent}%`}
+          </span>
+        </div>
+      ) : null}
     </article>
   );
 }
