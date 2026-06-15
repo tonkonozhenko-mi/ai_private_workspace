@@ -158,9 +158,10 @@ function App() {
   const [deletingWorkspaceId, setDeletingWorkspaceId] = useState<string | null>(null);
   const [clearingIndexWorkspaceId, setClearingIndexWorkspaceId] = useState<string | null>(null);
   const [keepingWorkspaceId, setKeepingWorkspaceId] = useState<string | null>(null);
-  const [exitPrompt, setExitPrompt] = useState<{ count: number } | null>(null);
+  const [exitPrompt, setExitPrompt] = useState<{ count: number; context: "quit" | "launch" } | null>(null);
   const [purgingTemporary, setPurgingTemporary] = useState(false);
   const temporaryWorkspacesRef = useRef<WorkspaceOverviewItem[]>([]);
+  const launchPromptShownRef = useRef(false);
   const [showArchivedWorkspaces, setShowArchivedWorkspaces] = useState(false);
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<WorkbenchPreferences>(() =>
@@ -264,6 +265,16 @@ function App() {
       temporaryWorkspacesRef.current = allOverview.items.filter(
         (workspace) => workspace.persistence === "temporary",
       );
+      // On the first load of an app session, surface any temporary projects left
+      // over from a previous session so the user can keep or forget them. This is
+      // the reliable counterpart to the (best-effort) window close guard.
+      if (!launchPromptShownRef.current) {
+        launchPromptShownRef.current = true;
+        const leftoverTemporary = temporaryWorkspacesRef.current.length;
+        if (leftoverTemporary > 0) {
+          setExitPrompt({ count: leftoverTemporary, context: "launch" });
+        }
+      }
       setWorkspacesError(null);
       setWorkspaces(overview.items);
       setArchivedWorkspaces(archivedItems);
@@ -463,7 +474,7 @@ function App() {
         return; // nothing to forget — let the window close normally
       }
       event.preventDefault();
-      setExitPrompt({ count: temporaries.length });
+      setExitPrompt({ count: temporaries.length, context: "quit" });
     }).then((fn) => {
       if (!active && fn) {
         fn();
@@ -496,6 +507,20 @@ function App() {
     setExitPrompt(null);
     await closeDesktopWindow();
   }, []);
+
+  // Launch-time prompt: forget leftover temporary projects now, or keep them.
+  const handleForgetTemporaryNow = useCallback(async () => {
+    setPurgingTemporary(true);
+    try {
+      await purgeTemporaryWorkspaces();
+      await loadWorkspaces();
+    } catch (error) {
+      setArchiveError(`Could not delete temporary projects: ${errorMessage(error)}`);
+    } finally {
+      setPurgingTemporary(false);
+      setExitPrompt(null);
+    }
+  }, [loadWorkspaces]);
 
 
 
@@ -923,38 +948,69 @@ function App() {
             aria-modal="true"
             aria-labelledby="exit-prompt-title"
           >
-            <h2 id="exit-prompt-title">Before you quit</h2>
+            <h2 id="exit-prompt-title">
+              {exitPrompt.context === "launch"
+                ? "Temporary projects from last session"
+                : "Before you quit"}
+            </h2>
             <p>
               You have {exitPrompt.count} temporary{" "}
               {exitPrompt.count === 1 ? "project" : "projects"}. Temporary projects
-              are meant to be forgotten when you quit. What would you like to do?
+              are meant to be forgotten between sessions. What would you like to do?
             </p>
-            <div className="exit-prompt-actions">
-              <button
-                type="button"
-                className="primary-action is-danger"
-                disabled={purgingTemporary}
-                onClick={() => void handleDeleteTemporaryAndQuit()}
-              >
-                {purgingTemporary ? "Deleting…" : "Delete & quit"}
-              </button>
-              <button
-                type="button"
-                className="secondary-action"
-                disabled={purgingTemporary}
-                onClick={() => void handleKeepTemporaryAndQuit()}
-              >
-                Keep & quit
-              </button>
-              <button
-                type="button"
-                className="text-button"
-                disabled={purgingTemporary}
-                onClick={() => setExitPrompt(null)}
-              >
-                Cancel
-              </button>
-            </div>
+            {exitPrompt.context === "launch" ? (
+              <div className="exit-prompt-actions">
+                <button
+                  type="button"
+                  className="primary-action is-danger"
+                  disabled={purgingTemporary}
+                  onClick={() => void handleForgetTemporaryNow()}
+                >
+                  {purgingTemporary ? "Forgetting…" : "Forget them"}
+                </button>
+                <button
+                  type="button"
+                  className="secondary-action"
+                  disabled={purgingTemporary}
+                  onClick={() => setExitPrompt(null)}
+                >
+                  Keep for now
+                </button>
+              </div>
+            ) : (
+              <div className="exit-prompt-actions">
+                <button
+                  type="button"
+                  className="primary-action is-danger"
+                  disabled={purgingTemporary}
+                  onClick={() => void handleDeleteTemporaryAndQuit()}
+                >
+                  {purgingTemporary ? "Deleting…" : "Delete & quit"}
+                </button>
+                <button
+                  type="button"
+                  className="secondary-action"
+                  disabled={purgingTemporary}
+                  onClick={() => void handleKeepTemporaryAndQuit()}
+                >
+                  Keep & quit
+                </button>
+                <button
+                  type="button"
+                  className="text-button"
+                  disabled={purgingTemporary}
+                  onClick={() => setExitPrompt(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+            {exitPrompt.context === "launch" ? (
+              <p className="exit-prompt-hint">
+                Tip: open Manage on a project and choose “Keep forever” to make it
+                permanent.
+              </p>
+            ) : null}
           </div>
         </div>
       ) : null}
