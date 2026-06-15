@@ -36,7 +36,7 @@ import type {
 } from "../api/types";
 import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
-import { getEnabledSkillPresets, getSkillPresetByAssistantMode, type SkillPreferences } from "./skillLibrary";
+import { SKILL_PRESETS, getEnabledSkillPresets, getSkillPresetByAssistantMode, type SkillPreferences, type SkillPresetId } from "./skillLibrary";
 
 type SourceSnippetLimit = 3 | 5 | 8 | 10;
 
@@ -176,6 +176,8 @@ export function AskWorkspace({
   const [reasoning, setReasoning] = useState(true);
   const [streaming, setStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
+  // Per-question "answer style" override (dev mode): null = workspace default.
+  const [skillOverride, setSkillOverride] = useState<SkillPresetId | "">("");
   const [limit, setLimit] = useState(defaultSourceSnippets);
   const [history, setHistory] = useState<AskHistoryItem[]>([]);
   const [conversations, setConversations] = useState<WorkspaceConversation[]>([]);
@@ -587,7 +589,10 @@ export function AskWorkspace({
     setCancelMessage(null);
     setStreamingText("");
     try {
-      const skillContext = buildSkillContext(skillPreferences);
+      const skillContext =
+        devMode && skillOverride
+          ? buildSkillContextForPreset(skillOverride, skillPreferences)
+          : buildSkillContext(skillPreferences);
       const askOptions = {
         signal: abortController.signal,
         conversationId: activeConversationId,
@@ -870,6 +875,22 @@ export function AskWorkspace({
                         <span className="ask-switch-thumb" />
                       </span>
                       <span className="ask-switch-label">Streaming</span>
+                    </label>
+                    <label className="ask-snippets" title="Answer style for the next question. Overrides the project's saved skills (this question only).">
+                      <span>Style</span>
+                      <select
+                        value={skillOverride}
+                        onChange={(event) =>
+                          setSkillOverride(event.target.value as SkillPresetId | "")
+                        }
+                      >
+                        <option value="">Project default</option>
+                        {SKILL_PRESETS.map((preset) => (
+                          <option key={preset.id} value={preset.id}>
+                            {preset.name}
+                          </option>
+                        ))}
+                      </select>
                     </label>
                     <label className="ask-snippets" title="How many source snippets to retrieve as context.">
                       <span>Sources</span>
@@ -2538,6 +2559,22 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
 }
 
 
+
+function buildSkillContextForPreset(
+  presetId: SkillPresetId,
+  skillPreferences: SkillPreferences,
+): SkillContextRequest[] {
+  const preset = SKILL_PRESETS.find((item) => item.id === presetId);
+  if (!preset) {
+    return [];
+  }
+  const custom = skillPreferences[preset.id]?.customInstructions.trim();
+  const instructions = (custom && custom.length > 0
+    ? custom
+    : preset.defaultInstructions
+  ).slice(0, 1200);
+  return [{ id: preset.id, name: preset.name, custom_instructions: instructions }];
+}
 
 function buildSkillContext(skillPreferences: SkillPreferences): SkillContextRequest[] {
   return getEnabledSkillPresets(skillPreferences)
