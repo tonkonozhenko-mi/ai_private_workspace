@@ -4147,6 +4147,16 @@ function MCPMetricCard({
   );
 }
 
+type ComparisonAttachedFile = {
+  id: string;
+  name: string;
+  content: string;
+  truncated: boolean;
+  sizeKb: number;
+};
+
+const COMPARISON_FILE_MAX_BYTES = 200 * 1024;
+
 function ModelExperimentPlanner({
   workspaceId,
   llmOptions,
@@ -4189,6 +4199,40 @@ function ModelExperimentPlanner({
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<ComparisonAttachedFile[]>([]);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+
+  async function handleDroppedComparisonFiles(files: FileList | null) {
+    if (!files || files.length === 0) {
+      return;
+    }
+    const textFiles = Array.from(files)
+      .filter((file) => !file.type.startsWith("image/"))
+      .slice(0, 6);
+    const parsed = await Promise.all(
+      textFiles.map(async (file): Promise<ComparisonAttachedFile | null> => {
+        const truncated = file.size > COMPARISON_FILE_MAX_BYTES;
+        const slice = truncated ? file.slice(0, COMPARISON_FILE_MAX_BYTES) : file;
+        try {
+          return {
+            id: `${Date.now()}-${file.name}-${Math.random().toString(36).slice(2, 8)}`,
+            name: file.name,
+            content: await slice.text(),
+            truncated,
+            sizeKb: Math.max(1, Math.round(file.size / 1024)),
+          };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    const readable = parsed.filter(
+      (file): file is ComparisonAttachedFile => file !== null,
+    );
+    if (readable.length > 0) {
+      setAttachedFiles((current) => [...current, ...readable].slice(0, 6));
+    }
+  }
 
   useEffect(() => {
     setCandidateA(defaultCandidateA);
@@ -4286,6 +4330,10 @@ function ModelExperimentPlanner({
           model: candidate.model,
           model_type: "llm",
         })),
+        attached_documents: attachedFiles.map((file) => ({
+          name: file.name,
+          content: file.content,
+        })),
       });
       setRunResult(result);
       setExperimentHistory((current) =>
@@ -4304,27 +4352,82 @@ function ModelExperimentPlanner({
       <summary>
         <div>
           <p className="eyebrow">Optional</p>
-          <h2>Compare models</h2>
+          <h2>Model face-off</h2>
           <span>
-            Try two local AI models on one question when you want to improve
-            answer quality.
+            Put two local models head-to-head on the same question — and a file,
+            if you like — to see which one answers your project better.
           </span>
         </div>
       </summary>
       <p className="panel-intro">
-        Prepare a safe comparison before running a local model test. This does
-        not change workspace models, restart the backend, or rebuild search
-        context.
+        Nothing here changes your setup: it doesn't switch models, restart the
+        backend, or rebuild search context. You stay in control.
       </p>
       <div className="model-experiment-form">
-        <label className="model-experiment-question">
+        <label
+          className={`model-experiment-question${isDraggingFile ? " is-drag-over" : ""}`}
+          onDragOver={(event) => {
+            if (event.dataTransfer?.types?.includes("Files")) {
+              event.preventDefault();
+              setIsDraggingFile(true);
+            }
+          }}
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+              setIsDraggingFile(false);
+            }
+          }}
+          onDrop={(event) => {
+            if (event.dataTransfer?.files?.length) {
+              event.preventDefault();
+              setIsDraggingFile(false);
+              void handleDroppedComparisonFiles(event.dataTransfer.files);
+            }
+          }}
+        >
           <span>Comparison question</span>
           <textarea
             value={question}
             rows={3}
+            placeholder="Ask something — or drop a log/config file here and both models will analyze it."
             onChange={(event) => setQuestion(event.target.value)}
           />
+          {isDraggingFile ? (
+            <div className="ask-drop-overlay" aria-hidden="true">
+              Drop to attach — both models will analyze the file
+            </div>
+          ) : null}
         </label>
+        {attachedFiles.length > 0 ? (
+          <div className="ask-file-chips" aria-label="Attached files">
+            {attachedFiles.map((file) => (
+              <span key={file.id} className="ask-file-chip">
+                <span className="ask-file-chip-icon" aria-hidden="true">
+                  ▤
+                </span>
+                <span className="ask-file-chip-name" title={file.name}>
+                  {file.name}
+                </span>
+                <span className="ask-file-chip-size">
+                  {file.truncated
+                    ? `${Math.round(COMPARISON_FILE_MAX_BYTES / 1024)}KB+`
+                    : `${file.sizeKb}KB`}
+                </span>
+                <button
+                  type="button"
+                  aria-label={`Remove ${file.name}`}
+                  onClick={() =>
+                    setAttachedFiles((current) =>
+                      current.filter((item) => item.id !== file.id),
+                    )
+                  }
+                >
+                  &times;
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : null}
         <div className="model-experiment-candidates">
           <ModelCandidateSelect
             label="Model A"
@@ -4350,10 +4453,7 @@ function ModelExperimentPlanner({
       </div>
       <div className="model-selection-safety-note">
         <StatusBadge label="planning only" />
-        <span>
-          Planning is advisory. Run the comparison only after you explicitly
-          confirm it below.
-        </span>
+        <span>This just previews the match-up. Nothing runs until you say go.</span>
       </div>
       {error ? <p className="model-selection-error">{error}</p> : null}
       {plan ? <ModelExperimentPlanResult plan={plan} /> : null}
@@ -4362,12 +4462,10 @@ function ModelExperimentPlanner({
           <div className="model-experiment-run-heading">
             <StatusBadge label="local AI calls" />
             <div>
-              <strong>Run local model comparison</strong>
+              <strong>Ring the bell</strong>
               <p>
-                This asks both selected local AI models through the backend. It
-                may take time and can use CPU/RAM, but it does not execute shell
-                commands, change workspace models, restart the backend, or
-                rebuild search context.
+                Both models answer the same question on your machine. It can take
+                a moment and use some CPU/RAM — nothing else on your setup changes.
               </p>
             </div>
           </div>
@@ -4460,7 +4558,7 @@ function ModelExperimentPlanResult({ plan }: { plan: ModelExperimentPlan }) {
             className="model-experiment-candidate-card"
             key={`${candidate.provider}/${candidate.model}`}
           >
-            <div>
+            <div className="model-candidate-headline">
               <strong>{candidate.display_name}</strong>
               <code>
                 {candidate.provider}/{candidate.model}
@@ -4534,7 +4632,7 @@ function ModelExperimentRunResult({
             className="model-experiment-candidate-card model-experiment-run-card"
             key={`${candidate.provider}/${candidate.model}`}
           >
-            <div>
+            <div className="model-candidate-headline">
               <strong>
                 {candidate.provider}/{candidate.model}
               </strong>
@@ -4593,24 +4691,24 @@ function ExperimentRunHeuristics({ result }: { result: ModelExperimentRun }) {
 
   return (
     <div className="model-experiment-heuristics">
-      <strong>Quick comparison hints</strong>
+      <strong>Scoreboard</strong>
       <ul>
         <li>
-          Fastest: {fastest.provider}/{fastest.model} (
+          🏎️ Fastest: {fastest.provider}/{fastest.model} (
           {fastest.latency_ms ?? "unknown"} ms)
         </li>
         <li>
-          Fewest verification notes: {fewestWarnings.provider}/
+          ✅ Fewest verification notes: {fewestWarnings.provider}/
           {fewestWarnings.model} ({fewestWarnings.quality_warnings_count})
         </li>
         <li>
-          Most sources used: {mostSources.provider}/{mostSources.model} (
+          📎 Most sources used: {mostSources.provider}/{mostSources.model} (
           {mostSources.sources_count})
         </li>
       </ul>
       <small>
-        These are simple hints, not an automatic winner. Review answer quality
-        and source grounding manually before changing the chosen AI model.
+        Just quick stats, not a verdict — you're the judge. Read both answers
+        and decide which one you trust before picking a winner below.
       </small>
     </div>
   );
@@ -4796,7 +4894,7 @@ function ExperimentRatingPanel({
       });
       setRatings((current) => [savedRating, ...current]);
       setRatingMessage(
-        "Experiment rating saved. Chosen model was not changed.",
+        "Saved. Your project's model is unchanged — promote the winner below to actually switch to it.",
       );
     } catch (saveError) {
       setRatingError(errorMessage(saveError));
@@ -4831,12 +4929,16 @@ function ExperimentRatingPanel({
   return (
     <div className="experiment-rating-panel">
       <div className="experiment-rating-heading">
-        <StatusBadge label="manual rating" />
+        <StatusBadge label="crown the winner" />
         <div>
-          <strong>Rate this comparison</strong>
+          <strong>Which model won?</strong>
           <p>
-            Save human feedback for model performance tracking. This does not
-            change the chosen AI model or rerun the comparison.
+            Your rating doesn't retrain the model — local open-source models have
+            fixed weights, so they can't learn from feedback. What it does do:
+            teach <em>this app</em> which model to recommend for this project. A
+            higher average and a "preferred" pick raise that model's recommended
+            score, and you can promote the winner to be this project's answer
+            model in one click below.
           </p>
         </div>
       </div>
@@ -4876,7 +4978,7 @@ function ExperimentRatingPanel({
             checked={isPreferred}
             onChange={(event) => setIsPreferred(event.target.checked)}
           />
-          <span>Mark as preferred candidate</span>
+          <span>This was the better answer</span>
         </label>
       </div>
       <TagChecklist selectedTags={selectedTags} onChange={setSelectedTags} />

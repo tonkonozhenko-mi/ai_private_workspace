@@ -179,6 +179,7 @@ from app.core.use_cases.run_model_experiment import (
     RunModelExperimentWorkspaceNotFoundError,
 )
 from app.core.domain.model_experiment_run import ModelExperimentCandidateRequest
+from app.core.domain.attached_documents import AttachedDocument
 from app.core.domain.agent_capability import (
     build_agent_capability,
     build_agent_capability_catalog,
@@ -715,6 +716,10 @@ def run_model_experiment(
                         model=candidate.model,
                     )
                     for candidate in request.candidates
+                ],
+                attached_documents=[
+                    AttachedDocument(name=document.name, content=document.content)
+                    for document in request.attached_documents
                 ],
             )
         )

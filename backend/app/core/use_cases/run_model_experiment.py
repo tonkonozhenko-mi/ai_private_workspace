@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from time import perf_counter
 from uuid import uuid4
@@ -7,6 +7,10 @@ from app.core.domain.model_experiment_run import (
     ModelExperimentCandidateRequest,
     ModelExperimentCandidateResult,
     ModelExperimentRun,
+)
+from app.core.domain.attached_documents import (
+    AttachedDocument,
+    build_attached_documents_section,
 )
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.rag import RagSource
@@ -42,6 +46,7 @@ class RunModelExperimentInput:
     candidates: list[ModelExperimentCandidateRequest]
     experiment_type: str = SUPPORTED_EXPERIMENT_TYPE
     limit: int = 3
+    attached_documents: list[AttachedDocument] = field(default_factory=list)
 
 
 class RunModelExperimentValidationError(ValueError):
@@ -96,7 +101,12 @@ class RunModelExperimentUseCase:
             question=question,
             limit=request.limit,
         )
-        if not context_results:
+        attached_section = build_attached_documents_section(
+            question, request.attached_documents
+        )
+        # With no project context AND no attached file there is nothing to compare
+        # on. If a file is attached, run anyway — the file is the shared context.
+        if not context_results and not attached_section:
             run = self._failed_no_context_run(
                 request=request,
                 workspace_id=workspace_id,
@@ -109,6 +119,7 @@ class RunModelExperimentUseCase:
         prompt = build_workspace_question_prompt(
             question=question,
             context_results=context_results,
+            attached_section=attached_section,
         )
         sources = [
             RagSource(
@@ -140,9 +151,20 @@ class RunModelExperimentUseCase:
             completed_at=datetime.now(UTC).isoformat(),
             shared_context_sources_count=len(context_results),
             candidates=candidate_results,
-            notes=[SHARED_CONTEXT_NOTE],
+            notes=self._run_notes(request.attached_documents),
         )
         return self._save_and_record(run)
+
+    @staticmethod
+    def _run_notes(attached_documents: list[AttachedDocument]) -> list[str]:
+        notes = [SHARED_CONTEXT_NOTE]
+        if attached_documents:
+            names = ", ".join(document.name for document in attached_documents)
+            notes.append(
+                "Both candidates also received the most relevant excerpts from the "
+                f"attached file(s): {names}."
+            )
+        return notes
 
     @staticmethod
     def _validate(
