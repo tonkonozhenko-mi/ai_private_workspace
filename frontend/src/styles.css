@@ -745,6 +745,10 @@ a {
   color: var(--c-text-3);
   line-height: 1.5;
 }
+.local-ai-runtime-comparison dd.is-demo-model {
+  color: var(--c-warning);
+  font-weight: 600;
+}
 .primary-action.is-danger {
   background: var(--c-danger);
   border-color: var(--c-danger);

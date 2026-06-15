@@ -11,8 +11,10 @@ from app.api.dependencies import (
     model_catalog_registry,
     model_experiment_repository,
     model_experiment_rating_repository,
+    readiness_configuration,
     timeline_repository,
     vector_store,
+    workspace_model_selection_repository,
     workspace_repository,
 )
 from app.api.schemas.agent_schemas import (
@@ -399,6 +401,8 @@ def start_local_model_download_job(command_id: str) -> LocalModelDownloadJobResp
             model_catalog_registry=model_catalog_registry,
             job_repository=local_model_download_job_repository,
             timeline_repository=timeline_repository,
+            selection_repository=workspace_model_selection_repository,
+            configuration=readiness_configuration,
         ).start(
             command_id=command_id,
             execution_enabled=settings.model_download_execution_enabled,

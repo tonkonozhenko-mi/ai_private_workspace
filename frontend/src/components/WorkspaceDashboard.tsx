@@ -1478,15 +1478,21 @@ function getLocalAISetupGuidance(summary: WorkspaceModelsDashboardSummary) {
     };
   }
 
+  const onDemoModel = isDemoModel(summary.active_llm) && !summary.selected_llm;
   return {
-    title: "Local AI setup needs attention",
-    description:
-      "Review the selected AI and search models before relying on source-backed answers.",
-    badge: summary.overall_status,
-    message: !summary.can_search_with_selected_embedding
-      ? "Search context is not ready yet."
-      : null,
-    actionTitle: summary.primary_next_action_title ?? "Review AI setup",
+    title: onDemoModel ? "Download a model to get real answers" : "Local AI setup needs attention",
+    description: onDemoModel
+      ? "This workspace is using the built-in demo model, so Ask returns placeholder text. Download a local model and it becomes the answer model automatically."
+      : "Review the selected AI and search models before relying on source-backed answers.",
+    badge: onDemoModel ? "Demo model" : summary.overall_status,
+    message: onDemoModel
+      ? "Open Models → Choose & install to download a local model."
+      : !summary.can_search_with_selected_embedding
+        ? "Search context is not ready yet."
+        : null,
+    actionTitle: onDemoModel
+      ? "Download a local model"
+      : summary.primary_next_action_title ?? "Review AI setup",
     navigationHint: "Open Models to review setup steps.",
   };
 }
@@ -1506,15 +1512,34 @@ function ModelComparisonRow({
       <dl>
         <div>
           <dt>Chosen</dt>
-          <dd>{selected ?? "Not selected"}</dd>
+          <dd>{friendlyModelLabel(selected)}</dd>
         </div>
         <div>
           <dt>Backend default</dt>
-          <dd>{active}</dd>
+          <dd
+            className={isDemoModel(active) ? "is-demo-model" : undefined}
+            title={isDemoModel(active) ? active : undefined}
+          >
+            {friendlyModelLabel(active)}
+          </dd>
         </div>
       </dl>
     </div>
   );
+}
+
+function isDemoModel(value: string | null | undefined): boolean {
+  return Boolean(value && value.toLowerCase().includes("fake"));
+}
+
+function friendlyModelLabel(value: string | null | undefined): string {
+  if (!value) {
+    return "Not selected";
+  }
+  if (isDemoModel(value)) {
+    return "Demo model — placeholder answers";
+  }
+  return value;
 }
 
 function formatLabel(value: string) {

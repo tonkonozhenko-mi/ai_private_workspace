@@ -17,7 +17,14 @@ from app.core.ports.local_model_download_job_repository import (
 )
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.ports.workspace_model_selection_repository import (
+    WorkspaceModelSelectionRepositoryPort,
+)
 from app.core.use_cases.add_timeline_event import AddTimelineEventInput, AddTimelineEventUseCase
+from app.core.use_cases.update_workspace_model_selection import (
+    UpdateWorkspaceModelSelectionInput,
+    UpdateWorkspaceModelSelectionUseCase,
+)
 from app.core.use_cases.command_errors import (
     CommandInvalidStatusError,
     CommandNotFoundError,
@@ -44,6 +51,8 @@ class RunLocalModelDownloadJobUseCase:
         model_catalog_registry: ModelCatalogRegistry,
         job_repository: LocalModelDownloadJobRepositoryPort,
         timeline_repository: TimelineRepositoryPort | None = None,
+        selection_repository: WorkspaceModelSelectionRepositoryPort | None = None,
+        configuration: dict[str, str] | None = None,
     ) -> None:
         self.command_repository = command_repository
         self.command_runner = command_runner
@@ -51,6 +60,8 @@ class RunLocalModelDownloadJobUseCase:
         self.model_catalog_registry = model_catalog_registry
         self.job_repository = job_repository
         self.timeline_repository = timeline_repository
+        self.selection_repository = selection_repository
+        self.configuration = dict(configuration or {})
 
     def start(
         self,
@@ -282,6 +293,9 @@ class RunLocalModelDownloadJobUseCase:
             )
         )
 
+        if finished_status == "succeeded":
+            self._auto_select_downloaded_model(finished_job.workspace_id, model)
+
         if self.timeline_repository is not None:
             AddTimelineEventUseCase(self.timeline_repository).execute(
                 AddTimelineEventInput(
@@ -298,6 +312,49 @@ class RunLocalModelDownloadJobUseCase:
                     },
                 )
             )
+
+    def _auto_select_downloaded_model(
+        self,
+        workspace_id: str,
+        model: LocalModelDefinition,
+    ) -> None:
+        """Make a freshly downloaded model the workspace's active choice.
+
+        Only fills an empty slot so an explicit earlier choice is never silently
+        overridden. Best-effort: a selection failure must not fail the download.
+        """
+        if self.selection_repository is None or model.model_type not in {"llm", "embedding"}:
+            return
+        try:
+            current = self.selection_repository.get(workspace_id)
+        except Exception:  # noqa: BLE001
+            current = None
+        if current is not None:
+            already_chosen = (
+                current.selected_llm
+                if model.model_type == "llm"
+                else current.selected_embedding
+            )
+            if already_chosen is not None:
+                return
+        try:
+            UpdateWorkspaceModelSelectionUseCase(
+                workspace_repository=self.workspace_repository,
+                selection_repository=self.selection_repository,
+                model_catalog_registry=self.model_catalog_registry,
+                timeline_repository=self.timeline_repository,
+                configuration=self.configuration,
+            ).execute(
+                UpdateWorkspaceModelSelectionInput(
+                    workspace_id=workspace_id,
+                    provider=model.provider,
+                    model=model.model_name,
+                    model_type=model.model_type,
+                    selected_reason="Auto-selected after a successful local download.",
+                )
+            )
+        except Exception:  # noqa: BLE001 - auto-select is a convenience, never block the job
+            pass
 
     def _validate_exact_ollama_pull(self, proposal) -> LocalModelDefinition:
         try:
