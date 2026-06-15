@@ -1760,29 +1760,16 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
       <details className="model-manager-section is-quiet">
         <summary>
           <div>
-            <span className="eyebrow">Safety</span>
-            <strong>How downloads are controlled</strong>
-            <p>
-              Open this when you need implementation details or manual install
-              notes.
-            </p>
+            <span className="eyebrow">Manual install</span>
+            <strong>Install a model yourself</strong>
+            <p>Prefer the terminal? Here is how to pull a model and use it.</p>
           </div>
         </summary>
-        {executionCapability ? (
-          <ModelDownloadExecutionCapabilityPanel
-            capability={executionCapability}
-          />
-        ) : null}
-        {workerPlan ? <ModelDownloadWorkerPlanPanel plan={workerPlan} /> : null}
-        <details className="model-install-details">
-          <summary>Manual install notes</summary>
-          <ol>
-            {asArray(guide.next_steps).map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
-          <p>{asArray(guide.safety_notes).join(" ")}</p>
-        </details>
+        <ol className="model-manual-install-steps">
+          {asArray(guide.next_steps).map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
       </details>
     </section>
   );

@@ -168,6 +168,7 @@ function DailyUseStatusPanel({
     modelsStatus: modelsSummary.overall_status,
   });
   const [confirming, setConfirming] = useState<"scan" | "index" | null>(null);
+  const [starting, setStarting] = useState<"scan" | "index" | null>(null);
 
   function handlePrimaryAction() {
     if (nextAction.id === "scan" || nextAction.id === "index") {
@@ -182,12 +183,17 @@ function DailyUseStatusPanel({
   }
 
   function confirmStart() {
-    if (confirming === "scan") {
+    const action = confirming;
+    setConfirming(null);
+    if (action === "scan") {
       onStartScan();
-    } else if (confirming === "index") {
+    } else if (action === "index") {
       onStartIndex();
     }
-    setConfirming(null);
+    if (action) {
+      setStarting(action);
+      window.setTimeout(() => setStarting(null), 6000);
+    }
   }
 
   return (
@@ -199,7 +205,13 @@ function DailyUseStatusPanel({
           <p>{nextAction.description}</p>
         </div>
         <div className="daily-use-actions">
-          {confirming ? (
+          {starting ? (
+            <span className="daily-use-confirm-label">
+              {starting === "scan"
+                ? "Scan started — this updates when it finishes…"
+                : "Building context — this updates when it finishes…"}
+            </span>
+          ) : confirming ? (
             <>
               <span className="daily-use-confirm-label">
                 {confirming === "scan"
