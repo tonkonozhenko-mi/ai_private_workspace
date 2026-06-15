@@ -46,6 +46,13 @@ class OllamaLLMProvider:
                 "Ollama generation response did not include response text"
             )
 
+        # Reasoning models (deepseek-r1, qwq, …) return their chain-of-thought in
+        # a separate "thinking" field. Re-wrap it as <think>…</think> so the UI can
+        # show it in a collapsible block. Models that don't think are unaffected.
+        thinking = payload.get("thinking") if isinstance(payload, dict) else None
+        if isinstance(thinking, str) and thinking.strip():
+            return f"<think>\n{thinking.strip()}\n</think>\n\n{generated_text}"
+
         return generated_text
 
     def _request_with_one_local_retry(
