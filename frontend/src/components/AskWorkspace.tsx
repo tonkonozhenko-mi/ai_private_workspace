@@ -1448,13 +1448,33 @@ function AnswerResult({
               </button>
             </div>
           </div>
-          <div className="answer-content">
-            {answer.answer ? (
-              <MarkdownAnswer content={answer.answer} />
-            ) : (
-              "The chosen AI model returned an empty answer."
-            )}
-          </div>
+          {(() => {
+            const { reasoning, answer: finalAnswer } = extractReasoning(answer.answer);
+            return (
+              <>
+                {reasoning ? (
+                  <details className="answer-reasoning">
+                    <summary>
+                      <span className="answer-reasoning-dot" aria-hidden="true" />
+                      Show how the model reasoned
+                    </summary>
+                    <div className="answer-reasoning-body">
+                      <MarkdownAnswer content={reasoning} />
+                    </div>
+                  </details>
+                ) : null}
+                <div className="answer-content">
+                  {finalAnswer ? (
+                    <MarkdownAnswer content={finalAnswer} />
+                  ) : reasoning ? (
+                    "The model shared its reasoning but no final answer."
+                  ) : (
+                    "The chosen AI model returned an empty answer."
+                  )}
+                </div>
+              </>
+            );
+          })()}
           {developerMode ? (
             <div className="ask-answer-details">
               <div className="answer-stats">
@@ -2326,6 +2346,22 @@ export function friendlyAskError(message: string): string {
 function isLikelyProjectQuestion(question: string): boolean {
   const words = question.toLowerCase().match(/[a-z0-9]+/g) ?? [];
   return words.some((word) => PROJECT_QUESTION_KEYWORDS.has(word));
+}
+
+// Reasoning models (e.g. deepseek-r1, qwq) wrap their thinking in
+// <think>…</think> tags inside the answer. Split it out so the UI can show the
+// reasoning in a collapsed block and the clean answer below.
+function extractReasoning(content: string): { reasoning: string | null; answer: string } {
+  if (!content) {
+    return { reasoning: null, answer: "" };
+  }
+  const match = content.match(/<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/i);
+  if (!match) {
+    return { reasoning: null, answer: content.trim() };
+  }
+  const reasoning = match[1].trim();
+  const answer = content.replace(match[0], "").trim();
+  return { reasoning: reasoning.length > 0 ? reasoning : null, answer };
 }
 
 function formatSourceScore(score: number): string {

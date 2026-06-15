@@ -650,9 +650,7 @@ function WorkspaceOnboardingGuide({
       </summary>
       <div className="onboarding-guide-heading">
         <span className="onboarding-safety-note">
-          The checklist below mirrors your progress. Start each step from “Use it
-          now” above — every step is explicit and reversible, with no hidden
-          shell commands.
+          Your progress. Start each step from “Use it now” above.
         </span>
         {setupAction ? (
           <button
@@ -665,13 +663,63 @@ function WorkspaceOnboardingGuide({
         ) : null}
       </div>
 
+      <div className="onboarding-steps-grid">
+        {steps.map((step, index) => (
+          <article
+            className={`onboarding-step-card is-${step.status}`}
+            key={step.title}
+          >
+            <span>{index + 1}</span>
+            <div>
+              <strong>{step.title}</strong>
+              <p>{step.description}</p>
+            </div>
+            <StatusBadge label={step.status} />
+          </article>
+        ))}
+      </div>
+
+      {setupJob && !["completed", "failed", "cancelled"].includes(setupJob.status) ? (
+        <div className="workspace-job-status" role="status">
+          <div className="workspace-job-main">
+            <span>{formatLabel(setupJob.job_type)}</span>
+            <strong>{setupJob.title}</strong>
+            <p>{setupJob.message ?? "Running..."}</p>
+            <JobProgress job={setupJob} />
+            {setupJob.cancellation_requested ? (
+              <p>Stopping when the backend reaches a safe checkpoint...</p>
+            ) : null}
+          </div>
+          <StatusBadge label={setupJob.status} />
+          <button
+            className="secondary-action"
+            type="button"
+            onClick={cancelSetupAction}
+            disabled={setupJob.cancellation_requested}
+          >
+            {setupJob.cancellation_requested ? "Stopping..." : "Cancel job"}
+          </button>
+        </div>
+      ) : null}
+
+      {setupMessage ? (
+        <p className="settings-message success">{setupMessage}</p>
+      ) : null}
+      {setupError ? (
+        <p className="settings-message error">{setupError}</p>
+      ) : null}
+
+      <BackgroundJobsPanel
+        jobs={jobHistory}
+        error={jobHistoryError}
+        onRefresh={() => void refreshJobHistory()}
+      />
+
       <details className="file-rules-plan file-rules-disclosure" aria-label="File selection plan">
         <summary>
           <div>
-            <strong>File rules for scan and context build</strong>
-            <p>
-              Saved rules are applied when scan/index starts. Open this only when you want to verify included files.
-            </p>
+            <strong>Files included in scan and context</strong>
+            <p>Open only to verify which files are scanned and indexed.</p>
           </div>
           <span>{includeRuleCount} include · {excludeRuleCount} exclude</span>
         </summary>
@@ -712,80 +760,16 @@ function WorkspaceOnboardingGuide({
             </button>
           ) : null}
         </div>
+        {filePreviewError ? (
+          <p className="settings-message error">{filePreviewError}</p>
+        ) : null}
+        {filePreview && filePreviewOpen ? (
+          <FileSelectionPreviewPanel
+            preview={filePreview}
+            title={filePreviewMode === "draft" ? "Draft rules preview" : "Saved rules preview"}
+          />
+        ) : null}
       </details>
-
-      {filePreviewError ? (
-        <p className="settings-message error">{filePreviewError}</p>
-      ) : null}
-
-      {filePreview && filePreviewOpen ? (
-        <FileSelectionPreviewPanel
-          preview={filePreview}
-          title={filePreviewMode === "draft" ? "Draft rules preview" : "Saved rules preview"}
-        />
-      ) : null}
-
-      {confirmationAction ? (
-        <JobConfirmationPanel
-          action={confirmationAction}
-          preview={filePreview}
-          loading={filePreviewLoading}
-          onCancel={clearSetupConfirmation}
-          onConfirm={() => void runSetupAction(confirmationAction)}
-        />
-      ) : null}
-
-      {setupJob && !["completed", "failed", "cancelled"].includes(setupJob.status) ? (
-        <div className="workspace-job-status" role="status">
-          <div className="workspace-job-main">
-            <span>{formatLabel(setupJob.job_type)}</span>
-            <strong>{setupJob.title}</strong>
-            <p>{setupJob.message ?? "Running..."}</p>
-            <JobProgress job={setupJob} />
-            {setupJob.cancellation_requested ? (
-              <p>Stopping when the backend reaches a safe checkpoint...</p>
-            ) : null}
-          </div>
-          <StatusBadge label={setupJob.status} />
-          <button
-            className="secondary-action"
-            type="button"
-            onClick={cancelSetupAction}
-            disabled={setupJob.cancellation_requested}
-          >
-            {setupJob.cancellation_requested ? "Stopping..." : "Cancel job"}
-          </button>
-        </div>
-      ) : null}
-
-      {setupMessage ? (
-        <p className="settings-message success">{setupMessage}</p>
-      ) : null}
-      {setupError ? (
-        <p className="settings-message error">{setupError}</p>
-      ) : null}
-
-      <BackgroundJobsPanel
-        jobs={jobHistory}
-        error={jobHistoryError}
-        onRefresh={() => void refreshJobHistory()}
-      />
-
-      <div className="onboarding-steps-grid">
-        {steps.map((step, index) => (
-          <article
-            className={`onboarding-step-card is-${step.status}`}
-            key={step.title}
-          >
-            <span>{index + 1}</span>
-            <div>
-              <strong>{step.title}</strong>
-              <p>{step.description}</p>
-            </div>
-            <StatusBadge label={step.status} />
-          </article>
-        ))}
-      </div>
     </details>
   );
 }

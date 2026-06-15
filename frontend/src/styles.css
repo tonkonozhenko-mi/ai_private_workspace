@@ -1294,6 +1294,14 @@ details.onboarding-guide-panel[open] > summary {
 .file-rules-plan-grid code { font-family: var(--font-mono); font-size: 12px; color: var(--c-text-2); word-break: break-word; line-height: 1.5; }
 .background-job-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
 .job-progress-label { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+/* Reasoning (chain-of-thought) block for reasoning models */
+.answer-reasoning { margin-bottom: var(--s-3); border: 1px solid var(--c-border); border-radius: var(--r-md); background: var(--c-surface-2); }
+.answer-reasoning > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; font-size: 12.5px; font-weight: 600; color: var(--c-text-2); list-style: none; user-select: none; }
+.answer-reasoning > summary::-webkit-details-marker { display: none; }
+.answer-reasoning-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--c-accent); flex: 0 0 auto; }
+.answer-reasoning[open] > summary { border-bottom: 1px solid var(--c-border); }
+.answer-reasoning-body { padding: 10px 12px; color: var(--c-text-3); font-size: 13px; line-height: 1.55; }
+.answer-reasoning-body * { color: var(--c-text-3); }
 .installed-models-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 .instruction-command-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .job-confirmation-panel { display: grid; grid-template-columns: minmax(220px, 1.3fr) minmax(240px, 0.9fr) auto; gap: 1rem; }
