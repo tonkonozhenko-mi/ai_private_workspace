@@ -54,10 +54,6 @@ export function WorkspaceList({
   return (
     <nav className="workspace-list" aria-label="Workspaces">
       <div className="active-workspaces-section" aria-label="Active workspaces">
-        <div className="active-workspaces-heading">
-          <span className="section-eyebrow">Active</span>
-          <p>Projects available for setup, context building, and questions.</p>
-        </div>
         {workspaces.length === 0 ? (
           <EmptyState
             title="No active projects"
