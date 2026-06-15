@@ -1590,6 +1590,15 @@ details.onboarding-guide-panel[open] > summary {
 .guided-model-selected-meta em { font-style: normal; }
 .installed-models-group + .installed-models-group { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--c-border); }
 .installed-models-group-label { margin: 0 0 10px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-text-3); font-weight: 600; }
+.custom-skill-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
+.custom-skill-row { display: flex; align-items: flex-start; gap: 10px; }
+.custom-skill-fields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.custom-skill-name { font-weight: 500; }
+.custom-skill-instructions { resize: vertical; }
+.custom-skill-remove { flex: none; width: 28px; height: 28px; border: 1px solid var(--c-border); background: transparent; color: var(--c-text-3); font-size: 16px; line-height: 1; border-radius: var(--r-sm); cursor: pointer; }
+.custom-skill-remove:hover { color: var(--c-danger); border-color: rgba(240, 144, 141, 0.4); }
+.custom-skill-add { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--c-border); }
+.custom-skill-add .primary-button { align-self: flex-start; }
 .settings-danger-card { border-color: rgba(240, 144, 141, 0.32); }
 .settings-danger-confirm { color: var(--c-danger); font-size: 13px; align-self: center; }
 .settings-danger-button { border-color: rgba(240, 144, 141, 0.4); color: var(--c-danger); }

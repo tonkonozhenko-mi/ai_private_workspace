@@ -36,7 +36,7 @@ import type {
 } from "../api/types";
 import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
-import { SKILL_PRESETS, getEnabledSkillPresets, getSkillPresetByAssistantMode, type SkillPreferences, type SkillPresetId } from "./skillLibrary";
+import { SKILL_PRESETS, getEnabledSkillPresets, getSkillPresetByAssistantMode, type CustomSkill, type SkillPreferences } from "./skillLibrary";
 
 type SourceSnippetLimit = 3 | 5 | 8 | 10;
 
@@ -45,6 +45,7 @@ interface AskWorkspaceProps {
   assistantMode: string;
   defaultSourceSnippets: SourceSnippetLimit;
   skillPreferences: SkillPreferences;
+  customSkills: CustomSkill[];
   skillProfileSource?: string;
   skillProfileUpdatedAt?: string | null;
   developerMode?: boolean;
@@ -163,6 +164,7 @@ export function AskWorkspace({
   assistantMode,
   defaultSourceSnippets,
   skillPreferences,
+  customSkills,
   skillProfileSource = "default",
   skillProfileUpdatedAt = null,
   developerMode = false,
@@ -176,8 +178,9 @@ export function AskWorkspace({
   const [reasoning, setReasoning] = useState(true);
   const [streaming, setStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
-  // Per-question "answer style" override (dev mode): null = workspace default.
-  const [skillOverride, setSkillOverride] = useState<SkillPresetId | "">("");
+  // Per-question "answer style" override (dev mode): "" = workspace default.
+  // Value is a preset id or a custom-skill id.
+  const [skillOverride, setSkillOverride] = useState<string>("");
   const [limit, setLimit] = useState(defaultSourceSnippets);
   const [history, setHistory] = useState<AskHistoryItem[]>([]);
   const [conversations, setConversations] = useState<WorkspaceConversation[]>([]);
@@ -591,7 +594,7 @@ export function AskWorkspace({
     try {
       const skillContext =
         devMode && skillOverride
-          ? buildSkillContextForPreset(skillOverride, skillPreferences)
+          ? buildSkillContextForOverride(skillOverride, skillPreferences, customSkills)
           : buildSkillContext(skillPreferences);
       const askOptions = {
         signal: abortController.signal,
@@ -880,16 +883,25 @@ export function AskWorkspace({
                       <span>Style</span>
                       <select
                         value={skillOverride}
-                        onChange={(event) =>
-                          setSkillOverride(event.target.value as SkillPresetId | "")
-                        }
+                        onChange={(event) => setSkillOverride(event.target.value)}
                       >
                         <option value="">Project default</option>
-                        {SKILL_PRESETS.map((preset) => (
-                          <option key={preset.id} value={preset.id}>
-                            {preset.name}
-                          </option>
-                        ))}
+                        <optgroup label="Built-in">
+                          {SKILL_PRESETS.map((preset) => (
+                            <option key={preset.id} value={preset.id}>
+                              {preset.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                        {customSkills.length > 0 ? (
+                          <optgroup label="Your skills">
+                            {customSkills.map((skill) => (
+                              <option key={skill.id} value={skill.id}>
+                                {skill.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ) : null}
                       </select>
                     </label>
                     <label className="ask-snippets" title="How many source snippets to retrieve as context.">
@@ -2560,20 +2572,31 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
 
 
 
-function buildSkillContextForPreset(
-  presetId: SkillPresetId,
+function buildSkillContextForOverride(
+  overrideId: string,
   skillPreferences: SkillPreferences,
+  customSkills: CustomSkill[],
 ): SkillContextRequest[] {
-  const preset = SKILL_PRESETS.find((item) => item.id === presetId);
-  if (!preset) {
-    return [];
+  const preset = SKILL_PRESETS.find((item) => item.id === overrideId);
+  if (preset) {
+    const custom = skillPreferences[preset.id]?.customInstructions.trim();
+    const instructions = (custom && custom.length > 0
+      ? custom
+      : preset.defaultInstructions
+    ).slice(0, 1200);
+    return [{ id: preset.id, name: preset.name, custom_instructions: instructions }];
   }
-  const custom = skillPreferences[preset.id]?.customInstructions.trim();
-  const instructions = (custom && custom.length > 0
-    ? custom
-    : preset.defaultInstructions
-  ).slice(0, 1200);
-  return [{ id: preset.id, name: preset.name, custom_instructions: instructions }];
+  const userSkill = customSkills.find((item) => item.id === overrideId);
+  if (userSkill) {
+    return [
+      {
+        id: userSkill.id,
+        name: userSkill.name,
+        custom_instructions: userSkill.instructions.slice(0, 1200),
+      },
+    ];
+  }
+  return [];
 }
 
 function buildSkillContext(skillPreferences: SkillPreferences): SkillContextRequest[] {

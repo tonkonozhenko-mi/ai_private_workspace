@@ -26,6 +26,8 @@ import {
   normalizeSkillPreferences,
   toSkillProfileRequest,
   type SkillPresetId,
+  makeCustomSkillId,
+  type CustomSkill,
   type SkillPreferences,
   type SkillProfileTemplateId,
 } from "./skillLibrary";
@@ -446,6 +448,13 @@ export function SettingsPanel({
         <p className="settings-message">{skillMessage}</p>
       </section>
 
+      <CustomSkillsEditor
+        skills={preferences.customSkills}
+        onChange={(next) =>
+          onPreferencesChange({ ...preferences, customSkills: next })
+        }
+      />
+
       <section className="panel settings-clean-card settings-danger-card">
         <div className="panel-heading compact-heading">
           <div>
@@ -492,6 +501,118 @@ export function SettingsPanel({
         {resetMessage ? <p className="settings-message">{resetMessage}</p> : null}
       </section>
     </div>
+  );
+}
+
+function CustomSkillsEditor({
+  skills,
+  onChange,
+}: {
+  skills: CustomSkill[];
+  onChange: (skills: CustomSkill[]) => void;
+}) {
+  const [newName, setNewName] = useState("");
+  const [newInstructions, setNewInstructions] = useState("");
+
+  function addSkill() {
+    const name = newName.trim();
+    const instructions = newInstructions.trim();
+    if (!name || !instructions) {
+      return;
+    }
+    onChange([
+      ...skills,
+      { id: makeCustomSkillId(), name: name.slice(0, 80), instructions: instructions.slice(0, 1200) },
+    ]);
+    setNewName("");
+    setNewInstructions("");
+  }
+
+  function updateSkill(id: string, patch: Partial<CustomSkill>) {
+    onChange(skills.map((skill) => (skill.id === id ? { ...skill, ...patch } : skill)));
+  }
+
+  function removeSkill(id: string) {
+    onChange(skills.filter((skill) => skill.id !== id));
+  }
+
+  return (
+    <section className="panel settings-clean-card">
+      <div className="panel-heading compact-heading">
+        <div>
+          <p className="eyebrow">Your skills</p>
+          <h3>Create your own answer styles</h3>
+          <p className="panel-helper">
+            A skill is a short instruction that shapes how answers are written
+            (tone, focus, what to prioritize). Add your own and pick them per
+            question in Ask under “Style” (developer mode).
+          </p>
+        </div>
+      </div>
+
+      {skills.length > 0 ? (
+        <div className="custom-skill-list">
+          {skills.map((skill) => (
+            <div className="custom-skill-row" key={skill.id}>
+              <div className="custom-skill-fields">
+                <input
+                  className="custom-skill-name"
+                  value={skill.name}
+                  maxLength={80}
+                  placeholder="Skill name"
+                  onChange={(event) => updateSkill(skill.id, { name: event.target.value })}
+                />
+                <textarea
+                  className="custom-skill-instructions"
+                  value={skill.instructions}
+                  rows={2}
+                  maxLength={1200}
+                  placeholder="Instructions — e.g. Answer in short, plain steps; always mention rollback risks."
+                  onChange={(event) =>
+                    updateSkill(skill.id, { instructions: event.target.value })
+                  }
+                />
+              </div>
+              <button
+                type="button"
+                className="custom-skill-remove"
+                aria-label={`Remove ${skill.name}`}
+                title="Remove this skill"
+                onClick={() => removeSkill(skill.id)}
+              >
+                &times;
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="settings-message">No custom skills yet. Add one below.</p>
+      )}
+
+      <div className="custom-skill-add">
+        <input
+          value={newName}
+          maxLength={80}
+          placeholder="New skill name (e.g. Security reviewer)"
+          onChange={(event) => setNewName(event.target.value)}
+        />
+        <textarea
+          value={newInstructions}
+          rows={2}
+          maxLength={1200}
+          placeholder="What should it focus on? e.g. Flag security risks first, cite CVEs, suggest the safest fix."
+          onChange={(event) => setNewInstructions(event.target.value)}
+        />
+        <button
+          type="button"
+          className="primary-button"
+          disabled={!newName.trim() || !newInstructions.trim()}
+          onClick={addSkill}
+        >
+          Add skill
+        </button>
+      </div>
+    </section>
   );
 }
 
