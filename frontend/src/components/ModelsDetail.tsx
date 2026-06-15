@@ -323,6 +323,7 @@ export function ModelsDetail({
                 dashboard.selected_embedding_model,
               ].join("-")}
               workspaceId={workspaceId}
+              onSelectionUpdated={onSelectionUpdated}
             />
           ) : null}
         </>
@@ -1258,7 +1259,13 @@ function OllamaRecommendationPanel() {
   );
 }
 
-function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
+function LocalModelInstallPanel({
+  workspaceId,
+  onSelectionUpdated,
+}: {
+  workspaceId: string;
+  onSelectionUpdated: () => Promise<void> | void;
+}) {
   const [guide, setGuide] = useState<LocalModelInstallGuide | null>(null);
   const [installStatus, setInstallStatus] =
     useState<LocalModelInstallStatus | null>(null);
@@ -1435,6 +1442,9 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
     try {
       await deleteInstalledModel(name);
       await refreshInstallStatus();
+      // Refresh the workspace so Current setup / model selection reflect the
+      // deletion (e.g. a previously-selected model now reads as Needs setup).
+      await onSelectionUpdated();
     } catch (deleteError) {
       setDraftError(errorMessage(deleteError));
     } finally {

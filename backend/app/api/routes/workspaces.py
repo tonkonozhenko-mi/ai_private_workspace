@@ -1750,6 +1750,7 @@ def ask_workspace_question(
                 conversation_id=conversation.id,
                 images=request.images,
                 temperature=request.temperature,
+                think=request.think,
             )
         )
         result = _persist_answer_in_conversation(conversation.id, result)
@@ -1837,6 +1838,7 @@ def ask_workspace_question_with_selected_llm(
                 conversation_id=conversation.id,
                 images=request.images,
                 temperature=request.temperature,
+                think=request.think,
             )
         )
         result = _persist_answer_in_conversation(conversation.id, result)

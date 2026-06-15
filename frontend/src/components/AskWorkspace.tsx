@@ -159,6 +159,7 @@ export function AskWorkspace({
   // Developer details are off by default and can be toggled right here on the
   // Ask screen.
   const [devMode, setDevMode] = useState(false);
+  const [reasoning, setReasoning] = useState(true);
   const [limit, setLimit] = useState(defaultSourceSnippets);
   const [history, setHistory] = useState<AskHistoryItem[]>([]);
   const [conversations, setConversations] = useState<WorkspaceConversation[]>([]);
@@ -510,6 +511,7 @@ export function AskWorkspace({
             return comma >= 0 ? image.slice(comma + 1) : image;
           }),
           temperature: answerTemperature ?? null,
+          think: devMode ? reasoning : null,
         },
       );
       const historyItem = createHistoryItem(result);
@@ -673,6 +675,16 @@ export function AskWorkspace({
             <div className="ask-bottom-meta-row">
               <span>Answers stay on your computer, with sources attached.</span>
               <div className="ask-meta-controls">
+                {devMode ? (
+                  <label className="ask-dev-toggle" title="Only affects reasoning models (deepseek-r1, qwq…)">
+                    <input
+                      type="checkbox"
+                      checked={reasoning}
+                      onChange={(event) => setReasoning(event.target.checked)}
+                    />
+                    Reasoning
+                  </label>
+                ) : null}
                 {devMode ? (
                   <label>
                     Source snippets
