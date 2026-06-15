@@ -237,17 +237,6 @@ export function ModelsDetail({
 
   return (
     <div className="models-detail models-detail-simple">
-      <section className="panel models-native-hero models-native-hero-clean">
-        <div>
-          <p className="eyebrow">Models</p>
-          <h2>Local AI for this workspace</h2>
-          <p>Pick the AI this project uses, and install it if you don't have it yet. Everything runs on your computer.</p>
-        </div>
-        <div className="models-native-hero-badges">
-          <StatusBadge label={dashboard.usage_plan.can_use_selected_models_fully ? "Ready" : "Needs action"} />
-        </div>
-      </section>
-
       <nav className="models-section-nav" aria-label="Model settings sections">
         {(([
           ["setup", "Overview"],
@@ -2438,6 +2427,7 @@ function GuidedModelSetupPanel({
   const [customLlm, setCustomLlm] = useState("");
   const [customEmbedding, setCustomEmbedding] = useState("");
   const [saving, setSaving] = useState<"llm" | "embedding" | null>(null);
+  const [installPercent, setInstallPercent] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -2521,10 +2511,11 @@ function GuidedModelSetupPanel({
       const capability = await getLocalModelDownloadExecutionCapability();
       if (capability.execution_enabled) {
         let current = await startLocalModelDownloadJob(draft.command_proposal.id);
+        setInstallPercent(current.progress_percent ?? 0);
         setMessage(`Downloading ${provider}/${model}…`);
         for (
           let attempt = 0;
-          attempt < 600 &&
+          attempt < 1200 &&
           !["succeeded", "failed", "cancelled"].includes(current.status);
           attempt += 1
         ) {
@@ -2534,8 +2525,13 @@ function GuidedModelSetupPanel({
           } catch {
             break;
           }
-          if (current.status === "running" && current.progress_percent != null) {
-            setMessage(`Downloading ${provider}/${model}… ${current.progress_percent}%`);
+          if (current.status === "running") {
+            setInstallPercent(current.progress_percent ?? null);
+            setMessage(
+              current.progress_percent != null
+                ? `Downloading ${provider}/${model}… ${current.progress_percent}%`
+                : `Downloading ${provider}/${model}…`,
+            );
           }
         }
         if (current.status === "succeeded") {
@@ -2558,6 +2554,7 @@ function GuidedModelSetupPanel({
       setError(errorMessage(saveError));
     } finally {
       setSaving(null);
+      setInstallPercent(null);
     }
   }
 
@@ -2631,6 +2628,20 @@ function GuidedModelSetupPanel({
         Choosing a model only saves a preference for this project — nothing is
         installed, rebuilt, or restarted until you explicitly do it.
       </p>
+      {saving ? (
+        <div className="install-progress" role="status" aria-label="Model download progress">
+          <div
+            className={`install-progress-bar${installPercent === null ? " is-indeterminate" : ""}`}
+          >
+            <span
+              style={installPercent === null ? undefined : { width: `${installPercent}%` }}
+            />
+          </div>
+          <span className="install-progress-label">
+            {installPercent === null ? "Preparing…" : `${installPercent}%`}
+          </span>
+        </div>
+      ) : null}
       {message ? <p className="model-selection-message">{message}</p> : null}
       {error ? <p className="model-selection-error">{error}</p> : null}
     </section>
