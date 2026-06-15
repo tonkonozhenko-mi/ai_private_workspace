@@ -598,79 +598,6 @@ function WorkspaceOnboardingGuide({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalSetupRequest?.nonce]);
 
-  const steps = [
-    {
-      title: "1 · Scan project",
-      description: hasScan
-        ? `${summary.detected_skills_count} technologies were found.`
-        : "List the project's files so the app knows what it can search. Nothing leaves your computer.",
-      status: hasScan ? "done" : "next",
-    },
-    {
-      title: "2 · Set up the search model",
-      description: embeddingReady
-        ? `Search model ready: ${modelsSummary.selected_embedding ?? "configured"}.`
-        : "Indexing needs a small search (embedding) model. Pick and install it in Models.",
-      status: embeddingReady ? "done" : hasScan ? "next" : "waiting",
-    },
-    {
-      title: "3 · Build search context",
-      description: indexReady
-        ? `${summary.index_status.chunks_count} context pieces are ready for search.`
-        : embeddingReady
-          ? "Turn the scanned files into searchable local context."
-          : "Available once the search model is set up.",
-      status: indexReady
-        ? "done"
-        : hasScan && embeddingReady
-          ? "next"
-          : "waiting",
-    },
-    {
-      title: "4 · Set up the answer model",
-      description: llmReady
-        ? `Answer model ready: ${modelsSummary.selected_llm ?? "configured"}.`
-        : "Pick (and install) the local AI model that answers your questions.",
-      status: llmReady ? "done" : indexReady ? "next" : "waiting",
-    },
-    {
-      title: "5 · Ask a question",
-      description: readyToAsk
-        ? "Ask is ready and will keep retrieved sources visible."
-        : "Ask becomes useful once all the steps above are done.",
-      status: readyToAsk ? "next" : "waiting",
-    },
-  ];
-
-  // Wizard order: scan -> search model -> index -> answer model -> ask.
-  // Index stays locked until a search (embedding) model is ready.
-  const primaryAction = !hasScan
-    ? {
-        label: setupAction === "scan" ? "Scanning..." : "Scan project",
-        onClick: () => void requestSetupAction("scan"),
-        disabled: setupAction !== null,
-      }
-    : !embeddingReady
-      ? {
-          label: "Set up the search model",
-          onClick: onOpenModels,
-          disabled: false,
-        }
-      : !indexReady
-        ? {
-            label:
-              setupAction === "index" ? "Building..." : "Build search context",
-            onClick: () => void requestSetupAction("index"),
-            disabled: setupAction !== null,
-          }
-        : !llmReady
-          ? {
-              label: "Set up the answer model",
-              onClick: onOpenModels,
-              disabled: false,
-            }
-          : { label: "Go to Ask", onClick: onOpenAsk, disabled: false };
-
   useEffect(() => {
     if (setupAction) {
       setStepsOpen(true);
@@ -686,14 +613,14 @@ function WorkspaceOnboardingGuide({
       }
     >
       <summary className="onboarding-guide-summary">
-        <span className="eyebrow">Setup steps</span>
+        <span className="eyebrow">Setup activity &amp; files</span>
         <span className="onboarding-guide-summary-title">
-          {readyToAsk ? "Workspace ready — review steps" : "Step-by-step setup"}
+          Live scan/index progress, background jobs, and which files are included
         </span>
       </summary>
       <div className="onboarding-guide-heading">
         <span className="onboarding-safety-note">
-          Your progress. Start each step from “Use it now” above.
+          Run steps from “Use it now” above. This shows live progress and details.
         </span>
         {setupAction ? (
           <button
@@ -704,22 +631,6 @@ function WorkspaceOnboardingGuide({
             Cancel job
           </button>
         ) : null}
-      </div>
-
-      <div className="onboarding-steps-grid">
-        {steps.map((step, index) => (
-          <article
-            className={`onboarding-step-card is-${step.status}`}
-            key={step.title}
-          >
-            <span>{index + 1}</span>
-            <div>
-              <strong>{step.title}</strong>
-              <p>{step.description}</p>
-            </div>
-            <StatusBadge label={step.status} />
-          </article>
-        ))}
       </div>
 
       {setupJob && !["completed", "failed", "cancelled"].includes(setupJob.status) ? (
