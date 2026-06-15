@@ -1512,52 +1512,23 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
           executionCapability,
         )}
       />
-      <p className="panel-intro model-install-summary">
-        A calm place to check what is installed, download missing recommended
-        models, and keep every action explicit.
-      </p>
-
       <div
         className="model-manager-summary-grid"
         aria-label="Local model manager summary"
       >
         <article>
-          <span>Installed</span>
+          <span className="model-manager-stat-label">Installed</span>
           <strong>
             {installStatus?.runtime_reachable
               ? `${installedRecommendedCount}/${recommendedInstallItems.length} recommended`
               : "Ollama offline"}
           </strong>
-          <p>
-            {installStatus?.runtime_reachable
-              ? installStatus.summary
-              : "Start Ollama, then refresh this read-only check."}
-          </p>
         </article>
         <article>
-          <span>Downloads</span>
+          <span className="model-manager-stat-label">Downloads</span>
           <strong>
-            {activeJobs.length > 0
-              ? `${activeJobs.length} active`
-              : "No active downloads"}
+            {activeJobs.length > 0 ? `${activeJobs.length} active` : "None active"}
           </strong>
-          <p>
-            {jobList?.summary ??
-              "Download history will appear after you start a backend job."}
-          </p>
-        </article>
-        <article>
-          <span>Safety</span>
-          <strong>
-            {executionCapability?.execution_enabled
-              ? "Backend execution enabled"
-              : "Manual by default"}
-          </strong>
-          <p>
-            {executionCapability?.execution_enabled
-              ? "Only allowlisted Ollama pulls can run."
-              : "Commands are copy-only unless trusted local execution is enabled."}
-          </p>
         </article>
       </div>
 

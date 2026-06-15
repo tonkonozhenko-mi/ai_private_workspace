@@ -349,6 +349,7 @@ function WorkspaceOnboardingGuide({
   const [confirmationAction, setConfirmationAction] = useState<"scan" | "index" | null>(null);
   const [stepsOpen, setStepsOpen] = useState(false);
   const pollingJobIdRef = useRef<string | null>(null);
+  const lastSeenSetupJobRef = useRef<string | null | undefined>(undefined);
 
   async function refreshJobHistory() {
     setJobHistoryError(null);
@@ -499,14 +500,33 @@ function WorkspaceOnboardingGuide({
       }
       try {
         const jobs = await onListWorkspaceJobs();
-        if (cancelled || pollingJobIdRef.current) {
+        if (cancelled) {
           return;
         }
-        const running = jobs.find(
-          (job) =>
-            (job.job_type === "scan" || job.job_type === "index") &&
-            !["completed", "failed", "cancelled"].includes(job.status),
+        const latestSetup = jobs.find(
+          (job) => job.job_type === "scan" || job.job_type === "index",
         );
+        // Refresh the dashboard once when a new setup job has finished, even if
+        // it completed too fast to be caught while running.
+        if (latestSetup) {
+          if (lastSeenSetupJobRef.current === undefined) {
+            lastSeenSetupJobRef.current = latestSetup.job_id;
+          } else if (
+            latestSetup.job_id !== lastSeenSetupJobRef.current &&
+            latestSetup.status === "completed"
+          ) {
+            lastSeenSetupJobRef.current = latestSetup.job_id;
+            void onRefreshWorkspaceState();
+          }
+        }
+        if (pollingJobIdRef.current) {
+          return;
+        }
+        const running =
+          latestSetup &&
+          !["completed", "failed", "cancelled"].includes(latestSetup.status)
+            ? latestSetup
+            : undefined;
         if (running) {
           pollingJobIdRef.current = running.job_id;
           setSetupJob(running);
@@ -523,7 +543,7 @@ function WorkspaceOnboardingGuide({
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [onListWorkspaceJobs]);
+  }, [onListWorkspaceJobs, onRefreshWorkspaceState]);
 
   // When the "Use it now" panel asks to scan/index, open the steps and run the
   // guided flow (file preview + confirm) instead of a silent direct start.
