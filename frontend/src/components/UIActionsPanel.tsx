@@ -67,15 +67,13 @@ export function UIActionsPanel({ catalog }: UIActionsPanelProps) {
                         onClick={() => setSelectedActionId(action.id)}
                       >
                         <div className="action-card-topline">
-                          <span className="action-card-icon" aria-hidden="true">
-                            {summary.icon}
-                          </span>
                           <strong>{formatCapabilityText(action.title)}</strong>
                         </div>
                         <p>{formatCapabilityText(action.description)}</p>
                         <div className="action-card-badges">
                           <StatusBadge label={action.status} />
-                          {action.is_primary ? (
+                          {action.is_primary &&
+                          action.status.toLowerCase() !== "recommended" ? (
                             <StatusBadge label="Recommended" />
                           ) : null}
                           <StatusBadge
@@ -309,7 +307,7 @@ function getCategorySummary(category: string) {
 
   return (
     summaries[normalized] ?? {
-      title: formatLabel(category),
+      title: capitalize(formatLabel(category)),
       description: "Review workspace capability metadata returned by the backend.",
       icon: "•",
     }
@@ -318,4 +316,8 @@ function getCategorySummary(category: string) {
 
 function formatLabel(value: string) {
   return value.replaceAll("_", " ");
+}
+
+function capitalize(value: string) {
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
 }
