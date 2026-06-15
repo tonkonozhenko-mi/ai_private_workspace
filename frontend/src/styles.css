@@ -886,6 +886,17 @@ details.onboarding-guide-panel > summary::-webkit-details-marker {
   font-size: 13px;
   color: var(--c-text-2);
 }
+.models-setup-cta {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  margin-top: var(--s-4);
+}
+.models-setup-cta span {
+  font-size: 13px;
+  color: var(--c-text-3);
+}
 details.onboarding-guide-panel > summary::after {
   content: "▸";
   margin-left: auto;
@@ -2448,18 +2459,37 @@ details.onboarding-guide-panel[open] > summary {
   color: var(--c-text-2);
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .ask-bottom-meta-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--s-3);
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-3);
   font-size: 12px;
   color: var(--c-text-3);
 }
 .ask-meta-controls {
   display: flex;
   align-items: center;
-  gap: var(--s-4);
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+.ask-dev-toggle input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--c-accent);
+  margin: 0;
 }
 .ask-dev-toggle {
   display: inline-flex;

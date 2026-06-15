@@ -295,6 +295,18 @@ export function ModelsDetail({
                 status={getSearchContextStatusLabel(dashboard)}
               />
             </div>
+            {dashboard.overall_status !== "ready" ? (
+              <div className="models-setup-cta">
+                <button
+                  className="overview-cta-button"
+                  type="button"
+                  onClick={() => setActiveSection("catalog")}
+                >
+                  Choose &amp; install models
+                </button>
+                <span>Pick the models this project uses, then build context.</span>
+              </div>
+            ) : null}
             <RuntimeNextActionPanel
               dashboard={dashboard}
               workspaceId={workspaceId}
