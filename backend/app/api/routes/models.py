@@ -1,5 +1,6 @@
 import httpx
 from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
     command_repository,
@@ -273,6 +274,54 @@ def get_local_model_install_status() -> LocalModelInstallStatusResponse:
         )
 
     return to_local_model_install_status_response(status_result)
+
+
+class DeleteInstalledModelRequest(BaseModel):
+    name: str = Field(..., min_length=1)
+
+
+class DeleteInstalledModelResponse(BaseModel):
+    deleted: str
+    runtime_url: str
+
+
+@router.post("/local-install/delete", response_model=DeleteInstalledModelResponse)
+def delete_installed_model(
+    request: DeleteInstalledModelRequest,
+) -> DeleteInstalledModelResponse:
+    """Remove a locally installed Ollama model to reclaim disk space.
+
+    Gated behind the same model-management execution flag as downloads. This
+    only removes the model from the local Ollama runtime; it never touches the
+    user's project files.
+    """
+    settings = get_settings()
+    if not settings.model_download_execution_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Model management execution is disabled in this runtime.",
+        )
+    name = request.name.strip()
+    if not name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Model name is required.",
+        )
+    runtime_url = settings.ollama_base_url.rstrip("/")
+    try:
+        response = httpx.request(
+            "DELETE",
+            f"{runtime_url}/api/delete",
+            json={"name": name},
+            timeout=settings.runtime_health_timeout_seconds,
+        )
+        response.raise_for_status()
+    except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Could not delete {name} via Ollama at {runtime_url}: {exc}",
+        ) from exc
+    return DeleteInstalledModelResponse(deleted=name, runtime_url=runtime_url)
 
 
 def _register_discovered_ollama_models(installed_models) -> None:

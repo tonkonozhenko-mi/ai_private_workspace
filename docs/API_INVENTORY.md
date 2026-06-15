@@ -245,6 +245,10 @@ models, and commands. This document provides the finer product-oriented grouping
   - Returns recommended model status: `installed`, `missing`, or `unknown`.
   - Does not pull, delete, rebuild, execute MCP tools, or run frontend shell commands.
 
+- `POST /models/local-install/delete`
+  - Remove a locally installed Ollama model via `/api/delete` to reclaim disk space.
+  - Gated behind the model-management execution flag; never touches project files.
+
 ## Task 206 — approved model download execution foundation
 
 - `GET /models/local-download-execution-capability`

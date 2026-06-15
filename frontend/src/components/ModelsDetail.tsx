@@ -16,6 +16,7 @@ import {
   getLocalModelInstallGuide,
   getOllamaModelRecommendations,
   getLocalModelInstallStatus,
+  deleteInstalledModel,
   getLocalModelDownloadWorkerPlan,
   getLocalModelDownloadExecutionCapability,
   startLocalModelDownloadJob,
@@ -1283,6 +1284,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
   const [refreshingJobs, setRefreshingJobs] = useState(false);
   const [cancellingJobId, setCancellingJobId] = useState<string | null>(null);
   const [refreshingInstallStatus, setRefreshingInstallStatus] = useState(false);
+  const [deletingModelName, setDeletingModelName] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -1426,6 +1428,19 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
       setDraftError(errorMessage(installStatusError));
     } finally {
       setRefreshingInstallStatus(false);
+    }
+  };
+
+  const handleDeleteInstalledModel = async (name: string) => {
+    setDeletingModelName(name);
+    setDraftError(null);
+    try {
+      await deleteInstalledModel(name);
+      await refreshInstallStatus();
+    } catch (deleteError) {
+      setDraftError(errorMessage(deleteError));
+    } finally {
+      setDeletingModelName(null);
     }
   };
 
@@ -1731,7 +1746,7 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
           <div>
             <span className="eyebrow">Verify</span>
             <strong>Installed models</strong>
-            <p>Read-only check against Ollama. No model changes happen here.</p>
+            <p>See installed models with their size on disk, and delete ones you no longer need.</p>
           </div>
         </summary>
         {installStatus ? (
@@ -1739,6 +1754,8 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
             status={installStatus}
             isRefreshing={refreshingInstallStatus}
             onRefresh={() => void refreshInstallStatus()}
+            deletingModelName={deletingModelName}
+            onDelete={(name) => void handleDeleteInstalledModel(name)}
           />
         ) : null}
       </details>
@@ -2088,11 +2105,16 @@ function InstalledModelsStatusPanel({
   status,
   isRefreshing,
   onRefresh,
+  deletingModelName,
+  onDelete,
 }: {
   status: LocalModelInstallStatus;
   isRefreshing: boolean;
   onRefresh: () => void;
+  deletingModelName: string | null;
+  onDelete: (name: string) => void;
 }) {
+  const [confirmName, setConfirmName] = useState<string | null>(null);
   return (
     <div className="installed-models-panel">
       <div className="installed-models-header">
@@ -2169,12 +2191,51 @@ function InstalledModelsStatusPanel({
                 </div>
               </dl>
             ) : null}
+            {item.status === "installed" ? (
+              <div className="installed-model-actions">
+                {confirmName === (item.installed_as ?? item.model) ? (
+                  <>
+                    <button
+                      type="button"
+                      className="workspace-card-action is-danger"
+                      disabled={deletingModelName !== null}
+                      onClick={() => {
+                        onDelete(item.installed_as ?? item.model);
+                        setConfirmName(null);
+                      }}
+                    >
+                      {deletingModelName === (item.installed_as ?? item.model)
+                        ? "Deleting…"
+                        : "Confirm delete"}
+                    </button>
+                    <button
+                      type="button"
+                      className="workspace-card-action"
+                      disabled={deletingModelName !== null}
+                      onClick={() => setConfirmName(null)}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="workspace-card-action is-danger"
+                    disabled={deletingModelName !== null}
+                    onClick={() => setConfirmName(item.installed_as ?? item.model)}
+                  >
+                    Delete model
+                  </button>
+                )}
+              </div>
+            ) : null}
           </article>
         ))}
       </div>
       <p className="installed-models-note">
-        Read-only check: this only reads {status.runtime_url}/api/tags. It never
-        pulls, removes, starts, or changes models.
+        Reads {status.runtime_url}/api/tags. Delete removes the model from your
+        local Ollama runtime to free disk space; your project files are never
+        touched.
       </p>
     </div>
   );

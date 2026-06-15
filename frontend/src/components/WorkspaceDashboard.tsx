@@ -521,8 +521,27 @@ function WorkspaceOnboardingGuide({
         ? { label: "Review Models", onClick: onOpenModels, disabled: false }
         : { label: "Go to Ask", onClick: onOpenAsk, disabled: false };
 
+  const [stepsOpen, setStepsOpen] = useState(false);
+  useEffect(() => {
+    if (setupAction) {
+      setStepsOpen(true);
+    }
+  }, [setupAction]);
+
   return (
-    <section className="panel onboarding-guide-panel">
+    <details
+      className="panel onboarding-guide-panel"
+      open={stepsOpen}
+      onToggle={(event) =>
+        setStepsOpen((event.currentTarget as HTMLDetailsElement).open)
+      }
+    >
+      <summary className="onboarding-guide-summary">
+        <span className="eyebrow">Setup steps</span>
+        <span className="onboarding-guide-summary-title">
+          {readyToAsk ? "Workspace ready — review steps" : "Step-by-step setup"}
+        </span>
+      </summary>
       <div className="onboarding-guide-heading">
         <div>
           <p className="eyebrow">Guided path</p>
@@ -709,7 +728,7 @@ function WorkspaceOnboardingGuide({
           </article>
         ))}
       </div>
-    </section>
+    </details>
   );
 }
 
