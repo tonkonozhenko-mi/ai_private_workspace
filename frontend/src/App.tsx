@@ -193,6 +193,16 @@ function App() {
     return () => window.clearTimeout(timer);
   }, [desktopStartupMessage]);
 
+  // The "restored last workspace" note is a brief welcome-back confirmation;
+  // fade it on its own instead of making the user dismiss it.
+  useEffect(() => {
+    if (!resumeMessage) {
+      return;
+    }
+    const timer = window.setTimeout(() => setResumeMessage(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [resumeMessage]);
+
   const loadModelsDetail = useCallback(async (workspaceId: string) => {
     setModelsDetail(null);
     setModelsDetailLoading(true);
@@ -794,9 +804,6 @@ function App() {
             {resumeMessage ? (
               <div className="resume-workspace-banner" role="status">
                 <span>{resumeMessage}</span>
-                <button type="button" className="ghost-button small" onClick={() => setResumeMessage(null)}>
-                  Dismiss
-                </button>
               </div>
             ) : null}
 
