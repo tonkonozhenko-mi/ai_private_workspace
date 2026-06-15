@@ -4608,6 +4608,33 @@ function ModelExperimentRunResult({
   workspaceId: string;
   onSelectionUpdated: () => Promise<void> | void;
 }) {
+  const [promotingModel, setPromotingModel] = useState<string | null>(null);
+  const [promoteMessage, setPromoteMessage] = useState<string | null>(null);
+  const [promoteError, setPromoteError] = useState<string | null>(null);
+
+  async function useModelForProject(candidate: ModelExperimentRunCandidate) {
+    const key = `${candidate.provider}/${candidate.model}`;
+    setPromotingModel(key);
+    setPromoteError(null);
+    setPromoteMessage(null);
+    try {
+      await updateWorkspaceModelSelection(workspaceId, {
+        provider: candidate.provider,
+        model: candidate.model,
+        model_type: "llm",
+        selected_reason: `Won a model face-off (${result.id}).`,
+      });
+      setPromoteMessage(
+        `${candidate.provider}/${candidate.model} is now this project's answer model. Nothing else changed.`,
+      );
+      await onSelectionUpdated();
+    } catch (promoteErr) {
+      setPromoteError(errorMessage(promoteErr));
+    } finally {
+      setPromotingModel(null);
+    }
+  }
+
   return (
     <article className="model-experiment-run-result">
       <div className="model-experiment-plan-summary">
@@ -4615,49 +4642,69 @@ function ModelExperimentRunResult({
         <StatusBadge
           label={`${result.shared_context_sources_count} shared sources`}
         />
-        <strong>Comparison result</strong>
+        <strong>Results — pick your winner</strong>
       </div>
       <div className="model-experiment-run-meta">
-        <span>
-          Comparison ID <code>{result.id}</code>
-        </span>
         <span>Created {formatDateTime(result.created_at)}</span>
         {result.completed_at ? (
           <span>Completed {formatDateTime(result.completed_at)}</span>
         ) : null}
       </div>
       <div className="model-experiment-candidate-list">
-        {result.candidates.map((candidate) => (
-          <article
-            className="model-experiment-candidate-card model-experiment-run-card"
-            key={`${candidate.provider}/${candidate.model}`}
-          >
-            <div className="model-candidate-headline">
-              <strong>
-                {candidate.provider}/{candidate.model}
-              </strong>
-              <code>{candidate.status}</code>
-            </div>
-            <div className="model-experiment-candidate-badges">
-              <StatusBadge label={candidate.status} />
-              <StatusBadge label={`${candidate.latency_ms ?? 0} ms`} />
-              <StatusBadge label={`${candidate.sources_count} sources`} />
-              <StatusBadge
-                label={`${candidate.quality_warnings_count} notes`}
-              />
-            </div>
-            {candidate.error ? (
-              <p className="model-selection-error">{candidate.error}</p>
-            ) : (
-              <p className="model-experiment-answer-preview">
-                {candidate.answer
-                  ? truncateText(candidate.answer, 560)
-                  : "No answer returned."}
-              </p>
-            )}
-          </article>
-        ))}
+        {result.candidates.map((candidate) => {
+          const key = `${candidate.provider}/${candidate.model}`;
+          const isCompleted =
+            candidate.status === "completed" && !candidate.error;
+          return (
+            <article
+              className="model-experiment-candidate-card model-experiment-run-card"
+              key={key}
+            >
+              <div className="model-candidate-headline">
+                <strong>
+                  {candidate.provider}/{candidate.model}
+                </strong>
+                <code>{candidate.status}</code>
+              </div>
+              <div className="model-experiment-candidate-badges">
+                <StatusBadge label={candidate.status} />
+                <StatusBadge label={`${candidate.latency_ms ?? 0} ms`} />
+                <StatusBadge label={`${candidate.sources_count} sources`} />
+                <StatusBadge
+                  label={`${candidate.quality_warnings_count} notes`}
+                />
+              </div>
+              {candidate.error ? (
+                <p className="model-selection-error">{candidate.error}</p>
+              ) : (
+                <p className="model-experiment-answer-preview">
+                  {candidate.answer
+                    ? truncateText(candidate.answer, 560)
+                    : "No answer returned."}
+                </p>
+              )}
+              {isCompleted ? (
+                <button
+                  className="model-selection-save-button model-experiment-use-button"
+                  type="button"
+                  disabled={promotingModel !== null}
+                  onClick={() => void useModelForProject(candidate)}
+                >
+                  {promotingModel === key
+                    ? "Setting…"
+                    : "🏆 Use this model for this project"}
+                </button>
+              ) : null}
+            </article>
+          );
+        })}
       </div>
+      {promoteMessage ? (
+        <p className="model-selection-message">{promoteMessage}</p>
+      ) : null}
+      {promoteError ? (
+        <p className="model-selection-error">{promoteError}</p>
+      ) : null}
       <ExperimentRunHeuristics result={result} />
       <ExperimentRatingPanel
         result={result}
@@ -4927,21 +4974,17 @@ function ExperimentRatingPanel({
   }
 
   return (
-    <div className="experiment-rating-panel">
-      <div className="experiment-rating-heading">
-        <StatusBadge label="crown the winner" />
-        <div>
-          <strong>Which model won?</strong>
-          <p>
-            Your rating doesn't retrain the model — local open-source models have
-            fixed weights, so they can't learn from feedback. What it does do:
-            teach <em>this app</em> which model to recommend for this project. A
-            higher average and a "preferred" pick raise that model's recommended
-            score, and you can promote the winner to be this project's answer
-            model in one click below.
-          </p>
-        </div>
-      </div>
+    <details className="experiment-rating-panel">
+      <summary className="experiment-rating-summary">
+        <strong>Remember this for later</strong>
+        <span>Optional — save a score so this project recommends the better model next time.</span>
+      </summary>
+      <p className="experiment-rating-note">
+        This doesn't retrain the model (local open-source models have fixed
+        weights). It nudges which model <em>this app</em> recommends for this
+        project. The “Use this model” button above already switches your model —
+        this is just memory for next time.
+      </p>
       <div className="experiment-rating-form">
         <label>
           <span>Model</span>
@@ -5016,7 +5059,7 @@ function ExperimentRatingPanel({
           void applyPreferredRating(ratingToApply)
         }
       />
-    </div>
+    </details>
   );
 }
 
