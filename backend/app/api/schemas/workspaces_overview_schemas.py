@@ -12,6 +12,7 @@ class WorkspaceOverviewItemResponse(BaseModel):
     created_at: str
     archived_at: str | None
     is_archived: bool
+    persistence: str = "saved"
     readiness_status: str
     quick_start_status: str
     next_action_id: str | None
@@ -44,6 +45,7 @@ def to_workspace_overview_item_response(
         created_at=item.created_at,
         archived_at=item.archived_at,
         is_archived=item.is_archived,
+        persistence=item.persistence,
         readiness_status=item.readiness_status,
         quick_start_status=item.quick_start_status,
         next_action_id=item.next_action_id,

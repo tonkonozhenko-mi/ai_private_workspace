@@ -79,11 +79,14 @@ export interface WorkspaceIndexResponse {
   documents: IndexedDocumentSummaryResponse[];
 }
 
+export type WorkspacePersistence = "saved" | "temporary";
+
 export interface CreateWorkspaceRequest {
   name: string;
   project_path: string;
   assistant_mode: string;
   privacy_mode: string;
+  persistence?: WorkspacePersistence;
 }
 
 export interface CreatedWorkspace {
@@ -94,6 +97,12 @@ export interface CreatedWorkspace {
   privacy_mode: string;
   created_at: string;
   archived_at: string | null;
+  persistence: string;
+}
+
+export interface PurgeTemporaryResult {
+  deleted_count: number;
+  deleted_ids: string[];
 }
 
 export interface WorkspaceFileWriteResult {
@@ -126,6 +135,7 @@ export interface WorkspaceOverviewItem {
   last_event_at: string | null;
   storage_total_bytes: number;
   storage_breakdown: Record<string, number>;
+  persistence: string;
 }
 
 export interface WorkspacesOverview {

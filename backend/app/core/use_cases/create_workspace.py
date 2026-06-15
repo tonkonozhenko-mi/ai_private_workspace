@@ -17,6 +17,7 @@ class CreateWorkspaceInput:
     project_path: str
     assistant_mode: str
     privacy_mode: str
+    persistence: str = "saved"
 
 
 class CreateWorkspaceUseCase:
@@ -29,6 +30,7 @@ class CreateWorkspaceUseCase:
         self.timeline_repository = timeline_repository
 
     def execute(self, request: CreateWorkspaceInput) -> Workspace:
+        persistence = request.persistence if request.persistence in {"saved", "temporary"} else "saved"
         workspace = Workspace(
             id=str(uuid4()),
             name=request.name,
@@ -36,6 +38,7 @@ class CreateWorkspaceUseCase:
             assistant_mode=request.assistant_mode,
             privacy_mode=request.privacy_mode,
             created_at=datetime.now(UTC),
+            persistence=persistence,
         )
         created_workspace = self.workspace_repository.create(workspace)
         if self.timeline_repository is not None:

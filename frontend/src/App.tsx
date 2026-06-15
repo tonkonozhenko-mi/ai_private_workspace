@@ -6,6 +6,8 @@ import {
   restoreWorkspace,
   deleteWorkspace,
   clearWorkspaceIndex,
+  setWorkspacePersistence,
+  purgeTemporaryWorkspaces,
   getLocalAIActivationGuide,
   getModelsDashboardSummary,
   getWorkspaceDashboard,
@@ -42,7 +44,7 @@ import { ErrorState } from "./components/ErrorState";
 import { LoadingState } from "./components/LoadingState";
 import { UIActionsPanel } from "./components/UIActionsPanel";
 import { SettingsPanel } from "./components/SettingsPanel";
-import { ensureAppOwnedBackendRuntime, isRunningInsideTauri, tauriBridgeDiagnostic } from "./desktopRuntime";
+import { ensureAppOwnedBackendRuntime, isRunningInsideTauri, tauriBridgeDiagnostic, registerDesktopCloseGuard, closeDesktopWindow } from "./desktopRuntime";
 import { WorkspaceDashboard } from "./components/WorkspaceDashboard";
 import { WorkspaceList } from "./components/WorkspaceList";
 import {
@@ -155,6 +157,10 @@ function App() {
   const [restoringWorkspaceId, setRestoringWorkspaceId] = useState<string | null>(null);
   const [deletingWorkspaceId, setDeletingWorkspaceId] = useState<string | null>(null);
   const [clearingIndexWorkspaceId, setClearingIndexWorkspaceId] = useState<string | null>(null);
+  const [keepingWorkspaceId, setKeepingWorkspaceId] = useState<string | null>(null);
+  const [exitPrompt, setExitPrompt] = useState<{ count: number } | null>(null);
+  const [purgingTemporary, setPurgingTemporary] = useState(false);
+  const temporaryWorkspacesRef = useRef<WorkspaceOverviewItem[]>([]);
   const [showArchivedWorkspaces, setShowArchivedWorkspaces] = useState(false);
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<WorkbenchPreferences>(() =>
@@ -255,6 +261,9 @@ function App() {
         return;
       }
       const archivedItems = allOverview.items.filter((workspace) => workspace.is_archived);
+      temporaryWorkspacesRef.current = allOverview.items.filter(
+        (workspace) => workspace.persistence === "temporary",
+      );
       setWorkspacesError(null);
       setWorkspaces(overview.items);
       setArchivedWorkspaces(archivedItems);
@@ -430,6 +439,63 @@ function App() {
       setClearingIndexWorkspaceId(null);
     }
   }, [loadWorkspaceDetail, loadWorkspaces]);
+
+  const handleKeepWorkspace = useCallback(async (workspace: WorkspaceOverviewItem) => {
+    setKeepingWorkspaceId(workspace.workspace_id);
+    setArchiveError(null);
+    try {
+      await setWorkspacePersistence(workspace.workspace_id, "saved");
+      await loadWorkspaces();
+    } catch (error) {
+      setArchiveError(`Could not keep ${workspace.name}: ${errorMessage(error)}`);
+    } finally {
+      setKeepingWorkspaceId(null);
+    }
+  }, [loadWorkspaces]);
+
+  // Ask before quitting when there are temporary projects to forget.
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    let active = true;
+    void registerDesktopCloseGuard((event) => {
+      const temporaries = temporaryWorkspacesRef.current;
+      if (temporaries.length === 0) {
+        return; // nothing to forget — let the window close normally
+      }
+      event.preventDefault();
+      setExitPrompt({ count: temporaries.length });
+    }).then((fn) => {
+      if (!active && fn) {
+        fn();
+      } else {
+        unlisten = fn;
+      }
+    });
+    return () => {
+      active = false;
+      if (unlisten) {
+        unlisten();
+      }
+    };
+  }, []);
+
+  const handleDeleteTemporaryAndQuit = useCallback(async () => {
+    setPurgingTemporary(true);
+    try {
+      await purgeTemporaryWorkspaces();
+    } catch {
+      // Even if purge fails, honor the quit; data stays marked temporary.
+    } finally {
+      setPurgingTemporary(false);
+      setExitPrompt(null);
+      await closeDesktopWindow();
+    }
+  }, []);
+
+  const handleKeepTemporaryAndQuit = useCallback(async () => {
+    setExitPrompt(null);
+    await closeDesktopWindow();
+  }, []);
 
 
 
@@ -613,6 +679,7 @@ function App() {
               restoringWorkspaceId={restoringWorkspaceId}
               deletingWorkspaceId={deletingWorkspaceId}
               clearingIndexWorkspaceId={clearingIndexWorkspaceId}
+              keepingWorkspaceId={keepingWorkspaceId}
               onToggleArchived={() => setShowArchivedWorkspaces((current) => !current)}
               onSelect={(workspaceId) => {
                 setShowCreateWorkspace(false);
@@ -623,6 +690,7 @@ function App() {
               onRestore={(workspace) => void handleRestoreWorkspace(workspace)}
               onDelete={(workspace) => void handleDeleteWorkspace(workspace)}
               onClearIndex={(workspace) => void handleClearWorkspaceIndex(workspace)}
+              onKeep={(workspace) => void handleKeepWorkspace(workspace)}
             />
           </>
         )}
@@ -847,6 +915,49 @@ function App() {
           </div>
         )}
       </main>
+      {exitPrompt ? (
+        <div className="exit-prompt-backdrop" role="presentation">
+          <div
+            className="exit-prompt"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="exit-prompt-title"
+          >
+            <h2 id="exit-prompt-title">Before you quit</h2>
+            <p>
+              You have {exitPrompt.count} temporary{" "}
+              {exitPrompt.count === 1 ? "project" : "projects"}. Temporary projects
+              are meant to be forgotten when you quit. What would you like to do?
+            </p>
+            <div className="exit-prompt-actions">
+              <button
+                type="button"
+                className="primary-action is-danger"
+                disabled={purgingTemporary}
+                onClick={() => void handleDeleteTemporaryAndQuit()}
+              >
+                {purgingTemporary ? "Deleting…" : "Delete & quit"}
+              </button>
+              <button
+                type="button"
+                className="secondary-action"
+                disabled={purgingTemporary}
+                onClick={() => void handleKeepTemporaryAndQuit()}
+              >
+                Keep & quit
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                disabled={purgingTemporary}
+                onClick={() => setExitPrompt(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

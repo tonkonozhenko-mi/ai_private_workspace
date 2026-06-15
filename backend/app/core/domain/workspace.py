@@ -11,3 +11,4 @@ class Workspace:
     privacy_mode: str
     created_at: datetime
     archived_at: str | None = None
+    persistence: str = "saved"

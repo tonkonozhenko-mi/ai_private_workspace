@@ -6,6 +6,14 @@ from app.adapters.memory.sqlite_schema import initialize_workspace_schema
 from app.core.domain.workspace import Workspace
 
 
+def _persistence_from_row(row: "sqlite3.Row") -> str:
+    try:
+        value = row["persistence"]
+    except (IndexError, KeyError):
+        return "saved"
+    return value or "saved"
+
+
 class SQLiteWorkspaceRepository:
     def __init__(self, db_path: str | Path) -> None:
         raw_db_path = str(db_path).strip()
@@ -31,9 +39,10 @@ class SQLiteWorkspaceRepository:
                     assistant_mode,
                     privacy_mode,
                     created_at,
-                    archived_at
+                    archived_at,
+                    persistence
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     workspace.id,
@@ -43,6 +52,7 @@ class SQLiteWorkspaceRepository:
                     workspace.privacy_mode,
                     workspace.created_at.isoformat(),
                     workspace.archived_at,
+                    workspace.persistence,
                 ),
             )
             connection.commit()
@@ -59,7 +69,8 @@ class SQLiteWorkspaceRepository:
                     assistant_mode,
                     privacy_mode,
                     created_at,
-                    archived_at
+                    archived_at,
+                    persistence
                 FROM workspaces
                 WHERE id = ?
                 """,
@@ -81,7 +92,8 @@ class SQLiteWorkspaceRepository:
                     assistant_mode,
                     privacy_mode,
                     created_at,
-                    archived_at
+                    archived_at,
+                    persistence
                 FROM workspaces
                 ORDER BY created_at ASC
                 """
@@ -100,7 +112,8 @@ class SQLiteWorkspaceRepository:
                     assistant_mode = ?,
                     privacy_mode = ?,
                     created_at = ?,
-                    archived_at = ?
+                    archived_at = ?,
+                    persistence = ?
                 WHERE id = ?
                 """,
                 (
@@ -110,6 +123,7 @@ class SQLiteWorkspaceRepository:
                     workspace.privacy_mode,
                     workspace.created_at.isoformat(),
                     workspace.archived_at,
+                    workspace.persistence,
                     workspace.id,
                 ),
             )
@@ -146,4 +160,5 @@ class SQLiteWorkspaceRepository:
             privacy_mode=row["privacy_mode"],
             created_at=datetime.fromisoformat(row["created_at"]),
             archived_at=row["archived_at"],
+            persistence=_persistence_from_row(row),
         )

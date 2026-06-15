@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 
 import { createWorkspace } from "../api/client";
 import { chooseProjectDirectory, isRunningInsideTauri } from "../desktopRuntime";
-import type { CreatedWorkspace } from "../api/types";
+import type { CreatedWorkspace, WorkspacePersistence } from "../api/types";
 
 interface CreateWorkspacePanelProps {
   onCreated: (workspace: CreatedWorkspace) => void;
@@ -45,6 +45,23 @@ const assistantModes: Array<{
   },
 ];
 
+const persistenceModes: Array<{
+  id: WorkspacePersistence;
+  label: string;
+  description: string;
+}> = [
+  {
+    id: "saved",
+    label: "Permanent",
+    description: "Remembers everything. The index and your conversations are saved — come back to it in weeks.",
+  },
+  {
+    id: "temporary",
+    label: "Temporary",
+    description: "Forgets when you quit. The assistant knows this project only for the current session.",
+  },
+];
+
 const privacyModes: Array<{
   id: PrivacyMode;
   label: string;
@@ -67,6 +84,7 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
   const [projectPath, setProjectPath] = useState("");
   const [assistantMode, setAssistantMode] = useState<AssistantMode>("devops");
   const [privacyMode, setPrivacyMode] = useState<PrivacyMode>("local_only");
+  const [persistence, setPersistence] = useState<WorkspacePersistence>("saved");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pickingDirectory, setPickingDirectory] = useState(false);
@@ -115,6 +133,7 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
         project_path: trimmedPath,
         assistant_mode: assistantMode,
         privacy_mode: privacyMode,
+        persistence,
       });
       onCreated(workspace);
     } catch (createError) {
@@ -211,6 +230,26 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
                   type="button"
                   className={`choice-card${privacyMode === mode.id ? " is-selected" : ""}`}
                   onClick={() => setPrivacyMode(mode.id)}
+                >
+                  <strong>{mode.label}</strong>
+                  <span>{mode.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="create-mode-section">
+            <div>
+              <span className="section-eyebrow">Project memory</span>
+              <p>Decide whether this project is kept between sessions. You can always promote a temporary project to permanent later.</p>
+            </div>
+            <div className="choice-card-grid compact">
+              {persistenceModes.map((mode) => (
+                <button
+                  key={mode.id}
+                  type="button"
+                  className={`choice-card${persistence === mode.id ? " is-selected" : ""}${mode.id === "temporary" ? " is-temporary" : ""}`}
+                  onClick={() => setPersistence(mode.id)}
                 >
                   <strong>{mode.label}</strong>
                   <span>{mode.description}</span>

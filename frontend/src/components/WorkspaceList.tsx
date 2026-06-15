@@ -13,12 +13,14 @@ interface WorkspaceListProps {
   restoringWorkspaceId?: string | null;
   deletingWorkspaceId?: string | null;
   clearingIndexWorkspaceId?: string | null;
+  keepingWorkspaceId?: string | null;
   onToggleArchived: () => void;
   onSelect: (workspaceId: string) => void;
   onArchive: (workspace: WorkspaceOverviewItem) => void;
   onRestore: (workspace: WorkspaceOverviewItem) => void;
   onDelete: (workspace: WorkspaceOverviewItem) => void;
   onClearIndex: (workspace: WorkspaceOverviewItem) => void;
+  onKeep: (workspace: WorkspaceOverviewItem) => void;
 }
 
 export function WorkspaceList({
@@ -30,12 +32,14 @@ export function WorkspaceList({
   restoringWorkspaceId,
   deletingWorkspaceId,
   clearingIndexWorkspaceId,
+  keepingWorkspaceId,
   onToggleArchived,
   onSelect,
   onArchive,
   onRestore,
   onDelete,
   onClearIndex,
+  onKeep,
 }: WorkspaceListProps) {
   if (workspaces.length === 0 && archivedWorkspaces.length === 0) {
     return (
@@ -69,10 +73,12 @@ export function WorkspaceList({
               archivingBusy={archivingWorkspaceId === workspace.workspace_id}
               deletingBusy={deletingWorkspaceId === workspace.workspace_id}
               clearingBusy={clearingIndexWorkspaceId === workspace.workspace_id}
+              keepingBusy={keepingWorkspaceId === workspace.workspace_id}
               onSelect={() => onSelect(workspace.workspace_id)}
               onArchive={() => onArchive(workspace)}
               onDelete={() => onDelete(workspace)}
               onClearIndex={() => onClearIndex(workspace)}
+              onKeep={() => onKeep(workspace)}
             />
           ))
         )}
@@ -131,11 +137,13 @@ interface WorkspaceCardProps {
   restoringBusy?: boolean;
   deletingBusy?: boolean;
   clearingBusy?: boolean;
+  keepingBusy?: boolean;
   onSelect: () => void;
   onArchive?: () => void;
   onRestore?: () => void;
   onDelete?: () => void;
   onClearIndex?: () => void;
+  onKeep?: () => void;
 }
 
 function WorkspaceCard({
@@ -146,22 +154,25 @@ function WorkspaceCard({
   restoringBusy = false,
   deletingBusy = false,
   clearingBusy = false,
+  keepingBusy = false,
   onSelect,
   onArchive,
   onRestore,
   onDelete,
   onClearIndex,
+  onKeep,
 }: WorkspaceCardProps) {
   const [mode, setMode] = useState<CardMode>({ kind: "idle" });
 
-  const busy = archivingBusy || restoringBusy || deletingBusy || clearingBusy;
+  const busy = archivingBusy || restoringBusy || deletingBusy || clearingBusy || keepingBusy;
   const canClearIndex = workspace.index_status === "indexed";
+  const isTemporary = workspace.persistence === "temporary";
 
   const reset = () => setMode({ kind: "idle" });
 
   return (
     <div
-      className={`workspace-list-card${selected ? " is-selected" : ""}${archived ? " is-archived" : ""}`}
+      className={`workspace-list-card${selected ? " is-selected" : ""}${archived ? " is-archived" : ""}${isTemporary ? " is-temporary" : ""}`}
     >
       <button
         className="workspace-list-item"
@@ -175,7 +186,13 @@ function WorkspaceCard({
       >
         <span className="workspace-list-heading">
           <strong>{workspace.name}</strong>
-          <StatusBadge label={archived ? "archived" : workspace.readiness_status} />
+          {isTemporary ? (
+            <span className="workspace-temporary-pill" title="Forgets when you quit">
+              Temporary
+            </span>
+          ) : (
+            <StatusBadge label={archived ? "archived" : workspace.readiness_status} />
+          )}
         </span>
         <span className="workspace-path" title={workspace.project_path}>
           {workspace.project_path}
@@ -188,6 +205,9 @@ function WorkspaceCard({
           <span>{workspace.detected_skills_count} technologies found</span>
           <span>{formatContextStatus(workspace.index_status)}</span>
         </span>
+        {isTemporary && !archived ? (
+          <span className="workspace-temporary-note">Forgets when you quit</span>
+        ) : null}
         {workspace.next_action_title && !archived ? (
           <span className="workspace-next-action">
             <span>Next</span>
@@ -233,6 +253,19 @@ function WorkspaceCard({
             </>
           ) : mode.kind === "menu" ? (
             <>
+              {isTemporary && onKeep ? (
+                <button
+                  className="workspace-card-action is-keep"
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    onKeep();
+                    reset();
+                  }}
+                >
+                  {keepingBusy ? "Keeping..." : "Keep forever"}
+                </button>
+              ) : null}
               {canClearIndex ? (
                 <button
                   className="workspace-card-action"
@@ -276,7 +309,7 @@ function WorkspaceCard({
               aria-label={`Manage ${workspace.name}`}
               onClick={() => setMode({ kind: "menu" })}
             >
-              {busy ? busyLabel(archivingBusy, clearingBusy, deletingBusy) : "Manage"}
+              {busy ? busyLabel({ archivingBusy, clearingBusy, deletingBusy, keepingBusy }) : "Manage"}
             </button>
           )}
         </div>
@@ -363,10 +396,16 @@ const STORAGE_CATEGORIES: ReadonlyArray<readonly [string, string]> = [
   ["other", "Other"],
 ];
 
-function busyLabel(archiving: boolean, clearing: boolean, deleting: boolean) {
-  if (deleting) return "Deleting...";
-  if (clearing) return "Clearing...";
-  if (archiving) return "Archiving...";
+function busyLabel(flags: {
+  archivingBusy: boolean;
+  clearingBusy: boolean;
+  deletingBusy: boolean;
+  keepingBusy: boolean;
+}) {
+  if (flags.deletingBusy) return "Deleting...";
+  if (flags.clearingBusy) return "Clearing...";
+  if (flags.archivingBusy) return "Archiving...";
+  if (flags.keepingBusy) return "Keeping...";
   return "Working...";
 }
 

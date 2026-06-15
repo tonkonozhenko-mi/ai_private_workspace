@@ -12,12 +12,25 @@ export interface DesktopBackendStartupResult {
 
 type TauriInvoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
 
+type CloseRequestedHandler = (event: { preventDefault: () => void }) => void;
+
+interface TauriWindowHandle {
+  onCloseRequested?: (
+    handler: (event: { preventDefault: () => void }) => void | Promise<void>,
+  ) => Promise<() => void>;
+  destroy?: () => Promise<void>;
+  close?: () => Promise<void>;
+}
+
 interface TauriGlobal {
   core?: {
     invoke?: TauriInvoke;
   };
   tauri?: {
     invoke?: TauriInvoke;
+  };
+  window?: {
+    getCurrentWindow?: () => TauriWindowHandle;
   };
 }
 
@@ -66,6 +79,51 @@ export async function chooseProjectDirectory(): Promise<string | null> {
   }
 
   return invoke<string | null>("choose_project_directory");
+}
+
+function currentTauriWindow(): TauriWindowHandle | null {
+  const maybeWindow = window as typeof window & { __TAURI__?: TauriGlobal };
+  const getCurrentWindow = maybeWindow.__TAURI__?.window?.getCurrentWindow;
+  if (!getCurrentWindow) {
+    return null;
+  }
+  try {
+    return getCurrentWindow();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Register a guard that runs when the user tries to close the desktop window.
+ * The handler may call event.preventDefault() to keep the window open (e.g. to
+ * show a confirmation). Returns an unlisten function, or null when not running
+ * inside the desktop shell (web dev server has no window lifecycle).
+ */
+export async function registerDesktopCloseGuard(
+  handler: CloseRequestedHandler,
+): Promise<(() => void) | null> {
+  const handle = currentTauriWindow();
+  if (!handle?.onCloseRequested) {
+    return null;
+  }
+  try {
+    return await handle.onCloseRequested(handler);
+  } catch {
+    return null;
+  }
+}
+
+/** Force the desktop window to close, bypassing the close guard. */
+export async function closeDesktopWindow(): Promise<void> {
+  const handle = currentTauriWindow();
+  if (handle?.destroy) {
+    await handle.destroy();
+    return;
+  }
+  if (handle?.close) {
+    await handle.close();
+  }
 }
 
 export async function ensureAppOwnedBackendRuntime(): Promise<DesktopBackendStartupResult | null> {

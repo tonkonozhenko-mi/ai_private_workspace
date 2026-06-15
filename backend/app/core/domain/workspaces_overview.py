@@ -11,6 +11,7 @@ class WorkspaceOverviewItem:
     created_at: str
     archived_at: str | None
     is_archived: bool
+    persistence: str
     readiness_status: str
     quick_start_status: str
     next_action_id: str | None
