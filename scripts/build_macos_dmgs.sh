@@ -48,7 +48,18 @@ build_arch () {
   local label="$1" triple="$2" py="$3" rosetta="$4"
 
   printf '\n========== Building %s (%s) ==========\n' "$label" "$triple"
-  rustup target add "$triple" >/dev/null 2>&1 || true
+  if ! command -v rustup >/dev/null 2>&1; then
+    echo "❌ rustup not found — required to cross-compile the Intel build." >&2
+    echo "   Homebrew's rust cannot add cross targets. Install rustup once:" >&2
+    echo "     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh" >&2
+    echo "     source \"\$HOME/.cargo/env\"" >&2
+    echo "   Then re-run this script." >&2
+    exit 1
+  fi
+  if ! rustup target list --installed 2>/dev/null | grep -qx "$triple"; then
+    printf '▶ Adding Rust target %s\n' "$triple"
+    rustup target add "$triple"
+  fi
 
   printf '\n▶ Build frozen backend (%s)\n' "$label"
   AI_PRIVATE_WORKSPACE_PACKAGING_PYTHON="$py" \
