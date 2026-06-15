@@ -54,7 +54,7 @@ import {
   toFileSelectionRulesRequest,
   type FileIndexingPreferences,
 } from "./components/fileIndexingPreferences";
-import { DEFAULT_SKILL_PREFERENCES, normalizeSkillPreferences, skillPreferencesFromProfile, type SkillPreferences } from "./components/skillLibrary";
+import { DEFAULT_CUSTOM_SKILLS, DEFAULT_SKILL_PREFERENCES, normalizeCustomSkills, normalizeSkillPreferences, skillPreferencesFromProfile, type CustomSkill, type SkillPreferences } from "./components/skillLibrary";
 import UpdateNotice from "./components/UpdateNotice";
 
 type WorkspaceTab = "overview" | "ask" | "models" | "reports" | "actions" | "activity" | "settings";
@@ -78,6 +78,7 @@ export interface WorkbenchPreferences {
   developerMode: boolean;
   answerCreativity: AnswerCreativityPreference;
   skillPreferences: SkillPreferences;
+  customSkills: CustomSkill[];
   fileIndexingPreferences: FileIndexingPreferences;
 }
 
@@ -105,6 +106,7 @@ const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   developerMode: false,
   answerCreativity: "precise",
   skillPreferences: DEFAULT_SKILL_PREFERENCES,
+  customSkills: DEFAULT_CUSTOM_SKILLS,
   fileIndexingPreferences: DEFAULT_FILE_INDEXING_PREFERENCES,
 };
 
@@ -923,6 +925,7 @@ function App() {
                   assistantMode={detail.dashboard.assistant_mode}
                   defaultSourceSnippets={preferences.defaultSourceSnippets}
                   skillPreferences={preferences.skillPreferences}
+                  customSkills={preferences.customSkills}
                   skillProfileSource={workspaceSkillProfile?.source ?? "default"}
                   skillProfileUpdatedAt={workspaceSkillProfile?.updated_at ?? null}
                   developerMode={preferences.developerMode}
@@ -1159,6 +1162,7 @@ function loadStoredPreferences(): WorkbenchPreferences {
           ? parsed.answerCreativity
           : DEFAULT_PREFERENCES.answerCreativity,
       skillPreferences: normalizeSkillPreferences(parsed.skillPreferences),
+      customSkills: normalizeCustomSkills(parsed.customSkills),
       fileIndexingPreferences: normalizeFileIndexingPreferences(
         parsed.fileIndexingPreferences,
       ),

@@ -226,6 +226,48 @@ export function normalizeSkillPreferences(value: unknown): SkillPreferences {
   }, {} as SkillPreferences);
 }
 
+// User-created skills (beyond the built-in presets). Lightweight prompt
+// guidance: a name + instructions that shape the answer's tone and focus.
+export interface CustomSkill {
+  id: string;
+  name: string;
+  instructions: string;
+}
+
+export const DEFAULT_CUSTOM_SKILLS: CustomSkill[] = [];
+
+export function makeCustomSkillId(): string {
+  return `custom-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`}`;
+}
+
+export function normalizeCustomSkills(value: unknown): CustomSkill[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const skills: CustomSkill[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") {
+      continue;
+    }
+    const item = raw as Partial<CustomSkill>;
+    const name = typeof item.name === "string" ? item.name.trim().slice(0, 80) : "";
+    const instructions =
+      typeof item.instructions === "string" ? item.instructions.slice(0, 1200) : "";
+    if (!name || !instructions.trim()) {
+      continue;
+    }
+    skills.push({
+      id: typeof item.id === "string" && item.id ? item.id : makeCustomSkillId(),
+      name,
+      instructions,
+    });
+    if (skills.length >= 20) {
+      break;
+    }
+  }
+  return skills;
+}
+
 export function getEnabledSkillPresets(preferences: SkillPreferences): SkillPresetDefinition[] {
   return SKILL_PRESETS.filter((preset) => preferences[preset.id]?.enabled);
 }
