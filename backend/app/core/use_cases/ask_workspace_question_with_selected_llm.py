@@ -34,6 +34,7 @@ class AskWorkspaceQuestionWithSelectedLLMInput:
     conversation_id: str | None = None
     images: list[str] | None = None
     temperature: float | None = None
+    think: bool | None = None
 
 
 class AskWorkspaceQuestionWithSelectedLLMNotFoundError(ValueError):
@@ -133,6 +134,7 @@ class AskWorkspaceQuestionWithSelectedLLMUseCase:
                     conversation_id=request.conversation_id,
                     images=request.images or [],
                     temperature=request.temperature,
+                    think=request.think,
                 )
             )
         except AskWorkspaceQuestionNotFoundError as exc:

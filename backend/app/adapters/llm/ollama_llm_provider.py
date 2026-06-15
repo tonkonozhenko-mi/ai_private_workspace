@@ -30,8 +30,9 @@ class OllamaLLMProvider:
         prompt: str,
         images: list[str] | None = None,
         temperature: float | None = None,
+        think: bool | None = None,
     ) -> str:
-        response = self._request_with_one_local_retry(prompt, images, temperature)
+        response = self._request_with_one_local_retry(prompt, images, temperature, think)
 
         try:
             payload = response.json()
@@ -60,6 +61,7 @@ class OllamaLLMProvider:
         prompt: str,
         images: list[str] | None = None,
         temperature: float | None = None,
+        think: bool | None = None,
     ) -> httpx.Response:
         last_error: httpx.HTTPError | None = None
         payload: dict[str, object] = {
@@ -67,6 +69,9 @@ class OllamaLLMProvider:
             "prompt": prompt,
             "stream": False,
         }
+        if think is not None:
+            # Toggle reasoning on thinking-capable models (deepseek-r1, qwq, …).
+            payload["think"] = think
         if images:
             # Ollama accepts base64-encoded images for vision-capable models.
             payload["images"] = images

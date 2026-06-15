@@ -1182,6 +1182,7 @@ export function askSelectedWorkspace(
     conversationId?: string | null;
     images?: string[];
     temperature?: number | null;
+    think?: boolean | null;
   } = {},
 ): Promise<WorkspaceQuestionAnswer> {
   return requestJson<WorkspaceQuestionAnswer>(
@@ -1199,6 +1200,7 @@ export function askSelectedWorkspace(
         conversation_id: options.conversationId ?? null,
         images: options.images ?? [],
         temperature: options.temperature ?? null,
+        think: options.think ?? null,
       }),
       signal: options.signal,
     },

@@ -15,12 +15,14 @@ class LLMProviderPort(Protocol):
         prompt: str,
         images: list[str] | None = None,
         temperature: float | None = None,
+        think: bool | None = None,
     ) -> str:
         """Generate a response from a language model.
 
         ``images`` is an optional list of base64-encoded images for vision-capable
         models. ``temperature`` optionally tunes randomness (lower = more precise,
-        higher = more creative). Providers that don't support these ignore them.
+        higher = more creative). ``think`` optionally enables/disables reasoning
+        on thinking-capable models. Providers that don't support these ignore them.
         """
 
 

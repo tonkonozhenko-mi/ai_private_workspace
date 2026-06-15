@@ -9,6 +9,7 @@ class FakeLLMProvider:
         prompt: str,
         images: list[str] | None = None,
         temperature: float | None = None,
+        think: bool | None = None,
     ) -> str:
         image_note = f" Received {len(images)} image(s)." if images else ""
         return (
