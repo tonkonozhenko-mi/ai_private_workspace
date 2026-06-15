@@ -14,9 +14,11 @@ frontend/dist/
 
 # Generated desktop package artifacts
 build/
+dist/
 # Virtual environments and caches
 .venv/
 backend/.venv/
+backend/.venv-x86_64/
 frontend/.vite/
 *.tsbuildinfo
 .DS_Store
