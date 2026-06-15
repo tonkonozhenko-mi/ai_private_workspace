@@ -1,8 +1,10 @@
 from dataclasses import replace
 from datetime import datetime
+import json
 import logging
 
 from fastapi import APIRouter, Body, HTTPException, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
@@ -233,6 +235,8 @@ from app.core.domain.rag_prompt import SkillPromptInstruction
 from app.core.domain.skill_profile import default_skill_profile, normalize_skill_profile
 from app.core.use_cases.add_timeline_event import AddTimelineEventInput, AddTimelineEventUseCase
 from app.core.use_cases.ask_workspace_question import (
+    AskStreamDelta,
+    AskStreamFinal,
     AskWorkspaceQuestionInput,
     AskWorkspaceQuestionNotFoundError,
     AskWorkspaceQuestionUseCase,
@@ -1874,6 +1878,95 @@ def ask_workspace_question_with_selected_llm(
         len(result.quality_warnings),
     )
     return to_workspace_question_answer_response(result)
+
+
+def _sse_event(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@router.post("/{workspace_id}/ask-selected/stream")
+def ask_workspace_question_with_selected_llm_stream(
+    workspace_id: str,
+    request: AskWorkspaceQuestionWithSelectedLLMRequest,
+) -> StreamingResponse:
+    logger.info(
+        "workspace ask requested workspace_id=%s mode=selected_llm_stream limit=%s",
+        workspace_id,
+        request.limit,
+    )
+    ask_use_case = AskWorkspaceQuestionUseCase(
+        workspace_repository=workspace_repository,
+        embedding_provider=embedding_provider,
+        vector_store=vector_store,
+        llm_provider_factory=llm_provider_factory,
+        index_status_repository=index_status_repository,
+        timeline_repository=timeline_repository,
+    )
+    use_case = AskWorkspaceQuestionWithSelectedLLMUseCase(
+        workspace_repository=workspace_repository,
+        selection_repository=workspace_model_selection_repository,
+        llm_provider_factory=llm_provider_factory,
+        ask_workspace_question=ask_use_case,
+        configuration=readiness_configuration,
+    )
+
+    # Conversation + skill context resolution can raise; do it before streaming so
+    # the client gets a normal HTTP error instead of a half-open stream.
+    conversation = _ensure_conversation(
+        workspace_id,
+        request.conversation_id,
+        title=request.question,
+    )
+    skill_instructions, skill_source, skill_profile_name, skill_updated_at = (
+        _skill_profile_context_from_request(workspace_id, request.skill_context)
+    )
+    ask_input = AskWorkspaceQuestionWithSelectedLLMInput(
+        workspace_id=workspace_id,
+        question=request.question,
+        limit=request.limit,
+        skill_instructions=skill_instructions,
+        skill_profile_source=skill_source,
+        skill_profile_name=skill_profile_name,
+        skill_profile_updated_at=skill_updated_at,
+        conversation_id=conversation.id,
+        images=request.images,
+        temperature=request.temperature,
+        think=request.think,
+    )
+
+    def event_stream():
+        try:
+            for event in use_case.execute_stream(ask_input):
+                if isinstance(event, AskStreamDelta):
+                    yield _sse_event("token", {"text": event.text})
+                elif isinstance(event, AskStreamFinal):
+                    final = _persist_answer_in_conversation(conversation.id, event.answer)
+                    payload = to_workspace_question_answer_response(final).model_dump(
+                        mode="json"
+                    )
+                    yield _sse_event("final", payload)
+        except (
+            AskWorkspaceQuestionWithSelectedLLMNotFoundError,
+            AskWorkspaceQuestionWithSelectedLLMValidationError,
+        ) as exc:
+            logger.warning(
+                "workspace ask rejected workspace_id=%s mode=selected_llm_stream reason=%s",
+                workspace_id,
+                exc,
+            )
+            yield _sse_event("error", {"detail": str(exc)})
+        except Exception as exc:  # noqa: BLE001 - surface any failure to the client
+            logger.exception(
+                "workspace ask failed workspace_id=%s mode=selected_llm_stream",
+                workspace_id,
+            )
+            yield _sse_event("error", {"detail": str(exc)})
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.get("/{workspace_id}/summary", response_model=WorkspaceSummaryResponse)

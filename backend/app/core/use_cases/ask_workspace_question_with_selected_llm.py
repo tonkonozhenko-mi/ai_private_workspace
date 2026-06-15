@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 from app.core.domain.rag import RagQualityWarning, WorkspaceQuestionAnswer
@@ -9,6 +10,7 @@ from app.core.ports.workspace_model_selection_repository import (
 )
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.use_cases.ask_workspace_question import (
+    AskStreamEvent,
     AskWorkspaceQuestionInput,
     AskWorkspaceQuestionNotFoundError,
     AskWorkspaceQuestionUseCase,
@@ -64,6 +66,30 @@ class AskWorkspaceQuestionWithSelectedLLMUseCase:
         self,
         request: AskWorkspaceQuestionWithSelectedLLMInput,
     ) -> WorkspaceQuestionAnswer:
+        ask_input = self._build_ask_input(request)
+        try:
+            return self.ask_workspace_question.execute(ask_input)
+        except AskWorkspaceQuestionNotFoundError as exc:
+            raise AskWorkspaceQuestionWithSelectedLLMNotFoundError(str(exc)) from exc
+        except AskWorkspaceQuestionValidationError as exc:
+            raise AskWorkspaceQuestionWithSelectedLLMValidationError(str(exc)) from exc
+
+    def execute_stream(
+        self,
+        request: AskWorkspaceQuestionWithSelectedLLMInput,
+    ) -> Iterator[AskStreamEvent]:
+        ask_input = self._build_ask_input(request)
+        try:
+            yield from self.ask_workspace_question.execute_stream(ask_input)
+        except AskWorkspaceQuestionNotFoundError as exc:
+            raise AskWorkspaceQuestionWithSelectedLLMNotFoundError(str(exc)) from exc
+        except AskWorkspaceQuestionValidationError as exc:
+            raise AskWorkspaceQuestionWithSelectedLLMValidationError(str(exc)) from exc
+
+    def _build_ask_input(
+        self,
+        request: AskWorkspaceQuestionWithSelectedLLMInput,
+    ) -> AskWorkspaceQuestionInput:
         if self.workspace_repository.get(request.workspace_id) is None:
             raise AskWorkspaceQuestionWithSelectedLLMNotFoundError(
                 "Workspace not found"
@@ -117,30 +143,23 @@ class AskWorkspaceQuestionWithSelectedLLMUseCase:
                 )
             )
 
-        try:
-            return self.ask_workspace_question.execute(
-                AskWorkspaceQuestionInput(
-                    workspace_id=request.workspace_id,
-                    question=request.question,
-                    limit=request.limit,
-                    llm_provider_override=selected_llm.provider,
-                    llm_model_override=selected_llm.model,
-                    additional_quality_warnings=additional_warnings,
-                    timeline_metadata={"asked_with_selected_llm": "true"},
-                    skill_instructions=request.skill_instructions or [],
-                    skill_profile_source=request.skill_profile_source,
-                    skill_profile_name=request.skill_profile_name,
-                    skill_profile_updated_at=request.skill_profile_updated_at,
-                    conversation_id=request.conversation_id,
-                    images=request.images or [],
-                    temperature=request.temperature,
-                    think=request.think,
-                )
-            )
-        except AskWorkspaceQuestionNotFoundError as exc:
-            raise AskWorkspaceQuestionWithSelectedLLMNotFoundError(str(exc)) from exc
-        except AskWorkspaceQuestionValidationError as exc:
-            raise AskWorkspaceQuestionWithSelectedLLMValidationError(str(exc)) from exc
+        return AskWorkspaceQuestionInput(
+            workspace_id=request.workspace_id,
+            question=request.question,
+            limit=request.limit,
+            llm_provider_override=selected_llm.provider,
+            llm_model_override=selected_llm.model,
+            additional_quality_warnings=additional_warnings,
+            timeline_metadata={"asked_with_selected_llm": "true"},
+            skill_instructions=request.skill_instructions or [],
+            skill_profile_source=request.skill_profile_source,
+            skill_profile_name=request.skill_profile_name,
+            skill_profile_updated_at=request.skill_profile_updated_at,
+            conversation_id=request.conversation_id,
+            images=request.images or [],
+            temperature=request.temperature,
+            think=request.think,
+        )
 
     def _embedding_matches_active(self, selected: WorkspaceSelectedModel) -> bool:
         return (

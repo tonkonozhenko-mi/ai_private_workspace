@@ -9,6 +9,22 @@ class OllamaLLMProviderError(RuntimeError):
     pass
 
 
+def _is_thinking_unsupported(response: "httpx.Response") -> bool:
+    """True when Ollama rejected a request because the model can't think.
+
+    Models without reasoning support return HTTP 400 with a body like
+    "<model> does not support thinking". We detect that so the caller can
+    transparently retry without the ``think`` flag.
+    """
+    if response.status_code != 400:
+        return False
+    try:
+        body = response.text.lower()
+    except Exception:
+        return False
+    return "think" in body
+
+
 class OllamaLLMProvider:
     provider_name = "ollama"
 
@@ -87,50 +103,62 @@ class OllamaLLMProvider:
         think_open = False
         think_closed = False
         try:
-            with self.client.stream(
-                "POST",
-                f"{self.base_url}/api/generate",
-                json=payload,
-                timeout=self.timeout_seconds,
-            ) as response:
-                if response.status_code >= 400:
-                    body = response.read().decode("utf-8", "replace").strip()[:300]
-                    if response.status_code == 404:
+            for stream_attempt in range(2):
+                with self.client.stream(
+                    "POST",
+                    f"{self.base_url}/api/generate",
+                    json=payload,
+                    timeout=self.timeout_seconds,
+                ) as response:
+                    if response.status_code >= 400:
+                        body = response.read().decode("utf-8", "replace").strip()[:300]
+                        if response.status_code == 404:
+                            raise OllamaLLMProviderError(
+                                f"Ollama model '{self.model}' is not installed at "
+                                f"{self.base_url}. Refresh Installed Models or download "
+                                f"it first. {body}"
+                            )
+                        # Non-reasoning model rejected `think` — drop it and retry
+                        # once so the Reasoning toggle never breaks a normal model.
+                        if (
+                            stream_attempt == 0
+                            and "think" in payload
+                            and response.status_code == 400
+                            and "think" in body.lower()
+                        ):
+                            payload.pop("think", None)
+                            continue
                         raise OllamaLLMProviderError(
-                            f"Ollama model '{self.model}' is not installed at "
-                            f"{self.base_url}. Refresh Installed Models or download "
-                            f"it first. {body}"
+                            f"Ollama streaming request failed ({response.status_code}). {body}"
                         )
-                    raise OllamaLLMProviderError(
-                        f"Ollama streaming request failed ({response.status_code}). {body}"
-                    )
 
-                for line in response.iter_lines():
-                    if not line:
-                        continue
-                    try:
-                        data = json.loads(line)
-                    except ValueError:
-                        continue
-                    if not isinstance(data, dict):
-                        continue
+                    for line in response.iter_lines():
+                        if not line:
+                            continue
+                        try:
+                            data = json.loads(line)
+                        except ValueError:
+                            continue
+                        if not isinstance(data, dict):
+                            continue
 
-                    thinking = data.get("thinking")
-                    if isinstance(thinking, str) and thinking:
-                        if not think_open:
-                            yield "<think>\n"
-                            think_open = True
-                        yield thinking
+                        thinking = data.get("thinking")
+                        if isinstance(thinking, str) and thinking:
+                            if not think_open:
+                                yield "<think>\n"
+                                think_open = True
+                            yield thinking
 
-                    chunk = data.get("response")
-                    if isinstance(chunk, str) and chunk:
-                        if think_open and not think_closed:
-                            yield "\n</think>\n\n"
-                            think_closed = True
-                        yield chunk
+                        chunk = data.get("response")
+                        if isinstance(chunk, str) and chunk:
+                            if think_open and not think_closed:
+                                yield "\n</think>\n\n"
+                                think_closed = True
+                            yield chunk
 
-                    if data.get("done"):
-                        break
+                        if data.get("done"):
+                            break
+                    break
         except httpx.TimeoutException as exc:
             raise OllamaLLMProviderError(
                 f"Ollama LLM stream timed out after {self.timeout_seconds} seconds "
@@ -167,7 +195,8 @@ class OllamaLLMProvider:
         if temperature is not None:
             # Ollama generation tuning goes under "options".
             payload["options"] = {"temperature": temperature}
-        for attempt in range(2):
+        attempt = 0
+        while attempt < 2:
             try:
                 response = self.client.post(
                     f"{self.base_url}/api/generate",
@@ -185,12 +214,25 @@ class OllamaLLMProvider:
                         f"Ollama model '{self.model}' is not installed at {self.base_url}. "
                         f"Refresh Installed Models or download it first. {detail}"
                     ) from exc
+                # Non-reasoning models reject the `think` flag with a 400. Drop it
+                # and retry so the Reasoning toggle never breaks a normal model.
+                if "think" in payload and _is_thinking_unsupported(exc.response):
+                    payload.pop("think", None)
+                    continue
                 last_error = exc
             except httpx.HTTPError as exc:
                 last_error = exc
 
-            if attempt == 0:
+            attempt += 1
+            if attempt < 2:
                 sleep(0.25)
+
+        if isinstance(last_error, httpx.HTTPStatusError):
+            detail = last_error.response.text.strip()[:300]
+            raise OllamaLLMProviderError(
+                f"Ollama rejected the request for model '{self.model}' "
+                f"({last_error.response.status_code}). {detail}"
+            ) from last_error
 
         if isinstance(last_error, httpx.TimeoutException):
             raise OllamaLLMProviderError(
