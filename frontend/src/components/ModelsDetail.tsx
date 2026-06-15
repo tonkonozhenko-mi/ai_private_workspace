@@ -2612,13 +2612,10 @@ function GuidedModelSetupPanel({
           </p>
         )}
       </div>
-      <div className="guided-model-note-grid">
-        <GuidedModelNotes
-          title="Packaging ready"
-          notes={asArray(guide.packaging_notes)}
-        />
-        <GuidedModelNotes title="Safety" notes={asArray(guide.safety_notes)} />
-      </div>
+      <p className="guided-model-safety-note">
+        Choosing a model only saves a preference for this project — nothing is
+        installed, rebuilt, or restarted until you explicitly do it.
+      </p>
       {message ? <p className="model-selection-message">{message}</p> : null}
       {error ? <p className="model-selection-error">{error}</p> : null}
     </section>
