@@ -21,15 +21,12 @@ import {
 import { StatusBadge } from "./StatusBadge";
 import {
   SKILL_PRESETS,
-  SKILL_PROFILE_TEMPLATES,
-  applySkillProfileTemplate,
   normalizeSkillPreferences,
   toSkillProfileRequest,
   type SkillPresetId,
   makeCustomSkillId,
   type CustomSkill,
   type SkillPreferences,
-  type SkillProfileTemplateId,
 } from "./skillLibrary";
 
 interface SettingsPanelProps {
@@ -44,38 +41,6 @@ interface SettingsPanelProps {
   skillProfileUpdatedAt?: string | null;
   onSkillProfileSaved?: () => void;
 }
-
-const SKILL_TEMPLATES: Array<{
-  id: SkillProfileTemplateId;
-  title: string;
-  description: string;
-}> = [
-  {
-    id: "devops_review",
-    title: "DevOps review",
-    description: "Infrastructure, CI/CD, Kubernetes, Terraform, runtime and deployment questions.",
-  },
-  {
-    id: "code_review",
-    title: "Developer review",
-    description: "Application code, tests, architecture, modules and implementation questions.",
-  },
-  {
-    id: "documentation_review",
-    title: "Documentation review",
-    description: "README, onboarding, design notes, summaries and project explanation.",
-  },
-  {
-    id: "incident_support",
-    title: "Incident support",
-    description: "Troubleshooting, logs, likely causes, operational checks and rollback risks.",
-  },
-  {
-    id: "manager_summary",
-    title: "Manager summary",
-    description: "Short summaries, risks, decisions and stakeholder-friendly wording.",
-  },
-];
 
 export function SettingsPanel({
   dashboard,
@@ -102,7 +67,11 @@ export function SettingsPanel({
   );
   const [skillMessage, setSkillMessage] = useState("Ask uses this workspace guidance when preparing answers.");
   const [savingSkills, setSavingSkills] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<SkillProfileTemplateId>("devops_review");
+  // Skills editor: one selector drives which skill is shown/edited.
+  // Value is a preset id, a custom-skill id, or "__new__" to create one.
+  const [selectedSkillKey, setSelectedSkillKey] = useState<string>(SKILL_PRESETS[0].id);
+  const [newSkillName, setNewSkillName] = useState("");
+  const [newSkillInstructions, setNewSkillInstructions] = useState("");
   const [resetConfirming, setResetConfirming] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
@@ -132,18 +101,6 @@ export function SettingsPanel({
 
   const includeCount = countPatterns(fileRulesDraft.includePatterns);
   const excludeCount = countPatterns(fileRulesDraft.excludePatterns);
-  const selectedTemplate = useMemo(
-    () => SKILL_TEMPLATES.find((template) => template.id === selectedTemplateId) ?? SKILL_TEMPLATES[0],
-    [selectedTemplateId],
-  );
-  const selectedTemplateDefinition = useMemo(
-    () => SKILL_PROFILE_TEMPLATES.find((template) => template.id === selectedTemplateId),
-    [selectedTemplateId],
-  );
-  const selectedSkillPresets = useMemo(() => {
-    const ids = selectedTemplateDefinition?.activeSkillIds ?? ["devops"];
-    return SKILL_PRESETS.filter((preset) => ids.includes(preset.id));
-  }, [selectedTemplateDefinition]);
   const contextReady = dashboard.summary.index_status.status === "indexed";
   const modelsReady = modelsSummary.overall_status === "ready";
 
@@ -219,11 +176,46 @@ export function SettingsPanel({
     }
   }
 
-  function applyTemplate() {
-    const next = applySkillProfileTemplate(selectedTemplateId, preferences.skillPreferences);
-    setSkillDrafts(buildSkillDrafts(next));
-    updatePreference({ skillPreferences: next });
-    setSkillMessage(`${selectedTemplate.title} template applied. Save to workspace to persist it.`);
+  const selectedPreset = SKILL_PRESETS.find((preset) => preset.id === selectedSkillKey);
+  const selectedCustom = preferences.customSkills.find(
+    (skill) => skill.id === selectedSkillKey,
+  );
+
+  function addCustomSkill() {
+    const name = newSkillName.trim();
+    const instructions = newSkillInstructions.trim();
+    if (!name || !instructions) {
+      return;
+    }
+    const skill: CustomSkill = {
+      id: makeCustomSkillId(),
+      name: name.slice(0, 80),
+      instructions: instructions.slice(0, 1200),
+    };
+    onPreferencesChange({
+      ...preferences,
+      customSkills: [...preferences.customSkills, skill],
+    });
+    setNewSkillName("");
+    setNewSkillInstructions("");
+    setSelectedSkillKey(skill.id);
+  }
+
+  function updateCustomSkill(id: string, patch: Partial<CustomSkill>) {
+    onPreferencesChange({
+      ...preferences,
+      customSkills: preferences.customSkills.map((skill) =>
+        skill.id === id ? { ...skill, ...patch } : skill,
+      ),
+    });
+  }
+
+  function removeCustomSkill(id: string) {
+    onPreferencesChange({
+      ...preferences,
+      customSkills: preferences.customSkills.filter((skill) => skill.id !== id),
+    });
+    setSelectedSkillKey(SKILL_PRESETS[0].id);
   }
 
   return (
@@ -404,38 +396,117 @@ export function SettingsPanel({
           </div>
         </details>
 
-        <span className="settings-skills-group-label">Built-in skills</span>
-        <div className="settings-skill-edit-list">
-          {SKILL_PRESETS.map((preset) => (
-            <div className="settings-skill-edit" key={preset.id}>
-              <div className="settings-skill-edit-head">
-                <strong>{preset.name}</strong>
-                <small>{preset.purpose}</small>
-              </div>
-              <textarea
-                rows={3}
-                value={skillDrafts[preset.id] ?? ""}
-                placeholder={preset.defaultInstructions}
-                onChange={(event) =>
-                  setSkillDrafts((current) => ({ ...current, [preset.id]: event.target.value }))
-                }
-              />
-            </div>
-          ))}
-        </div>
-        <div className="settings-clean-actions">
-          <button className="primary-button" type="button" disabled={savingSkills} onClick={() => void saveSkillGuidance()}>
-            {savingSkills ? "Saving…" : "Save built-in skills"}
-          </button>
-        </div>
-        <p className="settings-message">{skillMessage}</p>
+        <label className="settings-skill-select">
+          <span className="sr-only">Choose a skill</span>
+          <select
+            value={selectedSkillKey}
+            onChange={(event) => setSelectedSkillKey(event.target.value)}
+          >
+            <optgroup label="Built-in">
+              {SKILL_PRESETS.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.name}
+                </option>
+              ))}
+            </optgroup>
+            {preferences.customSkills.length > 0 ? (
+              <optgroup label="Your skills">
+                {preferences.customSkills.map((skill) => (
+                  <option key={skill.id} value={skill.id}>
+                    {skill.name}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
+            <option value="__new__">+ Create a custom skill…</option>
+          </select>
+        </label>
 
-        <CustomSkillsEditor
-          skills={preferences.customSkills}
-          onChange={(next) =>
-            onPreferencesChange({ ...preferences, customSkills: next })
-          }
-        />
+        {selectedPreset ? (
+          <div className="settings-skill-editor">
+            <small className="settings-skill-editor-note">{selectedPreset.purpose}</small>
+            <textarea
+              rows={4}
+              value={skillDrafts[selectedPreset.id] ?? ""}
+              placeholder={selectedPreset.defaultInstructions}
+              onChange={(event) =>
+                setSkillDrafts((current) => ({
+                  ...current,
+                  [selectedPreset.id]: event.target.value,
+                }))
+              }
+            />
+            <div className="settings-clean-actions">
+              <button
+                className="primary-button"
+                type="button"
+                disabled={savingSkills}
+                onClick={() => void saveSkillGuidance()}
+              >
+                {savingSkills ? "Saving…" : "Save skill"}
+              </button>
+            </div>
+            <p className="settings-message">{skillMessage}</p>
+          </div>
+        ) : selectedCustom ? (
+          <div className="settings-skill-editor">
+            <input
+              className="custom-skill-name"
+              value={selectedCustom.name}
+              maxLength={80}
+              placeholder="Skill name"
+              onChange={(event) =>
+                updateCustomSkill(selectedCustom.id, { name: event.target.value })
+              }
+            />
+            <textarea
+              rows={4}
+              value={selectedCustom.instructions}
+              maxLength={1200}
+              placeholder="Instructions — e.g. Answer in short, plain steps; always mention rollback risks."
+              onChange={(event) =>
+                updateCustomSkill(selectedCustom.id, { instructions: event.target.value })
+              }
+            />
+            <div className="settings-clean-actions">
+              <button
+                className="secondary-action settings-danger-button"
+                type="button"
+                onClick={() => removeCustomSkill(selectedCustom.id)}
+              >
+                Remove skill
+              </button>
+              <span className="settings-skill-editor-note">Saved automatically.</span>
+            </div>
+          </div>
+        ) : (
+          <div className="settings-skill-editor">
+            <input
+              className="custom-skill-name"
+              value={newSkillName}
+              maxLength={80}
+              placeholder="New skill name (e.g. Security reviewer)"
+              onChange={(event) => setNewSkillName(event.target.value)}
+            />
+            <textarea
+              rows={4}
+              value={newSkillInstructions}
+              maxLength={1200}
+              placeholder="What should it focus on? e.g. Flag security risks first, cite CVEs, suggest the safest fix."
+              onChange={(event) => setNewSkillInstructions(event.target.value)}
+            />
+            <div className="settings-clean-actions">
+              <button
+                className="primary-button"
+                type="button"
+                disabled={!newSkillName.trim() || !newSkillInstructions.trim()}
+                onClick={addCustomSkill}
+              >
+                Create skill
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="panel settings-clean-card settings-danger-card">
@@ -483,114 +554,6 @@ export function SettingsPanel({
         </div>
         {resetMessage ? <p className="settings-message">{resetMessage}</p> : null}
       </section>
-    </div>
-  );
-}
-
-function CustomSkillsEditor({
-  skills,
-  onChange,
-}: {
-  skills: CustomSkill[];
-  onChange: (skills: CustomSkill[]) => void;
-}) {
-  const [newName, setNewName] = useState("");
-  const [newInstructions, setNewInstructions] = useState("");
-
-  function addSkill() {
-    const name = newName.trim();
-    const instructions = newInstructions.trim();
-    if (!name || !instructions) {
-      return;
-    }
-    onChange([
-      ...skills,
-      { id: makeCustomSkillId(), name: name.slice(0, 80), instructions: instructions.slice(0, 1200) },
-    ]);
-    setNewName("");
-    setNewInstructions("");
-  }
-
-  function updateSkill(id: string, patch: Partial<CustomSkill>) {
-    onChange(skills.map((skill) => (skill.id === id ? { ...skill, ...patch } : skill)));
-  }
-
-  function removeSkill(id: string) {
-    onChange(skills.filter((skill) => skill.id !== id));
-  }
-
-  return (
-    <div className="settings-custom-skills">
-      <div className="settings-custom-skills-head">
-        <strong>Your own skills</strong>
-        <span>
-          Create extra answer styles and pick them per question in Ask under
-          “Style” (developer mode). Saved automatically.
-        </span>
-      </div>
-
-      {skills.length > 0 ? (
-        <div className="custom-skill-list">
-          {skills.map((skill) => (
-            <div className="custom-skill-row" key={skill.id}>
-              <div className="custom-skill-fields">
-                <input
-                  className="custom-skill-name"
-                  value={skill.name}
-                  maxLength={80}
-                  placeholder="Skill name"
-                  onChange={(event) => updateSkill(skill.id, { name: event.target.value })}
-                />
-                <textarea
-                  className="custom-skill-instructions"
-                  value={skill.instructions}
-                  rows={2}
-                  maxLength={1200}
-                  placeholder="Instructions — e.g. Answer in short, plain steps; always mention rollback risks."
-                  onChange={(event) =>
-                    updateSkill(skill.id, { instructions: event.target.value })
-                  }
-                />
-              </div>
-              <button
-                type="button"
-                className="custom-skill-remove"
-                aria-label={`Remove ${skill.name}`}
-                title="Remove this skill"
-                onClick={() => removeSkill(skill.id)}
-              >
-                &times;
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="settings-message">No custom skills yet. Add one below.</p>
-      )}
-
-      <div className="custom-skill-add">
-        <input
-          value={newName}
-          maxLength={80}
-          placeholder="New skill name (e.g. Security reviewer)"
-          onChange={(event) => setNewName(event.target.value)}
-        />
-        <textarea
-          value={newInstructions}
-          rows={2}
-          maxLength={1200}
-          placeholder="What should it focus on? e.g. Flag security risks first, cite CVEs, suggest the safest fix."
-          onChange={(event) => setNewInstructions(event.target.value)}
-        />
-        <button
-          type="button"
-          className="primary-button"
-          disabled={!newName.trim() || !newInstructions.trim()}
-          onClick={addSkill}
-        >
-          Add skill
-        </button>
-      </div>
     </div>
   );
 }
