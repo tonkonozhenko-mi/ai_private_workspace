@@ -1422,6 +1422,7 @@ details.onboarding-guide-panel[open] > summary {
 .guided-model-option-meta em { color: var(--c-text-3); font-size: 12px; font-style: normal; }
 .guided-model-option-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-right: 26px; }
 .guided-model-options { display: flex; flex-direction: column; gap: 10px; }
+.guided-model-safety-note { margin-top: var(--s-4); font-size: 12.5px; color: var(--c-text-3); line-height: 1.5; }
 /* Recommended / fit badges should read as small pills, not cards */
 .guided-model-option-badge, .guided-model-option-tag, .guided-model-fit {
   background: var(--c-surface-3); border: 1px solid var(--c-border); border-radius: 999px;
