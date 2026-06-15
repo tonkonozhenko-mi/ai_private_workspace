@@ -989,12 +989,6 @@ function WorkspaceSkillsSection({
 }) {
   const summary = dashboard.summary;
   const activeSkillPresets = getEnabledSkillPresets(skillPreferences);
-  const skills = getWorkspaceSkillCards(
-    dashboard.assistant_mode,
-    summary.detected_skills_count,
-    summary.has_scan,
-    skillPreferences,
-  );
   const suggestedFocus = getAssistantFocus(dashboard.assistant_mode);
 
   return (
@@ -1002,65 +996,51 @@ function WorkspaceSkillsSection({
       <div className="workspace-skills-heading">
         <div>
           <p className="eyebrow">Workspace skills</p>
-          <h2>Use the right project lens</h2>
-          <p>
-            Skills help AI Private Workspace frame answers around the
-            technologies and work style detected in this project.
-          </p>
+          <h2>Project lens: {suggestedFocus.title}</h2>
+          <p>{suggestedFocus.description}</p>
         </div>
         <div className="workspace-skills-badges">
           <StatusBadge
             label={
               summary.has_scan
-                ? `${summary.detected_skills_count} found`
+                ? `${summary.detected_skills_count} detected`
                 : "scan first"
             }
             tone={summary.has_scan ? "success" : "warning"}
             size="md"
           />
           <StatusBadge
-            label={`${activeSkillPresets.length} active skills`}
+            label={`${activeSkillPresets.length} active`}
             tone="info"
             size="md"
           />
         </div>
       </div>
 
-      <div className="assistant-focus-card">
+      <dl className="workspace-skills-stats">
         <div>
-          <span>Current assistant focus</span>
-          <strong>{suggestedFocus.title}</strong>
-          <p>{suggestedFocus.description}</p>
+          <dt>Detected in project</dt>
+          <dd>
+            {summary.has_scan
+              ? `${summary.detected_skills_count} technology signal(s)`
+              : "Run a scan to detect"}
+          </dd>
         </div>
-        <button className="secondary-action" type="button" onClick={onOpenAsk}>
-          Ask with this focus
-        </button>
-      </div>
-
-      <div className="skill-card-grid">
-        {skills.map((skill) => (
-          <article className="skill-card" key={skill.title}>
-            <div className="skill-card-icon" aria-hidden="true">
-              {skill.icon}
-            </div>
-            <div>
-              <strong>{skill.title}</strong>
-              <p>{skill.description}</p>
-              <span>{skill.hint}</span>
-            </div>
-          </article>
-        ))}
-      </div>
-
-      <div className="skill-library-note">
         <div>
-          <strong>Customize skill presets</strong>
-          <p>
-            Open Settings to enable presets or tune custom instructions, for
-            example extending DevOps with Jenkins pipelines, deployment rules,
-            or company-specific review checks.
-          </p>
+          <dt>Active presets</dt>
+          <dd>
+            {activeSkillPresets.length > 0
+              ? activeSkillPresets.map((preset) => preset.name).join(", ")
+              : "Defaults"}
+          </dd>
         </div>
+      </dl>
+
+      <div className="workspace-skills-footer">
+        <p>
+          Skills shape how answers are framed for this project. Tune presets and
+          custom instructions in Settings.
+        </p>
         <button
           className="secondary-action"
           type="button"
@@ -1198,80 +1178,39 @@ function WorkspaceFilesSection({
       <div className="workspace-skills-heading">
         <div>
           <p className="eyebrow">Files and context</p>
-          <h2>Control what becomes searchable</h2>
+          <h2>What gets searched</h2>
           <p>
-            File preferences define which local project files should be
-            considered for scan and future indexing. Defaults keep source, docs,
-            and infrastructure files while skipping generated or heavy folders.
+            Defaults keep source, docs, and infrastructure files and skip
+            generated or heavy folders. Rebuilding context is always an explicit
+            action.
           </p>
         </div>
         <div className="workspace-skills-badges">
-          <StatusBadge label={`${includeCount} include rules`} tone="info" />
-          <StatusBadge label={`${excludeCount} exclude rules`} tone="neutral" />
+          <StatusBadge label={`${includeCount} include`} tone="info" />
+          <StatusBadge label={`${excludeCount} exclude`} tone="neutral" />
         </div>
       </div>
 
-      <div className="workspace-files-grid">
-        <article className="workspace-skill-card">
-          <div className="workspace-skill-icon" aria-hidden="true">
-            ↳
-          </div>
-          <div>
-            <h3>Include useful project files</h3>
-            <p>
-              Source code, documentation, Terraform, Kubernetes, Docker, Helm,
-              and CI/CD definitions are included by default.
-            </p>
-            <span className="workspace-skill-footnote">
-              Source, docs, configs, IaC
-            </span>
-          </div>
-        </article>
-        <article className="workspace-skill-card">
-          <div className="workspace-skill-icon" aria-hidden="true">
-            ⊘
-          </div>
-          <div>
-            <h3>Skip noisy or generated files</h3>
-            <p>
-              Dependencies, caches, build outputs, binaries, archives, and logs
-              stay out of the context by default.
-            </p>
-            <span className="workspace-skill-footnote">
-              node_modules, .venv, dist, build
-            </span>
-          </div>
-        </article>
-        <article className="workspace-skill-card">
-          <div className="workspace-skill-icon" aria-hidden="true">
-            ⌘
-          </div>
-          <div>
-            <h3>Review before rebuilding</h3>
-            <p>
-              This task only prepares browser-local preferences. Rebuilding
-              search context remains an explicit action.
-            </p>
-            <span className="workspace-skill-footnote">Manual and safe</span>
-          </div>
-        </article>
-      </div>
-
-      <div className="workspace-skills-next-step">
+      <dl className="workspace-skills-stats">
         <div>
-          <p className="eyebrow">Indexing control</p>
-          <h3>
-            {contextReady
-              ? "Search context is ready"
-              : scanReady
-                ? "Review file rules before building context"
-                : "Scan first, then review file rules"}
-          </h3>
-          <p>
-            File preferences are saved in this browser and will be connected to
-            scan/index requests in the next phase step.
-          </p>
+          <dt>Included</dt>
+          <dd>Source, docs, configs, IaC — Terraform, Kubernetes, Docker, CI/CD</dd>
         </div>
+        <div>
+          <dt>Skipped</dt>
+          <dd>node_modules, .venv, dist, build, caches, binaries, logs</dd>
+        </div>
+      </dl>
+
+      <div className="workspace-skills-footer">
+        <p>
+          {contextReady
+            ? "Search context is ready."
+            : scanReady
+              ? "Review file rules, then build context."
+              : "Scan first, then review file rules."}{" "}
+          Adjust include/exclude rules in Settings.
+        </p>
         <button
           className="secondary-action"
           type="button"
