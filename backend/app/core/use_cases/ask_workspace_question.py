@@ -4,6 +4,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from time import perf_counter
 
+from app.core.domain.attached_documents import (
+    AttachedDocument,
+    build_attached_documents_section,
+)
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
 from app.core.domain.rag import RagQualityWarning, RagSource, SkillProfileAudit, WorkspaceQuestionAnswer
@@ -84,6 +88,7 @@ class AskWorkspaceQuestionInput:
     images: list[str] = field(default_factory=list)
     temperature: float | None = None
     think: bool | None = None
+    attached_documents: list[AttachedDocument] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -195,6 +200,9 @@ class AskWorkspaceQuestionUseCase:
             question=request.question,
             context_results=context_results,
             skill_instructions=request.skill_instructions,
+            attached_section=build_attached_documents_section(
+                request.question, request.attached_documents
+            ),
         )
         try:
             answer, usage = self._generate_answer_with_usage(
@@ -322,6 +330,9 @@ class AskWorkspaceQuestionUseCase:
                 question=request.question,
                 skill_instructions=request.skill_instructions,
                 current_time=datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z"),
+                attached_section=build_attached_documents_section(
+                    request.question, request.attached_documents
+                ),
             )
             answer_text, usage, failed = yield from self._stream_generation(
                 llm_provider, prompt, request
@@ -370,6 +381,9 @@ class AskWorkspaceQuestionUseCase:
             question=request.question,
             context_results=context_results,
             skill_instructions=request.skill_instructions,
+            attached_section=build_attached_documents_section(
+                request.question, request.attached_documents
+            ),
         )
         answer_text, usage, failed = yield from self._stream_generation(
             llm_provider, prompt, request
@@ -515,6 +529,9 @@ class AskWorkspaceQuestionUseCase:
             question=request.question,
             skill_instructions=request.skill_instructions,
             current_time=datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z"),
+            attached_section=build_attached_documents_section(
+                request.question, request.attached_documents
+            ),
         )
         try:
             answer, usage = self._generate_answer_with_usage(

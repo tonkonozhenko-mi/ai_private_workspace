@@ -155,13 +155,6 @@ type AttachedTextFile = {
 
 const ATTACHED_FILE_MAX_BYTES = 200 * 1024;
 
-function buildAttachedFileBlock(file: AttachedTextFile): string {
-  const note = file.truncated
-    ? `\n…(truncated — first ${Math.round(ATTACHED_FILE_MAX_BYTES / 1024)} KB of ${file.sizeKb} KB)`
-    : "";
-  return `\n\n--- file: ${file.name} ---\n${file.content}${note}\n--- end of ${file.name} ---\n`;
-}
-
 export function AskWorkspace({
   workspaceId,
   assistantMode,
@@ -558,14 +551,11 @@ export function AskWorkspace({
       return;
     }
 
-    // Attached files are folded into the question only at send time, so the
-    // composer stays clean and the chips remain removable until you ask.
+    // Attached files travel separately so the backend can search them for the
+    // relevant parts instead of dumping whole files into the prompt. The typed
+    // question stays clean; an empty question gets a sensible default.
     const effectiveQuestion =
-      attachedFiles.length > 0
-        ? `${trimmedQuestion || "Analyze the attached file(s):"}${attachedFiles
-            .map(buildAttachedFileBlock)
-            .join("")}`
-        : trimmedQuestion;
+      trimmedQuestion || (attachedFiles.length > 0 ? "Analyze the attached file(s)." : "");
 
     askAbortControllerRef.current?.abort();
     const abortController = new AbortController();
@@ -585,6 +575,10 @@ export function AskWorkspace({
         }),
         temperature: answerTemperature ?? null,
         think: devMode ? reasoning : null,
+        attachedDocuments: attachedFiles.map((file) => ({
+          name: file.name,
+          content: file.content,
+        })),
       };
 
       let result;

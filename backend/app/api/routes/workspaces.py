@@ -234,6 +234,7 @@ from app.core.use_cases.analyze_terragrunt import (
 from app.core.domain.rag_prompt import SkillPromptInstruction
 from app.core.domain.skill_profile import default_skill_profile, normalize_skill_profile
 from app.core.use_cases.add_timeline_event import AddTimelineEventInput, AddTimelineEventUseCase
+from app.core.domain.attached_documents import AttachedDocument
 from app.core.use_cases.ask_workspace_question import (
     AskStreamDelta,
     AskStreamFinal,
@@ -1323,6 +1324,13 @@ def _skill_profile_context_from_request(workspace_id: str, skill_context):
     return _saved_skill_profile_context(workspace_id)
 
 
+def _to_attached_documents(attached_documents) -> list[AttachedDocument]:
+    return [
+        AttachedDocument(name=item.name, content=item.content)
+        for item in (attached_documents or [])
+    ]
+
+
 def _to_skill_prompt_instructions(skill_context) -> list[SkillPromptInstruction]:
     return [
         SkillPromptInstruction(
@@ -1755,6 +1763,7 @@ def ask_workspace_question(
                 images=request.images,
                 temperature=request.temperature,
                 think=request.think,
+                attached_documents=_to_attached_documents(request.attached_documents),
             )
         )
         result = _persist_answer_in_conversation(conversation.id, result)
@@ -1843,6 +1852,7 @@ def ask_workspace_question_with_selected_llm(
                 images=request.images,
                 temperature=request.temperature,
                 think=request.think,
+                attached_documents=_to_attached_documents(request.attached_documents),
             )
         )
         result = _persist_answer_in_conversation(conversation.id, result)
@@ -1932,6 +1942,7 @@ def ask_workspace_question_with_selected_llm_stream(
         images=request.images,
         temperature=request.temperature,
         think=request.think,
+        attached_documents=_to_attached_documents(request.attached_documents),
     )
 
     def event_stream():
