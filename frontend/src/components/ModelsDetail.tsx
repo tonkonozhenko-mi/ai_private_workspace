@@ -2545,7 +2545,7 @@ function GuidedModelSetupPanel({
           void refreshInstallStatus();
         } else if (current.status === "failed") {
           setError(
-            `Could not install ${provider}/${model}. ${current.stderr_preview ?? current.progress_message ?? "The model may not exist in the Ollama registry — check the exact tag."}`,
+            `Could not install ${provider}/${model}. ${current.stderr_preview ?? current.progress_message ?? "Check the exact model tag and that Ollama is running, then try again."}`,
           );
         } else {
           setMessage(`${provider}/${model} download ${current.status}.`);
