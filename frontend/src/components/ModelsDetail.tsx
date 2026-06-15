@@ -2520,10 +2520,36 @@ function GuidedModelSetupPanel({
       });
       const capability = await getLocalModelDownloadExecutionCapability();
       if (capability.execution_enabled) {
-        const job = await startLocalModelDownloadJob(draft.command_proposal.id);
-        setMessage(
-          `${provider}/${model} is selected and download ${job.status}. Recent model downloads will keep the result after restart.`,
-        );
+        let current = await startLocalModelDownloadJob(draft.command_proposal.id);
+        setMessage(`Downloading ${provider}/${model}…`);
+        for (
+          let attempt = 0;
+          attempt < 600 &&
+          !["succeeded", "failed", "cancelled"].includes(current.status);
+          attempt += 1
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          try {
+            current = await getLocalModelDownloadJob(current.id);
+          } catch {
+            break;
+          }
+          if (current.status === "running" && current.progress_percent != null) {
+            setMessage(`Downloading ${provider}/${model}… ${current.progress_percent}%`);
+          }
+        }
+        if (current.status === "succeeded") {
+          setMessage(
+            `${provider}/${model} installed and selected — ready for ${modelType === "llm" ? "Ask" : "context building"}.`,
+          );
+          void refreshInstallStatus();
+        } else if (current.status === "failed") {
+          setError(
+            `Could not install ${provider}/${model}. ${current.stderr_preview ?? current.progress_message ?? "The model may not exist in the Ollama registry — check the exact tag."}`,
+          );
+        } else {
+          setMessage(`${provider}/${model} download ${current.status}.`);
+        }
       } else {
         setMessage(
           `${provider}/${model} is selected but not installed. A safe download draft is ready in the model manager below.`,
