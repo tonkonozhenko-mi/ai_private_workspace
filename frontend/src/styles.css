@@ -2485,9 +2485,30 @@ details.onboarding-guide-panel[open] > summary {
 }
 
 .ask-bottom-input-row {
+  position: relative;
   display: flex;
   align-items: flex-end;
   gap: var(--s-3);
+}
+.ask-bottom-input-row.is-drag-over textarea {
+  border-color: var(--c-accent);
+  border-style: dashed;
+}
+.ask-drop-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--c-accent) 14%, var(--c-bg));
+  border: 1px dashed var(--c-accent);
+  color: var(--c-text);
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: none;
 }
 .ask-bottom-input-row textarea {
   flex: 1;
@@ -2582,6 +2603,84 @@ details.onboarding-guide-panel[open] > summary {
   accent-color: var(--c-accent);
   width: 14px;
   height: 14px;
+  cursor: pointer;
+}
+
+/* Advanced controls grouped into one calm pill, switches share one style. */
+.ask-dev-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 5px 12px;
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-pill);
+}
+.ask-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--c-text-2);
+  user-select: none;
+}
+.ask-switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.ask-switch-track {
+  position: relative;
+  flex: none;
+  width: 30px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.ask-switch-thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--c-text-3);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.ask-switch input:checked + .ask-switch-track {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+}
+.ask-switch input:checked + .ask-switch-track .ask-switch-thumb {
+  transform: translateX(12px);
+  background: var(--c-accent-ink);
+}
+.ask-switch input:focus-visible + .ask-switch-track {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-accent) 55%, transparent);
+}
+.ask-switch-label {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.ask-snippets {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--c-text-2);
+  cursor: pointer;
+}
+.ask-snippets select {
+  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  padding: 2px 6px;
+  font: inherit;
   cursor: pointer;
 }
 

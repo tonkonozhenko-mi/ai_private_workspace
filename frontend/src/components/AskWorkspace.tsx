@@ -180,9 +180,10 @@ export function AskWorkspace({
   const [loading, setLoading] = useState(false);
   const [cancelMessage, setCancelMessage] = useState<string | null>(null);
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
   const askAbortControllerRef = useRef<AbortController | null>(null);
 
-  async function handleImageFiles(files: FileList | null) {
+  async function handleImageFiles(files: FileList | File[] | null) {
     if (!files || files.length === 0) {
       return;
     }
@@ -203,6 +204,50 @@ export function AskWorkspace({
       ),
     );
     setAttachedImages((current) => [...current, ...encoded].slice(0, 4));
+  }
+
+  // Drag a log/config/source file onto the composer to read its text straight
+  // into the question. Images keep going through the vision attachment path.
+  async function handleDroppedFiles(files: FileList | File[] | null) {
+    if (!files || files.length === 0) {
+      return;
+    }
+    const all = Array.from(files);
+    const images = all.filter((file) => file.type.startsWith("image/"));
+    const textFiles = all
+      .filter((file) => !file.type.startsWith("image/"))
+      .slice(0, 4);
+
+    if (images.length > 0) {
+      await handleImageFiles(images);
+    }
+    if (textFiles.length === 0) {
+      return;
+    }
+
+    const maxBytes = 200 * 1024;
+    const blocks = await Promise.all(
+      textFiles.map(async (file) => {
+        const slice = file.size > maxBytes ? file.slice(0, maxBytes) : file;
+        let text = "";
+        try {
+          text = await slice.text();
+        } catch {
+          return `\n\n--- could not read ${file.name} ---\n`;
+        }
+        const truncated = file.size > maxBytes;
+        const note = truncated
+          ? `\n…(truncated — first ${Math.round(maxBytes / 1024)} KB of ${Math.round(file.size / 1024)} KB)`
+          : "";
+        return `\n\n--- file: ${file.name} ---\n${text}${note}\n--- end of ${file.name} ---\n`;
+      }),
+    );
+
+    setQuestion((current) => {
+      const prefix =
+        current.trim().length === 0 ? "Analyze this file:" : current;
+      return `${prefix}${blocks.join("")}`;
+    });
   }
   const showGeneralQuestionHint =
     question.trim().length > 0 && !isLikelyProjectQuestion(question);
@@ -679,13 +724,33 @@ export function AskWorkspace({
 
         <section className="panel ask-bottom-composer" aria-label="Ask this workspace">
           <form onSubmit={submitQuestion}>
-            <div className="ask-bottom-input-row">
+            <div
+              className={`ask-bottom-input-row${isDraggingFile ? " is-drag-over" : ""}`}
+              onDragOver={(event) => {
+                if (event.dataTransfer?.types?.includes("Files")) {
+                  event.preventDefault();
+                  setIsDraggingFile(true);
+                }
+              }}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                  setIsDraggingFile(false);
+                }
+              }}
+              onDrop={(event) => {
+                if (event.dataTransfer?.files?.length) {
+                  event.preventDefault();
+                  setIsDraggingFile(false);
+                  void handleDroppedFiles(event.dataTransfer.files);
+                }
+              }}
+            >
               <label className="sr-only" htmlFor="workspace-question">
                 Workspace question
               </label>
               <textarea
                 id="workspace-question"
-                placeholder="Ask about this project, code, infrastructure, CI/CD, or setup... (Enter to send, Shift+Enter for a new line)"
+                placeholder="Ask about this project, code, infrastructure, CI/CD, or setup... (Enter to send, Shift+Enter for a new line). Drop a log or file here to analyze it."
                 rows={2}
                 value={question}
                 onChange={(event) => setQuestion(event.target.value)}
@@ -698,6 +763,11 @@ export function AskWorkspace({
                   }
                 }}
               />
+              {isDraggingFile ? (
+                <div className="ask-drop-overlay" aria-hidden="true">
+                  Drop to attach — logs &amp; text go into your question, images attach for vision
+                </div>
+              ) : null}
               <button
                 className="primary-button ask-send-button"
                 type="submit"
@@ -713,50 +783,57 @@ export function AskWorkspace({
             </div>
 
             <div className="ask-bottom-meta-row">
-              <span>Answers stay on your computer, with sources attached.</span>
+              <span className="ask-privacy-note">Answers stay on your computer, with sources attached.</span>
               <div className="ask-meta-controls">
                 {devMode ? (
-                  <label className="ask-dev-toggle" title="Only affects reasoning models (deepseek-r1, qwq…)">
-                    <input
-                      type="checkbox"
-                      checked={reasoning}
-                      onChange={(event) => setReasoning(event.target.checked)}
-                    />
-                    Reasoning
-                  </label>
+                  <div className="ask-dev-cluster">
+                    <label className="ask-switch" title="Only affects reasoning models (deepseek-r1, qwq…)">
+                      <input
+                        type="checkbox"
+                        checked={reasoning}
+                        onChange={(event) => setReasoning(event.target.checked)}
+                      />
+                      <span className="ask-switch-track" aria-hidden="true">
+                        <span className="ask-switch-thumb" />
+                      </span>
+                      <span className="ask-switch-label">Reasoning</span>
+                    </label>
+                    <label className="ask-switch" title="Show the answer as it is generated, word by word.">
+                      <input
+                        type="checkbox"
+                        checked={streaming}
+                        onChange={(event) => setStreaming(event.target.checked)}
+                      />
+                      <span className="ask-switch-track" aria-hidden="true">
+                        <span className="ask-switch-thumb" />
+                      </span>
+                      <span className="ask-switch-label">Streaming</span>
+                    </label>
+                    <label className="ask-snippets" title="How many source snippets to retrieve as context.">
+                      <span>Sources</span>
+                      <select
+                        value={limit}
+                        onChange={(event) => setLimit(parseSourceSnippetLimit(event.target.value))}
+                      >
+                        {SOURCE_SNIPPET_LIMITS.map((snippetLimit) => (
+                          <option key={snippetLimit} value={snippetLimit}>
+                            {snippetLimit}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
                 ) : null}
-                {devMode ? (
-                  <label className="ask-dev-toggle" title="Show the answer as it is generated, word by word.">
-                    <input
-                      type="checkbox"
-                      checked={streaming}
-                      onChange={(event) => setStreaming(event.target.checked)}
-                    />
-                    Streaming
-                  </label>
-                ) : null}
-                {devMode ? (
-                  <label>
-                    Source snippets
-                    <select
-                      value={limit}
-                      onChange={(event) => setLimit(parseSourceSnippetLimit(event.target.value))}
-                    >
-                      {SOURCE_SNIPPET_LIMITS.map((snippetLimit) => (
-                        <option key={snippetLimit} value={snippetLimit}>
-                          {snippetLimit}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-                <label className="ask-dev-toggle">
+                <label className="ask-switch ask-switch-anchor">
                   <input
                     type="checkbox"
                     checked={devMode}
                     onChange={(event) => setDevMode(event.target.checked)}
                   />
-                  Developer details
+                  <span className="ask-switch-track" aria-hidden="true">
+                    <span className="ask-switch-thumb" />
+                  </span>
+                  <span className="ask-switch-label">Developer details</span>
                 </label>
               </div>
             </div>
