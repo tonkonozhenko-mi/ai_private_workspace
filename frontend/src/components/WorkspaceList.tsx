@@ -65,22 +65,19 @@ export function WorkspaceList({
             compact
           />
         ) : (
-          workspaces.map((workspace) => (
-            <WorkspaceCard
-              key={workspace.workspace_id}
-              workspace={workspace}
-              selected={workspace.workspace_id === selectedWorkspaceId}
-              archivingBusy={archivingWorkspaceId === workspace.workspace_id}
-              deletingBusy={deletingWorkspaceId === workspace.workspace_id}
-              clearingBusy={clearingIndexWorkspaceId === workspace.workspace_id}
-              keepingBusy={keepingWorkspaceId === workspace.workspace_id}
-              onSelect={() => onSelect(workspace.workspace_id)}
-              onArchive={() => onArchive(workspace)}
-              onDelete={() => onDelete(workspace)}
-              onClearIndex={() => onClearIndex(workspace)}
-              onKeep={() => onKeep(workspace)}
-            />
-          ))
+          <ActiveWorkspaces
+            workspaces={workspaces}
+            selectedWorkspaceId={selectedWorkspaceId}
+            archivingWorkspaceId={archivingWorkspaceId}
+            deletingWorkspaceId={deletingWorkspaceId}
+            clearingIndexWorkspaceId={clearingIndexWorkspaceId}
+            keepingWorkspaceId={keepingWorkspaceId}
+            onSelect={onSelect}
+            onArchive={onArchive}
+            onDelete={onDelete}
+            onClearIndex={onClearIndex}
+            onKeep={onKeep}
+          />
         )}
       </div>
 
@@ -121,6 +118,116 @@ export function WorkspaceList({
         </section>
       ) : null}
     </nav>
+  );
+}
+
+const COMPACT_LIMIT = 6;
+
+function ActiveWorkspaces({
+  workspaces,
+  selectedWorkspaceId,
+  archivingWorkspaceId,
+  deletingWorkspaceId,
+  clearingIndexWorkspaceId,
+  keepingWorkspaceId,
+  onSelect,
+  onArchive,
+  onDelete,
+  onClearIndex,
+  onKeep,
+}: {
+  workspaces: WorkspaceOverviewItem[];
+  selectedWorkspaceId: string | null;
+  archivingWorkspaceId?: string | null;
+  deletingWorkspaceId?: string | null;
+  clearingIndexWorkspaceId?: string | null;
+  keepingWorkspaceId?: string | null;
+  onSelect: (workspaceId: string) => void;
+  onArchive: (workspace: WorkspaceOverviewItem) => void;
+  onDelete: (workspace: WorkspaceOverviewItem) => void;
+  onClearIndex: (workspace: WorkspaceOverviewItem) => void;
+  onKeep: (workspace: WorkspaceOverviewItem) => void;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const selected =
+    workspaces.find((item) => item.workspace_id === selectedWorkspaceId) ?? null;
+  const others = workspaces.filter(
+    (item) => item.workspace_id !== selectedWorkspaceId,
+  );
+  const hiddenCount = Math.max(0, others.length - COMPACT_LIMIT);
+  const visibleOthers = showAll ? others : others.slice(0, COMPACT_LIMIT);
+
+  return (
+    <>
+      {selected ? (
+        <WorkspaceCard
+          workspace={selected}
+          selected
+          archivingBusy={archivingWorkspaceId === selected.workspace_id}
+          deletingBusy={deletingWorkspaceId === selected.workspace_id}
+          clearingBusy={clearingIndexWorkspaceId === selected.workspace_id}
+          keepingBusy={keepingWorkspaceId === selected.workspace_id}
+          onSelect={() => onSelect(selected.workspace_id)}
+          onArchive={() => onArchive(selected)}
+          onDelete={() => onDelete(selected)}
+          onClearIndex={() => onClearIndex(selected)}
+          onKeep={() => onKeep(selected)}
+        />
+      ) : null}
+      {visibleOthers.length > 0 ? (
+        <div className="workspace-compact-list">
+          {visibleOthers.map((workspace) => (
+            <WorkspaceCompactRow
+              key={workspace.workspace_id}
+              workspace={workspace}
+              onSelect={() => onSelect(workspace.workspace_id)}
+            />
+          ))}
+        </div>
+      ) : null}
+      {hiddenCount > 0 ? (
+        <button
+          className="text-button workspace-show-more"
+          type="button"
+          onClick={() => setShowAll((value) => !value)}
+        >
+          {showAll ? "Show fewer" : `Show ${hiddenCount} more`}
+        </button>
+      ) : null}
+    </>
+  );
+}
+
+function WorkspaceCompactRow({
+  workspace,
+  onSelect,
+}: {
+  workspace: WorkspaceOverviewItem;
+  onSelect: () => void;
+}) {
+  const ready = workspace.readiness_status === "ready";
+  const isTemporary = workspace.persistence === "temporary";
+  return (
+    <button
+      className="workspace-compact-row"
+      type="button"
+      onClick={onSelect}
+      title={workspace.project_path}
+    >
+      <span
+        className={`workspace-dot${ready ? " is-ready" : ""}`}
+        aria-hidden="true"
+      />
+      <span className="workspace-compact-name">{workspace.name}</span>
+      {isTemporary ? (
+        <span className="workspace-compact-temp" title="Forgets when you quit">
+          temp
+        </span>
+      ) : null}
+      <span className="workspace-compact-size">
+        {formatBytes(workspace.storage_total_bytes ?? 0)}
+      </span>
+    </button>
   );
 }
 
