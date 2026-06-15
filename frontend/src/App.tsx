@@ -190,14 +190,13 @@ function FirstRunWelcome({
   return (
     <div className="first-run">
       <div className="first-run-inner">
-        <div className="first-run-mark" aria-hidden="true">
-          <svg width="44" height="44" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 22 24 9l15 13" />
-            <path d="M12 20v16h24V20" />
-            <rect x="20" y="27" width="8" height="9" rx="2" fill="var(--c-surface-2)" />
-            <path d="M21.5 27v-2a2.5 2.5 0 0 1 5 0v2" />
-          </svg>
-        </div>
+        <img
+          className="first-run-mark"
+          src="/app-icon.png"
+          alt={productName}
+          width={84}
+          height={84}
+        />
         <p className="first-run-eyebrow">Local-first</p>
         <h1 className="first-run-title">A quiet place to think with your own projects</h1>
         <p className="first-run-sub">

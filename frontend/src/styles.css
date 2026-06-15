@@ -193,6 +193,7 @@
   --s-8: 32px;
 
   /* Type */
+  /* (compact density overrides live below, keyed on the html attribute) */
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
     system-ui, sans-serif;
   --font-mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
@@ -1590,9 +1591,19 @@ details.onboarding-guide-panel[open] > summary {
 .guided-model-selected-meta em { font-style: normal; }
 .installed-models-group + .installed-models-group { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--c-border); }
 .installed-models-group-label { margin: 0 0 10px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-text-3); font-weight: 600; }
+/* Compact density actually tightens spacing across the app (the toggle was a no-op before). */
+:root[data-density="compact"] {
+  --s-1: 3px;
+  --s-2: 6px;
+  --s-3: 9px;
+  --s-4: 12px;
+  --s-5: 15px;
+  --s-6: 18px;
+  --s-8: 24px;
+}
 .first-run { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 24px; background: var(--c-bg); }
 .first-run-inner { display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 540px; }
-.first-run-mark { width: 84px; height: 84px; border-radius: 22px; background: var(--c-surface); border: 1px solid var(--c-border); display: flex; align-items: center; justify-content: center; color: var(--c-accent); margin-bottom: 30px; }
+.first-run-mark { width: 84px; height: 84px; border-radius: 20px; margin-bottom: 30px; display: block; }
 .first-run-eyebrow { margin: 0 0 18px; color: var(--c-text-3); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; }
 .first-run-title { margin: 0; color: var(--c-text); font-size: 32px; font-weight: 500; line-height: 1.25; max-width: 15ch; }
 .first-run-sub { margin: 18px 0 0; color: var(--c-text-2); font-size: 16px; line-height: 1.65; max-width: 46ch; }
