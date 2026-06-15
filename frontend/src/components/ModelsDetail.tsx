@@ -4354,15 +4354,11 @@ function ModelExperimentPlanner({
           <p className="eyebrow">Optional</p>
           <h2>Model face-off</h2>
           <span>
-            Put two local models head-to-head on the same question — and a file,
-            if you like — to see which one answers your project better.
+            Two local models, one question — see which answers your project
+            better, then make the winner this project's model.
           </span>
         </div>
       </summary>
-      <p className="panel-intro">
-        Nothing here changes your setup: it doesn't switch models, restart the
-        backend, or rebuild search context. You stay in control.
-      </p>
       <div className="model-experiment-form">
         <label
           className={`model-experiment-question${isDraggingFile ? " is-drag-over" : ""}`}
@@ -4443,42 +4439,17 @@ function ModelExperimentPlanner({
           />
         </div>
         <button
-          className="model-selection-save-button"
+          className="model-selection-save-button model-experiment-run-button"
           type="button"
-          disabled={isPlanning || llmOptions.length < 2}
-          onClick={() => void generatePlan()}
+          disabled={isRunning || llmOptions.length < 2}
+          onClick={() => void runComparisonExperiment()}
         >
-          {isPlanning ? "Preparing comparison…" : "Prepare comparison"}
+          {isRunning ? "Running…" : "⚔️ Run face-off"}
         </button>
+        <span className="model-experiment-run-hint">
+          Both models answer on your machine. Nothing else in your setup changes.
+        </span>
       </div>
-      <div className="model-selection-safety-note">
-        <StatusBadge label="planning only" />
-        <span>This just previews the match-up. Nothing runs until you say go.</span>
-      </div>
-      {error ? <p className="model-selection-error">{error}</p> : null}
-      {plan ? <ModelExperimentPlanResult plan={plan} /> : null}
-      {plan ? (
-        <div className="model-experiment-run-panel">
-          <div className="model-experiment-run-heading">
-            <StatusBadge label="local AI calls" />
-            <div>
-              <strong>Ring the bell</strong>
-              <p>
-                Both models answer the same question on your machine. It can take
-                a moment and use some CPU/RAM — nothing else on your setup changes.
-              </p>
-            </div>
-          </div>
-          <button
-            className="model-selection-save-button"
-            type="button"
-            disabled={isRunning}
-            onClick={() => void runComparisonExperiment()}
-          >
-            {isRunning ? "Running comparison…" : "Run model comparison"}
-          </button>
-        </div>
-      ) : null}
       {runError ? <p className="model-selection-error">{runError}</p> : null}
       {runResult ? (
         <ModelExperimentRunResult
@@ -4487,6 +4458,23 @@ function ModelExperimentPlanner({
           onSelectionUpdated={onSelectionUpdated}
         />
       ) : null}
+      <details className="model-experiment-advanced">
+        <summary>Preview the match-up first (optional)</summary>
+        <p className="model-experiment-advanced-note">
+          A dry run — it doesn't call any model or change your setup. It just
+          shows what will happen and whether anything needs rebuilding.
+        </p>
+        <button
+          className="secondary-action"
+          type="button"
+          disabled={isPlanning || llmOptions.length < 2}
+          onClick={() => void generatePlan()}
+        >
+          {isPlanning ? "Preparing…" : "Prepare comparison"}
+        </button>
+        {error ? <p className="model-selection-error">{error}</p> : null}
+        {plan ? <ModelExperimentPlanResult plan={plan} /> : null}
+      </details>
       <ModelExperimentHistoryPanel
         experiments={experimentHistory}
         isLoading={isLoadingHistory}
