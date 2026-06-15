@@ -77,7 +77,9 @@ def test_public_routes_have_openapi_tags() -> None:
 
 
 def test_workspaces_overview_does_not_conflict_with_workspace_id_route() -> None:
-    route_paths = [route.path for route in app.routes]
+    # Newer Starlette includes router objects in app.routes that have no
+    # `.path`; only compare real path routes.
+    route_paths = [route.path for route in app.routes if hasattr(route, "path")]
 
     assert route_paths.index("/workspaces/overview") < route_paths.index(
         "/workspaces/{workspace_id}"
