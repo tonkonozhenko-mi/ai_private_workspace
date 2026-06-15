@@ -12,6 +12,7 @@ import {
   type FileIndexingPreferences,
 } from "./fileIndexingPreferences";
 import { ModelsSummaryCard } from "./ModelsSummaryCard";
+import { WorkspaceGettingReady } from "./WorkspaceGettingReady";
 import { StatusBadge } from "./StatusBadge";
 import type { StatusTone } from "./statusTone";
 import {
@@ -78,41 +79,27 @@ export function WorkspaceDashboard({
         </div>
       </header>
 
-      <DailyUseStatusPanel
-        dashboard={dashboard}
-        modelsSummary={modelsSummary}
-        onOpenAsk={onOpenAsk}
-        onOpenModels={onOpenModels}
-        onOpenCapabilities={onOpenCapabilities}
-        onStartScan={() => void onStartScanJob()}
-        onStartIndex={() => void onStartIndexJob()}
-      />
-
-      {modelsSummary.overall_status !== "ready" ? (
-        <LocalAISetupWarning
-          summary={modelsSummary}
-          onOpenModels={onOpenModels}
-        />
-      ) : null}
-
-      {!fullyReady ? (
-        <WorkspaceOnboardingGuide
+      {fullyReady ? (
+        <DailyUseStatusPanel
           dashboard={dashboard}
           modelsSummary={modelsSummary}
           onOpenAsk={onOpenAsk}
           onOpenModels={onOpenModels}
           onOpenCapabilities={onOpenCapabilities}
-          onPreviewSavedFileSelection={onPreviewSavedFileSelection}
-          onPreviewDraftFileSelection={onPreviewDraftFileSelection}
+          onStartScan={() => void onStartScanJob()}
+          onStartIndex={() => void onStartIndexJob()}
+        />
+      ) : (
+        <WorkspaceGettingReady
+          dashboard={dashboard}
+          modelsSummary={modelsSummary}
+          onOpenAsk={onOpenAsk}
+          onOpenModels={onOpenModels}
           onStartScanJob={onStartScanJob}
           onStartIndexJob={onStartIndexJob}
-          onGetWorkspaceJob={onGetWorkspaceJob}
-          onListWorkspaceJobs={onListWorkspaceJobs}
-          onCancelWorkspaceJob={onCancelWorkspaceJob}
           onRefreshWorkspaceState={onRefreshWorkspaceState}
-          fileIndexingPreferences={fileIndexingPreferences}
         />
-      ) : null}
+      )}
 
       <details className="panel overview-advanced-disclosure">
         <summary>
