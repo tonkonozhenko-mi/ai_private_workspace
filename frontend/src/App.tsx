@@ -541,13 +541,40 @@ function App() {
     );
   }, [preferences.fileIndexingPreferences]);
 
+  // Poll a scan/index job to completion and then refresh the workspace so the
+  // Home cards update on their own — robust even for jobs that finish too fast
+  // for the on-screen poller to catch.
+  const pollSetupJobThenRefresh = useCallback(
+    async (workspaceId: string, jobId: string) => {
+      for (let attempt = 0; attempt < 600; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1000));
+        try {
+          const job = await getWorkspaceJob(workspaceId, jobId);
+          if (["completed", "failed", "cancelled"].includes(job.status)) {
+            if (selectedWorkspaceIdRef.current === workspaceId) {
+              await refreshWorkspaceReadOnlyState(workspaceId);
+            }
+            return;
+          }
+        } catch {
+          // transient error: keep polling for a while before giving up
+        }
+      }
+    },
+    [refreshWorkspaceReadOnlyState],
+  );
+
   const handleStartScanJob = useCallback(async (workspaceId: string): Promise<WorkspaceJob> => {
-    return startScanWorkspaceJob(workspaceId);
-  }, []);
+    const job = await startScanWorkspaceJob(workspaceId);
+    void pollSetupJobThenRefresh(workspaceId, job.job_id);
+    return job;
+  }, [pollSetupJobThenRefresh]);
 
   const handleStartIndexJob = useCallback(async (workspaceId: string): Promise<WorkspaceJob> => {
-    return startIndexWorkspaceJob(workspaceId);
-  }, []);
+    const job = await startIndexWorkspaceJob(workspaceId);
+    void pollSetupJobThenRefresh(workspaceId, job.job_id);
+    return job;
+  }, [pollSetupJobThenRefresh]);
 
   const handleGetWorkspaceJob = useCallback((workspaceId: string, jobId: string) => {
     return getWorkspaceJob(workspaceId, jobId);
