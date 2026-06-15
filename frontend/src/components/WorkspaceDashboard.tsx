@@ -1413,7 +1413,7 @@ function LocalAISetupWarning({
 
       <div className="local-ai-setup-action">
         <button
-          className="local-ai-models-button"
+          className="secondary-action"
           type="button"
           onClick={onOpenModels}
         >
