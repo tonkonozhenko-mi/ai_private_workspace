@@ -452,6 +452,7 @@ def start_local_model_download_job(command_id: str) -> LocalModelDownloadJobResp
             timeline_repository=timeline_repository,
             selection_repository=workspace_model_selection_repository,
             configuration=readiness_configuration,
+            ollama_base_url=settings.ollama_base_url,
         ).start(
             command_id=command_id,
             execution_enabled=settings.model_download_execution_enabled,

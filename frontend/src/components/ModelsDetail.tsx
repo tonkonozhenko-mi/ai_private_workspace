@@ -1524,6 +1524,26 @@ function LocalModelInstallPanel({ workspaceId }: { workspaceId: string }) {
           executionCapability,
         )}
       />
+      {installStatus && !installStatus.runtime_reachable ? (
+        <div className="ollama-required-notice" role="status">
+          <div>
+            <strong>Ollama is needed to download and run local models</strong>
+            <p>
+              This app downloads and runs models through Ollama. Install it from{" "}
+              <span className="ollama-required-link">ollama.com/download</span> if you
+              don't have it, then start the Ollama app and re-check.
+            </p>
+          </div>
+          <button
+            className="secondary-action"
+            type="button"
+            onClick={() => void refreshInstallStatus()}
+            disabled={refreshingInstallStatus}
+          >
+            {refreshingInstallStatus ? "Checking…" : "Re-check"}
+          </button>
+        </div>
+      ) : null}
       <div
         className="model-manager-summary-grid"
         aria-label="Local model manager summary"

@@ -1,8 +1,11 @@
 from dataclasses import replace
 from datetime import UTC, datetime
 from uuid import uuid4
+import json
 import shlex
 import threading
+
+import httpx
 
 from app.core.domain.local_model_download_job import (
     LocalModelDownloadJob,
@@ -53,6 +56,7 @@ class RunLocalModelDownloadJobUseCase:
         timeline_repository: TimelineRepositoryPort | None = None,
         selection_repository: WorkspaceModelSelectionRepositoryPort | None = None,
         configuration: dict[str, str] | None = None,
+        ollama_base_url: str | None = None,
     ) -> None:
         self.command_repository = command_repository
         self.command_runner = command_runner
@@ -62,6 +66,7 @@ class RunLocalModelDownloadJobUseCase:
         self.timeline_repository = timeline_repository
         self.selection_repository = selection_repository
         self.configuration = dict(configuration or {})
+        self.ollama_base_url = (ollama_base_url or "http://127.0.0.1:11434").rstrip("/")
 
     def start(
         self,
@@ -232,40 +237,66 @@ class RunLocalModelDownloadJobUseCase:
             )
         )
 
+        # Prefer the Ollama daemon's streaming pull API so the job reports real
+        # download progress. If that is unavailable, fall back to the exact CLI
+        # `ollama pull` command (proven path) so downloads still work.
+        finished_status: str | None = None
+        progress_message = ""
+        updated_command = proposal
         try:
-            result = self.command_runner.run(
-                command=proposal.command,
-                cwd=workspace_path,
-                allowed_root=workspace_path,
-            )
-            executed = replace(
-                proposal,
-                status=CommandStatus.EXECUTED.value if result.exit_code == 0 else CommandStatus.FAILED.value,
-                executed_at=datetime.now(UTC).isoformat(),
-                stdout=result.stdout,
-                stderr=result.stderr,
-                exit_code=result.exit_code,
-            )
-            updated_command = self.command_repository.update(executed)
-            finished_status = "succeeded" if updated_command.status == CommandStatus.EXECUTED.value else "failed"
-            progress_message = (
-                f"{model.display_name} download finished. Re-check installed models."
-                if finished_status == "succeeded"
-                else f"{model.display_name} download failed. Review backend output."
-            )
-        except Exception as exc:  # noqa: BLE001 - background jobs must persist failures instead of crashing silently.
+            self._stream_ollama_pull(job_id, model.model_name, running_job)
             updated_command = self.command_repository.update(
                 replace(
                     proposal,
-                    status=CommandStatus.FAILED.value,
+                    status=CommandStatus.EXECUTED.value,
                     executed_at=datetime.now(UTC).isoformat(),
-                    stdout=proposal.stdout,
-                    stderr=f"Background model download worker failed: {exc}",
-                    exit_code=1,
+                    stdout="Pulled via Ollama /api/pull streaming.",
+                    stderr=None,
+                    exit_code=0,
                 )
             )
-            finished_status = "failed"
-            progress_message = f"{model.display_name} download failed before completion. Review backend output."
+            finished_status = "succeeded"
+            progress_message = f"{model.display_name} download finished. Re-check installed models."
+        except Exception:  # noqa: BLE001 - fall back to the CLI pull below
+            finished_status = None
+
+        if finished_status is not None:
+            pass
+        else:
+            try:
+                result = self.command_runner.run(
+                    command=proposal.command,
+                    cwd=workspace_path,
+                    allowed_root=workspace_path,
+                )
+                executed = replace(
+                    proposal,
+                    status=CommandStatus.EXECUTED.value if result.exit_code == 0 else CommandStatus.FAILED.value,
+                    executed_at=datetime.now(UTC).isoformat(),
+                    stdout=result.stdout,
+                    stderr=result.stderr,
+                    exit_code=result.exit_code,
+                )
+                updated_command = self.command_repository.update(executed)
+                finished_status = "succeeded" if updated_command.status == CommandStatus.EXECUTED.value else "failed"
+                progress_message = (
+                    f"{model.display_name} download finished. Re-check installed models."
+                    if finished_status == "succeeded"
+                    else f"{model.display_name} download failed. Review backend output."
+                )
+            except Exception as exc:  # noqa: BLE001 - background jobs must persist failures instead of crashing silently.
+                updated_command = self.command_repository.update(
+                    replace(
+                        proposal,
+                        status=CommandStatus.FAILED.value,
+                        executed_at=datetime.now(UTC).isoformat(),
+                        stdout=proposal.stdout,
+                        stderr=f"Background model download worker failed: {exc}",
+                        exit_code=1,
+                    )
+                )
+                finished_status = "failed"
+                progress_message = f"{model.display_name} download failed before completion. Review backend output."
 
         latest_job = self.job_repository.get(job_id) or running_job
         cancellation_tail = (
@@ -356,6 +387,58 @@ class RunLocalModelDownloadJobUseCase:
         except Exception:  # noqa: BLE001 - auto-select is a convenience, never block the job
             pass
 
+    def _stream_ollama_pull(
+        self,
+        job_id: str,
+        model_name: str,
+        running_job: LocalModelDownloadJob,
+    ) -> None:
+        """Pull a model via the Ollama daemon, reporting real progress.
+
+        Raises on any failure so the caller can fall back to the CLI pull.
+        """
+        last_percent = -1
+        with httpx.stream(
+            "POST",
+            f"{self.ollama_base_url}/api/pull",
+            json={"name": model_name, "stream": True},
+            timeout=httpx.Timeout(600.0, connect=10.0),
+        ) as response:
+            response.raise_for_status()
+            for line in response.iter_lines():
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(data, dict):
+                    continue
+                if data.get("error"):
+                    raise RuntimeError(str(data["error"]))
+                percent = _pull_percent(data.get("completed"), data.get("total"))
+                status_text = data.get("status")
+                if percent is not None and percent != last_percent:
+                    last_percent = percent
+                    current = self.job_repository.get(job_id) or running_job
+                    self.job_repository.update(
+                        replace(
+                            current,
+                            status="running",
+                            progress_percent=percent,
+                            progress_message=f"Downloading {model_name}: {percent}%",
+                        )
+                    )
+                elif status_text and last_percent < 0:
+                    current = self.job_repository.get(job_id) or running_job
+                    self.job_repository.update(
+                        replace(
+                            current,
+                            status="running",
+                            progress_message=f"{model_name}: {status_text}",
+                        )
+                    )
+
     def _validate_exact_ollama_pull(self, proposal) -> LocalModelDefinition:
         try:
             parts = shlex.split(proposal.command)
@@ -370,6 +453,17 @@ class RunLocalModelDownloadJobUseCase:
             if model.provider == "ollama" and model.model_name == requested_model:
                 return model
         raise CommandInvalidStatusError("Model download command does not match the local catalog allowlist")
+
+
+def _pull_percent(completed: object, total: object) -> int | None:
+    try:
+        completed_value = float(completed)  # type: ignore[arg-type]
+        total_value = float(total)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    if total_value <= 0:
+        return None
+    return max(0, min(100, int(completed_value / total_value * 100)))
 
 
 def _preview(value: str | None, limit: int = 4000) -> str | None:
