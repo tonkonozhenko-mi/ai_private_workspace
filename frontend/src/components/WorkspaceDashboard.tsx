@@ -1422,32 +1422,18 @@ function LocalAISetupWarning({
         />
       </div>
 
-      <div className="local-ai-setup-messages">
-        {summary.can_ask_with_selected_llm ? (
-          <p className="is-available">
-            Chosen AI model can already be used for Ask.
-          </p>
-        ) : null}
-        {guidance.message ? (
-          <p className="is-warning">{guidance.message}</p>
-        ) : null}
-      </div>
+      {guidance.message ? (
+        <p className="local-ai-setup-message">{guidance.message}</p>
+      ) : null}
 
-      <div className="local-ai-setup-next">
-        <div>
-          <span>Recommended AI setup action</span>
-          <strong>{guidance.actionTitle}</strong>
-        </div>
-        <div className="local-ai-setup-navigation">
-          <p>{guidance.navigationHint}</p>
-          <button
-            className="local-ai-models-button"
-            type="button"
-            onClick={onOpenModels}
-          >
-            Open Models
-          </button>
-        </div>
+      <div className="local-ai-setup-action">
+        <button
+          className="local-ai-models-button"
+          type="button"
+          onClick={onOpenModels}
+        >
+          {guidance.actionTitle}
+        </button>
       </div>
     </section>
   );
