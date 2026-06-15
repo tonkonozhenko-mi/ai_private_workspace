@@ -33,6 +33,7 @@ import type {
   WorkspaceSkillProfile,
 } from "./api/types";
 import { AskWorkspace } from "./components/AskWorkspace";
+import { ActiveDownloads } from "./components/ActiveDownloads";
 import { CreateWorkspacePanel } from "./components/CreateWorkspacePanel";
 import { ModelsDetail } from "./components/ModelsDetail";
 import { RenderCrashBoundary } from "./components/RenderCrashBoundary";
@@ -809,6 +810,8 @@ function App() {
             />
           </>
         )}
+
+        <ActiveDownloads />
 
         <footer className="sidebar-footer sidebar-footer-simple">
           <span className="sidebar-privacy" title="Your project files are read and answered on this computer. Nothing is uploaded.">
