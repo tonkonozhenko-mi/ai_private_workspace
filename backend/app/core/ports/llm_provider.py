@@ -1,4 +1,16 @@
-from typing import Protocol
+from typing import Iterator, Protocol, runtime_checkable
+
+
+@runtime_checkable
+class StreamingLLMProviderPort(Protocol):
+    def generate_stream(
+        self,
+        prompt: str,
+        images: list[str] | None = None,
+        temperature: float | None = None,
+        think: bool | None = None,
+    ) -> Iterator[str]:
+        """Yield answer text deltas as the model produces them."""
 
 
 class LLMProviderPort(Protocol):

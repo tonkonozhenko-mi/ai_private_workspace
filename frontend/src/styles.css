@@ -1366,6 +1366,17 @@ details.onboarding-guide-panel[open] > summary {
 .model-usage-flow-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .model-worker-guardrails { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
 .models-detail { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+/* Simple Models view: one focused, centered column — not a wide dashboard. */
+.models-detail.models-detail-simple {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+}
+.models-detail-simple .models-overview-top { grid-template-columns: 1fr; gap: var(--s-5); }
+.models-detail-simple .models-section-nav { margin-top: calc(-1 * var(--s-2)); }
 .models-secondary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .models-simple-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .models-workflow-panel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
@@ -1543,6 +1554,22 @@ details.onboarding-guide-panel[open] > summary {
 .report-share-kit { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4); }
 .runtime-next-action-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
 .runtime-next-action-copy { display: flex; align-items: flex-start; gap: 12px; }
+/* Group each next-action into a clear, self-contained callout card. */
+.runtime-next-action-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: var(--r-md);
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+}
+.runtime-next-action-panel-warning {
+  border-color: rgba(235, 183, 96, 0.32);
+  background: rgba(235, 183, 96, 0.06);
+}
+.runtime-next-action-copy > div { display: flex; flex-direction: column; gap: 6px; }
+.runtime-next-action-copy strong { font-size: 15px; }
 .segmented-control { display: flex; gap: 4px; flex-wrap: wrap; }
 .settings-brand-editor { display: flex; align-items: center; gap: var(--space-3); }
 .settings-clean-template-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

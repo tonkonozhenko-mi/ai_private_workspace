@@ -274,6 +274,7 @@ class _RecordingLLMProvider:
         prompt: str,
         images: list[str] | None = None,
         temperature: float | None = None,
+        think: bool | None = None,
     ) -> str:
         assert "selectedprovidertoken" in prompt
         assert "README.md" in prompt

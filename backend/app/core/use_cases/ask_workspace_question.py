@@ -1,4 +1,5 @@
 import os
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime
 from time import perf_counter
@@ -83,6 +84,23 @@ class AskWorkspaceQuestionInput:
     images: list[str] = field(default_factory=list)
     temperature: float | None = None
     think: bool | None = None
+
+
+@dataclass(frozen=True)
+class AskStreamDelta:
+    """A chunk of answer text produced while streaming."""
+
+    text: str
+
+
+@dataclass(frozen=True)
+class AskStreamFinal:
+    """The completed answer, emitted once after all deltas."""
+
+    answer: WorkspaceQuestionAnswer
+
+
+AskStreamEvent = AskStreamDelta | AskStreamFinal
 
 
 class AskWorkspaceQuestionNotFoundError(ValueError):
@@ -225,6 +243,236 @@ class AskWorkspaceQuestionUseCase:
             ),
             request,
         )
+
+    def execute_stream(
+        self,
+        request: AskWorkspaceQuestionInput,
+    ) -> Iterator[AskStreamEvent]:
+        """Same flow as ``execute`` but yields answer deltas as they arrive.
+
+        Diagnostic / canned short-circuits (not indexed, no context) emit no
+        deltas — only a single final event. The model-backed paths (workspace
+        answer and general conversation) stream token deltas first, then a final
+        event carrying the persisted answer, sources, usage and warnings.
+        """
+        workspace = self.workspace_repository.get(request.workspace_id)
+        if workspace is None:
+            raise AskWorkspaceQuestionNotFoundError("Workspace not found")
+
+        llm_provider = self._create_llm_provider(request)
+        index_status = self.index_status_repository.get(request.workspace_id)
+        if index_status is None or index_status.status == "not_indexed":
+            yield AskStreamFinal(
+                self._record_question_event(
+                    self._diagnostic_answer(
+                        request=request,
+                        llm_provider=llm_provider,
+                        answer=WORKSPACE_NOT_INDEXED_ANSWER,
+                        diagnostic_code="workspace_not_indexed",
+                        diagnostic_message=WORKSPACE_NOT_INDEXED_MESSAGE,
+                    ),
+                    request,
+                )
+            )
+            return
+
+        context_results = self._search_context(request)
+        sources = [
+            RagSource(
+                chunk_id=result.chunk_id,
+                source_path=result.source_path,
+                score=result.score,
+                preview=result.content[:200],
+            )
+            for result in context_results
+        ]
+
+        if not context_results:
+            if index_status.status == "indexed":
+                yield AskStreamFinal(
+                    self._record_question_event(
+                        self._diagnostic_answer(
+                            request=request,
+                            llm_provider=llm_provider,
+                            answer=INDEX_METADATA_WITHOUT_CHUNKS_ANSWER,
+                            diagnostic_code="index_metadata_exists_but_no_chunks_found",
+                            diagnostic_message=INDEX_METADATA_WITHOUT_CHUNKS_MESSAGE,
+                        ),
+                        request,
+                    )
+                )
+                return
+            yield AskStreamFinal(
+                self._record_question_event(
+                    self._diagnostic_answer(
+                        request=request,
+                        llm_provider=llm_provider,
+                        answer=NO_RELEVANT_CONTEXT_ANSWER,
+                        diagnostic_code="no_relevant_context_found",
+                        diagnostic_message=NO_RELEVANT_CONTEXT_MESSAGE,
+                    ),
+                    request,
+                )
+            )
+            return
+
+        best_score = max((result.score for result in context_results), default=0.0)
+        if best_score < self._relevance_threshold():
+            prompt = build_general_chat_prompt(
+                question=request.question,
+                skill_instructions=request.skill_instructions,
+                current_time=datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z"),
+            )
+            answer_text, usage, failed = yield from self._stream_generation(
+                llm_provider, prompt, request
+            )
+            if failed:
+                yield AskStreamFinal(
+                    self._record_question_event(
+                        self._diagnostic_answer(
+                            request=request,
+                            llm_provider=llm_provider,
+                            answer=(
+                                "The selected local model could not answer right now. "
+                                "Check that Ollama is running and that this model is "
+                                "installed, or choose another ready model in Models."
+                            ),
+                            diagnostic_code="selected_llm_runtime_unavailable",
+                            diagnostic_message=failed,
+                        ),
+                        request,
+                    )
+                )
+                return
+            yield AskStreamFinal(
+                self._record_question_event(
+                    WorkspaceQuestionAnswer(
+                        workspace_id=request.workspace_id,
+                        question=request.question,
+                        answer=answer_text,
+                        sources=[],
+                        used_context_chunks=0,
+                        llm_provider=llm_provider.provider_name,
+                        llm_model=llm_provider.model_name,
+                        diagnostic_code=GENERAL_CHAT_DIAGNOSTIC_CODE,
+                        diagnostic_message=GENERAL_CHAT_DIAGNOSTIC_MESSAGE,
+                        quality_warnings=list(request.additional_quality_warnings),
+                        usage=usage,
+                        skill_profile=self._skill_profile_audit(request),
+                        conversation_id=request.conversation_id,
+                    ),
+                    request,
+                )
+            )
+            return
+
+        prompt = build_workspace_question_prompt(
+            question=request.question,
+            context_results=context_results,
+            skill_instructions=request.skill_instructions,
+        )
+        answer_text, usage, failed = yield from self._stream_generation(
+            llm_provider, prompt, request
+        )
+        if failed:
+            yield AskStreamFinal(
+                self._record_question_event(
+                    self._diagnostic_answer(
+                        request=request,
+                        llm_provider=llm_provider,
+                        answer=(
+                            "The selected local model could not answer right now. "
+                            "Check that Ollama is running and that this model is "
+                            "installed, or choose another ready model in Models."
+                        ),
+                        diagnostic_code="selected_llm_runtime_unavailable",
+                        diagnostic_message=failed,
+                    ),
+                    request,
+                )
+            )
+            return
+
+        quality_warnings = [
+            *evaluate_rag_answer(
+                question=request.question,
+                answer=answer_text,
+                sources=sources,
+                source_contents=[result.content for result in context_results],
+            ),
+            *request.additional_quality_warnings,
+        ]
+        yield AskStreamFinal(
+            self._record_question_event(
+                WorkspaceQuestionAnswer(
+                    workspace_id=request.workspace_id,
+                    question=request.question,
+                    answer=answer_text,
+                    sources=sources,
+                    used_context_chunks=len(context_results),
+                    llm_provider=llm_provider.provider_name,
+                    llm_model=llm_provider.model_name,
+                    diagnostic_code=None,
+                    diagnostic_message=None,
+                    quality_warnings=quality_warnings,
+                    usage=usage,
+                    skill_profile=self._skill_profile_audit(request),
+                    conversation_id=request.conversation_id,
+                ),
+                request,
+            )
+        )
+
+    def _stream_generation(
+        self,
+        llm_provider: LLMProviderPort,
+        prompt: str,
+        request: AskWorkspaceQuestionInput,
+    ) -> Iterator[AskStreamEvent]:
+        """Yield ``AskStreamDelta`` chunks and return ``(answer, usage, error)``.
+
+        ``error`` is ``None`` on success or a message string if the model failed.
+        Uses the provider's ``generate_stream`` when available, otherwise falls
+        back to a single-shot ``generate`` call yielded as one delta.
+        """
+        started_at = perf_counter()
+        chunks: list[str] = []
+        stream = getattr(llm_provider, "generate_stream", None)
+        try:
+            if callable(stream):
+                for delta in stream(
+                    prompt,
+                    request.images or None,
+                    request.temperature,
+                    request.think,
+                ):
+                    if not delta:
+                        continue
+                    chunks.append(delta)
+                    yield AskStreamDelta(delta)
+            else:
+                answer = llm_provider.generate(
+                    prompt,
+                    request.images or None,
+                    request.temperature,
+                    request.think,
+                )
+                chunks.append(answer)
+                yield AskStreamDelta(answer)
+        except RuntimeError as exc:
+            return "", None, str(exc) or "Model runtime error"
+
+        answer_text = "".join(chunks)
+        latency_ms = max(0, round((perf_counter() - started_at) * 1000))
+        usage = build_llm_usage_metrics(
+            prompt=prompt,
+            completion=answer_text,
+            latency_ms=latency_ms,
+            provider=llm_provider.provider_name,
+            model=llm_provider.model_name,
+            estimated=True,
+        )
+        return answer_text, usage, None
 
     def _generate_answer_with_usage(
         self,
