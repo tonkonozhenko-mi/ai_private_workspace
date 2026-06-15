@@ -12,7 +12,11 @@ MANIFEST="$OUTPUT_DIR/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
 PROJECT_VENV_PYTHON="$BACKEND_DIR/.venv/bin/python"
 PYTHON_BIN="${AI_PRIVATE_WORKSPACE_PACKAGING_PYTHON:-python3}"
 
-if [ -x "$PROJECT_VENV_PYTHON" ] && "$PROJECT_VENV_PYTHON" -m PyInstaller --version >/dev/null 2>&1; then
+# An explicitly provided packaging Python (e.g. an x86_64 venv for an Intel
+# build) must win. Only fall back to the project venv when none was requested.
+if [ -z "${AI_PRIVATE_WORKSPACE_PACKAGING_PYTHON:-}" ] \
+  && [ -x "$PROJECT_VENV_PYTHON" ] \
+  && "$PROJECT_VENV_PYTHON" -m PyInstaller --version >/dev/null 2>&1; then
   PYTHON_BIN="$PROJECT_VENV_PYTHON"
 fi
 
