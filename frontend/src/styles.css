@@ -739,6 +739,12 @@ a {
   gap: var(--s-2);
   margin-top: var(--s-2);
 }
+.exit-prompt-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--c-text-3);
+  line-height: 1.5;
+}
 .primary-action.is-danger {
   background: var(--c-danger);
   border-color: var(--c-danger);
