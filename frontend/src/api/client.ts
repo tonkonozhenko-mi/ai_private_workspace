@@ -1207,6 +1207,105 @@ export function askSelectedWorkspace(
   );
 }
 
+export async function askSelectedWorkspaceStream(
+  workspaceId: string,
+  question: string,
+  limit: number,
+  skillContext: SkillContextRequest[] = [],
+  options: {
+    signal?: AbortSignal;
+    conversationId?: string | null;
+    images?: string[];
+    temperature?: number | null;
+    think?: boolean | null;
+    onToken?: (text: string) => void;
+  } = {},
+): Promise<WorkspaceQuestionAnswer> {
+  const response = await fetch(
+    `${apiBaseUrl}/workspaces/${workspaceId}/ask-selected/stream`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "text/event-stream",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        question,
+        limit,
+        skill_context: skillContext,
+        conversation_id: options.conversationId ?? null,
+        images: options.images ?? [],
+        temperature: options.temperature ?? null,
+        think: options.think ?? null,
+      }),
+      signal: options.signal,
+    },
+  );
+  await assertOk(response);
+  if (!response.body) {
+    throw new Error("Streaming is not supported in this environment.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalAnswer: WorkspaceQuestionAnswer | null = null;
+  let errorDetail: string | null = null;
+
+  const handleEvent = (rawEvent: string): void => {
+    let eventName = "message";
+    const dataLines: string[] = [];
+    for (const line of rawEvent.split("\n")) {
+      if (line.startsWith("event:")) {
+        eventName = line.slice(6).trim();
+      } else if (line.startsWith("data:")) {
+        dataLines.push(line.slice(5).replace(/^ /, ""));
+      }
+    }
+    const data = dataLines.join("\n");
+    if (!data) {
+      return;
+    }
+    if (eventName === "token") {
+      const parsed = JSON.parse(data) as { text?: string };
+      if (parsed.text) {
+        options.onToken?.(parsed.text);
+      }
+    } else if (eventName === "final") {
+      finalAnswer = JSON.parse(data) as WorkspaceQuestionAnswer;
+    } else if (eventName === "error") {
+      const parsed = JSON.parse(data) as { detail?: string };
+      errorDetail = parsed.detail ?? "Streaming failed.";
+    }
+  };
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    buffer += decoder.decode(value, { stream: true });
+    let separatorIndex = buffer.indexOf("\n\n");
+    while (separatorIndex !== -1) {
+      const rawEvent = buffer.slice(0, separatorIndex);
+      buffer = buffer.slice(separatorIndex + 2);
+      handleEvent(rawEvent);
+      separatorIndex = buffer.indexOf("\n\n");
+    }
+  }
+  if (buffer.trim()) {
+    handleEvent(buffer);
+  }
+
+  if (errorDetail) {
+    throw new Error(errorDetail);
+  }
+  if (!finalAnswer) {
+    throw new Error("The streaming response ended without a final answer.");
+  }
+  return finalAnswer;
+}
+
 
 export function updateWorkspaceModelSelection(
   workspaceId: string,

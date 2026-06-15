@@ -6,6 +6,7 @@ const AskDeveloperModeContext = createContext(false);
 
 import {
   askSelectedWorkspace,
+  askSelectedWorkspaceStream,
   deleteWorkspaceAnswerNote,
   deleteWorkspaceConversation,
   exportWorkspaceConversation,
@@ -160,6 +161,8 @@ export function AskWorkspace({
   // Ask screen.
   const [devMode, setDevMode] = useState(false);
   const [reasoning, setReasoning] = useState(true);
+  const [streaming, setStreaming] = useState(false);
+  const [streamingText, setStreamingText] = useState("");
   const [limit, setLimit] = useState(defaultSourceSnippets);
   const [history, setHistory] = useState<AskHistoryItem[]>([]);
   const [conversations, setConversations] = useState<WorkspaceConversation[]>([]);
@@ -497,23 +500,58 @@ export function AskWorkspace({
     setLoading(true);
     setError(null);
     setCancelMessage(null);
+    setStreamingText("");
     try {
-      const result = await askSelectedWorkspace(
-        workspaceId,
-        trimmedQuestion,
-        limit,
-        buildSkillContext(skillPreferences),
-        {
-          signal: abortController.signal,
-          conversationId: activeConversationId,
-          images: attachedImages.map((image) => {
-            const comma = image.indexOf(",");
-            return comma >= 0 ? image.slice(comma + 1) : image;
-          }),
-          temperature: answerTemperature ?? null,
-          think: devMode ? reasoning : null,
-        },
-      );
+      const skillContext = buildSkillContext(skillPreferences);
+      const askOptions = {
+        signal: abortController.signal,
+        conversationId: activeConversationId,
+        images: attachedImages.map((image) => {
+          const comma = image.indexOf(",");
+          return comma >= 0 ? image.slice(comma + 1) : image;
+        }),
+        temperature: answerTemperature ?? null,
+        think: devMode ? reasoning : null,
+      };
+
+      let result;
+      if (devMode && streaming) {
+        try {
+          result = await askSelectedWorkspaceStream(
+            workspaceId,
+            trimmedQuestion,
+            limit,
+            skillContext,
+            {
+              ...askOptions,
+              onToken: (text) =>
+                setStreamingText((current) => current + text),
+            },
+          );
+        } catch (streamError) {
+          if (isAbortError(streamError)) {
+            throw streamError;
+          }
+          // Streaming failed (e.g. backend without SSE support) — fall back to
+          // a normal request so the user still gets an answer.
+          setStreamingText("");
+          result = await askSelectedWorkspace(
+            workspaceId,
+            trimmedQuestion,
+            limit,
+            skillContext,
+            askOptions,
+          );
+        }
+      } else {
+        result = await askSelectedWorkspace(
+          workspaceId,
+          trimmedQuestion,
+          limit,
+          skillContext,
+          askOptions,
+        );
+      }
       const historyItem = createHistoryItem(result);
       setActiveConversationId(result.conversation_id ?? activeConversationId);
       setHistory((current) => [historyItem, ...current].slice(0, 50));
@@ -537,6 +575,7 @@ export function AskWorkspace({
       if (askAbortControllerRef.current === abortController) {
         askAbortControllerRef.current = null;
         setLoading(false);
+        setStreamingText("");
       }
     }
   }
@@ -584,6 +623,7 @@ export function AskWorkspace({
         <ConversationPanel
           history={history}
           loading={loading}
+          streamingText={streamingText}
           conversations={conversations}
           activeConversationId={activeConversationId}
           conversationLoading={conversationLoading}
@@ -683,6 +723,16 @@ export function AskWorkspace({
                       onChange={(event) => setReasoning(event.target.checked)}
                     />
                     Reasoning
+                  </label>
+                ) : null}
+                {devMode ? (
+                  <label className="ask-dev-toggle" title="Show the answer as it is generated, word by word.">
+                    <input
+                      type="checkbox"
+                      checked={streaming}
+                      onChange={(event) => setStreaming(event.target.checked)}
+                    />
+                    Streaming
                   </label>
                 ) : null}
                 {devMode ? (
@@ -807,6 +857,7 @@ function AskScrollButtons() {
 function ConversationPanel({
   history,
   loading,
+  streamingText,
   conversations,
   activeConversationId,
   conversationLoading,
@@ -842,6 +893,7 @@ function ConversationPanel({
 }: {
   history: AskHistoryItem[];
   loading: boolean;
+  streamingText: string;
   conversations: WorkspaceConversation[];
   activeConversationId: string | null;
   conversationLoading: boolean;
@@ -964,7 +1016,14 @@ function ConversationPanel({
         {loading ? (
           <article className="ask-message-row is-assistant">
             <img className="ask-avatar-img" src="/avatar-ai-robot-512.png" alt="AI" width={32} height={32} />
-            <ThinkingIndicator />
+            {streamingText ? (
+              <div className="ask-message-bubble assistant-bubble is-streaming">
+                {streamingText.replace(/<\/?think>/g, "").trimStart()}
+                <span className="ask-stream-caret" aria-hidden="true" />
+              </div>
+            ) : (
+              <ThinkingIndicator />
+            )}
           </article>
         ) : null}
       </div>
