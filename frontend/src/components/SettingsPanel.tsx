@@ -376,22 +376,20 @@ export function SettingsPanel({
       <section className="panel settings-clean-card">
         <div className="panel-heading compact-heading">
           <div>
-            <p className="eyebrow">Ask guidance</p>
-            <h3>How the assistant should read this workspace</h3>
+            <p className="eyebrow">Skills</p>
+            <h3>How answers are written</h3>
             <p className="panel-helper">
-              Source: {skillProfileSource}{skillProfileUpdatedAt ? ` · updated ${formatDate(skillProfileUpdatedAt)}` : ""}
+              A skill is a short instruction that shapes the tone and focus of answers.
+              Edit a built-in one or add your own, then pick a skill per question in Ask
+              under “Style” (developer mode).
             </p>
           </div>
         </div>
+
         <details className="settings-skill-help">
-          <summary>What is this, and how do I get good answers?</summary>
+          <summary>What makes a good skill?</summary>
           <div className="settings-skill-help-body">
-            <p>
-              A skill is simply a short note that tells the assistant what to focus on when it
-              answers questions about this project. Pick a template that matches your work
-              (for example DevOps, code, or documentation), then fine-tune the note below.
-            </p>
-            <p className="settings-skill-help-label">Good instructions</p>
+            <p className="settings-skill-help-label">Good</p>
             <ul>
               <li>Describe the focus: "Prioritise infrastructure and deployment files."</li>
               <li>Set the tone: "Answer in short, plain steps a new teammate can follow."</li>
@@ -401,59 +399,44 @@ export function SettingsPanel({
             <ul>
               <li>Don't ask it to invent facts — it answers from your project's real files.</li>
               <li>Don't paste long essays; a few clear sentences work best.</li>
-              <li>Don't contradict yourself, or answers become vague.</li>
             </ul>
             <p>Changes only affect how answers are written. They never touch your files.</p>
           </div>
         </details>
-        <div className="settings-clean-template-row">
-          <select value={selectedTemplateId} onChange={(event) => setSelectedTemplateId(event.target.value as SkillProfileTemplateId)}>
-            {SKILL_TEMPLATES.map((template) => (
-              <option key={template.id} value={template.id}>{template.title}</option>
-            ))}
-          </select>
-          <button className="secondary-action" type="button" onClick={applyTemplate}>
-            Apply template
-          </button>
-        </div>
-        <p className="panel-helper">{selectedTemplate.description}</p>
-        <div className="settings-selected-guidance-card">
-          <div>
-            <p className="eyebrow">Active guidance</p>
-            <strong>{selectedTemplate.title}</strong>
-            <span>{selectedSkillPresets.map((preset) => preset.name).join(" + ")}</span>
-          </div>
-          <p>Only the guidance used by the selected template is shown here. Other assistant styles stay hidden until you choose them.</p>
-        </div>
-        <div className="settings-clean-guidance-list settings-clean-guidance-list-focused">
-          {selectedSkillPresets.map((preset) => (
-            <label key={preset.id}>
-              <span>{preset.name}</span>
-              <small>{preset.purpose}</small>
+
+        <span className="settings-skills-group-label">Built-in skills</span>
+        <div className="settings-skill-edit-list">
+          {SKILL_PRESETS.map((preset) => (
+            <div className="settings-skill-edit" key={preset.id}>
+              <div className="settings-skill-edit-head">
+                <strong>{preset.name}</strong>
+                <small>{preset.purpose}</small>
+              </div>
               <textarea
-                rows={4}
+                rows={3}
                 value={skillDrafts[preset.id] ?? ""}
+                placeholder={preset.defaultInstructions}
                 onChange={(event) =>
                   setSkillDrafts((current) => ({ ...current, [preset.id]: event.target.value }))
                 }
               />
-            </label>
+            </div>
           ))}
         </div>
         <div className="settings-clean-actions">
           <button className="primary-button" type="button" disabled={savingSkills} onClick={() => void saveSkillGuidance()}>
-            {savingSkills ? "Saving…" : "Save Ask guidance"}
+            {savingSkills ? "Saving…" : "Save built-in skills"}
           </button>
         </div>
         <p className="settings-message">{skillMessage}</p>
-      </section>
 
-      <CustomSkillsEditor
-        skills={preferences.customSkills}
-        onChange={(next) =>
-          onPreferencesChange({ ...preferences, customSkills: next })
-        }
-      />
+        <CustomSkillsEditor
+          skills={preferences.customSkills}
+          onChange={(next) =>
+            onPreferencesChange({ ...preferences, customSkills: next })
+          }
+        />
+      </section>
 
       <section className="panel settings-clean-card settings-danger-card">
         <div className="panel-heading compact-heading">
@@ -537,17 +520,13 @@ function CustomSkillsEditor({
   }
 
   return (
-    <section className="panel settings-clean-card">
-      <div className="panel-heading compact-heading">
-        <div>
-          <p className="eyebrow">Your skills</p>
-          <h3>Create your own answer styles</h3>
-          <p className="panel-helper">
-            A skill is a short instruction that shapes how answers are written
-            (tone, focus, what to prioritize). Add your own and pick them per
-            question in Ask under “Style” (developer mode).
-          </p>
-        </div>
+    <div className="settings-custom-skills">
+      <div className="settings-custom-skills-head">
+        <strong>Your own skills</strong>
+        <span>
+          Create extra answer styles and pick them per question in Ask under
+          “Style” (developer mode). Saved automatically.
+        </span>
       </div>
 
       {skills.length > 0 ? (
@@ -612,7 +591,7 @@ function CustomSkillsEditor({
           Add skill
         </button>
       </div>
-    </section>
+    </div>
   );
 }
 
