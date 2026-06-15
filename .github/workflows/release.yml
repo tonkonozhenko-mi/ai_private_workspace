@@ -49,7 +49,7 @@ jobs:
           AI_PRIVATE_WORKSPACE_PACKAGING_PYTHON: python
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r backend/requirements.txt pyinstaller
+          python -m pip install -r backend/requirements.lock
           # Produces build/desktop/frozen-backend-runtime (referenced by tauri.conf resources).
           bash scripts/build_pyinstaller_backend_runtime.sh
 

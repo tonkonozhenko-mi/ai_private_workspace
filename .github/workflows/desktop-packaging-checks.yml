@@ -43,7 +43,7 @@ jobs:
         run: |
           cd backend
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.lock
           pytest -q \
             tests/test_macos_app_package_foundation.py \
             tests/test_macos_app_package_supervisor_wiring_script.py \
