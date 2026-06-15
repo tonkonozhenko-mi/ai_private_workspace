@@ -29,6 +29,7 @@ import type {
   WorkspaceSkillProfileRequest,
   WorkspaceUIActionCatalog,
   WorkspacesOverview,
+  WorkspaceStorage,
   ReportCatalog,
   WorkspaceReport,
   BuildCustomWorkspaceReportRequest,
@@ -408,6 +409,34 @@ export function restoreWorkspace(workspaceId: string): Promise<void> {
       Accept: "application/json",
     },
   });
+}
+
+export function deleteWorkspace(workspaceId: string): Promise<void> {
+  return requestWithoutBody(`/workspaces/${workspaceId}`, {
+    method: "DELETE",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+}
+
+export function clearWorkspaceIndex(
+  workspaceId: string,
+): Promise<WorkspaceStorage> {
+  return requestJson<WorkspaceStorage>(`/workspaces/${workspaceId}/index/clear`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+}
+
+export function getWorkspaceStorage(
+  workspaceId: string,
+  options: { recompute?: boolean } = {},
+): Promise<WorkspaceStorage> {
+  const query = options.recompute ? "?recompute=true" : "";
+  return getJson<WorkspaceStorage>(`/workspaces/${workspaceId}/storage${query}`);
 }
 
 

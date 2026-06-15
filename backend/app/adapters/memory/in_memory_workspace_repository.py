@@ -26,6 +26,10 @@ class InMemoryWorkspaceRepository:
             self._workspaces[workspace.id] = workspace
         return workspace
 
+    def delete(self, workspace_id: str) -> bool:
+        with self._lock:
+            return self._workspaces.pop(workspace_id, None) is not None
+
     def save(self, workspace: Workspace) -> Workspace:
         return self.update(workspace)
 
