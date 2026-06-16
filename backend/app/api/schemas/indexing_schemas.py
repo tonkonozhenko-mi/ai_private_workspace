@@ -45,10 +45,7 @@ def to_workspace_index_response(
         indexed_files_count=result.indexed_files_count,
         chunks_count=result.chunks_count,
         skipped_files_count=result.skipped_files_count,
-        documents=[
-            to_indexed_document_summary_response(document)
-            for document in result.documents
-        ],
+        documents=[to_indexed_document_summary_response(document) for document in result.documents],
     )
 
 

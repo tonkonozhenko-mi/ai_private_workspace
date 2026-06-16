@@ -64,8 +64,7 @@ def to_model_experiment_plan_response(
         question=plan.question,
         experiment_type=plan.experiment_type,
         candidates=[
-            to_model_experiment_candidate_response(candidate)
-            for candidate in plan.candidates
+            to_model_experiment_candidate_response(candidate) for candidate in plan.candidates
         ],
         shared_context_strategy=plan.shared_context_strategy,
         requires_reindex=plan.requires_reindex,

@@ -2,7 +2,6 @@ from math import sqrt
 
 from app.core.domain.indexing import ContextSearchResult, TextChunk
 
-
 StoredChunk = tuple[TextChunk, list[float]]
 
 

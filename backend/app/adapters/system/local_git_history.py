@@ -6,9 +6,9 @@ never runs hooks, and degrades to ``not_a_repo()`` whenever anything is missing
 (git not installed, not a repository, command error, or timeout).
 """
 
+import subprocess
 from collections import Counter
 from pathlib import Path
-import subprocess
 
 from app.core.domain.git_insights import (
     GitCommit,
@@ -16,7 +16,6 @@ from app.core.domain.git_insights import (
     GitFileHotspot,
     GitInsights,
 )
-
 
 _UNIT = "\x1f"  # ASCII unit separator — safe field delimiter for git --pretty.
 
@@ -89,9 +88,7 @@ class LocalGitHistory:
         return len([line for line in value.splitlines() if line.strip()])
 
     def _first_commit_at(self, root: Path) -> str | None:
-        value = self._run(
-            root, ["log", "--max-parents=0", "--pretty=format:%cI", "-1"]
-        )
+        value = self._run(root, ["log", "--max-parents=0", "--pretty=format:%cI", "-1"])
         if not value:
             return None
         first_line = value.splitlines()[0].strip() if value.strip() else ""

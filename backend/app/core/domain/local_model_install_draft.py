@@ -58,5 +58,7 @@ def _purpose_for(model: LocalModelDefinition) -> str:
     if model.model_type == "embedding":
         return "Search context model used to index and retrieve local workspace chunks."
     if "coder" in model.model_name.lower():
-        return "AI answer model optimized for code, DevOps, CI/CD, Terraform, and infrastructure work."
+        return (
+            "AI answer model optimized for code, DevOps, CI/CD, Terraform, and infrastructure work."
+        )
     return "AI answer model for general local workspace questions."

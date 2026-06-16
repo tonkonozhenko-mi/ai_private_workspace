@@ -1,9 +1,8 @@
-from functools import lru_cache
 import os
+from functools import lru_cache
 from pathlib import Path
 
 from pydantic import BaseModel
-
 
 PRODUCT_NAME = "AI Private Workspace"
 # Keep in sync with frontend/src-tauri/tauri.conf.json on every release bump.
@@ -28,9 +27,7 @@ def _prepare_runtime_path(path_value: str, *, label: str, create_parent: bool) -
         directory = path.parent if create_parent else path
         directory.mkdir(parents=True, exist_ok=True)
     except (OSError, ValueError) as exc:
-        raise RuntimeError(
-            f"Could not prepare {label} at {path_value!r}: {exc}"
-        ) from exc
+        raise RuntimeError(f"Could not prepare {label} at {path_value!r}: {exc}") from exc
     return path
 
 
@@ -237,15 +234,13 @@ def get_settings() -> Settings:
         OLLAMA_TIMEOUT_SECONDS=int(os.getenv("OLLAMA_TIMEOUT_SECONDS", "30")),
         LLM_PROVIDER=os.getenv("LLM_PROVIDER", "fake"),
         OLLAMA_LLM_MODEL=os.getenv("OLLAMA_LLM_MODEL", "llama3.2"),
-        OLLAMA_LLM_TIMEOUT_SECONDS=int(
-            os.getenv("OLLAMA_LLM_TIMEOUT_SECONDS", "120")
-        ),
-        RUNTIME_HEALTH_TIMEOUT_SECONDS=int(
-            os.getenv("RUNTIME_HEALTH_TIMEOUT_SECONDS", "3")
-        ),
+        OLLAMA_LLM_TIMEOUT_SECONDS=int(os.getenv("OLLAMA_LLM_TIMEOUT_SECONDS", "120")),
+        RUNTIME_HEALTH_TIMEOUT_SECONDS=int(os.getenv("RUNTIME_HEALTH_TIMEOUT_SECONDS", "3")),
         USER_MODEL_CATALOG_PATH=os.getenv("USER_MODEL_CATALOG_PATH", ""),
         USER_MODEL_CATALOG_URL=os.getenv("USER_MODEL_CATALOG_URL", ""),
-        MODEL_DOWNLOAD_EXECUTION_ENABLED=os.getenv("MODEL_DOWNLOAD_EXECUTION_ENABLED", "false").lower()
+        MODEL_DOWNLOAD_EXECUTION_ENABLED=os.getenv(
+            "MODEL_DOWNLOAD_EXECUTION_ENABLED", "false"
+        ).lower()
         in {"1", "true", "yes", "on"},
     )
     return settings

@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel, Field
 
 from app.adapters.filesystem.local_file_system import LocalFileSystem
 from app.api.project_scan_schemas import ProjectScanResponse, to_project_scan_response
@@ -8,7 +8,6 @@ from app.core.use_cases.scan_project import (
     ScanProjectInput,
     ScanProjectUseCase,
 )
-
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 

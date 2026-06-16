@@ -9,7 +9,6 @@ from app.core.use_cases.add_timeline_event import (
     AddTimelineEventUseCase,
 )
 
-
 SUPPORTED_PRIVACY_MODES = {"local_only", "private"}
 
 
@@ -38,9 +37,7 @@ class UpdateWorkspaceMetadataUseCase:
     ) -> None:
         self.workspace_repository = workspace_repository
         self.timeline_repository = timeline_repository
-        self.assistant_profile_registry = (
-            assistant_profile_registry or AssistantProfileRegistry()
-        )
+        self.assistant_profile_registry = assistant_profile_registry or AssistantProfileRegistry()
 
     def execute(self, request: UpdateWorkspaceMetadataInput) -> Workspace:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -57,16 +54,13 @@ class UpdateWorkspaceMetadataUseCase:
         if request.name is not None:
             name = request.name.strip()
             if not name:
-                raise UpdateWorkspaceMetadataValidationError(
-                    "Workspace name cannot be empty"
-                )
+                raise UpdateWorkspaceMetadataValidationError("Workspace name cannot be empty")
             self._set_changed(values, updated_fields, "name", name)
 
         if request.assistant_mode is not None:
             assistant_mode = request.assistant_mode.strip()
             profile_ids = {
-                profile.id
-                for profile in self.assistant_profile_registry.list_profiles()
+                profile.id for profile in self.assistant_profile_registry.list_profiles()
             }
             if assistant_mode not in profile_ids:
                 raise UpdateWorkspaceMetadataValidationError(

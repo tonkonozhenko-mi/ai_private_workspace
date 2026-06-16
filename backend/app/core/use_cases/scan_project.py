@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 from fnmatch import fnmatch
 
 from app.core.domain.gitignore_matcher import (
@@ -63,7 +63,9 @@ class ScanProjectUseCase:
             progress_callback=request.progress_callback,
         )
         if request.progress_callback is not None:
-            request.progress_callback(len(files), len(files) or 1, "Detecting project technologies...")
+            request.progress_callback(
+                len(files), len(files) or 1, "Detecting project technologies..."
+            )
         self._checkpoint(request.cancellation_check)
         detected_skills = self.skill_registry.detect_skills(files)
         base_skipped_files = getattr(discovered_files, "skipped_files", 0)

@@ -18,5 +18,10 @@ def test_macos_packaged_app_smoke_preflight_contract() -> None:
     assert "tauri-cli-lockfile" in item_ids
     assert "health-readiness" in item_ids
     commands = {command["command"] for command in payload["validation_commands"]}
-    assert "cd frontend && npm ci && npm run build && cargo check --manifest-path src-tauri/Cargo.toml && npm run tauri dev" in commands
-    assert any("React/frontend does not execute shell commands" in rule for rule in payload["safety_rules"])
+    assert (
+        "cd frontend && npm ci && npm run build && cargo check --manifest-path src-tauri/Cargo.toml && npm run tauri dev"
+        in commands
+    )
+    assert any(
+        "React/frontend does not execute shell commands" in rule for rule in payload["safety_rules"]
+    )

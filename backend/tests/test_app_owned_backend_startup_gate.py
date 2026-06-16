@@ -14,7 +14,9 @@ def test_app_owned_backend_startup_gate_is_safe_and_metadata_only() -> None:
     assert payload["startup_mode"] == "gate_metadata_only_no_process_start"
     assert payload["check_script"] == "scripts/check_tauri_app_owned_startup_gate.sh"
     assert any("frozen" in item["id"] for item in payload["required_gates"])
-    assert any("does not enable automatic backend startup" in rule for rule in payload["safety_rules"])
+    assert any(
+        "does not enable automatic backend startup" in rule for rule in payload["safety_rules"]
+    )
     assert any("No kill-by-port" in rule for rule in payload["safety_rules"])
 
 

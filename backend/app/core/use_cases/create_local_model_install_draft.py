@@ -139,6 +139,4 @@ class CreateLocalModelInstallDraftUseCase:
                 )
             except (OSError, ValueError) as exc:
                 raise LocalModelInstallDraftValidationError(str(exc)) from exc
-        raise LocalModelInstallDraftValidationError(
-            "Model is not present in the local catalog"
-        )
+        raise LocalModelInstallDraftValidationError("Model is not present in the local catalog")

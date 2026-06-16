@@ -16,8 +16,4 @@ class InMemoryModelExperimentRatingRepository:
         self,
         experiment_id: str,
     ) -> list[ModelExperimentCandidateRating]:
-        return [
-            rating
-            for rating in self._ratings
-            if rating.experiment_id == experiment_id
-        ]
+        return [rating for rating in self._ratings if rating.experiment_id == experiment_id]

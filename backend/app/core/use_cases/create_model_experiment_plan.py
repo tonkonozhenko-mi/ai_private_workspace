@@ -9,11 +9,8 @@ from app.core.domain.model_experiment import (
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 
-
 SUPPORTED_EXPERIMENT_TYPE = "llm_comparison"
-SHARED_CONTEXT_STRATEGY = (
-    "Use the same indexed workspace context for all LLM candidates."
-)
+SHARED_CONTEXT_STRATEGY = "Use the same indexed workspace context for all LLM candidates."
 ADVISORY_NOTE = (
     "This plan is advisory and does not call models, download models, change "
     "runtime settings, reindex, or mutate workspace data."
@@ -75,10 +72,7 @@ class CreateModelExperimentPlanUseCase:
 
         index_status = self.index_status_repository.get(workspace_id)
         is_indexed = index_status is not None and index_status.status == "indexed"
-        candidates = [
-            self._candidate(candidate, is_indexed)
-            for candidate in request.candidates
-        ]
+        candidates = [self._candidate(candidate, is_indexed) for candidate in request.candidates]
 
         actions: list[str] = []
         if not is_indexed:
@@ -131,18 +125,12 @@ class CreateModelExperimentPlanUseCase:
                 f"Unknown experiment type: {request.experiment_type}"
             )
         if not request.candidates:
-            raise ModelExperimentPlanValidationError(
-                "At least one model candidate is required"
-            )
+            raise ModelExperimentPlanValidationError("At least one model candidate is required")
         for candidate in request.candidates:
             if not candidate.provider.strip():
-                raise ModelExperimentPlanValidationError(
-                    "Candidate provider is required"
-                )
+                raise ModelExperimentPlanValidationError("Candidate provider is required")
             if not candidate.model.strip():
-                raise ModelExperimentPlanValidationError(
-                    "Candidate model is required"
-                )
+                raise ModelExperimentPlanValidationError("Candidate model is required")
 
     def _candidate(
         self,
@@ -156,34 +144,23 @@ class CreateModelExperimentPlanUseCase:
         warnings: list[str] = []
 
         if catalog_model is None:
-            warnings.append(
-                "Model is not in catalog; validate metadata before experiment."
-            )
+            warnings.append("Model is not in catalog; validate metadata before experiment.")
         if provider == "ollama":
             warnings.append(
-                "Ollama model installation is not verified; install it manually "
-                "if needed."
+                "Ollama model installation is not verified; install it manually if needed."
             )
         elif provider == "fake":
-            warnings.append(
-                "Fake LLM returns deterministic development/testing responses."
-            )
+            warnings.append("Fake LLM returns deterministic development/testing responses.")
         else:
-            warnings.append(
-                f"Provider {provider} requires a compatible LLM provider adapter."
-            )
+            warnings.append(f"Provider {provider} requires a compatible LLM provider adapter.")
         if not is_indexed:
-            warnings.append(
-                "Workspace is not indexed; shared context is unavailable."
-            )
+            warnings.append("Workspace is not indexed; shared context is unavailable.")
 
         return ModelExperimentCandidate(
             provider=provider,
             model=model_name,
             known_in_catalog=catalog_model is not None,
-            display_name=(
-                catalog_model.display_name if catalog_model is not None else None
-            ),
+            display_name=(catalog_model.display_name if catalog_model is not None else None),
             model_type="llm",
             requires_reindex=False,
             requires_backend_restart=not provider_supported,

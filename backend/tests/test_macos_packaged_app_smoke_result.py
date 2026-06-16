@@ -15,14 +15,22 @@ def test_macos_packaged_app_smoke_result_endpoint() -> None:
     assert payload["status"] == "ready"
     assert payload["check_script"] == "scripts/check_macos_packaged_app_smoke_result.sh"
     assert payload["packaged_app_path"].endswith("AI Private Workspace.app")
-    assert any(item["id"] == "frozen-backend-smoke" and item["status"] == "ok" for item in payload["local_results"])
-    assert any(item["id"] == "tauri-packaged-build" and item["status"] == "ok" for item in payload["local_results"])
+    assert any(
+        item["id"] == "frozen-backend-smoke" and item["status"] == "ok"
+        for item in payload["local_results"]
+    )
+    assert any(
+        item["id"] == "tauri-packaged-build" and item["status"] == "ok"
+        for item in payload["local_results"]
+    )
     assert any("/health" in rule for rule in payload["safety_rules"])
 
 
 def test_pyinstaller_runtime_check_accepts_current_entrypoint() -> None:
     script = (ROOT / "scripts/check_pyinstaller_backend_runtime.sh").read_text(encoding="utf-8")
-    entrypoint = (ROOT / "backend/packaging/pyinstaller_backend_entrypoint.py").read_text(encoding="utf-8")
+    entrypoint = (ROOT / "backend/packaging/pyinstaller_backend_entrypoint.py").read_text(
+        encoding="utf-8"
+    )
 
     assert "from app.main import app" in entrypoint
     assert "uvicorn.run(app" in entrypoint

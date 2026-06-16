@@ -13,7 +13,11 @@ class InMemoryMCPRepository:
         return self._configs.get((workspace_id, config_id))
 
     def list_configs(self, workspace_id: str) -> list[WorkspaceMCPServerConfig]:
-        configs = [config for (stored_workspace_id, _), config in self._configs.items() if stored_workspace_id == workspace_id]
+        configs = [
+            config
+            for (stored_workspace_id, _), config in self._configs.items()
+            if stored_workspace_id == workspace_id
+        ]
         return sorted(configs, key=lambda item: item.updated_at, reverse=True)
 
     def delete_config(self, workspace_id: str, config_id: str) -> bool:

@@ -3,16 +3,16 @@ from datetime import UTC, datetime
 from time import perf_counter
 from uuid import uuid4
 
-from app.core.domain.model_experiment_run import (
-    ModelExperimentCandidateRequest,
-    ModelExperimentCandidateResult,
-    ModelExperimentRun,
-)
 from app.core.domain.attached_documents import (
     AttachedDocument,
     build_attached_documents_section,
 )
 from app.core.domain.indexing import ContextSearchResult
+from app.core.domain.model_experiment_run import (
+    ModelExperimentCandidateRequest,
+    ModelExperimentCandidateResult,
+    ModelExperimentRun,
+)
 from app.core.domain.rag import RagSource
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.rag_prompt import build_workspace_question_prompt
@@ -28,15 +28,12 @@ from app.core.use_cases.add_timeline_event import (
     AddTimelineEventUseCase,
 )
 
-
 SUPPORTED_EXPERIMENT_TYPE = "llm_comparison"
 NO_ACTIVE_CONTEXT_NOTE = (
     "Index metadata exists, but no context chunks were found in the active vector "
     "store. Reindex the workspace in the active vector store before retrying."
 )
-SHARED_CONTEXT_NOTE = (
-    "All candidates used the same retrieved context chunks and prompt."
-)
+SHARED_CONTEXT_NOTE = "All candidates used the same retrieved context chunks and prompt."
 
 
 @dataclass(frozen=True)
@@ -101,9 +98,7 @@ class RunModelExperimentUseCase:
             question=question,
             limit=request.limit,
         )
-        attached_section = build_attached_documents_section(
-            question, request.attached_documents
-        )
+        attached_section = build_attached_documents_section(question, request.attached_documents)
         # With no project context AND no attached file there is nothing to compare
         # on. If a file is attached, run anyway — the file is the shared context.
         if not context_results and not attached_section:
@@ -182,22 +177,14 @@ class RunModelExperimentUseCase:
                 f"Unknown experiment type: {request.experiment_type}"
             )
         if not request.candidates:
-            raise RunModelExperimentValidationError(
-                "At least one model candidate is required"
-            )
+            raise RunModelExperimentValidationError("At least one model candidate is required")
         if request.limit <= 0 or request.limit > 50:
-            raise RunModelExperimentValidationError(
-                "Context limit must be between 1 and 50"
-            )
+            raise RunModelExperimentValidationError("Context limit must be between 1 and 50")
         for candidate in request.candidates:
             if not candidate.provider.strip():
-                raise RunModelExperimentValidationError(
-                    "Candidate provider is required"
-                )
+                raise RunModelExperimentValidationError("Candidate provider is required")
             if not candidate.model.strip():
-                raise RunModelExperimentValidationError(
-                    "Candidate model is required"
-                )
+                raise RunModelExperimentValidationError("Candidate model is required")
 
     def _search_context(
         self,

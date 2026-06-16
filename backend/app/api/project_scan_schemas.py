@@ -14,8 +14,6 @@ class ScanWorkspaceProjectRequest(BaseModel):
     file_rules: FileSelectionRulesRequest | None = None
 
 
-
-
 class FileSelectionPreviewItemResponse(BaseModel):
     path: str
     detected_type: str
@@ -148,8 +146,6 @@ def to_project_scan_response(result: ProjectScanResult) -> ProjectScanResponse:
         scanned_files=result.scanned_files,
         skipped_files=result.skipped_files,
         total_size_bytes=result.total_size_bytes,
-        detected_skills=[
-            to_detected_skill_response(skill) for skill in result.detected_skills
-        ],
+        detected_skills=[to_detected_skill_response(skill) for skill in result.detected_skills],
         files=[to_project_file_response(project_file) for project_file in result.files],
     )

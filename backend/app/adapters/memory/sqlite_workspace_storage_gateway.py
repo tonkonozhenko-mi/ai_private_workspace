@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 import json
-from pathlib import Path
 import sqlite3
+from datetime import UTC, datetime
+from pathlib import Path
 
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
 from app.core.domain.workspace_storage import WorkspaceStorageBreakdown
-
 
 # Category -> list of (table, workspace_id_column, [text columns to sum]).
 # Sizes are approximate: we sum the byte length of the meaningful text columns
@@ -48,7 +47,11 @@ _MAIN_DB_SOURCES: dict[str, list[tuple[str, str, list[str]]]] = {
         ("workspace_skill_profiles", "workspace_id", ["skills_json"]),
         ("workspace_agent_workflows", "workspace_id", ["goal", "steps_json", "guardrails_json"]),
         ("workspace_mcp_configs", "workspace_id", ["config_json", "available_tools_json"]),
-        ("workspace_indexing_rules", "workspace_id", ["include_patterns_json", "exclude_patterns_json"]),
+        (
+            "workspace_indexing_rules",
+            "workspace_id",
+            ["include_patterns_json", "exclude_patterns_json"],
+        ),
     ],
 }
 
@@ -134,7 +137,7 @@ class SQLiteWorkspaceStorageGateway:
     # -------------------------------------------------------------- mutations
 
     def recompute(self, workspace_id: str) -> WorkspaceStorageBreakdown:
-        categories = {key: 0 for key in _CATEGORY_KEYS}
+        categories = dict.fromkeys(_CATEGORY_KEYS, 0)
 
         with self._connect(self.db_path) as connection:
             for category, sources in _MAIN_DB_SOURCES.items():

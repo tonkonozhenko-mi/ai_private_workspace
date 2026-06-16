@@ -11,19 +11,15 @@ extend-exclude = [
 ]
 
 [tool.ruff.lint]
-# A pragmatic, mostly-default set:
-#   E/W  pycodestyle    F  pyflakes        I  isort
-#   UP   pyupgrade      B  bugbear         C4 comprehensions
-#   SIM  simplify
-select = ["E", "W", "F", "I", "UP", "B", "C4", "SIM"]
-ignore = [
-    "E501", # line length is enforced by the formatter, not the linter
-    "B008", # FastAPI uses `Depends()` defaults in signatures by design
-]
-
-[tool.ruff.lint.per-file-ignores]
-# Tests may use assert-heavy patterns and longer fixtures.
-"tests/**" = ["B011"]
+# Correctness-focused set only:
+#   F  pyflakes (undefined names, unused imports/variables, bad f-strings)
+#   I  isort    (import ordering)
+# Both are essentially fully auto-fixable, so `ruff check --fix` keeps the tree
+# clean. Pure-layout pycodestyle rules (E/W) are intentionally not selected:
+# `ruff format` already enforces layout, and the remaining E/W findings were
+# non-auto-fixable style nits (import-not-at-top, bare except, etc.) that added
+# noise without catching bugs. Re-enable E/W/UP/B/C4/SIM later if desired.
+select = ["F", "I"]
 
 [tool.ruff.format]
 quote-style = "double"

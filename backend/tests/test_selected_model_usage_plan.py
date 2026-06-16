@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -26,18 +25,14 @@ def test_no_selections_cannot_use_selected_models(tmp_path) -> None:
         "Select an LLM for this workspace.",
         "Select an embedding model for this workspace.",
     ]
-    assert {capability["status"] for capability in result["capabilities"]} == {
-        "not_selected"
-    }
+    assert {capability["status"] for capability in result["capabilities"]} == {"not_selected"}
 
 
 def test_selected_fake_llm_on_fake_runtime_can_ask(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
 
-    result = client.get(
-        f"/workspaces/{workspace['id']}/models/usage-plan"
-    ).json()
+    result = client.get(f"/workspaces/{workspace['id']}/models/usage-plan").json()
 
     assert result["can_ask_with_selected_llm"] is True
     assert result["active_llm_provider"] == "fake"
@@ -47,44 +42,47 @@ def test_selected_fake_llm_on_fake_runtime_can_ask(tmp_path) -> None:
 
 def test_selected_ollama_llm_while_active_fake_can_ask_via_override(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select(
-        workspace["id"],
-        "ollama",
-        "qwen2.5-coder",
-        "llm",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "ollama",
+            "qwen2.5-coder",
+            "llm",
+        ).status_code
+        == 200
+    )
 
-    result = client.get(
-        f"/workspaces/{workspace['id']}/models/usage-plan"
-    ).json()
+    result = client.get(f"/workspaces/{workspace['id']}/models/usage-plan").json()
 
     assert result["selected_llm_provider"] == "ollama"
     assert result["active_llm_provider"] == "fake"
     assert result["can_ask_with_selected_llm"] is True
     assert "per-request" in _capability(result, "ask_with_selected_llm")["reason"]
-    assert not any("Restart backend with the selected LLM" in action for action in result["recommended_actions"])
+    assert not any(
+        "Restart backend with the selected LLM" in action
+        for action in result["recommended_actions"]
+    )
 
 
 def test_selected_unsupported_llm_cannot_ask(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select(
-        workspace["id"],
-        "custom",
-        "private-model",
-        "llm",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "custom",
+            "private-model",
+            "llm",
+        ).status_code
+        == 200
+    )
 
-    result = client.get(
-        f"/workspaces/{workspace['id']}/models/usage-plan"
-    ).json()
+    result = client.get(f"/workspaces/{workspace['id']}/models/usage-plan").json()
 
     assert result["can_ask_with_selected_llm"] is False
     capability = _capability(result, "ask_with_selected_llm")
     assert capability["status"] == "blocked"
     assert "not supported" in capability["reason"]
-    assert result["recommended_actions"][0].startswith(
-        "Select an embedding model"
-    )
+    assert result["recommended_actions"][0].startswith("Select an embedding model")
     assert any(
         "Configure a compatible LLM provider adapter" in action
         for action in result["recommended_actions"]
@@ -93,16 +91,17 @@ def test_selected_unsupported_llm_cannot_ask(tmp_path) -> None:
 
 def test_selected_embedding_matching_active_and_indexed_can_search(tmp_path) -> None:
     workspace = _create_indexed_workspace(tmp_path)
-    assert _select(
-        workspace["id"],
-        "fake",
-        "fake-embedding",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "fake",
+            "fake-embedding",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
-    result = client.get(
-        f"/workspaces/{workspace['id']}/models/usage-plan"
-    ).json()
+    result = client.get(f"/workspaces/{workspace['id']}/models/usage-plan").json()
 
     assert result["can_index_with_selected_embedding"] is True
     assert result["can_search_with_selected_embedding"] is True
@@ -113,16 +112,17 @@ def test_selected_embedding_matching_active_but_not_indexed_needs_index(
     tmp_path,
 ) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select(
-        workspace["id"],
-        "fake",
-        "fake-embedding",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "fake",
+            "fake-embedding",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
-    result = client.get(
-        f"/workspaces/{workspace['id']}/models/usage-plan"
-    ).json()
+    result = client.get(f"/workspaces/{workspace['id']}/models/usage-plan").json()
 
     assert result["can_index_with_selected_embedding"] is True
     assert result["can_search_with_selected_embedding"] is False
@@ -135,25 +135,23 @@ def test_selected_embedding_matching_active_but_not_indexed_needs_index(
 
 def test_selected_embedding_mismatch_needs_restart_and_reindex(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select(
-        workspace["id"],
-        "ollama",
-        "nomic-embed-text",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "ollama",
+            "nomic-embed-text",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
-    result = client.get(
-        f"/workspaces/{workspace['id']}/models/usage-plan"
-    ).json()
+    result = client.get(f"/workspaces/{workspace['id']}/models/usage-plan").json()
 
     assert result["can_index_with_selected_embedding"] is False
     assert result["can_search_with_selected_embedding"] is False
     assert _capability(result, "index_with_selected_embedding")["status"] == "needs_action"
     assert result["recommended_actions"][-2:] == [
-        (
-            "Restart backend with the selected embedding provider and model "
-            "configuration."
-        ),
+        ("Restart backend with the selected embedding provider and model configuration."),
         "Reindex workspace context with the selected embedding model.",
     ]
 
@@ -161,12 +159,15 @@ def test_selected_embedding_mismatch_needs_restart_and_reindex(tmp_path) -> None
 def test_can_use_selected_models_fully_only_when_both_are_usable(tmp_path) -> None:
     workspace = _create_indexed_workspace(tmp_path)
     assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
-    assert _select(
-        workspace["id"],
-        "fake",
-        "fake-embedding",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "fake",
+            "fake-embedding",
+            "embedding",
+        ).status_code
+        == 200
+    )
     timeline_before = client.get(f"/workspaces/{workspace['id']}/timeline").json()
 
     response = client.get(f"/workspaces/{workspace['id']}/models/usage-plan")
@@ -191,9 +192,7 @@ def test_unknown_workspace_returns_404() -> None:
 
 def _capability(result: dict, capability_id: str) -> dict:
     return next(
-        capability
-        for capability in result["capabilities"]
-        if capability["id"] == capability_id
+        capability for capability in result["capabilities"] if capability["id"] == capability_id
     )
 
 

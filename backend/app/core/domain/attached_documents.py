@@ -8,8 +8,8 @@ lexical (term overlap) so it is instant, fully local, and needs no embeddings â€
 which works well for the keyword-rich files people attach (logs, configs, code).
 """
 
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -19,11 +19,57 @@ class AttachedDocument:
 
 
 _STOPWORDS = {
-    "the", "and", "for", "are", "but", "not", "you", "your", "with", "this",
-    "that", "have", "has", "was", "were", "what", "why", "how", "does", "did",
-    "can", "from", "into", "out", "all", "any", "some", "when", "where", "which",
-    "who", "will", "would", "should", "could", "about", "there", "their", "them",
-    "then", "than", "they", "its", "it's", "is", "in", "on", "of", "to", "a", "an",
+    "the",
+    "and",
+    "for",
+    "are",
+    "but",
+    "not",
+    "you",
+    "your",
+    "with",
+    "this",
+    "that",
+    "have",
+    "has",
+    "was",
+    "were",
+    "what",
+    "why",
+    "how",
+    "does",
+    "did",
+    "can",
+    "from",
+    "into",
+    "out",
+    "all",
+    "any",
+    "some",
+    "when",
+    "where",
+    "which",
+    "who",
+    "will",
+    "would",
+    "should",
+    "could",
+    "about",
+    "there",
+    "their",
+    "them",
+    "then",
+    "than",
+    "they",
+    "its",
+    "it's",
+    "is",
+    "in",
+    "on",
+    "of",
+    "to",
+    "a",
+    "an",
 }
 
 # Per-document and overall character budgets keep the prompt bounded.

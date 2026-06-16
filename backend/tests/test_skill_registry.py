@@ -3,9 +3,7 @@ from app.core.domain.skill_registry import SkillRegistry
 
 
 def test_terraform_file_produces_devops_skill() -> None:
-    skills = SkillRegistry().detect_skills(
-        [_project_file("main.tf", ".tf", "terraform")]
-    )
+    skills = SkillRegistry().detect_skills([_project_file("main.tf", ".tf", "terraform")])
 
     assert skills[0].name == "Terraform"
     assert skills[0].category == "devops"
@@ -14,27 +12,21 @@ def test_terraform_file_produces_devops_skill() -> None:
 
 
 def test_python_file_produces_developer_skill() -> None:
-    skills = SkillRegistry().detect_skills(
-        [_project_file("app.py", ".py", "python")]
-    )
+    skills = SkillRegistry().detect_skills([_project_file("app.py", ".py", "python")])
 
     assert skills[0].name == "Python"
     assert skills[0].category == "developer"
 
 
 def test_markdown_file_produces_documentation_skill() -> None:
-    skills = SkillRegistry().detect_skills(
-        [_project_file("README.md", ".md", "markdown")]
-    )
+    skills = SkillRegistry().detect_skills([_project_file("README.md", ".md", "markdown")])
 
     assert skills[0].name == "Documentation"
     assert skills[0].category == "documentation"
 
 
 def test_gitlab_ci_file_produces_devops_skill() -> None:
-    skills = SkillRegistry().detect_skills(
-        [_project_file(".gitlab-ci.yml", ".yml", "gitlab_ci")]
-    )
+    skills = SkillRegistry().detect_skills([_project_file(".gitlab-ci.yml", ".yml", "gitlab_ci")])
     skills_by_name = {skill.name: skill for skill in skills}
 
     assert skills_by_name["GitLab CI"].category == "devops"
@@ -44,10 +36,7 @@ def test_gitlab_ci_file_produces_devops_skill() -> None:
 
 
 def test_evidence_list_is_limited() -> None:
-    files = [
-        _project_file(f"module_{index}.tf", ".tf", "terraform")
-        for index in range(10)
-    ]
+    files = [_project_file(f"module_{index}.tf", ".tf", "terraform") for index in range(10)]
 
     skills = SkillRegistry().detect_skills(files)
 
@@ -63,9 +52,7 @@ def test_evidence_list_is_limited() -> None:
 
 
 def test_unknown_file_type_produces_no_specific_skill() -> None:
-    skills = SkillRegistry().detect_skills(
-        [_project_file("notes.txt", ".txt", "unknown")]
-    )
+    skills = SkillRegistry().detect_skills([_project_file("notes.txt", ".txt", "unknown")])
 
     assert skills == []
 

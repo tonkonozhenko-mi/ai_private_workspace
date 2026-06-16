@@ -6,6 +6,10 @@ from app.core.use_cases.get_workspace_assistant_recommendation import (
     GetWorkspaceAssistantRecommendationInput,
     GetWorkspaceAssistantRecommendationUseCase,
 )
+from app.core.use_cases.get_workspace_models_dashboard_summary import (
+    GetWorkspaceModelsDashboardSummaryInput,
+    GetWorkspaceModelsDashboardSummaryUseCase,
+)
 from app.core.use_cases.get_workspace_quick_start import (
     GetWorkspaceQuickStartInput,
     GetWorkspaceQuickStartUseCase,
@@ -13,10 +17,6 @@ from app.core.use_cases.get_workspace_quick_start import (
 from app.core.use_cases.get_workspace_readiness import (
     GetWorkspaceReadinessInput,
     GetWorkspaceReadinessUseCase,
-)
-from app.core.use_cases.get_workspace_models_dashboard_summary import (
-    GetWorkspaceModelsDashboardSummaryInput,
-    GetWorkspaceModelsDashboardSummaryUseCase,
 )
 from app.core.use_cases.get_workspace_summary import (
     GetWorkspaceSummaryInput,

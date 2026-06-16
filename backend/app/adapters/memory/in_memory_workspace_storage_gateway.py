@@ -1,6 +1,5 @@
 from app.core.domain.workspace_storage import WorkspaceStorageBreakdown
 
-
 _CATEGORY_KEYS = ("index", "conversations", "notes", "scan", "other")
 
 
@@ -31,6 +30,6 @@ class InMemoryWorkspaceStorageGateway:
         return WorkspaceStorageBreakdown(
             workspace_id=workspace_id,
             total_bytes=0,
-            categories={key: 0 for key in _CATEGORY_KEYS},
+            categories=dict.fromkeys(_CATEGORY_KEYS, 0),
             computed_at=None,
         )

@@ -43,20 +43,14 @@ class GetLocalAIActivationGuideUseCase:
 
         selection = self.selection_repository.get(request.workspace_id)
         selected_llm = selection.selected_llm if selection is not None else None
-        selected_embedding = (
-            selection.selected_embedding if selection is not None else None
-        )
+        selected_embedding = selection.selected_embedding if selection is not None else None
         active_llm_provider, active_llm_model = self._active_model("llm")
-        active_embedding_provider, active_embedding_model = self._active_model(
-            "embedding"
-        )
+        active_embedding_provider, active_embedding_model = self._active_model("embedding")
         active_vector_store = self.configuration.get("VECTOR_STORE", "").lower()
         selected_vector_store = self._selected_vector_store(selected_embedding)
         saved_index_status = self.index_status_repository.get(request.workspace_id)
         index_status = (
-            saved_index_status.status
-            if saved_index_status is not None
-            else "not_indexed"
+            saved_index_status.status if saved_index_status is not None else "not_indexed"
         )
 
         llm_matches = self._matches(
@@ -70,8 +64,7 @@ class GetLocalAIActivationGuideUseCase:
             active_embedding_model,
         )
         vector_store_matches = (
-            selected_vector_store is not None
-            and selected_vector_store == active_vector_store
+            selected_vector_store is not None and selected_vector_store == active_vector_store
         )
         steps = self._steps(
             workspace_id=request.workspace_id,
@@ -88,10 +81,7 @@ class GetLocalAIActivationGuideUseCase:
         if selected_llm is None or selected_embedding is None:
             overall_status = "blocked"
         elif (
-            llm_matches
-            and embedding_matches
-            and vector_store_matches
-            and index_status == "indexed"
+            llm_matches and embedding_matches and vector_store_matches and index_status == "indexed"
         ):
             overall_status = "ready"
         else:
@@ -149,10 +139,7 @@ class GetLocalAIActivationGuideUseCase:
             )
         if selected_llm is not None and selected_llm.provider.lower() == "ollama":
             steps.append(self._pull_model_step("llm", selected_llm.model))
-        if (
-            selected_embedding is not None
-            and selected_embedding.provider.lower() == "ollama"
-        ):
+        if selected_embedding is not None and selected_embedding.provider.lower() == "ollama":
             steps.append(self._pull_model_step("embedding", selected_embedding.model))
 
         if selected_vector_store == "qdrant":
@@ -169,14 +156,11 @@ class GetLocalAIActivationGuideUseCase:
                     id="start_podman_machine",
                     title="Start Podman machine",
                     description=(
-                        "Start the Podman machine if the container runtime is not "
-                        "already running."
+                        "Start the Podman machine if the container runtime is not already running."
                     ),
                     command="podman machine start",
                     status="optional",
-                    reason=(
-                        "Podman machine may need to be running before starting Qdrant."
-                    ),
+                    reason=("Podman machine may need to be running before starting Qdrant."),
                     category="container_runtime",
                 )
             )
@@ -191,10 +175,7 @@ class GetLocalAIActivationGuideUseCase:
                     command=qdrant_commands[0],
                     commands=qdrant_commands,
                     status="optional" if active_vector_store == "qdrant" else "needed",
-                    reason=(
-                        "Start existing Qdrant container, or create it if it does "
-                        "not exist."
-                    ),
+                    reason=("Start existing Qdrant container, or create it if it does not exist."),
                     category="qdrant",
                 )
             )
@@ -221,7 +202,9 @@ class GetLocalAIActivationGuideUseCase:
                 status=(
                     "blocked"
                     if not selections_complete
-                    else "done" if runtime_matches else "needed"
+                    else "done"
+                    if runtime_matches
+                    else "needed"
                 ),
                 reason=(
                     "Select both an LLM and embedding model first."
@@ -237,9 +220,7 @@ class GetLocalAIActivationGuideUseCase:
         )
 
         reindex_needed = selected_embedding is not None and (
-            not embedding_matches
-            or not vector_store_matches
-            or index_status != "indexed"
+            not embedding_matches or not vector_store_matches or index_status != "indexed"
         )
         steps.append(
             LocalAIActivationStep(
@@ -247,15 +228,16 @@ class GetLocalAIActivationGuideUseCase:
                 title="Reindex workspace context",
                 description="Build workspace vectors using the active selected embedding.",
                 command=(
-                    f"curl -X POST http://127.0.0.1:8000/workspaces/"
-                    f"{workspace_id}/index"
+                    f"curl -X POST http://127.0.0.1:8000/workspaces/{workspace_id}/index"
                     if selected_embedding is not None
                     else None
                 ),
                 status=(
                     "blocked"
                     if selected_embedding is None
-                    else "needed" if reindex_needed else "done"
+                    else "needed"
+                    if reindex_needed
+                    else "done"
                 ),
                 reason=(
                     "Select an embedding model first."
@@ -310,10 +292,7 @@ class GetLocalAIActivationGuideUseCase:
         workspace_id: str,
         selected_llm: WorkspaceSelectedModel | None,
     ) -> LocalAIActivationStep:
-        supported = (
-            selected_llm is not None
-            and selected_llm.provider.lower() in {"fake", "ollama"}
-        )
+        supported = selected_llm is not None and selected_llm.provider.lower() in {"fake", "ollama"}
         return LocalAIActivationStep(
             id="ask_with_selected_llm",
             title="Ask using selected LLM",
@@ -322,7 +301,7 @@ class GetLocalAIActivationGuideUseCase:
                 "curl -X POST "
                 f"http://127.0.0.1:8000/workspaces/{workspace_id}/ask-selected "
                 "-H 'Content-Type: application/json' "
-                "-d '{\"question\":\"What should I review first?\",\"limit\":5}'"
+                '-d \'{"question":"What should I review first?","limit":5}\''
                 if supported
                 else None
             ),
@@ -341,11 +320,7 @@ class GetLocalAIActivationGuideUseCase:
         selected_embedding: WorkspaceSelectedModel | None,
         selected_vector_store: str | None,
     ) -> str:
-        if (
-            selected_llm is None
-            or selected_embedding is None
-            or selected_vector_store is None
-        ):
+        if selected_llm is None or selected_embedding is None or selected_vector_store is None:
             return ""
         environment = [
             f"VECTOR_STORE={selected_vector_store}",
@@ -416,8 +391,4 @@ class GetLocalAIActivationGuideUseCase:
 
     @staticmethod
     def _identity(selected: WorkspaceSelectedModel | None) -> str | None:
-        return (
-            f"{selected.provider}/{selected.model}"
-            if selected is not None
-            else None
-        )
+        return f"{selected.provider}/{selected.model}" if selected is not None else None

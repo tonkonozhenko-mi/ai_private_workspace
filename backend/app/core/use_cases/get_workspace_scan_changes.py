@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from app.core.domain.project_scan import ProjectFile, ProjectScanResult
+from app.core.domain.project_scan import ProjectFile
 from app.core.ports.file_system import FileSystemPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -87,9 +87,7 @@ class GetWorkspaceScanChangesUseCase:
         for path in current_paths & previous_paths:
             current_size, current_mtime = current_files[path]
             previous_size, previous_mtime = previous_files[path]
-            if current_size != previous_size:
-                modified_count += 1
-            elif (
+            if current_size != previous_size or (
                 current_mtime is not None
                 and previous_mtime is not None
                 and current_mtime != previous_mtime

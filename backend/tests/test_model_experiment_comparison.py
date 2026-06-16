@@ -14,7 +14,6 @@ from app.core.use_cases.get_model_experiment_comparison import (
 )
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -34,10 +33,7 @@ def test_comparison_for_completed_run_returns_candidates(tmp_path) -> None:
     assert summary["failed_candidates_count"] == 0
     assert len(summary["comparisons"]) == 2
     assert all(comparison["answer_length"] > 0 for comparison in summary["comparisons"])
-    assert all(
-        comparison["user_ratings_count"] == 0
-        for comparison in summary["comparisons"]
-    )
+    assert all(comparison["user_ratings_count"] == 0 for comparison in summary["comparisons"])
 
 
 def test_recommended_candidate_is_selected_by_score_and_ties_use_first() -> None:

@@ -17,7 +17,15 @@ def test_desktop_runtime_readiness_exposes_phase_22_plan() -> None:
     assert "15-25" in payload["honest_remaining_work"]
     assert len(payload["readiness_items"]) >= 6
     item_ids = {item["id"] for item in payload["readiness_items"]}
-    assert {"runtime-manifest", "tauri-shell", "supervisor-contract", "persistent-jobs"}.issubset(item_ids)
-    assert any(command["command"] == "scripts/prepare_tauri_shell_scaffold.sh" for command in payload["validation_commands"])
-    assert any("Frontend React code must never execute shell commands" == rule for rule in payload["safety_rules"])
+    assert {"runtime-manifest", "tauri-shell", "supervisor-contract", "persistent-jobs"}.issubset(
+        item_ids
+    )
+    assert any(
+        command["command"] == "scripts/prepare_tauri_shell_scaffold.sh"
+        for command in payload["validation_commands"]
+    )
+    assert any(
+        rule == "Frontend React code must never execute shell commands"
+        for rule in payload["safety_rules"]
+    )
     assert any("scan" in rule and "model downloads" in rule for rule in payload["safety_rules"])

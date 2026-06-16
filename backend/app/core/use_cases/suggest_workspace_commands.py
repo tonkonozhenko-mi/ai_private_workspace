@@ -6,7 +6,6 @@ from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.use_cases.command_errors import CommandWorkspaceNotFoundError
 
-
 MAX_COMMAND_SUGGESTIONS = 12
 
 

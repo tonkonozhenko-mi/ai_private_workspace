@@ -276,8 +276,7 @@ def build_custom_ollama_model_definition(
         raise ValueError("Ollama model name must be a non-empty tag without spaces")
 
     safe_id = "".join(
-        character.lower() if character.isalnum() else "-"
-        for character in normalized_name
+        character.lower() if character.isalnum() else "-" for character in normalized_name
     ).strip("-")
     default_capabilities = (
         ["workspace_ask", "custom_ollama_model"]

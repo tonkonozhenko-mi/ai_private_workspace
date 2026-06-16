@@ -53,7 +53,9 @@ class _WorkspaceGuard:
 
 
 class ListSavedWorkspaceReportsUseCase:
-    def __init__(self, workspace_repository: WorkspaceRepositoryPort, report_repository: ReportRepositoryPort) -> None:
+    def __init__(
+        self, workspace_repository: WorkspaceRepositoryPort, report_repository: ReportRepositoryPort
+    ) -> None:
         self.guard = _WorkspaceGuard(workspace_repository)
         self.report_repository = report_repository
 
@@ -69,7 +71,9 @@ class ListSavedWorkspaceReportsUseCase:
 
 
 class GetSavedWorkspaceReportUseCase:
-    def __init__(self, workspace_repository: WorkspaceRepositoryPort, report_repository: ReportRepositoryPort) -> None:
+    def __init__(
+        self, workspace_repository: WorkspaceRepositoryPort, report_repository: ReportRepositoryPort
+    ) -> None:
         self.guard = _WorkspaceGuard(workspace_repository)
         self.report_repository = report_repository
 
@@ -82,7 +86,9 @@ class GetSavedWorkspaceReportUseCase:
 
 
 class UpdateSavedWorkspaceReportUseCase:
-    def __init__(self, workspace_repository: WorkspaceRepositoryPort, report_repository: ReportRepositoryPort) -> None:
+    def __init__(
+        self, workspace_repository: WorkspaceRepositoryPort, report_repository: ReportRepositoryPort
+    ) -> None:
         self.guard = _WorkspaceGuard(workspace_repository)
         self.report_repository = report_repository
 
@@ -105,7 +111,9 @@ class UpdateSavedWorkspaceReportUseCase:
 
 
 class DeleteSavedWorkspaceReportUseCase:
-    def __init__(self, workspace_repository: WorkspaceRepositoryPort, report_repository: ReportRepositoryPort) -> None:
+    def __init__(
+        self, workspace_repository: WorkspaceRepositoryPort, report_repository: ReportRepositoryPort
+    ) -> None:
         self.guard = _WorkspaceGuard(workspace_repository)
         self.report_repository = report_repository
 

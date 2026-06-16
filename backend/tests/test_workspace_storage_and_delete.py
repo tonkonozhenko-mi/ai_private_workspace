@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -43,25 +42,18 @@ def test_clear_index_resets_status_and_keeps_workspace(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     assert client.post(f"/workspaces/{workspace['id']}/scan").status_code == 200
     assert client.post(f"/workspaces/{workspace['id']}/index").status_code == 200
-    assert (
-        client.get(f"/workspaces/{workspace['id']}/index/status").json()["status"]
-        == "indexed"
-    )
+    assert client.get(f"/workspaces/{workspace['id']}/index/status").json()["status"] == "indexed"
 
     response = client.post(f"/workspaces/{workspace['id']}/index/clear")
 
     assert response.status_code == 200
     assert response.json()["breakdown"]["index"] == 0
     assert (
-        client.get(f"/workspaces/{workspace['id']}/index/status").json()["status"]
-        == "not_indexed"
+        client.get(f"/workspaces/{workspace['id']}/index/status").json()["status"] == "not_indexed"
     )
     # Workspace itself is untouched.
     assert client.get(f"/workspaces/{workspace['id']}").status_code == 200
-    events = [
-        event["event_type"]
-        for event in _timeline(workspace["id"])
-    ]
+    events = [event["event_type"] for event in _timeline(workspace["id"])]
     assert "workspace_index_cleared" in events
 
 
@@ -120,11 +112,7 @@ def _create_workspace(project_path: Path) -> dict:
 def _overview_item(workspace_id: str) -> dict:
     overview = client.get("/workspaces/overview?include_archived=true")
     assert overview.status_code == 200
-    return next(
-        item
-        for item in overview.json()["items"]
-        if item["workspace_id"] == workspace_id
-    )
+    return next(item for item in overview.json()["items"] if item["workspace_id"] == workspace_id)
 
 
 def _storage(workspace_id: str, recompute: bool = False) -> dict:

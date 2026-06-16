@@ -1,7 +1,7 @@
-from dataclasses import replace
-from datetime import datetime
 import json
 import logging
+from dataclasses import replace
+from datetime import datetime
 
 from fastapi import APIRouter, Body, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -15,25 +15,24 @@ from app.api.dependencies import (
     git_history,
     index_status_repository,
     indexing_rules_repository,
-    skill_profile_repository,
     llm_provider_factory,
     model_catalog_registry,
-    model_experiment_repository,
     model_experiment_rating_repository,
+    model_experiment_repository,
     project_scan_repository,
     project_understanding_repository,
-    report_repository,
     readiness_configuration,
+    report_repository,
     runtime_health_checkers,
     runtime_health_configuration,
+    skill_profile_repository,
     timeline_repository,
-    workspace_job_runner,
     vector_store,
+    workspace_job_runner,
     workspace_model_selection_repository,
     workspace_repository,
     workspace_storage_gateway,
 )
-
 
 logger = logging.getLogger("uvicorn.error.ai_private_workspace.workspace_api")
 from app.api.project_scan_schemas import (
@@ -57,11 +56,28 @@ from app.api.schemas.analysis_schemas import (
     to_terraform_analysis_response,
     to_terragrunt_analysis_response,
 )
-from app.api.schemas.indexing_schemas import (
-    ContextSearchResultResponse,
-    WorkspaceIndexResponse,
-    to_context_search_result_response,
-    to_workspace_index_response,
+from app.api.schemas.conversation_schemas import (
+    AnswerNotePinRequest,
+    ConversationAnswerNoteResponse,
+    ConversationArchiveRequest,
+    ConversationContextPreviewResponse,
+    ConversationExportResponse,
+    ConversationPinRequest,
+    CreateConversationRequest,
+    SaveAnswerNoteRequest,
+    UpdateAnswerNoteRequest,
+    UpdateConversationRequest,
+    WorkspaceConversationResponse,
+    to_answer_note_response,
+    to_workspace_conversation_response,
+)
+from app.api.schemas.git_insights_schemas import (
+    GitInsightsResponse,
+    to_git_insights_response,
+)
+from app.api.schemas.guided_model_setup_schemas import (
+    GuidedModelSetupGuideResponse,
+    to_guided_model_setup_guide_response,
 )
 from app.api.schemas.index_status_schemas import (
     WorkspaceIndexStatusResponse,
@@ -71,6 +87,12 @@ from app.api.schemas.indexing_rules_schemas import (
     WorkspaceIndexingRulesRequest,
     WorkspaceIndexingRulesResponse,
     to_workspace_indexing_rules_response,
+)
+from app.api.schemas.indexing_schemas import (
+    ContextSearchResultResponse,
+    WorkspaceIndexResponse,
+    to_context_search_result_response,
+    to_workspace_index_response,
 )
 from app.api.schemas.local_ai_activation_guide_schemas import (
     LocalAIActivationGuideResponse,
@@ -89,6 +111,63 @@ from app.api.schemas.model_recommendation_explanation_schemas import (
     ModelRecommendationExplanationResponse,
     to_model_recommendation_explanation_response,
 )
+from app.api.schemas.project_todos_schemas import (
+    ProjectTodosResponse,
+    to_project_todos_response,
+)
+from app.api.schemas.project_understanding_schemas import (
+    ProjectUnderstandingResponse,
+    to_project_understanding_response,
+)
+from app.api.schemas.rag_schemas import (
+    AskWorkspaceQuestionRequest,
+    AskWorkspaceQuestionWithSelectedLLMRequest,
+    WorkspaceQuestionAnswerResponse,
+    to_workspace_question_answer_response,
+)
+from app.api.schemas.report_schemas import (
+    BuildCustomWorkspaceReportRequest,
+    ProjectOverviewReportResponse,
+    ReportCatalogResponse,
+    SaveCustomWorkspaceReportRequest,
+    SavedReportPinRequest,
+    SavedWorkspaceReportResponse,
+    SaveEditedWorkspaceReportRequest,
+    UpdateSavedWorkspaceReportRequest,
+    to_project_overview_report_response,
+    to_report_catalog_response,
+    to_saved_workspace_report_response,
+)
+from app.api.schemas.selected_embedding_indexing_plan_schemas import (
+    SelectedEmbeddingIndexingPlanResponse,
+    to_selected_embedding_indexing_plan_response,
+)
+from app.api.schemas.selected_model_usage_plan_schemas import (
+    SelectedModelUsagePlanResponse,
+    to_selected_model_usage_plan_response,
+)
+from app.api.schemas.skill_profile_schemas import (
+    WorkspaceSkillProfileRequest,
+    WorkspaceSkillProfileResponse,
+    to_skill_profile_item,
+    to_workspace_skill_profile_response,
+)
+from app.api.schemas.timeline_schemas import (
+    TimelineBackfillResponse,
+    TimelineEventResponse,
+    to_timeline_backfill_response,
+    to_timeline_event_response,
+)
+from app.api.schemas.workspace_dashboard_schemas import (
+    WorkspaceDashboardResponse,
+    to_workspace_dashboard_response,
+)
+from app.api.schemas.workspace_file_schemas import (
+    WorkspaceFileWriteResponse,
+    WriteWorkspaceFileRequest,
+    to_workspace_file_write_response,
+)
+from app.api.schemas.workspace_job_schemas import WorkspaceJobResponse
 from app.api.schemas.workspace_model_recommendation_schemas import (
     RecommendWorkspaceModelsRequest,
     WorkspaceModelRecommendationResultResponse,
@@ -99,21 +178,9 @@ from app.api.schemas.workspace_model_selection_schemas import (
     WorkspaceModelSelectionResponse,
     to_workspace_model_selection_response,
 )
-from app.api.schemas.guided_model_setup_schemas import (
-    GuidedModelSetupGuideResponse,
-    to_guided_model_setup_guide_response,
-)
 from app.api.schemas.workspace_model_selection_status_schemas import (
     WorkspaceModelSelectionStatusResponse,
     to_workspace_model_selection_status_response,
-)
-from app.api.schemas.selected_model_usage_plan_schemas import (
-    SelectedModelUsagePlanResponse,
-    to_selected_model_usage_plan_response,
-)
-from app.api.schemas.selected_embedding_indexing_plan_schemas import (
-    SelectedEmbeddingIndexingPlanResponse,
-    to_selected_embedding_indexing_plan_response,
 )
 from app.api.schemas.workspace_models_dashboard_schemas import (
     WorkspaceModelsDashboardResponse,
@@ -123,94 +190,54 @@ from app.api.schemas.workspace_models_dashboard_summary_schemas import (
     WorkspaceModelsDashboardSummaryResponse,
     to_workspace_models_dashboard_summary_response,
 )
-from app.api.schemas.report_schemas import (
-    BuildCustomWorkspaceReportRequest,
-    ProjectOverviewReportResponse,
-    ReportCatalogResponse,
-    SavedReportPinRequest,
-    SavedWorkspaceReportResponse,
-    SaveCustomWorkspaceReportRequest,
-    SaveEditedWorkspaceReportRequest,
-    UpdateSavedWorkspaceReportRequest,
-    to_project_overview_report_response,
-    to_report_catalog_response,
-    to_saved_workspace_report_response,
+from app.api.schemas.workspace_quick_start_schemas import (
+    WorkspaceQuickStartResponse,
+    to_workspace_quick_start_response,
 )
-from app.api.schemas.skill_profile_schemas import (
-    WorkspaceSkillProfileRequest,
-    WorkspaceSkillProfileResponse,
-    to_skill_profile_item,
-    to_workspace_skill_profile_response,
+from app.api.schemas.workspace_readiness_schemas import (
+    WorkspaceReadinessResponse,
+    to_workspace_readiness_response,
 )
-from app.api.schemas.conversation_schemas import (
-    ConversationArchiveRequest,
-    ConversationExportResponse,
-    ConversationPinRequest,
-    CreateConversationRequest,
-    SaveAnswerNoteRequest,
-    UpdateAnswerNoteRequest,
-    AnswerNotePinRequest,
-    ConversationContextPreviewResponse,
-    UpdateConversationRequest,
-    WorkspaceConversationResponse,
-    ConversationAnswerNoteResponse,
-    to_answer_note_response,
-    to_workspace_conversation_response,
-)
-from app.api.schemas.rag_schemas import (
-    AskWorkspaceQuestionRequest,
-    AskWorkspaceQuestionWithSelectedLLMRequest,
-    WorkspaceQuestionAnswerResponse,
-    to_workspace_question_answer_response,
-)
-from app.api.schemas.timeline_schemas import (
-    TimelineBackfillResponse,
-    TimelineEventResponse,
-    to_timeline_backfill_response,
-    to_timeline_event_response,
+from app.api.schemas.workspace_storage_schemas import (
+    WorkspaceStorageResponse,
+    to_workspace_storage_response,
 )
 from app.api.schemas.workspace_summary_schemas import (
     WorkspaceSummaryResponse,
     to_workspace_summary_response,
 )
-from app.api.schemas.workspace_job_schemas import WorkspaceJobResponse
-from app.api.schemas.workspace_file_schemas import (
-    WorkspaceFileWriteResponse,
-    WriteWorkspaceFileRequest,
-    to_workspace_file_write_response,
+from app.api.schemas.workspace_ui_actions_schemas import (
+    WorkspaceUIActionCatalogResponse,
+    to_workspace_ui_action_catalog_response,
+)
+from app.api.schemas.workspaces_overview_schemas import (
+    WorkspacesOverviewResponse,
+    to_workspaces_overview_response,
 )
 from app.api.workspace_job_runner import (
     WorkspaceJob,
     WorkspaceJobCancelledError,
     WorkspaceJobNotFoundError,
 )
-from app.api.schemas.workspace_ui_actions_schemas import (
-    WorkspaceUIActionCatalogResponse,
-    to_workspace_ui_action_catalog_response,
-)
-from app.api.schemas.workspace_readiness_schemas import (
-    WorkspaceReadinessResponse,
-    to_workspace_readiness_response,
-)
-from app.api.schemas.workspace_quick_start_schemas import (
-    WorkspaceQuickStartResponse,
-    to_workspace_quick_start_response,
-)
-from app.api.schemas.workspace_dashboard_schemas import (
-    WorkspaceDashboardResponse,
-    to_workspace_dashboard_response,
-)
-from app.api.schemas.workspaces_overview_schemas import (
-    WorkspacesOverviewResponse,
-    to_workspaces_overview_response,
-)
+from app.core.domain.attached_documents import AttachedDocument
 from app.core.domain.conversation import (
     create_conversation_answer_note,
     create_conversation_message,
     create_workspace_conversation,
 )
-from app.core.domain.workspace import Workspace
 from app.core.domain.indexing_rules import IndexingRulesProfile, default_indexing_rules
+from app.core.domain.rag_prompt import SkillPromptInstruction
+from app.core.domain.report import (
+    ProjectOverviewReport,
+    ReportSection,
+    create_saved_workspace_report,
+    create_saved_workspace_report_from_draft,
+    markdown_to_plain_text,
+    render_report_markdown,
+)
+from app.core.domain.skill_profile import default_skill_profile, normalize_skill_profile
+from app.core.domain.workspace import Workspace
+from app.core.use_cases.add_timeline_event import AddTimelineEventInput, AddTimelineEventUseCase
 from app.core.use_cases.analyze_github_actions import (
     AnalyzeGitHubActionsInput,
     AnalyzeGitHubActionsUseCase,
@@ -235,10 +262,11 @@ from app.core.use_cases.analyze_terragrunt import (
     TerragruntAnalysisScanRequiredError,
     TerragruntAnalysisWorkspaceNotFoundError,
 )
-from app.core.domain.rag_prompt import SkillPromptInstruction
-from app.core.domain.skill_profile import default_skill_profile, normalize_skill_profile
-from app.core.use_cases.add_timeline_event import AddTimelineEventInput, AddTimelineEventUseCase
-from app.core.domain.attached_documents import AttachedDocument
+from app.core.use_cases.archive_workspace import (
+    ArchiveWorkspaceInput,
+    ArchiveWorkspaceNotFoundError,
+    ArchiveWorkspaceUseCase,
+)
 from app.core.use_cases.ask_workspace_question import (
     AskStreamDelta,
     AskStreamFinal,
@@ -253,44 +281,15 @@ from app.core.use_cases.ask_workspace_question_with_selected_llm import (
     AskWorkspaceQuestionWithSelectedLLMUseCase,
     AskWorkspaceQuestionWithSelectedLLMValidationError,
 )
-from app.core.use_cases.archive_workspace import (
-    ArchiveWorkspaceInput,
-    ArchiveWorkspaceNotFoundError,
-    ArchiveWorkspaceUseCase,
-)
-from app.core.use_cases.generate_project_understanding import (
-    GenerateProjectUnderstandingInput,
-    GenerateProjectUnderstandingNotFoundError,
-    GenerateProjectUnderstandingUseCase,
-    GenerateProjectUnderstandingValidationError,
-)
-from app.api.schemas.project_understanding_schemas import (
-    ProjectUnderstandingResponse,
-    to_project_understanding_response,
-)
-from app.core.use_cases.get_workspace_git_insights import (
-    GetWorkspaceGitInsightsInput,
-    GetWorkspaceGitInsightsUseCase,
-    WorkspaceGitInsightsNotFoundError,
-)
-from app.api.schemas.git_insights_schemas import (
-    GitInsightsResponse,
-    to_git_insights_response,
-)
-from app.core.use_cases.get_workspace_todos import (
-    GetWorkspaceTodosInput,
-    GetWorkspaceTodosUseCase,
-    WorkspaceTodosNotFoundError,
-)
-from app.core.use_cases.scan_project import ScanProjectUseCase
-from app.api.schemas.project_todos_schemas import (
-    ProjectTodosResponse,
-    to_project_todos_response,
-)
 from app.core.use_cases.backfill_workspace_timeline import (
     BackfillWorkspaceTimelineInput,
     BackfillWorkspaceTimelineUseCase,
     WorkspaceTimelineBackfillNotFoundError,
+)
+from app.core.use_cases.clear_workspace_index import (
+    ClearWorkspaceIndexInput,
+    ClearWorkspaceIndexNotFoundError,
+    ClearWorkspaceIndexUseCase,
 )
 from app.core.use_cases.create_workspace import (
     CreateWorkspaceInput,
@@ -301,37 +300,76 @@ from app.core.use_cases.delete_workspace import (
     DeleteWorkspaceNotFoundError,
     DeleteWorkspaceUseCase,
 )
-from app.core.use_cases.clear_workspace_index import (
-    ClearWorkspaceIndexInput,
-    ClearWorkspaceIndexNotFoundError,
-    ClearWorkspaceIndexUseCase,
+from app.core.use_cases.explain_workspace_model_recommendation import (
+    ExplainWorkspaceModelRecommendationInput,
+    ExplainWorkspaceModelRecommendationUseCase,
+    ModelRecommendationExplanationNotFoundError,
 )
-from app.core.use_cases.get_workspace_storage import (
-    GetWorkspaceStorageInput,
-    GetWorkspaceStorageNotFoundError,
-    GetWorkspaceStorageUseCase,
+from app.core.use_cases.generate_project_overview_report import (
+    GenerateProjectOverviewReportInput,
+    GenerateProjectOverviewReportUseCase,
+    ProjectOverviewReportScanRequiredError,
+    ProjectOverviewReportWorkspaceNotFoundError,
 )
-from app.core.use_cases.set_workspace_persistence import (
-    SetWorkspacePersistenceInput,
-    SetWorkspacePersistenceNotFoundError,
-    SetWorkspacePersistenceUseCase,
-    SetWorkspacePersistenceValidationError,
+from app.core.use_cases.generate_project_understanding import (
+    GenerateProjectUnderstandingInput,
+    GenerateProjectUnderstandingNotFoundError,
+    GenerateProjectUnderstandingUseCase,
+    GenerateProjectUnderstandingValidationError,
 )
-from app.core.use_cases.purge_temporary_workspaces import (
-    PurgeTemporaryWorkspacesUseCase,
+from app.core.use_cases.generate_workspace_report import (
+    GenerateWorkspaceReportInput,
+    GenerateWorkspaceReportUseCase,
+    GetWorkspaceReportCatalogInput,
+    GetWorkspaceReportCatalogUseCase,
+    WorkspaceReportNotFoundError,
+    WorkspaceReportScanRequiredError,
+    WorkspaceReportTypeNotFoundError,
 )
-from app.api.schemas.workspace_storage_schemas import (
-    WorkspaceStorageResponse,
-    to_workspace_storage_response,
+from app.core.use_cases.get_analysis_summary import (
+    AnalysisSummaryWorkspaceNotFoundError,
+    GetAnalysisSummaryInput,
+    GetAnalysisSummaryUseCase,
 )
-from app.core.use_cases.get_workspace_latest_scan import (
-    GetWorkspaceLatestScanInput,
-    GetWorkspaceLatestScanUseCase,
+from app.core.use_cases.get_guided_model_setup import (
+    GetGuidedModelSetupInput,
+    GetGuidedModelSetupUseCase,
+    GuidedModelSetupNotFoundError,
 )
-from app.core.use_cases.get_workspace_scan_changes import (
-    GetWorkspaceScanChangesInput,
-    GetWorkspaceScanChangesUseCase,
-    WorkspaceScanChangesWorkspaceNotFoundError,
+from app.core.use_cases.get_local_ai_activation_guide import (
+    GetLocalAIActivationGuideInput,
+    GetLocalAIActivationGuideUseCase,
+    LocalAIActivationGuideNotFoundError,
+)
+from app.core.use_cases.get_model_performance_summary import (
+    GetModelPerformanceSummaryInput,
+    GetModelPerformanceSummaryUseCase,
+    ModelPerformanceWorkspaceNotFoundError,
+)
+from app.core.use_cases.get_runtime_health import GetRuntimeHealthUseCase
+from app.core.use_cases.get_selected_embedding_indexing_plan import (
+    GetSelectedEmbeddingIndexingPlanInput,
+    GetSelectedEmbeddingIndexingPlanUseCase,
+    SelectedEmbeddingIndexingPlanNotFoundError,
+)
+from app.core.use_cases.get_selected_model_usage_plan import (
+    GetSelectedModelUsagePlanInput,
+    GetSelectedModelUsagePlanUseCase,
+    SelectedModelUsagePlanNotFoundError,
+)
+from app.core.use_cases.get_workspace import GetWorkspaceUseCase
+from app.core.use_cases.get_workspace_assistant_recommendation import (
+    GetWorkspaceAssistantRecommendationUseCase,
+)
+from app.core.use_cases.get_workspace_dashboard import (
+    GetWorkspaceDashboardInput,
+    GetWorkspaceDashboardUseCase,
+    WorkspaceDashboardNotFoundError,
+)
+from app.core.use_cases.get_workspace_git_insights import (
+    GetWorkspaceGitInsightsInput,
+    GetWorkspaceGitInsightsUseCase,
+    WorkspaceGitInsightsNotFoundError,
 )
 from app.core.use_cases.get_workspace_index_status import (
     GetWorkspaceIndexStatusInput,
@@ -343,145 +381,19 @@ from app.core.use_cases.get_workspace_indexing_rules import (
     GetWorkspaceIndexingRulesNotFoundError,
     GetWorkspaceIndexingRulesUseCase,
 )
-from app.core.use_cases.update_workspace_indexing_rules import (
-    UpdateWorkspaceIndexingRulesInput,
-    UpdateWorkspaceIndexingRulesNotFoundError,
-    UpdateWorkspaceIndexingRulesUseCase,
-    UpdateWorkspaceIndexingRulesValidationError,
-)
-from app.core.use_cases.index_workspace import (
-    IndexWorkspaceCancelledError,
-    IndexWorkspaceInput,
-    IndexWorkspaceNotFoundError,
-    IndexWorkspaceScanRequiredError,
-    IndexWorkspaceUseCase,
-)
-from app.core.use_cases.get_local_ai_activation_guide import (
-    GetLocalAIActivationGuideInput,
-    GetLocalAIActivationGuideUseCase,
-    LocalAIActivationGuideNotFoundError,
-)
-from app.core.use_cases.get_analysis_summary import (
-    AnalysisSummaryWorkspaceNotFoundError,
-    GetAnalysisSummaryInput,
-    GetAnalysisSummaryUseCase,
-)
-from app.core.use_cases.generate_project_overview_report import (
-    GenerateProjectOverviewReportInput,
-    GenerateProjectOverviewReportUseCase,
-    ProjectOverviewReportScanRequiredError,
-    ProjectOverviewReportWorkspaceNotFoundError,
-)
-from app.core.use_cases.generate_workspace_report import (
-    GenerateWorkspaceReportInput,
-    GenerateWorkspaceReportUseCase,
-    GetWorkspaceReportCatalogInput,
-    GetWorkspaceReportCatalogUseCase,
-    WorkspaceReportNotFoundError,
-    WorkspaceReportScanRequiredError,
-    WorkspaceReportTypeNotFoundError,
-)
-from app.core.use_cases.save_workspace_report import SaveWorkspaceReportInput, SaveWorkspaceReportUseCase
-from app.core.domain.report import ProjectOverviewReport, ReportSection, create_saved_workspace_report, create_saved_workspace_report_from_draft, markdown_to_plain_text, render_report_markdown
-from app.core.use_cases.manage_saved_workspace_reports import (
-    DeleteSavedWorkspaceReportInput,
-    DeleteSavedWorkspaceReportUseCase,
-    GetSavedWorkspaceReportInput,
-    GetSavedWorkspaceReportUseCase,
-    ListSavedWorkspaceReportsInput,
-    ListSavedWorkspaceReportsUseCase,
-    SavedWorkspaceReportNotFoundError,
-    UpdateSavedWorkspaceReportInput,
-    UpdateSavedWorkspaceReportUseCase,
-)
-from app.core.use_cases.get_workspace import GetWorkspaceUseCase
-from app.core.use_cases.get_workspace_summary import (
-    GetWorkspaceSummaryInput,
-    GetWorkspaceSummaryUseCase,
-    WorkspaceSummaryNotFoundError,
-)
-from app.core.use_cases.get_workspace_readiness import (
-    GetWorkspaceReadinessInput,
-    GetWorkspaceReadinessUseCase,
-    WorkspaceReadinessNotFoundError,
-)
-from app.core.use_cases.get_workspace_quick_start import (
-    GetWorkspaceQuickStartInput,
-    GetWorkspaceQuickStartUseCase,
-    WorkspaceQuickStartNotFoundError,
-)
-from app.core.use_cases.get_workspace_dashboard import (
-    GetWorkspaceDashboardInput,
-    GetWorkspaceDashboardUseCase,
-    WorkspaceDashboardNotFoundError,
-)
-from app.core.use_cases.get_workspace_ui_actions import (
-    GetWorkspaceUIActionsInput,
-    GetWorkspaceUIActionsUseCase,
-    WorkspaceUIActionsNotFoundError,
-)
-from app.core.use_cases.get_workspace_assistant_recommendation import (
-    GetWorkspaceAssistantRecommendationUseCase,
-)
-from app.core.use_cases.get_runtime_health import GetRuntimeHealthUseCase
-from app.core.use_cases.list_workspaces import ListWorkspacesUseCase
-from app.core.use_cases.list_workspaces_overview import ListWorkspacesOverviewUseCase
-from app.core.use_cases.list_workspace_timeline import (
-    ListWorkspaceTimelineInput,
-    ListWorkspaceTimelineUseCase,
-    WorkspaceTimelineNotFoundError,
-)
-from app.core.use_cases.list_workspace_model_experiments import (
-    ListWorkspaceModelExperimentsInput,
-    ListWorkspaceModelExperimentsUseCase,
-    WorkspaceModelExperimentsNotFoundError,
-)
-from app.core.use_cases.get_model_performance_summary import (
-    GetModelPerformanceSummaryInput,
-    GetModelPerformanceSummaryUseCase,
-    ModelPerformanceWorkspaceNotFoundError,
-)
-from app.core.use_cases.explain_workspace_model_recommendation import (
-    ExplainWorkspaceModelRecommendationInput,
-    ExplainWorkspaceModelRecommendationUseCase,
-    ModelRecommendationExplanationNotFoundError,
-)
-from app.core.use_cases.recommend_models import ModelRecommendationValidationError
-from app.core.use_cases.recommend_workspace_models import (
-    RecommendWorkspaceModelsInput,
-    RecommendWorkspaceModelsUseCase,
-    WorkspaceModelRecommendationNotFoundError,
+from app.core.use_cases.get_workspace_latest_scan import (
+    GetWorkspaceLatestScanInput,
+    GetWorkspaceLatestScanUseCase,
 )
 from app.core.use_cases.get_workspace_model_selection import (
     GetWorkspaceModelSelectionInput,
     GetWorkspaceModelSelectionUseCase,
     WorkspaceModelSelectionNotFoundError,
 )
-from app.core.use_cases.get_guided_model_setup import (
-    GetGuidedModelSetupInput,
-    GetGuidedModelSetupUseCase,
-    GuidedModelSetupNotFoundError,
-)
-from app.core.use_cases.update_workspace_model_selection import (
-    UpdateWorkspaceModelSelectionInput,
-    UpdateWorkspaceModelSelectionNotFoundError,
-    UpdateWorkspaceModelSelectionUseCase,
-    UpdateWorkspaceModelSelectionValidationError,
-)
 from app.core.use_cases.get_workspace_model_selection_status import (
     GetWorkspaceModelSelectionStatusInput,
     GetWorkspaceModelSelectionStatusUseCase,
     WorkspaceModelSelectionStatusNotFoundError,
-)
-from app.core.use_cases.get_selected_model_usage_plan import (
-    GetSelectedModelUsagePlanInput,
-    GetSelectedModelUsagePlanUseCase,
-    SelectedModelUsagePlanNotFoundError,
-)
-from app.core.use_cases.get_selected_embedding_indexing_plan import (
-    GetSelectedEmbeddingIndexingPlanInput,
-    GetSelectedEmbeddingIndexingPlanUseCase,
-    SelectedEmbeddingIndexingPlanNotFoundError,
 )
 from app.core.use_cases.get_workspace_models_dashboard import (
     GetWorkspaceModelsDashboardInput,
@@ -493,14 +405,100 @@ from app.core.use_cases.get_workspace_models_dashboard_summary import (
     GetWorkspaceModelsDashboardSummaryUseCase,
     WorkspaceModelsDashboardSummaryNotFoundError,
 )
-from app.core.use_cases.scan_project import ProjectScanError
+from app.core.use_cases.get_workspace_quick_start import (
+    GetWorkspaceQuickStartInput,
+    GetWorkspaceQuickStartUseCase,
+    WorkspaceQuickStartNotFoundError,
+)
+from app.core.use_cases.get_workspace_readiness import (
+    GetWorkspaceReadinessInput,
+    GetWorkspaceReadinessUseCase,
+    WorkspaceReadinessNotFoundError,
+)
+from app.core.use_cases.get_workspace_scan_changes import (
+    GetWorkspaceScanChangesInput,
+    GetWorkspaceScanChangesUseCase,
+    WorkspaceScanChangesWorkspaceNotFoundError,
+)
+from app.core.use_cases.get_workspace_storage import (
+    GetWorkspaceStorageInput,
+    GetWorkspaceStorageNotFoundError,
+    GetWorkspaceStorageUseCase,
+)
+from app.core.use_cases.get_workspace_summary import (
+    GetWorkspaceSummaryInput,
+    GetWorkspaceSummaryUseCase,
+    WorkspaceSummaryNotFoundError,
+)
+from app.core.use_cases.get_workspace_todos import (
+    GetWorkspaceTodosInput,
+    GetWorkspaceTodosUseCase,
+    WorkspaceTodosNotFoundError,
+)
+from app.core.use_cases.get_workspace_ui_actions import (
+    GetWorkspaceUIActionsInput,
+    GetWorkspaceUIActionsUseCase,
+    WorkspaceUIActionsNotFoundError,
+)
+from app.core.use_cases.index_workspace import (
+    IndexWorkspaceCancelledError,
+    IndexWorkspaceInput,
+    IndexWorkspaceNotFoundError,
+    IndexWorkspaceScanRequiredError,
+    IndexWorkspaceUseCase,
+)
+from app.core.use_cases.list_workspace_model_experiments import (
+    ListWorkspaceModelExperimentsInput,
+    ListWorkspaceModelExperimentsUseCase,
+    WorkspaceModelExperimentsNotFoundError,
+)
+from app.core.use_cases.list_workspace_timeline import (
+    ListWorkspaceTimelineInput,
+    ListWorkspaceTimelineUseCase,
+    WorkspaceTimelineNotFoundError,
+)
+from app.core.use_cases.list_workspaces import ListWorkspacesUseCase
+from app.core.use_cases.list_workspaces_overview import ListWorkspacesOverviewUseCase
+from app.core.use_cases.manage_saved_workspace_reports import (
+    DeleteSavedWorkspaceReportInput,
+    DeleteSavedWorkspaceReportUseCase,
+    GetSavedWorkspaceReportInput,
+    GetSavedWorkspaceReportUseCase,
+    ListSavedWorkspaceReportsInput,
+    ListSavedWorkspaceReportsUseCase,
+    SavedWorkspaceReportNotFoundError,
+    UpdateSavedWorkspaceReportInput,
+    UpdateSavedWorkspaceReportUseCase,
+)
 from app.core.use_cases.preview_workspace_file_selection import (
     PreviewWorkspaceFileSelectionError,
     PreviewWorkspaceFileSelectionInput,
     PreviewWorkspaceFileSelectionUseCase,
     PreviewWorkspaceFileSelectionWorkspaceNotFoundError,
 )
-from app.core.use_cases.scan_project import ProjectScanCancelledError
+from app.core.use_cases.purge_temporary_workspaces import (
+    PurgeTemporaryWorkspacesUseCase,
+)
+from app.core.use_cases.recommend_models import ModelRecommendationValidationError
+from app.core.use_cases.recommend_workspace_models import (
+    RecommendWorkspaceModelsInput,
+    RecommendWorkspaceModelsUseCase,
+    WorkspaceModelRecommendationNotFoundError,
+)
+from app.core.use_cases.restore_workspace import (
+    RestoreWorkspaceInput,
+    RestoreWorkspaceNotFoundError,
+    RestoreWorkspaceUseCase,
+)
+from app.core.use_cases.save_workspace_report import (
+    SaveWorkspaceReportInput,
+    SaveWorkspaceReportUseCase,
+)
+from app.core.use_cases.scan_project import (
+    ProjectScanCancelledError,
+    ProjectScanError,
+    ScanProjectUseCase,
+)
 from app.core.use_cases.scan_workspace_project import (
     ScanWorkspaceProjectInput,
     ScanWorkspaceProjectUseCase,
@@ -511,10 +509,17 @@ from app.core.use_cases.search_workspace_context import (
     SearchWorkspaceContextNotFoundError,
     SearchWorkspaceContextUseCase,
 )
-from app.core.use_cases.restore_workspace import (
-    RestoreWorkspaceInput,
-    RestoreWorkspaceNotFoundError,
-    RestoreWorkspaceUseCase,
+from app.core.use_cases.set_workspace_persistence import (
+    SetWorkspacePersistenceInput,
+    SetWorkspacePersistenceNotFoundError,
+    SetWorkspacePersistenceUseCase,
+    SetWorkspacePersistenceValidationError,
+)
+from app.core.use_cases.update_workspace_indexing_rules import (
+    UpdateWorkspaceIndexingRulesInput,
+    UpdateWorkspaceIndexingRulesNotFoundError,
+    UpdateWorkspaceIndexingRulesUseCase,
+    UpdateWorkspaceIndexingRulesValidationError,
 )
 from app.core.use_cases.update_workspace_metadata import (
     UpdateWorkspaceMetadataInput,
@@ -522,13 +527,18 @@ from app.core.use_cases.update_workspace_metadata import (
     UpdateWorkspaceMetadataUseCase,
     UpdateWorkspaceMetadataValidationError,
 )
+from app.core.use_cases.update_workspace_model_selection import (
+    UpdateWorkspaceModelSelectionInput,
+    UpdateWorkspaceModelSelectionNotFoundError,
+    UpdateWorkspaceModelSelectionUseCase,
+    UpdateWorkspaceModelSelectionValidationError,
+)
 from app.core.use_cases.write_workspace_file import (
     WriteWorkspaceFileInput,
     WriteWorkspaceFileNotFoundError,
     WriteWorkspaceFileUseCase,
     WriteWorkspaceFileValidationError,
 )
-
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 
@@ -725,8 +735,8 @@ def update_workspace_metadata(
     try:
         workspace = UpdateWorkspaceMetadataUseCase(
             workspace_repository=workspace_repository,
-                timeline_repository=timeline_repository,
-            ).execute(
+            timeline_repository=timeline_repository,
+        ).execute(
             UpdateWorkspaceMetadataInput(
                 workspace_id=workspace_id,
                 name=request.name,
@@ -771,9 +781,7 @@ def get_workspace_storage(
         breakdown = GetWorkspaceStorageUseCase(
             workspace_repository=workspace_repository,
             storage_gateway=workspace_storage_gateway,
-        ).execute(
-            GetWorkspaceStorageInput(workspace_id=workspace_id, recompute=recompute)
-        )
+        ).execute(GetWorkspaceStorageInput(workspace_id=workspace_id, recompute=recompute))
     except GetWorkspaceStorageNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -872,8 +880,6 @@ def restore_workspace(workspace_id: str) -> WorkspaceResponse:
     return to_workspace_response(workspace)
 
 
-
-
 def _to_workspace_job_response(job: WorkspaceJob) -> WorkspaceJobResponse:
     return WorkspaceJobResponse(
         job_id=job.job_id,
@@ -925,7 +931,9 @@ def _join_patterns(patterns: tuple[str, ...]) -> str:
     return " · ".join(pattern for pattern in patterns if pattern.strip())
 
 
-def _resolve_file_rules(workspace_id: str, request: ScanWorkspaceProjectRequest | None) -> IndexingRulesProfile:
+def _resolve_file_rules(
+    workspace_id: str, request: ScanWorkspaceProjectRequest | None
+) -> IndexingRulesProfile:
     if request is not None and request.file_rules is not None:
         file_rules = request.file_rules
         return IndexingRulesProfile(
@@ -1405,8 +1413,6 @@ def _to_skill_prompt_instructions(skill_context) -> list[SkillPromptInstruction]
     ]
 
 
-
-
 def _ensure_conversation(workspace_id: str, conversation_id: str | None, title: str | None = None):
     if conversation_id:
         conversation = conversation_repository.get_conversation(workspace_id, conversation_id)
@@ -1452,15 +1458,17 @@ def _persist_answer_in_conversation(conversation_id: str, answer):
     return replace(answer, conversation_message_id=assistant_message.id)
 
 
-
 def _conversation_export_content(conversation, export_format: str) -> tuple[str, str]:
     normalized_format = (export_format or "markdown").lower()
     if normalized_format not in {"markdown", "text", "json"}:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported export format")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported export format"
+        )
     safe_title = "-".join(conversation.title.lower().split())[:80] or "conversation"
-    filename = f"{safe_title}.{ 'md' if normalized_format == 'markdown' else normalized_format }"
+    filename = f"{safe_title}.{'md' if normalized_format == 'markdown' else normalized_format}"
     if normalized_format == "json":
         import json
+
         payload = to_workspace_conversation_response(conversation).model_dump()
         return filename, json.dumps(payload, indent=2, sort_keys=True)
     if normalized_format == "text":
@@ -1490,12 +1498,14 @@ def _conversation_export_content(conversation, export_format: str) -> tuple[str,
             if message.sources:
                 lines.extend(["### Sources", ""])
                 for index, source in enumerate(message.sources, start=1):
-                    lines.extend([
-                        f"{index}. `{source.source_path}` — score `{source.score:.2f}`",
-                        "",
-                        f"> {source.preview[:280]}",
-                        "",
-                    ])
+                    lines.extend(
+                        [
+                            f"{index}. `{source.source_path}` — score `{source.score:.2f}`",
+                            "",
+                            f"> {source.preview[:280]}",
+                            "",
+                        ]
+                    )
     return filename, "\n".join(lines).strip() + "\n"
 
 
@@ -1506,6 +1516,7 @@ def _find_message_pair(conversation, message_id: str):
         previous_message = conversation.messages[index - 1] if index > 0 else None
         return message, previous_message
     return None, None
+
 
 @router.post("/{workspace_id}/conversations", response_model=WorkspaceConversationResponse)
 def create_workspace_conversation_endpoint(
@@ -1546,7 +1557,9 @@ def list_workspace_conversations(
     ]
 
 
-@router.get("/{workspace_id}/conversations/{conversation_id}", response_model=WorkspaceConversationResponse)
+@router.get(
+    "/{workspace_id}/conversations/{conversation_id}", response_model=WorkspaceConversationResponse
+)
 def get_workspace_conversation(
     workspace_id: str,
     conversation_id: str,
@@ -1557,7 +1570,9 @@ def get_workspace_conversation(
     return to_workspace_conversation_response(conversation)
 
 
-@router.patch("/{workspace_id}/conversations/{conversation_id}", response_model=WorkspaceConversationResponse)
+@router.patch(
+    "/{workspace_id}/conversations/{conversation_id}", response_model=WorkspaceConversationResponse
+)
 def update_workspace_conversation(
     workspace_id: str,
     conversation_id: str,
@@ -1573,7 +1588,10 @@ def update_workspace_conversation(
     return to_workspace_conversation_response(conversation)
 
 
-@router.patch("/{workspace_id}/conversations/{conversation_id}/pin", response_model=WorkspaceConversationResponse)
+@router.patch(
+    "/{workspace_id}/conversations/{conversation_id}/pin",
+    response_model=WorkspaceConversationResponse,
+)
 def pin_workspace_conversation(
     workspace_id: str,
     conversation_id: str,
@@ -1589,7 +1607,10 @@ def pin_workspace_conversation(
     return to_workspace_conversation_response(conversation)
 
 
-@router.patch("/{workspace_id}/conversations/{conversation_id}/archive", response_model=WorkspaceConversationResponse)
+@router.patch(
+    "/{workspace_id}/conversations/{conversation_id}/archive",
+    response_model=WorkspaceConversationResponse,
+)
 def archive_workspace_conversation(
     workspace_id: str,
     conversation_id: str,
@@ -1603,7 +1624,6 @@ def archive_workspace_conversation(
     if conversation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
     return to_workspace_conversation_response(conversation)
-
 
 
 @router.get(
@@ -1664,10 +1684,14 @@ def save_conversation_answer_note(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
     message, previous_message = _find_message_pair(conversation, message_id)
     if message is None or message.role != "assistant":
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assistant message not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Assistant message not found"
+        )
     content = (request.content or message.content).strip()
     if not content:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Note content cannot be empty")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Note content cannot be empty"
+        )
     note = conversation_repository.add_answer_note(
         create_conversation_answer_note(
             workspace_id=workspace_id,
@@ -1675,16 +1699,18 @@ def save_conversation_answer_note(
             message_id=message_id,
             title=request.title or conversation.title,
             content=content,
-            source_question=previous_message.content if previous_message and previous_message.role == "user" else None,
+            source_question=previous_message.content
+            if previous_message and previous_message.role == "user"
+            else None,
             source_paths=[source.source_path for source in message.sources],
         )
     )
     return to_answer_note_response(note)
 
 
-
-
-@router.patch("/{workspace_id}/answer-notes/{note_id}", response_model=ConversationAnswerNoteResponse)
+@router.patch(
+    "/{workspace_id}/answer-notes/{note_id}", response_model=ConversationAnswerNoteResponse
+)
 def update_workspace_answer_note(
     workspace_id: str,
     note_id: str,
@@ -1702,7 +1728,9 @@ def update_workspace_answer_note(
     return to_answer_note_response(note)
 
 
-@router.patch("/{workspace_id}/answer-notes/{note_id}/pin", response_model=ConversationAnswerNoteResponse)
+@router.patch(
+    "/{workspace_id}/answer-notes/{note_id}/pin", response_model=ConversationAnswerNoteResponse
+)
 def pin_workspace_answer_note(
     workspace_id: str,
     note_id: str,
@@ -1733,17 +1761,20 @@ def get_conversation_context_preview(
     conversation_notes = [note for note in notes if note.conversation_id == conversation.id]
     questions = [message.content for message in conversation.messages if message.role == "user"]
     answers = [message.content for message in conversation.messages if message.role == "assistant"]
-    source_paths = sorted({
-        source.source_path
-        for message in conversation.messages
-        for source in message.sources
-        if source.source_path
-    } | {
-        source_path
-        for note in conversation_notes
-        for source_path in note.source_paths
-        if source_path
-    })
+    source_paths = sorted(
+        {
+            source.source_path
+            for message in conversation.messages
+            for source in message.sources
+            if source.source_path
+        }
+        | {
+            source_path
+            for note in conversation_notes
+            for source_path in note.source_paths
+            if source_path
+        }
+    )
     latest_questions = questions[-3:]
     latest_notes = conversation_notes[:5]
     reusable_lines = [
@@ -1771,18 +1802,23 @@ def get_conversation_context_preview(
         safety_note="This is a preparation preview only. It does not automatically inject conversation history into Ask.",
     )
 
+
 @router.delete("/{workspace_id}/answer-notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_workspace_answer_note(workspace_id: str, note_id: str) -> None:
     if not conversation_repository.delete_answer_note(workspace_id, note_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Answer note not found")
 
-@router.delete("/{workspace_id}/conversations/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
+
+@router.delete(
+    "/{workspace_id}/conversations/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 def delete_workspace_conversation(
     workspace_id: str,
     conversation_id: str,
 ) -> None:
     if not conversation_repository.delete_conversation(workspace_id, conversation_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
 
 @router.post("/{workspace_id}/ask", response_model=WorkspaceQuestionAnswerResponse)
 def ask_workspace_question(
@@ -1975,9 +2011,7 @@ def get_workspace_git_insights(workspace_id: str) -> GitInsightsResponse:
         git_history=git_history,
     )
     try:
-        insights = use_case.execute(
-            GetWorkspaceGitInsightsInput(workspace_id=workspace_id)
-        )
+        insights = use_case.execute(GetWorkspaceGitInsightsInput(workspace_id=workspace_id))
     except WorkspaceGitInsightsNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -2149,9 +2183,7 @@ def ask_workspace_question_with_selected_llm_stream(
                     yield _sse_event("token", {"text": event.text})
                 elif isinstance(event, AskStreamFinal):
                     final = _persist_answer_in_conversation(conversation.id, event.answer)
-                    payload = to_workspace_question_answer_response(final).model_dump(
-                        mode="json"
-                    )
+                    payload = to_workspace_question_answer_response(final).model_dump(mode="json")
                     yield _sse_event("final", payload)
         except (
             AskWorkspaceQuestionWithSelectedLLMNotFoundError,
@@ -2212,9 +2244,7 @@ def get_workspace_readiness(workspace_id: str) -> WorkspaceReadinessResponse:
     )
 
     try:
-        readiness = use_case.execute(
-            GetWorkspaceReadinessInput(workspace_id=workspace_id)
-        )
+        readiness = use_case.execute(GetWorkspaceReadinessInput(workspace_id=workspace_id))
     except WorkspaceReadinessNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -2237,9 +2267,7 @@ def get_workspace_quick_start(workspace_id: str) -> WorkspaceQuickStartResponse:
     )
 
     try:
-        quick_start = use_case.execute(
-            GetWorkspaceQuickStartInput(workspace_id=workspace_id)
-        )
+        quick_start = use_case.execute(GetWorkspaceQuickStartInput(workspace_id=workspace_id))
     except WorkspaceQuickStartNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -2295,9 +2323,7 @@ def get_workspace_dashboard(workspace_id: str) -> WorkspaceDashboardResponse:
     )
 
     try:
-        dashboard = use_case.execute(
-            GetWorkspaceDashboardInput(workspace_id=workspace_id)
-        )
+        dashboard = use_case.execute(GetWorkspaceDashboardInput(workspace_id=workspace_id))
     except WorkspaceDashboardNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -2334,9 +2360,7 @@ def get_workspace_ui_actions(
         ),
     )
     try:
-        catalog = use_case.execute(
-            GetWorkspaceUIActionsInput(workspace_id=workspace_id)
-        )
+        catalog = use_case.execute(GetWorkspaceUIActionsInput(workspace_id=workspace_id))
     except WorkspaceUIActionsNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -2387,9 +2411,7 @@ def generate_project_overview_report(
     )
 
     try:
-        report = use_case.execute(
-            GenerateProjectOverviewReportInput(workspace_id=workspace_id)
-        )
+        report = use_case.execute(GenerateProjectOverviewReportInput(workspace_id=workspace_id))
     except ProjectOverviewReportWorkspaceNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -2402,8 +2424,6 @@ def generate_project_overview_report(
         ) from exc
 
     return to_project_overview_report_response(report)
-
-
 
 
 @router.get(
@@ -2456,8 +2476,6 @@ def save_workspace_report(
     except WorkspaceReportTypeNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return to_saved_workspace_report_response(saved)
-
-
 
 
 @router.post(
@@ -2572,18 +2590,23 @@ def _build_custom_workspace_report(
         ReportSection(
             title="Selected notes",
             content=f"Selected reusable notes: {len(notes)}.",
-            bullets=[f"{note.title}: {note.content[:240]}" for note in notes[:12]] or ["No saved notes selected."],
+            bullets=[f"{note.title}: {note.content[:240]}" for note in notes[:12]]
+            or ["No saved notes selected."],
         ),
         ReportSection(
             title="Selected conversations",
             content=f"Selected conversations: {len(conversations)}.",
-            bullets=[f"{conversation.title}: {len(conversation.messages)} messages" for conversation in conversations[:8]]
+            bullets=[
+                f"{conversation.title}: {len(conversation.messages)} messages"
+                for conversation in conversations[:8]
+            ]
             or ["No conversations selected."],
         ),
         ReportSection(
             title="Reusable findings",
             content="Condensed snippets from the selected context.",
-            bullets=(recent_questions[:4] + answer_previews[:4]) or ["No reusable findings were available in the selected context."],
+            bullets=(recent_questions[:4] + answer_previews[:4])
+            or ["No reusable findings were available in the selected context."],
         ),
         ReportSection(
             title="Captured sources",
@@ -2613,7 +2636,8 @@ def _build_custom_workspace_report(
             "captured_source_paths",
             "manual_drafting_context",
         ],
-        report_type=(request.report_type or "custom_report").strip().lower().replace("-", "_") or "custom_report",
+        report_type=(request.report_type or "custom_report").strip().lower().replace("-", "_")
+        or "custom_report",
         safety_note=(
             "Custom report builder is read-only. It uses selected saved context and does not execute commands, "
             "scan, index, rebuild, upload, or change models."
@@ -2672,7 +2696,9 @@ def get_saved_workspace_report(
         report_repository=report_repository,
     )
     try:
-        report = use_case.execute(GetSavedWorkspaceReportInput(workspace_id=workspace_id, report_id=report_id))
+        report = use_case.execute(
+            GetSavedWorkspaceReportInput(workspace_id=workspace_id, report_id=report_id)
+        )
     except SavedWorkspaceReportNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return to_saved_workspace_report_response(report)
@@ -2699,7 +2725,12 @@ def update_saved_workspace_report(
                 title=request.title,
                 summary=request.summary,
                 export_markdown=request.export_markdown,
-                export_text=request.export_text or (markdown_to_plain_text(request.export_markdown) if request.export_markdown else None),
+                export_text=request.export_text
+                or (
+                    markdown_to_plain_text(request.export_markdown)
+                    if request.export_markdown
+                    else None
+                ),
                 report_json=request.report_json,
                 generated_from=request.generated_from,
             )
@@ -2748,10 +2779,11 @@ def delete_saved_workspace_report(
         report_repository=report_repository,
     )
     try:
-        use_case.execute(DeleteSavedWorkspaceReportInput(workspace_id=workspace_id, report_id=report_id))
+        use_case.execute(
+            DeleteSavedWorkspaceReportInput(workspace_id=workspace_id, report_id=report_id)
+        )
     except SavedWorkspaceReportNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-
 
 
 @router.get(
@@ -2808,9 +2840,7 @@ def backfill_workspace_timeline(workspace_id: str) -> TimelineBackfillResponse:
     )
 
     try:
-        result = use_case.execute(
-            BackfillWorkspaceTimelineInput(workspace_id=workspace_id)
-        )
+        result = use_case.execute(BackfillWorkspaceTimelineInput(workspace_id=workspace_id))
     except WorkspaceTimelineBackfillNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -3181,9 +3211,7 @@ def get_workspace_models_dashboard_summary(
     try:
         summary = GetWorkspaceModelsDashboardSummaryUseCase(
             dashboard_use_case=_build_workspace_models_dashboard_use_case()
-        ).execute(
-            GetWorkspaceModelsDashboardSummaryInput(workspace_id=workspace_id)
-        )
+        ).execute(GetWorkspaceModelsDashboardSummaryInput(workspace_id=workspace_id))
     except WorkspaceModelsDashboardSummaryNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -3206,9 +3234,7 @@ def get_workspace_models_dashboard(
 ) -> WorkspaceModelsDashboardResponse:
     use_case = _build_workspace_models_dashboard_use_case()
     try:
-        dashboard = use_case.execute(
-            GetWorkspaceModelsDashboardInput(workspace_id=workspace_id)
-        )
+        dashboard = use_case.execute(GetWorkspaceModelsDashboardInput(workspace_id=workspace_id))
     except WorkspaceModelsDashboardNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 import json
+import sqlite3
+from datetime import UTC, datetime
 from math import sqrt
 from pathlib import Path
-import sqlite3
 from typing import Any
 
 from app.core.domain.indexing import ContextSearchResult, TextChunk

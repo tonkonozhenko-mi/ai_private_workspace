@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 
 from app.core.domain.conversation import ConversationMessage, WorkspaceConversation
-from app.core.domain.rag import RagSource, SkillProfileAudit
+from app.core.domain.rag import RagSource
 
 
 class CreateConversationRequest(BaseModel):
@@ -116,10 +116,14 @@ def to_workspace_conversation_response(
         else []
     )
     user_messages = [message for message in conversation.messages if message.role == "user"]
-    assistant_messages = [message for message in conversation.messages if message.role == "assistant"]
+    assistant_messages = [
+        message for message in conversation.messages if message.role == "assistant"
+    ]
     last_assistant_message = assistant_messages[-1] if assistant_messages else None
     last_question = user_messages[-1].content if user_messages else None
-    token_values = [message.total_tokens for message in assistant_messages if message.total_tokens is not None]
+    token_values = [
+        message.total_tokens for message in assistant_messages if message.total_tokens is not None
+    ]
     total_tokens = sum(token_values) if token_values else None
     skill_profile = last_assistant_message.skill_profile if last_assistant_message else None
 
@@ -135,7 +139,9 @@ def to_workspace_conversation_response(
         assistant_messages_count=len(assistant_messages),
         total_tokens=total_tokens,
         last_question=last_question,
-        last_answer_preview=_preview(last_assistant_message.content) if last_assistant_message else None,
+        last_answer_preview=_preview(last_assistant_message.content)
+        if last_assistant_message
+        else None,
         last_llm_provider=last_assistant_message.llm_provider if last_assistant_message else None,
         last_llm_model=last_assistant_message.llm_model if last_assistant_message else None,
         last_skill_profile_source=skill_profile.source if skill_profile else None,

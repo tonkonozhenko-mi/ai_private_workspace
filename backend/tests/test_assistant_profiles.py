@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -46,9 +45,7 @@ def test_workspace_recommendation_uses_assistant_mode_and_requires_scan(
 ) -> None:
     workspace = _create_workspace(tmp_path, assistant_mode="devops")
 
-    response = client.get(
-        f"/workspaces/{workspace['id']}/assistant-recommendation"
-    )
+    response = client.get(f"/workspaces/{workspace['id']}/assistant-recommendation")
 
     assert response.status_code == 200
     recommendation = response.json()
@@ -78,15 +75,11 @@ def test_devops_recommendation_includes_detected_skill_actions(tmp_path) -> None
     scan_response = client.post(f"/workspaces/{workspace['id']}/scan")
     assert scan_response.status_code == 200
 
-    response = client.get(
-        f"/workspaces/{workspace['id']}/assistant-recommendation"
-    )
+    response = client.get(f"/workspaces/{workspace['id']}/assistant-recommendation")
 
     assert response.status_code == 200
     recommendation = response.json()
-    assert {"Terraform", "Terragrunt", "GitLab CI"}.issubset(
-        recommendation["matched_skills"]
-    )
+    assert {"Terraform", "Terragrunt", "GitLab CI"}.issubset(recommendation["matched_skills"])
     assert recommendation["recommended_actions"] == [
         "analyze_terraform",
         "analyze_terragrunt",
@@ -98,9 +91,7 @@ def test_devops_recommendation_includes_detected_skill_actions(tmp_path) -> None
 def test_legacy_local_assistant_mode_uses_developer_profile(tmp_path) -> None:
     workspace = _create_workspace(tmp_path, assistant_mode="local")
 
-    response = client.get(
-        f"/workspaces/{workspace['id']}/assistant-recommendation"
-    )
+    response = client.get(f"/workspaces/{workspace['id']}/assistant-recommendation")
 
     assert response.status_code == 200
     recommendation = response.json()
@@ -109,9 +100,7 @@ def test_legacy_local_assistant_mode_uses_developer_profile(tmp_path) -> None:
 
 
 def test_workspace_assistant_recommendation_unknown_workspace_returns_404() -> None:
-    response = client.get(
-        "/workspaces/missing-workspace/assistant-recommendation"
-    )
+    response = client.get("/workspaces/missing-workspace/assistant-recommendation")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Workspace not found"

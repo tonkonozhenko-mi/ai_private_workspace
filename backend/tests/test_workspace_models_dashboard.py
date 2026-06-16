@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -41,9 +40,7 @@ def test_selected_llm_only_prompts_embedding_selection(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
 
-    dashboard = client.get(
-        f"/workspaces/{workspace['id']}/models/dashboard"
-    ).json()
+    dashboard = client.get(f"/workspaces/{workspace['id']}/models/dashboard").json()
 
     assert dashboard["selected_llm_provider"] == "fake"
     assert dashboard["selected_llm_model"] == "fake-llm"
@@ -57,65 +54,62 @@ def test_selected_llm_only_prompts_embedding_selection(tmp_path) -> None:
 def test_embedding_mismatch_requires_runtime_review_and_restart(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
-    assert _select(
-        workspace["id"],
-        "ollama",
-        "nomic-embed-text",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "ollama",
+            "nomic-embed-text",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
-    dashboard = client.get(
-        f"/workspaces/{workspace['id']}/models/dashboard"
-    ).json()
+    dashboard = client.get(f"/workspaces/{workspace['id']}/models/dashboard").json()
 
     assert dashboard["overall_status"] == "needs_embedding_runtime"
     assert dashboard["usage_plan"]["can_ask_with_selected_llm"] is True
     assert dashboard["embedding_indexing_plan"]["plan_status"] == "runtime_mismatch"
     assert dashboard["primary_next_action_id"] == "restart_backend_for_embedding"
-    assert (
-        dashboard["primary_next_action_title"]
-        == "Restart backend for selected search model"
-    )
+    assert dashboard["primary_next_action_title"] == "Restart backend for selected search model"
 
 
 def test_selected_llm_usable_but_matching_embedding_needs_index(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
-    assert _select(
-        workspace["id"],
-        "fake",
-        "fake-embedding",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "fake",
+            "fake-embedding",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
-    dashboard = client.get(
-        f"/workspaces/{workspace['id']}/models/dashboard"
-    ).json()
+    dashboard = client.get(f"/workspaces/{workspace['id']}/models/dashboard").json()
 
     assert dashboard["usage_plan"]["can_ask_with_selected_llm"] is True
     assert dashboard["usage_plan"]["can_search_with_selected_embedding"] is False
     assert dashboard["embedding_indexing_plan"]["plan_status"] == "needs_index"
     assert dashboard["overall_status"] == "needs_context_index"
     assert dashboard["primary_next_action_id"] == "reindex_workspace"
-    assert (
-        dashboard["primary_next_action_title"]
-        == "Build context with selected search model"
-    )
+    assert dashboard["primary_next_action_title"] == "Build context with selected search model"
 
 
 def test_ready_models_dashboard_uses_selected_ask_as_primary_action(tmp_path) -> None:
     workspace = _create_indexed_workspace(tmp_path)
     assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
-    assert _select(
-        workspace["id"],
-        "fake",
-        "fake-embedding",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "fake",
+            "fake-embedding",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
-    dashboard = client.get(
-        f"/workspaces/{workspace['id']}/models/dashboard"
-    ).json()
+    dashboard = client.get(f"/workspaces/{workspace['id']}/models/dashboard").json()
 
     assert dashboard["overall_status"] == "ready"
     assert dashboard["usage_plan"]["can_use_selected_models_fully"] is True

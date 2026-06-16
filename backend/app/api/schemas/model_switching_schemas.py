@@ -65,8 +65,6 @@ def to_model_switching_plan_response(
         can_switch_without_reindex=plan.can_switch_without_reindex,
         requires_backend_restart=plan.requires_backend_restart,
         recommended_actions=plan.recommended_actions,
-        impacts=[
-            to_model_switch_impact_response(impact) for impact in plan.impacts
-        ],
+        impacts=[to_model_switch_impact_response(impact) for impact in plan.impacts],
         notes=plan.notes,
     )

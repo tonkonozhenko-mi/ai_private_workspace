@@ -2,13 +2,12 @@ from app.core.domain.model_experiment_comparison import (
     ModelExperimentCandidateComparison,
     ModelExperimentComparisonSummary,
 )
-from app.core.domain.model_experiment_run import ModelExperimentCandidateResult
 from app.core.domain.model_experiment_rating import ModelExperimentCandidateRating
+from app.core.domain.model_experiment_run import ModelExperimentCandidateResult
 from app.core.ports.model_experiment_rating_repository import (
     ModelExperimentRatingRepositoryPort,
 )
 from app.core.ports.model_experiment_repository import ModelExperimentRepositoryPort
-
 
 COMPARISON_NOTES = [
     "This comparison uses deterministic scoring only.",
@@ -33,9 +32,7 @@ class GetModelExperimentComparisonUseCase:
     def execute(self, experiment_id: str) -> ModelExperimentComparisonSummary:
         run = self.repository.get(experiment_id)
         if run is None:
-            raise ModelExperimentComparisonNotFoundError(
-                "Model experiment not found"
-            )
+            raise ModelExperimentComparisonNotFoundError("Model experiment not found")
 
         ratings = (
             self.rating_repository.list_by_experiment(run.id)
@@ -46,9 +43,7 @@ class GetModelExperimentComparisonUseCase:
             self._compare(candidate, self._candidate_ratings(candidate, ratings))
             for candidate in run.candidates
         ]
-        completed_count = sum(
-            comparison.status == "completed" for comparison in comparisons
-        )
+        completed_count = sum(comparison.status == "completed" for comparison in comparisons)
         return ModelExperimentComparisonSummary(
             experiment_id=run.id,
             workspace_id=run.workspace_id,
@@ -99,9 +94,7 @@ class GetModelExperimentComparisonUseCase:
                 f"-{warning_penalty}: Candidate has "
                 f"{candidate.quality_warnings_count} quality warnings."
             )
-            warnings.append(
-                f"Candidate has {candidate.quality_warnings_count} quality warnings."
-            )
+            warnings.append(f"Candidate has {candidate.quality_warnings_count} quality warnings.")
 
         if answer_length > 100:
             score += 5
@@ -128,9 +121,7 @@ class GetModelExperimentComparisonUseCase:
             warnings=warnings,
             user_ratings_count=len(ratings),
             average_user_rating=(
-                sum(rating.rating for rating in ratings) / len(ratings)
-                if ratings
-                else None
+                sum(rating.rating for rating in ratings) / len(ratings) if ratings else None
             ),
             preferred_votes=sum(rating.is_preferred for rating in ratings),
         )
@@ -150,11 +141,7 @@ class GetModelExperimentComparisonUseCase:
     def _recommended_candidate(
         comparisons: list[ModelExperimentCandidateComparison],
     ) -> str | None:
-        completed = [
-            comparison
-            for comparison in comparisons
-            if comparison.status == "completed"
-        ]
+        completed = [comparison for comparison in comparisons if comparison.status == "completed"]
         if not completed:
             return None
         winner = max(completed, key=lambda comparison: comparison.score)

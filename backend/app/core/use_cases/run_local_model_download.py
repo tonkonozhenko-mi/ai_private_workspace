@@ -1,6 +1,6 @@
+import shlex
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
-import shlex
 
 from app.core.domain.command import CommandProposal, CommandStatus
 from app.core.domain.local_model_download_execution import LocalModelDownloadExecutionResult
@@ -58,7 +58,9 @@ class RunLocalModelDownloadUseCase:
         if proposal is None:
             raise CommandNotFoundError("Command not found")
         if proposal.status not in {CommandStatus.PENDING.value, CommandStatus.APPROVED.value}:
-            raise CommandInvalidStatusError("Only pending or approved model download drafts can be run")
+            raise CommandInvalidStatusError(
+                "Only pending or approved model download drafts can be run"
+            )
 
         workspace = self.workspace_repository.get(proposal.workspace_id)
         if workspace is None:
@@ -84,7 +86,9 @@ class RunLocalModelDownloadUseCase:
         )
         executed = replace(
             approved,
-            status=CommandStatus.EXECUTED.value if result.exit_code == 0 else CommandStatus.FAILED.value,
+            status=CommandStatus.EXECUTED.value
+            if result.exit_code == 0
+            else CommandStatus.FAILED.value,
             executed_at=datetime.now(UTC).isoformat(),
             stdout=result.stdout,
             stderr=result.stderr,
@@ -135,10 +139,14 @@ class RunLocalModelDownloadUseCase:
             raise CommandInvalidStatusError(f"Invalid model download command: {exc}") from exc
 
         if len(parts) != 3 or parts[0] != "ollama" or parts[1] != "pull":
-            raise CommandInvalidStatusError("Only exact 'ollama pull <catalog-model-name>' commands are allowed")
+            raise CommandInvalidStatusError(
+                "Only exact 'ollama pull <catalog-model-name>' commands are allowed"
+            )
 
         requested_model = parts[2]
         for model in self.model_catalog_registry.list_models():
             if model.provider == "ollama" and model.model_name == requested_model:
                 return model
-        raise CommandInvalidStatusError("Model download command does not match the local catalog allowlist")
+        raise CommandInvalidStatusError(
+            "Model download command does not match the local catalog allowlist"
+        )

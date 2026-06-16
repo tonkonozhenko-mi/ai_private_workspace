@@ -3,7 +3,6 @@ from app.core.domain.gitignore_matcher import (
     discover_gitignore_relative_paths,
 )
 
-
 SAMPLE_GITIGNORE = """
 # Local runtime data
 backend/.ai-workbench/
@@ -48,9 +47,7 @@ def test_discover_gitignore_paths():
 
 def test_nested_virtualenv_is_ignored():
     matcher = _matcher()
-    assert matcher.is_ignored(
-        "backend/.venv-x86_64/lib/python3.9/site-packages/pip/_internal/x.py"
-    )
+    assert matcher.is_ignored("backend/.venv-x86_64/lib/python3.9/site-packages/pip/_internal/x.py")
     assert matcher.is_ignored("backend/.venv/lib/python3.11/site-packages/x.py")
     assert matcher.is_ignored("frontend/node_modules/react/index.js")
 
@@ -86,9 +83,7 @@ def test_empty_matcher_ignores_nothing():
 
 
 def test_nested_gitignore_is_scoped_to_its_directory():
-    matcher = GitignoreMatcher.from_sources(
-        {"frontend/.gitignore": "generated/\n"}
-    )
+    matcher = GitignoreMatcher.from_sources({"frontend/.gitignore": "generated/\n"})
     assert matcher.is_ignored("frontend/generated/bundle.js")
     # The same folder name outside the nested gitignore's directory is untouched.
     assert not matcher.is_ignored("backend/generated/bundle.js")

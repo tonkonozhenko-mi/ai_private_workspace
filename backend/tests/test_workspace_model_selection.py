@@ -15,7 +15,6 @@ from app.core.domain.workspace_model_selection import (
 )
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -59,9 +58,7 @@ def test_select_llm_and_embedding_preserve_each_other(tmp_path) -> None:
     selection = embedding_response.json()
     assert selection["selected_llm"]["model"] == "qwen2.5-coder"
     assert selection["selected_embedding"]["model"] == "nomic-embed-text"
-    assert "Selected LLM does not match active runtime configuration." in selection[
-        "notes"
-    ]
+    assert "Selected LLM does not match active runtime configuration." in selection["notes"]
     assert (
         "Selected embedding model does not match active runtime configuration."
         in selection["notes"]
@@ -72,18 +69,24 @@ def test_changing_embedding_selection_adds_reindex_note_and_preserves_llm(
     tmp_path,
 ) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select(
-        workspace["id"],
-        provider="fake",
-        model="fake-llm",
-        model_type="llm",
-    ).status_code == 200
-    assert _select(
-        workspace["id"],
-        provider="fake",
-        model="fake-embedding",
-        model_type="embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            provider="fake",
+            model="fake-llm",
+            model_type="llm",
+        ).status_code
+        == 200
+    )
+    assert (
+        _select(
+            workspace["id"],
+            provider="fake",
+            model="fake-embedding",
+            model_type="embedding",
+        ).status_code
+        == 200
+    )
 
     response = _select(
         workspace["id"],
@@ -189,9 +192,9 @@ def test_selection_creates_timeline_event(tmp_path) -> None:
         "model": "qwen2.5-coder",
         "model_type": "llm",
     }
-    assert client.get(f"/workspaces/{workspace['id']}/index/status").json()[
-        "status"
-    ] == "not_indexed"
+    assert (
+        client.get(f"/workspaces/{workspace['id']}/index/status").json()["status"] == "not_indexed"
+    )
 
 
 def test_selection_survives_sqlite_repository_recreation(tmp_path) -> None:

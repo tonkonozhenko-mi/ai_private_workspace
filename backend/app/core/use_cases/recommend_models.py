@@ -9,7 +9,6 @@ from app.core.domain.model_catalog import (
 )
 from app.core.domain.model_catalog_registry import ModelCatalogRegistry
 
-
 ALLOWED_MODEL_TYPES = {"llm", "embedding"}
 STATIC_METADATA_WARNING = (
     "Model metadata is static and should be validated against local runtime before use."
@@ -36,9 +35,7 @@ class RecommendModelsUseCase:
         laptop_profile_registry: LaptopProfileRegistry | None = None,
     ) -> None:
         self.model_catalog_registry = model_catalog_registry or ModelCatalogRegistry()
-        self.assistant_profile_registry = (
-            assistant_profile_registry or AssistantProfileRegistry()
-        )
+        self.assistant_profile_registry = assistant_profile_registry or AssistantProfileRegistry()
         self.laptop_profile_registry = laptop_profile_registry or LaptopProfileRegistry()
 
     def execute(self, request: RecommendModelsInput) -> ModelRecommendationResult:
@@ -81,9 +78,7 @@ class RecommendModelsUseCase:
                 f"Unknown laptop profile: {request.laptop_profile_id}"
             )
         if request.model_type.lower() not in ALLOWED_MODEL_TYPES:
-            raise ModelRecommendationValidationError(
-                f"Unknown model type: {request.model_type}"
-            )
+            raise ModelRecommendationValidationError(f"Unknown model type: {request.model_type}")
 
     @staticmethod
     def _recommendation(

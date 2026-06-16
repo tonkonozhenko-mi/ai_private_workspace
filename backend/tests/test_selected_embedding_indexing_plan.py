@@ -4,16 +4,13 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
 def test_no_selected_embedding_returns_not_selected(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
 
-    response = client.get(
-        f"/workspaces/{workspace['id']}/models/embedding-indexing-plan"
-    )
+    response = client.get(f"/workspaces/{workspace['id']}/models/embedding-indexing-plan")
 
     assert response.status_code == 200
     result = response.json()
@@ -28,25 +25,24 @@ def test_no_selected_embedding_returns_not_selected(tmp_path) -> None:
     assert result["requires_backend_restart"] is False
     assert result["requires_reindex"] is False
     assert result["requires_new_vector_collection"] is False
-    assert result["recommended_actions"] == [
-        "Select an embedding model for this workspace."
-    ]
+    assert result["recommended_actions"] == ["Select an embedding model for this workspace."]
 
 
 def test_selected_embedding_matching_active_and_indexed_returns_ready(
     tmp_path,
 ) -> None:
     workspace = _create_indexed_workspace(tmp_path)
-    assert _select_embedding(
-        workspace["id"],
-        "fake",
-        "fake-embedding",
-    ).status_code == 200
+    assert (
+        _select_embedding(
+            workspace["id"],
+            "fake",
+            "fake-embedding",
+        ).status_code
+        == 200
+    )
     timeline_before = client.get(f"/workspaces/{workspace['id']}/timeline").json()
 
-    response = client.get(
-        f"/workspaces/{workspace['id']}/models/embedding-indexing-plan"
-    )
+    response = client.get(f"/workspaces/{workspace['id']}/models/embedding-indexing-plan")
 
     assert response.status_code == 200
     result = response.json()
@@ -67,15 +63,16 @@ def test_selected_embedding_matching_active_but_not_indexed_needs_index(
     tmp_path,
 ) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select_embedding(
-        workspace["id"],
-        "fake",
-        "fake-embedding",
-    ).status_code == 200
+    assert (
+        _select_embedding(
+            workspace["id"],
+            "fake",
+            "fake-embedding",
+        ).status_code
+        == 200
+    )
 
-    result = client.get(
-        f"/workspaces/{workspace['id']}/models/embedding-indexing-plan"
-    ).json()
+    result = client.get(f"/workspaces/{workspace['id']}/models/embedding-indexing-plan").json()
 
     assert result["plan_status"] == "needs_index"
     assert result["can_index_now"] is True
@@ -92,15 +89,16 @@ def test_selected_embedding_mismatch_requires_restart_reindex_and_collection(
     tmp_path,
 ) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select_embedding(
-        workspace["id"],
-        "ollama",
-        "nomic-embed-text",
-    ).status_code == 200
+    assert (
+        _select_embedding(
+            workspace["id"],
+            "ollama",
+            "nomic-embed-text",
+        ).status_code
+        == 200
+    )
 
-    result = client.get(
-        f"/workspaces/{workspace['id']}/models/embedding-indexing-plan"
-    ).json()
+    result = client.get(f"/workspaces/{workspace['id']}/models/embedding-indexing-plan").json()
 
     assert result["selected_provider"] == "ollama"
     assert result["selected_model"] == "nomic-embed-text"
@@ -113,10 +111,7 @@ def test_selected_embedding_mismatch_requires_restart_reindex_and_collection(
     assert result["requires_reindex"] is True
     assert result["requires_new_vector_collection"] is True
     assert result["recommended_actions"] == [
-        (
-            "Restart backend with the selected embedding provider and model "
-            "configuration."
-        ),
+        ("Restart backend with the selected embedding provider and model configuration."),
         "Reindex workspace context after restart.",
     ]
     assert result["warnings"] == [
@@ -126,9 +121,7 @@ def test_selected_embedding_mismatch_requires_restart_reindex_and_collection(
 
 
 def test_unknown_workspace_returns_404() -> None:
-    response = client.get(
-        "/workspaces/missing-workspace/models/embedding-indexing-plan"
-    )
+    response = client.get("/workspaces/missing-workspace/models/embedding-indexing-plan")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Workspace not found"

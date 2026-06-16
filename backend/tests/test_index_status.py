@@ -6,7 +6,6 @@ from app.adapters.memory.sqlite_index_status_repository import SQLiteIndexStatus
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.main import app
 
-
 client = TestClient(app)
 
 

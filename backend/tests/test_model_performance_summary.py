@@ -22,16 +22,13 @@ from app.core.use_cases.get_model_performance_summary import (
 )
 from app.main import app
 
-
 client = TestClient(app)
 
 
 def test_summary_aggregates_candidates_ratings_tags_and_scores() -> None:
     use_case = _performance_use_case()
 
-    summary = use_case.execute(
-        GetModelPerformanceSummaryInput(workspace_id="workspace-1")
-    )
+    summary = use_case.execute(GetModelPerformanceSummaryInput(workspace_id="workspace-1"))
 
     assert summary.workspace_id == "workspace-1"
     assert [item.model for item in summary.items] == ["alpha", "beta"]

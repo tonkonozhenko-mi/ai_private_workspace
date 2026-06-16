@@ -2,7 +2,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -17,9 +16,7 @@ def test_balanced_devops_podman_includes_qdrant_and_ollama_setup() -> None:
         "podman run -d --name qdrant -p 6333:6333 "
         "-v qdrant_data:/qdrant/storage docker.io/qdrant/qdrant:latest"
     )
-    assert commands["pull_ollama_embedding_model"]["command"] == (
-        "ollama pull nomic-embed-text"
-    )
+    assert commands["pull_ollama_embedding_model"]["command"] == ("ollama pull nomic-embed-text")
     assert commands["pull_ollama_llm_model"]["command"] == "ollama pull llama3.2"
     assert commands["start_backend"]["command"] == (
         "VECTOR_STORE=qdrant EMBEDDING_PROVIDER=ollama LLM_PROVIDER=ollama "
@@ -57,7 +54,9 @@ def test_setup_commands_are_classified_and_never_auto_proposed() -> None:
     commands = response.json()["commands"]
     assert commands
     assert all(command["can_be_proposed"] is False for command in commands)
-    assert all(command["risk"] in {"readonly", "write", "destructive", "unknown"} for command in commands)
+    assert all(
+        command["risk"] in {"readonly", "write", "destructive", "unknown"} for command in commands
+    )
 
 
 def test_invalid_container_runtime_returns_clear_error() -> None:

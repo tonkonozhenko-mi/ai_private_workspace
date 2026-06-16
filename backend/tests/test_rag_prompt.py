@@ -46,9 +46,7 @@ def test_rag_prompt_requires_grounded_source_aware_answer() -> None:
     assert "Available source paths: main.tf" in prompt
     assert "Do not cite only numeric references such as [1] or [2]" in prompt
     assert "S3 backend is configured (main.tf)" in prompt
-    assert (
-        "Do not say something is absent if any provided context contains it" in prompt
-    )
+    assert "Do not say something is absent if any provided context contains it" in prompt
     assert "If the context is insufficient or you are unsure" in prompt
     assert "Answer requirements:" in prompt
     assert "Start with a direct answer" in prompt

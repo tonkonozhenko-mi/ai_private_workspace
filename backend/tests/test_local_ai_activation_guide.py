@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -12,9 +11,7 @@ def test_missing_selected_models_returns_blocked_steps(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     timeline_before = client.get(f"/workspaces/{workspace['id']}/timeline").json()
 
-    response = client.get(
-        f"/workspaces/{workspace['id']}/local-ai/activation-guide"
-    )
+    response = client.get(f"/workspaces/{workspace['id']}/local-ai/activation-guide")
 
     assert response.status_code == 200
     guide = response.json()
@@ -35,22 +32,26 @@ def test_selected_ollama_models_produce_pull_qdrant_and_restart_steps(
     tmp_path,
 ) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select(
-        workspace["id"],
-        "ollama",
-        "qwen2.5-coder",
-        "llm",
-    ).status_code == 200
-    assert _select(
-        workspace["id"],
-        "ollama",
-        "nomic-embed-text",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "ollama",
+            "qwen2.5-coder",
+            "llm",
+        ).status_code
+        == 200
+    )
+    assert (
+        _select(
+            workspace["id"],
+            "ollama",
+            "nomic-embed-text",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
-    guide = client.get(
-        f"/workspaces/{workspace['id']}/local-ai/activation-guide"
-    ).json()
+    guide = client.get(f"/workspaces/{workspace['id']}/local-ai/activation-guide").json()
     steps = _steps_by_id(guide)
 
     assert guide["overall_status"] == "needs_setup"
@@ -59,12 +60,8 @@ def test_selected_ollama_models_produce_pull_qdrant_and_restart_steps(
     assert guide["selected_vector_store"] == "qdrant"
     assert guide["active_vector_store"] == "memory"
     assert steps["start_ollama"]["command"] == "ollama serve"
-    assert steps["pull_ollama_llm_model"]["command"] == (
-        "ollama pull qwen2.5-coder"
-    )
-    assert steps["pull_ollama_embedding_model"]["command"] == (
-        "ollama pull nomic-embed-text"
-    )
+    assert steps["pull_ollama_llm_model"]["command"] == ("ollama pull qwen2.5-coder")
+    assert steps["pull_ollama_embedding_model"]["command"] == ("ollama pull nomic-embed-text")
     assert steps["start_podman_machine"]["status"] == "optional"
     assert steps["start_podman_machine"]["command"] == "podman machine start"
     assert steps["start_qdrant"]["status"] == "needed"
@@ -94,16 +91,17 @@ def test_selected_ollama_models_produce_pull_qdrant_and_restart_steps(
 def test_fake_llm_with_ollama_embedding_keeps_fake_llm_provider(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
-    assert _select(
-        workspace["id"],
-        "ollama",
-        "nomic-embed-text",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "ollama",
+            "nomic-embed-text",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
-    guide = client.get(
-        f"/workspaces/{workspace['id']}/local-ai/activation-guide"
-    ).json()
+    guide = client.get(f"/workspaces/{workspace['id']}/local-ai/activation-guide").json()
     steps = _steps_by_id(guide)
     restart = steps["restart_backend"]["command"]
 
@@ -119,16 +117,17 @@ def test_fake_llm_with_ollama_embedding_keeps_fake_llm_provider(tmp_path) -> Non
 def test_embedding_mismatch_requires_reindex_after_restart(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
-    assert _select(
-        workspace["id"],
-        "ollama",
-        "nomic-embed-text",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "ollama",
+            "nomic-embed-text",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
-    guide = client.get(
-        f"/workspaces/{workspace['id']}/local-ai/activation-guide"
-    ).json()
+    guide = client.get(f"/workspaces/{workspace['id']}/local-ai/activation-guide").json()
     steps = _steps_by_id(guide)
 
     assert steps["restart_backend"]["status"] == "needed"
@@ -143,16 +142,17 @@ def test_embedding_mismatch_requires_reindex_after_restart(tmp_path) -> None:
 def test_matching_fake_models_still_require_index_before_ready(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
-    assert _select(
-        workspace["id"],
-        "fake",
-        "fake-embedding",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "fake",
+            "fake-embedding",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
-    guide = client.get(
-        f"/workspaces/{workspace['id']}/local-ai/activation-guide"
-    ).json()
+    guide = client.get(f"/workspaces/{workspace['id']}/local-ai/activation-guide").json()
     steps = _steps_by_id(guide)
 
     assert guide["overall_status"] == "needs_setup"
@@ -163,9 +163,7 @@ def test_matching_fake_models_still_require_index_before_ready(tmp_path) -> None
 
 
 def test_unknown_workspace_returns_404() -> None:
-    response = client.get(
-        "/workspaces/missing-workspace/local-ai/activation-guide"
-    )
+    response = client.get("/workspaces/missing-workspace/local-ai/activation-guide")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Workspace not found"

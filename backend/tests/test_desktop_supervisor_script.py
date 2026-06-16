@@ -16,4 +16,4 @@ def test_desktop_supervisor_script_exists_and_is_safe_bridge():
     assert "ollama pull" not in content
     assert "pkill" not in content
     assert "kill -9" not in content
-    assert "kill \"$BACKEND_PID\"" in content
+    assert 'kill "$BACKEND_PID"' in content

@@ -1,6 +1,6 @@
 import json
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
 from app.core.domain.agent_workflow import AgentWorkflowDraft, AgentWorkflowStep
@@ -31,7 +31,9 @@ class SQLiteAgentWorkflowRepository:
                     workflow.readiness,
                     workflow.agent_mode,
                     workflow.status,
-                    json.dumps([self._step_to_dict(step) for step in workflow.steps], sort_keys=True),
+                    json.dumps(
+                        [self._step_to_dict(step) for step in workflow.steps], sort_keys=True
+                    ),
                     json.dumps(workflow.guardrails, sort_keys=True),
                     json.dumps(workflow.unsupported_actions, sort_keys=True),
                     workflow.safety_note,
@@ -51,8 +53,12 @@ class SQLiteAgentWorkflowRepository:
             ).fetchone()
         return self._from_row(row) if row else None
 
-    def list_workflows(self, workspace_id: str, include_archived: bool = False) -> list[AgentWorkflowDraft]:
-        clause = "workspace_id = ?" if include_archived else "workspace_id = ? AND archived_at IS NULL"
+    def list_workflows(
+        self, workspace_id: str, include_archived: bool = False
+    ) -> list[AgentWorkflowDraft]:
+        clause = (
+            "workspace_id = ?" if include_archived else "workspace_id = ? AND archived_at IS NULL"
+        )
         with self._connect() as connection:
             rows = connection.execute(
                 f"SELECT * FROM workspace_agent_workflows WHERE {clause} ORDER BY updated_at DESC, rowid DESC",
@@ -128,16 +134,33 @@ class SQLiteAgentWorkflowRepository:
             allowed_execution=str(item["allowed_execution"]),
             verification=str(item["verification"]),
             requires_user_confirmation=bool(item.get("requires_user_confirmation", True)),
-            approval_status=str(item.get("approval_status") or ("pending" if item.get("requires_user_confirmation", True) else "not_required")),
-            approval_note=item.get("approval_note") if isinstance(item.get("approval_note"), str) else None,
-            proposed_tool=item.get("proposed_tool") if isinstance(item.get("proposed_tool"), str) else None,
+            approval_status=str(
+                item.get("approval_status")
+                or ("pending" if item.get("requires_user_confirmation", True) else "not_required")
+            ),
+            approval_note=item.get("approval_note")
+            if isinstance(item.get("approval_note"), str)
+            else None,
+            proposed_tool=item.get("proposed_tool")
+            if isinstance(item.get("proposed_tool"), str)
+            else None,
             tool_risk=str(item.get("tool_risk") or "manual_review"),
-            execution_hint=item.get("execution_hint") if isinstance(item.get("execution_hint"), str) else None,
-            evidence_hint=item.get("evidence_hint") if isinstance(item.get("evidence_hint"), str) else None,
-            approved_at=item.get("approved_at") if isinstance(item.get("approved_at"), str) else None,
+            execution_hint=item.get("execution_hint")
+            if isinstance(item.get("execution_hint"), str)
+            else None,
+            evidence_hint=item.get("evidence_hint")
+            if isinstance(item.get("evidence_hint"), str)
+            else None,
+            approved_at=item.get("approved_at")
+            if isinstance(item.get("approved_at"), str)
+            else None,
             evidence_status=str(item.get("evidence_status") or "not_provided"),
-            evidence_summary=item.get("evidence_summary") if isinstance(item.get("evidence_summary"), str) else None,
-            evidence_sources=[str(source) for source in item.get("evidence_sources", [])] if isinstance(item.get("evidence_sources"), list) else [],
+            evidence_summary=item.get("evidence_summary")
+            if isinstance(item.get("evidence_summary"), str)
+            else None,
+            evidence_sources=[str(source) for source in item.get("evidence_sources", [])]
+            if isinstance(item.get("evidence_sources"), list)
+            else [],
             notes=item.get("notes") if isinstance(item.get("notes"), str) else None,
             updated_at=item.get("updated_at") if isinstance(item.get("updated_at"), str) else None,
         )

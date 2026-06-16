@@ -10,7 +10,6 @@ from app.core.ports.workspace_model_selection_repository import (
 )
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 
-
 VECTOR_SPACE_NOTE = (
     "Changing an embedding provider or model creates a different vector space; "
     "existing vectors cannot be safely searched with the new embedding model."
@@ -55,9 +54,7 @@ class GetSelectedEmbeddingIndexingPlanUseCase:
         active_provider, active_model = self._active_embedding()
         saved_index_status = self.index_status_repository.get(request.workspace_id)
         index_status = (
-            saved_index_status.status
-            if saved_index_status is not None
-            else "not_indexed"
+            saved_index_status.status if saved_index_status is not None else "not_indexed"
         )
 
         if selected is None:
@@ -100,12 +97,7 @@ class GetSelectedEmbeddingIndexingPlanUseCase:
                     ),
                     "Reindex workspace context after restart.",
                 ],
-                warnings=[
-                    (
-                        "Selected embedding cannot be used until active runtime "
-                        "matches it."
-                    )
-                ],
+                warnings=[("Selected embedding cannot be used until active runtime matches it.")],
                 notes=[READ_ONLY_NOTE, VECTOR_SPACE_NOTE],
             )
 
@@ -123,9 +115,7 @@ class GetSelectedEmbeddingIndexingPlanUseCase:
                 requires_reindex=True,
                 requires_new_vector_collection=False,
                 plan_status="needs_index",
-                recommended_actions=[
-                    "Index workspace context with the selected embedding model."
-                ],
+                recommended_actions=["Index workspace context with the selected embedding model."],
                 warnings=[],
                 notes=[READ_ONLY_NOTE, VECTOR_SPACE_NOTE],
             )
@@ -143,9 +133,7 @@ class GetSelectedEmbeddingIndexingPlanUseCase:
             requires_reindex=False,
             requires_new_vector_collection=False,
             plan_status="ready",
-            recommended_actions=[
-                "Ask a workspace question or search workspace context."
-            ],
+            recommended_actions=["Ask a workspace question or search workspace context."],
             warnings=[],
             notes=[READ_ONLY_NOTE, VECTOR_SPACE_NOTE],
         )

@@ -9,7 +9,6 @@ from app.core.use_cases.get_workspace_models_dashboard import (
     WorkspaceModelsDashboardNotFoundError,
 )
 
-
 SUMMARY_NOTES = [
     "Workspace models dashboard summary is read-only.",
     "Use the detailed workspace models dashboard for full diagnostics.",
@@ -69,9 +68,7 @@ class GetWorkspaceModelsDashboardSummaryUseCase:
                 dashboard.usage_plan.active_embedding_provider,
                 dashboard.usage_plan.active_embedding_model,
             ),
-            can_ask_with_selected_llm=(
-                dashboard.usage_plan.can_ask_with_selected_llm
-            ),
+            can_ask_with_selected_llm=(dashboard.usage_plan.can_ask_with_selected_llm),
             can_search_with_selected_embedding=(
                 dashboard.usage_plan.can_search_with_selected_embedding
             ),
@@ -89,9 +86,7 @@ class GetWorkspaceModelsDashboardSummaryUseCase:
                 else None
             ),
             top_recommended_model_score=(
-                top_recommendation.final_score
-                if top_recommendation is not None
-                else None
+                top_recommendation.final_score if top_recommendation is not None else None
             ),
             performance_models_count=len(dashboard.performance_summary.items),
             warnings_count=self._warnings_count(dashboard),
@@ -116,7 +111,6 @@ class GetWorkspaceModelsDashboardSummaryUseCase:
         )
         embedding_warnings = len(dashboard.embedding_indexing_plan.warnings)
         not_ready_capabilities = sum(
-            capability.status != "ready"
-            for capability in dashboard.usage_plan.capabilities
+            capability.status != "ready" for capability in dashboard.usage_plan.capabilities
         )
         return recommendation_warnings + embedding_warnings + not_ready_capabilities

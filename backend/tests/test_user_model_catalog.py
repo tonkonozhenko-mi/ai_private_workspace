@@ -9,7 +9,6 @@ from app.config.settings import Settings
 from app.core.domain.model_catalog_registry import ModelCatalogRegistry
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -52,8 +51,7 @@ def test_valid_user_model_participates_in_recommendation(tmp_path, monkeypatch) 
 
     assert response.status_code == 200
     assert "ollama-codellama" in {
-        recommendation["model"]["id"]
-        for recommendation in response.json()["recommendations"]
+        recommendation["model"]["id"] for recommendation in response.json()["recommendations"]
     }
 
 
@@ -79,9 +77,7 @@ def test_duplicate_user_model_id_is_skipped_with_warning(tmp_path, monkeypatch) 
     details = client.get("/models/catalog/details").json()
 
     assert sum(model["id"] == "ollama-llama3.2" for model in details["models"]) == 1
-    assert any(
-        warning["code"] == "duplicate_model_id" for warning in details["warnings"]
-    )
+    assert any(warning["code"] == "duplicate_model_id" for warning in details["warnings"])
 
 
 def test_malformed_json_does_not_crash_catalog_details(tmp_path, monkeypatch) -> None:
@@ -104,9 +100,7 @@ def test_catalog_details_uses_same_filters_as_catalog(tmp_path, monkeypatch) -> 
     response = client.get("/models/catalog/details", params={"model_type": "embedding"})
 
     assert response.status_code == 200
-    assert {
-        model["model_type"] for model in response.json()["models"]
-    } == {"embedding"}
+    assert {model["model_type"] for model in response.json()["models"]} == {"embedding"}
 
 
 def _configure_route_catalog(monkeypatch, path: Path) -> None:

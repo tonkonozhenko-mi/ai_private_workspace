@@ -6,7 +6,6 @@ from app.api.dependencies import index_status_repository
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -68,8 +67,7 @@ def test_indexed_workspace_is_ready_and_can_ask(tmp_path) -> None:
     )
     assert (
         "Reindex workspace context after API restart when using the in-memory "
-        "vector store."
-        in readiness["recommended_next_steps"]
+        "vector store." in readiness["recommended_next_steps"]
     )
     assert _capability(readiness, "workspace_ask")["available"] is True
 
@@ -115,10 +113,7 @@ def test_pending_command_adds_review_recommendation(tmp_path) -> None:
     response = client.get(f"/workspaces/{workspace['id']}/readiness")
 
     assert response.status_code == 200
-    assert (
-        "Review pending command approvals."
-        in response.json()["recommended_next_steps"]
-    )
+    assert "Review pending command approvals." in response.json()["recommended_next_steps"]
 
 
 def test_readiness_includes_provider_configuration(tmp_path) -> None:
@@ -155,9 +150,7 @@ def test_readiness_unknown_workspace_returns_404() -> None:
 
 def _capability(readiness: dict, capability_id: str) -> dict:
     return next(
-        capability
-        for capability in readiness["capabilities"]
-        if capability["id"] == capability_id
+        capability for capability in readiness["capabilities"] if capability["id"] == capability_id
     )
 
 

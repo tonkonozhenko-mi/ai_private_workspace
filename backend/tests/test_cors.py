@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 from app.config.settings import get_settings
 from app.main import app
 
-
 client = TestClient(app)
 allowed_origin = "http://localhost:5173"
 

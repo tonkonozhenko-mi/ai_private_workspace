@@ -34,9 +34,7 @@ class RestoreWorkspaceUseCase:
         if workspace.archived_at is None:
             return workspace
 
-        restored_workspace = self.workspace_repository.update(
-            replace(workspace, archived_at=None)
-        )
+        restored_workspace = self.workspace_repository.update(replace(workspace, archived_at=None))
         if self.timeline_repository is not None:
             AddTimelineEventUseCase(self.timeline_repository).execute(
                 AddTimelineEventInput(

@@ -5,10 +5,11 @@ from fastapi.testclient import TestClient
 
 from app.adapters.model_catalog.user_model_catalog_loader import UserModelCatalogLoader
 from app.api.routes import models as model_routes
-from app.core.domain.model_catalog_registry import ModelCatalogRegistry
-from app.core.domain.model_catalog_registry import build_custom_ollama_model_definition
+from app.core.domain.model_catalog_registry import (
+    ModelCatalogRegistry,
+    build_custom_ollama_model_definition,
+)
 from app.main import app
-
 
 client = TestClient(app)
 
@@ -39,9 +40,7 @@ def test_reload_after_editing_file_adds_user_model(tmp_path, monkeypatch) -> Non
     assert result["models_count"] == 7
     assert result["user_models_count"] == 1
     assert result["warnings_count"] == 0
-    assert "ollama-codellama" in {
-        model["id"] for model in client.get("/models/catalog").json()
-    }
+    assert "ollama-codellama" in {model["id"] for model in client.get("/models/catalog").json()}
 
 
 def test_reload_invalid_json_replaces_previous_user_models_with_warning(
@@ -50,9 +49,7 @@ def test_reload_invalid_json_replaces_previous_user_models_with_warning(
 ) -> None:
     path = _write_catalog(tmp_path, [_valid_user_llm()])
     _configure_reloadable_catalog(monkeypatch, str(path))
-    assert "ollama-codellama" in {
-        model["id"] for model in client.get("/models/catalog").json()
-    }
+    assert "ollama-codellama" in {model["id"] for model in client.get("/models/catalog").json()}
     path.write_text('{"models": [', encoding="utf-8")
 
     response = client.post("/models/catalog/reload")
@@ -63,9 +60,7 @@ def test_reload_invalid_json_replaces_previous_user_models_with_warning(
     assert result["user_models_count"] == 0
     assert result["warnings_count"] == 1
     assert result["warnings"][0]["code"] == "user_catalog_invalid_json"
-    assert "ollama-codellama" not in {
-        model["id"] for model in client.get("/models/catalog").json()
-    }
+    assert "ollama-codellama" not in {model["id"] for model in client.get("/models/catalog").json()}
     assert client.get("/models/catalog/details").json()["warnings"] == result["warnings"]
 
 
@@ -87,8 +82,7 @@ def test_recommendations_use_reloaded_user_model(tmp_path, monkeypatch) -> None:
 
     assert response.status_code == 200
     assert "ollama-codellama" in {
-        recommendation["model"]["id"]
-        for recommendation in response.json()["recommendations"]
+        recommendation["model"]["id"] for recommendation in response.json()["recommendations"]
     }
 
 
@@ -107,9 +101,7 @@ def test_registered_custom_ollama_model_survives_registry_recreation(tmp_path) -
         )
     )
 
-    restarted_registry = ModelCatalogRegistry(
-        loader=UserModelCatalogLoader(str(path))
-    )
+    restarted_registry = ModelCatalogRegistry(loader=UserModelCatalogLoader(str(path)))
     result = restarted_registry.reload()
     custom = next(
         model

@@ -18,8 +18,16 @@ def test_tauri_rust_structure_registry_endpoint() -> None:
     assert payload["rust_library"] == "frontend/src-tauri/src/lib.rs"
     assert "internal" in payload["npm_registry_policy"]
     item_ids = {item["id"] for item in payload["validation_items"]}
-    assert {"cargo-library-contract", "thin-main-entrypoint", "supervisor-library", "public-npm-lockfile"}.issubset(item_ids)
-    assert any(command["command"] == "scripts/check_tauri_rust_structure_and_registry.sh" for command in payload["validation_commands"])
+    assert {
+        "cargo-library-contract",
+        "thin-main-entrypoint",
+        "supervisor-library",
+        "public-npm-lockfile",
+    }.issubset(item_ids)
+    assert any(
+        command["command"] == "scripts/check_tauri_rust_structure_and_registry.sh"
+        for command in payload["validation_commands"]
+    )
 
 
 def test_tauri_main_is_thin_and_library_owns_commands() -> None:

@@ -51,9 +51,7 @@ def to_workspace_model_selection_status_response(
     return WorkspaceModelSelectionStatusResponse(
         workspace_id=status.workspace_id,
         llm_status=to_selected_model_runtime_status_response(status.llm_status),
-        embedding_status=to_selected_model_runtime_status_response(
-            status.embedding_status
-        ),
+        embedding_status=to_selected_model_runtime_status_response(status.embedding_status),
         overall_status=status.overall_status,
         recommended_actions=status.recommended_actions,
         notes=status.notes,

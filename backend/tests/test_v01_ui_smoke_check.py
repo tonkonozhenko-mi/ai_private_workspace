@@ -2,7 +2,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -15,7 +14,11 @@ def test_v01_ui_smoke_check_is_manual_and_safety_focused() -> None:
     assert "10-15" in payload["estimated_duration"]
     assert any(item["id"] == "models" for item in payload["checklist"])
     assert any(item["id"] == "settings" for item in payload["checklist"])
-    assert any("No model download starts" in forbidden for item in payload["checklist"] for forbidden in item["must_not_happen"])
+    assert any(
+        "No model download starts" in forbidden
+        for item in payload["checklist"]
+        for forbidden in item["must_not_happen"]
+    )
     assert any("Frontend executes" in condition for condition in payload["fail_fast_conditions"])
     assert "does not inspect browser state" in payload["safety_note"]
 

@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 from datetime import UTC, datetime
 
 from app.core.domain.chunking import chunk_document, estimate_tokens
@@ -21,7 +21,6 @@ from app.core.use_cases.add_timeline_event import (
     AddTimelineEventInput,
     AddTimelineEventUseCase,
 )
-
 
 INDEXABLE_FILE_TYPES = {
     "markdown",
@@ -84,9 +83,7 @@ class IndexWorkspaceUseCase:
 
         latest_scan = self.project_scan_repository.get_latest_scan(request.workspace_id)
         if latest_scan is None:
-            raise IndexWorkspaceScanRequiredError(
-                "Project scan required before indexing workspace"
-            )
+            raise IndexWorkspaceScanRequiredError("Project scan required before indexing workspace")
 
         try:
             result = self._index_workspace(
@@ -157,7 +154,9 @@ class IndexWorkspaceUseCase:
         for file_index, project_file in enumerate(latest_scan.files, start=1):
             self._checkpoint(cancellation_check)
             if progress_callback is not None:
-                progress_callback(file_index, total_files, f"Reading files: {file_index}/{total_files}")
+                progress_callback(
+                    file_index, total_files, f"Reading files: {file_index}/{total_files}"
+                )
             if project_file.detected_type not in INDEXABLE_FILE_TYPES:
                 skipped_files_count += 1
                 continue
@@ -184,7 +183,9 @@ class IndexWorkspaceUseCase:
         for chunk_index, chunk in enumerate(chunks, start=1):
             self._checkpoint(cancellation_check)
             if progress_callback is not None:
-                progress_callback(chunk_index, total_chunks, f"Embedding chunks: {chunk_index}/{total_chunks}")
+                progress_callback(
+                    chunk_index, total_chunks, f"Embedding chunks: {chunk_index}/{total_chunks}"
+                )
             embeddings.append(self.embedding_provider.embed_text(chunk.content))
         self._checkpoint(cancellation_check)
         embedding_dimension = self._embedding_dimension(embeddings)

@@ -55,7 +55,6 @@ def to_git_insights_response(insights: GitInsights) -> GitInsightsResponse:
             for c in insights.top_contributors
         ],
         hotspots=[
-            GitFileHotspotResponse(path=h.path, changes=h.changes)
-            for h in insights.hotspots
+            GitFileHotspotResponse(path=h.path, changes=h.changes) for h in insights.hotspots
         ],
     )

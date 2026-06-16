@@ -39,6 +39,7 @@ def _posix_total_ram_gb() -> float | None:
 
 def _windows_total_ram_gb() -> float | None:
     try:
+
         class _MemoryStatusEx(ctypes.Structure):
             _fields_ = [
                 ("dwLength", ctypes.c_ulong),

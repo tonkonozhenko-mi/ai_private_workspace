@@ -19,7 +19,6 @@ from app.core.domain.workspace import Workspace
 from app.core.use_cases.list_workspaces_overview import ListWorkspacesOverviewUseCase
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -239,9 +238,7 @@ def _domain_workspace(workspace_id: str, created_at: str) -> Workspace:
 
 
 def _item(overview: dict, workspace_id: str) -> dict:
-    return next(
-        item for item in overview["items"] if item["workspace_id"] == workspace_id
-    )
+    return next(item for item in overview["items"] if item["workspace_id"] == workspace_id)
 
 
 def _write_text(path: Path, content: str) -> None:

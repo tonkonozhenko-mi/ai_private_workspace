@@ -1,12 +1,13 @@
-from dataclasses import replace
-from datetime import UTC, datetime
-from uuid import uuid4
 import json
 import shlex
 import threading
+from dataclasses import replace
+from datetime import UTC, datetime
+from uuid import uuid4
 
 import httpx
 
+from app.core.domain.command import CommandStatus
 from app.core.domain.local_model_download_job import (
     LocalModelDownloadJob,
     build_queued_model_download_job,
@@ -19,22 +20,21 @@ from app.core.ports.local_model_download_job_repository import (
     LocalModelDownloadJobRepositoryPort,
 )
 from app.core.ports.timeline_repository import TimelineRepositoryPort
-from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.ports.workspace_model_selection_repository import (
     WorkspaceModelSelectionRepositoryPort,
 )
+from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.use_cases.add_timeline_event import AddTimelineEventInput, AddTimelineEventUseCase
-from app.core.use_cases.update_workspace_model_selection import (
-    UpdateWorkspaceModelSelectionInput,
-    UpdateWorkspaceModelSelectionUseCase,
-)
 from app.core.use_cases.command_errors import (
     CommandInvalidStatusError,
     CommandNotFoundError,
     CommandWorkspaceNotFoundError,
 )
 from app.core.use_cases.run_local_model_download import LocalModelDownloadExecutionDisabledError
-from app.core.domain.command import CommandStatus
+from app.core.use_cases.update_workspace_model_selection import (
+    UpdateWorkspaceModelSelectionInput,
+    UpdateWorkspaceModelSelectionUseCase,
+)
 
 
 class LocalModelDownloadJobNotFoundError(Exception):
@@ -94,7 +94,9 @@ class RunLocalModelDownloadJobUseCase:
         if proposal is None:
             raise CommandNotFoundError("Command not found")
         if proposal.status not in {CommandStatus.PENDING.value, CommandStatus.APPROVED.value}:
-            raise CommandInvalidStatusError("Only pending or approved model download drafts can be run")
+            raise CommandInvalidStatusError(
+                "Only pending or approved model download drafts can be run"
+            )
 
         workspace = self.workspace_repository.get(proposal.workspace_id)
         if workspace is None:
@@ -163,7 +165,9 @@ class RunLocalModelDownloadJobUseCase:
             raise LocalModelDownloadJobNotFoundError("Model download job not found")
 
         if job.status in {"succeeded", "failed", "cancelled"}:
-            raise LocalModelDownloadJobNotCancellableError("Finished model download jobs cannot be cancelled")
+            raise LocalModelDownloadJobNotCancellableError(
+                "Finished model download jobs cannot be cancelled"
+            )
 
         now = datetime.now(UTC).isoformat()
         if job.status == "queued":
@@ -186,7 +190,10 @@ class RunLocalModelDownloadJobUseCase:
                     cancellable=False,
                     command_proposal=cancelled_command,
                     cancellation_summary="Cancelled safely while queued. No Ollama pull command was executed.",
-                    next_steps=["Choose another model if needed.", "Create a new download draft when ready."],
+                    next_steps=[
+                        "Choose another model if needed.",
+                        "Create a new download draft when ready.",
+                    ],
                 )
             )
 
@@ -271,14 +278,20 @@ class RunLocalModelDownloadJobUseCase:
                 )
                 executed = replace(
                     proposal,
-                    status=CommandStatus.EXECUTED.value if result.exit_code == 0 else CommandStatus.FAILED.value,
+                    status=CommandStatus.EXECUTED.value
+                    if result.exit_code == 0
+                    else CommandStatus.FAILED.value,
                     executed_at=datetime.now(UTC).isoformat(),
                     stdout=result.stdout,
                     stderr=result.stderr,
                     exit_code=result.exit_code,
                 )
                 updated_command = self.command_repository.update(executed)
-                finished_status = "succeeded" if updated_command.status == CommandStatus.EXECUTED.value else "failed"
+                finished_status = (
+                    "succeeded"
+                    if updated_command.status == CommandStatus.EXECUTED.value
+                    else "failed"
+                )
                 progress_message = (
                     f"{model.display_name} download finished. Re-check installed models."
                     if finished_status == "succeeded"
@@ -362,9 +375,7 @@ class RunLocalModelDownloadJobUseCase:
             current = None
         if current is not None:
             already_chosen = (
-                current.selected_llm
-                if model.model_type == "llm"
-                else current.selected_embedding
+                current.selected_llm if model.model_type == "llm" else current.selected_embedding
             )
             if already_chosen is not None:
                 return
@@ -446,13 +457,17 @@ class RunLocalModelDownloadJobUseCase:
             raise CommandInvalidStatusError(f"Invalid model download command: {exc}") from exc
 
         if len(parts) != 3 or parts[0] != "ollama" or parts[1] != "pull":
-            raise CommandInvalidStatusError("Only exact 'ollama pull <catalog-model-name>' commands are allowed")
+            raise CommandInvalidStatusError(
+                "Only exact 'ollama pull <catalog-model-name>' commands are allowed"
+            )
 
         requested_model = parts[2]
         for model in self.model_catalog_registry.list_models():
             if model.provider == "ollama" and model.model_name == requested_model:
                 return model
-        raise CommandInvalidStatusError("Model download command does not match the local catalog allowlist")
+        raise CommandInvalidStatusError(
+            "Model download command does not match the local catalog allowlist"
+        )
 
 
 def _pull_percent(completed: object, total: object) -> int | None:

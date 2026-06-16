@@ -12,7 +12,6 @@ from app.adapters.llm.ollama_llm_provider import (
 from app.api.dependencies import build_llm_provider
 from app.config.settings import get_settings
 
-
 RUN_OLLAMA_TESTS = os.getenv("RUN_OLLAMA_TESTS", "").lower() == "true"
 
 
@@ -36,9 +35,7 @@ def test_ollama_llm_provider_returns_generated_text() -> None:
 
 
 def test_ollama_llm_provider_missing_response_raises_clear_error() -> None:
-    provider = _provider(
-        lambda request: httpx.Response(200, json={"model": "llama3.2"})
-    )
+    provider = _provider(lambda request: httpx.Response(200, json={"model": "llama3.2"}))
 
     with pytest.raises(
         OllamaLLMProviderError,
@@ -114,9 +111,7 @@ def test_ollama_llm_provider_integration() -> None:
     )
 
     try:
-        response = provider.generate(
-            "Reply with a short sentence confirming local generation."
-        )
+        response = provider.generate("Reply with a short sentence confirming local generation.")
     finally:
         provider.client.close()
 

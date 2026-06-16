@@ -6,7 +6,6 @@ from app.core.domain.project_scan import ProjectFile
 from app.core.domain.skill_registry import SkillRegistry
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -83,9 +82,7 @@ def test_terragrunt_analysis_detects_static_structure(tmp_path) -> None:
     findings_by_id = {finding["id"]: finding for finding in result["findings"]}
     assert findings_by_id["terragrunt_dependencies_detected"]["severity"] == "info"
     assert findings_by_id["terragrunt_inputs_detected"]["evidence"] == ["terragrunt.hcl"]
-    assert findings_by_id["terragrunt_terraform_source_detected"]["evidence"] == [
-        "terragrunt.hcl"
-    ]
+    assert findings_by_id["terragrunt_terraform_source_detected"]["evidence"] == ["terragrunt.hcl"]
 
 
 def test_terragrunt_missing_remote_state_produces_medium_finding(tmp_path) -> None:
@@ -107,9 +104,7 @@ def test_terragrunt_missing_remote_state_produces_medium_finding(tmp_path) -> No
     assert response.status_code == 200
     findings_by_id = {finding["id"]: finding for finding in response.json()["findings"]}
     assert findings_by_id["terragrunt_remote_state_missing"]["severity"] == "medium"
-    assert findings_by_id["terragrunt_remote_state_missing"]["evidence"] == [
-        "terragrunt.hcl"
-    ]
+    assert findings_by_id["terragrunt_remote_state_missing"]["evidence"] == ["terragrunt.hcl"]
 
 
 def test_workspace_summary_suggests_terragrunt_analysis(tmp_path) -> None:

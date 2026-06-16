@@ -133,8 +133,7 @@ def test_local_runner_rejects_cwd_outside_workspace(tmp_path) -> None:
         ).execute(ExecuteApprovedCommandInput(command_id=approved_command.id))
 
     assert (
-        str(exc_info.value)
-        == "Command working directory must be inside the workspace project path"
+        str(exc_info.value) == "Command working directory must be inside the workspace project path"
     )
     assert command_repository.get(approved_command.id).status == "approved"
 

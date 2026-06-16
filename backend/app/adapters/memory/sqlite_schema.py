@@ -1,5 +1,5 @@
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 
 
 def initialize_workspace_schema(db_path: str | Path) -> None:
@@ -180,7 +180,6 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             """
         )
 
-
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS workspace_skill_profiles (
@@ -191,8 +190,6 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             )
             """
         )
-
-
 
         connection.execute(
             """

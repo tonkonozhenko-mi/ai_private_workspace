@@ -13,7 +13,6 @@ from app.core.use_cases.get_workspace_quick_start import (
 )
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -95,9 +94,7 @@ def test_quick_start_steps_include_expected_endpoints(tmp_path) -> None:
 
     quick_start = client.get(f"/workspaces/{workspace_id}/quick-start").json()
 
-    assert _step(quick_start, "runtime_setup")["endpoint"] == (
-        "POST /runtime/setup-guide"
-    )
+    assert _step(quick_start, "runtime_setup")["endpoint"] == ("POST /runtime/setup-guide")
     assert _step(quick_start, "scan_project")["endpoint"] == (
         f"POST /workspaces/{workspace_id}/scan"
     )

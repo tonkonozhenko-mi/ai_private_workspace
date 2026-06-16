@@ -37,21 +37,16 @@ class GetRuntimeSetupGuideUseCase:
         setup_commands_use_case: GetOnboardingSetupCommandsUseCase | None = None,
     ) -> None:
         self.runtime_health_use_case = runtime_health_use_case
-        self.onboarding_plan_use_case = (
-            onboarding_plan_use_case or CreateOnboardingPlanUseCase()
-        )
-        self.setup_commands_use_case = (
-            setup_commands_use_case
-            or GetOnboardingSetupCommandsUseCase(self.onboarding_plan_use_case)
+        self.onboarding_plan_use_case = onboarding_plan_use_case or CreateOnboardingPlanUseCase()
+        self.setup_commands_use_case = setup_commands_use_case or GetOnboardingSetupCommandsUseCase(
+            self.onboarding_plan_use_case
         )
 
     def execute(self, request: GetRuntimeSetupGuideInput) -> RuntimeSetupGuide:
         plan = self._create_plan(request)
         setup_commands = self._get_setup_commands(request)
         runtime_health = self.runtime_health_use_case.execute()
-        components = {
-            component.name: component for component in runtime_health.components
-        }
+        components = {component.name: component for component in runtime_health.components}
 
         actions = [
             self._setup_command_action(command, plan, runtime_health, components)
@@ -138,9 +133,7 @@ class GetRuntimeSetupGuideUseCase:
                 command,
                 done=done,
                 done_reason=f"Ollama model {model} is installed.",
-                needed_reason=(
-                    f"Ollama model {model} is not confirmed as installed."
-                ),
+                needed_reason=(f"Ollama model {model} is not confirmed as installed."),
             )
 
         if command.id == "start_backend":
@@ -152,9 +145,7 @@ class GetRuntimeSetupGuideUseCase:
                 command,
                 done=done,
                 done_reason="The backend is using the recommended runtime providers.",
-                needed_reason=(
-                    "Restart the backend with the recommended runtime providers."
-                ),
+                needed_reason=("Restart the backend with the recommended runtime providers."),
             )
 
         return self._action_from_command(
@@ -188,10 +179,7 @@ class GetRuntimeSetupGuideUseCase:
         done = bool(
             component
             and component.configured
-            and (
-                component.healthy
-                or component.metadata.get("reachable") == "true"
-            )
+            and (component.healthy or component.metadata.get("reachable") == "true")
         )
         return RuntimeSetupAction(
             id="verify_ollama_runtime",
@@ -240,11 +228,7 @@ class GetRuntimeSetupGuideUseCase:
     @staticmethod
     def _ollama_action_position(actions: list[RuntimeSetupAction]) -> int:
         return next(
-            (
-                index
-                for index, action in enumerate(actions)
-                if action.category == "ollama"
-            ),
+            (index for index, action in enumerate(actions) if action.category == "ollama"),
             len(actions),
         )
 

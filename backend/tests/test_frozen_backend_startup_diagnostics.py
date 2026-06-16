@@ -16,7 +16,9 @@ def test_frozen_backend_startup_diagnostics_endpoint() -> None:
     assert payload["check_script"] == "scripts/check_frozen_backend_startup_diagnostics.sh"
     assert payload["smoke_script"] == "scripts/smoke_frozen_backend_runtime.sh"
     assert any(item["id"] == "import-preflight" for item in payload["diagnostics_items"])
-    assert any("/health" in rule for rule in payload["safety_rules"]) or any("health" in item["summary"].lower() for item in payload["diagnostics_items"])
+    assert any("/health" in rule for rule in payload["safety_rules"]) or any(
+        "health" in item["summary"].lower() for item in payload["diagnostics_items"]
+    )
 
 
 def test_frozen_backend_smoke_script_prints_log_tail_on_failure() -> None:

@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -14,9 +13,7 @@ def test_workspace_with_scan_returns_project_overview_report(tmp_path) -> None:
     scan_response = client.post(f"/workspaces/{workspace['id']}/scan")
     assert scan_response.status_code == 200
 
-    response = client.get(
-        f"/workspaces/{workspace['id']}/reports/project-overview"
-    )
+    response = client.get(f"/workspaces/{workspace['id']}/reports/project-overview")
 
     assert response.status_code == 200
     report = response.json()
@@ -36,9 +33,7 @@ def test_project_overview_report_includes_detected_technologies(tmp_path) -> Non
     scan_response = client.post(f"/workspaces/{workspace['id']}/scan")
     assert scan_response.status_code == 200
 
-    response = client.get(
-        f"/workspaces/{workspace['id']}/reports/project-overview"
-    )
+    response = client.get(f"/workspaces/{workspace['id']}/reports/project-overview")
 
     assert response.status_code == 200
     technologies = _section(response.json(), "Detected technologies")
@@ -60,9 +55,7 @@ def test_project_overview_report_includes_infrastructure_and_cicd_sections(
     scan_response = client.post(f"/workspaces/{workspace['id']}/scan")
     assert scan_response.status_code == 200
 
-    response = client.get(
-        f"/workspaces/{workspace['id']}/reports/project-overview"
-    )
+    response = client.get(f"/workspaces/{workspace['id']}/reports/project-overview")
 
     assert response.status_code == 200
     infrastructure = _section(response.json(), "Infrastructure")
@@ -84,9 +77,7 @@ def test_project_overview_report_includes_findings_and_next_steps(tmp_path) -> N
     scan_response = client.post(f"/workspaces/{workspace['id']}/scan")
     assert scan_response.status_code == 200
 
-    response = client.get(
-        f"/workspaces/{workspace['id']}/reports/project-overview"
-    )
+    response = client.get(f"/workspaces/{workspace['id']}/reports/project-overview")
 
     assert response.status_code == 200
     findings = _section(response.json(), "Findings")
@@ -94,9 +85,7 @@ def test_project_overview_report_includes_findings_and_next_steps(tmp_path) -> N
     assert any("medium:" in bullet or "high:" in bullet for bullet in findings["bullets"])
 
     next_steps = _section(response.json(), "Recommended next steps")
-    assert "Review infrastructure configuration and state management." in next_steps[
-        "bullets"
-    ]
+    assert "Review infrastructure configuration and state management." in next_steps["bullets"]
     assert "Review CI/CD workflow structure and permissions." in next_steps["bullets"]
 
     suggested_commands = _section(response.json(), "Suggested commands")
@@ -106,9 +95,7 @@ def test_project_overview_report_includes_findings_and_next_steps(tmp_path) -> N
 def test_project_overview_report_without_scan_returns_400(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
 
-    response = client.get(
-        f"/workspaces/{workspace['id']}/reports/project-overview"
-    )
+    response = client.get(f"/workspaces/{workspace['id']}/reports/project-overview")
 
     assert response.status_code == 400
     assert (

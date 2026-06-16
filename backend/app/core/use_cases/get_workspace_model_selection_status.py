@@ -11,7 +11,6 @@ from app.core.ports.workspace_model_selection_repository import (
 )
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 
-
 STATUS_NOTES = [
     "Model selection status is advisory and does not change active runtime settings.",
     "Installed model availability is not checked by this endpoint.",
@@ -49,9 +48,7 @@ class GetWorkspaceModelSelectionStatusUseCase:
 
         selection = self.selection_repository.get(request.workspace_id)
         selected_llm = selection.selected_llm if selection is not None else None
-        selected_embedding = (
-            selection.selected_embedding if selection is not None else None
-        )
+        selected_embedding = selection.selected_embedding if selection is not None else None
         index_status = self.index_status_repository.get(request.workspace_id)
         is_indexed = index_status is not None and index_status.status == "indexed"
 
@@ -162,8 +159,7 @@ class GetWorkspaceModelSelectionStatusUseCase:
             requires_reindex=False,
             status="ready",
             message=(
-                "Selected embedding model matches active runtime and workspace "
-                "context is indexed."
+                "Selected embedding model matches active runtime and workspace context is indexed."
             ),
         )
 
@@ -223,10 +219,7 @@ class GetWorkspaceModelSelectionStatusUseCase:
             return "not_configured"
         if embedding_status.requires_reindex:
             return "requires_reindex"
-        if (
-            llm_status.status == "runtime_mismatch"
-            or embedding_status.status == "runtime_mismatch"
-        ):
+        if llm_status.status == "runtime_mismatch" or embedding_status.status == "runtime_mismatch":
             return "runtime_mismatch"
         return "ready"
 
@@ -252,9 +245,6 @@ class GetWorkspaceModelSelectionStatusUseCase:
         if embedding_status.requires_reindex:
             actions.append("Reindex workspace context with the selected embedding model.")
 
-        if (
-            llm_status.status == "ready"
-            and embedding_status.status == "ready"
-        ):
+        if llm_status.status == "ready" and embedding_status.status == "ready":
             actions.append("Ask a workspace question.")
         return actions

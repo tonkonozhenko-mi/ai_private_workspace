@@ -1,5 +1,5 @@
-from datetime import UTC, datetime
 import sqlite3
+from datetime import UTC, datetime
 
 from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
 from app.core.domain.workspace import Workspace
@@ -111,8 +111,5 @@ def test_existing_workspace_table_is_migrated_with_archived_at(tmp_path) -> None
     assert workspace is not None
     assert workspace.archived_at is None
     with sqlite3.connect(db_path) as connection:
-        columns = {
-            row[1]
-            for row in connection.execute("PRAGMA table_info(workspaces)").fetchall()
-        }
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(workspaces)").fetchall()}
     assert "archived_at" in columns

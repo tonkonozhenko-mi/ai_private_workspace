@@ -111,9 +111,7 @@ class BackfillWorkspaceTimelineUseCase:
                     ),
                     metadata={
                         "total_files": str(latest_scan.total_files),
-                        "detected_skills_count": str(
-                            len(latest_scan.detected_skills)
-                        ),
+                        "detected_skills_count": str(len(latest_scan.detected_skills)),
                     },
                     created_at=fallback_timestamp,
                 )
@@ -131,9 +129,7 @@ class BackfillWorkspaceTimelineUseCase:
                     ),
                     metadata={
                         "chunks_count": str(index_status.chunks_count),
-                        "indexed_files_count": str(
-                            index_status.indexed_files_count
-                        ),
+                        "indexed_files_count": str(index_status.indexed_files_count),
                     },
                     created_at=index_status.last_indexed_at or fallback_timestamp,
                 )
@@ -180,10 +176,7 @@ class BackfillWorkspaceTimelineUseCase:
                 )
             )
 
-        if (
-            command.rejected_at is not None
-            or command.status == CommandStatus.REJECTED.value
-        ):
+        if command.rejected_at is not None or command.status == CommandStatus.REJECTED.value:
             events.append(
                 self._event(
                     workspace_id=command.workspace_id,
@@ -211,9 +204,7 @@ class BackfillWorkspaceTimelineUseCase:
                     metadata={
                         "command_id": command.id,
                         "exit_code": (
-                            str(command.exit_code)
-                            if command.exit_code is not None
-                            else ""
+                            str(command.exit_code) if command.exit_code is not None else ""
                         ),
                         "status": command.status,
                     },
@@ -245,8 +236,6 @@ class BackfillWorkspaceTimelineUseCase:
     @staticmethod
     def _event_key(event: TimelineEvent) -> tuple[str, str | None]:
         command_id = (
-            event.metadata.get("command_id")
-            if event.event_type.startswith("command_")
-            else None
+            event.metadata.get("command_id") if event.event_type.startswith("command_") else None
         )
         return event.event_type, command_id

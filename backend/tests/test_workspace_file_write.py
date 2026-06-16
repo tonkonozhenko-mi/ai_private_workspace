@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -36,9 +35,7 @@ def test_explicit_file_write_creates_file_inside_workspace(tmp_path) -> None:
 
     assert response.status_code == 201
     assert response.json()["status"] == "created"
-    assert (tmp_path / "docs/generated.md").read_text() == (
-        "# Generated\n\nReviewed content."
-    )
+    assert (tmp_path / "docs/generated.md").read_text() == ("# Generated\n\nReviewed content.")
 
 
 def test_file_write_requires_explicit_overwrite(tmp_path) -> None:

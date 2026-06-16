@@ -1,7 +1,7 @@
-from datetime import UTC, datetime
 import json
-from pathlib import Path
 import sqlite3
+from datetime import UTC, datetime
+from pathlib import Path
 
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
 from app.core.domain.project_scan import ProjectFile, ProjectScanResult

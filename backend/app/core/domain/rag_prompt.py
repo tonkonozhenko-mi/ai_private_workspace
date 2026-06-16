@@ -9,7 +9,6 @@ class SkillPromptInstruction:
     instruction: str
 
 
-
 def build_workspace_question_prompt(
     question: str,
     context_results: list[ContextSearchResult],
@@ -121,16 +120,11 @@ def build_project_understanding_prompt(
     """
 
     context_sections = [
-        (
-            f"[{index}] source_path: {result.source_path}\n"
-            f"content:\n{result.content}"
-        )
+        (f"[{index}] source_path: {result.source_path}\ncontent:\n{result.content}")
         for index, result in enumerate(context_results, start=1)
     ]
     context = "\n\n".join(context_sections)
-    source_paths = ", ".join(
-        dict.fromkeys(result.source_path for result in context_results)
-    )
+    source_paths = ", ".join(dict.fromkeys(result.source_path for result in context_results))
     lens_hint = assistant_mode_lens_hint(assistant_mode)
 
     return (
@@ -153,19 +147,19 @@ def build_project_understanding_prompt(
         'command found in the excerpts>", "note": "<what it does>"}]}.\n'
         "- Only state what is supported by the provided excerpts. Never invent "
         "facts, files, features, or commands.\n"
-        "- Each risk must cite the source_path it is grounded in via the \"file\" "
+        '- Each risk must cite the source_path it is grounded in via the "file" '
         "field, copied exactly as shown above; use null only if no single file "
         "supports it.\n"
         f"- Include at most {max_risks} risks. If the excerpts do not provide "
         "enough evidence for risks, return an empty risks list and a brief, "
         "honest summary.\n"
-        "- For \"start_here\", list at most 4 files, each \"file\" copied exactly "
+        '- For "start_here", list at most 4 files, each "file" copied exactly '
         "from the source paths above; order them as a sensible reading order. Use "
         "an empty list if unsure.\n"
-        "- For \"run_commands\", list at most 5 commands and ONLY commands that "
+        '- For "run_commands", list at most 5 commands and ONLY commands that '
         "literally appear in the excerpts (e.g. in a README or config). Never "
         "guess commands; use an empty list if none appear.\n"
-        "- For \"architecture\", keep it plain-language and grounded; use an empty "
+        '- For "architecture", keep it plain-language and grounded; use an empty '
         "string if the excerpts do not support it.\n"
         "- Keep all text plain-language and concise.\n"
         "- Do not include markdown, commentary, or explanations outside the JSON."

@@ -8,7 +8,6 @@ from app.core.use_cases.create_onboarding_plan import (
     OnboardingPlanValidationError,
 )
 
-
 ALLOWED_CONTAINER_RUNTIMES = {"podman", "docker"}
 
 
@@ -29,9 +28,7 @@ class GetOnboardingSetupCommandsUseCase:
         self,
         onboarding_plan_use_case: CreateOnboardingPlanUseCase | None = None,
     ) -> None:
-        self.onboarding_plan_use_case = (
-            onboarding_plan_use_case or CreateOnboardingPlanUseCase()
-        )
+        self.onboarding_plan_use_case = onboarding_plan_use_case or CreateOnboardingPlanUseCase()
 
     def execute(
         self,
@@ -63,10 +60,7 @@ class GetOnboardingSetupCommandsUseCase:
                 self._command(
                     id="pull_ollama_embedding_model",
                     title="Pull Ollama embedding model",
-                    command=(
-                        "ollama pull "
-                        f"{plan.recommended_models['OLLAMA_EMBEDDING_MODEL']}"
-                    ),
+                    command=(f"ollama pull {plan.recommended_models['OLLAMA_EMBEDDING_MODEL']}"),
                     description="Install the recommended local embedding model.",
                     category="ollama",
                     required=True,
@@ -78,9 +72,7 @@ class GetOnboardingSetupCommandsUseCase:
                 self._command(
                     id="pull_ollama_llm_model",
                     title="Pull Ollama LLM model",
-                    command=(
-                        f"ollama pull {plan.recommended_models['OLLAMA_LLM_MODEL']}"
-                    ),
+                    command=(f"ollama pull {plan.recommended_models['OLLAMA_LLM_MODEL']}"),
                     description="Install the recommended local language model.",
                     category="ollama",
                     required=True,

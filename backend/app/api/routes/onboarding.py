@@ -43,7 +43,6 @@ from app.core.use_cases.get_onboarding_setup_commands import (
 from app.core.use_cases.get_runtime_health import GetRuntimeHealthUseCase
 from app.core.use_cases.get_runtime_setup_guide import GetRuntimeSetupGuideUseCase
 
-
 router = APIRouter(prefix="/onboarding", tags=["onboarding"])
 
 

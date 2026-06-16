@@ -1,6 +1,6 @@
-from pathlib import Path
 import shlex
 import subprocess
+from pathlib import Path
 
 from app.core.ports.command_runner import CommandResult
 
@@ -50,9 +50,7 @@ class LocalCommandRunner:
             )
         except subprocess.TimeoutExpired as exc:
             stdout = self._limit_output(exc.stdout or "")
-            stderr = self._limit_output(
-                f"Command timed out after {self.timeout_seconds} seconds."
-            )
+            stderr = self._limit_output(f"Command timed out after {self.timeout_seconds} seconds.")
             return CommandResult(
                 command=command,
                 stdout=stdout,

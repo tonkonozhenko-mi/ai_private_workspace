@@ -101,9 +101,7 @@ class GetWorkspaceUIActionsUseCase:
                 endpoint=f"/workspaces/{workspace_id}/scan",
                 category="setup",
                 status=(
-                    "recommended"
-                    if quick_start_next_action_id == "scan_project"
-                    else "available"
+                    "recommended" if quick_start_next_action_id == "scan_project" else "available"
                 ),
                 primary_action_id=primary_action_id,
                 mutates_data=True,
@@ -197,8 +195,7 @@ class GetWorkspaceUIActionsUseCase:
                     if not models_summary.can_ask_with_selected_llm
                     else (
                         "recommended"
-                        if models_summary.primary_next_action_id
-                        == "ask_with_selected_llm"
+                        if models_summary.primary_next_action_id == "ask_with_selected_llm"
                         else "available"
                     )
                 ),

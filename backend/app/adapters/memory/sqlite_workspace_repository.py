@@ -1,6 +1,6 @@
+import sqlite3
 from datetime import datetime
 from pathlib import Path
-import sqlite3
 
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
 from app.core.domain.workspace import Workspace

@@ -58,9 +58,7 @@ class AnalyzeTerraformUseCase:
         has_provider_config = self._contains_any(file_contents, 'provider "')
         has_variables = self._contains_any(file_contents, 'variable "')
         has_outputs = self._contains_any(file_contents, 'output "')
-        module_files = [
-            path for path, content in file_contents.items() if 'module "' in content
-        ]
+        module_files = [path for path, content in file_contents.items() if 'module "' in content]
         has_modules = bool(module_files)
 
         return TerraformAnalysisResult(

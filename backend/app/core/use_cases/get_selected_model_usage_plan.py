@@ -46,18 +46,12 @@ class GetSelectedModelUsagePlanUseCase:
 
         selection = self.selection_repository.get(request.workspace_id)
         selected_llm = selection.selected_llm if selection is not None else None
-        selected_embedding = (
-            selection.selected_embedding if selection is not None else None
-        )
+        selected_embedding = selection.selected_embedding if selection is not None else None
         active_llm_provider, active_llm_model = self._active_model("llm")
-        active_embedding_provider, active_embedding_model = self._active_model(
-            "embedding"
-        )
+        active_embedding_provider, active_embedding_model = self._active_model("embedding")
         saved_index_status = self.index_status_repository.get(request.workspace_id)
         index_status = (
-            saved_index_status.status
-            if saved_index_status is not None
-            else "not_indexed"
+            saved_index_status.status if saved_index_status is not None else "not_indexed"
         )
 
         llm_capability = self._llm_capability(selected_llm)
@@ -89,9 +83,7 @@ class GetSelectedModelUsagePlanUseCase:
             selected_embedding_provider=(
                 selected_embedding.provider if selected_embedding else None
             ),
-            selected_embedding_model=(
-                selected_embedding.model if selected_embedding else None
-            ),
+            selected_embedding_model=(selected_embedding.model if selected_embedding else None),
             active_llm_provider=active_llm_provider,
             active_llm_model=active_llm_model,
             active_embedding_provider=active_embedding_provider,
@@ -109,9 +101,7 @@ class GetSelectedModelUsagePlanUseCase:
                 active_embedding_provider=active_embedding_provider,
                 active_embedding_model=active_embedding_model,
                 index_status=index_status,
-                can_search_with_selected_embedding=(
-                    embedding_search_capability.available
-                ),
+                can_search_with_selected_embedding=(embedding_search_capability.available),
             ),
             notes=[
                 (
@@ -225,8 +215,7 @@ class GetSelectedModelUsagePlanUseCase:
                 available=False,
                 status="needs_action",
                 reason=(
-                    "The selected embedding model is active, but workspace context "
-                    "is not indexed."
+                    "The selected embedding model is active, but workspace context is not indexed."
                 ),
             )
         return SelectedModelUsageCapability(
@@ -287,26 +276,18 @@ class GetSelectedModelUsagePlanUseCase:
                 f"{selected_llm.provider}/{selected_llm.model}."
             )
 
-        embedding_matches = (
-            selected_embedding is not None
-            and self._matches(
-                selected_embedding,
-                active_embedding_provider,
-                active_embedding_model,
-            )
+        embedding_matches = selected_embedding is not None and self._matches(
+            selected_embedding,
+            active_embedding_provider,
+            active_embedding_model,
         )
         if selected_embedding is not None and not embedding_matches:
             actions.append(
-                "Restart backend with the selected embedding provider and model "
-                "configuration."
+                "Restart backend with the selected embedding provider and model configuration."
             )
-        if selected_embedding is not None and (
-            not embedding_matches or index_status != "indexed"
-        ):
+        if selected_embedding is not None and (not embedding_matches or index_status != "indexed"):
             actions.append("Reindex workspace context with the selected embedding model.")
 
         if llm_capability.available and can_search_with_selected_embedding:
-            actions.append(
-                "Ask a workspace question using the selected LLM per-request override."
-            )
+            actions.append("Ask a workspace question using the selected LLM per-request override.")
         return actions

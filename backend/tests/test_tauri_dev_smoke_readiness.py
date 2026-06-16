@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -19,8 +18,12 @@ def test_tauri_dev_smoke_readiness_endpoint_records_local_success():
     assert payload["local_success_reported"] is True
     assert payload["milestone"] == "Task 256 — Tauri dev smoke success recorded"
     assert payload["check_script"] == "scripts/check_tauri_dev_smoke_readiness.sh"
-    assert any(item["id"] == "tauri-dev" and item["status"] == "ok" for item in payload["readiness_items"])
-    assert any("npm run tauri dev" in command["command"] for command in payload["validation_commands"])
+    assert any(
+        item["id"] == "tauri-dev" and item["status"] == "ok" for item in payload["readiness_items"]
+    )
+    assert any(
+        "npm run tauri dev" in command["command"] for command in payload["validation_commands"]
+    )
     assert any("not start scan" in rule for rule in payload["safety_rules"])
 
 

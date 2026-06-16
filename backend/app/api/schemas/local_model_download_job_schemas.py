@@ -35,7 +35,9 @@ class LocalModelDownloadJobListResponse(BaseModel):
     summary: str
 
 
-def to_local_model_download_job_response(job: LocalModelDownloadJob) -> LocalModelDownloadJobResponse:
+def to_local_model_download_job_response(
+    job: LocalModelDownloadJob,
+) -> LocalModelDownloadJobResponse:
     return LocalModelDownloadJobResponse(
         id=job.id,
         command_id=job.command_id,

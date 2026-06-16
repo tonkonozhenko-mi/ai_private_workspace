@@ -23,7 +23,6 @@ from app.core.use_cases.add_timeline_event import (
     AddTimelineEventUseCase,
 )
 
-
 ALLOWED_MODEL_TYPES = {"llm", "embedding"}
 
 
@@ -70,9 +69,7 @@ class UpdateWorkspaceModelSelectionUseCase:
         model = request.model.strip()
         model_type = request.model_type.strip().lower()
         if not provider or not model:
-            raise UpdateWorkspaceModelSelectionValidationError(
-                "Provider and model are required"
-            )
+            raise UpdateWorkspaceModelSelectionValidationError("Provider and model are required")
         if model_type not in ALLOWED_MODEL_TYPES:
             raise UpdateWorkspaceModelSelectionValidationError(
                 f"Unknown model type: {request.model_type}"
@@ -90,9 +87,7 @@ class UpdateWorkspaceModelSelectionUseCase:
                 raise UpdateWorkspaceModelSelectionValidationError(str(exc)) from exc
 
         selected_reason = (
-            request.selected_reason.strip()
-            if request.selected_reason is not None
-            else None
+            request.selected_reason.strip() if request.selected_reason is not None else None
         )
         if selected_reason == "":
             selected_reason = None
@@ -105,28 +100,20 @@ class UpdateWorkspaceModelSelectionUseCase:
         )
         current = self.selection_repository.get(request.workspace_id)
         selected_llm = current.selected_llm if current is not None else None
-        selected_embedding = (
-            current.selected_embedding if current is not None else None
-        )
+        selected_embedding = current.selected_embedding if current is not None else None
         embedding_changed = False
         if model_type == "llm":
             selected_llm = selected_model
         else:
-            embedding_changed = (
-                selected_embedding is not None
-                and (
-                    selected_embedding.provider != provider
-                    or selected_embedding.model != model
-                )
+            embedding_changed = selected_embedding is not None and (
+                selected_embedding.provider != provider or selected_embedding.model != model
             )
             selected_embedding = selected_model
 
         notes = [PREFERENCE_ONLY_NOTE]
         if self._has_unknown_selection(selected_llm, selected_embedding):
             notes.append(UNKNOWN_CATALOG_NOTE)
-        if embedding_changed or (
-            current is not None and EMBEDDING_CHANGE_NOTE in current.notes
-        ):
+        if embedding_changed or (current is not None and EMBEDDING_CHANGE_NOTE in current.notes):
             notes.append(EMBEDDING_CHANGE_NOTE)
 
         saved = self.selection_repository.save(

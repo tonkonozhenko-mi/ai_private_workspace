@@ -2,7 +2,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -121,7 +120,10 @@ def test_agent_workflow_approval_gate_blocks_done_until_approved() -> None:
         json={"status": "done", "notes": "Manual result checked."},
     )
     assert done_response.status_code == 200
-    assert next(item for item in done_response.json()["steps"] if item["id"] == step["id"])["status"] == "done"
+    assert (
+        next(item for item in done_response.json()["steps"] if item["id"] == step["id"])["status"]
+        == "done"
+    )
 
 
 def test_agent_workflow_execution_readiness_maps_mcp_tools_and_evidence() -> None:
@@ -135,7 +137,11 @@ def test_agent_workflow_execution_readiness_maps_mcp_tools_and_evidence() -> Non
     config = config_response.json()
     update_config_response = client.patch(
         f"/mcp/workspaces/{workspace_id}/configs/{config['id']}",
-        json={"enabled": True, "reviewed": True, "approved_tools": ["read_file", "list_directory", "search_files"]},
+        json={
+            "enabled": True,
+            "reviewed": True,
+            "approved_tools": ["read_file", "list_directory", "search_files"],
+        },
     )
     assert update_config_response.status_code == 200
 
@@ -160,7 +166,9 @@ def test_agent_workflow_execution_readiness_maps_mcp_tools_and_evidence() -> Non
         },
     )
     assert evidence_response.status_code == 200
-    updated_step = next(item for item in evidence_response.json()["steps"] if item["id"] == step["id"])
+    updated_step = next(
+        item for item in evidence_response.json()["steps"] if item["id"] == step["id"]
+    )
     assert updated_step["evidence_status"] == "provided"
     assert updated_step["evidence_sources"] == ["README.md"]
 

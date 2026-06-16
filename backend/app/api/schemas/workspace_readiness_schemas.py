@@ -47,8 +47,7 @@ def to_workspace_readiness_response(
         can_ask=readiness.can_ask,
         can_execute_commands=readiness.can_execute_commands,
         capabilities=[
-            to_workspace_capability_response(capability)
-            for capability in readiness.capabilities
+            to_workspace_capability_response(capability) for capability in readiness.capabilities
         ],
         recommended_next_steps=readiness.recommended_next_steps,
         configuration=readiness.configuration,

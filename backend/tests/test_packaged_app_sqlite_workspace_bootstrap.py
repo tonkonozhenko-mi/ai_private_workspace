@@ -8,7 +8,6 @@ from app.api.routes import workspaces as workspaces_routes
 from app.config.settings import get_settings
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -86,7 +85,7 @@ def test_packaged_runtime_source_contracts() -> None:
     entrypoint = (root / "backend/packaging/pyinstaller_backend_entrypoint.py").read_text()
     tauri_config = (root / "frontend/src-tauri/tauri.conf.json").read_text()
 
-    assert 'fs::create_dir_all(data_dir())' in tauri_source
+    assert "fs::create_dir_all(data_dir())" in tauri_source
     assert '.env("APP_DATA_DIR", app_data_dir())' in tauri_source
     assert '.env("WORKSPACE_DB_PATH", workspace_db_path())' in tauri_source
     assert "Resolved workspace database path" in tauri_source
@@ -94,6 +93,6 @@ def test_packaged_runtime_source_contracts() -> None:
     assert "AI Private Workspace app-owned backend start" in tauri_source
     assert "tauri::RunEvent::Exit" in tauri_source
     assert "libc::kill(pid as i32, libc::SIGTERM)" in tauri_source
-    assert "default=app_data_dir / \"data\" / \"workspaces.db\"" in entrypoint
+    assert 'default=app_data_dir / "data" / "workspaces.db"' in entrypoint
     assert '"identifier": "local.ai-private-workspace"' in tauri_config
     assert '"identifier": "local.ai-private-workspace.app"' not in tauri_config

@@ -82,9 +82,7 @@ class WriteWorkspaceFileUseCase:
         normalized = value.strip().replace("\\", "/")
         path = PurePosixPath(normalized)
         if not normalized or path.is_absolute() or ".." in path.parts:
-            raise WriteWorkspaceFileValidationError(
-                "Use a relative path inside the workspace"
-            )
+            raise WriteWorkspaceFileValidationError("Use a relative path inside the workspace")
         if normalized.endswith("/") or path.name in {"", ".", ".."}:
             raise WriteWorkspaceFileValidationError("Target path must name a file")
         return path.as_posix()

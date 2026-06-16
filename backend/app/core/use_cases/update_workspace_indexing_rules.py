@@ -3,8 +3,8 @@ from datetime import UTC, datetime
 
 from app.core.domain.indexing_rules import IndexingRulesProfile, normalize_patterns
 from app.core.ports.indexing_rules_repository import IndexingRulesRepositoryPort
-from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
+from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.use_cases.add_timeline_event import AddTimelineEventInput, AddTimelineEventUseCase
 
 

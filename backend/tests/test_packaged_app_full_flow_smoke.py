@@ -10,7 +10,6 @@ from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepos
 from app.config.settings import get_settings
 from app.main import app
 
-
 client = TestClient(app)
 PACKAGED_ORIGIN = "http://tauri.localhost"
 

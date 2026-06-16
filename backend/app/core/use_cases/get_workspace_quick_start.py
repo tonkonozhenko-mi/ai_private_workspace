@@ -32,10 +32,7 @@ class GetWorkspaceQuickStartUseCase:
         if self.workspace_repository.get(request.workspace_id) is None:
             raise WorkspaceQuickStartNotFoundError("Workspace not found")
 
-        has_scan = (
-            self.project_scan_repository.get_latest_scan(request.workspace_id)
-            is not None
-        )
+        has_scan = self.project_scan_repository.get_latest_scan(request.workspace_id) is not None
         index_status = self.index_status_repository.get(request.workspace_id)
         is_indexed = bool(
             has_scan and index_status is not None and index_status.status == "indexed"
@@ -43,9 +40,7 @@ class GetWorkspaceQuickStartUseCase:
         llm_provider = self.configuration.get("LLM_PROVIDER", "").lower()
         vector_store = self.configuration.get("VECTOR_STORE", "").lower()
         has_real_llm = bool(llm_provider and llm_provider != "fake")
-        has_persistent_vector_store = bool(
-            vector_store and vector_store != "memory"
-        )
+        has_persistent_vector_store = bool(vector_store and vector_store != "memory")
 
         status = self._status(
             has_scan=has_scan,
@@ -111,9 +106,7 @@ class GetWorkspaceQuickStartUseCase:
             QuickStartStep(
                 id="runtime_setup",
                 title="Review runtime setup",
-                description=(
-                    "Review configured providers and optional local runtime upgrades."
-                ),
+                description=("Review configured providers and optional local runtime upgrades."),
                 status="done" if real_runtime_configured else "optional",
                 action_id="review_runtime_setup",
                 endpoint="POST /runtime/setup-guide",
@@ -138,13 +131,7 @@ class GetWorkspaceQuickStartUseCase:
                 id="index_workspace",
                 title="Index workspace context",
                 description="Build searchable context from the latest project scan.",
-                status=(
-                    "done"
-                    if is_indexed
-                    else "next"
-                    if has_scan
-                    else "blocked"
-                ),
+                status=("done" if is_indexed else "next" if has_scan else "blocked"),
                 action_id="index_workspace" if has_scan else None,
                 endpoint=f"POST /workspaces/{workspace_id}/index",
             ),
@@ -162,9 +149,7 @@ class GetWorkspaceQuickStartUseCase:
                 description="Generate a deterministic overview from scan and analysis data.",
                 status="optional" if has_scan else "blocked",
                 action_id="generate_project_overview" if has_scan else None,
-                endpoint=(
-                    f"GET /workspaces/{workspace_id}/reports/project-overview"
-                ),
+                endpoint=(f"GET /workspaces/{workspace_id}/reports/project-overview"),
             ),
         ]
 
@@ -173,9 +158,7 @@ class GetWorkspaceQuickStartUseCase:
         has_real_llm: bool,
         has_persistent_vector_store: bool,
     ) -> list[str]:
-        notes = [
-            "Quick Start reads persisted state only and never runs workspace actions."
-        ]
+        notes = ["Quick Start reads persisted state only and never runs workspace actions."]
         if not has_persistent_vector_store:
             notes.append(
                 "The in-memory vector store loses context after API restart; "

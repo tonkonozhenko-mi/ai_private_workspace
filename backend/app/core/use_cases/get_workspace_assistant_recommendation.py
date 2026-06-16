@@ -43,9 +43,7 @@ class GetWorkspaceAssistantRecommendationUseCase:
         index_status = self.index_status_repository.get(request.workspace_id)
         profile = self.profile_registry.get_profile(workspace.assistant_mode)
         matched_skills = (
-            [skill.name for skill in latest_scan.detected_skills]
-            if latest_scan is not None
-            else []
+            [skill.name for skill in latest_scan.detected_skills] if latest_scan is not None else []
         )
         is_indexed = index_status is not None and index_status.status == "indexed"
 
@@ -86,9 +84,7 @@ class GetWorkspaceAssistantRecommendationUseCase:
             "analyze_cicd",
             "analyze_python",
         }
-        actions.extend(
-            action for action in profile_actions if action not in conditional_actions
-        )
+        actions.extend(action for action in profile_actions if action not in conditional_actions)
 
         if has_scan:
             if profile_id == "devops" and "Terraform" in matched_skills:

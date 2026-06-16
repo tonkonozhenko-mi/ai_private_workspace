@@ -59,10 +59,13 @@ def test_workspace_skill_profile_requires_existing_workspace() -> None:
     client = TestClient(app)
 
     assert client.get("/workspaces/missing/skill-profile").status_code == 404
-    assert client.put(
-        "/workspaces/missing/skill-profile",
-        json={"profile": "workspace", "skills": []},
-    ).status_code == 404
+    assert (
+        client.put(
+            "/workspaces/missing/skill-profile",
+            json={"profile": "workspace", "skills": []},
+        ).status_code
+        == 404
+    )
 
 
 def test_workspace_skill_profile_save_adds_activity_event() -> None:
@@ -122,26 +125,29 @@ def test_ask_response_includes_saved_skill_profile_audit(tmp_path) -> None:
     ).json()
     workspace_id = created["id"]
 
-    assert client.put(
-        f"/workspaces/{workspace_id}/skill-profile",
-        json={
-            "profile": "workspace",
-            "skills": [
-                {
-                    "id": "documentation",
-                    "name": "Documentation",
-                    "enabled": True,
-                    "custom_instructions": "Focus on documentation quality.",
-                },
-                {
-                    "id": "devops",
-                    "name": "DevOps",
-                    "enabled": False,
-                    "custom_instructions": "Focus on infrastructure.",
-                },
-            ],
-        },
-    ).status_code == 200
+    assert (
+        client.put(
+            f"/workspaces/{workspace_id}/skill-profile",
+            json={
+                "profile": "workspace",
+                "skills": [
+                    {
+                        "id": "documentation",
+                        "name": "Documentation",
+                        "enabled": True,
+                        "custom_instructions": "Focus on documentation quality.",
+                    },
+                    {
+                        "id": "devops",
+                        "name": "DevOps",
+                        "enabled": False,
+                        "custom_instructions": "Focus on infrastructure.",
+                    },
+                ],
+            },
+        ).status_code
+        == 200
+    )
     assert client.post(f"/workspaces/{workspace_id}/scan").status_code == 200
     assert client.post(f"/workspaces/{workspace_id}/index").status_code == 200
 

@@ -67,7 +67,5 @@ def to_workspaces_overview_response(
 ) -> WorkspacesOverviewResponse:
     return WorkspacesOverviewResponse(
         total_workspaces=overview.total_workspaces,
-        items=[
-            to_workspace_overview_item_response(item) for item in overview.items
-        ],
+        items=[to_workspace_overview_item_response(item) for item in overview.items],
     )

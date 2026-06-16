@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -86,13 +85,9 @@ def test_update_rejects_empty_name_and_unknown_modes(tmp_path) -> None:
     assert empty_name.status_code == 400
     assert empty_name.json()["detail"] == "Workspace name cannot be empty"
     assert unknown_assistant.status_code == 400
-    assert unknown_assistant.json()["detail"] == (
-        "Unknown assistant profile: unknown-profile"
-    )
+    assert unknown_assistant.json()["detail"] == ("Unknown assistant profile: unknown-profile")
     assert unknown_privacy.status_code == 400
-    assert unknown_privacy.json()["detail"] == (
-        "Unsupported privacy mode: cloud_public"
-    )
+    assert unknown_privacy.json()["detail"] == ("Unsupported privacy mode: cloud_public")
 
 
 def test_update_creates_timeline_event_with_changed_fields(tmp_path) -> None:
@@ -151,9 +146,7 @@ def test_update_does_not_mutate_scan_index_or_command_data(tmp_path) -> None:
 
     assert response.status_code == 200
     assert client.get(f"/workspaces/{workspace['id']}/scan").status_code == 200
-    assert client.get(f"/workspaces/{workspace['id']}/index/status").json()["status"] == (
-        "indexed"
-    )
+    assert client.get(f"/workspaces/{workspace['id']}/index/status").json()["status"] == ("indexed")
     commands = client.get(f"/workspaces/{workspace['id']}/commands").json()
     assert [command["id"] for command in commands] == [command_response.json()["id"]]
 

@@ -14,7 +14,7 @@ def test_desktop_supervisor_contract_is_read_only_and_safe():
     assert body["default_backend_port"] == 8000
     assert body["health_endpoint"] == "http://127.0.0.1:8000/health"
     assert body["supervisor_script"] == "scripts/desktop_supervisor_contract.sh"
-    assert any("Never kill by port" == rule["title"] for rule in body["port_rules"])
+    assert any(rule["title"] == "Never kill by port" for rule in body["port_rules"])
     assert any("Frontend never executes shell commands" in rule for rule in body["safety_rules"])
     assert any("No scan, index, rebuild" in rule for rule in body["safety_rules"])
     assert any(stream["id"] == "backend" for stream in body["log_streams"])

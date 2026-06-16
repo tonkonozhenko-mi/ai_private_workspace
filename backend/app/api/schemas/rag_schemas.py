@@ -25,9 +25,7 @@ class AskWorkspaceQuestionRequest(BaseModel):
     images: list[str] = Field(default_factory=list, max_length=4)
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
     think: bool | None = None
-    attached_documents: list[AttachedDocumentRequest] = Field(
-        default_factory=list, max_length=6
-    )
+    attached_documents: list[AttachedDocumentRequest] = Field(default_factory=list, max_length=6)
 
 
 class AskWorkspaceQuestionWithSelectedLLMRequest(BaseModel):
@@ -38,9 +36,7 @@ class AskWorkspaceQuestionWithSelectedLLMRequest(BaseModel):
     images: list[str] = Field(default_factory=list, max_length=4)
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
     think: bool | None = None
-    attached_documents: list[AttachedDocumentRequest] = Field(
-        default_factory=list, max_length=6
-    )
+    attached_documents: list[AttachedDocumentRequest] = Field(default_factory=list, max_length=6)
 
 
 class RagSourceResponse(BaseModel):
@@ -156,8 +152,7 @@ def to_workspace_question_answer_response(
         diagnostic_code=result.diagnostic_code,
         diagnostic_message=result.diagnostic_message,
         quality_warnings=[
-            to_rag_quality_warning_response(warning)
-            for warning in result.quality_warnings
+            to_rag_quality_warning_response(warning) for warning in result.quality_warnings
         ],
         usage=to_llm_usage_metrics_response(result.usage),
         skill_profile=to_skill_profile_audit_response(result.skill_profile),
