@@ -170,12 +170,12 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
             <span className="section-eyebrow">Assistant mode</span>
             <p>Sets the starting lens — guidance and wording only. It never runs anything.</p>
           </div>
-          <div className="choice-card-grid compact">
+          <div className="choice-card-grid compact assistant-grid">
             {assistantModes.map((mode) => (
               <button
                 key={mode.id}
                 type="button"
-                className={`choice-card${assistantMode === mode.id ? " is-selected" : ""}`}
+                className={`choice-card assistant-card${assistantMode === mode.id ? " is-selected" : ""}`}
                 onClick={() => setAssistantMode(mode.id)}
               >
                 <strong>{mode.label}</strong>

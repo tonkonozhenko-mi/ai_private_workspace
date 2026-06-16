@@ -239,6 +239,13 @@ function App() {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
   const [setupTakeoverDismissed, setSetupTakeoverDismissed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem("apw.sidebarCollapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
   const [archivingWorkspaceId, setArchivingWorkspaceId] = useState<string | null>(null);
   const [restoringWorkspaceId, setRestoringWorkspaceId] = useState<string | null>(null);
@@ -765,6 +772,14 @@ function App() {
     setSetupTakeoverDismissed(false);
   }, [selectedWorkspaceId]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("apw.sidebarCollapsed", sidebarCollapsed ? "1" : "0");
+    } catch {
+      // Ignore storage failures (private mode, etc.).
+    }
+  }, [sidebarCollapsed]);
+
   const isFirstRun =
     !workspacesLoading &&
     !workspacesError &&
@@ -778,6 +793,22 @@ function App() {
         productName={preferences.productName}
         onOpen={() => setShowCreateWorkspace(true)}
       />
+    );
+  }
+
+  // Creating a workspace is a focused, full-window task — hide the sidebar
+  // (which only says "no projects" at this point and adds no value).
+  if (showCreateWorkspace) {
+    return (
+      <div className="setup-takeover">
+        <UpdateNotice />
+        <div className="setup-takeover-body create-takeover-body">
+          <CreateWorkspacePanel
+            onCreated={(workspace) => void handleWorkspaceCreated(workspace.id)}
+            onCancel={() => setShowCreateWorkspace(false)}
+          />
+        </div>
+      </div>
     );
   }
 
@@ -839,8 +870,25 @@ function App() {
   }
 
   return (
-    <div className={`app-shell${preferences.demoMode === "on" ? " is-demo-mode" : ""}`}>
+    <div
+      className={`app-shell${preferences.demoMode === "on" ? " is-demo-mode" : ""}${
+        sidebarCollapsed ? " is-sidebar-collapsed" : ""
+      }`}
+    >
       <UpdateNotice />
+      {sidebarCollapsed ? (
+        <button
+          className="sidebar-reveal"
+          type="button"
+          title="Show projects"
+          aria-label="Show projects"
+          onClick={() => setSidebarCollapsed(false)}
+        >
+          <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      ) : null}
       <aside className="sidebar">
         <header className="brand">
           <img
@@ -854,6 +902,17 @@ function App() {
             <strong>{preferences.productName}</strong>
             <span>Local-first</span>
           </div>
+          <button
+            className="sidebar-collapse-button"
+            type="button"
+            title="Hide sidebar"
+            aria-label="Hide sidebar"
+            onClick={() => setSidebarCollapsed(true)}
+          >
+            <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M15 6l-6 6 6 6" />
+            </svg>
+          </button>
         </header>
 
         <div className="sidebar-heading">

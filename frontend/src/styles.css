@@ -1631,6 +1631,17 @@ details.onboarding-guide-panel[open] > summary {
 .choice-card:hover { border-color: var(--c-border-strong); background: var(--c-surface-3); }
 .choice-card.is-selected { border-color: var(--c-accent); background: var(--c-accent-soft); box-shadow: inset 0 0 0 1px var(--c-accent); }
 .choice-card.is-selected strong { color: var(--c-text); }
+
+/* Compact, denser assistant-mode picker (5 modes shouldn't dominate the form) */
+.assistant-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px; }
+.assistant-card { padding: 11px 13px; gap: 3px; }
+.assistant-card strong { font-size: 13px; }
+.assistant-card span { font-size: 11.5px; line-height: 1.4; color: var(--c-text-3); }
+.assistant-card.is-selected span { color: var(--c-text-2); }
+
+/* Full-window create-workspace screen (sidebar hidden) */
+.create-takeover-body { align-items: flex-start; justify-content: center; padding: 36px 24px 64px; overflow-y: auto; }
+.create-takeover-body .create-workspace-page { width: 100%; max-width: 840px; }
 .choice-card.is-selected::after { content: "✓ Selected"; margin-top: 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--c-accent); }
 .context-build-callout-note { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: var(--s-4); }
 .experiment-rating-panel { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: var(--s-4); }
@@ -1903,7 +1914,49 @@ details.onboarding-guide-panel[open] > summary {
   width: 100%;
   overflow: hidden;
   background: var(--c-bg);
+  position: relative;
+  transition: grid-template-columns 0.24s ease;
 }
+
+/* Collapsible sidebar — slides away for an airier, focused workspace. */
+.app-shell.is-sidebar-collapsed {
+  grid-template-columns: 0 1fr;
+}
+.app-shell .sidebar {
+  overflow-x: hidden;
+  min-width: 0;
+}
+.app-shell.is-sidebar-collapsed .sidebar {
+  border-right: none;
+}
+.sidebar .brand {
+  position: relative;
+}
+.sidebar-collapse-button,
+.sidebar-reveal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface-2);
+  color: var(--c-text-2);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.sidebar-collapse-button { margin-left: auto; }
+.sidebar-collapse-button:hover,
+.sidebar-reveal:hover { color: var(--c-text); border-color: var(--c-border-strong); background: var(--c-surface-3); }
+.sidebar-reveal {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 20;
+}
+.sidebar-reveal .nav-icon,
+.sidebar-collapse-button .nav-icon { width: 17px; height: 17px; }
 
 /* ---------- Sidebar ---------- */
 .sidebar {

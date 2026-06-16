@@ -260,18 +260,6 @@ export function ModelsDetail({
             status={getSearchContextStatusLabel(dashboard)}
           />
         </div>
-        {dashboard.overall_status !== "ready" ? (
-          <div className="models-setup-cta">
-            <button
-              className="overview-cta-button"
-              type="button"
-              onClick={() => setActiveSection("catalog")}
-            >
-              Choose &amp; install models
-            </button>
-            <span>Pick the models this project uses, then build context.</span>
-          </div>
-        ) : null}
         <RuntimeNextActionPanel
           dashboard={dashboard}
           workspaceId={workspaceId}
@@ -311,31 +299,17 @@ export function ModelsDetail({
             onApplySelection={applyGuidedSelection}
           />
           {developerMode ? (
-            <>
-              <LocalModelInstallPanel
-                key={[
-                  workspaceId,
-                  dashboard.selected_llm_provider,
-                  dashboard.selected_llm_model,
-                  dashboard.selected_embedding_provider,
-                  dashboard.selected_embedding_model,
-                ].join("-")}
-                workspaceId={workspaceId}
-                onSelectionUpdated={onSelectionUpdated}
-              />
-              <ModelSelectionEditor
-                workspaceId={workspaceId}
-                selectedLlmProvider={dashboard.selected_llm_provider}
-                selectedLlmModel={dashboard.selected_llm_model}
-                selectedEmbeddingProvider={dashboard.selected_embedding_provider}
-                selectedEmbeddingModel={dashboard.selected_embedding_model}
-                llmOptions={llmOptions}
-                embeddingOptions={embeddingOptions}
-                reindexReason={reindexReason}
-                hasScan={hasScan}
-                onSelectionUpdated={onSelectionUpdated}
-              />
-            </>
+            <LocalModelInstallPanel
+              key={[
+                workspaceId,
+                dashboard.selected_llm_provider,
+                dashboard.selected_llm_model,
+                dashboard.selected_embedding_provider,
+                dashboard.selected_embedding_model,
+              ].join("-")}
+              workspaceId={workspaceId}
+              onSelectionUpdated={onSelectionUpdated}
+            />
           ) : null}
         </>
       ) : null}
