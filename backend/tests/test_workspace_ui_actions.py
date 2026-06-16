@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -57,12 +56,15 @@ def test_new_workspace_recommends_scan_and_blocks_index_and_ask(tmp_path) -> Non
 
 def test_selected_supported_llm_makes_ask_selected_available(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select(
-        workspace["id"],
-        provider="fake",
-        model="fake-llm",
-        model_type="llm",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            provider="fake",
+            model="fake-llm",
+            model_type="llm",
+        ).status_code
+        == 200
+    )
 
     catalog = client.get(f"/workspaces/{workspace['id']}/ui-actions").json()
     actions = _actions_by_id(catalog)
@@ -79,9 +81,7 @@ def test_local_ai_activation_guide_is_recommended_when_model_setup_needed(
 ) -> None:
     workspace = _create_workspace(tmp_path)
 
-    actions = _actions_by_id(
-        client.get(f"/workspaces/{workspace['id']}/ui-actions").json()
-    )
+    actions = _actions_by_id(client.get(f"/workspaces/{workspace['id']}/ui-actions").json())
 
     assert actions["local_ai_activation_guide"]["status"] == "recommended"
     assert actions["local_ai_activation_guide"]["mutates_data"] is False
@@ -89,18 +89,24 @@ def test_local_ai_activation_guide_is_recommended_when_model_setup_needed(
 
 def test_embedding_restart_need_overrides_generic_ask_primary_action(tmp_path) -> None:
     workspace = _create_indexed_workspace(tmp_path)
-    assert _select(
-        workspace["id"],
-        provider="fake",
-        model="fake-llm",
-        model_type="llm",
-    ).status_code == 200
-    assert _select(
-        workspace["id"],
-        provider="ollama",
-        model="nomic-embed-text",
-        model_type="embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            provider="fake",
+            model="fake-llm",
+            model_type="llm",
+        ).status_code
+        == 200
+    )
+    assert (
+        _select(
+            workspace["id"],
+            provider="ollama",
+            model="nomic-embed-text",
+            model_type="embedding",
+        ).status_code
+        == 200
+    )
 
     catalog = client.get(f"/workspaces/{workspace['id']}/ui-actions").json()
     actions = _actions_by_id(catalog)

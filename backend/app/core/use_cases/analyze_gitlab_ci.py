@@ -12,7 +12,6 @@ from app.core.ports.file_system import FileSystemPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 
-
 RESERVED_GITLAB_KEYS = {
     "stages",
     "include",

@@ -14,9 +14,5 @@ class InMemoryTimelineRepository:
         workspace_id: str,
         limit: int = 50,
     ) -> list[TimelineEvent]:
-        events = [
-            event
-            for event in reversed(self._events)
-            if event.workspace_id == workspace_id
-        ]
+        events = [event for event in reversed(self._events) if event.workspace_id == workspace_id]
         return events[: max(0, limit)]

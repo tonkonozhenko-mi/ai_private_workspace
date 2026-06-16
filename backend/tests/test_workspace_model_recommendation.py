@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -21,19 +20,16 @@ def test_uses_workspace_assistant_mode_and_returns_catalog_without_history(
     assert result["assistant_profile_id"] == "devops"
     assert result["recommendations"][0]["model"]["id"] == "ollama-qwen2.5-coder"
     assert all(
-        recommendation["performance_score"] is None
-        for recommendation in result["recommendations"]
+        recommendation["performance_score"] is None for recommendation in result["recommendations"]
     )
     assert all(
-        "No workspace performance history for this model yet."
-        in recommendation["warnings"]
+        "No workspace performance history for this model yet." in recommendation["warnings"]
         for recommendation in result["recommendations"]
     )
     fake = _recommendation(result["recommendations"], "fake-llm")
     assert fake["final_score"] == fake["catalog_score"] - 30
     assert (
-        "-30: Fake/testing provider is not recommended for real workspace usage."
-        in fake["reasons"]
+        "-30: Fake/testing provider is not recommended for real workspace usage." in fake["reasons"]
     )
 
 
@@ -62,11 +58,10 @@ def test_workspace_history_improves_rated_preferred_model(tmp_path) -> None:
     assert fake["performance_score"] is not None
     assert fake["final_score"] > fake["catalog_score"]
     assert (
-        "-30: Fake/testing provider is not recommended for real workspace usage."
-        in fake["reasons"]
+        "-30: Fake/testing provider is not recommended for real workspace usage." in fake["reasons"]
     )
     assert any(
-        "Fake model is intended for development/testing only." == warning
+        warning == "Fake model is intended for development/testing only."
         for warning in fake["warnings"]
     )
     assert fake["historical_signals"]["experiments_count"] == "1"

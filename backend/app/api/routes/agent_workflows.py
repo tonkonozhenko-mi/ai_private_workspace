@@ -1,6 +1,11 @@
 from fastapi import APIRouter, HTTPException, status
 
-from app.api.dependencies import agent_workflow_repository, mcp_repository, model_catalog_registry, workspace_repository
+from app.api.dependencies import (
+    agent_workflow_repository,
+    mcp_repository,
+    model_catalog_registry,
+    workspace_repository,
+)
 from app.api.schemas.agent_workflow_schemas import (
     AgentWorkflowArchiveRequest,
     AgentWorkflowListResponse,
@@ -29,9 +34,13 @@ router = APIRouter(prefix="/workspaces/{workspace_id}/agent-workflows", tags=["a
 
 
 @router.get("", response_model=AgentWorkflowListResponse)
-def list_agent_workflows(workspace_id: str, include_archived: bool = False) -> AgentWorkflowListResponse:
+def list_agent_workflows(
+    workspace_id: str, include_archived: bool = False
+) -> AgentWorkflowListResponse:
     _require_workspace(workspace_id)
-    workflows = agent_workflow_repository.list_workflows(workspace_id, include_archived=include_archived)
+    workflows = agent_workflow_repository.list_workflows(
+        workspace_id, include_archived=include_archived
+    )
     return AgentWorkflowListResponse(
         workspace_id=workspace_id,
         items=[to_agent_workflow_response(workflow) for workflow in workflows],
@@ -40,7 +49,9 @@ def list_agent_workflows(workspace_id: str, include_archived: bool = False) -> A
 
 
 @router.post("", response_model=AgentWorkflowResponse)
-def create_agent_workflow(workspace_id: str, request: CreateAgentWorkflowRequest) -> AgentWorkflowResponse:
+def create_agent_workflow(
+    workspace_id: str, request: CreateAgentWorkflowRequest
+) -> AgentWorkflowResponse:
     _require_workspace(workspace_id)
     capability = _find_capability(request.provider, request.model)
     preview = build_agent_planning_preview(
@@ -79,9 +90,13 @@ def update_agent_workflow_step(
 ) -> AgentWorkflowResponse:
     workflow = _require_workflow(workspace_id, workflow_id)
     try:
-        updated = update_workflow_step_status(workflow, step_id=step_id, status=request.status, notes=request.notes)
+        updated = update_workflow_step_status(
+            workflow, step_id=step_id, status=request.status, notes=request.notes
+        )
     except KeyError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent workflow step not found") from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Agent workflow step not found"
+        ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return to_agent_workflow_response(agent_workflow_repository.save_workflow(updated))
@@ -97,7 +112,9 @@ def preview_agent_workflow_step_approval(
     try:
         preview = build_step_approval_preview(workflow, step_id=step_id)
     except KeyError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent workflow step not found") from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Agent workflow step not found"
+        ) from exc
     return to_agent_step_approval_preview_response(preview)
 
 
@@ -117,7 +134,9 @@ def update_agent_workflow_step_approval(
             approval_note=request.approval_note,
         )
     except KeyError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent workflow step not found") from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Agent workflow step not found"
+        ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return to_agent_workflow_response(agent_workflow_repository.save_workflow(updated))
@@ -140,7 +159,9 @@ def update_agent_workflow_step_evidence_route(
             evidence_sources=request.evidence_sources,
         )
     except KeyError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent workflow step not found") from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Agent workflow step not found"
+        ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return to_agent_workflow_response(agent_workflow_repository.save_workflow(updated))
@@ -170,7 +191,9 @@ def delete_agent_workflow(workspace_id: str, workflow_id: str) -> None:
     _require_workspace(workspace_id)
     deleted = agent_workflow_repository.delete_workflow(workspace_id, workflow_id)
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent workflow not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Agent workflow not found"
+        )
 
 
 def _require_workspace(workspace_id: str) -> None:
@@ -182,7 +205,9 @@ def _require_workflow(workspace_id: str, workflow_id: str):
     _require_workspace(workspace_id)
     workflow = agent_workflow_repository.get_workflow(workspace_id, workflow_id)
     if workflow is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent workflow not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Agent workflow not found"
+        )
     return workflow
 
 

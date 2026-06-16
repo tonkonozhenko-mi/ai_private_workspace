@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import logging
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-import logging
 from threading import Lock
-from concurrent.futures import ThreadPoolExecutor
-from typing import Callable
 from uuid import uuid4
-
 
 TERMINAL_JOB_STATUSES = {"completed", "failed", "cancelled"}
 logger = logging.getLogger("uvicorn.error.ai_private_workspace.workspace_jobs")
@@ -48,7 +47,7 @@ class WorkspaceJobCancelledError(RuntimeError):
 
 
 class WorkspaceJobControl:
-    def __init__(self, runner: "WorkspaceJobRunner", job_id: str) -> None:
+    def __init__(self, runner: WorkspaceJobRunner, job_id: str) -> None:
         self._runner = runner
         self._job_id = job_id
 
@@ -172,10 +171,14 @@ class WorkspaceJobRunner:
             if current_step is not None:
                 job.current_step = current_step
             if job.progress_current is not None and job.progress_total:
-                job.progress_percent = min(100.0, round((job.progress_current / job.progress_total) * 100, 1))
+                job.progress_percent = min(
+                    100.0, round((job.progress_current / job.progress_total) * 100, 1)
+                )
         return self.get_job(job_id)
 
-    def _run_job(self, job_id: str, operation: Callable[[WorkspaceJobControl], dict[str, str]]) -> None:
+    def _run_job(
+        self, job_id: str, operation: Callable[[WorkspaceJobControl], dict[str, str]]
+    ) -> None:
         with self._lock:
             job = self._jobs.get(job_id)
             if job is None:
@@ -202,7 +205,9 @@ class WorkspaceJobRunner:
                     current.status = "cancelled"
                     current.message = "Cancelled before the operation started."
                     current.completed_at = _now()
-                    current.duration_ms = _duration_ms(current.started_at or current.created_at, current.completed_at)
+                    current.duration_ms = _duration_ms(
+                        current.started_at or current.created_at, current.completed_at
+                    )
                     return
             result_summary = operation(WorkspaceJobControl(self, job_id))
         except WorkspaceJobCancelledError:
@@ -212,7 +217,9 @@ class WorkspaceJobRunner:
                 cancelled_job.cancellation_requested = True
                 cancelled_job.message = "Cancelled at a safe operation checkpoint."
                 cancelled_job.completed_at = _now()
-                cancelled_job.duration_ms = _duration_ms(cancelled_job.started_at or cancelled_job.created_at, cancelled_job.completed_at)
+                cancelled_job.duration_ms = _duration_ms(
+                    cancelled_job.started_at or cancelled_job.created_at, cancelled_job.completed_at
+                )
             return
         except Exception as exc:  # noqa: BLE001 - error is surfaced to API as job status
             with self._lock:
@@ -221,7 +228,9 @@ class WorkspaceJobRunner:
                 failed.error = str(exc)
                 failed.message = "The operation failed."
                 failed.completed_at = _now()
-                failed.duration_ms = _duration_ms(failed.started_at or failed.created_at, failed.completed_at)
+                failed.duration_ms = _duration_ms(
+                    failed.started_at or failed.created_at, failed.completed_at
+                )
                 workspace_id = failed.workspace_id
                 job_type = failed.job_type
                 duration_ms = failed.duration_ms
@@ -247,7 +256,9 @@ class WorkspaceJobRunner:
             completed.result_summary = result_summary
             completed.progress_percent = 100.0
             completed.completed_at = _now()
-            completed.duration_ms = _duration_ms(completed.started_at or completed.created_at, completed.completed_at)
+            completed.duration_ms = _duration_ms(
+                completed.started_at or completed.created_at, completed.completed_at
+            )
             workspace_id = completed.workspace_id
             job_type = completed.job_type
             duration_ms = completed.duration_ms

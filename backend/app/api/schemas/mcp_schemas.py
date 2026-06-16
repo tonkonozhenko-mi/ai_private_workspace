@@ -82,12 +82,17 @@ def to_mcp_catalog_response(catalog: MCPServerCatalog) -> MCPServerCatalogRespon
     )
 
 
-def to_mcp_config_preview_response(preview: MCPServerConfigPreview) -> MCPServerConfigPreviewResponse:
+def to_mcp_config_preview_response(
+    preview: MCPServerConfigPreview,
+) -> MCPServerConfigPreviewResponse:
     return MCPServerConfigPreviewResponse(**preview.__dict__)
 
 
-def to_mcp_connection_check_response(check: MCPServerConnectionCheck) -> MCPServerConnectionCheckResponse:
+def to_mcp_connection_check_response(
+    check: MCPServerConnectionCheck,
+) -> MCPServerConnectionCheckResponse:
     return MCPServerConnectionCheckResponse(**check.__dict__)
+
 
 from app.core.domain.mcp_server import (
     MCPApprovalPreview,
@@ -168,7 +173,9 @@ class MCPApprovalPreviewResponse(BaseModel):
     safety_note: str
 
 
-def to_workspace_mcp_config_response(config: WorkspaceMCPServerConfig) -> WorkspaceMCPServerConfigResponse:
+def to_workspace_mcp_config_response(
+    config: WorkspaceMCPServerConfig,
+) -> WorkspaceMCPServerConfigResponse:
     return WorkspaceMCPServerConfigResponse(
         id=config.id,
         workspace_id=config.workspace_id,

@@ -1,14 +1,11 @@
 from dataclasses import dataclass
 
-
 PREFERENCE_ONLY_NOTE = (
     "Workspace model selection is preference metadata only and does not change "
     "active runtime settings."
 )
 EMPTY_SELECTION_NOTE = "No workspace model selections have been saved."
-UNKNOWN_CATALOG_NOTE = (
-    "Selected model is not in catalog; validate metadata before use."
-)
+UNKNOWN_CATALOG_NOTE = "Selected model is not in catalog; validate metadata before use."
 EMBEDDING_CHANGE_NOTE = (
     "Changing embedding model selection may require reindexing before RAG/search "
     "uses the new embedding space."

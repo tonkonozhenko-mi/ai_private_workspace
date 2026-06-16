@@ -18,10 +18,8 @@ from app.core.use_cases.ask_workspace_question import (
     AskWorkspaceQuestionValidationError,
 )
 
-
 SELECTED_EMBEDDING_MISMATCH_MESSAGE = (
-    "Answer used active embedding/index configuration, not the selected "
-    "embedding model."
+    "Answer used active embedding/index configuration, not the selected embedding model."
 )
 
 
@@ -93,9 +91,7 @@ class AskWorkspaceQuestionWithSelectedLLMUseCase:
         request: AskWorkspaceQuestionWithSelectedLLMInput,
     ) -> AskWorkspaceQuestionInput:
         if self.workspace_repository.get(request.workspace_id) is None:
-            raise AskWorkspaceQuestionWithSelectedLLMNotFoundError(
-                "Workspace not found"
-            )
+            raise AskWorkspaceQuestionWithSelectedLLMNotFoundError("Workspace not found")
 
         selection = self.selection_repository.get(request.workspace_id)
         selected_llm = selection.selected_llm if selection is not None else None
@@ -109,9 +105,7 @@ class AskWorkspaceQuestionWithSelectedLLMUseCase:
             )
 
         additional_warnings: list[RagQualityWarning] = []
-        selected_embedding = (
-            selection.selected_embedding if selection is not None else None
-        )
+        selected_embedding = selection.selected_embedding if selection is not None else None
         if selected_embedding is not None and not self._embedding_matches_active(
             selected_embedding
         ):

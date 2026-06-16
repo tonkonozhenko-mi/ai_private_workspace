@@ -22,9 +22,7 @@ class CreateOnboardingPlanUseCase:
         assistant_profile_registry: AssistantProfileRegistry | None = None,
         laptop_profile_registry: LaptopProfileRegistry | None = None,
     ) -> None:
-        self.assistant_profile_registry = (
-            assistant_profile_registry or AssistantProfileRegistry()
-        )
+        self.assistant_profile_registry = assistant_profile_registry or AssistantProfileRegistry()
         self.laptop_profile_registry = laptop_profile_registry or LaptopProfileRegistry()
 
     def execute(self, request: CreateOnboardingPlanInput) -> OnboardingPlan:
@@ -41,9 +39,7 @@ class CreateOnboardingPlanUseCase:
                 f"Unknown assistant profile: {request.assistant_profile_id}"
             )
 
-        laptop_profile = self.laptop_profile_registry.find_profile(
-            request.laptop_profile_id
-        )
+        laptop_profile = self.laptop_profile_registry.find_profile(request.laptop_profile_id)
         if laptop_profile is None:
             raise OnboardingPlanValidationError(
                 f"Unknown laptop profile: {request.laptop_profile_id}"
@@ -62,9 +58,7 @@ class CreateOnboardingPlanUseCase:
                 }
             )
 
-        recommended_models = self.laptop_profile_registry.model_recommendation(
-            laptop_profile.id
-        )
+        recommended_models = self.laptop_profile_registry.model_recommendation(laptop_profile.id)
         return OnboardingPlan(
             assistant_profile_id=assistant_profile.id,
             laptop_profile_id=laptop_profile.id,
@@ -83,9 +77,7 @@ class CreateOnboardingPlanUseCase:
     @staticmethod
     def _steps(recommended_runtime: dict[str, str]) -> list[OnboardingStep]:
         uses_qdrant = recommended_runtime.get("VECTOR_STORE") == "qdrant"
-        uses_ollama_embeddings = (
-            recommended_runtime.get("EMBEDDING_PROVIDER") == "ollama"
-        )
+        uses_ollama_embeddings = recommended_runtime.get("EMBEDDING_PROVIDER") == "ollama"
         uses_ollama_llm = recommended_runtime.get("LLM_PROVIDER") == "ollama"
         uses_ollama = uses_ollama_embeddings or uses_ollama_llm
 

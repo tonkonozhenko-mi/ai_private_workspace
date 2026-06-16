@@ -1,6 +1,5 @@
 from app.core.domain.command import CommandRisk
 
-
 READONLY_PREFIXES = [
     "git status",
     "git diff",

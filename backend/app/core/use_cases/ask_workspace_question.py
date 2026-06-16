@@ -10,7 +10,12 @@ from app.core.domain.attached_documents import (
 )
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
-from app.core.domain.rag import RagQualityWarning, RagSource, SkillProfileAudit, WorkspaceQuestionAnswer
+from app.core.domain.rag import (
+    RagQualityWarning,
+    RagSource,
+    SkillProfileAudit,
+    WorkspaceQuestionAnswer,
+)
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.rag_prompt import (
     SkillPromptInstruction,
@@ -32,14 +37,11 @@ from app.core.use_cases.add_timeline_event import (
     AddTimelineEventUseCase,
 )
 
-
 WORKSPACE_NOT_INDEXED_ANSWER = (
     "This workspace has not been indexed yet. Run workspace indexing first."
 )
 WORKSPACE_NOT_INDEXED_MESSAGE = "No workspace index metadata was found."
-INDEX_METADATA_WITHOUT_CHUNKS_ANSWER = (
-    "No context chunks were found in the active vector store."
-)
+INDEX_METADATA_WITHOUT_CHUNKS_ANSWER = "No context chunks were found in the active vector store."
 INDEX_METADATA_WITHOUT_CHUNKS_MESSAGE = (
     "Index metadata exists, but the active vector store returned no chunks. "
     "If VECTOR_STORE=memory, reindex after API restart. If VECTOR_STORE=qdrant, "
@@ -617,7 +619,6 @@ class AskWorkspaceQuestionUseCase:
             embedding_model=self.embedding_provider.model_name,
             embedding_dimension=len(query_embedding),
         )
-
 
     def _skill_profile_audit(
         self,

@@ -8,7 +8,6 @@ from app.adapters.memory.sqlite_model_experiment_rating_repository import (
 from app.core.domain.model_experiment_rating import ModelExperimentCandidateRating
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -64,13 +63,8 @@ def test_unknown_experiment_and_candidate_are_rejected(tmp_path) -> None:
     assert unknown_experiment.status_code == 404
     assert unknown_experiment.json()["detail"] == "Model experiment not found"
     assert unknown_candidate.status_code == 404
-    assert unknown_candidate.json()["detail"] == (
-        "Model experiment candidate not found"
-    )
-    assert (
-        client.get("/models/experiments/missing-experiment/ratings").status_code
-        == 404
-    )
+    assert unknown_candidate.json()["detail"] == ("Model experiment candidate not found")
+    assert client.get("/models/experiments/missing-experiment/ratings").status_code == 404
 
 
 def test_rating_creates_workspace_timeline_event(tmp_path) -> None:

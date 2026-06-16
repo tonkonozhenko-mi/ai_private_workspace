@@ -198,8 +198,7 @@ class GetWorkspaceReadinessUseCase:
             steps.append("Review pending command approvals.")
         if is_indexed and self.configuration.get("VECTOR_STORE") == "memory":
             steps.append(
-                "Reindex workspace context after API restart when using the "
-                "in-memory vector store."
+                "Reindex workspace context after API restart when using the in-memory vector store."
             )
         if self.configuration.get("VECTOR_STORE") == "memory":
             steps.append("Use Qdrant for persistent vector search across restarts.")

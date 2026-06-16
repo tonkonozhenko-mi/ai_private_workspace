@@ -2,7 +2,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -15,7 +14,7 @@ def test_final_product_status_is_clear_about_source_rc_and_v1() -> None:
     assert "source release candidate" in payload["summary"]
     assert "15-25" in payload["honest_v1_estimate"]
     assert any(stage["id"] == "installers" for stage in payload["stages"])
-    assert any("Release audit" == command["label"] for command in payload["publication_checks"])
+    assert any(command["label"] == "Release audit" for command in payload["publication_checks"])
     assert any("Frontend must never run shell" in rule for rule in payload["safety_rules"])
 
 

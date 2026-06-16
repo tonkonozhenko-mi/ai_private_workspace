@@ -71,9 +71,7 @@ def to_onboarding_bootstrap_response(
         workspace=to_bootstrap_workspace_response(result.workspace),
         onboarding_plan=to_onboarding_plan_response(result.onboarding_plan),
         setup_commands=to_onboarding_setup_commands_response(result.setup_commands),
-        runtime_setup_guide=to_runtime_setup_guide_response(
-            result.runtime_setup_guide
-        ),
+        runtime_setup_guide=to_runtime_setup_guide_response(result.runtime_setup_guide),
         readiness=to_workspace_readiness_response(result.readiness),
         next_steps=result.next_steps,
     )

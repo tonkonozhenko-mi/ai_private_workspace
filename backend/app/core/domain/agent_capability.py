@@ -73,7 +73,10 @@ def build_agent_capability(model: LocalModelDefinition) -> AgentCapability:
 
     planning_supported = is_llm and (
         bool(capabilities & PLANNING_CAPABILITY_NAMES)
-        or any(token in name for token in ["qwen", "llama", "mistral", "deepseek", "codestral", "hermes"])
+        or any(
+            token in name
+            for token in ["qwen", "llama", "mistral", "deepseek", "codestral", "hermes"]
+        )
     )
     tool_calling_supported = is_llm and bool(capabilities & TOOL_CAPABILITY_NAMES)
     json_mode_supported = is_llm and (
@@ -118,7 +121,9 @@ def build_agent_capability(model: LocalModelDefinition) -> AgentCapability:
         recommended_use = "Good candidate for safe planning and future tool-calling workflows."
     elif planning_supported:
         readiness = "planning_ready"
-        recommended_use = "Use for safe multi-step plans; keep all execution manual and user-confirmed."
+        recommended_use = (
+            "Use for safe multi-step plans; keep all execution manual and user-confirmed."
+        )
     else:
         readiness = "ask_only"
         recommended_use = "Use for normal workspace questions, not agent workflows."
@@ -225,10 +230,14 @@ def build_agent_planning_preview(
         "Automatic scan/index/rebuild/restart without an explicit click",
         "Background internet upload or sharing",
     ]
-    guardrails = capability.guardrails if capability else [
-        "Unknown model capability. Treat it as normal Ask until reviewed.",
-        "Keep all execution manual and explicit.",
-    ]
+    guardrails = (
+        capability.guardrails
+        if capability
+        else [
+            "Unknown model capability. Treat it as normal Ask until reviewed.",
+            "Keep all execution manual and explicit.",
+        ]
+    )
     return AgentPlanningPreview(
         goal=goal,
         selected_provider=provider,

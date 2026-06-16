@@ -10,18 +10,12 @@ class AssistantProfileRegistry:
 
     def get_profile(self, profile_id: str) -> AssistantProfile:
         return next(
-            (
-                profile
-                for profile in self.profiles
-                if profile.id == profile_id
-            ),
+            (profile for profile in self.profiles if profile.id == profile_id),
             self._default_profile(),
         )
 
     def _default_profile(self) -> AssistantProfile:
-        return next(
-            profile for profile in self.profiles if profile.id == "developer"
-        )
+        return next(profile for profile in self.profiles if profile.id == "developer")
 
 
 DEFAULT_ASSISTANT_PROFILES = [

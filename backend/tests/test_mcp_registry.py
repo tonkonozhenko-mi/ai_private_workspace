@@ -2,7 +2,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -16,7 +15,9 @@ def test_mcp_catalog_lists_safe_templates() -> None:
     assert "filesystem-readonly" in template_ids
     assert "git-readonly" in template_ids
     assert "shell-proposed-commands" in template_ids
-    filesystem = next(template for template in payload["templates"] if template["id"] == "filesystem-readonly")
+    filesystem = next(
+        template for template in payload["templates"] if template["id"] == "filesystem-readonly"
+    )
     assert filesystem["risk_level"] == "read_only"
     assert "read_file" in filesystem["example_tools"]
 
@@ -118,7 +119,9 @@ def test_workspace_mcp_config_can_be_saved_reviewed_and_listed() -> None:
     inventory = inventory_response.json()
     assert inventory["agent_readiness"] == "planning_ready"
     assert inventory["approved_tools_count"] == 2
-    assert any(tool["tool"] == "read_file" and tool["status"] == "approved" for tool in inventory["tools"])
+    assert any(
+        tool["tool"] == "read_file" and tool["status"] == "approved" for tool in inventory["tools"]
+    )
 
     list_response = client.get(f"/mcp/workspaces/{workspace_id}/configs")
     assert list_response.status_code == 200

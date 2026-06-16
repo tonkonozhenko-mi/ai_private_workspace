@@ -40,9 +40,7 @@ def build_llm_usage_metrics(
         completion_tokens if completion_tokens is not None else estimate_llm_tokens(completion)
     )
     total_token_count = (
-        total_tokens
-        if total_tokens is not None
-        else prompt_token_count + completion_token_count
+        total_tokens if total_tokens is not None else prompt_token_count + completion_token_count
     )
     tokens_per_second = None
     if latency_ms is not None and latency_ms > 0 and completion_token_count is not None:

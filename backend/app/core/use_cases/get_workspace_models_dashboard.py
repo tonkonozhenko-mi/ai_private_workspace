@@ -27,7 +27,6 @@ from app.core.use_cases.recommend_workspace_models import (
     RecommendWorkspaceModelsUseCase,
 )
 
-
 DASHBOARD_NOTES = [
     "Workspace models dashboard is read-only and does not change runtime settings.",
     "Model recommendations do not automatically select models.",
@@ -118,18 +117,12 @@ class GetWorkspaceModelsDashboardUseCase:
             selected_llm_provider=(
                 selection.selected_llm.provider if selection.selected_llm else None
             ),
-            selected_llm_model=(
-                selection.selected_llm.model if selection.selected_llm else None
-            ),
+            selected_llm_model=(selection.selected_llm.model if selection.selected_llm else None),
             selected_embedding_provider=(
-                selection.selected_embedding.provider
-                if selection.selected_embedding
-                else None
+                selection.selected_embedding.provider if selection.selected_embedding else None
             ),
             selected_embedding_model=(
-                selection.selected_embedding.model
-                if selection.selected_embedding
-                else None
+                selection.selected_embedding.model if selection.selected_embedding else None
             ),
             overall_status=overall_status,
             primary_next_action_id=action_id,

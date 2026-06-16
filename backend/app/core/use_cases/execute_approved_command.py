@@ -7,14 +7,14 @@ from app.core.ports.command_repository import CommandRepositoryPort
 from app.core.ports.command_runner import CommandRunnerPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.use_cases.add_timeline_event import (
+    AddTimelineEventInput,
+    AddTimelineEventUseCase,
+)
 from app.core.use_cases.command_errors import (
     CommandInvalidStatusError,
     CommandNotFoundError,
     CommandWorkspaceNotFoundError,
-)
-from app.core.use_cases.add_timeline_event import (
-    AddTimelineEventInput,
-    AddTimelineEventUseCase,
 )
 
 
@@ -44,8 +44,7 @@ class ExecuteApprovedCommandUseCase:
             raise CommandInvalidStatusError("Only approved commands can be executed")
         if proposal.policy_allowed is not True or proposal.policy_mode != "auto_executable":
             raise CommandInvalidStatusError(
-                proposal.policy_reason
-                or "Command is not allowed for automatic execution by policy"
+                proposal.policy_reason or "Command is not allowed for automatic execution by policy"
             )
 
         workspace = self.workspace_repository.get(proposal.workspace_id)

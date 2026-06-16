@@ -49,8 +49,6 @@ def to_onboarding_setup_commands_response(
         assistant_profile_id=setup_commands.assistant_profile_id,
         laptop_profile_id=setup_commands.laptop_profile_id,
         privacy_mode=setup_commands.privacy_mode,
-        commands=[
-            to_setup_command_response(command) for command in setup_commands.commands
-        ],
+        commands=[to_setup_command_response(command) for command in setup_commands.commands],
         notes=setup_commands.notes,
     )

@@ -57,9 +57,6 @@ def to_local_ai_activation_guide_response(
         active_embedding=guide.active_embedding,
         selected_vector_store=guide.selected_vector_store,
         active_vector_store=guide.active_vector_store,
-        steps=[
-            to_local_ai_activation_step_response(step)
-            for step in guide.steps
-        ],
+        steps=[to_local_ai_activation_step_response(step) for step in guide.steps],
         notes=guide.notes,
     )

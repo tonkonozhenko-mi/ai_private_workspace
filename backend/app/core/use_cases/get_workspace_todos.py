@@ -6,7 +6,6 @@ from app.core.ports.file_system import FileSystemPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.use_cases.scan_project import ScanProjectInput, ScanProjectUseCase
 
-
 # Match a TODO-style marker as a whole word, optionally followed by ":" or "(owner)".
 _MARKER_RE = re.compile(
     r"\b(TODO|FIXME|HACK|XXX|BUG)\b[\s:()\w]*?[:\-]?\s*(.*)$",
@@ -16,9 +15,36 @@ _MARKERS = ("TODO", "FIXME", "HACK", "XXX", "BUG")
 # Only scan source-like text files; skip data/lock/docs noise that produces
 # false positives or huge useless matches.
 _SCANNABLE_EXTENSIONS = {
-    "py", "ts", "tsx", "js", "jsx", "mjs", "cjs", "rs", "go", "java", "kt",
-    "rb", "php", "c", "cc", "cpp", "h", "hpp", "cs", "swift", "scala", "vue",
-    "svelte", "sh", "bash", "sql", "lua", "yaml", "yml", "toml",
+    "py",
+    "ts",
+    "tsx",
+    "js",
+    "jsx",
+    "mjs",
+    "cjs",
+    "rs",
+    "go",
+    "java",
+    "kt",
+    "rb",
+    "php",
+    "c",
+    "cc",
+    "cpp",
+    "h",
+    "hpp",
+    "cs",
+    "swift",
+    "scala",
+    "vue",
+    "svelte",
+    "sh",
+    "bash",
+    "sql",
+    "lua",
+    "yaml",
+    "yml",
+    "toml",
 }
 _MAX_ITEMS = 60
 _MAX_TEXT_LEN = 160
@@ -119,7 +145,7 @@ def _parse_marker(line: str) -> tuple[str, str] | None:
 
     marker = match.group(1).upper()
     before = line[: match.start(1)].rstrip()
-    after = line[match.end(1):]
+    after = line[match.end(1) :]
     # Only treat it as a real marker when it sits in a code comment or is written
     # as a tag followed by a colon or an owner in parentheses. This avoids false
     # positives like the marker word appearing inside prose or a string literal.

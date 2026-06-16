@@ -24,7 +24,9 @@ def test_app_owned_backend_startup_implementation_is_manifest_gated() -> None:
     assert payload["check_script"] == "scripts/check_tauri_app_owned_backend_startup.sh"
     assert "start_app_owned_backend_runtime" in payload["tauri_commands"]
     assert "stop_app_owned_backend_runtime" in payload["tauri_commands"]
-    assert any("React/frontend still does not execute shell" in rule for rule in payload["safety_rules"])
+    assert any(
+        "React/frontend still does not execute shell" in rule for rule in payload["safety_rules"]
+    )
     assert any(item["id"] == "frozen-manifest" for item in payload["implementation_items"])
 
 

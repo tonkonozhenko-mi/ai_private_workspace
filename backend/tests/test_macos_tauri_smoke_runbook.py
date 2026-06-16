@@ -18,6 +18,11 @@ def test_macos_tauri_smoke_runbook_endpoint_returns_safe_local_runbook() -> None
     assert payload["platform"].startswith("macOS")
     assert any(step["id"] == "build-frozen-backend" for step in payload["smoke_steps"])
     assert any(step["id"] == "tauri-dev-smoke" for step in payload["smoke_steps"])
-    assert any("frontend" in rule.lower() and "shell" in rule.lower() for rule in payload["safety_rules"])
+    assert any(
+        "frontend" in rule.lower() and "shell" in rule.lower() for rule in payload["safety_rules"]
+    )
     assert any("PID-owned" in rule for rule in payload["safety_rules"])
-    assert any(command["command"] == "scripts/check_macos_tauri_smoke_runbook.sh" for command in payload["validation_commands"])
+    assert any(
+        command["command"] == "scripts/check_macos_tauri_smoke_runbook.sh"
+        for command in payload["validation_commands"]
+    )

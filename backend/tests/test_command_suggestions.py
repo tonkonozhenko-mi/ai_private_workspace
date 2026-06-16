@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -41,9 +40,7 @@ def test_workspace_with_detected_skills_returns_relevant_suggestions(tmp_path) -
     assert response.status_code == 200
     suggestions = response.json()
     commands = {suggestion["command"] for suggestion in suggestions}
-    suggestions_by_command = {
-        suggestion["command"]: suggestion for suggestion in suggestions
-    }
+    suggestions_by_command = {suggestion["command"]: suggestion for suggestion in suggestions}
     assert len(suggestions) == 12
     assert {
         "git status",

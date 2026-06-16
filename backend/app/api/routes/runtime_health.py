@@ -25,7 +25,6 @@ from app.core.use_cases.get_runtime_setup_guide import (
     RuntimeSetupGuideValidationError,
 )
 
-
 router = APIRouter(prefix="/runtime", tags=["runtime"])
 
 

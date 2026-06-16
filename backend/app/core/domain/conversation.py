@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from app.core.domain.rag import RagSource, SkillProfileAudit
 
 
 def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def normalize_conversation_title(title: str | None) -> str:
@@ -90,7 +90,9 @@ class WorkspaceConversation:
     archived_at: str | None = None
 
 
-def create_workspace_conversation(workspace_id: str, title: str | None = None) -> WorkspaceConversation:
+def create_workspace_conversation(
+    workspace_id: str, title: str | None = None
+) -> WorkspaceConversation:
     now = utc_now_iso()
     return WorkspaceConversation(
         id=str(uuid4()),

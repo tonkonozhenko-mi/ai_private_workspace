@@ -48,8 +48,6 @@ def to_workspace_model_selection_response(
     return WorkspaceModelSelectionResponse(
         workspace_id=selection.workspace_id,
         selected_llm=to_workspace_selected_model_response(selection.selected_llm),
-        selected_embedding=to_workspace_selected_model_response(
-            selection.selected_embedding
-        ),
+        selected_embedding=to_workspace_selected_model_response(selection.selected_embedding),
         notes=selection.notes,
     )

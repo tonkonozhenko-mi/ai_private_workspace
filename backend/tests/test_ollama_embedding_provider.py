@@ -12,7 +12,6 @@ from app.adapters.embeddings.ollama_embedding_provider import (
 from app.api.dependencies import build_embedding_provider
 from app.config.settings import get_settings
 
-
 RUN_OLLAMA_TESTS = os.getenv("RUN_OLLAMA_TESTS", "").lower() == "true"
 
 
@@ -36,9 +35,7 @@ def test_ollama_embedding_provider_returns_embedding() -> None:
 
 
 def test_ollama_embedding_provider_missing_embedding_raises_clear_error() -> None:
-    provider = _provider(
-        lambda request: httpx.Response(200, json={"model": "nomic-embed-text"})
-    )
+    provider = _provider(lambda request: httpx.Response(200, json={"model": "nomic-embed-text"}))
 
     with pytest.raises(
         OllamaEmbeddingProviderError,

@@ -15,7 +15,9 @@ def test_windows_packaging_foundation_is_read_only() -> None:
     assert body["logs_directory"].endswith("\\logs")
     assert body["backend_health_url"] == "http://127.0.0.1:8000/health"
     assert any("Never kill unknown processes" in rule for rule in body["safety_rules"])
-    assert any(script["path"] == "scripts/windows_supervisor_contract.ps1" for script in body["scripts"])
+    assert any(
+        script["path"] == "scripts/windows_supervisor_contract.ps1" for script in body["scripts"]
+    )
     assert any(phase["id"] == "installer" for phase in body["implementation_phases"])
 
 

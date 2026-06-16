@@ -6,7 +6,6 @@ from app.adapters.memory.sqlite_command_repository import SQLiteCommandRepositor
 from app.core.domain.command import CommandProposal
 from app.main import app
 
-
 client = TestClient(app)
 
 

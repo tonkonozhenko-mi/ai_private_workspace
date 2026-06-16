@@ -4,16 +4,13 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
 def test_summary_returns_compact_fields_and_top_recommendation(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
 
-    response = client.get(
-        f"/workspaces/{workspace['id']}/models/dashboard/summary"
-    )
+    response = client.get(f"/workspaces/{workspace['id']}/models/dashboard/summary")
 
     assert response.status_code == 200
     summary = response.json()
@@ -42,16 +39,17 @@ def test_summary_returns_compact_fields_and_top_recommendation(tmp_path) -> None
 def test_summary_formats_selected_models_and_ready_state(tmp_path) -> None:
     workspace = _create_indexed_workspace(tmp_path)
     assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
-    assert _select(
-        workspace["id"],
-        "fake",
-        "fake-embedding",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "fake",
+            "fake-embedding",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
-    summary = client.get(
-        f"/workspaces/{workspace['id']}/models/dashboard/summary"
-    ).json()
+    summary = client.get(f"/workspaces/{workspace['id']}/models/dashboard/summary").json()
 
     assert summary["overall_status"] == "ready"
     assert summary["primary_next_action_id"] == "ask_with_selected_llm"
@@ -67,23 +65,21 @@ def test_summary_formats_selected_models_and_ready_state(tmp_path) -> None:
 def test_summary_distinguishes_selected_embedding_from_unbuilt_context(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
-    assert _select(
-        workspace["id"],
-        "fake",
-        "fake-embedding",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "fake",
+            "fake-embedding",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
-    summary = client.get(
-        f"/workspaces/{workspace['id']}/models/dashboard/summary"
-    ).json()
+    summary = client.get(f"/workspaces/{workspace['id']}/models/dashboard/summary").json()
 
     assert summary["overall_status"] == "needs_context_index"
     assert summary["primary_next_action_id"] == "reindex_workspace"
-    assert (
-        summary["primary_next_action_title"]
-        == "Build context with selected search model"
-    )
+    assert summary["primary_next_action_title"] == "Build context with selected search model"
     assert summary["selected_embedding_matches_active_runtime"] is True
     assert summary["embedding_index_status"] == "not_indexed"
     assert summary["embedding_plan_status"] == "needs_index"
@@ -92,17 +88,18 @@ def test_summary_distinguishes_selected_embedding_from_unbuilt_context(tmp_path)
 def test_warnings_count_is_derived_from_detailed_dashboard(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
-    assert _select(
-        workspace["id"],
-        "ollama",
-        "nomic-embed-text",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "ollama",
+            "nomic-embed-text",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
     detailed = client.get(f"/workspaces/{workspace['id']}/models/dashboard").json()
-    summary = client.get(
-        f"/workspaces/{workspace['id']}/models/dashboard/summary"
-    ).json()
+    summary = client.get(f"/workspaces/{workspace['id']}/models/dashboard/summary").json()
     expected_warnings = (
         sum(
             len(recommendation["warnings"])
@@ -110,8 +107,7 @@ def test_warnings_count_is_derived_from_detailed_dashboard(tmp_path) -> None:
         )
         + len(detailed["embedding_indexing_plan"]["warnings"])
         + sum(
-            capability["status"] != "ready"
-            for capability in detailed["usage_plan"]["capabilities"]
+            capability["status"] != "ready" for capability in detailed["usage_plan"]["capabilities"]
         )
     )
 
@@ -123,9 +119,7 @@ def test_summary_is_read_only_and_detailed_dashboard_still_works(tmp_path) -> No
     workspace = _create_workspace(tmp_path)
     timeline_before = client.get(f"/workspaces/{workspace['id']}/timeline").json()
 
-    summary_response = client.get(
-        f"/workspaces/{workspace['id']}/models/dashboard/summary"
-    )
+    summary_response = client.get(f"/workspaces/{workspace['id']}/models/dashboard/summary")
     detailed_response = client.get(f"/workspaces/{workspace['id']}/models/dashboard")
 
     assert summary_response.status_code == 200
@@ -141,9 +135,7 @@ def test_summary_is_read_only_and_detailed_dashboard_still_works(tmp_path) -> No
 
 
 def test_unknown_workspace_returns_404() -> None:
-    response = client.get(
-        "/workspaces/missing-workspace/models/dashboard/summary"
-    )
+    response = client.get("/workspaces/missing-workspace/models/dashboard/summary")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Workspace not found"

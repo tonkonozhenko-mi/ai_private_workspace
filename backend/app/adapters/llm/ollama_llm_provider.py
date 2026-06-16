@@ -1,8 +1,8 @@
 import json
-from typing import Iterator
+from collections.abc import Iterator
+from time import sleep
 
 import httpx
-from time import sleep
 
 
 class OllamaLLMProviderError(RuntimeError):
@@ -56,15 +56,11 @@ class OllamaLLMProvider:
         try:
             payload = response.json()
         except ValueError as exc:
-            raise OllamaLLMProviderError(
-                "Ollama generation response was not valid JSON"
-            ) from exc
+            raise OllamaLLMProviderError("Ollama generation response was not valid JSON") from exc
 
         generated_text = payload.get("response") if isinstance(payload, dict) else None
         if not isinstance(generated_text, str) or not generated_text.strip():
-            raise OllamaLLMProviderError(
-                "Ollama generation response did not include response text"
-            )
+            raise OllamaLLMProviderError("Ollama generation response did not include response text")
 
         # Reasoning models (deepseek-r1, qwq, …) return their chain-of-thought in
         # a separate "thinking" field. Re-wrap it as <think>…</think> so the UI can
@@ -166,8 +162,7 @@ class OllamaLLMProvider:
             ) from exc
         except httpx.HTTPError as exc:
             raise OllamaLLMProviderError(
-                f"Unable to reach Ollama streaming API at {self.base_url} "
-                f"for model '{self.model}'."
+                f"Unable to reach Ollama streaming API at {self.base_url} for model '{self.model}'."
             ) from exc
 
         if think_open and not think_closed:

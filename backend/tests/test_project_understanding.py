@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -68,10 +67,7 @@ def test_generate_understanding_requires_selected_llm(tmp_path) -> None:
     response = _generate(workspace["id"])
 
     assert response.status_code == 400
-    assert (
-        response.json()["detail"]
-        == "No selected LLM is configured for this workspace."
-    )
+    assert response.json()["detail"] == "No selected LLM is configured for this workspace."
 
 
 def test_understanding_is_stale_when_selected_llm_changes(tmp_path) -> None:

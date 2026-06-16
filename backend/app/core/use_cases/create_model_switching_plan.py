@@ -6,15 +6,12 @@ from app.core.domain.model_switching import ModelSwitchImpact, ModelSwitchingPla
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 
-
 ALLOWED_MODEL_TYPES = {"llm", "embedding"}
 ADVISORY_NOTE = (
     "This plan is advisory and does not change active runtime settings, download "
     "models, restart services, or reindex workspaces."
 )
-UNKNOWN_TARGET_NOTE = (
-    "Target model is not in catalog; validate metadata before use."
-)
+UNKNOWN_TARGET_NOTE = "Target model is not in catalog; validate metadata before use."
 SUPPORTED_LLM_PROVIDERS_NOTE = (
     "The current runtime only supports fake and ollama LLM providers unless a "
     "custom adapter is added."
@@ -24,8 +21,7 @@ SUPPORTED_EMBEDDING_PROVIDERS_NOTE = (
     "a custom adapter is added."
 )
 FAKE_EMBEDDING_NOTE = (
-    "Fake embeddings are not semantically meaningful and are not recommended for "
-    "real RAG."
+    "Fake embeddings are not semantically meaningful and are not recommended for real RAG."
 )
 
 
@@ -115,9 +111,7 @@ class CreateModelSwitchingPlanUseCase:
         model_type: str,
     ) -> None:
         if model_type not in ALLOWED_MODEL_TYPES:
-            raise ModelSwitchingPlanValidationError(
-                f"Unknown model type: {request.model_type}"
-            )
+            raise ModelSwitchingPlanValidationError(f"Unknown model type: {request.model_type}")
         required_values = {
             "current_provider": request.current_provider,
             "current_model": request.current_model,
@@ -126,9 +120,7 @@ class CreateModelSwitchingPlanUseCase:
         }
         for field_name, value in required_values.items():
             if not value.strip():
-                raise ModelSwitchingPlanValidationError(
-                    f"{field_name} is required"
-                )
+                raise ModelSwitchingPlanValidationError(f"{field_name} is required")
 
     def _find_model(
         self,
@@ -263,9 +255,7 @@ class CreateModelSwitchingPlanUseCase:
                     requires_reindex=True,
                     requires_backend_restart=True,
                     risk="high",
-                    explanation=(
-                        "Query vectors must be compatible with all stored chunk vectors."
-                    ),
+                    explanation=("Query vectors must be compatible with all stored chunk vectors."),
                 ),
                 ModelSwitchImpact(
                     area="vector_index",
@@ -273,9 +263,7 @@ class CreateModelSwitchingPlanUseCase:
                     requires_reindex=True,
                     requires_backend_restart=True,
                     risk="high",
-                    explanation=(
-                        "Vectors from different embedding models must not be mixed."
-                    ),
+                    explanation=("Vectors from different embedding models must not be mixed."),
                 ),
                 ModelSwitchImpact(
                     area="historical_answers",
@@ -300,10 +288,7 @@ class CreateModelSwitchingPlanUseCase:
             return (
                 [
                     "Pull target model manually if not installed.",
-                    (
-                        "Restart backend with "
-                        f"OLLAMA_LLM_MODEL={target_model_name} if using Ollama."
-                    ),
+                    (f"Restart backend with OLLAMA_LLM_MODEL={target_model_name} if using Ollama."),
                     "Ask the same workspace question again to compare answers.",
                 ],
                 [],
@@ -373,9 +358,7 @@ class CreateModelSwitchingPlanUseCase:
     ) -> list[str]:
         notes = [ADVISORY_NOTE]
         if current_model is None:
-            notes.append(
-                "Current model is not in catalog; current metadata could not be verified."
-            )
+            notes.append("Current model is not in catalog; current metadata could not be verified.")
         if target_model is None:
             notes.append(UNKNOWN_TARGET_NOTE)
         else:

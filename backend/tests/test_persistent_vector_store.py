@@ -3,7 +3,9 @@ from app.adapters.vector_store.sqlite_vector_store import SQLiteVectorStore
 from app.core.domain.indexing import TextChunk
 
 
-def _chunk(workspace_id: str, chunk_id: str, content: str, source_path: str = "README.md") -> TextChunk:
+def _chunk(
+    workspace_id: str, chunk_id: str, content: str, source_path: str = "README.md"
+) -> TextChunk:
     return TextChunk(
         id=f"{workspace_id}:{chunk_id}",
         workspace_id=workspace_id,

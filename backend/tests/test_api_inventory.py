@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 api_inventory_path = Path(__file__).resolve().parents[2] / "docs" / "API_INVENTORY.md"
 
@@ -57,7 +56,7 @@ IMPORTANT_PATHS = {
 def test_important_routes_are_present_in_openapi() -> None:
     openapi_paths = set(app.openapi()["paths"])
 
-    assert IMPORTANT_PATHS <= openapi_paths
+    assert openapi_paths >= IMPORTANT_PATHS
 
 
 def test_api_inventory_documents_every_openapi_path() -> None:

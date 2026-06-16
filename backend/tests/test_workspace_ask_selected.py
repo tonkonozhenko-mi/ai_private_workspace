@@ -5,7 +5,6 @@ from fastapi.testclient import TestClient
 from app.api.dependencies import readiness_configuration
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -15,10 +14,7 @@ def test_missing_selected_llm_returns_400(tmp_path) -> None:
     response = _ask_selected(workspace["id"], "What is this project?")
 
     assert response.status_code == 400
-    assert (
-        response.json()["detail"]
-        == "No selected LLM is configured for this workspace."
-    )
+    assert response.json()["detail"] == "No selected LLM is configured for this workspace."
 
 
 def test_selected_fake_llm_reuses_existing_ask_behavior(tmp_path) -> None:
@@ -58,11 +54,14 @@ def test_selected_ask_usage_metrics_report_selected_provider_and_model(tmp_path)
 
 def test_selected_fake_llm_alt_reports_selected_model(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select_llm(
-        workspace["id"],
-        "fake",
-        "fake-llm-alt",
-    ).status_code == 200
+    assert (
+        _select_llm(
+            workspace["id"],
+            "fake",
+            "fake-llm-alt",
+        ).status_code
+        == 200
+    )
 
     response = _ask_selected(workspace["id"], "What is this project?")
 
@@ -75,11 +74,14 @@ def test_selected_fake_llm_alt_reports_selected_model(tmp_path) -> None:
 
 def test_selected_unsupported_provider_returns_400(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select_llm(
-        workspace["id"],
-        "custom",
-        "private-model",
-    ).status_code == 200
+    assert (
+        _select_llm(
+            workspace["id"],
+            "custom",
+            "private-model",
+        ).status_code
+        == 200
+    )
 
     response = _ask_selected(workspace["id"], "What is this project?")
 
@@ -90,12 +92,15 @@ def test_selected_unsupported_provider_returns_400(tmp_path) -> None:
 def test_selected_embedding_mismatch_adds_quality_warning(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     assert _select_llm(workspace["id"], "fake", "fake-llm").status_code == 200
-    assert _select_model(
-        workspace["id"],
-        "ollama",
-        "nomic-embed-text",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select_model(
+            workspace["id"],
+            "ollama",
+            "nomic-embed-text",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
     response = _ask_selected(workspace["id"], "What is this project?")
 
@@ -106,8 +111,7 @@ def test_selected_embedding_mismatch_adds_quality_warning(tmp_path) -> None:
         if warning["code"] == "selected_embedding_not_active"
     )
     assert (
-        warning["message"]
-        == "Answer used active embedding/index configuration, not the selected "
+        warning["message"] == "Answer used active embedding/index configuration, not the selected "
         "embedding model."
     )
     assert warning["severity"] == "low"
@@ -119,11 +123,14 @@ def test_selected_ask_records_actual_model_and_selected_flag_in_timeline(
     tmp_path,
 ) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select_llm(
-        workspace["id"],
-        "fake",
-        "fake-llm-alt",
-    ).status_code == 200
+    assert (
+        _select_llm(
+            workspace["id"],
+            "fake",
+            "fake-llm-alt",
+        ).status_code
+        == 200
+    )
 
     response = _ask_selected(workspace["id"], "What is this project?")
 
@@ -140,20 +147,21 @@ def test_selected_ask_records_actual_model_and_selected_flag_in_timeline(
 
 def test_selected_ask_does_not_change_runtime_configuration(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select_llm(
-        workspace["id"],
-        "fake",
-        "fake-llm-alt",
-    ).status_code == 200
+    assert (
+        _select_llm(
+            workspace["id"],
+            "fake",
+            "fake-llm-alt",
+        ).status_code
+        == 200
+    )
     configuration_before = dict(readiness_configuration)
 
     response = _ask_selected(workspace["id"], "What is this project?")
 
     assert response.status_code == 200
     assert readiness_configuration == configuration_before
-    status = client.get(
-        f"/workspaces/{workspace['id']}/models/selection/status"
-    ).json()
+    status = client.get(f"/workspaces/{workspace['id']}/models/selection/status").json()
     assert status["llm_status"]["active_provider"] == "fake"
     assert status["llm_status"]["active_model"] == "fake-llm"
     assert status["llm_status"]["status"] == "runtime_mismatch"

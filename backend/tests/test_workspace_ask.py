@@ -6,7 +6,6 @@ from app.api.dependencies import vector_store
 from app.api.routes import workspaces as workspace_routes
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -28,8 +27,7 @@ def test_ask_before_indexing_returns_workspace_not_indexed_diagnostic(tmp_path) 
     assert response.status_code == 200
     result = response.json()
     assert (
-        result["answer"]
-        == "This workspace has not been indexed yet. Run workspace indexing first."
+        result["answer"] == "This workspace has not been indexed yet. Run workspace indexing first."
     )
     assert result["diagnostic_code"] == "workspace_not_indexed"
     assert result["diagnostic_message"] == "No workspace index metadata was found."
@@ -106,8 +104,7 @@ def test_ask_after_indexing_returns_sources_and_fake_answer(tmp_path) -> None:
     assert result["diagnostic_code"] is None
     assert result["diagnostic_message"] is None
     assert any(
-        warning["code"] == "answer_missing_source_paths"
-        for warning in result["quality_warnings"]
+        warning["code"] == "answer_missing_source_paths" for warning in result["quality_warnings"]
     )
     assert result["sources"][0]["source_path"] == "README.md"
     assert "raganswertoken" in result["sources"][0]["preview"]

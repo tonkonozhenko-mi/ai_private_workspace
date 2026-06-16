@@ -13,7 +13,6 @@ from app.core.ports.model_experiment_rating_repository import (
 from app.core.ports.model_experiment_repository import ModelExperimentRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 
-
 PERFORMANCE_NOTES = [
     "Performance is aggregated from saved experiment results and manual ratings.",
     "Scores are deterministic signals, not a semantic quality evaluation.",
@@ -87,8 +86,7 @@ class GetModelPerformanceSummaryUseCase:
                 accumulator.ratings.extend(
                     rating
                     for rating in ratings
-                    if rating.provider == candidate.provider
-                    and rating.model == candidate.model
+                    if rating.provider == candidate.provider and rating.model == candidate.model
                 )
 
         items = [self._to_item(accumulator) for accumulator in accumulators.values()]
@@ -125,13 +123,9 @@ class GetModelPerformanceSummaryUseCase:
 
     @classmethod
     def _to_item(cls, accumulator: _ModelAccumulator) -> ModelPerformanceItem:
-        average_rating = cls._average(
-            [rating.rating for rating in accumulator.ratings]
-        )
+        average_rating = cls._average([rating.rating for rating in accumulator.ratings])
         average_latency_ms = cls._average(accumulator.latencies_ms)
-        average_quality_warnings_count = cls._average(
-            accumulator.quality_warnings_counts
-        )
+        average_quality_warnings_count = cls._average(accumulator.quality_warnings_counts)
         average_sources_count = cls._average(accumulator.sources_counts)
         preferred_votes = sum(rating.is_preferred for rating in accumulator.ratings)
         score, score_reasons = cls._score(
@@ -193,10 +187,7 @@ class GetModelPerformanceSummaryUseCase:
             score += preferred_points
             reasons.append(f"+{preferred_points}: Preferred-vote signal.")
 
-        if (
-            average_quality_warnings_count is not None
-            and average_quality_warnings_count > 0
-        ):
+        if average_quality_warnings_count is not None and average_quality_warnings_count > 0:
             score -= 5
             reasons.append("-5: Average quality-warning count is above 0.")
 

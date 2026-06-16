@@ -68,12 +68,9 @@ class BootstrapWorkspaceUseCase:
         self.timeline_repository = timeline_repository
         self.readiness_configuration = readiness_configuration
         self.runtime_setup_guide_use_case = runtime_setup_guide_use_case
-        self.onboarding_plan_use_case = (
-            onboarding_plan_use_case or CreateOnboardingPlanUseCase()
-        )
-        self.setup_commands_use_case = (
-            setup_commands_use_case
-            or GetOnboardingSetupCommandsUseCase(self.onboarding_plan_use_case)
+        self.onboarding_plan_use_case = onboarding_plan_use_case or CreateOnboardingPlanUseCase()
+        self.setup_commands_use_case = setup_commands_use_case or GetOnboardingSetupCommandsUseCase(
+            self.onboarding_plan_use_case
         )
 
     def execute(self, request: BootstrapWorkspaceInput) -> OnboardingBootstrapResult:

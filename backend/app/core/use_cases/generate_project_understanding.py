@@ -28,7 +28,6 @@ from app.core.ports.workspace_model_selection_repository import (
 )
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 
-
 # Retrieval queries shape WHICH evidence the model sees, so we tune them per role.
 # A tester pulls in test/verification context; a DevOps engineer pulls deploy/infra
 # context; etc. This makes the analysis genuinely "through the role's eyes" rather
@@ -145,15 +144,12 @@ class GenerateProjectUnderstandingUseCase:
         index_status = self.index_status_repository.get(request.workspace_id)
         if index_status is None or index_status.status != "indexed":
             raise GenerateProjectUnderstandingValidationError(
-                "This workspace has not been indexed yet. Run workspace indexing "
-                "first."
+                "This workspace has not been indexed yet. Run workspace indexing first."
             )
 
         llm_provider = self._resolve_selected_llm(request.workspace_id)
 
-        context_results = self._retrieve_context(
-            request.workspace_id, workspace.assistant_mode
-        )
+        context_results = self._retrieve_context(request.workspace_id, workspace.assistant_mode)
         if not context_results:
             raise GenerateProjectUnderstandingValidationError(
                 "No indexed context was found for this workspace. Reindex the "
@@ -173,9 +169,7 @@ class GenerateProjectUnderstandingUseCase:
                 f"understanding right now: {exc}"
             ) from exc
 
-        used_paths = list(
-            dict.fromkeys(result.source_path for result in context_results)
-        )
+        used_paths = list(dict.fromkeys(result.source_path for result in context_results))
         parsed = self._parse_understanding(raw_answer, used_paths)
 
         model_label = self._model_label(llm_provider)
@@ -275,9 +269,7 @@ class GenerateProjectUnderstandingUseCase:
                 elif source_file not in used_paths:
                     # Only keep citations that actually came from retrieved files.
                     source_file = None
-                risks.append(
-                    ProjectRisk(text=text.strip(), source_file=source_file)
-                )
+                risks.append(ProjectRisk(text=text.strip(), source_file=source_file))
                 if len(risks) >= MAX_RISKS:
                     break
 
@@ -294,9 +286,7 @@ class GenerateProjectUnderstandingUseCase:
         }
 
     @staticmethod
-    def _parse_start_here(
-        raw: object, used_paths: list[str]
-    ) -> list[ProjectStartPoint]:
+    def _parse_start_here(raw: object, used_paths: list[str]) -> list[ProjectStartPoint]:
         points: list[ProjectStartPoint] = []
         if not isinstance(raw, list):
             return points

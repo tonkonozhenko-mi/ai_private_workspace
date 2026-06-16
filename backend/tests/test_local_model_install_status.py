@@ -5,7 +5,6 @@ from app.adapters.model_catalog.user_model_catalog_loader import UserModelCatalo
 from app.core.domain.model_catalog_registry import ModelCatalogRegistry
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -80,18 +79,14 @@ def test_local_model_install_status_discovers_custom_installed_model(
     response = client.get("/models/local-install-status")
 
     assert response.status_code == 200
-    custom = next(
-        item for item in response.json()["items"] if item["model"] == "deepseek-r1:1.5b"
-    )
+    custom = next(item for item in response.json()["items"] if item["model"] == "deepseek-r1:1.5b")
     assert custom["status"] == "installed"
     assert custom["installed_as"] == "deepseek-r1:1.5b"
     assert custom["parameter_size"] == "1.8B"
     assert custom["quantization_level"] == "Q4_K_M"
     assert custom["capabilities"] == ["completion", "thinking"]
 
-    restarted_registry = ModelCatalogRegistry(
-        loader=UserModelCatalogLoader(str(catalog_path))
-    )
+    restarted_registry = ModelCatalogRegistry(loader=UserModelCatalogLoader(str(catalog_path)))
     restarted_registry.reload()
     persisted = next(
         model

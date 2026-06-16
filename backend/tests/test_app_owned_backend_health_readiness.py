@@ -17,7 +17,10 @@ def test_app_owned_backend_health_readiness_uses_http_health_gate() -> None:
     assert any(item["id"] == "http-health-check" for item in payload["implementation_items"])
     assert any("open TCP port" in rule for rule in payload["safety_rules"])
     assert any("/health returns HTTP 200" in rule for rule in payload["safety_rules"])
-    assert any(command["command"] == "scripts/check_tauri_backend_health_readiness.sh" for command in payload["validation_commands"])
+    assert any(
+        command["command"] == "scripts/check_tauri_backend_health_readiness.sh"
+        for command in payload["validation_commands"]
+    )
 
 
 def test_app_owned_backend_health_readiness_route_is_documented_in_openapi() -> None:

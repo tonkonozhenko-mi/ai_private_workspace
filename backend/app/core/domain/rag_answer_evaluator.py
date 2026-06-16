@@ -2,7 +2,6 @@ import re
 
 from app.core.domain.rag import RagQualityWarning, RagSource
 
-
 NO_CONTEXT_PHRASES = (
     "no context",
     "no indexed context",
@@ -52,9 +51,7 @@ def evaluate_rag_answer(
             )
         )
 
-    if not any(
-        source.source_path.casefold() in normalized_answer for source in sources
-    ):
+    if not any(source.source_path.casefold() in normalized_answer for source in sources):
         warnings.append(
             RagQualityWarning(
                 code="answer_missing_source_paths",
@@ -64,9 +61,7 @@ def evaluate_rag_answer(
             )
         )
 
-    matched_absence_phrases = [
-        phrase for phrase in ABSENCE_PHRASES if phrase in normalized_answer
-    ]
+    matched_absence_phrases = [phrase for phrase in ABSENCE_PHRASES if phrase in normalized_answer]
     conflicting_keywords = _find_conflicting_question_keywords(
         question=question,
         source_contents=source_contents,
@@ -94,12 +89,6 @@ def _find_conflicting_question_keywords(
     question: str,
     source_contents: list[str],
 ) -> list[str]:
-    keywords = {
-        word.casefold()
-        for word in re.findall(r"[A-Za-z0-9_]+", question)
-        if len(word) > 4
-    }
+    keywords = {word.casefold() for word in re.findall(r"[A-Za-z0-9_]+", question) if len(word) > 4}
     combined_source_contents = "\n".join(source_contents).casefold()
-    return sorted(
-        keyword for keyword in keywords if keyword in combined_source_contents
-    )
+    return sorted(keyword for keyword in keywords if keyword in combined_source_contents)

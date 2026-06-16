@@ -44,9 +44,7 @@ def discover_gitignore_relative_paths(file_paths: list[str]) -> list[str]:
     found: list[str] = []
     for raw in file_paths:
         normalized = _posix(raw)
-        if normalized == GITIGNORE_FILENAME or normalized.endswith(
-            "/" + GITIGNORE_FILENAME
-        ):
+        if normalized == GITIGNORE_FILENAME or normalized.endswith("/" + GITIGNORE_FILENAME):
             if normalized not in found:
                 found.append(normalized)
     return found
@@ -112,7 +110,7 @@ class _FallbackGitIgnoreSpec:
         self._rules = rules
 
     @classmethod
-    def from_lines(cls, lines: list[str]) -> "_FallbackGitIgnoreSpec":
+    def from_lines(cls, lines: list[str]) -> _FallbackGitIgnoreSpec:
         rules: list[tuple[re.Pattern[str], bool]] = []
         for line in lines:
             translated = _translate_line(line)
@@ -158,11 +156,11 @@ class GitignoreMatcher:
         return bool(self._scoped_specs)
 
     @classmethod
-    def empty(cls) -> "GitignoreMatcher":
+    def empty(cls) -> GitignoreMatcher:
         return cls([])
 
     @classmethod
-    def from_sources(cls, sources: dict[str, str]) -> "GitignoreMatcher":
+    def from_sources(cls, sources: dict[str, str]) -> GitignoreMatcher:
         """Build a matcher from ``{gitignore_relative_path: content}``.
 
         Each ``.gitignore`` is scoped to its own directory, matching git's

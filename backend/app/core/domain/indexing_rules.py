@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-
 DEFAULT_INDEXING_RULES_PROFILE = "balanced"
 DEFAULT_INCLUDE_PATTERNS: tuple[str, ...] = (
     "src/**",

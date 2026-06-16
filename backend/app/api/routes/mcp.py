@@ -8,9 +8,9 @@ from app.api.schemas.mcp_schemas import (
     MCPConfigPreviewRequest,
     MCPConnectionCheckRequest,
     MCPServerCatalogResponse,
-    MCPToolInventoryResponse,
     MCPServerConfigPreviewResponse,
     MCPServerConnectionCheckResponse,
+    MCPToolInventoryResponse,
     UpdateWorkspaceMCPConfigRequest,
     WorkspaceMCPConfigListResponse,
     WorkspaceMCPServerConfigResponse,
@@ -31,7 +31,6 @@ from app.core.domain.mcp_server import (
     list_mcp_server_catalog,
     update_workspace_mcp_config,
 )
-
 
 router = APIRouter(prefix="/mcp", tags=["mcp"])
 
@@ -59,7 +58,9 @@ def create_mcp_config_preview(request: MCPConfigPreviewRequest) -> MCPServerConf
 
 
 @router.post("/connection-check", response_model=MCPServerConnectionCheckResponse)
-def create_mcp_connection_check(request: MCPConnectionCheckRequest) -> MCPServerConnectionCheckResponse:
+def create_mcp_connection_check(
+    request: MCPConnectionCheckRequest,
+) -> MCPServerConnectionCheckResponse:
     template = find_mcp_template(request.template_id)
     if template is None:
         raise HTTPException(
@@ -88,7 +89,10 @@ def create_workspace_mcp_config(
     _require_workspace(workspace_id)
     template = find_mcp_template(request.template_id)
     if template is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"MCP server template not found: {request.template_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"MCP server template not found: {request.template_id}",
+        )
     workspace = workspace_repository.get(workspace_id)
     preview = build_mcp_config_preview(
         template=template,
@@ -104,7 +108,10 @@ def create_workspace_mcp_config(
     return to_workspace_mcp_config_response(mcp_repository.save_config(config))
 
 
-@router.patch("/workspaces/{workspace_id}/configs/{config_id}", response_model=WorkspaceMCPServerConfigResponse)
+@router.patch(
+    "/workspaces/{workspace_id}/configs/{config_id}",
+    response_model=WorkspaceMCPServerConfigResponse,
+)
 def update_workspace_mcp_config_route(
     workspace_id: str,
     config_id: str,
@@ -121,11 +128,15 @@ def update_workspace_mcp_config_route(
     return to_workspace_mcp_config_response(mcp_repository.save_config(updated))
 
 
-@router.delete("/workspaces/{workspace_id}/configs/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/workspaces/{workspace_id}/configs/{config_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 def delete_workspace_mcp_config(workspace_id: str, config_id: str) -> None:
     _require_workspace(workspace_id)
     if not mcp_repository.delete_config(workspace_id, config_id):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace MCP config not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Workspace MCP config not found"
+        )
 
 
 @router.get("/workspaces/{workspace_id}/tool-inventory", response_model=MCPToolInventoryResponse)
@@ -135,7 +146,10 @@ def get_workspace_mcp_tool_inventory(workspace_id: str) -> MCPToolInventoryRespo
     return to_mcp_tool_inventory_response(inventory)
 
 
-@router.post("/workspaces/{workspace_id}/configs/{config_id}/approval-preview", response_model=MCPApprovalPreviewResponse)
+@router.post(
+    "/workspaces/{workspace_id}/configs/{config_id}/approval-preview",
+    response_model=MCPApprovalPreviewResponse,
+)
 def preview_workspace_mcp_approval(
     workspace_id: str,
     config_id: str,
@@ -159,5 +173,7 @@ def _require_config(workspace_id: str, config_id: str):
     _require_workspace(workspace_id)
     config = mcp_repository.get_config(workspace_id, config_id)
     if config is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace MCP config not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Workspace MCP config not found"
+        )
     return config

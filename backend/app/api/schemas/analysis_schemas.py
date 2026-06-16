@@ -6,9 +6,9 @@ from app.core.domain.analysis import (
     AnalyzerStatus,
     GitHubActionsAnalysisResult,
     GitHubActionsWorkflow,
-    SeverityCounts,
     GitLabCIAnalysisResult,
     GitLabCIJob,
+    SeverityCounts,
     TerraformAnalysisResult,
     TerragruntAnalysisResult,
 )
@@ -161,9 +161,7 @@ def to_terraform_analysis_response(
         has_variables=result.has_variables,
         has_outputs=result.has_outputs,
         has_modules=result.has_modules,
-        findings=[
-            to_analysis_finding_response(finding) for finding in result.findings
-        ],
+        findings=[to_analysis_finding_response(finding) for finding in result.findings],
     )
 
 
@@ -180,9 +178,7 @@ def to_terragrunt_analysis_response(
         has_dependencies=result.has_dependencies,
         has_inputs=result.has_inputs,
         has_terraform_source=result.has_terraform_source,
-        findings=[
-            to_analysis_finding_response(finding) for finding in result.findings
-        ],
+        findings=[to_analysis_finding_response(finding) for finding in result.findings],
     )
 
 
@@ -211,9 +207,7 @@ def to_gitlab_ci_analysis_response(
         variables_count=result.variables_count,
         jobs_count=result.jobs_count,
         jobs=[to_gitlab_ci_job_response(job) for job in result.jobs],
-        findings=[
-            to_analysis_finding_response(finding) for finding in result.findings
-        ],
+        findings=[to_analysis_finding_response(finding) for finding in result.findings],
     )
 
 
@@ -239,14 +233,9 @@ def to_github_actions_analysis_response(
         workspace_id=result.workspace_id,
         project_path=result.project_path,
         workflow_files_count=result.workflow_files_count,
-        workflows=[
-            to_github_actions_workflow_response(workflow)
-            for workflow in result.workflows
-        ],
+        workflows=[to_github_actions_workflow_response(workflow) for workflow in result.workflows],
         total_jobs_count=result.total_jobs_count,
-        findings=[
-            to_analysis_finding_response(finding) for finding in result.findings
-        ],
+        findings=[to_analysis_finding_response(finding) for finding in result.findings],
     )
 
 
@@ -257,13 +246,9 @@ def to_analysis_summary_response(
         workspace_id=result.workspace_id,
         project_path=result.project_path,
         has_scan=result.has_scan,
-        analyzers=[
-            to_analyzer_status_response(status) for status in result.analyzers
-        ],
+        analyzers=[to_analyzer_status_response(status) for status in result.analyzers],
         severity_counts=to_severity_counts_response(result.severity_counts),
         total_findings=result.total_findings,
-        top_findings=[
-            to_analysis_finding_response(finding) for finding in result.top_findings
-        ],
+        top_findings=[to_analysis_finding_response(finding) for finding in result.top_findings],
         recommended_next_steps=result.recommended_next_steps,
     )

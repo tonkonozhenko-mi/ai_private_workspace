@@ -158,7 +158,9 @@ def to_agent_workflow_step_response(step: AgentWorkflowStep) -> AgentWorkflowSte
     )
 
 
-def to_agent_step_approval_preview_response(preview: AgentStepApprovalPreview) -> AgentWorkflowStepApprovalPreviewResponse:
+def to_agent_step_approval_preview_response(
+    preview: AgentStepApprovalPreview,
+) -> AgentWorkflowStepApprovalPreviewResponse:
     return AgentWorkflowStepApprovalPreviewResponse(
         workflow_id=preview.workflow_id,
         step_id=preview.step_id,
@@ -222,7 +224,9 @@ def to_agent_workflow_execution_readiness_response(
         risky_tools_count=readiness.risky_tools_count,
         ready_steps_count=readiness.ready_steps_count,
         blocked_steps_count=readiness.blocked_steps_count,
-        steps=[to_agent_workflow_execution_readiness_step_response(step) for step in readiness.steps],
+        steps=[
+            to_agent_workflow_execution_readiness_step_response(step) for step in readiness.steps
+        ],
         guardrails=readiness.guardrails,
         safety_note=readiness.safety_note,
     )

@@ -63,8 +63,6 @@ class ReportCatalogResponse(BaseModel):
     safety_notes: list[str]
 
 
-
-
 def to_report_quality_check_response(check: ReportQualityCheck) -> ReportQualityCheckResponse:
     return ReportQualityCheckResponse(
         id=check.id,
@@ -74,7 +72,9 @@ def to_report_quality_check_response(check: ReportQualityCheck) -> ReportQuality
     )
 
 
-def to_report_quality_summary_response(quality: ReportQualitySummary) -> ReportQualitySummaryResponse:
+def to_report_quality_summary_response(
+    quality: ReportQualitySummary,
+) -> ReportQualitySummaryResponse:
     return ReportQualitySummaryResponse(
         score=quality.score,
         status=quality.status,
@@ -83,6 +83,7 @@ def to_report_quality_summary_response(quality: ReportQualitySummary) -> ReportQ
         checks=[to_report_quality_check_response(check) for check in quality.checks],
         warnings=list(quality.warnings),
     )
+
 
 def to_report_section_response(section: ReportSection) -> ReportSectionResponse:
     return ReportSectionResponse(
@@ -99,9 +100,7 @@ def to_project_overview_report_response(
         workspace_id=report.workspace_id,
         title=report.title,
         summary=report.summary,
-        sections=[
-            to_report_section_response(section) for section in report.sections
-        ],
+        sections=[to_report_section_response(section) for section in report.sections],
         generated_from=report.generated_from,
         report_type=report.report_type,
         export_markdown=report.export_markdown,
@@ -130,8 +129,6 @@ def to_report_catalog_response(catalog: ReportCatalog) -> ReportCatalogResponse:
     )
 
 
-
-
 class BuildCustomWorkspaceReportRequest(BaseModel):
     title: str | None = None
     summary: str | None = None
@@ -153,6 +150,7 @@ class SaveEditedWorkspaceReportRequest(BaseModel):
     generated_from: list[str] = []
     export_markdown: str
     safety_note: str = ""
+
 
 class SavedWorkspaceReportResponse(BaseModel):
     id: str
@@ -184,7 +182,9 @@ class SavedReportPinRequest(BaseModel):
     pinned: bool
 
 
-def to_saved_workspace_report_response(report: SavedWorkspaceReport) -> SavedWorkspaceReportResponse:
+def to_saved_workspace_report_response(
+    report: SavedWorkspaceReport,
+) -> SavedWorkspaceReportResponse:
     return SavedWorkspaceReportResponse(
         id=report.id,
         workspace_id=report.workspace_id,

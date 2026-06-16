@@ -8,11 +8,11 @@ from app.core.domain.command_risk import classify_command_risk
 from app.core.ports.command_repository import CommandRepositoryPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
-from app.core.use_cases.command_errors import CommandWorkspaceNotFoundError
 from app.core.use_cases.add_timeline_event import (
     AddTimelineEventInput,
     AddTimelineEventUseCase,
 )
+from app.core.use_cases.command_errors import CommandWorkspaceNotFoundError
 
 
 @dataclass(frozen=True)

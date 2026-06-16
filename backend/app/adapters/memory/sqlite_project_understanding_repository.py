@@ -1,6 +1,6 @@
 import json
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
 from app.core.domain.project_understanding import (
@@ -18,10 +18,7 @@ class SQLiteProjectUnderstandingRepository:
 
     def save(self, understanding: ProjectUnderstanding) -> ProjectUnderstanding:
         risks_json = json.dumps(
-            [
-                {"text": risk.text, "file": risk.source_file}
-                for risk in understanding.risks
-            ],
+            [{"text": risk.text, "file": risk.source_file} for risk in understanding.risks],
             sort_keys=True,
         )
         sources_json = json.dumps(list(understanding.sources), sort_keys=True)

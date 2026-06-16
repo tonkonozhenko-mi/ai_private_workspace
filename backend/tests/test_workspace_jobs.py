@@ -1,10 +1,9 @@
-from pathlib import Path
 import time
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from app.main import app
-
 
 client = TestClient(app)
 
@@ -74,7 +73,6 @@ def test_cancel_workspace_job_marks_job_for_cancellation(tmp_path: Path) -> None
     # an acknowledged cancellation or a job that completed before it could stop.
     assert job["cancellation_requested"] is True or job["status"] == "completed"
     assert job["status"] in {"queued", "running", "cancelled", "completed"}
-
 
 
 def test_scan_workspace_job_records_applied_file_rules(tmp_path: Path) -> None:

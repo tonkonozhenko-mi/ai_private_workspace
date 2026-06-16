@@ -26,19 +26,24 @@ class InMemoryReportRepository:
     ) -> list[SavedWorkspaceReport]:
         normalized_search = (search or "").strip().lower()
         normalized_type = (report_type or "").strip().lower()
-        reports = [report for report in self._reports.values() if report.workspace_id == workspace_id]
+        reports = [
+            report for report in self._reports.values() if report.workspace_id == workspace_id
+        ]
         if normalized_type:
             reports = [report for report in reports if report.report_type == normalized_type]
         if pinned_only:
             reports = [report for report in reports if report.pinned_at]
         if normalized_search:
             reports = [
-                report for report in reports
+                report
+                for report in reports
                 if normalized_search in report.title.lower()
                 or normalized_search in report.summary.lower()
                 or normalized_search in report.export_markdown.lower()
             ]
-        reports.sort(key=lambda report: (report.pinned_at is not None, report.updated_at), reverse=True)
+        reports.sort(
+            key=lambda report: (report.pinned_at is not None, report.updated_at), reverse=True
+        )
         return reports[: max(0, limit)]
 
     def update_report(

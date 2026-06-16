@@ -1,7 +1,6 @@
 from app.core.domain.project_scan import ProjectFile
 from app.core.domain.skill import SkillCategory, SkillDefinition, SkillMatch
 
-
 CONFIDENCE_ORDER = {"low": 0, "medium": 1, "high": 2}
 
 

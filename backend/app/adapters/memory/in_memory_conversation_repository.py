@@ -1,4 +1,11 @@
-from app.core.domain.conversation import ConversationAnswerNote, ConversationMessage, WorkspaceConversation, normalize_conversation_title, update_conversation_answer_note, utc_now_iso
+from app.core.domain.conversation import (
+    ConversationAnswerNote,
+    ConversationMessage,
+    WorkspaceConversation,
+    normalize_conversation_title,
+    update_conversation_answer_note,
+    utc_now_iso,
+)
 
 
 class InMemoryConversationRepository:
@@ -12,7 +19,9 @@ class InMemoryConversationRepository:
         self._messages.setdefault(conversation.id, [])
         return conversation
 
-    def get_conversation(self, workspace_id: str, conversation_id: str) -> WorkspaceConversation | None:
+    def get_conversation(
+        self, workspace_id: str, conversation_id: str
+    ) -> WorkspaceConversation | None:
         conversation = self._conversations.get(conversation_id)
         if conversation is None or conversation.workspace_id != workspace_id:
             return None
@@ -51,10 +60,12 @@ class InMemoryConversationRepository:
             if pinned_only and conversation.pinned_at is None:
                 continue
             if normalized_search:
-                haystack = " ".join([
-                    conversation.title,
-                    *(message.content for message in conversation.messages),
-                ]).lower()
+                haystack = " ".join(
+                    [
+                        conversation.title,
+                        *(message.content for message in conversation.messages),
+                    ]
+                ).lower()
                 if normalized_search not in haystack:
                     continue
             filtered.append(conversation)
@@ -182,15 +193,27 @@ class InMemoryConversationRepository:
             notes = [note for note in notes if note.pinned_at is not None]
         if normalized_source_path:
             notes = [
-                note for note in notes
+                note
+                for note in notes
                 if any(normalized_source_path in source.lower() for source in note.source_paths)
             ]
         if normalized_search:
             notes = [
-                note for note in notes
-                if normalized_search in " ".join([note.title, note.content, note.source_question or "", " ".join(note.source_paths)]).lower()
+                note
+                for note in notes
+                if normalized_search
+                in " ".join(
+                    [
+                        note.title,
+                        note.content,
+                        note.source_question or "",
+                        " ".join(note.source_paths),
+                    ]
+                ).lower()
             ]
-        return sorted(notes, key=lambda note: (note.pinned_at is not None, note.updated_at), reverse=True)[: max(0, limit)]
+        return sorted(
+            notes, key=lambda note: (note.pinned_at is not None, note.updated_at), reverse=True
+        )[: max(0, limit)]
 
     def update_answer_note(
         self,

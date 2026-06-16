@@ -1,9 +1,16 @@
 import json
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
-from app.core.domain.conversation import ConversationAnswerNote, ConversationMessage, WorkspaceConversation, normalize_conversation_title, update_conversation_answer_note, utc_now_iso
+from app.core.domain.conversation import (
+    ConversationAnswerNote,
+    ConversationMessage,
+    WorkspaceConversation,
+    normalize_conversation_title,
+    update_conversation_answer_note,
+    utc_now_iso,
+)
 from app.core.domain.rag import RagSource, SkillProfileAudit
 
 
@@ -33,7 +40,9 @@ class SQLiteConversationRepository:
             connection.commit()
         return conversation
 
-    def get_conversation(self, workspace_id: str, conversation_id: str) -> WorkspaceConversation | None:
+    def get_conversation(
+        self, workspace_id: str, conversation_id: str
+    ) -> WorkspaceConversation | None:
         with self._connect() as connection:
             row = connection.execute(
                 """
@@ -99,16 +108,13 @@ class SQLiteConversationRepository:
                 f"""
                 SELECT id, workspace_id, title, created_at, updated_at, pinned_at, archived_at
                 FROM workspace_conversations
-                WHERE {' AND '.join(clauses)}
+                WHERE {" AND ".join(clauses)}
                 ORDER BY CASE WHEN pinned_at IS NULL THEN 0 ELSE 1 END DESC, updated_at DESC, rowid DESC
                 LIMIT ?
                 """,
                 tuple(parameters),
             ).fetchall()
-        return [
-            self.get_conversation(workspace_id, row["id"])
-            for row in rows
-        ]  # type: ignore[return-value]
+        return [self.get_conversation(workspace_id, row["id"]) for row in rows]  # type: ignore[return-value]
 
     def add_message(self, message: ConversationMessage) -> ConversationMessage:
         with self._connect() as connection:
@@ -137,7 +143,9 @@ class SQLiteConversationRepository:
                     message.total_tokens,
                     message.latency_ms,
                     json.dumps(self._skill_profile_to_dict(message.skill_profile), sort_keys=True),
-                    json.dumps([self._source_to_dict(source) for source in message.sources], sort_keys=True),
+                    json.dumps(
+                        [self._source_to_dict(source) for source in message.sources], sort_keys=True
+                    ),
                 ),
             )
             if message.role == "user":
@@ -148,7 +156,12 @@ class SQLiteConversationRepository:
                         updated_at = ?
                     WHERE id = ? AND workspace_id = ?
                     """,
-                    (message.content.strip()[:80] or "New conversation", message.created_at, message.conversation_id, message.workspace_id),
+                    (
+                        message.content.strip()[:80] or "New conversation",
+                        message.created_at,
+                        message.conversation_id,
+                        message.workspace_id,
+                    ),
                 )
             else:
                 connection.execute(
@@ -305,7 +318,9 @@ class SQLiteConversationRepository:
             clauses.append("LOWER(source_paths_json) LIKE ?")
             parameters.append(f"%{normalized_source_path}%")
         if normalized_search:
-            clauses.append("(LOWER(title) LIKE ? OR LOWER(content) LIKE ? OR LOWER(COALESCE(source_question, '')) LIKE ? OR LOWER(source_paths_json) LIKE ?)")
+            clauses.append(
+                "(LOWER(title) LIKE ? OR LOWER(content) LIKE ? OR LOWER(COALESCE(source_question, '')) LIKE ? OR LOWER(source_paths_json) LIKE ?)"
+            )
             like_value = f"%{normalized_search}%"
             parameters.extend([like_value, like_value, like_value, like_value])
         parameters.append(max(0, limit))
@@ -315,7 +330,7 @@ class SQLiteConversationRepository:
                 SELECT id, workspace_id, conversation_id, message_id, title, content,
                        source_question, source_paths_json, created_at, updated_at, pinned_at
                 FROM workspace_answer_notes
-                WHERE {' AND '.join(clauses)}
+                WHERE {" AND ".join(clauses)}
                 ORDER BY CASE WHEN pinned_at IS NULL THEN 0 ELSE 1 END DESC, updated_at DESC, rowid DESC
                 LIMIT ?
                 """,
@@ -358,7 +373,14 @@ class SQLiteConversationRepository:
                 SET title = ?, content = ?, updated_at = ?, pinned_at = ?
                 WHERE id = ? AND workspace_id = ?
                 """,
-                (updated.title, updated.content, updated.updated_at, updated.pinned_at, note_id, workspace_id),
+                (
+                    updated.title,
+                    updated.content,
+                    updated.updated_at,
+                    updated.pinned_at,
+                    note_id,
+                    workspace_id,
+                ),
             )
             connection.commit()
         return updated
@@ -412,7 +434,6 @@ class SQLiteConversationRepository:
             skill_profile=self._skill_profile_from_json(row["skill_profile_json"]),
             sources=self._sources_from_json(row["sources_json"]),
         )
-
 
     def _source_to_dict(self, source: RagSource) -> dict[str, object]:
         return {

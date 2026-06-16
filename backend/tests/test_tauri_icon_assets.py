@@ -1,5 +1,5 @@
-from pathlib import Path
 import struct
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -24,7 +24,13 @@ def test_tauri_icon_assets_endpoint() -> None:
     assert payload["check_script"] == "scripts/check_tauri_icon_assets.sh"
     assert payload["status"] == "ready"
     item_ids = {item["id"] for item in payload["validation_items"]}
-    assert {"icon-png", "32x32-png", "128x128-png", "128x128-2x-png", "rust-unused-path-import"} <= item_ids
+    assert {
+        "icon-png",
+        "32x32-png",
+        "128x128-png",
+        "128x128-2x-png",
+        "rust-unused-path-import",
+    } <= item_ids
 
 
 def test_required_tauri_icons_are_rgba_png_files() -> None:
@@ -36,7 +42,9 @@ def test_required_tauri_icons_are_rgba_png_files() -> None:
     }
 
     for name, expected_size in icons.items():
-        width, height, bit_depth, color_type = _png_header(ROOT / "frontend" / "src-tauri" / "icons" / name)
+        width, height, bit_depth, color_type = _png_header(
+            ROOT / "frontend" / "src-tauri" / "icons" / name
+        )
         assert (width, height) == expected_size
         assert bit_depth == 8
         assert color_type == 6

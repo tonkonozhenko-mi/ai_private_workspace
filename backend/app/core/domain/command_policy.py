@@ -2,7 +2,6 @@ from dataclasses import dataclass
 
 from app.core.domain.command import CommandRisk
 
-
 AUTO_EXECUTABLE_READONLY_PREFIXES = [
     "git status",
     "git diff",

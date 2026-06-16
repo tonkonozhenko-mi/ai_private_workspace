@@ -2,7 +2,6 @@ from app.adapters.commands.fake_command_runner import FakeCommandRunner
 from app.adapters.commands.local_command_runner import LocalCommandRunner
 from app.adapters.embeddings.fake_embedding_provider import FakeEmbeddingProvider
 from app.adapters.filesystem.local_file_system import LocalFileSystem
-from app.adapters.system.local_git_history import LocalGitHistory
 from app.adapters.llm.fake_llm_provider import FakeLLMProvider
 from app.adapters.llm.llm_provider_factory import LLMProviderFactory
 from app.adapters.memory.in_memory_agent_workflow_repository import InMemoryAgentWorkflowRepository
@@ -14,18 +13,15 @@ from app.adapters.memory.in_memory_index_status_repository import (
 from app.adapters.memory.in_memory_indexing_rules_repository import (
     InMemoryIndexingRulesRepository,
 )
-from app.adapters.memory.in_memory_model_experiment_repository import (
-    InMemoryModelExperimentRepository,
-)
-from app.adapters.memory.in_memory_mcp_repository import InMemoryMCPRepository
 from app.adapters.memory.in_memory_local_model_download_job_repository import (
     InMemoryLocalModelDownloadJobRepository,
 )
-from app.adapters.memory.sqlite_local_model_download_job_repository import (
-    SQLiteLocalModelDownloadJobRepository,
-)
+from app.adapters.memory.in_memory_mcp_repository import InMemoryMCPRepository
 from app.adapters.memory.in_memory_model_experiment_rating_repository import (
     InMemoryModelExperimentRatingRepository,
+)
+from app.adapters.memory.in_memory_model_experiment_repository import (
+    InMemoryModelExperimentRepository,
 )
 from app.adapters.memory.in_memory_project_scan_repository import (
     InMemoryProjectScanRepository,
@@ -36,21 +32,27 @@ from app.adapters.memory.in_memory_project_understanding_repository import (
 from app.adapters.memory.in_memory_report_repository import InMemoryReportRepository
 from app.adapters.memory.in_memory_skill_profile_repository import InMemorySkillProfileRepository
 from app.adapters.memory.in_memory_timeline_repository import InMemoryTimelineRepository
-from app.adapters.memory.in_memory_workspace_repository import InMemoryWorkspaceRepository
 from app.adapters.memory.in_memory_workspace_model_selection_repository import (
     InMemoryWorkspaceModelSelectionRepository,
+)
+from app.adapters.memory.in_memory_workspace_repository import InMemoryWorkspaceRepository
+from app.adapters.memory.in_memory_workspace_storage_gateway import (
+    InMemoryWorkspaceStorageGateway,
 )
 from app.adapters.memory.sqlite_agent_workflow_repository import SQLiteAgentWorkflowRepository
 from app.adapters.memory.sqlite_command_repository import SQLiteCommandRepository
 from app.adapters.memory.sqlite_conversation_repository import SQLiteConversationRepository
 from app.adapters.memory.sqlite_index_status_repository import SQLiteIndexStatusRepository
 from app.adapters.memory.sqlite_indexing_rules_repository import SQLiteIndexingRulesRepository
-from app.adapters.memory.sqlite_model_experiment_repository import (
-    SQLiteModelExperimentRepository,
+from app.adapters.memory.sqlite_local_model_download_job_repository import (
+    SQLiteLocalModelDownloadJobRepository,
 )
 from app.adapters.memory.sqlite_mcp_repository import SQLiteMCPRepository
 from app.adapters.memory.sqlite_model_experiment_rating_repository import (
     SQLiteModelExperimentRatingRepository,
+)
+from app.adapters.memory.sqlite_model_experiment_repository import (
+    SQLiteModelExperimentRepository,
 )
 from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScanRepository
 from app.adapters.memory.sqlite_project_understanding_repository import (
@@ -59,15 +61,12 @@ from app.adapters.memory.sqlite_project_understanding_repository import (
 from app.adapters.memory.sqlite_report_repository import SQLiteReportRepository
 from app.adapters.memory.sqlite_skill_profile_repository import SQLiteSkillProfileRepository
 from app.adapters.memory.sqlite_timeline_repository import SQLiteTimelineRepository
-from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
-from app.adapters.memory.in_memory_workspace_storage_gateway import (
-    InMemoryWorkspaceStorageGateway,
-)
-from app.adapters.memory.sqlite_workspace_storage_gateway import (
-    SQLiteWorkspaceStorageGateway,
-)
 from app.adapters.memory.sqlite_workspace_model_selection_repository import (
     SQLiteWorkspaceModelSelectionRepository,
+)
+from app.adapters.memory.sqlite_workspace_repository import SQLiteWorkspaceRepository
+from app.adapters.memory.sqlite_workspace_storage_gateway import (
+    SQLiteWorkspaceStorageGateway,
 )
 from app.adapters.model_catalog.user_model_catalog_loader import UserModelCatalogLoader
 from app.adapters.runtime_health.command_runner_health_checker import (
@@ -79,26 +78,28 @@ from app.adapters.runtime_health.ollama_runtime_health_checker import (
 from app.adapters.runtime_health.qdrant_runtime_health_checker import (
     QdrantRuntimeHealthChecker,
 )
+from app.adapters.system.local_git_history import LocalGitHistory
 from app.adapters.vector_store.in_memory_vector_store import InMemoryVectorStore
 from app.adapters.vector_store.sqlite_vector_store import SQLiteVectorStore
 from app.config.settings import get_settings
+from app.core.domain.model_catalog_registry import ModelCatalogRegistry
 from app.core.ports.agent_workflow_repository import AgentWorkflowRepositoryPort
 from app.core.ports.command_repository import CommandRepositoryPort
-from app.core.ports.local_model_download_job_repository import (
-    LocalModelDownloadJobRepositoryPort,
-)
-from app.core.ports.conversation_repository import ConversationRepositoryPort
 from app.core.ports.command_runner import CommandRunnerPort
+from app.core.ports.conversation_repository import ConversationRepositoryPort
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.indexing_rules_repository import IndexingRulesRepositoryPort
 from app.core.ports.llm_provider import LLMProviderPort
 from app.core.ports.llm_provider_factory import LLMProviderFactoryPort
-from app.core.ports.model_experiment_repository import ModelExperimentRepositoryPort
+from app.core.ports.local_model_download_job_repository import (
+    LocalModelDownloadJobRepositoryPort,
+)
 from app.core.ports.mcp_repository import MCPRepositoryPort
 from app.core.ports.model_experiment_rating_repository import (
     ModelExperimentRatingRepositoryPort,
 )
+from app.core.ports.model_experiment_repository import ModelExperimentRepositoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.project_understanding_repository import (
     ProjectUnderstandingRepositoryPort,
@@ -108,12 +109,11 @@ from app.core.ports.runtime_health_checker import RuntimeHealthCheckerPort
 from app.core.ports.skill_profile_repository import SkillProfileRepositoryPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
-from app.core.ports.workspace_repository import WorkspaceRepositoryPort
-from app.core.ports.workspace_storage_gateway import WorkspaceStorageGatewayPort
 from app.core.ports.workspace_model_selection_repository import (
     WorkspaceModelSelectionRepositoryPort,
 )
-from app.core.domain.model_catalog_registry import ModelCatalogRegistry
+from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.ports.workspace_storage_gateway import WorkspaceStorageGatewayPort
 
 
 def build_workspace_repository() -> WorkspaceRepositoryPort:
@@ -140,7 +140,6 @@ def build_project_scan_repository() -> ProjectScanRepositoryPort:
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
 
-
 def build_report_repository() -> ReportRepositoryPort:
     settings = get_settings()
     repository_type = settings.workspace_repository.lower()
@@ -151,6 +150,7 @@ def build_report_repository() -> ReportRepositoryPort:
         return SQLiteReportRepository(settings.workspace_db_path)
 
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
 
 def build_project_understanding_repository() -> ProjectUnderstandingRepositoryPort:
     settings = get_settings()
@@ -198,7 +198,6 @@ def build_command_repository() -> CommandRepositoryPort:
         return SQLiteCommandRepository(settings.workspace_db_path)
 
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
-
 
 
 def build_local_model_download_job_repository() -> LocalModelDownloadJobRepositoryPort:
@@ -309,9 +308,7 @@ def build_workspace_storage_gateway() -> WorkspaceStorageGatewayPort:
     if settings.workspace_repository.lower() == "memory":
         return InMemoryWorkspaceStorageGateway()
     vector_store_path = (
-        settings.vector_store_path
-        if settings.vector_store.lower() == "sqlite"
-        else None
+        settings.vector_store_path if settings.vector_store.lower() == "sqlite" else None
     )
     return SQLiteWorkspaceStorageGateway(
         workspace_db_path=settings.workspace_db_path,

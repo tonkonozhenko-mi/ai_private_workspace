@@ -8,7 +8,6 @@ from app.core.use_cases.get_runtime_setup_guide import (
 )
 from app.main import app
 
-
 client = TestClient(app)
 
 

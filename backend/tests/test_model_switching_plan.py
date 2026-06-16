@@ -2,7 +2,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -57,8 +56,7 @@ def test_unknown_target_returns_metadata_validation_note() -> None:
 
     assert response.status_code == 200
     assert (
-        "Target model is not in catalog; validate metadata before use."
-        in response.json()["notes"]
+        "Target model is not in catalog; validate metadata before use." in response.json()["notes"]
     )
 
 
@@ -132,10 +130,7 @@ def test_ollama_llm_target_includes_ollama_model_action() -> None:
         target_model="llama3.2",
     ).json()
 
-    assert any(
-        "OLLAMA_LLM_MODEL=llama3.2" in action
-        for action in plan["recommended_actions"]
-    )
+    assert any("OLLAMA_LLM_MODEL=llama3.2" in action for action in plan["recommended_actions"])
 
 
 def test_custom_llm_target_requires_adapter_without_ollama_action() -> None:
@@ -147,17 +142,11 @@ def test_custom_llm_target_requires_adapter_without_ollama_action() -> None:
         target_model="custom-local-llm",
     ).json()
 
-    assert not any(
-        "OLLAMA_LLM_MODEL" in action for action in plan["recommended_actions"]
-    )
+    assert not any("OLLAMA_LLM_MODEL" in action for action in plan["recommended_actions"])
     assert (
-        "Configure a compatible LLM provider adapter before switching to "
-        "custom/custom-local-llm."
+        "Configure a compatible LLM provider adapter before switching to custom/custom-local-llm."
     ) in plan["recommended_actions"]
-    assert any(
-        "only supports fake and ollama LLM providers" in note
-        for note in plan["notes"]
-    )
+    assert any("only supports fake and ollama LLM providers" in note for note in plan["notes"])
 
 
 def test_ollama_embedding_target_includes_ollama_model_action() -> None:
@@ -185,16 +174,13 @@ def test_custom_embedding_target_requires_adapter_without_ollama_action() -> Non
     ).json()
 
     assert plan["requires_reindex"] is True
-    assert not any(
-        "OLLAMA_EMBEDDING_MODEL" in action for action in plan["recommended_actions"]
-    )
+    assert not any("OLLAMA_EMBEDDING_MODEL" in action for action in plan["recommended_actions"])
     assert (
         "Configure a compatible embedding provider adapter before switching to "
         "custom/custom-local-embedding."
     ) in plan["recommended_actions"]
     assert any(
-        "only supports fake and ollama embedding providers" in note
-        for note in plan["notes"]
+        "only supports fake and ollama embedding providers" in note for note in plan["notes"]
     )
 
 
@@ -212,8 +198,7 @@ def test_fake_embedding_target_warns_about_semantic_quality() -> None:
         in plan["recommended_actions"]
     )
     assert (
-        "Fake embeddings are not semantically meaningful and are not recommended "
-        "for real RAG."
+        "Fake embeddings are not semantically meaningful and are not recommended for real RAG."
     ) in plan["notes"]
 
 

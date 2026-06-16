@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -73,7 +72,7 @@ def test_click_launcher_update_build_uses_isolated_smoke_and_graceful_restart() 
 
     content = script.read_text()
 
-    assert 'AI_PRIVATE_WORKSPACE_BUILD_SMOKE_PORT:-8012' in content
+    assert "AI_PRIVATE_WORKSPACE_BUILD_SMOKE_PORT:-8012" in content
     assert "build-smoke-logs" in content
     assert 'tell application id "local.ai-private-workspace" to quit' in content
     assert "No process was force-killed." in content

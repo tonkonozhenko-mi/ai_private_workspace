@@ -18,11 +18,7 @@ class InMemoryModelExperimentRepository:
         limit: int = 20,
     ) -> list[ModelExperimentRun]:
         runs = sorted(
-            (
-                run
-                for run in self._runs.values()
-                if run.workspace_id == workspace_id
-            ),
+            (run for run in self._runs.values() if run.workspace_id == workspace_id),
             key=lambda run: (run.created_at, run.id),
             reverse=True,
         )

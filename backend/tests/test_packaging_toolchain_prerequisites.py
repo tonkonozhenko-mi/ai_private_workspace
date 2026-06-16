@@ -17,11 +17,15 @@ def test_packaging_toolchain_prerequisites_contract() -> None:
     assert payload["pyinstaller_dependency"] == "pyinstaller>=6.0,<7.0"
     assert any("brew install rust" in option for option in payload["cargo_install_options"])
     item_ids = {item["id"] for item in payload["prerequisite_items"]}
-    assert {"pyinstaller-dependency", "pyinstaller-spec-path", "tauri-cli", "cargo"}.issubset(item_ids)
+    assert {"pyinstaller-dependency", "pyinstaller-spec-path", "tauri-cli", "cargo"}.issubset(
+        item_ids
+    )
     commands = {command["command"] for command in payload["validation_commands"]}
     assert "scripts/check_packaging_toolchain_prerequisites.sh" in commands
     assert "cd frontend && cargo check --manifest-path src-tauri/Cargo.toml" in commands
-    assert any("Frontend still cannot execute shell commands" in rule for rule in payload["safety_rules"])
+    assert any(
+        "Frontend still cannot execute shell commands" in rule for rule in payload["safety_rules"]
+    )
 
 
 def test_pyinstaller_dependency_is_declared_for_local_build() -> None:

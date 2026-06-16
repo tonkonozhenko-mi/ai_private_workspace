@@ -19,7 +19,6 @@ from app.core.use_cases.get_workspace_assistant_recommendation import (
 )
 from app.core.use_cases.list_assistant_profiles import ListAssistantProfilesUseCase
 
-
 router = APIRouter(tags=["assistant-profiles"])
 
 

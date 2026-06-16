@@ -66,5 +66,8 @@ def build_queued_model_download_job(
             "The job is owned by the backend model download worker. The frontend only requests "
             "status and never executes shell commands."
         ),
-        next_steps=["Wait for the backend worker status.", "Re-check installed models after completion."],
+        next_steps=[
+            "Wait for the backend worker status.",
+            "Re-check installed models after completion.",
+        ],
     )

@@ -37,7 +37,6 @@ from app.core.use_cases.suggest_workspace_commands import (
     SuggestWorkspaceCommandsUseCase,
 )
 
-
 router = APIRouter(tags=["commands"])
 
 
@@ -106,9 +105,7 @@ def suggest_workspace_commands(workspace_id: str) -> list[CommandSuggestionRespo
     )
 
     try:
-        suggestions = use_case.execute(
-            SuggestWorkspaceCommandsInput(workspace_id=workspace_id)
-        )
+        suggestions = use_case.execute(SuggestWorkspaceCommandsInput(workspace_id=workspace_id))
     except CommandWorkspaceNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

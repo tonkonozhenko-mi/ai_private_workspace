@@ -1,13 +1,19 @@
 from typing import Protocol
 
-from app.core.domain.conversation import ConversationAnswerNote, ConversationMessage, WorkspaceConversation
+from app.core.domain.conversation import (
+    ConversationAnswerNote,
+    ConversationMessage,
+    WorkspaceConversation,
+)
 
 
 class ConversationRepositoryPort(Protocol):
     def add_conversation(self, conversation: WorkspaceConversation) -> WorkspaceConversation:
         """Persist a workspace conversation."""
 
-    def get_conversation(self, workspace_id: str, conversation_id: str) -> WorkspaceConversation | None:
+    def get_conversation(
+        self, workspace_id: str, conversation_id: str
+    ) -> WorkspaceConversation | None:
         """Return a conversation with its messages."""
 
     def list_conversations(

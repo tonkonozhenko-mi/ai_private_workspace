@@ -2,7 +2,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -25,7 +24,6 @@ def test_local_data_safety_reports_database_location() -> None:
     assert isinstance(body["backup_hints"], list)
 
 
-
 def test_startup_checklist_reports_read_only_steps() -> None:
     response = client.get("/runtime/startup-checklist")
 
@@ -35,7 +33,9 @@ def test_startup_checklist_reports_read_only_steps() -> None:
     assert body["safe_to_continue"] in {True, False}
     assert "frontend only displays" in body["safety_note"].lower()
     item_ids = {item["id"] for item in body["items"]}
-    assert {"python", "database", "local-data-protection", "models", "search-context"}.issubset(item_ids)
+    assert {"python", "database", "local-data-protection", "models", "search-context"}.issubset(
+        item_ids
+    )
 
 
 def test_database_backup_and_migration_endpoints_are_safe() -> None:
@@ -73,8 +73,16 @@ def test_runtime_troubleshooting_is_read_only_and_actionable() -> None:
     assert isinstance(body["issues"], list)
     assert body["quick_checks"]
     assert body["safe_restart_commands"]
-    assert any("runtime/health" in step["copy_command"] for step in body["quick_checks"] if step["copy_command"])
-    assert any("python -m uvicorn" in step["copy_command"] for step in body["safe_restart_commands"] if step["copy_command"])
+    assert any(
+        "runtime/health" in step["copy_command"]
+        for step in body["quick_checks"]
+        if step["copy_command"]
+    )
+    assert any(
+        "python -m uvicorn" in step["copy_command"]
+        for step in body["safe_restart_commands"]
+        if step["copy_command"]
+    )
 
 
 def test_update_safety_workflow_is_copy_only_and_protects_runtime_data() -> None:
@@ -114,11 +122,20 @@ def test_first_launch_readiness_is_read_only_and_packaging_ready() -> None:
     assert body["status"] in {"ok", "review", "blocked"}
     assert body["checklist"]
     item_ids = {item["id"] for item in body["checklist"]}
-    assert {"backend-runtime", "workspace-data", "local-ai-models", "search-context-store", "macos-launcher", "desktop-shortcut"}.issubset(item_ids)
+    assert {
+        "backend-runtime",
+        "workspace-data",
+        "local-ai-models",
+        "search-context-store",
+        "macos-launcher",
+        "desktop-shortcut",
+    }.issubset(item_ids)
     assert "read-only" in body["safety_note"].lower()
     assert "never installs models" in body["safety_note"].lower()
     assert any("launch_macos.command" in command["command"] for command in body["copy_commands"])
-    assert any("create_macos_shortcut.sh" in command["command"] for command in body["copy_commands"])
+    assert any(
+        "create_macos_shortcut.sh" in command["command"] for command in body["copy_commands"]
+    )
 
 
 def test_production_readiness_is_read_only_and_has_packaging_path() -> None:
@@ -130,7 +147,17 @@ def test_production_readiness_is_read_only_and_has_packaging_path() -> None:
     assert 0 <= body["readiness_score"] <= 100
     assert "read-only" in body["safety_note"].lower()
     item_ids = {item["id"] for item in body["items"]}
-    assert {"python-runtime", "workspace-data", "local-data-guardrails", "local-ai-runtime", "persistent-vector-store"}.issubset(item_ids)
+    assert {
+        "python-runtime",
+        "workspace-data",
+        "local-data-guardrails",
+        "local-ai-runtime",
+        "persistent-vector-store",
+    }.issubset(item_ids)
     option_ids = {option["id"] for option in body["packaging_options"]}
     assert {"dev-scripts", "mac-shortcuts", "desktop-wrapper"}.issubset(option_ids)
-    assert any("start_backend.sh" in command for option in body["packaging_options"] for command in option["copy_commands"])
+    assert any(
+        "start_backend.sh" in command
+        for option in body["packaging_options"]
+        for command in option["copy_commands"]
+    )

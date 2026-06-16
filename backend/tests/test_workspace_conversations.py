@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -79,9 +78,10 @@ def test_delete_conversation_removes_history(tmp_path: Path) -> None:
         f"/workspaces/{workspace['id']}/conversations/{conversation_id}"
     )
     assert delete_response.status_code == 204
-    assert client.get(
-        f"/workspaces/{workspace['id']}/conversations/{conversation_id}"
-    ).status_code == 404
+    assert (
+        client.get(f"/workspaces/{workspace['id']}/conversations/{conversation_id}").status_code
+        == 404
+    )
 
 
 def test_rename_conversation_and_list_includes_answer_history_metadata(tmp_path: Path) -> None:
@@ -159,9 +159,7 @@ def test_conversation_pin_archive_and_search_filters(tmp_path: Path) -> None:
     assert listed[0]["id"] == beta["id"]
     assert listed[0]["is_pinned"] is True
 
-    pinned_only = client.get(
-        f"/workspaces/{workspace['id']}/conversations?pinned_only=true"
-    ).json()
+    pinned_only = client.get(f"/workspaces/{workspace['id']}/conversations?pinned_only=true").json()
     assert [conversation["id"] for conversation in pinned_only] == [beta["id"]]
 
     search_results = client.get(

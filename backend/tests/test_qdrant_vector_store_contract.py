@@ -11,7 +11,6 @@ from app.api.dependencies import build_vector_store
 from app.config.settings import get_settings
 from app.core.domain.indexing import TextChunk
 
-
 RUN_QDRANT_TESTS = os.getenv("RUN_QDRANT_TESTS", "").lower() == "true"
 
 
@@ -94,9 +93,7 @@ def test_qdrant_vector_store_contract() -> None:
             embedding_dimension=3,
         )
 
-        assert [result.chunk_id for result in workspace_a_results] == [
-            workspace_a_chunk.id
-        ]
+        assert [result.chunk_id for result in workspace_a_results] == [workspace_a_chunk.id]
         assert workspace_a_results[0].source_path == "README.md"
         assert workspace_a_results[0].metadata == {"detected_type": "markdown"}
 

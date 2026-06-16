@@ -60,8 +60,7 @@ def to_runtime_health_response(health: RuntimeHealth) -> RuntimeHealthResponse:
     return RuntimeHealthResponse(
         status=health.status,
         components=[
-            to_runtime_component_health_response(component)
-            for component in health.components
+            to_runtime_component_health_response(component) for component in health.components
         ],
         configuration=health.configuration,
     )

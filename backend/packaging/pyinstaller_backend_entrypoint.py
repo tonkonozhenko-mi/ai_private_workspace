@@ -64,7 +64,10 @@ def _configure_frozen_environment() -> None:
         os.environ.setdefault("AI_WORKSPACE_VECTOR_STORE_PATH", str(vector_store_path))
         print(f"AI Private Workspace app data directory: {app_data_dir}", file=sys.stderr)
         print(f"AI Private Workspace workspace database: {workspace_db_path}", file=sys.stderr)
-        print(f"AI Private Workspace vector store: {os.environ.get('VECTOR_STORE')} at {vector_store_path}", file=sys.stderr)
+        print(
+            f"AI Private Workspace vector store: {os.environ.get('VECTOR_STORE')} at {vector_store_path}",
+            file=sys.stderr,
+        )
     else:
         os.environ.setdefault("APP_ENV", "desktop")
 

@@ -6,7 +6,6 @@ from app.adapters.memory.sqlite_timeline_repository import SQLiteTimelineReposit
 from app.core.domain.timeline import TimelineEvent
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -20,9 +19,7 @@ def test_workspace_activity_creates_newest_first_timeline_and_summary_events(
     assert scan_response.status_code == 200
     index_response = client.post(f"/workspaces/{workspace['id']}/index")
     assert index_response.status_code == 200
-    report_response = client.get(
-        f"/workspaces/{workspace['id']}/reports/project-overview"
-    )
+    report_response = client.get(f"/workspaces/{workspace['id']}/reports/project-overview")
     assert report_response.status_code == 200
 
     command = _propose_command(workspace["id"], tmp_path)
@@ -53,9 +50,7 @@ def test_workspace_activity_creates_newest_first_timeline_and_summary_events(
     ]
     assert events[0]["metadata"]["llm_provider"] == "fake"
     assert events[1]["metadata"]["command_id"] == command["id"]
-    assert events[5]["metadata"]["chunks_count"] == str(
-        index_response.json()["chunks_count"]
-    )
+    assert events[5]["metadata"]["chunks_count"] == str(index_response.json()["chunks_count"])
     assert events[6]["metadata"]["detected_skills_count"] == str(
         len(scan_response.json()["detected_skills"])
     )
@@ -65,9 +60,7 @@ def test_workspace_activity_creates_newest_first_timeline_and_summary_events(
     assert summary_response.status_code == 200
     recent_events = summary_response.json()["recent_events"]
     assert len(recent_events) == 5
-    assert [event["id"] for event in recent_events] == [
-        event["id"] for event in events[:5]
-    ]
+    assert [event["id"] for event in recent_events] == [event["id"] for event in events[:5]]
 
 
 def test_workspace_timeline_limit_is_applied(tmp_path) -> None:

@@ -10,7 +10,6 @@ from app.core.domain.command import CommandProposal
 from app.core.domain.local_model_download_job import build_queued_model_download_job
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -18,9 +17,7 @@ def test_model_download_job_is_blocked_when_execution_disabled(tmp_path) -> None
     workspace = _create_workspace(tmp_path)
     draft = _create_draft(workspace["id"])
 
-    response = client.post(
-        f"/models/local-install-drafts/{draft['command_proposal']['id']}/jobs"
-    )
+    response = client.post(f"/models/local-install-drafts/{draft['command_proposal']['id']}/jobs")
 
     assert response.status_code == 400
     assert "disabled" in response.json()["detail"]

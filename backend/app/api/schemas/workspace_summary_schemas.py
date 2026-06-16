@@ -106,18 +106,11 @@ def to_workspace_summary_response(
         created_at=summary.created_at,
         has_scan=summary.has_scan,
         detected_skills_count=summary.detected_skills_count,
-        detected_skills=[
-            to_skill_match_response(skill) for skill in summary.detected_skills
-        ],
+        detected_skills=[to_skill_match_response(skill) for skill in summary.detected_skills],
         suggested_actions=[
-            to_suggested_action_response(action)
-            for action in summary.suggested_actions
+            to_suggested_action_response(action) for action in summary.suggested_actions
         ],
-        command_activity=to_command_activity_summary_response(
-            summary.command_activity
-        ),
+        command_activity=to_command_activity_summary_response(summary.command_activity),
         index_status=to_workspace_index_status_response(summary.index_status),
-        recent_events=[
-            to_timeline_event_response(event) for event in summary.recent_events
-        ],
+        recent_events=[to_timeline_event_response(event) for event in summary.recent_events],
     )

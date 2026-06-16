@@ -3,36 +3,99 @@ from __future__ import annotations
 import shutil
 import sqlite3
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
 from app.api.schemas.local_data_safety_schemas import (
+    AppOwnedBackendHealthReadinessItemResponse,
+    AppOwnedBackendHealthReadinessResponse,
+    AppOwnedBackendStartupGateItemResponse,
+    AppOwnedBackendStartupGateResponse,
+    AppOwnedBackendStartupImplementationItemResponse,
+    AppOwnedBackendStartupImplementationResponse,
+    BackendRuntimeBundleItemResponse,
+    BackendRuntimeBundlePlanResponse,
+    BackendRuntimeBundleStepResponse,
     CreateDatabaseBackupResponse,
     DatabaseBackupListResponse,
-    DesktopStartupCommandResponse,
-    DesktopStartupExperienceResponse,
+    DatabaseBackupResponse,
+    DatabaseMigrationSafetyResponse,
+    DatabaseMigrationTableResponse,
+    DatabaseRestorePlanRequest,
+    DatabaseRestorePlanResponse,
     DesktopPackagingDecisionResponse,
     DesktopPackagingDesignResponse,
     DesktopPackagingPhaseResponse,
+    DesktopRuntimeFreezeMilestoneResponse,
+    DesktopRuntimePreflightItemResponse,
+    DesktopRuntimePreflightResponse,
+    DesktopRuntimeReadinessItemResponse,
+    DesktopRuntimeReadinessResponse,
+    DesktopRuntimeValidationCommandResponse,
+    DesktopStackAndRuntimeContractResponse,
+    DesktopStackComponentResponse,
+    DesktopStartupCommandResponse,
+    DesktopStartupExperienceResponse,
     DesktopSupervisorContractResponse,
     DesktopSupervisorLogResponse,
     DesktopSupervisorPortResponse,
     DesktopSupervisorStateResponse,
+    DesktopTechnologyDecisionResponse,
+    DesktopTechnologyOptionResponse,
+    FinalProductStageResponse,
+    FinalProductStatusResponse,
+    FirstLaunchChecklistItemResponse,
+    FirstLaunchReadinessResponse,
+    FrozenBackendRuntimeSelectionResponse,
+    FrozenBackendSmokeContractResponse,
+    FrozenBackendSmokeItemResponse,
+    FrozenBackendStartupDiagnosticsItemResponse,
+    FrozenBackendStartupDiagnosticsResponse,
+    LocalDataBackupHintResponse,
+    LocalDataSafetyResponse,
     MacOSAppPackageArtifactResponse,
     MacOSAppPackageFoundationResponse,
     MacOSAppSupervisorWiringFileResponse,
     MacOSAppSupervisorWiringResponse,
     MacOSAppSupervisorWiringStepResponse,
-    BackendRuntimeBundleItemResponse,
-    BackendRuntimeBundlePlanResponse,
-    BackendRuntimeBundleStepResponse,
-    DesktopRuntimeValidationCommandResponse,
-    DesktopRuntimeReadinessItemResponse,
-    DesktopRuntimeReadinessResponse,
-    DesktopRuntimePreflightItemResponse,
-    DesktopRuntimePreflightResponse,
+    MacOSPackagedAppSmokePreflightItemResponse,
+    MacOSPackagedAppSmokePreflightResponse,
+    MacOSPackagedAppSmokeResultItemResponse,
+    MacOSPackagedAppSmokeResultResponse,
+    MacOSTauriSmokeRunbookItemResponse,
+    MacOSTauriSmokeRunbookResponse,
+    PackagedAppFrontendBootstrapItemResponse,
+    PackagedAppFrontendBootstrapResponse,
+    PackagingOptionResponse,
+    PackagingToolchainPrerequisiteItemResponse,
+    PackagingToolchainPrerequisitesResponse,
+    ProductCompletionRoadmapResponse,
+    ProductCompletionStageResponse,
+    ProductionReadinessItemResponse,
+    ProductionReadinessResponse,
+    PyInstallerBackendRuntimeContractResponse,
+    PyInstallerBackendRuntimeItemResponse,
+    ReleaseCandidateAuditCommandResponse,
+    ReleaseCandidateAuditItemResponse,
+    ReleaseCandidateAuditResponse,
+    RuntimeSelectionCandidateResponse,
+    SafeUpdateWorkflowResponse,
+    StagedBackendRuntimeContractResponse,
+    StagedBackendRuntimeItemResponse,
+    StartupChecklistItemResponse,
+    StartupChecklistResponse,
+    TauriDevSmokeReadinessItemResponse,
+    TauriDevSmokeReadinessResponse,
+    TauriIconAssetItemResponse,
+    TauriIconAssetsResponse,
+    TauriPackagedAppBuildItemResponse,
+    TauriPackagedAppBuildReadinessResponse,
+    TauriRustDependencyPinItemResponse,
+    TauriRustDependencyPinsResponse,
+    TauriRustStructureRegistryItemResponse,
+    TauriRustStructureRegistryResponse,
     TauriShellScaffoldFileResponse,
     TauriShellScaffoldPhaseResponse,
     TauriShellScaffoldResponse,
@@ -41,84 +104,20 @@ from app.api.schemas.local_data_safety_schemas import (
     TauriSupervisorBridgeStateResponse,
     TauriSupervisorStaticGateItemResponse,
     TauriSupervisorStaticGateResponse,
-    DesktopTechnologyOptionResponse,
-    DesktopTechnologyDecisionResponse,
-    DesktopStackComponentResponse,
-    DesktopRuntimeFreezeMilestoneResponse,
-    DesktopStackAndRuntimeContractResponse,
-    StagedBackendRuntimeItemResponse,
-    StagedBackendRuntimeContractResponse,
-    PyInstallerBackendRuntimeItemResponse,
-    PyInstallerBackendRuntimeContractResponse,
-    RuntimeSelectionCandidateResponse,
-    FrozenBackendRuntimeSelectionResponse,
-    FrozenBackendSmokeItemResponse,
-    FrozenBackendSmokeContractResponse,
-    FrozenBackendStartupDiagnosticsItemResponse,
-    FrozenBackendStartupDiagnosticsResponse,
-    AppOwnedBackendStartupGateItemResponse,
-    AppOwnedBackendStartupGateResponse,
-    AppOwnedBackendStartupImplementationItemResponse,
-    AppOwnedBackendStartupImplementationResponse,
-    AppOwnedBackendHealthReadinessItemResponse,
-    AppOwnedBackendHealthReadinessResponse,
-    MacOSTauriSmokeRunbookItemResponse,
-    MacOSTauriSmokeRunbookResponse,
-    MacOSPackagedAppSmokePreflightItemResponse,
-    MacOSPackagedAppSmokePreflightResponse,
-    PackagingToolchainPrerequisiteItemResponse,
-    PackagingToolchainPrerequisitesResponse,
-    TauriRustStructureRegistryItemResponse,
-    TauriRustStructureRegistryResponse,
-    TauriRustDependencyPinItemResponse,
-    TauriRustDependencyPinsResponse,
-    TauriIconAssetItemResponse,
-    TauriIconAssetsResponse,
-    TauriDevSmokeReadinessItemResponse,
-    TauriDevSmokeReadinessResponse,
-    TauriPackagedAppBuildItemResponse,
-    TauriPackagedAppBuildReadinessResponse,
-    MacOSPackagedAppSmokeResultItemResponse,
-    MacOSPackagedAppSmokeResultResponse,
-    PackagedAppFrontendBootstrapItemResponse,
-    PackagedAppFrontendBootstrapResponse,
+    V01DemoStepResponse,
+    V01HandoffResponse,
+    V01PublicationHandoffResponse,
+    V01PublicationHandoffStepResponse,
+    V01ReleaseGateItemResponse,
+    V01ReleaseGateResponse,
+    V01RepositoryFileResponse,
+    V01UISmokeCheckItemResponse,
+    V01UISmokeCheckResponse,
     WindowsPackagingArtifactResponse,
     WindowsPackagingFoundationResponse,
     WindowsPackagingPhaseResponse,
-    ReleaseCandidateAuditCommandResponse,
-    ReleaseCandidateAuditItemResponse,
-    ReleaseCandidateAuditResponse,
-    V01DemoStepResponse,
-    V01HandoffResponse,
-    V01RepositoryFileResponse,
-    ProductCompletionStageResponse,
-    ProductCompletionRoadmapResponse,
-    FinalProductStageResponse,
-    FinalProductStatusResponse,
-    V01ReleaseGateItemResponse,
-    V01ReleaseGateResponse,
-    V01UISmokeCheckItemResponse,
-    V01UISmokeCheckResponse,
-    V01PublicationHandoffStepResponse,
-    V01PublicationHandoffResponse,
-    FirstLaunchChecklistItemResponse,
-    FirstLaunchReadinessResponse,
-    DatabaseBackupResponse,
-    DatabaseMigrationSafetyResponse,
-    DatabaseMigrationTableResponse,
-    DatabaseRestorePlanRequest,
-    DatabaseRestorePlanResponse,
-    LocalDataBackupHintResponse,
-    LocalDataSafetyResponse,
-    PackagingOptionResponse,
-    ProductionReadinessItemResponse,
-    ProductionReadinessResponse,
-    SafeUpdateWorkflowResponse,
-    StartupChecklistItemResponse,
-    StartupChecklistResponse,
 )
 from app.config.settings import get_settings
-
 
 router = APIRouter(prefix="/runtime", tags=["runtime"])
 
@@ -141,14 +140,22 @@ def get_local_data_safety() -> LocalDataSafetyResponse:
     if db_exists:
         counts = _read_counts(db_path, counts.keys(), warnings)
     else:
-        warnings.append("Workspace database does not exist yet. Create a workspace to initialize local state.")
+        warnings.append(
+            "Workspace database does not exist yet. Create a workspace to initialize local state."
+        )
 
     if settings.workspace_repository.lower() != "sqlite":
-        warnings.append("Workspace repository is not sqlite; local state may be disposable for this process.")
+        warnings.append(
+            "Workspace repository is not sqlite; local state may be disposable for this process."
+        )
     if db_exists and counts.get("workspaces") == 0:
-        warnings.append("Workspace database exists but has no workspaces. This usually means a fresh local database is active.")
+        warnings.append(
+            "Workspace database exists but has no workspaces. This usually means a fresh local database is active."
+        )
     if not db_path.is_absolute():
-        warnings.append("Database path is relative to the backend process working directory. Start the backend from the project backend directory or set WORKSPACE_DB_PATH explicitly.")
+        warnings.append(
+            "Database path is relative to the backend process working directory. Start the backend from the project backend directory or set WORKSPACE_DB_PATH explicitly."
+        )
 
     safe_update_excludes = _safe_update_excludes()
     protected_paths = [
@@ -204,7 +211,9 @@ def get_startup_checklist() -> StartupChecklistResponse:
     python_ok = sys.version_info >= (3, 10)
     database_ok = db_exists and (counts.get("workspaces") or 0) > 0
     local_db_protected = db_path.parent.name == ".ai-workbench"
-    model_configured = settings.llm_provider.lower() != "fake" and settings.embedding_provider.lower() != "fake"
+    model_configured = (
+        settings.llm_provider.lower() != "fake" and settings.embedding_provider.lower() != "fake"
+    )
     qdrant_configured = settings.vector_store.lower() == "qdrant"
 
     items = [
@@ -215,7 +224,9 @@ def get_startup_checklist() -> StartupChecklistResponse:
             summary=f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
             detail="Python 3.10+ is required because the backend uses modern typing syntax such as str | None.",
             action_label=None if python_ok else "Recreate .venv with Python 3.12",
-            copy_command="cd backend && rm -rf .venv && /opt/homebrew/bin/python3.12 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt" if not python_ok else None,
+            copy_command="cd backend && rm -rf .venv && /opt/homebrew/bin/python3.12 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt"
+            if not python_ok
+            else None,
         ),
         StartupChecklistItemResponse(
             id="database",
@@ -228,13 +239,17 @@ def get_startup_checklist() -> StartupChecklistResponse:
             ),
             detail=f"Active database path: {_display_path(db_path)}",
             action_label="Create or select a workspace" if not database_ok else None,
-            copy_command=f"cp {_shell_quote(db_path)} {_shell_quote(db_path.with_suffix(db_path.suffix + '.backup'))}" if db_exists else None,
+            copy_command=f"cp {_shell_quote(db_path)} {_shell_quote(db_path.with_suffix(db_path.suffix + '.backup'))}"
+            if db_exists
+            else None,
         ),
         StartupChecklistItemResponse(
             id="local-data-protection",
             title="Local data protection",
             status="ok" if local_db_protected else "review",
-            summary="Runtime data is under backend/.ai-workbench" if local_db_protected else "Runtime DB path should be reviewed",
+            summary="Runtime data is under backend/.ai-workbench"
+            if local_db_protected
+            else "Runtime DB path should be reviewed",
             detail="Generated update archives must never overwrite backend/.ai-workbench, *.db, or *.sqlite.",
             action_label="Use safe update script",
             copy_command="scripts/apply_generated_update.sh --dry-run /path/to/unzipped/update ~/Documents/ai_workspace",
@@ -278,7 +293,9 @@ def get_startup_checklist() -> StartupChecklistResponse:
 
     return StartupChecklistResponse(
         status=status,
-        summary="Ready for local work" if status == "ok" else "Review local runtime before relying on this workspace",
+        summary="Ready for local work"
+        if status == "ok"
+        else "Review local runtime before relying on this workspace",
         items=items,
         safe_to_continue=status != "blocked",
         safety_note="This checklist is read-only. The frontend only displays/copies commands; it never executes shell commands.",
@@ -293,11 +310,17 @@ def get_update_safety_workflow() -> SafeUpdateWorkflowResponse:
     warnings: list[str] = []
 
     if not db_path.exists():
-        warnings.append("Active workspace database does not exist yet. Create a workspace before relying on update backups.")
+        warnings.append(
+            "Active workspace database does not exist yet. Create a workspace before relying on update backups."
+        )
     if not db_path.is_absolute():
-        warnings.append("Workspace DB path is relative; run update scripts from the ai_workspace project root or set WORKSPACE_DB_PATH explicitly.")
+        warnings.append(
+            "Workspace DB path is relative; run update scripts from the ai_workspace project root or set WORKSPACE_DB_PATH explicitly."
+        )
     if settings.workspace_repository.lower() != "sqlite":
-        warnings.append("Workspace repository is not sqlite; backup guardrails may not protect all runtime data for this configuration.")
+        warnings.append(
+            "Workspace repository is not sqlite; backup guardrails may not protect all runtime data for this configuration."
+        )
 
     required_excludes = _safe_update_excludes()
     target_root = "~/Documents/ai_workspace"
@@ -416,7 +439,9 @@ def get_production_readiness() -> ProductionReadinessResponse:
             status="ok" if has_workspace else "review",
             summary=f"{counts.get('workspaces') or 0} workspace(s) in local DB",
             detail=f"Active database: {_display_path(db_path)}",
-            recommended_action="Create a workspace and build context before daily use." if not has_workspace else None,
+            recommended_action="Create a workspace and build context before daily use."
+            if not has_workspace
+            else None,
         )
     )
 
@@ -426,13 +451,17 @@ def get_production_readiness() -> ProductionReadinessResponse:
             id="local-data-guardrails",
             title="Local data guardrails",
             status="ok" if local_data_protected else "review",
-            summary="Runtime DB is under backend/.ai-workbench" if local_data_protected else "Runtime DB path needs review",
+            summary="Runtime DB is under backend/.ai-workbench"
+            if local_data_protected
+            else "Runtime DB path needs review",
             detail="Generated update workflows must preserve backend/.ai-workbench and never copy *.db/*.sqlite from generated archives.",
             recommended_action="Use scripts/apply_generated_update.sh with --dry-run before every generated update.",
         )
     )
 
-    model_ready = settings.llm_provider.lower() != "fake" and settings.embedding_provider.lower() != "fake"
+    model_ready = (
+        settings.llm_provider.lower() != "fake" and settings.embedding_provider.lower() != "fake"
+    )
     checks.append(
         ProductionReadinessItemResponse(
             id="local-ai-runtime",
@@ -440,7 +469,9 @@ def get_production_readiness() -> ProductionReadinessResponse:
             status="ok" if model_ready else "review",
             summary=f"LLM={settings.llm_provider}/{settings.ollama_llm_model}; embeddings={settings.embedding_provider}/{settings.ollama_embedding_model}",
             detail="Production-like local use should run with Ollama LLM and embedding providers, not fake test providers.",
-            recommended_action="Start backend with LLM_PROVIDER=ollama and EMBEDDING_PROVIDER=ollama." if not model_ready else None,
+            recommended_action="Start backend with LLM_PROVIDER=ollama and EMBEDDING_PROVIDER=ollama."
+            if not model_ready
+            else None,
         )
     )
 
@@ -452,7 +483,9 @@ def get_production_readiness() -> ProductionReadinessResponse:
             status="ok" if vector_ready else "review",
             summary=f"Vector store: {settings.vector_store}",
             detail="Use Qdrant for persistent local search context. Memory vector store is process-local only.",
-            recommended_action="Start backend with VECTOR_STORE=qdrant." if not vector_ready else None,
+            recommended_action="Start backend with VECTOR_STORE=qdrant."
+            if not vector_ready
+            else None,
         )
     )
 
@@ -462,9 +495,13 @@ def get_production_readiness() -> ProductionReadinessResponse:
             id="operator-docs",
             title="Operator docs",
             status="ok" if docs_ready else "review",
-            summary="Local runbooks are included" if docs_ready else "Docs directory not found from current working directory",
+            summary="Local runbooks are included"
+            if docs_ready
+            else "Docs directory not found from current working directory",
             detail="Runbooks should explain startup, backup/restore, safe updates, troubleshooting, and packaging choices.",
-            recommended_action=None if docs_ready else "Start the backend from the project backend directory or verify docs are packaged.",
+            recommended_action=None
+            if docs_ready
+            else "Start the backend from the project backend directory or verify docs are packaged.",
         )
     )
 
@@ -534,7 +571,9 @@ def get_production_readiness() -> ProductionReadinessResponse:
 
     return ProductionReadinessResponse(
         status=status,
-        summary="Ready for daily local use" if status == "ok" else "Production readiness needs review before daily use",
+        summary="Ready for daily local use"
+        if status == "ok"
+        else "Production readiness needs review before daily use",
         readiness_score=score,
         items=checks,
         packaging_options=packaging_options,
@@ -1204,42 +1243,58 @@ def get_tauri_supervisor_static_gate() -> TauriSupervisorStaticGateResponse:
             id="bridge-file",
             title="Tauri bridge source",
             status="ok" if bridge_file.exists() else "blocked",
-            summary="frontend/src-tauri/src/lib.rs exists" if bridge_file.exists() else "Tauri bridge source is missing",
+            summary="frontend/src-tauri/src/lib.rs exists"
+            if bridge_file.exists()
+            else "Tauri bridge source is missing",
             evidence="frontend/src-tauri/src/lib.rs",
         ),
         TauriSupervisorStaticGateItemResponse(
             id="status-command",
             title="Read-only supervisor status command",
             status="ok" if "fn get_supervisor_status" in source else "blocked",
-            summary="get_supervisor_status is present" if "fn get_supervisor_status" in source else "get_supervisor_status is missing",
+            summary="get_supervisor_status is present"
+            if "fn get_supervisor_status" in source
+            else "get_supervisor_status is missing",
             evidence="get_supervisor_status",
         ),
         TauriSupervisorStaticGateItemResponse(
             id="log-path-command",
             title="Read-only log path command",
             status="ok" if "fn get_supervisor_log_paths" in source else "blocked",
-            summary="get_supervisor_log_paths is present" if "fn get_supervisor_log_paths" in source else "get_supervisor_log_paths is missing",
+            summary="get_supervisor_log_paths is present"
+            if "fn get_supervisor_log_paths" in source
+            else "get_supervisor_log_paths is missing",
             evidence="get_supervisor_log_paths",
         ),
         TauriSupervisorStaticGateItemResponse(
             id="preflight-command",
             title="Read-only preflight command",
             status="ok" if "fn get_supervisor_preflight" in source else "blocked",
-            summary="get_supervisor_preflight is present" if "fn get_supervisor_preflight" in source else "get_supervisor_preflight is missing",
+            summary="get_supervisor_preflight is present"
+            if "fn get_supervisor_preflight" in source
+            else "get_supervisor_preflight is missing",
             evidence="get_supervisor_preflight",
         ),
         TauriSupervisorStaticGateItemResponse(
             id="backend-start-gated",
             title="Backend start gated by frozen manifest",
-            status="ok" if "backend_start_enabled: true" in source and "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json" in source else "blocked",
-            summary="Tauri can start only the app-owned frozen backend after the manifest is present" if "backend_start_enabled: true" in source and "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json" in source else "Frozen manifest startup gate is missing",
+            status="ok"
+            if "backend_start_enabled: true" in source
+            and "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json" in source
+            else "blocked",
+            summary="Tauri can start only the app-owned frozen backend after the manifest is present"
+            if "backend_start_enabled: true" in source
+            and "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json" in source
+            else "Frozen manifest startup gate is missing",
             evidence="backend_start_enabled: true + AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json",
         ),
         TauriSupervisorStaticGateItemResponse(
             id="no-generic-shell-api",
             title="No generic shell execution API",
             status="ok" if _tauri_source_has_no_generic_shell_api(source) else "blocked",
-            summary="Only narrow app-owned backend lifecycle commands and the fixed macOS folder picker are present" if _tauri_source_has_no_generic_shell_api(source) else "Generic shell execution keywords found",
+            summary="Only narrow app-owned backend lifecycle commands and the fixed macOS folder picker are present"
+            if _tauri_source_has_no_generic_shell_api(source)
+            else "Generic shell execution keywords found",
             evidence="no sh -c / cmd /C / npm run / ollama pull; osascript allowed only for fixed choose-folder dialog",
         ),
     ]
@@ -1252,8 +1307,16 @@ def get_tauri_supervisor_static_gate() -> TauriSupervisorStaticGateResponse:
         bridge_file="frontend/src-tauri/src/lib.rs",
         items=items,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Tauri supervisor bridge check", command="scripts/check_tauri_supervisor_bridge.sh", purpose="Validate Tauri commands and safety wording without exposing generic shell execution."),
-            DesktopRuntimeValidationCommandResponse(label="Desktop runtime preflight", command="scripts/check_desktop_runtime_preflight.sh", purpose="Validate runtime manifest, frontend build output, and packaging inputs."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Tauri supervisor bridge check",
+                command="scripts/check_tauri_supervisor_bridge.sh",
+                purpose="Validate Tauri commands and safety wording without exposing generic shell execution.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Desktop runtime preflight",
+                command="scripts/check_desktop_runtime_preflight.sh",
+                purpose="Validate runtime manifest, frontend build output, and packaging inputs.",
+            ),
         ],
         safety_rules=[
             "Tauri commands expose only app-owned backend lifecycle and diagnostics.",
@@ -1373,7 +1436,9 @@ def get_desktop_technology_decision() -> DesktopTechnologyDecisionResponse:
     )
 
 
-@router.get("/desktop-stack-runtime-contract", response_model=DesktopStackAndRuntimeContractResponse)
+@router.get(
+    "/desktop-stack-runtime-contract", response_model=DesktopStackAndRuntimeContractResponse
+)
 def get_desktop_stack_runtime_contract() -> DesktopStackAndRuntimeContractResponse:
     """Return the selected open-source desktop stack and runtime freeze/staging contract."""
     return DesktopStackAndRuntimeContractResponse(
@@ -1439,8 +1504,16 @@ def get_desktop_stack_runtime_contract() -> DesktopStackAndRuntimeContractRespon
                 title="Electron-first desktop shell",
                 status="fallback_only",
                 summary="Kept as fallback, but not selected now because it is usually heavier than needed for this product.",
-                strengths=["Mature ecosystem", "Consistent Chromium rendering", "Many packaging examples"],
-                tradeoffs=["Larger app size", "Higher memory footprint", "More surface area to harden"],
+                strengths=[
+                    "Mature ecosystem",
+                    "Consistent Chromium rendering",
+                    "Many packaging examples",
+                ],
+                tradeoffs=[
+                    "Larger app size",
+                    "Higher memory footprint",
+                    "More surface area to harden",
+                ],
             ),
             DesktopTechnologyOptionResponse(
                 id="separate_native_apps",
@@ -1457,21 +1530,35 @@ def get_desktop_stack_runtime_contract() -> DesktopStackAndRuntimeContractRespon
                 title="Runtime manifest",
                 status="done_foundation",
                 summary="Backend source and dependency manifest can be generated and checked before packaging.",
-                exit_criteria=["Manifest contains requirements hash", "Runtime excludes are documented", "No launch actions are executed"],
+                exit_criteria=[
+                    "Manifest contains requirements hash",
+                    "Runtime excludes are documented",
+                    "No launch actions are executed",
+                ],
             ),
             DesktopRuntimeFreezeMilestoneResponse(
                 id="staged-runtime",
                 title="Staged app-owned backend runtime",
                 status="next",
                 summary="Create a deterministic backend runtime directory that the desktop shell can later start safely.",
-                exit_criteria=["Backend entrypoint exists", "Dependency lock/hash is recorded", "Logs/data paths are outside the bundle", "Health endpoint can be checked manually"],
+                exit_criteria=[
+                    "Backend entrypoint exists",
+                    "Dependency lock/hash is recorded",
+                    "Logs/data paths are outside the bundle",
+                    "Health endpoint can be checked manually",
+                ],
             ),
             DesktopRuntimeFreezeMilestoneResponse(
                 id="frozen-runtime",
                 title="Frozen backend runtime",
                 status="future",
                 summary="Package backend runtime without requiring users to create a Python venv manually.",
-                exit_criteria=["macOS smoke test passes", "Windows smoke test passes", "No runtime DB is bundled", "Startup and shutdown are app-owned"],
+                exit_criteria=[
+                    "macOS smoke test passes",
+                    "Windows smoke test passes",
+                    "No runtime DB is bundled",
+                    "Startup and shutdown are app-owned",
+                ],
             ),
         ],
         staging_contract=[
@@ -1482,10 +1569,26 @@ def get_desktop_stack_runtime_contract() -> DesktopStackAndRuntimeContractRespon
             "Port handling must never kill unknown processes; only a PID started by the app may be stopped by the app.",
         ],
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Release audit", command="./scripts/audit_release_candidate.sh", purpose="Check source/release hygiene before packaging work."),
-            DesktopRuntimeValidationCommandResponse(label="Runtime manifest", command="scripts/prepare_macos_backend_runtime.sh", purpose="Generate the current backend runtime manifest foundation."),
-            DesktopRuntimeValidationCommandResponse(label="Desktop preflight", command="scripts/check_desktop_runtime_preflight.sh", purpose="Validate runtime manifest, frontend build output, and desktop packaging inputs."),
-            DesktopRuntimeValidationCommandResponse(label="Stack contract check", command="scripts/check_desktop_stack_contract.sh", purpose="Validate that the repository documents the selected open-source cross-platform stack and safety contract."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Release audit",
+                command="./scripts/audit_release_candidate.sh",
+                purpose="Check source/release hygiene before packaging work.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Runtime manifest",
+                command="scripts/prepare_macos_backend_runtime.sh",
+                purpose="Generate the current backend runtime manifest foundation.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Desktop preflight",
+                command="scripts/check_desktop_runtime_preflight.sh",
+                purpose="Validate runtime manifest, frontend build output, and desktop packaging inputs.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Stack contract check",
+                command="scripts/check_desktop_stack_contract.sh",
+                purpose="Validate that the repository documents the selected open-source cross-platform stack and safety contract.",
+            ),
         ],
         safety_rules=[
             "Frontend still cannot execute shell commands.",
@@ -1517,14 +1620,18 @@ def get_staged_backend_runtime_contract() -> StagedBackendRuntimeContractRespons
             id="staging-script",
             title="Runtime staging script",
             status="ok" if staging_script.exists() else "blocked",
-            summary="Creates a deterministic source-runtime staging directory without starting backend processes." if staging_script.exists() else "Runtime staging script is missing.",
+            summary="Creates a deterministic source-runtime staging directory without starting backend processes."
+            if staging_script.exists()
+            else "Runtime staging script is missing.",
             path="scripts/stage_backend_runtime.sh",
         ),
         StagedBackendRuntimeItemResponse(
             id="check-script",
             title="Runtime staging check",
             status="ok" if check_script.exists() else "blocked",
-            summary="Validates staged runtime layout and forbidden artifacts." if check_script.exists() else "Runtime staging check script is missing.",
+            summary="Validates staged runtime layout and forbidden artifacts."
+            if check_script.exists()
+            else "Runtime staging check script is missing.",
             path="scripts/check_staged_backend_runtime.sh",
         ),
         StagedBackendRuntimeItemResponse(
@@ -1600,7 +1707,10 @@ def get_staged_backend_runtime_contract() -> StagedBackendRuntimeContractRespons
     )
 
 
-@router.get("/pyinstaller-backend-runtime-contract", response_model=PyInstallerBackendRuntimeContractResponse)
+@router.get(
+    "/pyinstaller-backend-runtime-contract",
+    response_model=PyInstallerBackendRuntimeContractResponse,
+)
 def get_pyinstaller_backend_runtime_contract() -> PyInstallerBackendRuntimeContractResponse:
     """Return the PyInstaller frozen backend runtime proof-of-concept contract."""
     root = Path(__file__).resolve().parents[4]
@@ -1616,28 +1726,36 @@ def get_pyinstaller_backend_runtime_contract() -> PyInstallerBackendRuntimeContr
             id="entrypoint",
             title="Backend frozen-runtime entrypoint",
             status="ok" if entrypoint.exists() else "blocked",
-            summary="Tiny PyInstaller entrypoint that starts app.main:app through Uvicorn and reads only explicit host/port environment variables." if entrypoint.exists() else "PyInstaller backend entrypoint is missing.",
+            summary="Tiny PyInstaller entrypoint that starts app.main:app through Uvicorn and reads only explicit host/port environment variables."
+            if entrypoint.exists()
+            else "PyInstaller backend entrypoint is missing.",
             path="backend/packaging/pyinstaller_backend_entrypoint.py",
         ),
         PyInstallerBackendRuntimeItemResponse(
             id="spec",
             title="PyInstaller spec",
             status="ok" if spec_file.exists() else "blocked",
-            summary="Proof-of-concept spec for building a single backend executable from the existing FastAPI app." if spec_file.exists() else "PyInstaller spec is missing.",
+            summary="Proof-of-concept spec for building a single backend executable from the existing FastAPI app."
+            if spec_file.exists()
+            else "PyInstaller spec is missing.",
             path="backend/packaging/ai_private_workspace_backend.spec",
         ),
         PyInstallerBackendRuntimeItemResponse(
             id="build-script",
             title="Frozen runtime build script",
             status="ok" if build_script.exists() else "blocked",
-            summary="Reproducible local build script; it fails with guidance if PyInstaller is not installed and never starts the backend." if build_script.exists() else "PyInstaller build script is missing.",
+            summary="Reproducible local build script; it fails with guidance if PyInstaller is not installed and never starts the backend."
+            if build_script.exists()
+            else "PyInstaller build script is missing.",
             path="scripts/build_pyinstaller_backend_runtime.sh",
         ),
         PyInstallerBackendRuntimeItemResponse(
             id="check-script",
             title="Frozen runtime check script",
             status="ok" if check_script.exists() else "blocked",
-            summary="Static/safe gate that validates the PyInstaller PoC inputs and generated manifest when present." if check_script.exists() else "PyInstaller check script is missing.",
+            summary="Static/safe gate that validates the PyInstaller PoC inputs and generated manifest when present."
+            if check_script.exists()
+            else "PyInstaller check script is missing.",
             path="scripts/check_pyinstaller_backend_runtime.sh",
         ),
         PyInstallerBackendRuntimeItemResponse(
@@ -1701,12 +1819,26 @@ def get_pyinstaller_backend_runtime_contract() -> PyInstallerBackendRuntimeContr
     )
 
 
-@router.get("/frozen-backend-runtime-selection", response_model=FrozenBackendRuntimeSelectionResponse)
+@router.get(
+    "/frozen-backend-runtime-selection", response_model=FrozenBackendRuntimeSelectionResponse
+)
 def get_frozen_backend_runtime_selection() -> FrozenBackendRuntimeSelectionResponse:
     """Return the safe runtime selection contract for Tauri/future desktop startup."""
     root = Path(__file__).resolve().parents[4]
-    frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
-    staged_manifest = root / "build" / "desktop" / "backend-runtime" / "AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json"
+    frozen_manifest = (
+        root
+        / "build"
+        / "desktop"
+        / "frozen-backend-runtime"
+        / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+    )
+    staged_manifest = (
+        root
+        / "build"
+        / "desktop"
+        / "backend-runtime"
+        / "AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json"
+    )
     tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
     check_script = root / "scripts" / "check_tauri_runtime_selection.sh"
 
@@ -1746,9 +1878,21 @@ def get_frozen_backend_runtime_selection() -> FrozenBackendRuntimeSelectionRespo
         check_script="scripts/check_tauri_runtime_selection.sh",
         candidates=candidates,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Check runtime selection bridge", command="scripts/check_tauri_runtime_selection.sh", purpose="Validate Tauri exposes runtime selection metadata while keeping backend process startup disabled."),
-            DesktopRuntimeValidationCommandResponse(label="Check PyInstaller runtime", command="scripts/check_pyinstaller_backend_runtime.sh", purpose="Validate frozen runtime inputs and manifest when the binary has been built locally."),
-            DesktopRuntimeValidationCommandResponse(label="Check staged runtime", command="scripts/stage_backend_runtime.sh && scripts/check_staged_backend_runtime.sh", purpose="Prepare and validate the developer fallback runtime layout."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check runtime selection bridge",
+                command="scripts/check_tauri_runtime_selection.sh",
+                purpose="Validate Tauri exposes runtime selection metadata while keeping backend process startup disabled.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check PyInstaller runtime",
+                command="scripts/check_pyinstaller_backend_runtime.sh",
+                purpose="Validate frozen runtime inputs and manifest when the binary has been built locally.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check staged runtime",
+                command="scripts/stage_backend_runtime.sh && scripts/check_staged_backend_runtime.sh",
+                purpose="Prepare and validate the developer fallback runtime layout.",
+            ),
         ],
         safety_rules=[
             "Tauri runtime selection is read-only in this task; backend_start_enabled remains false.",
@@ -1771,8 +1915,20 @@ def get_frozen_backend_smoke_contract() -> FrozenBackendSmokeContractResponse:
     """Return the explicit developer-only smoke contract for the frozen backend runtime."""
     root = Path(__file__).resolve().parents[4]
     smoke_script = root / "scripts" / "smoke_frozen_backend_runtime.sh"
-    frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
-    staged_manifest = root / "build" / "desktop" / "backend-runtime" / "AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json"
+    frozen_manifest = (
+        root
+        / "build"
+        / "desktop"
+        / "frozen-backend-runtime"
+        / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+    )
+    staged_manifest = (
+        root
+        / "build"
+        / "desktop"
+        / "backend-runtime"
+        / "AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json"
+    )
     tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
 
     items = [
@@ -1780,7 +1936,9 @@ def get_frozen_backend_smoke_contract() -> FrozenBackendSmokeContractResponse:
             id="smoke-script",
             title="Developer-only smoke script",
             status="ok" if smoke_script.exists() else "blocked",
-            summary="Starts only the app-owned frozen backend executable, waits for /health, and stops only the PID it created." if smoke_script.exists() else "Frozen backend smoke script is missing.",
+            summary="Starts only the app-owned frozen backend executable, waits for /health, and stops only the PID it created."
+            if smoke_script.exists()
+            else "Frozen backend smoke script is missing.",
             command="scripts/smoke_frozen_backend_runtime.sh",
         ),
         FrozenBackendSmokeItemResponse(
@@ -1815,10 +1973,26 @@ def get_frozen_backend_smoke_contract() -> FrozenBackendSmokeContractResponse:
         health_url="http://127.0.0.1:8000/health",
         items=items,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Build frozen backend runtime", command="scripts/build_pyinstaller_backend_runtime.sh", purpose="Create build/desktop/frozen-backend-runtime locally when PyInstaller is available."),
-            DesktopRuntimeValidationCommandResponse(label="Check frozen backend runtime", command="scripts/check_pyinstaller_backend_runtime.sh", purpose="Validate frozen runtime files and manifest without starting it."),
-            DesktopRuntimeValidationCommandResponse(label="Smoke frozen backend runtime", command="scripts/smoke_frozen_backend_runtime.sh", purpose="Explicitly start the app-owned frozen backend, verify /health, and stop only the spawned PID."),
-            DesktopRuntimeValidationCommandResponse(label="Check runtime selection", command="scripts/check_tauri_runtime_selection.sh", purpose="Keep Tauri runtime selection read-only until smoke checks are proven."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Build frozen backend runtime",
+                command="scripts/build_pyinstaller_backend_runtime.sh",
+                purpose="Create build/desktop/frozen-backend-runtime locally when PyInstaller is available.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check frozen backend runtime",
+                command="scripts/check_pyinstaller_backend_runtime.sh",
+                purpose="Validate frozen runtime files and manifest without starting it.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Smoke frozen backend runtime",
+                command="scripts/smoke_frozen_backend_runtime.sh",
+                purpose="Explicitly start the app-owned frozen backend, verify /health, and stop only the spawned PID.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check runtime selection",
+                command="scripts/check_tauri_runtime_selection.sh",
+                purpose="Keep Tauri runtime selection read-only until smoke checks are proven.",
+            ),
         ],
         safety_rules=[
             "The smoke script is developer-only and must be run manually from a terminal.",
@@ -1836,9 +2010,9 @@ def get_frozen_backend_smoke_contract() -> FrozenBackendSmokeContractResponse:
     )
 
 
-
-
-@router.get("/frozen-backend-startup-diagnostics", response_model=FrozenBackendStartupDiagnosticsResponse)
+@router.get(
+    "/frozen-backend-startup-diagnostics", response_model=FrozenBackendStartupDiagnosticsResponse
+)
 def get_frozen_backend_startup_diagnostics() -> FrozenBackendStartupDiagnosticsResponse:
     return FrozenBackendStartupDiagnosticsResponse(
         status="ready",
@@ -1849,16 +2023,55 @@ def get_frozen_backend_startup_diagnostics() -> FrozenBackendStartupDiagnosticsR
         entrypoint_path="backend/packaging/pyinstaller_backend_entrypoint.py",
         spec_path="backend/packaging/ai_private_workspace_backend.spec",
         diagnostics_items=[
-            FrozenBackendStartupDiagnosticsItemResponse(id="import-preflight", title="Frozen import preflight", status="done", summary="The entrypoint imports app.main eagerly and supports --runtime-self-check so packaging/import errors are visible before starting Uvicorn.", command="build/desktop/frozen-backend-runtime/ai-private-workspace-backend --runtime-self-check"),
-            FrozenBackendStartupDiagnosticsItemResponse(id="hidden-imports", title="PyInstaller hidden imports", status="done", summary="The spec collects app, uvicorn, FastAPI, Starlette, Pydantic and YAML submodules to reduce runtime-only import failures.", command="scripts/build_pyinstaller_backend_runtime.sh"),
-            FrozenBackendStartupDiagnosticsItemResponse(id="app-data", title="App-owned smoke data", status="done", summary="The smoke script sets APP_DATA_DIR and WORKSPACE_DB_PATH under build/desktop/smoke-logs/app-data so frozen runtime does not write into source by default."),
-            FrozenBackendStartupDiagnosticsItemResponse(id="log-tail", title="Failure diagnostics", status="done", summary="If the frozen process exits early or /health does not become ready, the smoke script prints the last backend log lines instead of only reporting connection refused.", command="scripts/smoke_frozen_backend_runtime.sh"),
+            FrozenBackendStartupDiagnosticsItemResponse(
+                id="import-preflight",
+                title="Frozen import preflight",
+                status="done",
+                summary="The entrypoint imports app.main eagerly and supports --runtime-self-check so packaging/import errors are visible before starting Uvicorn.",
+                command="build/desktop/frozen-backend-runtime/ai-private-workspace-backend --runtime-self-check",
+            ),
+            FrozenBackendStartupDiagnosticsItemResponse(
+                id="hidden-imports",
+                title="PyInstaller hidden imports",
+                status="done",
+                summary="The spec collects app, uvicorn, FastAPI, Starlette, Pydantic and YAML submodules to reduce runtime-only import failures.",
+                command="scripts/build_pyinstaller_backend_runtime.sh",
+            ),
+            FrozenBackendStartupDiagnosticsItemResponse(
+                id="app-data",
+                title="App-owned smoke data",
+                status="done",
+                summary="The smoke script sets APP_DATA_DIR and WORKSPACE_DB_PATH under build/desktop/smoke-logs/app-data so frozen runtime does not write into source by default.",
+            ),
+            FrozenBackendStartupDiagnosticsItemResponse(
+                id="log-tail",
+                title="Failure diagnostics",
+                status="done",
+                summary="If the frozen process exits early or /health does not become ready, the smoke script prints the last backend log lines instead of only reporting connection refused.",
+                command="scripts/smoke_frozen_backend_runtime.sh",
+            ),
         ],
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Diagnostics contract", command="scripts/check_frozen_backend_startup_diagnostics.sh", purpose="Verify the entrypoint, spec and smoke script include the required frozen startup diagnostics."),
-            DesktopRuntimeValidationCommandResponse(label="Build frozen backend", command="scripts/build_pyinstaller_backend_runtime.sh", purpose="Rebuild the frozen backend with the updated PyInstaller spec."),
-            DesktopRuntimeValidationCommandResponse(label="Smoke frozen backend", command="scripts/smoke_frozen_backend_runtime.sh", purpose="Run import self-check, start the app-owned backend, wait for HTTP /health 200, and print log tail on failure."),
-            DesktopRuntimeValidationCommandResponse(label="Build packaged app", command="cd frontend && npm run tauri:build", purpose="Rebuild the macOS app after frozen backend smoke passes."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Diagnostics contract",
+                command="scripts/check_frozen_backend_startup_diagnostics.sh",
+                purpose="Verify the entrypoint, spec and smoke script include the required frozen startup diagnostics.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Build frozen backend",
+                command="scripts/build_pyinstaller_backend_runtime.sh",
+                purpose="Rebuild the frozen backend with the updated PyInstaller spec.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Smoke frozen backend",
+                command="scripts/smoke_frozen_backend_runtime.sh",
+                purpose="Run import self-check, start the app-owned backend, wait for HTTP /health 200, and print log tail on failure.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Build packaged app",
+                command="cd frontend && npm run tauri:build",
+                purpose="Rebuild the macOS app after frozen backend smoke passes.",
+            ),
         ],
         safety_rules=[
             "The smoke script refuses to replace unknown processes if the target port is already in use.",
@@ -1874,13 +2087,20 @@ def get_frozen_backend_startup_diagnostics() -> FrozenBackendStartupDiagnosticsR
         ],
     )
 
+
 @router.get("/app-owned-backend-startup-gate", response_model=AppOwnedBackendStartupGateResponse)
 def get_app_owned_backend_startup_gate() -> AppOwnedBackendStartupGateResponse:
     """Return the safe gate before Tauri may start an app-owned backend runtime."""
     root = Path(__file__).resolve().parents[4]
     tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
     startup_check = root / "scripts" / "check_tauri_app_owned_startup_gate.sh"
-    frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+    frozen_manifest = (
+        root
+        / "build"
+        / "desktop"
+        / "frozen-backend-runtime"
+        / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+    )
     frozen_smoke = root / "scripts" / "smoke_frozen_backend_runtime.sh"
 
     required_gates = [
@@ -1931,9 +2151,21 @@ def get_app_owned_backend_startup_gate() -> AppOwnedBackendStartupGateResponse:
             "Open the UI only after /health responds successfully.",
         ],
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Check startup gate", command="scripts/check_tauri_app_owned_startup_gate.sh", purpose="Validate Tauri startup gate metadata and safety boundaries before enabling real backend process startup."),
-            DesktopRuntimeValidationCommandResponse(label="Check runtime selection", command="scripts/check_tauri_runtime_selection.sh", purpose="Validate frozen/staged/manual runtime selection metadata."),
-            DesktopRuntimeValidationCommandResponse(label="Smoke frozen runtime", command="scripts/smoke_frozen_backend_runtime.sh", purpose="Explicit developer-only smoke for the frozen backend runtime before any Tauri startup enablement."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check startup gate",
+                command="scripts/check_tauri_app_owned_startup_gate.sh",
+                purpose="Validate Tauri startup gate metadata and safety boundaries before enabling real backend process startup.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check runtime selection",
+                command="scripts/check_tauri_runtime_selection.sh",
+                purpose="Validate frozen/staged/manual runtime selection metadata.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Smoke frozen runtime",
+                command="scripts/smoke_frozen_backend_runtime.sh",
+                purpose="Explicit developer-only smoke for the frozen backend runtime before any Tauri startup enablement.",
+            ),
         ],
         safety_rules=[
             "This task does not enable automatic backend startup from Tauri yet.",
@@ -1951,13 +2183,22 @@ def get_app_owned_backend_startup_gate() -> AppOwnedBackendStartupGateResponse:
     )
 
 
-@router.get("/app-owned-backend-startup-implementation", response_model=AppOwnedBackendStartupImplementationResponse)
+@router.get(
+    "/app-owned-backend-startup-implementation",
+    response_model=AppOwnedBackendStartupImplementationResponse,
+)
 def get_app_owned_backend_startup_implementation() -> AppOwnedBackendStartupImplementationResponse:
     """Return the real-but-gated Tauri backend startup implementation status."""
     root = Path(__file__).resolve().parents[4]
     tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
     check_script = root / "scripts" / "check_tauri_app_owned_backend_startup.sh"
-    frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+    frozen_manifest = (
+        root
+        / "build"
+        / "desktop"
+        / "frozen-backend-runtime"
+        / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+    )
 
     bridge_text = tauri_bridge.read_text(encoding="utf-8") if tauri_bridge.exists() else ""
     items = [
@@ -1996,7 +2237,12 @@ def get_app_owned_backend_startup_implementation() -> AppOwnedBackendStartupImpl
         AppOwnedBackendStartupImplementationItemResponse(
             id="no-shell-exposure",
             title="No generic shell exposure",
-            status="ok" if all(term not in bridge_text for term in ["pkill", "killall", "taskkill", "sh -c", "cmd /C"]) else "blocked",
+            status="ok"
+            if all(
+                term not in bridge_text
+                for term in ["pkill", "killall", "taskkill", "sh -c", "cmd /C"]
+            )
+            else "blocked",
             summary="The implementation uses Rust process APIs for one known backend executable; it does not expose shell strings, pkill, killall, taskkill, or kill-by-port behavior.",
             evidence="Command::new + stored child PID",
             command="scripts/check_tauri_app_owned_backend_startup.sh",
@@ -2026,9 +2272,21 @@ def get_app_owned_backend_startup_implementation() -> AppOwnedBackendStartupImpl
             "stop_app_owned_backend_runtime",
         ],
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Check Tauri startup implementation", command="scripts/check_tauri_app_owned_backend_startup.sh", purpose="Validate that the Tauri supervisor exposes only narrow app-owned backend lifecycle commands and no generic shell execution."),
-            DesktopRuntimeValidationCommandResponse(label="Build frozen backend", command="scripts/build_pyinstaller_backend_runtime.sh", purpose="Create the local frozen backend runtime manifest and executable used by the startup command."),
-            DesktopRuntimeValidationCommandResponse(label="Smoke frozen backend", command="scripts/smoke_frozen_backend_runtime.sh", purpose="Validate the frozen backend outside Tauri before relying on desktop startup."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check Tauri startup implementation",
+                command="scripts/check_tauri_app_owned_backend_startup.sh",
+                purpose="Validate that the Tauri supervisor exposes only narrow app-owned backend lifecycle commands and no generic shell execution.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Build frozen backend",
+                command="scripts/build_pyinstaller_backend_runtime.sh",
+                purpose="Create the local frozen backend runtime manifest and executable used by the startup command.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Smoke frozen backend",
+                command="scripts/smoke_frozen_backend_runtime.sh",
+                purpose="Validate the frozen backend outside Tauri before relying on desktop startup.",
+            ),
         ],
         safety_rules=[
             "React/frontend still does not execute shell commands.",
@@ -2046,7 +2304,9 @@ def get_app_owned_backend_startup_implementation() -> AppOwnedBackendStartupImpl
     )
 
 
-@router.get("/app-owned-backend-health-readiness", response_model=AppOwnedBackendHealthReadinessResponse)
+@router.get(
+    "/app-owned-backend-health-readiness", response_model=AppOwnedBackendHealthReadinessResponse
+)
 def get_app_owned_backend_health_readiness() -> AppOwnedBackendHealthReadinessResponse:
     """Return the Tauri /health readiness gate for app-owned backend startup."""
     root = Path(__file__).resolve().parents[4]
@@ -2058,7 +2318,9 @@ def get_app_owned_backend_health_readiness() -> AppOwnedBackendHealthReadinessRe
         AppOwnedBackendHealthReadinessItemResponse(
             id="http-health-check",
             title="HTTP /health readiness",
-            status="ok" if "backend_health_is_ready" in bridge_text and "GET /health HTTP/1.1" in bridge_text else "blocked",
+            status="ok"
+            if "backend_health_is_ready" in bridge_text and "GET /health HTTP/1.1" in bridge_text
+            else "blocked",
             summary="Desktop readiness is based on an HTTP GET /health response, not only an open TCP port.",
             evidence="backend_health_is_ready + GET /health",
             command="scripts/check_tauri_backend_health_readiness.sh",
@@ -2074,7 +2336,9 @@ def get_app_owned_backend_health_readiness() -> AppOwnedBackendHealthReadinessRe
         AppOwnedBackendHealthReadinessItemResponse(
             id="failed-health-cleanup",
             title="PID-owned cleanup on failed readiness",
-            status="ok" if "child.kill()" in bridge_text and "/health did not return HTTP 200" in bridge_text else "blocked",
+            status="ok"
+            if "child.kill()" in bridge_text and "/health did not return HTTP 200" in bridge_text
+            else "blocked",
             summary="If the spawned backend does not become healthy, the supervisor stops only the child process it just created.",
             evidence="child.kill + stored child process",
             command="scripts/check_tauri_backend_health_readiness.sh",
@@ -2103,9 +2367,21 @@ def get_app_owned_backend_health_readiness() -> AppOwnedBackendHealthReadinessRe
         check_script="scripts/check_tauri_backend_health_readiness.sh",
         implementation_items=items,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Check Tauri health readiness", command="scripts/check_tauri_backend_health_readiness.sh", purpose="Validate HTTP /health readiness, failure cleanup, and no kill-by-port behavior."),
-            DesktopRuntimeValidationCommandResponse(label="Check Tauri startup", command="scripts/check_tauri_app_owned_backend_startup.sh", purpose="Validate app-owned backend startup implementation and safety boundaries."),
-            DesktopRuntimeValidationCommandResponse(label="Run macOS smoke", command="scripts/build_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh && cd frontend && npm run tauri dev", purpose="Locally prove frozen backend and desktop startup after the health gate is in place."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check Tauri health readiness",
+                command="scripts/check_tauri_backend_health_readiness.sh",
+                purpose="Validate HTTP /health readiness, failure cleanup, and no kill-by-port behavior.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check Tauri startup",
+                command="scripts/check_tauri_app_owned_backend_startup.sh",
+                purpose="Validate app-owned backend startup implementation and safety boundaries.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Run macOS smoke",
+                command="scripts/build_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh && cd frontend && npm run tauri dev",
+                purpose="Locally prove frozen backend and desktop startup after the health gate is in place.",
+            ),
         ],
         safety_rules=[
             "Do not treat an open TCP port as application readiness.",
@@ -2127,7 +2403,13 @@ def get_app_owned_backend_health_readiness() -> AppOwnedBackendHealthReadinessRe
 def get_macos_tauri_smoke_runbook() -> MacOSTauriSmokeRunbookResponse:
     """Return the explicit local macOS frozen runtime and Tauri smoke runbook."""
     root = Path(__file__).resolve().parents[4]
-    frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+    frozen_manifest = (
+        root
+        / "build"
+        / "desktop"
+        / "frozen-backend-runtime"
+        / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+    )
     tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
     runbook = root / "docs" / "MACOS_TAURI_SMOKE_RUNBOOK.md"
     check_script = root / "scripts" / "check_macos_tauri_smoke_runbook.sh"
@@ -2189,11 +2471,31 @@ def get_macos_tauri_smoke_runbook() -> MacOSTauriSmokeRunbookResponse:
         ],
         smoke_steps=steps,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Check runbook files", command="scripts/check_macos_tauri_smoke_runbook.sh", purpose="Validate that Task 249 runbook, scripts, Tauri commands, and safety wording are present."),
-            DesktopRuntimeValidationCommandResponse(label="Build frozen backend", command="scripts/build_pyinstaller_backend_runtime.sh", purpose="Generate the local frozen backend runtime used by Tauri."),
-            DesktopRuntimeValidationCommandResponse(label="Smoke frozen backend", command="scripts/smoke_frozen_backend_runtime.sh", purpose="Validate the frozen backend outside Tauri first."),
-            DesktopRuntimeValidationCommandResponse(label="Check Tauri startup", command="scripts/check_tauri_app_owned_backend_startup.sh", purpose="Validate the Tauri bridge safety boundaries."),
-            DesktopRuntimeValidationCommandResponse(label="Run Tauri smoke locally", command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml && npm run tauri dev", purpose="Compile and manually smoke the desktop shell on macOS."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check runbook files",
+                command="scripts/check_macos_tauri_smoke_runbook.sh",
+                purpose="Validate that Task 249 runbook, scripts, Tauri commands, and safety wording are present.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Build frozen backend",
+                command="scripts/build_pyinstaller_backend_runtime.sh",
+                purpose="Generate the local frozen backend runtime used by Tauri.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Smoke frozen backend",
+                command="scripts/smoke_frozen_backend_runtime.sh",
+                purpose="Validate the frozen backend outside Tauri first.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check Tauri startup",
+                command="scripts/check_tauri_app_owned_backend_startup.sh",
+                purpose="Validate the Tauri bridge safety boundaries.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Run Tauri smoke locally",
+                command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml && npm run tauri dev",
+                purpose="Compile and manually smoke the desktop shell on macOS.",
+            ),
         ],
         pass_criteria=[
             "Frozen backend build creates a manifest and executable under build/desktop/frozen-backend-runtime.",
@@ -2225,7 +2527,9 @@ def get_macos_tauri_smoke_runbook() -> MacOSTauriSmokeRunbookResponse:
     )
 
 
-@router.get("/macos-packaged-app-smoke-preflight", response_model=MacOSPackagedAppSmokePreflightResponse)
+@router.get(
+    "/macos-packaged-app-smoke-preflight", response_model=MacOSPackagedAppSmokePreflightResponse
+)
 def get_macos_packaged_app_smoke_preflight() -> MacOSPackagedAppSmokePreflightResponse:
     """Return the local macOS packaged-app smoke preflight checklist."""
     root = Path(__file__).resolve().parents[4]
@@ -2233,7 +2537,13 @@ def get_macos_packaged_app_smoke_preflight() -> MacOSPackagedAppSmokePreflightRe
     package_lock = root / "frontend" / "package-lock.json"
     tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
     tauri_config = root / "frontend" / "src-tauri" / "tauri.conf.json"
-    frozen_manifest = root / "build" / "desktop" / "frozen-backend-runtime" / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+    frozen_manifest = (
+        root
+        / "build"
+        / "desktop"
+        / "frozen-backend-runtime"
+        / "AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+    )
 
     package_text = package_json.read_text(encoding="utf-8") if package_json.exists() else ""
     lock_text = package_lock.read_text(encoding="utf-8") if package_lock.exists() else ""
@@ -2243,7 +2553,9 @@ def get_macos_packaged_app_smoke_preflight() -> MacOSPackagedAppSmokePreflightRe
         MacOSPackagedAppSmokePreflightItemResponse(
             id="tauri-cli-script",
             title="Tauri CLI npm scripts",
-            status="ok" if '"tauri": "tauri"' in package_text and '"tauri:dev": "tauri dev"' in package_text else "blocked",
+            status="ok"
+            if '"tauri": "tauri"' in package_text and '"tauri:dev": "tauri dev"' in package_text
+            else "blocked",
             summary="Frontend package exposes npm run tauri dev and npm run tauri:dev so the smoke runbook is executable.",
             command="cd frontend && npm run tauri dev",
         ),
@@ -2264,7 +2576,9 @@ def get_macos_packaged_app_smoke_preflight() -> MacOSPackagedAppSmokePreflightRe
         MacOSPackagedAppSmokePreflightItemResponse(
             id="health-readiness",
             title="HTTP health readiness",
-            status="ok" if "GET /health HTTP/1.1" in bridge_text and "wait_for_backend_health" in bridge_text else "blocked",
+            status="ok"
+            if "GET /health HTTP/1.1" in bridge_text and "wait_for_backend_health" in bridge_text
+            else "blocked",
             summary="Desktop readiness requires HTTP /health 200, not TCP-only availability.",
             command="scripts/check_tauri_backend_health_readiness.sh",
         ),
@@ -2291,9 +2605,21 @@ def get_macos_packaged_app_smoke_preflight() -> MacOSPackagedAppSmokePreflightRe
         desktop_shell="Tauri + React",
         preflight_items=items,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Check packaged app smoke preflight", command="scripts/check_macos_packaged_app_smoke_preflight.sh", purpose="Validate npm/Tauri CLI wiring, Rust scaffold, frozen runtime gates, and safety boundaries before package smoke."),
-            DesktopRuntimeValidationCommandResponse(label="Build and smoke frozen backend", command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh", purpose="Generate the local frozen backend runtime and prove /health before Tauri smoke."),
-            DesktopRuntimeValidationCommandResponse(label="Run Tauri dev smoke", command="cd frontend && npm ci && npm run build && cargo check --manifest-path src-tauri/Cargo.toml && npm run tauri dev", purpose="Run the macOS desktop shell against the app-owned backend lifecycle."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check packaged app smoke preflight",
+                command="scripts/check_macos_packaged_app_smoke_preflight.sh",
+                purpose="Validate npm/Tauri CLI wiring, Rust scaffold, frozen runtime gates, and safety boundaries before package smoke.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Build and smoke frozen backend",
+                command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh",
+                purpose="Generate the local frozen backend runtime and prove /health before Tauri smoke.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Run Tauri dev smoke",
+                command="cd frontend && npm ci && npm run build && cargo check --manifest-path src-tauri/Cargo.toml && npm run tauri dev",
+                purpose="Run the macOS desktop shell against the app-owned backend lifecycle.",
+            ),
         ],
         pass_criteria=[
             "npm ci installs @tauri-apps/cli from package-lock.json.",
@@ -2318,9 +2644,6 @@ def get_macos_packaged_app_smoke_preflight() -> MacOSPackagedAppSmokePreflightRe
     )
 
 
-
-
-
 @router.get("/tauri-rust-structure-registry", response_model=TauriRustStructureRegistryResponse)
 def get_tauri_rust_structure_registry() -> TauriRustStructureRegistryResponse:
     root = Path(__file__).resolve().parents[4]
@@ -2330,7 +2653,9 @@ def get_tauri_rust_structure_registry() -> TauriRustStructureRegistryResponse:
     package_lock = root / "frontend" / "package-lock.json"
 
     lock_text = package_lock.read_text(encoding="utf-8") if package_lock.exists() else ""
-    internal_registry_found = any(token in lock_text for token in ["applied-caas", "internal.api.openai", "artifactory"])
+    internal_registry_found = any(
+        token in lock_text for token in ["applied-caas", "internal.api.openai", "artifactory"]
+    )
     main_text = main_rs.read_text(encoding="utf-8") if main_rs.exists() else ""
     lib_text = lib_rs.read_text(encoding="utf-8") if lib_rs.exists() else ""
     cargo_text = cargo_toml.read_text(encoding="utf-8") if cargo_toml.exists() else ""
@@ -2339,7 +2664,9 @@ def get_tauri_rust_structure_registry() -> TauriRustStructureRegistryResponse:
         TauriRustStructureRegistryItemResponse(
             id="cargo-library-contract",
             title="Cargo library contract",
-            status="ok" if 'name = "ai_private_workspace_lib"' in cargo_text and lib_rs.exists() else "blocked",
+            status="ok"
+            if 'name = "ai_private_workspace_lib"' in cargo_text and lib_rs.exists()
+            else "blocked",
             summary="Cargo declares ai_private_workspace_lib and frontend/src-tauri/src/lib.rs exists.",
             command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml",
         ),
@@ -2353,7 +2680,9 @@ def get_tauri_rust_structure_registry() -> TauriRustStructureRegistryResponse:
         TauriRustStructureRegistryItemResponse(
             id="supervisor-library",
             title="Supervisor library implementation",
-            status="ok" if "pub fn run()" in lib_text and "start_app_owned_backend_runtime" in lib_text else "blocked",
+            status="ok"
+            if "pub fn run()" in lib_text and "start_app_owned_backend_runtime" in lib_text
+            else "blocked",
             summary="lib.rs owns the Tauri command registration and app-owned backend lifecycle implementation.",
             command="scripts/check_tauri_rust_structure_and_registry.sh",
         ),
@@ -2377,9 +2706,21 @@ def get_tauri_rust_structure_registry() -> TauriRustStructureRegistryResponse:
         npm_registry_policy="frontend/package-lock.json must resolve packages from the public npm registry, not internal sandbox registries.",
         validation_items=items,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Check Tauri Rust structure", command="scripts/check_tauri_rust_structure_and_registry.sh", purpose="Validate main.rs/lib.rs layout, manifest-gated startup commands, and npm registry hygiene."),
-            DesktopRuntimeValidationCommandResponse(label="Frontend build", command="cd frontend && npm ci && npm run build", purpose="Validate public npm lockfile and production frontend build."),
-            DesktopRuntimeValidationCommandResponse(label="Cargo check", command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml", purpose="Validate the Tauri Rust manifest and library structure locally."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check Tauri Rust structure",
+                command="scripts/check_tauri_rust_structure_and_registry.sh",
+                purpose="Validate main.rs/lib.rs layout, manifest-gated startup commands, and npm registry hygiene.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Frontend build",
+                command="cd frontend && npm ci && npm run build",
+                purpose="Validate public npm lockfile and production frontend build.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Cargo check",
+                command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml",
+                purpose="Validate the Tauri Rust manifest and library structure locally.",
+            ),
         ],
         safety_rules=[
             "Frontend React code must not execute shell commands.",
@@ -2394,7 +2735,6 @@ def get_tauri_rust_structure_registry() -> TauriRustStructureRegistryResponse:
             "Run npm run tauri dev after the frozen backend runtime smoke succeeds.",
         ],
     )
-
 
 
 @router.get("/tauri-rust-dependency-pins", response_model=TauriRustDependencyPinsResponse)
@@ -2443,9 +2783,21 @@ def get_tauri_rust_dependency_pins() -> TauriRustDependencyPinsResponse:
         gitignore_policy="frontend/src-tauri/target/ is local Rust build output and must never be committed.",
         validation_items=items,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Check Rust dependency pins", command="scripts/check_tauri_rust_dependency_pins.sh", purpose="Validate the time pin, Cargo.lock refresh guidance, and Tauri target gitignore rule."),
-            DesktopRuntimeValidationCommandResponse(label="Refresh Cargo lock", command="cd frontend && cargo update --manifest-path src-tauri/Cargo.toml -p time --precise 0.3.36", purpose="Resolve Cargo.lock to the pinned time version before cargo check."),
-            DesktopRuntimeValidationCommandResponse(label="Cargo check", command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml", purpose="Validate the Tauri Rust app locally after dependency resolution."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check Rust dependency pins",
+                command="scripts/check_tauri_rust_dependency_pins.sh",
+                purpose="Validate the time pin, Cargo.lock refresh guidance, and Tauri target gitignore rule.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Refresh Cargo lock",
+                command="cd frontend && cargo update --manifest-path src-tauri/Cargo.toml -p time --precise 0.3.36",
+                purpose="Resolve Cargo.lock to the pinned time version before cargo check.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Cargo check",
+                command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml",
+                purpose="Validate the Tauri Rust app locally after dependency resolution.",
+            ),
         ],
         safety_rules=[
             "This change only pins Rust dependencies and ignores local build output.",
@@ -2460,7 +2812,10 @@ def get_tauri_rust_dependency_pins() -> TauriRustDependencyPinsResponse:
         ],
     )
 
-@router.get("/packaging-toolchain-prerequisites", response_model=PackagingToolchainPrerequisitesResponse)
+
+@router.get(
+    "/packaging-toolchain-prerequisites", response_model=PackagingToolchainPrerequisitesResponse
+)
 def get_packaging_toolchain_prerequisites() -> PackagingToolchainPrerequisitesResponse:
     root = Path(__file__).resolve().parents[4]
     requirements = root / "backend" / "requirements.txt"
@@ -2472,21 +2827,27 @@ def get_packaging_toolchain_prerequisites() -> PackagingToolchainPrerequisitesRe
         PackagingToolchainPrerequisiteItemResponse(
             id="pyinstaller-dependency",
             title="PyInstaller dependency",
-            status="ok" if requirements.exists() and "pyinstaller" in requirements.read_text().lower() else "blocked",
+            status="ok"
+            if requirements.exists() and "pyinstaller" in requirements.read_text().lower()
+            else "blocked",
             summary="backend/requirements.txt declares PyInstaller so the frozen backend build script can run after npm/pip setup.",
             command="cd backend && python3 -m pip install -r requirements.txt",
         ),
         PackagingToolchainPrerequisiteItemResponse(
             id="pyinstaller-spec-path",
             title="PyInstaller spec path resolution",
-            status="ok" if spec_file.exists() and "SPECPATH" in spec_file.read_text() else "blocked",
+            status="ok"
+            if spec_file.exists() and "SPECPATH" in spec_file.read_text()
+            else "blocked",
             summary="The spec resolves the entrypoint from its own directory, avoiding duplicated backend/packaging paths.",
             command="scripts/build_pyinstaller_backend_runtime.sh",
         ),
         PackagingToolchainPrerequisiteItemResponse(
             id="tauri-cli",
             title="Tauri CLI npm script",
-            status="ok" if package_json.exists() and "@tauri-apps/cli" in package_json.read_text() else "blocked",
+            status="ok"
+            if package_json.exists() and "@tauri-apps/cli" in package_json.read_text()
+            else "blocked",
             summary="frontend/package.json declares Tauri CLI scripts used by macOS desktop smoke tests.",
             command="cd frontend && npm ci",
         ),
@@ -2512,10 +2873,26 @@ def get_packaging_toolchain_prerequisites() -> PackagingToolchainPrerequisitesRe
         ],
         prerequisite_items=items,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Install backend packaging deps", command="cd backend && python3 -m pip install -r requirements.txt", purpose="Install PyInstaller in the backend virtual environment before frozen runtime build."),
-            DesktopRuntimeValidationCommandResponse(label="Check packaging toolchain", command="scripts/check_packaging_toolchain_prerequisites.sh", purpose="Validate PyInstaller dependency, spec path handling, Tauri CLI scripts, and Cargo availability."),
-            DesktopRuntimeValidationCommandResponse(label="Build frozen backend", command="scripts/build_pyinstaller_backend_runtime.sh", purpose="Create the local PyInstaller frozen backend runtime."),
-            DesktopRuntimeValidationCommandResponse(label="Check Tauri locally", command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml", purpose="Validate Rust/Tauri compile readiness on the developer machine."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Install backend packaging deps",
+                command="cd backend && python3 -m pip install -r requirements.txt",
+                purpose="Install PyInstaller in the backend virtual environment before frozen runtime build.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check packaging toolchain",
+                command="scripts/check_packaging_toolchain_prerequisites.sh",
+                purpose="Validate PyInstaller dependency, spec path handling, Tauri CLI scripts, and Cargo availability.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Build frozen backend",
+                command="scripts/build_pyinstaller_backend_runtime.sh",
+                purpose="Create the local PyInstaller frozen backend runtime.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check Tauri locally",
+                command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml",
+                purpose="Validate Rust/Tauri compile readiness on the developer machine.",
+            ),
         ],
         safety_rules=[
             "Installing Cargo/Rust is a developer-machine prerequisite, not an app startup action.",
@@ -2530,7 +2907,6 @@ def get_packaging_toolchain_prerequisites() -> PackagingToolchainPrerequisitesRe
             "Run cargo check and npm run tauri dev from frontend.",
         ],
     )
-
 
 
 @router.get("/tauri-icon-assets", response_model=TauriIconAssetsResponse)
@@ -2594,9 +2970,21 @@ def get_tauri_icon_assets() -> TauriIconAssetsResponse:
         required_icons=list(required.keys()),
         validation_items=items,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Check Tauri icon assets", command="scripts/check_tauri_icon_assets.sh", purpose="Validate required RGBA PNG icons and Rust import hygiene."),
-            DesktopRuntimeValidationCommandResponse(label="Cargo check", command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml", purpose="Verify Tauri generate_context can read icon assets locally."),
-            DesktopRuntimeValidationCommandResponse(label="Tauri dev smoke", command="cd frontend && npm run tauri dev", purpose="Run the local desktop shell after frozen backend smoke passes."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Check Tauri icon assets",
+                command="scripts/check_tauri_icon_assets.sh",
+                purpose="Validate required RGBA PNG icons and Rust import hygiene.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Cargo check",
+                command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml",
+                purpose="Verify Tauri generate_context can read icon assets locally.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Tauri dev smoke",
+                command="cd frontend && npm run tauri dev",
+                purpose="Run the local desktop shell after frozen backend smoke passes.",
+            ),
         ],
         safety_rules=[
             "Icon checks are read-only and do not start backend processes.",
@@ -2633,7 +3021,9 @@ def get_tauri_dev_smoke_readiness() -> TauriDevSmokeReadinessResponse:
         (
             "target-hygiene",
             "Tauri target is ignored",
-            "ok" if "frontend/src-tauri/target/" in (root / ".gitignore").read_text(encoding="utf-8") else "blocked",
+            "ok"
+            if "frontend/src-tauri/target/" in (root / ".gitignore").read_text(encoding="utf-8")
+            else "blocked",
             "Rust build output must stay local and must not be committed or included in source release archives.",
             "git check-ignore frontend/src-tauri/target || true",
         ),
@@ -2673,10 +3063,26 @@ def get_tauri_dev_smoke_readiness() -> TauriDevSmokeReadinessResponse:
         local_success_reported=True,
         readiness_items=items,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Tauri dev smoke readiness", command="scripts/check_tauri_dev_smoke_readiness.sh", purpose="Verify the source tree still contains the files and guardrails needed for local Tauri dev smoke."),
-            DesktopRuntimeValidationCommandResponse(label="Cargo check", command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml", purpose="Compile-check the Tauri Rust shell locally."),
-            DesktopRuntimeValidationCommandResponse(label="Tauri dev", command="cd frontend && npm run tauri dev", purpose="Run the local desktop shell smoke after cargo check passes."),
-            DesktopRuntimeValidationCommandResponse(label="Frozen backend smoke", command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh", purpose="Validate the app-owned backend runtime that packaged Tauri should supervise."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Tauri dev smoke readiness",
+                command="scripts/check_tauri_dev_smoke_readiness.sh",
+                purpose="Verify the source tree still contains the files and guardrails needed for local Tauri dev smoke.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Cargo check",
+                command="cd frontend && cargo check --manifest-path src-tauri/Cargo.toml",
+                purpose="Compile-check the Tauri Rust shell locally.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Tauri dev",
+                command="cd frontend && npm run tauri dev",
+                purpose="Run the local desktop shell smoke after cargo check passes.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Frozen backend smoke",
+                command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh",
+                purpose="Validate the app-owned backend runtime that packaged Tauri should supervise.",
+            ),
         ],
         safety_rules=[
             "React/frontend code still does not execute shell commands.",
@@ -2694,9 +3100,9 @@ def get_tauri_dev_smoke_readiness() -> TauriDevSmokeReadinessResponse:
     )
 
 
-
-
-@router.get("/tauri-packaged-app-build-readiness", response_model=TauriPackagedAppBuildReadinessResponse)
+@router.get(
+    "/tauri-packaged-app-build-readiness", response_model=TauriPackagedAppBuildReadinessResponse
+)
 def get_tauri_packaged_app_build_readiness() -> TauriPackagedAppBuildReadinessResponse:
     """Return the packaged macOS/Tauri app build readiness contract."""
     root = Path(__file__).resolve().parents[4]
@@ -2726,7 +3132,10 @@ def get_tauri_packaged_app_build_readiness() -> TauriPackagedAppBuildReadinessRe
         (
             "resource-manifest-lookup",
             "Packaged app can find the frozen runtime manifest in Resources",
-            "ok" if "Resources/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json" in lib_text else "blocked",
+            "ok"
+            if "Resources/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+            in lib_text
+            else "blocked",
             "The Tauri supervisor checks packaged Resources paths in addition to local dev build paths.",
             "scripts/check_tauri_packaged_app_build.sh",
         ),
@@ -2740,7 +3149,12 @@ def get_tauri_packaged_app_build_readiness() -> TauriPackagedAppBuildReadinessRe
         (
             "repo-hygiene",
             "macOS and IDE build artifacts are ignored",
-            "ok" if all(item in gitignore_text for item in ["frontend/src-tauri/target/", ".idea/", ".DS_Store"]) else "blocked",
+            "ok"
+            if all(
+                item in gitignore_text
+                for item in ["frontend/src-tauri/target/", ".idea/", ".DS_Store"]
+            )
+            else "blocked",
             "Rust target output, JetBrains metadata, and Finder metadata must not be committed or included in source archives.",
             "git check-ignore frontend/src-tauri/target .idea .DS_Store || true",
         ),
@@ -2766,10 +3180,26 @@ def get_tauri_packaged_app_build_readiness() -> TauriPackagedAppBuildReadinessRe
         packaged_build_command="cd frontend && npm run tauri:build",
         readiness_items=items,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Packaged app build preflight", command="scripts/check_tauri_packaged_app_build.sh", purpose="Verify bundle config, resources, app-owned runtime lookup, icons, and repository hygiene before running Tauri build."),
-            DesktopRuntimeValidationCommandResponse(label="Build frozen backend", command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh", purpose="Create and smoke the app-owned backend runtime that will be included in the packaged app."),
-            DesktopRuntimeValidationCommandResponse(label="Build Tauri app", command="cd frontend && npm run tauri:build", purpose="Build the packaged macOS app after frozen runtime smoke succeeds."),
-            DesktopRuntimeValidationCommandResponse(label="Run packaged app smoke", command="open frontend/src-tauri/target/release/bundle/macos/AI\\ Private\\ Workspace.app", purpose="Open the packaged app and verify app-owned startup, /health readiness, logs, and shutdown behavior."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Packaged app build preflight",
+                command="scripts/check_tauri_packaged_app_build.sh",
+                purpose="Verify bundle config, resources, app-owned runtime lookup, icons, and repository hygiene before running Tauri build.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Build frozen backend",
+                command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh",
+                purpose="Create and smoke the app-owned backend runtime that will be included in the packaged app.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Build Tauri app",
+                command="cd frontend && npm run tauri:build",
+                purpose="Build the packaged macOS app after frozen runtime smoke succeeds.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Run packaged app smoke",
+                command="open frontend/src-tauri/target/release/bundle/macos/AI\\ Private\\ Workspace.app",
+                purpose="Open the packaged app and verify app-owned startup, /health readiness, logs, and shutdown behavior.",
+            ),
         ],
         safety_rules=[
             "React/frontend code still does not execute shell commands.",
@@ -2794,11 +3224,16 @@ def get_macos_packaged_app_smoke_result() -> MacOSPackagedAppSmokeResultResponse
     root = Path(__file__).resolve().parents[4]
     app_bundle = root / "frontend/src-tauri/target/release/bundle/macos/AI Private Workspace.app"
     tauri_binary = root / "frontend/src-tauri/target/release/ai-private-workspace"
-    frozen_manifest = root / "build/desktop/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+    frozen_manifest = (
+        root
+        / "build/desktop/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+    )
     smoke_log = root / "build/desktop/smoke-logs/frozen-backend-smoke.log"
     check_script = root / "scripts/check_macos_packaged_app_smoke_result.sh"
 
-    smoke_log_text = smoke_log.read_text(encoding="utf-8", errors="replace") if smoke_log.exists() else ""
+    smoke_log_text = (
+        smoke_log.read_text(encoding="utf-8", errors="replace") if smoke_log.exists() else ""
+    )
     results = [
         MacOSPackagedAppSmokeResultItemResponse(
             id="frozen-backend-smoke",
@@ -2845,7 +3280,9 @@ def get_macos_packaged_app_smoke_result() -> MacOSPackagedAppSmokeResultResponse
             title="Frozen smoke log is local-only",
             status="local" if smoke_log.exists() else "pending-local",
             summary="Generated smoke logs are useful for local debugging and must stay under ignored build/desktop paths.",
-            evidence="Application startup complete" if "Application startup complete" in smoke_log_text else "build/desktop/smoke-logs/frozen-backend-smoke.log",
+            evidence="Application startup complete"
+            if "Application startup complete" in smoke_log_text
+            else "build/desktop/smoke-logs/frozen-backend-smoke.log",
             command="scripts/smoke_frozen_backend_runtime.sh",
         ),
     ]
@@ -2859,10 +3296,26 @@ def get_macos_packaged_app_smoke_result() -> MacOSPackagedAppSmokeResultResponse
         packaged_app_path="frontend/src-tauri/target/release/bundle/macos/AI Private Workspace.app",
         local_results=results,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Packaged smoke result check", command="scripts/check_macos_packaged_app_smoke_result.sh", purpose="Verify source guardrails and optionally detect local generated app/frozen runtime artifacts."),
-            DesktopRuntimeValidationCommandResponse(label="Frozen backend smoke", command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh", purpose="Rebuild and smoke the app-owned backend runtime before packaged .app smoke."),
-            DesktopRuntimeValidationCommandResponse(label="Build packaged macOS app", command="cd frontend && npm run tauri:build", purpose="Generate the macOS .app bundle locally."),
-            DesktopRuntimeValidationCommandResponse(label="Open packaged app", command="open frontend/src-tauri/target/release/bundle/macos/AI\\ Private\\ Workspace.app", purpose="Validate app-owned backend startup, HTTP /health readiness, local logs, and safe shutdown."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Packaged smoke result check",
+                command="scripts/check_macos_packaged_app_smoke_result.sh",
+                purpose="Verify source guardrails and optionally detect local generated app/frozen runtime artifacts.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Frozen backend smoke",
+                command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh",
+                purpose="Rebuild and smoke the app-owned backend runtime before packaged .app smoke.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Build packaged macOS app",
+                command="cd frontend && npm run tauri:build",
+                purpose="Generate the macOS .app bundle locally.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Open packaged app",
+                command="open frontend/src-tauri/target/release/bundle/macos/AI\\ Private\\ Workspace.app",
+                purpose="Validate app-owned backend startup, HTTP /health readiness, local logs, and safe shutdown.",
+            ),
         ],
         safety_rules=[
             "Generated .app bundles, Tauri target output, frozen binaries, manifests, and smoke logs remain local-only artifacts.",
@@ -3050,7 +3503,7 @@ def get_backend_runtime_bundle_plan() -> BackendRuntimeBundlePlanResponse:
                 id="open-app",
                 title="Open generated app foundation",
                 summary="Validate the double-click lifecycle after the manifest and app bundle are generated.",
-                command="open \"build/macos/AI Private Workspace.app\"",
+                command='open "build/macos/AI Private Workspace.app"',
             ),
         ],
         validation_steps=[
@@ -3153,11 +3606,31 @@ def get_desktop_runtime_readiness() -> DesktopRuntimeReadinessResponse:
             "Only then continue toward signed installers, persistent jobs, MCP runtime, and sandboxed Agent execution.",
         ],
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Source RC audit", command="./scripts/audit_release_candidate.sh", purpose="Keep source release hygiene green before starting v0.2 runtime work."),
-            DesktopRuntimeValidationCommandResponse(label="Desktop runtime preflight", command="scripts/check_desktop_runtime_preflight.sh", purpose="Read-only Phase 22 gate before packaging/runtime changes."),
-            DesktopRuntimeValidationCommandResponse(label="Backend runtime manifest", command="scripts/prepare_macos_backend_runtime.sh", purpose="Validate backend runtime staging inputs and generate the manifest."),
-            DesktopRuntimeValidationCommandResponse(label="Tauri scaffold check", command="scripts/prepare_tauri_shell_scaffold.sh", purpose="Validate the Tauri scaffold without executing unsafe shell from the frontend."),
-            DesktopRuntimeValidationCommandResponse(label="macOS package foundation", command="cd frontend && npm ci && npm run build && cd .. && scripts/package_macos_app_foundation.sh", purpose="Build the current developer-verifiable macOS app foundation."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Source RC audit",
+                command="./scripts/audit_release_candidate.sh",
+                purpose="Keep source release hygiene green before starting v0.2 runtime work.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Desktop runtime preflight",
+                command="scripts/check_desktop_runtime_preflight.sh",
+                purpose="Read-only Phase 22 gate before packaging/runtime changes.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Backend runtime manifest",
+                command="scripts/prepare_macos_backend_runtime.sh",
+                purpose="Validate backend runtime staging inputs and generate the manifest.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Tauri scaffold check",
+                command="scripts/prepare_tauri_shell_scaffold.sh",
+                purpose="Validate the Tauri scaffold without executing unsafe shell from the frontend.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="macOS package foundation",
+                command="cd frontend && npm ci && npm run build && cd .. && scripts/package_macos_app_foundation.sh",
+                purpose="Build the current developer-verifiable macOS app foundation.",
+            ),
         ],
         blocked_until=[
             "v0.1 local UI smoke-check is passed or any blocker is fixed.",
@@ -3181,7 +3654,9 @@ def get_desktop_runtime_readiness() -> DesktopRuntimeReadinessResponse:
 def get_desktop_runtime_preflight() -> DesktopRuntimePreflightResponse:
     """Return the read-only desktop runtime preflight for Phase 22 packaging work."""
     root = Path(__file__).resolve().parents[4]
-    manifest = root / "build" / "macos" / "backend-runtime" / "AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt"
+    manifest = (
+        root / "build" / "macos" / "backend-runtime" / "AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt"
+    )
     package_script = root / "scripts" / "package_macos_app_foundation.sh"
     preflight_script = root / "scripts" / "check_desktop_runtime_preflight.sh"
     frontend_dist = root / "frontend" / "dist" / "index.html"
@@ -3193,7 +3668,9 @@ def get_desktop_runtime_preflight() -> DesktopRuntimePreflightResponse:
             id="backend-source",
             title="Backend source entrypoint",
             status="ok" if backend_app.exists() else "blocked",
-            summary="backend/app/main.py is present" if backend_app.exists() else "backend/app/main.py is missing",
+            summary="backend/app/main.py is present"
+            if backend_app.exists()
+            else "backend/app/main.py is missing",
             evidence="backend/app/main.py",
             fix_command=None,
         ),
@@ -3201,23 +3678,33 @@ def get_desktop_runtime_preflight() -> DesktopRuntimePreflightResponse:
             id="runtime-manifest",
             title="Backend runtime manifest",
             status="ok" if manifest.exists() else "review",
-            summary="Runtime manifest exists" if manifest.exists() else "Runtime manifest has not been generated in this checkout",
+            summary="Runtime manifest exists"
+            if manifest.exists()
+            else "Runtime manifest has not been generated in this checkout",
             evidence="build/macos/backend-runtime/AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt",
-            fix_command="scripts/prepare_macos_backend_runtime.sh" if not manifest.exists() else None,
+            fix_command="scripts/prepare_macos_backend_runtime.sh"
+            if not manifest.exists()
+            else None,
         ),
         DesktopRuntimePreflightItemResponse(
             id="frontend-dist",
             title="Packaged frontend assets",
             status="ok" if frontend_dist.exists() else "review",
-            summary="frontend/dist/index.html exists" if frontend_dist.exists() else "frontend/dist is not built in the source checkout",
+            summary="frontend/dist/index.html exists"
+            if frontend_dist.exists()
+            else "frontend/dist is not built in the source checkout",
             evidence="frontend/dist/index.html",
-            fix_command="cd frontend && npm ci && npm run build" if not frontend_dist.exists() else None,
+            fix_command="cd frontend && npm ci && npm run build"
+            if not frontend_dist.exists()
+            else None,
         ),
         DesktopRuntimePreflightItemResponse(
             id="package-script",
             title="macOS package foundation script",
             status="ok" if package_script.exists() else "blocked",
-            summary="Package script exists" if package_script.exists() else "Package script is missing",
+            summary="Package script exists"
+            if package_script.exists()
+            else "Package script is missing",
             evidence="scripts/package_macos_app_foundation.sh",
             fix_command=None,
         ),
@@ -3225,9 +3712,13 @@ def get_desktop_runtime_preflight() -> DesktopRuntimePreflightResponse:
             id="tauri-shell",
             title="Tauri shell scaffold",
             status="ok" if tauri_main.exists() else "review",
-            summary="Tauri shell source exists" if tauri_main.exists() else "Tauri shell scaffold is not present",
+            summary="Tauri shell source exists"
+            if tauri_main.exists()
+            else "Tauri shell scaffold is not present",
             evidence="frontend/src-tauri/src/lib.rs",
-            fix_command="scripts/prepare_tauri_shell_scaffold.sh" if not tauri_main.exists() else None,
+            fix_command="scripts/prepare_tauri_shell_scaffold.sh"
+            if not tauri_main.exists()
+            else None,
         ),
     ]
     if any(item.status == "blocked" for item in items):
@@ -3246,10 +3737,26 @@ def get_desktop_runtime_preflight() -> DesktopRuntimePreflightResponse:
         package_script="scripts/package_macos_app_foundation.sh",
         items=items,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Read-only preflight", command="scripts/check_desktop_runtime_preflight.sh", purpose="Checks source, manifest, build outputs, package script, and Tauri scaffold without starting services."),
-            DesktopRuntimeValidationCommandResponse(label="Generate runtime manifest", command="scripts/prepare_macos_backend_runtime.sh", purpose="Creates the manifest used by packaging preflight; it does not start backend or models."),
-            DesktopRuntimeValidationCommandResponse(label="Build frontend assets", command="cd frontend && npm ci && npm run build", purpose="Creates frontend/dist for package foundation validation."),
-            DesktopRuntimeValidationCommandResponse(label="Build macOS app foundation", command="scripts/package_macos_app_foundation.sh", purpose="Stages the current foundation .app after manifest and frontend assets are ready."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Read-only preflight",
+                command="scripts/check_desktop_runtime_preflight.sh",
+                purpose="Checks source, manifest, build outputs, package script, and Tauri scaffold without starting services.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Generate runtime manifest",
+                command="scripts/prepare_macos_backend_runtime.sh",
+                purpose="Creates the manifest used by packaging preflight; it does not start backend or models.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Build frontend assets",
+                command="cd frontend && npm ci && npm run build",
+                purpose="Creates frontend/dist for package foundation validation.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Build macOS app foundation",
+                command="scripts/package_macos_app_foundation.sh",
+                purpose="Stages the current foundation .app after manifest and frontend assets are ready.",
+            ),
         ],
         pass_criteria=[
             "backend/app/main.py exists and imports in backend tests.",
@@ -3291,9 +3798,15 @@ def get_first_launch_readiness() -> FirstLaunchReadinessResponse:
 
     has_workspace = (counts.get("workspaces") or 0) > 0
     backend_ready = sys.version_info >= (3, 10)
-    ollama_selected = settings.llm_provider.lower() == "ollama" and settings.embedding_provider.lower() == "ollama"
+    ollama_selected = (
+        settings.llm_provider.lower() == "ollama"
+        and settings.embedding_provider.lower() == "ollama"
+    )
     qdrant_selected = settings.vector_store.lower() == "qdrant"
-    launcher_exists = (Path("../scripts/launch_macos.command").exists() or Path("scripts/launch_macos.command").exists())
+    launcher_exists = (
+        Path("../scripts/launch_macos.command").exists()
+        or Path("scripts/launch_macos.command").exists()
+    )
 
     checklist = [
         FirstLaunchChecklistItemResponse(
@@ -3310,7 +3823,9 @@ def get_first_launch_readiness() -> FirstLaunchReadinessResponse:
             status="ok" if has_workspace else "review",
             summary=f"{counts.get('workspaces') or 0} workspace(s) found",
             detail=f"Runtime database path: {_display_path(db_path)}",
-            user_action=None if has_workspace else "Create or reopen a workspace after the app starts.",
+            user_action=None
+            if has_workspace
+            else "Create or reopen a workspace after the app starts.",
         ),
         FirstLaunchChecklistItemResponse(
             id="local-ai-models",
@@ -3318,7 +3833,9 @@ def get_first_launch_readiness() -> FirstLaunchReadinessResponse:
             status="ok" if ollama_selected else "review",
             summary=f"LLM={settings.llm_provider}/{settings.ollama_llm_model}; embeddings={settings.embedding_provider}/{settings.ollama_embedding_model}",
             detail="This check only validates selected providers and model names. It does not pull or start models.",
-            user_action=None if ollama_selected else "Use the guided model setup and start backend with Ollama providers when ready.",
+            user_action=None
+            if ollama_selected
+            else "Use the guided model setup and start backend with Ollama providers when ready.",
         ),
         FirstLaunchChecklistItemResponse(
             id="search-context-store",
@@ -3326,15 +3843,21 @@ def get_first_launch_readiness() -> FirstLaunchReadinessResponse:
             status="ok" if qdrant_selected else "review",
             summary=f"Vector store: {settings.vector_store}",
             detail="Persistent search context is expected to use Qdrant for packaging-ready local use.",
-            user_action=None if qdrant_selected else "Use Qdrant before depending on persistent RAG answers.",
+            user_action=None
+            if qdrant_selected
+            else "Use Qdrant before depending on persistent RAG answers.",
         ),
         FirstLaunchChecklistItemResponse(
             id="macos-launcher",
             title="macOS launcher",
             status="ok" if launcher_exists else "review",
-            summary="launch_macos.command found" if launcher_exists else "Launcher script not found from current working directory",
+            summary="launch_macos.command found"
+            if launcher_exists
+            else "Launcher script not found from current working directory",
             detail="The launcher is a user-started helper for backend/frontend only.",
-            user_action=None if launcher_exists else "Run from the project root or verify scripts/launch_macos.command is packaged.",
+            user_action=None
+            if launcher_exists
+            else "Run from the project root or verify scripts/launch_macos.command is packaged.",
         ),
         FirstLaunchChecklistItemResponse(
             id="desktop-shortcut",
@@ -3353,7 +3876,9 @@ def get_first_launch_readiness() -> FirstLaunchReadinessResponse:
     return FirstLaunchReadinessResponse(
         status=status,
         title="Post-launch workspace setup",
-        summary="Ready after launch" if status == "ok" else "Review post-launch checklist before daily use",
+        summary="Ready after launch"
+        if status == "ok"
+        else "Review post-launch checklist before daily use",
         checklist=checklist,
         recommended_flow=[
             "Open the last workspace or create a new local workspace.",
@@ -3399,7 +3924,7 @@ def create_database_backup() -> CreateDatabaseBackupResponse:
     db_path = settings.workspace_db_path
     if not db_path.exists():
         raise HTTPException(status_code=404, detail="Workspace database does not exist yet.")
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     backup_path = db_path.with_name(f"{db_path.stem}-{timestamp}.backup{db_path.suffix}")
     shutil.copy2(db_path, backup_path)
     return CreateDatabaseBackupResponse(
@@ -3415,9 +3940,13 @@ def get_database_restore_plan(request: DatabaseRestorePlanRequest) -> DatabaseRe
     db_path = settings.workspace_db_path
     backup_path = _resolve_backup(db_path, request.backup_filename)
     if not backup_path.exists():
-        raise HTTPException(status_code=404, detail="Backup file was not found next to the workspace database.")
+        raise HTTPException(
+            status_code=404, detail="Backup file was not found next to the workspace database."
+        )
     if backup_path.resolve() == db_path.resolve():
-        raise HTTPException(status_code=400, detail="The current database cannot be used as a restore backup.")
+        raise HTTPException(
+            status_code=400, detail="The current database cannot be used as a restore backup."
+        )
 
     pre_restore_backup = db_path.with_suffix(db_path.suffix + ".before-restore")
     warnings = [
@@ -3425,7 +3954,9 @@ def get_database_restore_plan(request: DatabaseRestorePlanRequest) -> DatabaseRe
         "Restore is manual by design; the frontend must never overwrite runtime data.",
     ]
     if not db_path.exists():
-        warnings.append("Current database does not exist. The restore command will create it from the selected backup.")
+        warnings.append(
+            "Current database does not exist. The restore command will create it from the selected backup."
+        )
     return DatabaseRestorePlanResponse(
         status="ready",
         backup=_backup_response(backup_path, db_path),
@@ -3436,7 +3967,9 @@ def get_database_restore_plan(request: DatabaseRestorePlanRequest) -> DatabaseRe
             "Restart the backend and check /runtime/local-data.",
         ],
         copy_commands=[
-            f"cp {_shell_quote(db_path)} {_shell_quote(pre_restore_backup)}" if db_path.exists() else "# current database does not exist; skip before-restore backup",
+            f"cp {_shell_quote(db_path)} {_shell_quote(pre_restore_backup)}"
+            if db_path.exists()
+            else "# current database does not exist; skip before-restore backup",
             f"cp {_shell_quote(backup_path)} {_shell_quote(db_path)}",
             "python -m uvicorn app.main:app --reload",
         ],
@@ -3472,11 +4005,17 @@ def get_database_migration_safety() -> DatabaseMigrationSafetyResponse:
         table_counts = _read_counts(db_path, expected_tables, warnings)
         for name in expected_tables:
             exists = table_counts.get(name) is not None
-            tables.append(DatabaseMigrationTableResponse(name=name, exists=exists, row_count=table_counts.get(name)))
+            tables.append(
+                DatabaseMigrationTableResponse(
+                    name=name, exists=exists, row_count=table_counts.get(name)
+                )
+            )
 
     missing = [table.name for table in tables if not table.exists]
     if missing:
-        warnings.append("Some known tables are missing. They may be created automatically by SQLite repositories when the feature is first used.")
+        warnings.append(
+            "Some known tables are missing. They may be created automatically by SQLite repositories when the feature is first used."
+        )
     status = "review" if warnings else "ok"
     return DatabaseMigrationSafetyResponse(
         status=status,
@@ -3494,12 +4033,20 @@ def get_database_migration_safety() -> DatabaseMigrationSafetyResponse:
     )
 
 
-
 @router.get("/release-candidate-audit", response_model=ReleaseCandidateAuditResponse)
 def get_release_candidate_audit() -> ReleaseCandidateAuditResponse:
     settings = get_settings()
     project_root = Path(__file__).resolve().parents[4]
-    required_paths = ["backend", "frontend", "docs", "scripts", "pytest.ini", ".gitignore", "README.md", ".github"]
+    required_paths = [
+        "backend",
+        "frontend",
+        "docs",
+        "scripts",
+        "pytest.ini",
+        ".gitignore",
+        "README.md",
+        ".github",
+    ]
     required_docs = [
         "docs/START_HERE.md",
         "docs/ROADMAP.md",
@@ -3521,44 +4068,148 @@ def get_release_candidate_audit() -> ReleaseCandidateAuditResponse:
     review: list[ReleaseCandidateAuditItemResponse] = []
     blocked: list[ReleaseCandidateAuditItemResponse] = []
 
-    def add_item(target: list[ReleaseCandidateAuditItemResponse], id: str, title: str, summary: str, detail: str, action: str | None = None) -> None:
-        target.append(ReleaseCandidateAuditItemResponse(id=id, title=title, status="blocked" if target is blocked else "review" if target is review else "ok", summary=summary, detail=detail, recommended_action=action))
+    def add_item(
+        target: list[ReleaseCandidateAuditItemResponse],
+        id: str,
+        title: str,
+        summary: str,
+        detail: str,
+        action: str | None = None,
+    ) -> None:
+        target.append(
+            ReleaseCandidateAuditItemResponse(
+                id=id,
+                title=title,
+                status="blocked" if target is blocked else "review" if target is review else "ok",
+                summary=summary,
+                detail=detail,
+                recommended_action=action,
+            )
+        )
 
     missing_required = [path for path in required_paths if not (project_root / path).exists()]
     if missing_required:
-        add_item(blocked, "required-root-structure", "Root structure", "Required release paths are missing.", ", ".join(missing_required), "Restore the root-preserving project structure before packaging.")
+        add_item(
+            blocked,
+            "required-root-structure",
+            "Root structure",
+            "Required release paths are missing.",
+            ", ".join(missing_required),
+            "Restore the root-preserving project structure before packaging.",
+        )
     else:
-        add_item(passed, "required-root-structure", "Root structure", "Required release paths are present.", "backend/, frontend/, docs/, scripts/, README.md, .github/, pytest.ini, and .gitignore are available.")
+        add_item(
+            passed,
+            "required-root-structure",
+            "Root structure",
+            "Required release paths are present.",
+            "backend/, frontend/, docs/, scripts/, README.md, .github/, pytest.ini, and .gitignore are available.",
+        )
 
     missing_docs = [path for path in required_docs if not (project_root / path).exists()]
     if missing_docs:
-        add_item(review, "release-docs", "Release docs", "Some release/operator docs are missing.", ", ".join(missing_docs), "Add or restore missing docs before final handoff.")
+        add_item(
+            review,
+            "release-docs",
+            "Release docs",
+            "Some release/operator docs are missing.",
+            ", ".join(missing_docs),
+            "Add or restore missing docs before final handoff.",
+        )
     else:
-        add_item(passed, "release-docs", "Release docs", "Release and packaging docs are present.", "The handoff has start, roadmap, API, checkpoint, packaging, and audit docs.")
+        add_item(
+            passed,
+            "release-docs",
+            "Release docs",
+            "Release and packaging docs are present.",
+            "The handoff has start, roadmap, API, checkpoint, packaging, and audit docs.",
+        )
 
     local_artifacts = [path for path in forbidden_paths if (project_root / path).exists()]
     if local_artifacts:
-        add_item(review, "local-artifacts", "Local build/runtime artifacts", "Local artifacts exist in the working tree.", ", ".join(local_artifacts), "They may exist locally, but must be excluded from generated release zip.")
+        add_item(
+            review,
+            "local-artifacts",
+            "Local build/runtime artifacts",
+            "Local artifacts exist in the working tree.",
+            ", ".join(local_artifacts),
+            "They may exist locally, but must be excluded from generated release zip.",
+        )
     else:
-        add_item(passed, "local-artifacts", "Local build/runtime artifacts", "No common runtime/build artifact directories found.", "Source tree looks clean for zip generation.")
+        add_item(
+            passed,
+            "local-artifacts",
+            "Local build/runtime artifacts",
+            "No common runtime/build artifact directories found.",
+            "Source tree looks clean for zip generation.",
+        )
 
-    db_files = [str(path.relative_to(project_root)) for path in project_root.rglob("*") if path.is_file() and path.suffix in {".db", ".sqlite", ".sqlite3"} and ".git" not in path.parts]
+    db_files = [
+        str(path.relative_to(project_root))
+        for path in project_root.rglob("*")
+        if path.is_file()
+        and path.suffix in {".db", ".sqlite", ".sqlite3"}
+        and ".git" not in path.parts
+    ]
     if db_files:
-        add_item(blocked, "database-files", "Runtime database files", "Database files were found in the source tree.", ", ".join(db_files[:10]), "Remove DB files from the source archive and keep runtime data under app data paths.")
+        add_item(
+            blocked,
+            "database-files",
+            "Runtime database files",
+            "Database files were found in the source tree.",
+            ", ".join(db_files[:10]),
+            "Remove DB files from the source archive and keep runtime data under app data paths.",
+        )
     else:
-        add_item(passed, "database-files", "Runtime database files", "No *.db, *.sqlite, or *.sqlite3 files found in source tree.", "Runtime data is not present in the release source tree.")
+        add_item(
+            passed,
+            "database-files",
+            "Runtime database files",
+            "No *.db, *.sqlite, or *.sqlite3 files found in source tree.",
+            "Runtime data is not present in the release source tree.",
+        )
 
-    safety_docs = ["docs/MODEL_DOWNLOAD_JOBS.md", "docs/MCP_SETUP_UX.md", "docs/AGENT_MCP_READINESS.md"]
+    safety_docs = [
+        "docs/MODEL_DOWNLOAD_JOBS.md",
+        "docs/MCP_SETUP_UX.md",
+        "docs/AGENT_MCP_READINESS.md",
+    ]
     missing_safety = [path for path in safety_docs if not (project_root / path).exists()]
     if missing_safety:
-        add_item(review, "safety-docs", "Model/MCP/Agent safety docs", "Some safety docs are missing.", ", ".join(missing_safety), "Restore safety docs before final release notes.")
+        add_item(
+            review,
+            "safety-docs",
+            "Model/MCP/Agent safety docs",
+            "Some safety docs are missing.",
+            ", ".join(missing_safety),
+            "Restore safety docs before final release notes.",
+        )
     else:
-        add_item(passed, "safety-docs", "Model/MCP/Agent safety docs", "Safety docs are present.", "Model downloads, MCP setup, and Agent workflow boundaries are documented.")
+        add_item(
+            passed,
+            "safety-docs",
+            "Model/MCP/Agent safety docs",
+            "Safety docs are present.",
+            "Model downloads, MCP setup, and Agent workflow boundaries are documented.",
+        )
 
     if settings.model_download_execution_enabled:
-        add_item(review, "model-execution-enabled", "Model download execution", "Model download execution is enabled in this runtime.", "This is allowed only for trusted local runtime, not default release demos.", "Use MODEL_DOWNLOAD_EXECUTION_ENABLED=false for default safe demos.")
+        add_item(
+            review,
+            "model-execution-enabled",
+            "Model download execution",
+            "Model download execution is enabled in this runtime.",
+            "This is allowed only for trusted local runtime, not default release demos.",
+            "Use MODEL_DOWNLOAD_EXECUTION_ENABLED=false for default safe demos.",
+        )
     else:
-        add_item(passed, "model-execution-disabled", "Model download execution", "Model download execution is disabled by default.", "Downloads require explicit opt-in and backend allowlist execution.")
+        add_item(
+            passed,
+            "model-execution-disabled",
+            "Model download execution",
+            "Model download execution is disabled by default.",
+            "Downloads require explicit opt-in and backend allowlist execution.",
+        )
 
     ok_count = len(passed)
     total = len(passed) + len(review) + len(blocked)
@@ -3581,9 +4232,21 @@ def get_release_candidate_audit() -> ReleaseCandidateAuditResponse:
         review_items=review,
         passed_items=passed,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Run release audit", command="./scripts/audit_release_candidate.sh", purpose="Checks source structure, docs, runtime-data exclusions, and script syntax."),
-            DesktopRuntimeValidationCommandResponse(label="Frontend build", command="cd frontend && npm ci && npm run build", purpose="Validates React/TypeScript production build."),
-            DesktopRuntimeValidationCommandResponse(label="Backend targeted tests", command="cd backend && pytest -q tests/test_api_inventory.py tests/test_windows_packaging_foundation.py tests/test_tauri_supervisor_bridge.py", purpose="Runs packaging/API safety coverage without requiring the full long test suite."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Run release audit",
+                command="./scripts/audit_release_candidate.sh",
+                purpose="Checks source structure, docs, runtime-data exclusions, and script syntax.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Frontend build",
+                command="cd frontend && npm ci && npm run build",
+                purpose="Validates React/TypeScript production build.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Backend targeted tests",
+                command="cd backend && pytest -q tests/test_api_inventory.py tests/test_windows_packaging_foundation.py tests/test_tauri_supervisor_bridge.py",
+                purpose="Runs packaging/API safety coverage without requiring the full long test suite.",
+            ),
         ],
         final_handoff_steps=[
             "Run the audit script and targeted tests.",
@@ -3616,14 +4279,62 @@ def get_v01_handoff() -> V01HandoffResponse:
         github_ready=True,
         demo_story="A private desktop-like AI workspace that helps a user onboard to a local project: create workspace, scan files, build local context, ask questions, generate reports, manage local models, and prepare safe agent plans without uploading project data.",
         demo_steps=[
-            V01DemoStepResponse(id="open", title="Open the app", summary="Start the local workspace with the current launcher or packaged app foundation.", expected_result="Backend health is ready and the UI opens without starting scans or model downloads.", ui_location="Desktop app / browser"),
-            V01DemoStepResponse(id="workspace", title="Create or select workspace", summary="Choose a local project folder and assistant mode.", expected_result="Workspace dashboard shows the next safe action.", ui_location="Overview"),
-            V01DemoStepResponse(id="scan", title="Scan project", summary="Run explicit user-click scan to detect files and skills.", expected_result="Detected technologies and project summary appear.", ui_location="Overview"),
-            V01DemoStepResponse(id="index", title="Build search context", summary="Index selected files only after explicit action.", expected_result="Ask can use retrieved local context instead of guessing from skills alone.", ui_location="Overview / Ask"),
-            V01DemoStepResponse(id="ask", title="Ask about the project", summary="Ask a practical onboarding question about the local codebase.", expected_result="Answer includes local context and does not claim facts without retrieved sources.", ui_location="Ask"),
-            V01DemoStepResponse(id="report", title="Generate report", summary="Create a project overview or documentation report.", expected_result="Report is saved locally and can be reviewed later.", ui_location="Reports"),
-            V01DemoStepResponse(id="models", title="Check local models", summary="Verify installed Ollama models and use safe download jobs only if explicitly enabled.", expected_result="User understands LLM vs embedding model and installed/missing status.", ui_location="Models"),
-            V01DemoStepResponse(id="agent", title="Create safe agent plan", summary="Draft an Agent/MCP workflow plan without automatic execution.", expected_result="The plan maps possible tools and approvals, but execution remains manual/sandbox future.", ui_location="Agent / MCP"),
+            V01DemoStepResponse(
+                id="open",
+                title="Open the app",
+                summary="Start the local workspace with the current launcher or packaged app foundation.",
+                expected_result="Backend health is ready and the UI opens without starting scans or model downloads.",
+                ui_location="Desktop app / browser",
+            ),
+            V01DemoStepResponse(
+                id="workspace",
+                title="Create or select workspace",
+                summary="Choose a local project folder and assistant mode.",
+                expected_result="Workspace dashboard shows the next safe action.",
+                ui_location="Overview",
+            ),
+            V01DemoStepResponse(
+                id="scan",
+                title="Scan project",
+                summary="Run explicit user-click scan to detect files and skills.",
+                expected_result="Detected technologies and project summary appear.",
+                ui_location="Overview",
+            ),
+            V01DemoStepResponse(
+                id="index",
+                title="Build search context",
+                summary="Index selected files only after explicit action.",
+                expected_result="Ask can use retrieved local context instead of guessing from skills alone.",
+                ui_location="Overview / Ask",
+            ),
+            V01DemoStepResponse(
+                id="ask",
+                title="Ask about the project",
+                summary="Ask a practical onboarding question about the local codebase.",
+                expected_result="Answer includes local context and does not claim facts without retrieved sources.",
+                ui_location="Ask",
+            ),
+            V01DemoStepResponse(
+                id="report",
+                title="Generate report",
+                summary="Create a project overview or documentation report.",
+                expected_result="Report is saved locally and can be reviewed later.",
+                ui_location="Reports",
+            ),
+            V01DemoStepResponse(
+                id="models",
+                title="Check local models",
+                summary="Verify installed Ollama models and use safe download jobs only if explicitly enabled.",
+                expected_result="User understands LLM vs embedding model and installed/missing status.",
+                ui_location="Models",
+            ),
+            V01DemoStepResponse(
+                id="agent",
+                title="Create safe agent plan",
+                summary="Draft an Agent/MCP workflow plan without automatic execution.",
+                expected_result="The plan maps possible tools and approvals, but execution remains manual/sandbox future.",
+                ui_location="Agent / MCP",
+            ),
         ],
         repository_highlights=[
             "Local-first architecture with backend clean architecture and frontend-only API calls.",
@@ -3633,18 +4344,46 @@ def get_v01_handoff() -> V01HandoffResponse:
             "Calm Apple-style UX direction with beginner-friendly flows and advanced details behind disclosure sections.",
         ],
         important_files=[
-            V01RepositoryFileResponse(path="README.md", purpose="GitHub landing page and quick start."),
-            V01RepositoryFileResponse(path="docs/START_HERE.md", purpose="First entry point for running and understanding the project."),
-            V01RepositoryFileResponse(path="docs/V01_DEMO_HANDOFF.md", purpose="Final demo scenario and handoff guide."),
-            V01RepositoryFileResponse(path="docs/V01_RELEASE_NOTES.md", purpose="Release notes for the v0.1 candidate."),
-            V01RepositoryFileResponse(path="docs/ROADMAP.md", purpose="Current roadmap and remaining packaging work."),
-            V01RepositoryFileResponse(path="docs/RELEASE_CANDIDATE_AUDIT.md", purpose="Release audit and archive policy."),
-            V01RepositoryFileResponse(path="scripts/audit_release_candidate.sh", purpose="Local source tree release audit."),
+            V01RepositoryFileResponse(
+                path="README.md", purpose="GitHub landing page and quick start."
+            ),
+            V01RepositoryFileResponse(
+                path="docs/START_HERE.md",
+                purpose="First entry point for running and understanding the project.",
+            ),
+            V01RepositoryFileResponse(
+                path="docs/V01_DEMO_HANDOFF.md", purpose="Final demo scenario and handoff guide."
+            ),
+            V01RepositoryFileResponse(
+                path="docs/V01_RELEASE_NOTES.md", purpose="Release notes for the v0.1 candidate."
+            ),
+            V01RepositoryFileResponse(
+                path="docs/ROADMAP.md", purpose="Current roadmap and remaining packaging work."
+            ),
+            V01RepositoryFileResponse(
+                path="docs/RELEASE_CANDIDATE_AUDIT.md", purpose="Release audit and archive policy."
+            ),
+            V01RepositoryFileResponse(
+                path="scripts/audit_release_candidate.sh",
+                purpose="Local source tree release audit.",
+            ),
         ],
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Release audit", command="./scripts/audit_release_candidate.sh", purpose="Checks source layout, docs, safety boundaries, and no-runtime-data policy."),
-            DesktopRuntimeValidationCommandResponse(label="Backend targeted tests", command="cd backend && pytest -q tests/test_v01_handoff.py tests/test_release_candidate_audit.py tests/test_api_inventory.py", purpose="Validates v0.1 handoff and release audit API coverage."),
-            DesktopRuntimeValidationCommandResponse(label="Frontend production build", command="cd frontend && npm ci && npm run build", purpose="Validates UI build before GitHub/release handoff."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Release audit",
+                command="./scripts/audit_release_candidate.sh",
+                purpose="Checks source layout, docs, safety boundaries, and no-runtime-data policy.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Backend targeted tests",
+                command="cd backend && pytest -q tests/test_v01_handoff.py tests/test_release_candidate_audit.py tests/test_api_inventory.py",
+                purpose="Validates v0.1 handoff and release audit API coverage.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Frontend production build",
+                command="cd frontend && npm ci && npm run build",
+                purpose="Validates UI build before GitHub/release handoff.",
+            ),
         ],
         release_notes=[
             "v0.1 is a local-first MVP release candidate, not a signed commercial installer yet.",
@@ -3684,11 +4423,41 @@ def get_product_completion_roadmap() -> ProductCompletionRoadmapResponse:
         current_stage="v0.1 source release candidate",
         honest_completion_estimate="Roughly 15-25 large tasks remain for a polished v1.0 product, depending on installer quality and Agent/MCP execution depth.",
         stages=[
-            ProductCompletionStageResponse(id="source-rc", title="v0.1 source release candidate", status="current", summary="Source repo, local demo, safety, docs, model manager foundation, desktop packaging foundation, and GitHub readiness.", remaining_large_tasks=2),
-            ProductCompletionStageResponse(id="desktop-runtime", title="v0.2 desktop runtime", status="next", summary="Frozen backend runtime, stronger supervisor lifecycle, app-owned logs/data, and persistent local jobs.", remaining_large_tasks=5),
-            ProductCompletionStageResponse(id="installers", title="v0.3 installers", status="planned", summary="macOS signed package, Windows installer, icons, shortcuts, uninstall/update behavior, and packaging QA.", remaining_large_tasks=7),
-            ProductCompletionStageResponse(id="agent-mcp-readonly", title="v0.4 read-only Agent/MCP execution", status="planned", summary="Sandboxed read-only tool execution with allowlists, approvals, evidence, and audit logs.", remaining_large_tasks=7),
-            ProductCompletionStageResponse(id="v1", title="v1.0 polished product", status="target", summary="Installer-grade desktop product with stable local runtime, polished onboarding, safe execution model, and user-facing troubleshooting.", remaining_large_tasks=4),
+            ProductCompletionStageResponse(
+                id="source-rc",
+                title="v0.1 source release candidate",
+                status="current",
+                summary="Source repo, local demo, safety, docs, model manager foundation, desktop packaging foundation, and GitHub readiness.",
+                remaining_large_tasks=2,
+            ),
+            ProductCompletionStageResponse(
+                id="desktop-runtime",
+                title="v0.2 desktop runtime",
+                status="next",
+                summary="Frozen backend runtime, stronger supervisor lifecycle, app-owned logs/data, and persistent local jobs.",
+                remaining_large_tasks=5,
+            ),
+            ProductCompletionStageResponse(
+                id="installers",
+                title="v0.3 installers",
+                status="planned",
+                summary="macOS signed package, Windows installer, icons, shortcuts, uninstall/update behavior, and packaging QA.",
+                remaining_large_tasks=7,
+            ),
+            ProductCompletionStageResponse(
+                id="agent-mcp-readonly",
+                title="v0.4 read-only Agent/MCP execution",
+                status="planned",
+                summary="Sandboxed read-only tool execution with allowlists, approvals, evidence, and audit logs.",
+                remaining_large_tasks=7,
+            ),
+            ProductCompletionStageResponse(
+                id="v1",
+                title="v1.0 polished product",
+                status="target",
+                summary="Installer-grade desktop product with stable local runtime, polished onboarding, safe execution model, and user-facing troubleshooting.",
+                remaining_large_tasks=4,
+            ),
         ],
         next_recommended_tasks=[
             "Task 235 — final v0.1 release gate and roadmap lock.",
@@ -3713,7 +4482,6 @@ def get_product_completion_roadmap() -> ProductCompletionRoadmapResponse:
     )
 
 
-
 @router.get("/v0.1-ui-smoke-check", response_model=V01UISmokeCheckResponse)
 def get_v01_ui_smoke_check() -> V01UISmokeCheckResponse:
     """Return the manual local UI smoke-check for the final v0.1 source RC."""
@@ -3730,7 +4498,12 @@ def get_v01_ui_smoke_check() -> V01UISmokeCheckResponse:
                 summary="Open the local app only after the backend /health endpoint is ready.",
                 expected_result="The UI loads without a blank page, React crash boundary, or console-visible startup error.",
                 ui_location="App shell",
-                must_not_happen=["No scan starts", "No indexing job starts", "No model download starts", "No MCP/Agent execution starts"],
+                must_not_happen=[
+                    "No scan starts",
+                    "No indexing job starts",
+                    "No model download starts",
+                    "No MCP/Agent execution starts",
+                ],
             ),
             V01UISmokeCheckItemResponse(
                 id="models",
@@ -3739,7 +4512,10 @@ def get_v01_ui_smoke_check() -> V01UISmokeCheckResponse:
                 summary="Open Models and verify selected LLM/embedding status, recommendations, installed model check, and Build context guidance.",
                 expected_result="Models explains the difference between selected embedding model and indexed context without requiring a download on load.",
                 ui_location="Models",
-                must_not_happen=["No ollama pull is triggered by opening the page", "No shell command is executed by the frontend"],
+                must_not_happen=[
+                    "No ollama pull is triggered by opening the page",
+                    "No shell command is executed by the frontend",
+                ],
             ),
             V01UISmokeCheckItemResponse(
                 id="onboarding",
@@ -3748,7 +4524,10 @@ def get_v01_ui_smoke_check() -> V01UISmokeCheckResponse:
                 summary="Use the explicit workspace flow and verify that assistant mode/privacy mode are visible before any scan/index action.",
                 expected_result="Workspace creation succeeds or existing workspace opens; scan/index actions remain explicit buttons.",
                 ui_location="Overview / Create workspace",
-                must_not_happen=["No automatic filesystem scan on app load", "No automatic context rebuild"],
+                must_not_happen=[
+                    "No automatic filesystem scan on app load",
+                    "No automatic context rebuild",
+                ],
             ),
             V01UISmokeCheckItemResponse(
                 id="ask",
@@ -3813,12 +4592,47 @@ def get_v01_release_gate() -> V01ReleaseGateResponse:
         source_rc_remaining_tasks="0-1 large task: local UI smoke-check, clean git status, audit/build/test pass, and source archive or first GitHub push.",
         v1_remaining_large_tasks="Roughly 15-25 large tasks remain for a true v1.0 installer-grade product: frozen runtime, signed installers, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.",
         release_gate_items=[
-            V01ReleaseGateItemResponse(id="audit", title="Release audit", status="required", summary="Must pass with no real blockers before source publication.", command="./scripts/audit_release_candidate.sh"),
-            V01ReleaseGateItemResponse(id="backend-tests", title="Backend targeted tests", status="required", summary="Validates release audit, API inventory, final status, and source archive behavior.", command="cd backend && pytest -q tests/test_release_candidate_audit_script.py tests/test_source_release_archive_script.py tests/test_release_candidate_audit.py tests/test_api_inventory.py tests/test_final_product_status.py tests/test_product_completion_roadmap.py tests/test_v01_release_gate.py"),
-            V01ReleaseGateItemResponse(id="frontend-build", title="Frontend production build", status="required", summary="Confirms the UI compiles before GitHub/source archive publication.", command="cd frontend && npm ci && npm run build"),
-            V01ReleaseGateItemResponse(id="ui-smoke", title="Local UI smoke-check", status="recommended", summary="Open the app locally and verify Models, Settings, onboarding, workspace creation, and no automatic scan/index/model download on startup."),
-            V01ReleaseGateItemResponse(id="git-status", title="Git status cleanup", status="required", summary="Only intentional source/docs/config changes should be staged; runtime/build/cache data must remain untracked or ignored.", command="git status --short"),
-            V01ReleaseGateItemResponse(id="source-archive", title="Clean source archive", status="required-for-zip-release", summary="Creates a root-preserving source archive without runtime/build artifacts.", command="./scripts/prepare_source_release_archive.sh"),
+            V01ReleaseGateItemResponse(
+                id="audit",
+                title="Release audit",
+                status="required",
+                summary="Must pass with no real blockers before source publication.",
+                command="./scripts/audit_release_candidate.sh",
+            ),
+            V01ReleaseGateItemResponse(
+                id="backend-tests",
+                title="Backend targeted tests",
+                status="required",
+                summary="Validates release audit, API inventory, final status, and source archive behavior.",
+                command="cd backend && pytest -q tests/test_release_candidate_audit_script.py tests/test_source_release_archive_script.py tests/test_release_candidate_audit.py tests/test_api_inventory.py tests/test_final_product_status.py tests/test_product_completion_roadmap.py tests/test_v01_release_gate.py",
+            ),
+            V01ReleaseGateItemResponse(
+                id="frontend-build",
+                title="Frontend production build",
+                status="required",
+                summary="Confirms the UI compiles before GitHub/source archive publication.",
+                command="cd frontend && npm ci && npm run build",
+            ),
+            V01ReleaseGateItemResponse(
+                id="ui-smoke",
+                title="Local UI smoke-check",
+                status="recommended",
+                summary="Open the app locally and verify Models, Settings, onboarding, workspace creation, and no automatic scan/index/model download on startup.",
+            ),
+            V01ReleaseGateItemResponse(
+                id="git-status",
+                title="Git status cleanup",
+                status="required",
+                summary="Only intentional source/docs/config changes should be staged; runtime/build/cache data must remain untracked or ignored.",
+                command="git status --short",
+            ),
+            V01ReleaseGateItemResponse(
+                id="source-archive",
+                title="Clean source archive",
+                status="required-for-zip-release",
+                summary="Creates a root-preserving source archive without runtime/build artifacts.",
+                command="./scripts/prepare_source_release_archive.sh",
+            ),
         ],
         go_no_go_rule="Go only when audit, backend targeted tests, frontend build, and git status are clean; treat UI smoke-check as the final human confidence check before publishing.",
         next_actions=[
@@ -3834,7 +4648,6 @@ def get_v01_release_gate() -> V01ReleaseGateResponse:
             "MCP/Agent execution remains disabled until sandbox, approvals, allowlists, and audit logs are implemented.",
         ],
     )
-
 
 
 @router.get("/v0.1-publication-handoff", response_model=V01PublicationHandoffResponse)
@@ -3901,10 +4714,26 @@ def get_v01_publication_handoff() -> V01PublicationHandoffResponse:
         source_archive_name="build/release/ai-private-workspace-v0.1-source.zip",
         git_commit_message="Prepare v0.1 source release",
         github_push_commands=[
-            ReleaseCandidateAuditCommandResponse(label="Stage intended files", command="git add README.md CONTRIBUTING.md SECURITY.md .editorconfig .gitattributes .github backend frontend docs scripts pytest.ini .gitignore", purpose="Stage source, docs, scripts, UI, backend, and GitHub repository files only."),
-            ReleaseCandidateAuditCommandResponse(label="Review staged diff", command="git diff --cached --stat && git diff --cached --check", purpose="Catch whitespace/errors and confirm the staged change set is reasonable."),
-            ReleaseCandidateAuditCommandResponse(label="Commit", command="git commit -m \"Prepare v0.1 source release\"", purpose="Create the v0.1 source release commit."),
-            ReleaseCandidateAuditCommandResponse(label="Push", command="git push origin main", purpose="Push after confirming the target branch name for the new GitHub repository."),
+            ReleaseCandidateAuditCommandResponse(
+                label="Stage intended files",
+                command="git add README.md CONTRIBUTING.md SECURITY.md .editorconfig .gitattributes .github backend frontend docs scripts pytest.ini .gitignore",
+                purpose="Stage source, docs, scripts, UI, backend, and GitHub repository files only.",
+            ),
+            ReleaseCandidateAuditCommandResponse(
+                label="Review staged diff",
+                command="git diff --cached --stat && git diff --cached --check",
+                purpose="Catch whitespace/errors and confirm the staged change set is reasonable.",
+            ),
+            ReleaseCandidateAuditCommandResponse(
+                label="Commit",
+                command='git commit -m "Prepare v0.1 source release"',
+                purpose="Create the v0.1 source release commit.",
+            ),
+            ReleaseCandidateAuditCommandResponse(
+                label="Push",
+                command="git push origin main",
+                purpose="Push after confirming the target branch name for the new GitHub repository.",
+            ),
         ],
         do_not_commit=[
             "backend/.ai-workbench/",
@@ -3933,6 +4762,7 @@ def get_v01_publication_handoff() -> V01PublicationHandoffResponse:
         ],
     )
 
+
 @router.get("/packaged-app-frontend-bootstrap", response_model=PackagedAppFrontendBootstrapResponse)
 def get_packaged_app_frontend_bootstrap() -> PackagedAppFrontendBootstrapResponse:
     """Return the packaged app frontend bootstrap contract for starting the app-owned backend."""
@@ -3955,7 +4785,11 @@ def get_packaged_app_frontend_bootstrap() -> PackagedAppFrontendBootstrapRespons
         (
             "tauri-runtime-helper",
             "Frontend has a Tauri runtime helper",
-            "ok" if "ensureAppOwnedBackendRuntime" in runtime_text and "__TAURI__" in runtime_text and "__TAURI_INTERNALS__" in runtime_text else "blocked",
+            "ok"
+            if "ensureAppOwnedBackendRuntime" in runtime_text
+            and "__TAURI__" in runtime_text
+            and "__TAURI_INTERNALS__" in runtime_text
+            else "blocked",
             "The packaged UI must call the narrow Tauri command bridge before it tries HTTP API calls and include a diagnostic fallback when the bridge is missing.",
             "frontend/src/desktopRuntime.ts",
             None,
@@ -3963,7 +4797,10 @@ def get_packaged_app_frontend_bootstrap() -> PackagedAppFrontendBootstrapRespons
         (
             "app-bootstrap-before-load",
             "App starts desktop backend before loading workspaces",
-            "ok" if "ensureAppOwnedBackendRuntime" in app_text and "startDesktopRuntimeAndLoadWorkspaces" in app_text else "blocked",
+            "ok"
+            if "ensureAppOwnedBackendRuntime" in app_text
+            and "startDesktopRuntimeAndLoadWorkspaces" in app_text
+            else "blocked",
             "Packaged app must not assume an external uvicorn process is already running.",
             "frontend/src/App.tsx",
             None,
@@ -3971,7 +4808,7 @@ def get_packaged_app_frontend_bootstrap() -> PackagedAppFrontendBootstrapRespons
         (
             "tauri-global-bridge-enabled",
             "Packaged app enables the Tauri global invoke bridge",
-            "ok" if "\"withGlobalTauri\": true" in tauri_conf_text else "blocked",
+            "ok" if '"withGlobalTauri": true' in tauri_conf_text else "blocked",
             "The packaged frontend uses the injected window.__TAURI__ bridge, so Tauri must expose the global bridge in tauri.conf.json.",
             "frontend/src-tauri/tauri.conf.json",
             None,
@@ -3979,7 +4816,11 @@ def get_packaged_app_frontend_bootstrap() -> PackagedAppFrontendBootstrapRespons
         (
             "npm-allow-scripts-policy",
             "npm install scripts are explicitly reviewed",
-            "ok" if "\"allowScripts\"" in package_json_text and "\"esbuild\": true" in package_json_text and "\"fsevents\": true" in package_json_text else "blocked",
+            "ok"
+            if '"allowScripts"' in package_json_text
+            and '"esbuild": true' in package_json_text
+            and '"fsevents": true' in package_json_text
+            else "blocked",
             "npm 11 may warn when packages with install scripts are not covered by allowScripts; this project explicitly allows the known esbuild and fsevents scripts used by Vite/Tauri tooling.",
             "frontend/package.json",
             "scripts/check_npm_supply_chain_policy.sh",
@@ -4039,11 +4880,31 @@ def get_packaged_app_frontend_bootstrap() -> PackagedAppFrontendBootstrapRespons
         root_cause="The packaged frontend helper expected window.__TAURI__.core.invoke, but the packaged Tauri config did not enable the global bridge. As a result, the app opened as a static UI and never called start_app_owned_backend_runtime.",
         readiness_items=items,
         validation_commands=[
-            DesktopRuntimeValidationCommandResponse(label="Frontend bootstrap check", command="scripts/check_packaged_app_frontend_bootstrap.sh", purpose="Verify the packaged frontend invokes the Tauri app-owned backend startup before workspace API calls."),
-            DesktopRuntimeValidationCommandResponse(label="npm supply-chain policy check", command="scripts/check_npm_supply_chain_policy.sh", purpose="Verify npm install-script approvals and public registry lockfile hygiene."),
-            DesktopRuntimeValidationCommandResponse(label="Build frozen backend", command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh", purpose="Rebuild and smoke the backend runtime that packaged Tauri starts."),
-            DesktopRuntimeValidationCommandResponse(label="Build packaged app", command="cd frontend && npm run tauri:build", purpose="Rebuild the macOS .app with the frontend bootstrap fix."),
-            DesktopRuntimeValidationCommandResponse(label="Open packaged app", command=r"open frontend/src-tauri/target/release/bundle/macos/AI\ Private\ Workspace.app", purpose="Confirm the .app starts backend, creates app-owned logs, and reaches /health without manual uvicorn."),
+            DesktopRuntimeValidationCommandResponse(
+                label="Frontend bootstrap check",
+                command="scripts/check_packaged_app_frontend_bootstrap.sh",
+                purpose="Verify the packaged frontend invokes the Tauri app-owned backend startup before workspace API calls.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="npm supply-chain policy check",
+                command="scripts/check_npm_supply_chain_policy.sh",
+                purpose="Verify npm install-script approvals and public registry lockfile hygiene.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Build frozen backend",
+                command="scripts/build_pyinstaller_backend_runtime.sh && scripts/check_pyinstaller_backend_runtime.sh && scripts/smoke_frozen_backend_runtime.sh",
+                purpose="Rebuild and smoke the backend runtime that packaged Tauri starts.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Build packaged app",
+                command="cd frontend && npm run tauri:build",
+                purpose="Rebuild the macOS .app with the frontend bootstrap fix.",
+            ),
+            DesktopRuntimeValidationCommandResponse(
+                label="Open packaged app",
+                command=r"open frontend/src-tauri/target/release/bundle/macos/AI\ Private\ Workspace.app",
+                purpose="Confirm the .app starts backend, creates app-owned logs, and reaches /health without manual uvicorn.",
+            ),
         ],
         safety_rules=[
             "React still does not execute shell commands.",
@@ -4080,11 +4941,41 @@ def get_final_product_status() -> FinalProductStatusResponse:
             "Optionally capture final screenshots for README/docs after real UI review.",
         ],
         stages=[
-            FinalProductStageResponse(id="source-rc", title="v0.1 source RC", status="current", summary="GitHub-ready source repository, local demo, safety docs, model manager foundation, Agent/MCP planning, and packaging foundations.", remaining_large_tasks="0-2"),
-            FinalProductStageResponse(id="desktop-runtime", title="v0.2 desktop runtime", status="next", summary="Frozen backend runtime, real Tauri supervisor startup, app-owned logs/data, and persistent local background jobs.", remaining_large_tasks="5-8"),
-            FinalProductStageResponse(id="installers", title="v0.3 installers", status="planned", summary="Signed/notarized macOS package, Windows installer, icons, shortcuts, update/uninstall behavior, and packaging QA.", remaining_large_tasks="5-8"),
-            FinalProductStageResponse(id="agent-mcp", title="v0.4 safe Agent + MCP execution", status="planned", summary="MCP server lifecycle, read-only sandbox, tool allowlists, approvals, audit logs, and later controlled write execution.", remaining_large_tasks="6-10"),
-            FinalProductStageResponse(id="v1", title="v1.0 polished product", status="target", summary="Installer-grade local desktop product with stable runtime, clear onboarding, safe execution, recovery, and polished UI.", remaining_large_tasks="4-6"),
+            FinalProductStageResponse(
+                id="source-rc",
+                title="v0.1 source RC",
+                status="current",
+                summary="GitHub-ready source repository, local demo, safety docs, model manager foundation, Agent/MCP planning, and packaging foundations.",
+                remaining_large_tasks="0-2",
+            ),
+            FinalProductStageResponse(
+                id="desktop-runtime",
+                title="v0.2 desktop runtime",
+                status="next",
+                summary="Frozen backend runtime, real Tauri supervisor startup, app-owned logs/data, and persistent local background jobs.",
+                remaining_large_tasks="5-8",
+            ),
+            FinalProductStageResponse(
+                id="installers",
+                title="v0.3 installers",
+                status="planned",
+                summary="Signed/notarized macOS package, Windows installer, icons, shortcuts, update/uninstall behavior, and packaging QA.",
+                remaining_large_tasks="5-8",
+            ),
+            FinalProductStageResponse(
+                id="agent-mcp",
+                title="v0.4 safe Agent + MCP execution",
+                status="planned",
+                summary="MCP server lifecycle, read-only sandbox, tool allowlists, approvals, audit logs, and later controlled write execution.",
+                remaining_large_tasks="6-10",
+            ),
+            FinalProductStageResponse(
+                id="v1",
+                title="v1.0 polished product",
+                status="target",
+                summary="Installer-grade local desktop product with stable runtime, clear onboarding, safe execution, recovery, and polished UI.",
+                remaining_large_tasks="4-6",
+            ),
         ],
         next_recommended_tasks=[
             "Task 235 — final v0.1 release gate and roadmap lock.",
@@ -4092,10 +4983,26 @@ def get_final_product_status() -> FinalProductStatusResponse:
             "Task 237 — v0.2 planning kickoff: frozen backend runtime and Tauri supervisor implementation.",
         ],
         publication_checks=[
-            ReleaseCandidateAuditCommandResponse(label="Release audit", command="./scripts/audit_release_candidate.sh", purpose="Verify source layout, docs, safety rules, and no runtime database leakage."),
-            ReleaseCandidateAuditCommandResponse(label="Backend targeted tests", command="cd backend && pytest -q tests/test_health.py tests/test_release_candidate_audit.py tests/test_api_inventory.py", purpose="Validate core API and release audit coverage before publication."),
-            ReleaseCandidateAuditCommandResponse(label="Frontend build", command="cd frontend && npm ci && npm run build", purpose="Validate the production frontend bundle."),
-            ReleaseCandidateAuditCommandResponse(label="Clean source archive", command="./scripts/prepare_source_release_archive.sh", purpose="Create a root-preserving archive excluding runtime/build/cache data."),
+            ReleaseCandidateAuditCommandResponse(
+                label="Release audit",
+                command="./scripts/audit_release_candidate.sh",
+                purpose="Verify source layout, docs, safety rules, and no runtime database leakage.",
+            ),
+            ReleaseCandidateAuditCommandResponse(
+                label="Backend targeted tests",
+                command="cd backend && pytest -q tests/test_health.py tests/test_release_candidate_audit.py tests/test_api_inventory.py",
+                purpose="Validate core API and release audit coverage before publication.",
+            ),
+            ReleaseCandidateAuditCommandResponse(
+                label="Frontend build",
+                command="cd frontend && npm ci && npm run build",
+                purpose="Validate the production frontend bundle.",
+            ),
+            ReleaseCandidateAuditCommandResponse(
+                label="Clean source archive",
+                command="./scripts/prepare_source_release_archive.sh",
+                purpose="Create a root-preserving archive excluding runtime/build/cache data.",
+            ),
         ],
         stop_condition_for_v01=[
             "Audit passes with only expected local warnings.",
@@ -4121,6 +5028,7 @@ def get_final_product_status() -> FinalProductStatusResponse:
         ],
     )
 
+
 def _read_counts(
     db_path: Path,
     table_names: object,
@@ -4140,15 +5048,12 @@ def _read_counts(
                 if name not in existing_tables:
                     counts[name] = None
                     continue
-                counts[name] = int(
-                    connection.execute(f"select count(*) from {name}").fetchone()[0]
-                )
+                counts[name] = int(connection.execute(f"select count(*) from {name}").fetchone()[0])
     except sqlite3.Error as exc:
         warnings.append(f"Could not read workspace database diagnostics: {exc}")
         for table_name in table_names:
             counts[str(table_name)] = None
     return counts
-
 
 
 def _list_backups(db_path: Path) -> list[DatabaseBackupResponse]:
@@ -4177,14 +5082,16 @@ def _backup_response(path: Path, db_path: Path) -> DatabaseBackupResponse:
         filename=path.name,
         path=_display_path(path),
         size_bytes=stat.st_size,
-        created_at=datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
+        created_at=datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
         is_current_database=path.resolve() == db_path.resolve(),
     )
 
 
 def _resolve_backup(db_path: Path, filename: str) -> Path:
     if "/" in filename or "\\" in filename or filename in {"", ".", ".."}:
-        raise HTTPException(status_code=400, detail="Backup filename must be a file next to the workspace database.")
+        raise HTTPException(
+            status_code=400, detail="Backup filename must be a file next to the workspace database."
+        )
     return db_path.parent / filename
 
 

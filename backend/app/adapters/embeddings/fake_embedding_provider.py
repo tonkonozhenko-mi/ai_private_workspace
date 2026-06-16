@@ -1,6 +1,5 @@
-from hashlib import sha256
 import re
-
+from hashlib import sha256
 
 EMBEDDING_DIMENSIONS = 128
 TOKEN_PATTERN = re.compile(r"[a-zA-Z0-9_./-]+")

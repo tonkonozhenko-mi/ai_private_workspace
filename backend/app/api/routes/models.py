@@ -6,14 +6,14 @@ from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
     command_repository,
-    local_model_download_job_repository,
     command_runner,
     embedding_provider,
     index_status_repository,
     llm_provider_factory,
+    local_model_download_job_repository,
     model_catalog_registry,
-    model_experiment_repository,
     model_experiment_rating_repository,
+    model_experiment_repository,
     readiness_configuration,
     timeline_repository,
     vector_store,
@@ -27,26 +27,45 @@ from app.api.schemas.agent_schemas import (
     to_agent_capability_catalog_response,
     to_agent_planning_preview_response,
 )
+from app.api.schemas.local_model_download_execution_schemas import (
+    LocalModelDownloadExecutionCapabilityResponse,
+    LocalModelDownloadExecutionResultResponse,
+    to_local_model_download_execution_capability_response,
+    to_local_model_download_execution_result_response,
+)
+from app.api.schemas.local_model_download_job_schemas import (
+    LocalModelDownloadJobListResponse,
+    LocalModelDownloadJobResponse,
+    to_local_model_download_job_list_response,
+    to_local_model_download_job_response,
+)
+from app.api.schemas.local_model_download_worker_plan_schemas import (
+    LocalModelDownloadWorkerPlanResponse,
+    to_local_model_download_worker_plan_response,
+)
+from app.api.schemas.local_model_install_draft_schemas import (
+    CreateLocalModelInstallDraftRequest,
+    LocalModelInstallDraftResponse,
+    to_local_model_install_draft_response,
+)
+from app.api.schemas.local_model_install_guide_schemas import (
+    LocalModelInstallGuideResponse,
+    to_local_model_install_guide_response,
+)
+from app.api.schemas.local_model_install_status_schemas import (
+    LocalModelInstallStatusResponse,
+    to_local_model_install_status_response,
+)
 from app.api.schemas.model_catalog_schemas import (
-    ModelCatalogDetailsResponse,
     LocalModelDefinitionResponse,
+    ModelCatalogDetailsResponse,
     ModelCatalogReloadResponse,
     ModelRecommendationResultResponse,
     RecommendModelsRequest,
+    to_local_model_definition_response,
     to_model_catalog_details_response,
     to_model_catalog_reload_response,
-    to_local_model_definition_response,
     to_model_recommendation_result_response,
-)
-from app.api.schemas.model_experiment_schemas import (
-    CreateModelExperimentPlanRequest,
-    ModelExperimentPlanResponse,
-    to_model_experiment_plan_response,
-)
-from app.api.schemas.model_experiment_run_schemas import (
-    ModelExperimentRunResponse,
-    RunModelExperimentRequest,
-    to_model_experiment_run_response,
 )
 from app.api.schemas.model_experiment_comparison_schemas import (
     ModelExperimentComparisonSummaryResponse,
@@ -57,86 +76,58 @@ from app.api.schemas.model_experiment_rating_schemas import (
     RateModelExperimentCandidateRequest,
     to_model_experiment_candidate_rating_response,
 )
-from app.api.schemas.local_model_install_guide_schemas import (
-    LocalModelInstallGuideResponse,
-    to_local_model_install_guide_response,
+from app.api.schemas.model_experiment_run_schemas import (
+    ModelExperimentRunResponse,
+    RunModelExperimentRequest,
+    to_model_experiment_run_response,
 )
-from app.api.schemas.ollama_model_recommendation_schemas import (
-    OllamaModelRecommendationGuideResponse,
-    to_ollama_model_recommendation_guide_response,
-)
-from app.api.schemas.local_model_install_draft_schemas import (
-    CreateLocalModelInstallDraftRequest,
-    LocalModelInstallDraftResponse,
-    to_local_model_install_draft_response,
-)
-from app.api.schemas.local_model_download_worker_plan_schemas import (
-    LocalModelDownloadWorkerPlanResponse,
-    to_local_model_download_worker_plan_response,
-)
-from app.api.schemas.local_model_install_status_schemas import (
-    LocalModelInstallStatusResponse,
-    to_local_model_install_status_response,
-)
-from app.api.schemas.local_model_download_job_schemas import (
-    LocalModelDownloadJobListResponse,
-    LocalModelDownloadJobResponse,
-    to_local_model_download_job_list_response,
-    to_local_model_download_job_response,
-)
-from app.api.schemas.local_model_download_execution_schemas import (
-    LocalModelDownloadExecutionCapabilityResponse,
-    LocalModelDownloadExecutionResultResponse,
-    to_local_model_download_execution_capability_response,
-    to_local_model_download_execution_result_response,
+from app.api.schemas.model_experiment_schemas import (
+    CreateModelExperimentPlanRequest,
+    ModelExperimentPlanResponse,
+    to_model_experiment_plan_response,
 )
 from app.api.schemas.model_switching_schemas import (
     CreateModelSwitchingPlanRequest,
     ModelSwitchingPlanResponse,
     to_model_switching_plan_response,
 )
-from app.config.settings import get_settings
-from app.core.domain.local_model_install_guide import build_local_model_install_guide
-from app.core.domain.ollama_model_recommendations import (
-    build_ollama_model_recommendation_guide,
+from app.api.schemas.ollama_model_recommendation_schemas import (
+    OllamaModelRecommendationGuideResponse,
+    to_ollama_model_recommendation_guide_response,
 )
-from app.core.domain.model_catalog_registry import build_custom_ollama_model_definition
-from app.core.domain.local_model_install_status import (
-    build_local_model_install_status,
-    parse_ollama_installed_models,
+from app.config.settings import get_settings
+from app.core.domain.agent_capability import (
+    build_agent_capability,
+    build_agent_capability_catalog,
+    build_agent_planning_preview,
+)
+from app.core.domain.attached_documents import AttachedDocument
+from app.core.domain.local_model_download_execution import (
+    build_local_model_download_execution_capability,
 )
 from app.core.domain.local_model_download_worker_plan import (
     build_local_model_download_worker_plan,
 )
-from app.core.domain.local_model_download_execution import (
-    build_local_model_download_execution_capability,
+from app.core.domain.local_model_install_guide import build_local_model_install_guide
+from app.core.domain.local_model_install_status import (
+    build_local_model_install_status,
+    parse_ollama_installed_models,
 )
-from app.core.use_cases.create_local_model_install_draft import (
-    CreateLocalModelInstallDraftInput,
-    CreateLocalModelInstallDraftUseCase,
-    LocalModelInstallDraftValidationError,
-    LocalModelInstallDraftWorkspaceNotFoundError,
-)
-from app.core.use_cases.run_local_model_download_job import (
-    LocalModelDownloadJobNotCancellableError,
-    LocalModelDownloadJobNotFoundError,
-    RunLocalModelDownloadJobUseCase,
-)
-from app.core.use_cases.run_local_model_download import (
-    LocalModelDownloadExecutionDisabledError,
-    RunLocalModelDownloadInput,
-    RunLocalModelDownloadUseCase,
+from app.core.domain.model_catalog_registry import build_custom_ollama_model_definition
+from app.core.domain.model_experiment_run import ModelExperimentCandidateRequest
+from app.core.domain.ollama_model_recommendations import (
+    build_ollama_model_recommendation_guide,
 )
 from app.core.use_cases.command_errors import (
     CommandInvalidStatusError,
     CommandNotFoundError,
     CommandWorkspaceNotFoundError,
 )
-from app.core.use_cases.create_model_switching_plan import (
-    CreateModelSwitchingPlanInput,
-    CreateModelSwitchingPlanUseCase,
-    ModelSwitchingPlanValidationError,
-    ModelSwitchingPlanWorkspaceNotFoundError,
+from app.core.use_cases.create_local_model_install_draft import (
+    CreateLocalModelInstallDraftInput,
+    CreateLocalModelInstallDraftUseCase,
+    LocalModelInstallDraftValidationError,
+    LocalModelInstallDraftWorkspaceNotFoundError,
 )
 from app.core.use_cases.create_model_experiment_plan import (
     CreateModelExperimentPlanInput,
@@ -145,21 +136,33 @@ from app.core.use_cases.create_model_experiment_plan import (
     ModelExperimentPlanValidationError,
     ModelExperimentPlanWorkspaceNotFoundError,
 )
-from app.core.use_cases.get_model_experiment_run import (
-    GetModelExperimentRunUseCase,
-    ModelExperimentRunNotFoundError,
+from app.core.use_cases.create_model_switching_plan import (
+    CreateModelSwitchingPlanInput,
+    CreateModelSwitchingPlanUseCase,
+    ModelSwitchingPlanValidationError,
+    ModelSwitchingPlanWorkspaceNotFoundError,
 )
 from app.core.use_cases.get_model_experiment_comparison import (
     GetModelExperimentComparisonUseCase,
     ModelExperimentComparisonNotFoundError,
 )
-from app.core.use_cases.list_model_experiment_ratings import (
-    ListModelExperimentRatingsUseCase,
-    ModelExperimentRatingsNotFoundError,
+from app.core.use_cases.get_model_experiment_run import (
+    GetModelExperimentRunUseCase,
+    ModelExperimentRunNotFoundError,
 )
 from app.core.use_cases.list_model_catalog import (
     ListModelCatalogInput,
     ListModelCatalogUseCase,
+)
+from app.core.use_cases.list_model_experiment_ratings import (
+    ListModelExperimentRatingsUseCase,
+    ModelExperimentRatingsNotFoundError,
+)
+from app.core.use_cases.rate_model_experiment_candidate import (
+    ModelExperimentRatingNotFoundError,
+    ModelExperimentRatingValidationError,
+    RateModelExperimentCandidateInput,
+    RateModelExperimentCandidateUseCase,
 )
 from app.core.use_cases.recommend_models import (
     ModelRecommendationValidationError,
@@ -167,11 +170,15 @@ from app.core.use_cases.recommend_models import (
     RecommendModelsUseCase,
 )
 from app.core.use_cases.reload_model_catalog import ReloadModelCatalogUseCase
-from app.core.use_cases.rate_model_experiment_candidate import (
-    ModelExperimentRatingNotFoundError,
-    ModelExperimentRatingValidationError,
-    RateModelExperimentCandidateInput,
-    RateModelExperimentCandidateUseCase,
+from app.core.use_cases.run_local_model_download import (
+    LocalModelDownloadExecutionDisabledError,
+    RunLocalModelDownloadInput,
+    RunLocalModelDownloadUseCase,
+)
+from app.core.use_cases.run_local_model_download_job import (
+    LocalModelDownloadJobNotCancellableError,
+    LocalModelDownloadJobNotFoundError,
+    RunLocalModelDownloadJobUseCase,
 )
 from app.core.use_cases.run_model_experiment import (
     RunModelExperimentIndexRequiredError,
@@ -180,14 +187,6 @@ from app.core.use_cases.run_model_experiment import (
     RunModelExperimentValidationError,
     RunModelExperimentWorkspaceNotFoundError,
 )
-from app.core.domain.model_experiment_run import ModelExperimentCandidateRequest
-from app.core.domain.attached_documents import AttachedDocument
-from app.core.domain.agent_capability import (
-    build_agent_capability,
-    build_agent_capability_catalog,
-    build_agent_planning_preview,
-)
-
 
 router = APIRouter(prefix="/models", tags=["models"])
 
@@ -236,16 +235,12 @@ def get_local_model_install_guide() -> LocalModelInstallGuideResponse:
     return to_local_model_install_guide_response(guide)
 
 
-
-
 @router.get(
     "/ollama-recommendations",
     response_model=OllamaModelRecommendationGuideResponse,
 )
 def get_ollama_model_recommendations() -> OllamaModelRecommendationGuideResponse:
-    guide = build_ollama_model_recommendation_guide(
-        model_catalog_registry.list_models()
-    )
+    guide = build_ollama_model_recommendation_guide(model_catalog_registry.list_models())
     return to_ollama_model_recommendation_guide_response(guide)
 
 
@@ -329,9 +324,7 @@ def get_runtime_memory() -> RuntimeMemoryResponse:
             except (TypeError, ValueError):
                 size, vram = 0, 0
             models.append(
-                RuntimeMemoryModelInfo(
-                    name=str(name), size_bytes=size, size_vram_bytes=vram
-                )
+                RuntimeMemoryModelInfo(name=str(name), size_bytes=size, size_vram_bytes=vram)
             )
     except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPError, ValueError):
         reachable = False
@@ -400,29 +393,28 @@ def _register_discovered_ollama_models(installed_models) -> None:
                 model
                 for model in model_catalog_registry.list_models()
                 if model.provider == "ollama"
-                and model.model_name.removesuffix(":latest").lower()
-                == normalized_name.lower()
+                and model.model_name.removesuffix(":latest").lower() == normalized_name.lower()
             ),
             None,
         )
-        model_type = known.model_type if known is not None else (
-            "embedding"
-            if "embedding" in installed.capabilities
-            and "completion" not in installed.capabilities
-            else "llm"
+        model_type = (
+            known.model_type
+            if known is not None
+            else (
+                "embedding"
+                if "embedding" in installed.capabilities
+                and "completion" not in installed.capabilities
+                else "llm"
+            )
         )
         size = (
-            f"{installed.size_bytes / (1024 ** 3):.1f} GB"
+            f"{installed.size_bytes / (1024**3):.1f} GB"
             if installed.size_bytes is not None
             else None
         )
         notes = [
             "Discovered from the local Ollama installation.",
-            *(
-                [f"Parameter size: {installed.parameter_size}."]
-                if installed.parameter_size
-                else []
-            ),
+            *([f"Parameter size: {installed.parameter_size}."] if installed.parameter_size else []),
             *(
                 [f"Quantization: {installed.quantization_level}."]
                 if installed.quantization_level
@@ -454,14 +446,13 @@ def get_local_model_download_worker_plan() -> LocalModelDownloadWorkerPlanRespon
     return to_local_model_download_worker_plan_response(plan)
 
 
-
-
-
 @router.get(
     "/local-download-execution-capability",
     response_model=LocalModelDownloadExecutionCapabilityResponse,
 )
-def get_local_model_download_execution_capability() -> LocalModelDownloadExecutionCapabilityResponse:
+def get_local_model_download_execution_capability() -> (
+    LocalModelDownloadExecutionCapabilityResponse
+):
     settings = get_settings()
     capability = build_local_model_download_execution_capability(
         execution_enabled=settings.model_download_execution_enabled,
@@ -539,13 +530,13 @@ def start_local_model_download_job(command_id: str) -> LocalModelDownloadJobResp
     return to_local_model_download_job_response(job)
 
 
-
-
 @router.get(
     "/local-download-jobs",
     response_model=LocalModelDownloadJobListResponse,
 )
-def list_local_model_download_jobs(workspace_id: str | None = None) -> LocalModelDownloadJobListResponse:
+def list_local_model_download_jobs(
+    workspace_id: str | None = None,
+) -> LocalModelDownloadJobListResponse:
     jobs = RunLocalModelDownloadJobUseCase(
         command_repository=command_repository,
         command_runner=command_runner,
@@ -669,9 +660,7 @@ def recommend_models(
     request: RecommendModelsRequest,
 ) -> ModelRecommendationResultResponse:
     try:
-        result = RecommendModelsUseCase(
-            model_catalog_registry=model_catalog_registry
-        ).execute(
+        result = RecommendModelsUseCase(model_catalog_registry=model_catalog_registry).execute(
             RecommendModelsInput(
                 assistant_profile_id=request.assistant_profile_id,
                 laptop_profile_id=request.laptop_profile_id,
@@ -813,9 +802,7 @@ def run_model_experiment(
 )
 def get_model_experiment(experiment_id: str) -> ModelExperimentRunResponse:
     try:
-        run = GetModelExperimentRunUseCase(model_experiment_repository).execute(
-            experiment_id
-        )
+        run = GetModelExperimentRunUseCase(model_experiment_repository).execute(experiment_id)
     except ModelExperimentRunNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -903,7 +890,4 @@ def list_model_experiment_ratings(
             detail=str(exc),
         ) from exc
 
-    return [
-        to_model_experiment_candidate_rating_response(rating)
-        for rating in ratings
-    ]
+    return [to_model_experiment_candidate_rating_response(rating) for rating in ratings]

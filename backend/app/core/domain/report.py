@@ -1,10 +1,10 @@
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 
 def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 @dataclass(frozen=True)
@@ -12,8 +12,6 @@ class ReportSection:
     title: str
     content: str
     bullets: list[str]
-
-
 
 
 @dataclass(frozen=True)
@@ -32,6 +30,7 @@ class ReportQualitySummary:
     source_coverage_label: str
     checks: list[ReportQualityCheck]
     warnings: list[str] = field(default_factory=list)
+
 
 @dataclass(frozen=True)
 class ProjectOverviewReport:
@@ -129,12 +128,13 @@ def update_saved_workspace_report(
         export_markdown=export_markdown if export_markdown is not None else saved.export_markdown,
         export_text=export_text if export_text is not None else saved.export_text,
         report_json=dict(report_json) if report_json is not None else dict(saved.report_json),
-        generated_from=list(generated_from) if generated_from is not None else list(saved.generated_from),
+        generated_from=list(generated_from)
+        if generated_from is not None
+        else list(saved.generated_from),
         created_at=saved.created_at,
         updated_at=utc_now_iso(),
         pinned_at=pinned_at,
     )
-
 
 
 def markdown_to_plain_text(markdown: str) -> str:
@@ -187,6 +187,7 @@ def create_saved_workspace_report_from_draft(
         updated_at=now,
         pinned_at=None,
     )
+
 
 def report_to_dict(report: ProjectOverviewReport) -> dict[str, object]:
     return {
@@ -244,7 +245,9 @@ def evaluate_report_quality(report: ProjectOverviewReport) -> ReportQualitySumma
 
 
 def evaluate_saved_report_quality(report: SavedWorkspaceReport) -> ReportQualitySummary:
-    raw_sections = report.report_json.get("sections") if isinstance(report.report_json, dict) else []
+    raw_sections = (
+        report.report_json.get("sections") if isinstance(report.report_json, dict) else []
+    )
     sections: list[ReportSection] = []
     if isinstance(raw_sections, list):
         for raw_section in raw_sections:
@@ -255,10 +258,16 @@ def evaluate_saved_report_quality(report: SavedWorkspaceReport) -> ReportQuality
                 ReportSection(
                     title=str(raw_section.get("title") or "Section"),
                     content=str(raw_section.get("content") or ""),
-                    bullets=[str(bullet) for bullet in raw_bullets] if isinstance(raw_bullets, list) else [],
+                    bullets=[str(bullet) for bullet in raw_bullets]
+                    if isinstance(raw_bullets, list)
+                    else [],
                 )
             )
-    safety_note = str(report.report_json.get("safety_note") or "") if isinstance(report.report_json, dict) else ""
+    safety_note = (
+        str(report.report_json.get("safety_note") or "")
+        if isinstance(report.report_json, dict)
+        else ""
+    )
     return _evaluate_report_quality(
         title=report.title,
         summary=report.summary,
@@ -290,31 +299,41 @@ def _evaluate_report_quality(
             "summary",
             "Executive summary",
             len(summary.strip()) >= 20,
-            "Summary is present." if len(summary.strip()) >= 20 else "Add a short summary explaining the report purpose.",
+            "Summary is present."
+            if len(summary.strip()) >= 20
+            else "Add a short summary explaining the report purpose.",
         ),
         _quality_check(
             "sections",
             "Structured sections",
             len(sections) >= 3,
-            f"{len(sections)} sections included." if sections else "Add at least a few sections before saving.",
+            f"{len(sections)} sections included."
+            if sections
+            else "Add at least a few sections before saving.",
         ),
         _quality_check(
             "source_coverage",
             "Source coverage",
             len(source_items) > 0,
-            f"{len(source_items)} source/evidence references found." if source_items else "No source or generated-from references found.",
+            f"{len(source_items)} source/evidence references found."
+            if source_items
+            else "No source or generated-from references found.",
         ),
         _quality_check(
             "safety_note",
             "Safety note",
             bool(safety_note.strip()) or "Safety:" in export_markdown,
-            "Safety note is present." if (safety_note.strip() or "Safety:" in export_markdown) else "Add a local-first safety/review note.",
+            "Safety note is present."
+            if (safety_note.strip() or "Safety:" in export_markdown)
+            else "Add a local-first safety/review note.",
         ),
         _quality_check(
             "markdown_export",
             "Markdown export",
             export_markdown.strip().startswith("#"),
-            "Markdown starts with a heading." if export_markdown.strip().startswith("#") else "Markdown should start with a heading.",
+            "Markdown starts with a heading."
+            if export_markdown.strip().startswith("#")
+            else "Markdown should start with a heading.",
         ),
     ]
     passed = sum(1 for check in checks if check.status == "pass")
@@ -345,12 +364,18 @@ def _quality_check(check_id: str, label: str, passed: bool, detail: str) -> Repo
     )
 
 
-def _collect_report_source_items(sections: list[ReportSection], generated_from: list[str]) -> list[str]:
+def _collect_report_source_items(
+    sections: list[ReportSection], generated_from: list[str]
+) -> list[str]:
     items: list[str] = [source for source in generated_from if source.strip()]
     for section in sections:
         title = section.title.lower()
         if any(keyword in title for keyword in ("source", "generated", "captured")):
-            items.extend(bullet for bullet in section.bullets if bullet.strip() and "no source" not in bullet.lower())
+            items.extend(
+                bullet
+                for bullet in section.bullets
+                if bullet.strip() and "no source" not in bullet.lower()
+            )
     return sorted(dict.fromkeys(items))
 
 

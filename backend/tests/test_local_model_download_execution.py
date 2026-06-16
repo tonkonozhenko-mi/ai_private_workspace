@@ -1,12 +1,9 @@
 from dataclasses import replace
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.config.settings import get_settings
-from app.core.domain.command import CommandStatus
 from app.main import app
-
 
 client = TestClient(app)
 
@@ -33,9 +30,7 @@ def test_model_download_run_is_blocked_when_execution_disabled(tmp_path) -> None
         },
     ).json()
 
-    response = client.post(
-        f"/models/local-install-drafts/{draft['command_proposal']['id']}/run"
-    )
+    response = client.post(f"/models/local-install-drafts/{draft['command_proposal']['id']}/run")
 
     assert response.status_code == 400
     assert "disabled" in response.json()["detail"]

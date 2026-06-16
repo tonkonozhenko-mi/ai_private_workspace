@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -46,14 +45,10 @@ def test_no_history_adds_warning_and_experiment_action(tmp_path) -> None:
     ).json()
 
     assert "mostly from catalog metadata" in explanation["summary"]
-    assert "No workspace performance history for this model yet." in explanation[
-        "warnings"
-    ]
-    assert "Run a model experiment and rate the answer." in explanation[
-        "recommended_actions"
-    ]
+    assert "No workspace performance history for this model yet." in explanation["warnings"]
+    assert "Run a model experiment and rate the answer." in explanation["recommended_actions"]
     assert any(
-        "Ensure Ollama model qwen2.5-coder is installed locally." == action
+        action == "Ensure Ollama model qwen2.5-coder is installed locally."
         for action in explanation["recommended_actions"]
     )
 
@@ -81,9 +76,7 @@ def test_explanation_includes_workspace_history_and_fake_warning(tmp_path) -> No
     ).json()
 
     assert "mainly for development/testing" in explanation["summary"]
-    assert "Fake model is intended for development/testing only." in explanation[
-        "warnings"
-    ]
+    assert "Fake model is intended for development/testing only." in explanation["warnings"]
     history = _section(explanation, "Workspace history")
     assert "Experiments: 1." in history["bullets"]
     assert "Ratings: 1." in history["bullets"]
@@ -103,12 +96,10 @@ def test_embedding_explanation_requires_reindex(tmp_path) -> None:
     ).json()
 
     switching = _section(explanation, "Switching impact")
-    assert "Switching embedding models requires workspace reindexing." in switching[
-        "bullets"
-    ]
-    assert "Review the model switching plan before reindexing." in explanation[
-        "recommended_actions"
-    ]
+    assert "Switching embedding models requires workspace reindexing." in switching["bullets"]
+    assert (
+        "Review the model switching plan before reindexing." in explanation["recommended_actions"]
+    )
 
 
 def test_unknown_model_still_returns_explanation_with_warning(tmp_path) -> None:
@@ -125,16 +116,13 @@ def test_unknown_model_still_returns_explanation_with_warning(tmp_path) -> None:
     explanation = response.json()
     assert explanation["display_name"] is None
     assert "unknown to the current catalog" in explanation["summary"]
-    assert "Model is not present in the current local model catalog." in explanation[
-        "warnings"
-    ]
+    assert "Model is not present in the current local model catalog." in explanation["warnings"]
     assert _section(explanation, "Catalog fit")["bullets"] == [
         "Model is not present in the current local model catalog."
     ]
     assert "Validate model metadata before use." in explanation["recommended_actions"]
     assert (
-        "Configure a compatible provider adapter for custom."
-        in explanation["recommended_actions"]
+        "Configure a compatible provider adapter for custom." in explanation["recommended_actions"]
     )
 
 
@@ -171,9 +159,7 @@ def _explain(
 
 
 def _section(explanation: dict, title: str) -> dict:
-    return next(
-        section for section in explanation["sections"] if section["title"] == title
-    )
+    return next(section for section in explanation["sections"] if section["title"] == title)
 
 
 def _create_indexed_workspace(project_path: Path) -> dict:

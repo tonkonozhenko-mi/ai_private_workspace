@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 @dataclass(frozen=True)
@@ -205,7 +205,7 @@ def build_mcp_config_preview(
     project_path: str | None,
     env_overrides: dict[str, str] | None = None,
 ) -> MCPServerConfigPreview:
-    env = {key: "" for key in template.env_vars}
+    env = dict.fromkeys(template.env_vars, "")
     if project_path and "PROJECT_PATH" in env:
         env["PROJECT_PATH"] = project_path
     if env_overrides:
@@ -255,7 +255,7 @@ def build_mcp_config_preview(
             "Run one read-only tool against a small known file/resource.",
             "Stop the server if the exposed tool list is broader than expected.",
         ],
-        generated_at=datetime.now(timezone.utc).isoformat(),
+        generated_at=datetime.now(UTC).isoformat(),
     )
 
 
@@ -280,6 +280,7 @@ def build_mcp_connection_check(template: MCPServerTemplate) -> MCPServerConnecti
         copy_commands=commands,
         safety_note="This is a copy-only connection plan. No MCP process is started by the browser or backend.",
     )
+
 
 from dataclasses import replace
 from uuid import uuid4
@@ -360,7 +361,7 @@ def create_workspace_mcp_config_from_preview(
     template: MCPServerTemplate,
     preview: MCPServerConfigPreview,
 ) -> WorkspaceMCPServerConfig:
-    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    now = datetime.now(UTC).replace(microsecond=0).isoformat()
     return WorkspaceMCPServerConfig(
         id=str(uuid4()),
         workspace_id=workspace_id,
@@ -393,10 +394,18 @@ def update_workspace_mcp_config(
     approved_tools: list[str] | None = None,
     denied_tools: list[str] | None = None,
 ) -> WorkspaceMCPServerConfig:
-    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    now = datetime.now(UTC).replace(microsecond=0).isoformat()
     available = set(config.available_tools)
-    next_approved = config.approved_tools if approved_tools is None else [tool for tool in approved_tools if tool in available]
-    next_denied = config.denied_tools if denied_tools is None else [tool for tool in denied_tools if tool in available]
+    next_approved = (
+        config.approved_tools
+        if approved_tools is None
+        else [tool for tool in approved_tools if tool in available]
+    )
+    next_denied = (
+        config.denied_tools
+        if denied_tools is None
+        else [tool for tool in denied_tools if tool in available]
+    )
     if approved_tools is not None and denied_tools is None:
         next_denied = [tool for tool in config.available_tools if tool not in set(next_approved)]
     return replace(
@@ -409,7 +418,9 @@ def update_workspace_mcp_config(
     )
 
 
-def build_mcp_tool_inventory(workspace_id: str, configs: list[WorkspaceMCPServerConfig]) -> MCPToolInventory:
+def build_mcp_tool_inventory(
+    workspace_id: str, configs: list[WorkspaceMCPServerConfig]
+) -> MCPToolInventory:
     tools: list[dict[str, str]] = []
     for config in configs:
         for tool in config.available_tools:
@@ -429,7 +440,9 @@ def build_mcp_tool_inventory(workspace_id: str, configs: list[WorkspaceMCPServer
                     "enabled": str(config.enabled).lower(),
                 }
             )
-    approved = [tool for tool in tools if tool["status"] == "approved" and tool["enabled"] == "true"]
+    approved = [
+        tool for tool in tools if tool["status"] == "approved" and tool["enabled"] == "true"
+    ]
     read_only = [tool for tool in approved if tool["risk_level"] == "read_only"]
     dangerous = [tool for tool in approved if tool["risk_level"] != "read_only"]
     readiness = "no_tools"
@@ -460,9 +473,13 @@ def build_mcp_approval_preview(
     denied = [tool for tool in config.available_tools if tool not in set(approved)]
     warnings = []
     if config.risk_level != "read_only" and approved:
-        warnings.append("This template is not read-only. Keep execution behind explicit approval gates.")
+        warnings.append(
+            "This template is not read-only. Keep execution behind explicit approval gates."
+        )
     if not approved:
-        warnings.append("No tools are approved. The server can be saved, but agents will not be allowed to use it.")
+        warnings.append(
+            "No tools are approved. The server can be saved, but agents will not be allowed to use it."
+        )
     return MCPApprovalPreview(
         workspace_id=workspace_id,
         config_id=config.id,

@@ -30,7 +30,9 @@ class CreateWorkspaceUseCase:
         self.timeline_repository = timeline_repository
 
     def execute(self, request: CreateWorkspaceInput) -> Workspace:
-        persistence = request.persistence if request.persistence in {"saved", "temporary"} else "saved"
+        persistence = (
+            request.persistence if request.persistence in {"saved", "temporary"} else "saved"
+        )
         workspace = Workspace(
             id=str(uuid4()),
             name=request.name,

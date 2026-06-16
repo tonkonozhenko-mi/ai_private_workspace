@@ -49,9 +49,6 @@ def to_workspace_ui_action_catalog_response(
     return WorkspaceUIActionCatalogResponse(
         workspace_id=catalog.workspace_id,
         primary_action_id=catalog.primary_action_id,
-        actions=[
-            to_workspace_ui_action_response(action)
-            for action in catalog.actions
-        ],
+        actions=[to_workspace_ui_action_response(action) for action in catalog.actions],
         notes=catalog.notes,
     )

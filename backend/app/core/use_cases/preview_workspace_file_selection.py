@@ -5,7 +5,6 @@ from app.core.domain.gitignore_matcher import (
     GitignoreMatcher,
     discover_gitignore_relative_paths,
 )
-from app.core.domain.project_scan import ProjectFile
 from app.core.ports.file_system import FileSystemPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 
@@ -62,14 +61,10 @@ class PreviewWorkspaceFileSelectionUseCase:
         self.workspace_repository = workspace_repository
         self.file_system = file_system
 
-    def execute(
-        self, request: PreviewWorkspaceFileSelectionInput
-    ) -> FileSelectionPreviewResult:
+    def execute(self, request: PreviewWorkspaceFileSelectionInput) -> FileSelectionPreviewResult:
         workspace = self.workspace_repository.get(request.workspace_id)
         if workspace is None:
-            raise PreviewWorkspaceFileSelectionWorkspaceNotFoundError(
-                "Workspace not found"
-            )
+            raise PreviewWorkspaceFileSelectionWorkspaceNotFoundError("Workspace not found")
         if not self.file_system.path_exists(workspace.project_path):
             raise PreviewWorkspaceFileSelectionError("Project path does not exist")
         if not self.file_system.is_directory(workspace.project_path):

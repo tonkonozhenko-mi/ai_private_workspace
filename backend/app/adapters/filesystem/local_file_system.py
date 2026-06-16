@@ -2,7 +2,6 @@ from pathlib import Path
 
 from app.core.domain.project_scan import ProjectFile, ProjectFileList
 
-
 MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024
 MAX_WRITTEN_FILE_SIZE_BYTES = 1024 * 1024
 SKIPPED_DIRECTORIES = {

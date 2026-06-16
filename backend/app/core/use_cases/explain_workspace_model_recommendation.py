@@ -22,7 +22,6 @@ from app.core.use_cases.recommend_workspace_models import (
     RecommendWorkspaceModelsUseCase,
 )
 
-
 STATIC_METADATA_WARNING = (
     "Model metadata is static and should be validated against local runtime before use."
 )
@@ -97,9 +96,7 @@ class ExplainWorkspaceModelRecommendationUseCase:
             workspace_repository=self.workspace_repository,
             model_experiment_repository=self.model_experiment_repository,
             rating_repository=self.rating_repository,
-        ).execute(
-            GetModelPerformanceSummaryInput(workspace_id=workspace.id)
-        )
+        ).execute(GetModelPerformanceSummaryInput(workspace_id=workspace.id))
         catalog_model = self._find_catalog_model(provider, model_name, model_type)
         recommendation = self._find_recommendation(
             recommendation_result.recommendations,
@@ -198,8 +195,7 @@ class ExplainWorkspaceModelRecommendationUseCase:
             (
                 item
                 for item in items
-                if item.provider.lower() == provider
-                and item.model.lower() == model_name.lower()
+                if item.provider.lower() == provider and item.model.lower() == model_name.lower()
             ),
             None,
         )

@@ -85,8 +85,7 @@ def to_model_experiment_run_response(
         completed_at=run.completed_at,
         shared_context_sources_count=run.shared_context_sources_count,
         candidates=[
-            to_model_experiment_candidate_result_response(candidate)
-            for candidate in run.candidates
+            to_model_experiment_candidate_result_response(candidate) for candidate in run.candidates
         ],
         notes=run.notes,
     )

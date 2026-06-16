@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from app.core.domain.analysis import (
     AnalysisFinding,
@@ -28,7 +28,6 @@ from app.core.use_cases.analyze_terragrunt import (
     AnalyzeTerragruntInput,
     AnalyzeTerragruntUseCase,
 )
-
 
 SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2, "info": 3}
 
@@ -170,30 +169,38 @@ class GetAnalysisSummaryUseCase:
             AnalyzerDefinition(
                 name="Terraform",
                 detected_type="terraform",
-                run=lambda workspace_id: terraform_use_case.execute(
-                    AnalyzeTerraformInput(workspace_id=workspace_id)
-                ).findings,
+                run=lambda workspace_id: (
+                    terraform_use_case.execute(
+                        AnalyzeTerraformInput(workspace_id=workspace_id)
+                    ).findings
+                ),
             ),
             AnalyzerDefinition(
                 name="Terragrunt",
                 detected_type="terragrunt",
-                run=lambda workspace_id: terragrunt_use_case.execute(
-                    AnalyzeTerragruntInput(workspace_id=workspace_id)
-                ).findings,
+                run=lambda workspace_id: (
+                    terragrunt_use_case.execute(
+                        AnalyzeTerragruntInput(workspace_id=workspace_id)
+                    ).findings
+                ),
             ),
             AnalyzerDefinition(
                 name="GitLab CI",
                 detected_type="gitlab_ci",
-                run=lambda workspace_id: gitlab_ci_use_case.execute(
-                    AnalyzeGitLabCIInput(workspace_id=workspace_id)
-                ).findings,
+                run=lambda workspace_id: (
+                    gitlab_ci_use_case.execute(
+                        AnalyzeGitLabCIInput(workspace_id=workspace_id)
+                    ).findings
+                ),
             ),
             AnalyzerDefinition(
                 name="GitHub Actions",
                 detected_type="github_actions",
-                run=lambda workspace_id: github_actions_use_case.execute(
-                    AnalyzeGitHubActionsInput(workspace_id=workspace_id)
-                ).findings,
+                run=lambda workspace_id: (
+                    github_actions_use_case.execute(
+                        AnalyzeGitHubActionsInput(workspace_id=workspace_id)
+                    ).findings
+                ),
             ),
         ]
 

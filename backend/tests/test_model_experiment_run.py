@@ -12,7 +12,6 @@ from app.core.domain.model_experiment_run import (
 )
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -93,9 +92,7 @@ def test_saved_run_can_be_fetched_and_listed(tmp_path) -> None:
     run = _run_experiment(workspace["id"]).json()
 
     get_response = client.get(f"/models/experiments/{run['id']}")
-    list_response = client.get(
-        f"/workspaces/{workspace['id']}/model-experiments?limit=20"
-    )
+    list_response = client.get(f"/workspaces/{workspace['id']}/model-experiments?limit=20")
 
     assert get_response.status_code == 200
     assert get_response.json() == run
@@ -137,10 +134,7 @@ def test_index_metadata_without_active_context_saves_failed_run(tmp_path) -> Non
 
 def test_unknown_experiment_and_workspace_return_404() -> None:
     assert client.get("/models/experiments/missing-experiment").status_code == 404
-    assert (
-        client.get("/workspaces/missing-workspace/model-experiments").status_code
-        == 404
-    )
+    assert client.get("/workspaces/missing-workspace/model-experiments").status_code == 404
 
 
 def test_experiment_run_survives_sqlite_repository_recreation(tmp_path) -> None:
@@ -173,9 +167,7 @@ def test_experiment_run_survives_sqlite_repository_recreation(tmp_path) -> None:
     )
 
     repository.save(run)
-    restarted_repository = SQLiteModelExperimentRepository(
-        tmp_path / "experiments.db"
-    )
+    restarted_repository = SQLiteModelExperimentRepository(tmp_path / "experiments.db")
 
     assert restarted_repository.get(run.id) == run
     assert restarted_repository.list_by_workspace(run.workspace_id) == [run]

@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -32,4 +31,6 @@ def test_windows_packaging_validation_helper_is_safe() -> None:
     assert "package_windows_app_foundation.ps1" in content
     assert "PowerShell scripts are source-controlled contracts" in content
     assert "pwsh" not in content.lower()
-    assert "powershell" not in content.lower().replace("powershell scripts are source-controlled contracts", "")
+    assert "powershell" not in content.lower().replace(
+        "powershell scripts are source-controlled contracts", ""
+    )

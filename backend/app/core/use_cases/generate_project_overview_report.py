@@ -194,9 +194,7 @@ class GenerateProjectOverviewReportUseCase:
         )
 
     def _application_code_section(self, skills: list[SkillMatch]) -> ReportSection:
-        developer_skills = [
-            skill for skill in skills if skill.category == "developer"
-        ]
+        developer_skills = [skill for skill in skills if skill.category == "developer"]
         bullets = [
             self._skill_bullet(skill)
             for skill in sorted(developer_skills, key=lambda skill: skill.name)
@@ -207,8 +205,7 @@ class GenerateProjectOverviewReportUseCase:
         return ReportSection(
             title="Application code",
             content=(
-                "Developer-oriented skills are summarized from deterministic file "
-                "signals."
+                "Developer-oriented skills are summarized from deterministic file signals."
                 if developer_skills
                 else "No application-code skill signals were detected."
             ),
@@ -228,10 +225,7 @@ class GenerateProjectOverviewReportUseCase:
     def _findings_section(analysis_summary: AnalysisSummaryResult) -> ReportSection:
         severity_counts = analysis_summary.severity_counts
         bullets = [
-            (
-                f"{finding.severity}: {finding.title} - "
-                f"{finding.description}"
-            )
+            (f"{finding.severity}: {finding.title} - {finding.description}")
             for finding in analysis_summary.top_findings
         ]
         if not bullets:
@@ -268,13 +262,10 @@ class GenerateProjectOverviewReportUseCase:
         command_suggestions: list[CommandSuggestion],
     ) -> ReportSection:
         readonly_suggestions = [
-            suggestion
-            for suggestion in command_suggestions
-            if suggestion.risk == "readonly"
+            suggestion for suggestion in command_suggestions if suggestion.risk == "readonly"
         ][:5]
         bullets = [
-            f"{suggestion.title}: {suggestion.command}"
-            for suggestion in readonly_suggestions
+            f"{suggestion.title}: {suggestion.command}" for suggestion in readonly_suggestions
         ]
         if not bullets:
             bullets.append("No read-only command suggestions are available.")
@@ -298,9 +289,7 @@ class GenerateProjectOverviewReportUseCase:
     ) -> ReportSection:
         skill_map = {skill.name: skill for skill in skills}
         matched_skills = [
-            skill_map[skill_name]
-            for skill_name in skill_names
-            if skill_name in skill_map
+            skill_map[skill_name] for skill_name in skill_names if skill_name in skill_map
         ]
         bullets = [self._skill_bullet(skill) for skill in matched_skills]
         if not bullets:

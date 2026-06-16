@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from app.core.domain.project_scan import ProjectScanResult
 from app.core.domain.skill_registry import SkillRegistry
@@ -77,13 +77,12 @@ class ScanWorkspaceProjectUseCase:
                     ),
                     metadata={
                         "total_files": str(scan_result.total_files),
-                        "detected_skills_count": str(
-                            len(scan_result.detected_skills)
-                        ),
+                        "detected_skills_count": str(len(scan_result.detected_skills)),
                         "include_rules_count": str(len(request.include_patterns)),
                         "exclude_rules_count": str(len(request.exclude_patterns)),
                         "include_patterns": _join_patterns(request.include_patterns) or "All files",
-                        "exclude_patterns": _join_patterns(request.exclude_patterns) or "No exclusions",
+                        "exclude_patterns": _join_patterns(request.exclude_patterns)
+                        or "No exclusions",
                         "file_rules_profile": request.file_rules_profile or "none",
                     },
                 )

@@ -57,9 +57,7 @@ class AnalyzeTerragruntUseCase:
         dependency_files = [
             path for path, content in file_contents.items() if 'dependency "' in content
         ]
-        input_files = [
-            path for path, content in file_contents.items() if "inputs =" in content
-        ]
+        input_files = [path for path, content in file_contents.items() if "inputs =" in content]
         terraform_source_files = [
             path
             for path, content in file_contents.items()

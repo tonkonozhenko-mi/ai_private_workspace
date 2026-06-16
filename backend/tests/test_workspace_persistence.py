@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -94,11 +93,7 @@ def _create_workspace(project_path: Path, persistence: str | None = None) -> dic
 def _overview_item(workspace_id: str) -> dict:
     overview = client.get("/workspaces/overview?include_archived=true")
     assert overview.status_code == 200
-    return next(
-        item
-        for item in overview.json()["items"]
-        if item["workspace_id"] == workspace_id
-    )
+    return next(item for item in overview.json()["items"] if item["workspace_id"] == workspace_id)
 
 
 def _timeline(workspace_id: str) -> list[dict]:

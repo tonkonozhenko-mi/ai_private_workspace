@@ -43,7 +43,6 @@ def test_unknown_command_is_manual_only() -> None:
     assert decision.allowed is False
     assert decision.mode == "manual_only"
     assert (
-        decision.reason
-        == "Unknown-risk commands require manual execution outside the assistant."
+        decision.reason == "Unknown-risk commands require manual execution outside the assistant."
     )
     assert decision.matched_rule == "unknown_manual_only"

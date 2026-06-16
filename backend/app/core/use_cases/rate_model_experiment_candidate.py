@@ -55,27 +55,19 @@ class RateModelExperimentCandidateUseCase:
         provider = request.provider.strip().lower()
         model = request.model.strip()
         if not provider or not model:
-            raise ModelExperimentRatingValidationError(
-                "Candidate provider and model are required"
-            )
+            raise ModelExperimentRatingValidationError("Candidate provider and model are required")
         if not any(
             candidate.provider == provider and candidate.model == model
             for candidate in run.candidates
         ):
-            raise ModelExperimentRatingNotFoundError(
-                "Model experiment candidate not found"
-            )
+            raise ModelExperimentRatingNotFoundError("Model experiment candidate not found")
         if not 1 <= request.rating <= 5:
-            raise ModelExperimentRatingValidationError(
-                "Rating must be between 1 and 5"
-            )
+            raise ModelExperimentRatingValidationError("Rating must be between 1 and 5")
 
         comment = request.comment.strip() if request.comment is not None else None
         if comment == "":
             comment = None
-        tags = list(
-            dict.fromkeys(tag.strip() for tag in request.tags if tag.strip())
-        )
+        tags = list(dict.fromkeys(tag.strip() for tag in request.tags if tag.strip()))
         rating = self.rating_repository.save(
             ModelExperimentCandidateRating(
                 id=str(uuid4()),

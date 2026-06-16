@@ -1,6 +1,5 @@
-from hashlib import sha256
 import re
-
+from hashlib import sha256
 
 MAX_QDRANT_COLLECTION_NAME_LENGTH = 255
 NON_ALPHANUMERIC_PATTERN = re.compile(r"[^a-z0-9]+")

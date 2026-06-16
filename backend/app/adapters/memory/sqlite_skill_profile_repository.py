@@ -1,10 +1,14 @@
-from datetime import UTC, datetime
-from pathlib import Path
 import json
 import sqlite3
+from datetime import UTC, datetime
+from pathlib import Path
 
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
-from app.core.domain.skill_profile import SkillProfileItem, WorkspaceSkillProfile, normalize_skill_profile
+from app.core.domain.skill_profile import (
+    SkillProfileItem,
+    WorkspaceSkillProfile,
+    normalize_skill_profile,
+)
 
 
 class SQLiteSkillProfileRepository:
@@ -61,15 +65,17 @@ class SQLiteSkillProfileRepository:
                 (
                     saved.workspace_id,
                     saved.profile,
-                    json.dumps([
-                        {
-                            "id": skill.id,
-                            "name": skill.name,
-                            "enabled": skill.enabled,
-                            "custom_instructions": skill.custom_instructions,
-                        }
-                        for skill in saved.skills
-                    ]),
+                    json.dumps(
+                        [
+                            {
+                                "id": skill.id,
+                                "name": skill.name,
+                                "enabled": skill.enabled,
+                                "custom_instructions": skill.custom_instructions,
+                            }
+                            for skill in saved.skills
+                        ]
+                    ),
                     saved.updated_at,
                 ),
             )

@@ -53,8 +53,6 @@ def to_runtime_setup_guide_response(
         privacy_mode=guide.privacy_mode,
         container_runtime=guide.container_runtime,
         overall_status=guide.overall_status,
-        actions=[
-            to_runtime_setup_action_response(action) for action in guide.actions
-        ],
+        actions=[to_runtime_setup_action_response(action) for action in guide.actions],
         notes=guide.notes,
     )

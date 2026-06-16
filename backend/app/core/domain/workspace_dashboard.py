@@ -3,11 +3,11 @@ from dataclasses import dataclass
 from app.core.domain.assistant_profile import WorkspaceAssistantRecommendation
 from app.core.domain.runtime_health import RuntimeHealth
 from app.core.domain.timeline import TimelineEvent
-from app.core.domain.workspace_quick_start import WorkspaceQuickStart
-from app.core.domain.workspace_readiness import WorkspaceReadiness
 from app.core.domain.workspace_models_dashboard_summary import (
     WorkspaceModelsDashboardSummary,
 )
+from app.core.domain.workspace_quick_start import WorkspaceQuickStart
+from app.core.domain.workspace_readiness import WorkspaceReadiness
 from app.core.domain.workspace_summary import WorkspaceSummary
 
 

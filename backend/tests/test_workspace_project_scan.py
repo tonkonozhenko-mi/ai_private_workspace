@@ -7,7 +7,6 @@ from app.core.domain.project_scan import ProjectFile, ProjectScanResult
 from app.core.domain.skill import SkillMatch
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -130,9 +129,7 @@ def test_scan_workspace_applies_file_selection_rules(tmp_path) -> None:
 
     assert response.status_code == 200
     scan_result = response.json()
-    assert [project_file["path"] for project_file in scan_result["files"]] == [
-        "src/app.py"
-    ]
+    assert [project_file["path"] for project_file in scan_result["files"]] == ["src/app.py"]
     assert scan_result["scanned_files"] == 1
     assert scan_result["skipped_files"] >= 1
 

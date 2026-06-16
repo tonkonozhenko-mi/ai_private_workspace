@@ -26,7 +26,6 @@ class LocalDataSafetyResponse(BaseModel):
     backup_hints: list[LocalDataBackupHintResponse]
 
 
-
 class StartupChecklistItemResponse(BaseModel):
     id: str
     title: str
@@ -43,7 +42,6 @@ class StartupChecklistResponse(BaseModel):
     items: list[StartupChecklistItemResponse]
     safe_to_continue: bool
     safety_note: str
-
 
 
 class DesktopStartupCommandResponse(BaseModel):
@@ -115,8 +113,6 @@ class DesktopPackagingDesignResponse(BaseModel):
     not_in_scope_now: list[str]
 
 
-
-
 class MacOSAppPackageArtifactResponse(BaseModel):
     name: str
     purpose: str
@@ -141,8 +137,6 @@ class MacOSAppPackageFoundationResponse(BaseModel):
     safety_rules: list[str]
     not_yet_included: list[str]
     user_experience: list[str]
-
-
 
 
 class DesktopSupervisorPortResponse(BaseModel):
@@ -184,8 +178,6 @@ class DesktopSupervisorContractResponse(BaseModel):
     safety_rules: list[str]
     validation_steps: list[str]
     next_packaging_steps: list[str]
-
-
 
 
 class MacOSAppSupervisorWiringStepResponse(BaseModel):
@@ -252,8 +244,6 @@ class BackendRuntimeBundlePlanResponse(BaseModel):
     next_steps: list[str]
 
 
-
-
 class DesktopRuntimeValidationCommandResponse(BaseModel):
     label: str
     command: str
@@ -282,8 +272,6 @@ class DesktopRuntimeReadinessResponse(BaseModel):
     blocked_until: list[str]
     safety_rules: list[str]
     honest_remaining_work: str
-
-
 
 
 class DesktopRuntimePreflightItemResponse(BaseModel):
@@ -374,7 +362,6 @@ class TauriSupervisorBridgeResponse(BaseModel):
     next_steps: list[str]
 
 
-
 class TauriSupervisorStaticGateItemResponse(BaseModel):
     id: str
     title: str
@@ -393,8 +380,6 @@ class TauriSupervisorStaticGateResponse(BaseModel):
     validation_commands: list[DesktopRuntimeValidationCommandResponse]
     safety_rules: list[str]
     next_steps: list[str]
-
-
 
 
 class DesktopTechnologyOptionResponse(BaseModel):
@@ -417,7 +402,6 @@ class DesktopTechnologyDecisionResponse(BaseModel):
     decision_guardrails: list[str]
     when_to_reconsider: list[str]
     next_steps: list[str]
-
 
 
 class DesktopStackComponentResponse(BaseModel):
@@ -527,7 +511,6 @@ class FrozenBackendRuntimeSelectionResponse(BaseModel):
     next_steps: list[str]
 
 
-
 class FrozenBackendSmokeItemResponse(BaseModel):
     id: str
     title: str
@@ -547,9 +530,6 @@ class FrozenBackendSmokeContractResponse(BaseModel):
     validation_commands: list[DesktopRuntimeValidationCommandResponse]
     safety_rules: list[str]
     next_steps: list[str]
-
-
-
 
 
 class FrozenBackendStartupDiagnosticsItemResponse(BaseModel):
@@ -573,6 +553,7 @@ class FrozenBackendStartupDiagnosticsResponse(BaseModel):
     safety_rules: list[str]
     next_steps: list[str]
 
+
 class AppOwnedBackendStartupGateItemResponse(BaseModel):
     id: str
     title: str
@@ -593,7 +574,6 @@ class AppOwnedBackendStartupGateResponse(BaseModel):
     validation_commands: list[DesktopRuntimeValidationCommandResponse]
     safety_rules: list[str]
     next_steps: list[str]
-
 
 
 class AppOwnedBackendStartupImplementationItemResponse(BaseModel):
@@ -620,7 +600,6 @@ class AppOwnedBackendStartupImplementationResponse(BaseModel):
     next_steps: list[str]
 
 
-
 class AppOwnedBackendHealthReadinessItemResponse(BaseModel):
     id: str
     title: str
@@ -642,7 +621,6 @@ class AppOwnedBackendHealthReadinessResponse(BaseModel):
     validation_commands: list[DesktopRuntimeValidationCommandResponse]
     safety_rules: list[str]
     next_steps: list[str]
-
 
 
 class MacOSTauriSmokeRunbookItemResponse(BaseModel):
@@ -669,7 +647,6 @@ class MacOSTauriSmokeRunbookResponse(BaseModel):
     next_steps: list[str]
 
 
-
 class MacOSPackagedAppSmokePreflightItemResponse(BaseModel):
     id: str
     title: str
@@ -693,9 +670,6 @@ class MacOSPackagedAppSmokePreflightResponse(BaseModel):
     next_steps: list[str]
 
 
-
-
-
 class PackagingToolchainPrerequisiteItemResponse(BaseModel):
     id: str
     title: str
@@ -715,7 +689,6 @@ class PackagingToolchainPrerequisitesResponse(BaseModel):
     validation_commands: list[DesktopRuntimeValidationCommandResponse]
     safety_rules: list[str]
     next_steps: list[str]
-
 
 
 class TauriRustStructureRegistryItemResponse(BaseModel):
@@ -738,7 +711,6 @@ class TauriRustStructureRegistryResponse(BaseModel):
     validation_commands: list[DesktopRuntimeValidationCommandResponse]
     safety_rules: list[str]
     next_steps: list[str]
-
 
 
 class TauriRustDependencyPinItemResponse(BaseModel):
@@ -805,7 +777,6 @@ class TauriDevSmokeReadinessResponse(BaseModel):
     next_steps: list[str]
 
 
-
 class TauriPackagedAppBuildItemResponse(BaseModel):
     id: str
     title: str
@@ -825,7 +796,6 @@ class TauriPackagedAppBuildReadinessResponse(BaseModel):
     validation_commands: list[DesktopRuntimeValidationCommandResponse]
     safety_rules: list[str]
     next_steps: list[str]
-
 
 
 class MacOSPackagedAppSmokeResultItemResponse(BaseModel):
@@ -940,8 +910,6 @@ class ReleaseCandidateAuditResponse(BaseModel):
     known_limitations: list[str]
 
 
-
-
 class V01DemoStepResponse(BaseModel):
     id: str
     title: str
@@ -972,7 +940,6 @@ class V01HandoffResponse(BaseModel):
     safety_rules: list[str]
 
 
-
 class ProductCompletionStageResponse(BaseModel):
     id: str
     title: str
@@ -991,7 +958,6 @@ class ProductCompletionRoadmapResponse(BaseModel):
     next_recommended_tasks: list[str]
     not_done_yet: list[str]
     safety_rules: list[str]
-
 
 
 class FinalProductStageResponse(BaseModel):
@@ -1019,9 +985,6 @@ class FinalProductStatusResponse(BaseModel):
     safety_rules: list[str]
 
 
-
-
-
 class V01UISmokeCheckItemResponse(BaseModel):
     id: str
     title: str
@@ -1043,6 +1006,7 @@ class V01UISmokeCheckResponse(BaseModel):
     fail_fast_conditions: list[str]
     safety_note: str
 
+
 class V01ReleaseGateItemResponse(BaseModel):
     id: str
     title: str
@@ -1062,7 +1026,6 @@ class V01ReleaseGateResponse(BaseModel):
     go_no_go_rule: str
     next_actions: list[str]
     safety_rules: list[str]
-
 
 
 class V01PublicationHandoffStepResponse(BaseModel):
@@ -1089,6 +1052,7 @@ class V01PublicationHandoffResponse(BaseModel):
     do_not_commit: list[str]
     after_publish: list[str]
     safety_rules: list[str]
+
 
 class DatabaseBackupResponse(BaseModel):
     filename: str

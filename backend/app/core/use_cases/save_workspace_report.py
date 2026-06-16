@@ -2,7 +2,10 @@ from dataclasses import dataclass
 
 from app.core.domain.report import SavedWorkspaceReport, create_saved_workspace_report
 from app.core.ports.report_repository import ReportRepositoryPort
-from app.core.use_cases.generate_workspace_report import GenerateWorkspaceReportInput, GenerateWorkspaceReportUseCase
+from app.core.use_cases.generate_workspace_report import (
+    GenerateWorkspaceReportInput,
+    GenerateWorkspaceReportUseCase,
+)
 
 
 @dataclass(frozen=True)

@@ -4,7 +4,6 @@ from app.api.routes import models as model_routes
 from app.core.domain.model_catalog_registry import ModelCatalogRegistry
 from app.main import app
 
-
 client = TestClient(app)
 
 

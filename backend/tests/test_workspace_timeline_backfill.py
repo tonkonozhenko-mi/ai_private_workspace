@@ -16,7 +16,6 @@ from app.core.domain.skill import SkillMatch
 from app.core.domain.workspace import Workspace
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -130,9 +129,7 @@ def test_backfill_reconstructs_existing_workspace_activity_without_duplicates(
     timeline = timeline_response.json()
     assert len(timeline) == 8
     assert {
-        event["metadata"]["command_id"]
-        for event in timeline
-        if "command_id" in event["metadata"]
+        event["metadata"]["command_id"] for event in timeline if "command_id" in event["metadata"]
     } == {executed_command.id, rejected_command.id}
 
 

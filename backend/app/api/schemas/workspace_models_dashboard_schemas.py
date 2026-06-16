@@ -58,9 +58,7 @@ def to_workspace_models_dashboard_response(
         primary_next_action_id=dashboard.primary_next_action_id,
         primary_next_action_title=dashboard.primary_next_action_title,
         selection=to_workspace_model_selection_response(dashboard.selection),
-        selection_status=to_workspace_model_selection_status_response(
-            dashboard.selection_status
-        ),
+        selection_status=to_workspace_model_selection_status_response(dashboard.selection_status),
         usage_plan=to_selected_model_usage_plan_response(dashboard.usage_plan),
         embedding_indexing_plan=to_selected_embedding_indexing_plan_response(
             dashboard.embedding_indexing_plan
@@ -68,8 +66,6 @@ def to_workspace_models_dashboard_response(
         recommendations=to_workspace_model_recommendation_result_response(
             dashboard.recommendations
         ),
-        performance_summary=to_model_performance_summary_response(
-            dashboard.performance_summary
-        ),
+        performance_summary=to_model_performance_summary_response(dashboard.performance_summary),
         notes=dashboard.notes,
     )

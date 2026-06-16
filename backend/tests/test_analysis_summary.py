@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -79,10 +78,7 @@ def test_analysis_summary_aggregates_relevant_analyzers(tmp_path) -> None:
         "Review infrastructure configuration and state management."
         in result["recommended_next_steps"]
     )
-    assert (
-        "Review CI/CD workflow structure and permissions."
-        in result["recommended_next_steps"]
-    )
+    assert "Review CI/CD workflow structure and permissions." in result["recommended_next_steps"]
 
 
 def test_analysis_summary_skips_irrelevant_analyzers(tmp_path) -> None:

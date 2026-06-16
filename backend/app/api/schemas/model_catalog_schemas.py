@@ -2,8 +2,8 @@ from pydantic import BaseModel, Field
 
 from app.core.domain.model_catalog import (
     LocalModelDefinition,
-    ModelCatalogResult,
     ModelCatalogReloadResult,
+    ModelCatalogResult,
     ModelCatalogWarning,
     ModelRecommendation,
     ModelRecommendationResult,
@@ -107,9 +107,7 @@ def to_model_catalog_details_response(
 ) -> ModelCatalogDetailsResponse:
     return ModelCatalogDetailsResponse(
         models=[to_local_model_definition_response(model) for model in result.models],
-        warnings=[
-            to_model_catalog_warning_response(warning) for warning in result.warnings
-        ],
+        warnings=[to_model_catalog_warning_response(warning) for warning in result.warnings],
     )
 
 
@@ -120,9 +118,7 @@ def to_model_catalog_reload_response(
         models_count=result.models_count,
         user_models_count=result.user_models_count,
         warnings_count=result.warnings_count,
-        warnings=[
-            to_model_catalog_warning_response(warning) for warning in result.warnings
-        ],
+        warnings=[to_model_catalog_warning_response(warning) for warning in result.warnings],
     )
 
 

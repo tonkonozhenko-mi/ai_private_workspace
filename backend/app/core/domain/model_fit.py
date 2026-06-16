@@ -35,7 +35,13 @@ def parse_size_gb(estimated_size: str | None) -> float | None:
         return None
     value = float(match.group(1))
     unit = match.group(2) or "gb"
-    factors = {"tb": 1024.0, "gb": 1.0, "mb": 1.0 / 1024.0, "kb": 1.0 / (1024.0**2), "b": 1.0 / (1024.0**3)}
+    factors = {
+        "tb": 1024.0,
+        "gb": 1.0,
+        "mb": 1.0 / 1024.0,
+        "kb": 1.0 / (1024.0**2),
+        "b": 1.0 / (1024.0**3),
+    }
     return value * factors.get(unit, 1.0)
 
 

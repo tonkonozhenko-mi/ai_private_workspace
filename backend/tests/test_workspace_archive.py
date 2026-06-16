@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -19,9 +18,7 @@ def test_archive_workspace_sets_archived_at_and_is_idempotent(tmp_path) -> None:
     assert second_response.status_code == 200
     assert second_response.json()["archived_at"] == first_response.json()["archived_at"]
     archive_events = [
-        event
-        for event in _timeline(workspace["id"])
-        if event["event_type"] == "workspace_archived"
+        event for event in _timeline(workspace["id"]) if event["event_type"] == "workspace_archived"
     ]
     assert len(archive_events) == 1
     assert archive_events[0]["title"] == "Workspace archived"
@@ -51,9 +48,7 @@ def test_archived_workspace_is_hidden_from_default_overview(tmp_path) -> None:
     assert workspace["id"] not in _overview_ids(default_overview.json())
     assert full_overview.status_code == 200
     archived_item = next(
-        item
-        for item in full_overview.json()["items"]
-        if item["workspace_id"] == workspace["id"]
+        item for item in full_overview.json()["items"] if item["workspace_id"] == workspace["id"]
     )
     assert archived_item["is_archived"] is True
     assert archived_item["archived_at"]
@@ -89,9 +84,7 @@ def test_archive_does_not_delete_related_workspace_data(tmp_path) -> None:
     assert client.post(f"/workspaces/{workspace['id']}/archive").status_code == 200
 
     assert client.get(f"/workspaces/{workspace['id']}/scan").status_code == 200
-    assert client.get(f"/workspaces/{workspace['id']}/index/status").json()["status"] == (
-        "indexed"
-    )
+    assert client.get(f"/workspaces/{workspace['id']}/index/status").json()["status"] == ("indexed")
     commands = client.get(f"/workspaces/{workspace['id']}/commands").json()
     assert [command["id"] for command in commands] == [command_response.json()["id"]]
 

@@ -13,10 +13,7 @@ class GetRuntimeHealthUseCase:
 
     def execute(self) -> RuntimeHealth:
         components = [checker.check() for checker in self.health_checkers]
-        degraded = any(
-            component.configured and not component.healthy
-            for component in components
-        )
+        degraded = any(component.configured and not component.healthy for component in components)
         return RuntimeHealth(
             status="degraded" if degraded else "ok",
             components=components,

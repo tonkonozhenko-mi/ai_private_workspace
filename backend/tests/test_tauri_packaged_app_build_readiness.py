@@ -26,9 +26,12 @@ def test_tauri_packaged_app_build_source_contract() -> None:
     gitignore = (root / ".gitignore").read_text(encoding="utf-8")
 
     assert '"active": true' in tauri_conf
-    assert '../../build/desktop/frozen-backend-runtime' in tauri_conf
+    assert "../../build/desktop/frozen-backend-runtime" in tauri_conf
     assert '"icon": [' in tauri_conf
-    assert "../Resources/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json" in lib_rs
+    assert (
+        "../Resources/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
+        in lib_rs
+    )
     assert "GET /health HTTP/1.1" in lib_rs
     assert "frontend/src-tauri/target/" in gitignore
     assert ".idea/" in gitignore

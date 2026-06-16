@@ -16,7 +16,11 @@ def test_tauri_rust_dependency_pins_endpoint() -> None:
     assert payload["check_script"] == "scripts/check_tauri_rust_dependency_pins.sh"
     assert "time" in payload["cargo_toml_policy"]
     item_ids = {item["id"] for item in payload["validation_items"]}
-    assert {"time-cookie-compatibility-pin", "cargo-lock-refresh", "tauri-target-gitignore"}.issubset(item_ids)
+    assert {
+        "time-cookie-compatibility-pin",
+        "cargo-lock-refresh",
+        "tauri-target-gitignore",
+    }.issubset(item_ids)
 
 
 def test_cargo_toml_pins_time_for_cookie_compatibility() -> None:

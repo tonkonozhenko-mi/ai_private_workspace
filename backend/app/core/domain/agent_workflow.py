@@ -1,10 +1,10 @@
 from dataclasses import dataclass, replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 
 def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    return datetime.now(UTC).replace(microsecond=0).isoformat()
 
 
 AGENT_STEP_STATUSES = {"todo", "in_progress", "done", "skipped", "needs_review"}
@@ -136,7 +136,19 @@ class AgentWorkflowExecutionReadiness:
     safety_note: str
 
 
-def create_agent_workflow_from_preview(*, workspace_id: str, goal: str, provider: str | None, model: str | None, readiness: str, agent_mode: str, preview_steps: list, guardrails: list[str], unsupported_actions: list[str], safety_note: str) -> AgentWorkflowDraft:
+def create_agent_workflow_from_preview(
+    *,
+    workspace_id: str,
+    goal: str,
+    provider: str | None,
+    model: str | None,
+    readiness: str,
+    agent_mode: str,
+    preview_steps: list,
+    guardrails: list[str],
+    unsupported_actions: list[str],
+    safety_note: str,
+) -> AgentWorkflowDraft:
     now = utc_now_iso()
     steps = [
         AgentWorkflowStep(
@@ -176,7 +188,9 @@ def create_agent_workflow_from_preview(*, workspace_id: str, goal: str, provider
     )
 
 
-def update_workflow_step_status(workflow: AgentWorkflowDraft, step_id: str, status: str, notes: str | None = None) -> AgentWorkflowDraft:
+def update_workflow_step_status(
+    workflow: AgentWorkflowDraft, step_id: str, status: str, notes: str | None = None
+) -> AgentWorkflowDraft:
     if status not in AGENT_STEP_STATUSES:
         raise ValueError(f"Unsupported agent step status: {status}")
     now = utc_now_iso()
@@ -185,7 +199,11 @@ def update_workflow_step_status(workflow: AgentWorkflowDraft, step_id: str, stat
     for step in workflow.steps:
         if step.id == step_id:
             found = True
-            if status in {"in_progress", "done"} and step.requires_user_confirmation and step.approval_status != "approved":
+            if (
+                status in {"in_progress", "done"}
+                and step.requires_user_confirmation
+                and step.approval_status != "approved"
+            ):
                 raise ValueError("Step must be approved before marking it in progress or done.")
             updated_steps.append(replace(step, status=status, notes=notes, updated_at=now))
         else:
@@ -196,7 +214,12 @@ def update_workflow_step_status(workflow: AgentWorkflowDraft, step_id: str, stat
     return replace(workflow, steps=updated_steps, status=workflow_status, updated_at=now)
 
 
-def update_workflow_step_approval(workflow: AgentWorkflowDraft, step_id: str, approval_status: str, approval_note: str | None = None) -> AgentWorkflowDraft:
+def update_workflow_step_approval(
+    workflow: AgentWorkflowDraft,
+    step_id: str,
+    approval_status: str,
+    approval_note: str | None = None,
+) -> AgentWorkflowDraft:
     if approval_status not in AGENT_APPROVAL_STATUSES:
         raise ValueError(f"Unsupported agent approval status: {approval_status}")
     now = utc_now_iso()
@@ -205,7 +228,10 @@ def update_workflow_step_approval(workflow: AgentWorkflowDraft, step_id: str, ap
     for step in workflow.steps:
         if step.id == step_id:
             found = True
-            if not step.requires_user_confirmation and approval_status not in {"not_required", "approved"}:
+            if not step.requires_user_confirmation and approval_status not in {
+                "not_required",
+                "approved",
+            }:
                 raise ValueError("This step does not require an approval gate.")
             updated_steps.append(
                 replace(
@@ -255,9 +281,19 @@ def update_workflow_step_evidence(
     return replace(workflow, steps=updated_steps, updated_at=now)
 
 
-def build_workflow_execution_readiness(workflow: AgentWorkflowDraft, approved_tools: list[dict[str, str]]) -> AgentWorkflowExecutionReadiness:
-    approved_tool_names = {tool.get("tool", "") for tool in approved_tools if tool.get("status") == "approved" and tool.get("enabled") == "true"}
-    risky_tool_names = {tool.get("tool", "") for tool in approved_tools if tool.get("status") == "approved" and tool.get("risk_level") != "read_only"}
+def build_workflow_execution_readiness(
+    workflow: AgentWorkflowDraft, approved_tools: list[dict[str, str]]
+) -> AgentWorkflowExecutionReadiness:
+    approved_tool_names = {
+        tool.get("tool", "")
+        for tool in approved_tools
+        if tool.get("status") == "approved" and tool.get("enabled") == "true"
+    }
+    risky_tool_names = {
+        tool.get("tool", "")
+        for tool in approved_tools
+        if tool.get("status") == "approved" and tool.get("risk_level") != "read_only"
+    }
     readiness_steps: list[AgentWorkflowExecutionReadinessStep] = []
     for step in workflow.steps:
         blockers: list[str] = []
@@ -270,7 +306,9 @@ def build_workflow_execution_readiness(workflow: AgentWorkflowDraft, approved_to
         if proposed_tool and proposed_tool not in approved_tool_names:
             blockers.append("Proposed MCP/tool is not approved for this workspace.")
         if step.tool_risk != "read_only" and step.approval_status != "approved":
-            blockers.append("Risky or manual tool requires explicit approval before tracking execution.")
+            blockers.append(
+                "Risky or manual tool requires explicit approval before tracking execution."
+            )
         ready = not blockers
         if ready and step.evidence_status in {"provided", "verified"}:
             next_action = "Review evidence and mark the step done if the result is correct."
@@ -319,7 +357,9 @@ def build_workflow_execution_readiness(workflow: AgentWorkflowDraft, approved_to
     )
 
 
-def build_step_approval_preview(workflow: AgentWorkflowDraft, step_id: str) -> AgentStepApprovalPreview:
+def build_step_approval_preview(
+    workflow: AgentWorkflowDraft, step_id: str
+) -> AgentStepApprovalPreview:
     step = next((item for item in workflow.steps if item.id == step_id), None)
     if step is None:
         raise KeyError(step_id)

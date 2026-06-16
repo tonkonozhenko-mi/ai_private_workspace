@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -32,9 +31,7 @@ def test_selected_llm_matching_active_fake_runtime_is_ready(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
     assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
 
-    result = client.get(
-        f"/workspaces/{workspace['id']}/models/selection/status"
-    ).json()
+    result = client.get(f"/workspaces/{workspace['id']}/models/selection/status").json()
 
     assert result["llm_status"]["status"] == "ready"
     assert result["llm_status"]["matches_active_runtime"] is True
@@ -45,16 +42,17 @@ def test_selected_llm_matching_active_fake_runtime_is_ready(tmp_path) -> None:
 
 def test_selected_llm_mismatch_requires_backend_restart(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select(
-        workspace["id"],
-        "ollama",
-        "qwen2.5-coder",
-        "llm",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "ollama",
+            "qwen2.5-coder",
+            "llm",
+        ).status_code
+        == 200
+    )
 
-    result = client.get(
-        f"/workspaces/{workspace['id']}/models/selection/status"
-    ).json()
+    result = client.get(f"/workspaces/{workspace['id']}/models/selection/status").json()
 
     assert result["llm_status"]["status"] == "runtime_mismatch"
     assert result["llm_status"]["requires_backend_restart"] is True
@@ -68,16 +66,17 @@ def test_selected_llm_mismatch_requires_backend_restart(tmp_path) -> None:
 
 def test_selected_embedding_mismatch_requires_restart_and_reindex(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select(
-        workspace["id"],
-        "ollama",
-        "nomic-embed-text",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "ollama",
+            "nomic-embed-text",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
-    result = client.get(
-        f"/workspaces/{workspace['id']}/models/selection/status"
-    ).json()
+    result = client.get(f"/workspaces/{workspace['id']}/models/selection/status").json()
 
     assert result["embedding_status"]["status"] == "runtime_mismatch"
     assert result["embedding_status"]["requires_backend_restart"] is True
@@ -95,16 +94,17 @@ def test_selected_embedding_mismatch_requires_restart_and_reindex(tmp_path) -> N
 
 def test_selected_embedding_match_without_index_requires_reindex(tmp_path) -> None:
     workspace = _create_workspace(tmp_path)
-    assert _select(
-        workspace["id"],
-        "fake",
-        "fake-embedding",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "fake",
+            "fake-embedding",
+            "embedding",
+        ).status_code
+        == 200
+    )
 
-    result = client.get(
-        f"/workspaces/{workspace['id']}/models/selection/status"
-    ).json()
+    result = client.get(f"/workspaces/{workspace['id']}/models/selection/status").json()
 
     assert result["embedding_status"]["matches_active_runtime"] is True
     assert result["embedding_status"]["status"] == "requires_reindex"
@@ -116,12 +116,15 @@ def test_selected_embedding_match_without_index_requires_reindex(tmp_path) -> No
 def test_matching_selected_models_and_index_are_ready(tmp_path) -> None:
     workspace = _create_indexed_workspace(tmp_path)
     assert _select(workspace["id"], "fake", "fake-llm", "llm").status_code == 200
-    assert _select(
-        workspace["id"],
-        "fake",
-        "fake-embedding",
-        "embedding",
-    ).status_code == 200
+    assert (
+        _select(
+            workspace["id"],
+            "fake",
+            "fake-embedding",
+            "embedding",
+        ).status_code
+        == 200
+    )
     timeline_before = client.get(f"/workspaces/{workspace['id']}/timeline").json()
 
     response = client.get(f"/workspaces/{workspace['id']}/models/selection/status")

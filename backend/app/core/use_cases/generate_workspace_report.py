@@ -1,7 +1,12 @@
 from dataclasses import dataclass
 
 from app.core.domain.conversation import ConversationAnswerNote, WorkspaceConversation
-from app.core.domain.report import ProjectOverviewReport, ReportCatalog, ReportSection, ReportTemplate
+from app.core.domain.report import (
+    ProjectOverviewReport,
+    ReportCatalog,
+    ReportSection,
+    ReportTemplate,
+)
 from app.core.ports.conversation_repository import ConversationRepositoryPort
 from app.core.ports.file_system import FileSystemPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
@@ -121,8 +126,10 @@ class GenerateWorkspaceReportUseCase:
                 report_type=report_type,
                 title=base_report.title,
                 summary=base_report.summary,
-                sections=base_report.sections + [self._workspace_context_section(notes, conversations)],
-                generated_from=base_report.generated_from + ["saved_answer_notes", "conversation_metadata"],
+                sections=base_report.sections
+                + [self._workspace_context_section(notes, conversations)],
+                generated_from=base_report.generated_from
+                + ["saved_answer_notes", "conversation_metadata"],
             )
         else:
             report = self._build_specialized_report(
@@ -213,7 +220,8 @@ class GenerateWorkspaceReportUseCase:
             title=f"{template.title}: {base_report.title.replace('Project overview: ', '')}",
             summary=f"{template.description} Generated from local workspace context and deterministic scan evidence.",
             sections=sections,
-            generated_from=base_report.generated_from + ["saved_answer_notes", "conversation_metadata", f"report_template:{report_type}"],
+            generated_from=base_report.generated_from
+            + ["saved_answer_notes", "conversation_metadata", f"report_template:{report_type}"],
         )
 
     def _notes(self, workspace_id: str) -> list[ConversationAnswerNote]:
@@ -232,7 +240,10 @@ class GenerateWorkspaceReportUseCase:
 
     @staticmethod
     def _pick_section(report: ProjectOverviewReport, title: str) -> ReportSection:
-        return next((section for section in report.sections if section.title == title), ReportSection(title=title, content="No section data is available.", bullets=[]))
+        return next(
+            (section for section in report.sections if section.title == title),
+            ReportSection(title=title, content="No section data is available.", bullets=[]),
+        )
 
     @staticmethod
     def _source_boundaries_section() -> ReportSection:
@@ -257,7 +268,9 @@ class GenerateWorkspaceReportUseCase:
             f"Recent conversations available: {len(conversations)}",
         ]
         for note in notes[:5]:
-            source_paths = ", ".join(note.source_paths[:3]) if note.source_paths else "no captured sources"
+            source_paths = (
+                ", ".join(note.source_paths[:3]) if note.source_paths else "no captured sources"
+            )
             bullets.append(f"Note: {note.title}; sources: {source_paths}")
         if len(notes) > 5:
             bullets.append(f"Additional saved notes not shown: {len(notes) - 5}")

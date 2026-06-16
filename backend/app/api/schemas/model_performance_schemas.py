@@ -55,9 +55,6 @@ def to_model_performance_summary_response(
 ) -> ModelPerformanceSummaryResponse:
     return ModelPerformanceSummaryResponse(
         workspace_id=summary.workspace_id,
-        items=[
-            to_model_performance_item_response(item)
-            for item in summary.items
-        ],
+        items=[to_model_performance_item_response(item) for item in summary.items],
         notes=summary.notes,
     )

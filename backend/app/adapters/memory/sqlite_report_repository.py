@@ -1,6 +1,6 @@
 import json
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
 from app.core.domain.report import SavedWorkspaceReport, update_saved_workspace_report
@@ -68,7 +68,9 @@ class SQLiteReportRepository:
         if pinned_only:
             clauses.append("pinned_at IS NOT NULL")
         if normalized_search:
-            clauses.append("(LOWER(title) LIKE ? OR LOWER(summary) LIKE ? OR LOWER(export_markdown) LIKE ?)")
+            clauses.append(
+                "(LOWER(title) LIKE ? OR LOWER(summary) LIKE ? OR LOWER(export_markdown) LIKE ?)"
+            )
             like = f"%{normalized_search}%"
             params.extend([like, like, like])
         params.append(max(0, limit))
@@ -76,7 +78,7 @@ class SQLiteReportRepository:
             rows = connection.execute(
                 f"""
                 SELECT * FROM workspace_saved_reports
-                WHERE {' AND '.join(clauses)}
+                WHERE {" AND ".join(clauses)}
                 ORDER BY CASE WHEN pinned_at IS NULL THEN 0 ELSE 1 END DESC, updated_at DESC, rowid DESC
                 LIMIT ?
                 """,

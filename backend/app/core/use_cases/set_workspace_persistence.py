@@ -8,7 +8,6 @@ from app.core.use_cases.add_timeline_event import (
     AddTimelineEventUseCase,
 )
 
-
 VALID_PERSISTENCE = {"saved", "temporary"}
 
 

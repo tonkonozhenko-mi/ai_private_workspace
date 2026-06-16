@@ -21,7 +21,6 @@ from app.core.use_cases.recommend_models import (
     RecommendModelsUseCase,
 )
 
-
 NO_HISTORY_WARNING = "No workspace performance history for this model yet."
 FAKE_PROVIDER_PENALTY_REASON = (
     "-30: Fake/testing provider is not recommended for real workspace usage."
@@ -82,13 +81,8 @@ class RecommendWorkspaceModelsUseCase:
             workspace_repository=self.workspace_repository,
             model_experiment_repository=self.model_experiment_repository,
             rating_repository=self.rating_repository,
-        ).execute(
-            GetModelPerformanceSummaryInput(workspace_id=request.workspace_id)
-        )
-        performance_by_model = {
-            (item.provider, item.model): item
-            for item in performance.items
-        }
+        ).execute(GetModelPerformanceSummaryInput(workspace_id=request.workspace_id))
+        performance_by_model = {(item.provider, item.model): item for item in performance.items}
 
         recommendations = [
             self._merge_recommendation(
@@ -151,9 +145,7 @@ class RecommendWorkspaceModelsUseCase:
             )
 
         final_score += performance.score
-        reasons.append(
-            f"{performance.score:+d}: Workspace performance summary score."
-        )
+        reasons.append(f"{performance.score:+d}: Workspace performance summary score.")
         if performance.average_rating is not None and performance.average_rating >= 4:
             final_score += 10
             reasons.append("+10: Workspace average user rating is at least 4.")

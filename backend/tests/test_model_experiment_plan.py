@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -21,13 +20,8 @@ def test_indexed_workspace_llm_comparison_requires_no_reindex(tmp_path) -> None:
     assert plan["shared_context_strategy"] == (
         "Use the same indexed workspace context for all LLM candidates."
     )
-    assert all(
-        candidate["requires_reindex"] is False for candidate in plan["candidates"]
-    )
-    assert all(
-        candidate["requires_backend_restart"] is False
-        for candidate in plan["candidates"]
-    )
+    assert all(candidate["requires_reindex"] is False for candidate in plan["candidates"])
+    assert all(candidate["requires_backend_restart"] is False for candidate in plan["candidates"])
 
 
 def test_not_indexed_workspace_recommends_indexing_first(tmp_path) -> None:
@@ -38,8 +32,7 @@ def test_not_indexed_workspace_recommends_indexing_first(tmp_path) -> None:
     assert plan["can_compare_without_reindex"] is False
     assert plan["recommended_actions"][0] == "Index workspace first."
     assert all(
-        "Workspace is not indexed; shared context is unavailable."
-        in candidate["warnings"]
+        "Workspace is not indexed; shared context is unavailable." in candidate["warnings"]
         for candidate in plan["candidates"]
     )
 
@@ -74,13 +67,10 @@ def test_unknown_candidate_produces_warnings(tmp_path) -> None:
     candidate = response.json()["candidates"][0]
     assert candidate["known_in_catalog"] is False
     assert candidate["display_name"] is None
-    assert "Model is not in catalog; validate metadata before experiment." in (
-        candidate["warnings"]
-    )
     assert (
-        "Provider custom requires a compatible LLM provider adapter."
-        in candidate["warnings"]
+        "Model is not in catalog; validate metadata before experiment." in (candidate["warnings"])
     )
+    assert "Provider custom requires a compatible LLM provider adapter." in candidate["warnings"]
     assert candidate["requires_backend_restart"] is True
 
 
@@ -99,9 +89,7 @@ def test_invalid_experiment_type_returns_clear_error(tmp_path) -> None:
     response = _experiment_plan(workspace["id"], experiment_type="embedding_benchmark")
 
     assert response.status_code == 400
-    assert response.json()["detail"] == (
-        "Unknown experiment type: embedding_benchmark"
-    )
+    assert response.json()["detail"] == ("Unknown experiment type: embedding_benchmark")
 
 
 def test_unknown_workspace_returns_404() -> None:

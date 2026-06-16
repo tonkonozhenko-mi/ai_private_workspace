@@ -1,7 +1,7 @@
-from datetime import UTC, datetime
 import json
-from pathlib import Path
 import sqlite3
+from datetime import UTC, datetime
+from pathlib import Path
 
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
 from app.core.domain.workspace_model_selection import (
@@ -65,9 +65,7 @@ class SQLiteWorkspaceModelSelectionRepository:
                 selection.selected_llm
             ),
             "selected_embedding": (
-                SQLiteWorkspaceModelSelectionRepository._model_to_dict(
-                    selection.selected_embedding
-                )
+                SQLiteWorkspaceModelSelectionRepository._model_to_dict(selection.selected_embedding)
             ),
             "notes": selection.notes,
         }
@@ -92,9 +90,7 @@ class SQLiteWorkspaceModelSelectionRepository:
                 data["selected_llm"]
             ),
             selected_embedding=(
-                SQLiteWorkspaceModelSelectionRepository._model_from_dict(
-                    data["selected_embedding"]
-                )
+                SQLiteWorkspaceModelSelectionRepository._model_from_dict(data["selected_embedding"])
             ),
             notes=list(data["notes"]),
         )

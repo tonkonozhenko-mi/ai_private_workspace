@@ -71,18 +71,13 @@ def build_local_model_install_status(
         if model.provider == "ollama"
     }
 
-    install_targets = [
-        catalog_by_key[key]
-        for key in preferred
-        if key in catalog_by_key
-    ]
+    install_targets = [catalog_by_key[key] for key in preferred if key in catalog_by_key]
     if not install_targets:
         install_targets = [model for model in catalog_models if model.provider == "ollama"][:3]
 
     installed_by_name = {model.name: model for model in installed_models}
     known_target_keys = {
-        (model.provider, model.model_name, model.model_type)
-        for model in install_targets
+        (model.provider, model.model_name, model.model_type) for model in install_targets
     }
     install_targets.extend(
         model
@@ -92,13 +87,18 @@ def build_local_model_install_status(
         and (model.provider, model.model_name, model.model_type) not in known_target_keys
     )
     items = [
-        _build_item(model, installed_by_name, recommended=index == 0 or model.model_type == "embedding")
+        _build_item(
+            model, installed_by_name, recommended=index == 0 or model.model_type == "embedding"
+        )
         for index, model in enumerate(install_targets)
     ]
 
     if not runtime_reachable:
         status = "runtime_unreachable"
-        summary = error or f"Ollama is not reachable at {runtime_url}. Start Ollama to see installed models."
+        summary = (
+            error
+            or f"Ollama is not reachable at {runtime_url}. Start Ollama to see installed models."
+        )
         items = [
             LocalModelStatusItem(
                 provider=item.provider,
@@ -165,7 +165,9 @@ def parse_ollama_installed_models(payload: dict[str, Any]) -> list[LocalInstalle
         parsed.append(
             LocalInstalledModel(
                 name=name.strip(),
-                display_name=raw_model.get("model") if isinstance(raw_model.get("model"), str) else None,
+                display_name=raw_model.get("model")
+                if isinstance(raw_model.get("model"), str)
+                else None,
                 size_bytes=size if isinstance(size, int) else None,
                 modified_at=(
                     raw_model.get("modified_at")
@@ -193,9 +195,7 @@ def parse_ollama_installed_models(payload: dict[str, Any]) -> list[LocalInstalle
                     else None
                 ),
                 capabilities=[
-                    capability
-                    for capability in capabilities
-                    if isinstance(capability, str)
+                    capability for capability in capabilities if isinstance(capability, str)
                 ]
                 if isinstance(capabilities, list)
                 else [],

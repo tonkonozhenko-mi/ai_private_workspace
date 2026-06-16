@@ -15,7 +15,12 @@ def test_staged_backend_runtime_contract_exposes_practical_runtime_staging() -> 
     assert body["check_script"] == "scripts/check_staged_backend_runtime.sh"
     assert body["staging_directory"] == "build/desktop/backend-runtime"
     assert body["manifest_path"].endswith("AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json")
-    assert any(item["id"] == "frozen-binary" and item["status"] == "future" for item in body["items"])
+    assert any(
+        item["id"] == "frozen-binary" and item["status"] == "future" for item in body["items"]
+    )
     assert any("does not start the backend" in rule for rule in body["safety_rules"])
     assert any("must not be committed" in rule for rule in body["safety_rules"])
-    assert any(command["command"] == "scripts/stage_backend_runtime.sh" for command in body["validation_commands"])
+    assert any(
+        command["command"] == "scripts/stage_backend_runtime.sh"
+        for command in body["validation_commands"]
+    )
