@@ -1522,14 +1522,14 @@ function LocalModelInstallPanel({
         />
       ) : null}
 
-      <details className="model-manager-section" open={openDownloads}>
+      <details className="model-manager-section is-download" open={openDownloads}>
         <summary>
           <div>
-            <span className="eyebrow">Download</span>
+            <span className="eyebrow">Add</span>
             <strong>
               {missingRecommended.length > 0
                 ? "Recommended models need attention"
-                : "Choose or download a model"}
+                : "Add or change a model"}
             </strong>
             <p>
               {missingRecommended.length > 0
@@ -1660,7 +1660,7 @@ function LocalModelInstallPanel({
       </details>
 
       <details
-        className="model-manager-section"
+        className="model-manager-section is-installed"
         open={
           (installStatus?.installed_count ?? 0) > 0 ||
           !installStatus?.runtime_reachable
@@ -2048,78 +2048,110 @@ function InstalledModelCard({
   onDelete: (name: string) => void;
 }) {
   const deleteName = item.installed_as ?? item.model;
+  const [expanded, setExpanded] = useState(false);
+  const installed = item.status === "installed";
+  const roleLabel =
+    item.model_type === "embedding"
+      ? "Search model"
+      : item.model_type === "llm"
+        ? "Answer model"
+        : "Model";
+  const contextValue = item.context_length ?? item.embedding_length;
   return (
-    <article className="installed-model-card">
-      <div>
-        <strong>{item.display_name}</strong>
-        <p>{item.detail}</p>
-      </div>
-      <span className={`model-status-pill model-status-${item.status}`}>
-        {item.status}
-      </span>
-      <small>
-        {item.installed_as
-          ? `Installed as ${item.installed_as}`
-          : `${item.provider}/${item.model}`}
-      </small>
-      {item.status === "installed" ? (
-        <dl className="installed-model-metadata">
-          <div>
-            <dt>Size</dt>
-            <dd>{formatModelBytes(item.size_bytes)}</dd>
-          </div>
-          <div>
-            <dt>Parameters</dt>
-            <dd>{item.parameter_size ?? "Not reported"}</dd>
-          </div>
-          <div>
-            <dt>Quantization</dt>
-            <dd>{item.quantization_level ?? "Not reported"}</dd>
-          </div>
-          <div>
-            <dt>Installed / updated</dt>
-            <dd>{formatModelTimestamp(item.modified_at)}</dd>
-          </div>
-          <div>
-            <dt>Capabilities</dt>
-            <dd>{asArray(item.capabilities).join(", ") || "Not reported"}</dd>
-          </div>
-        </dl>
-      ) : null}
-      {item.status === "installed" ? (
-        <div className="installed-model-actions">
-          {confirmName === deleteName ? (
-            <>
-              <button
-                type="button"
-                className="workspace-card-action is-danger"
-                disabled={deletingModelName !== null}
-                onClick={() => {
-                  onDelete(deleteName);
-                  onRequestConfirm(null);
-                }}
-              >
-                {deletingModelName === deleteName ? "Deleting…" : "Confirm delete"}
-              </button>
-              <button
-                type="button"
-                className="workspace-card-action"
-                disabled={deletingModelName !== null}
-                onClick={() => onRequestConfirm(null)}
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="workspace-card-action is-danger"
-              disabled={deletingModelName !== null}
-              onClick={() => onRequestConfirm(deleteName)}
-            >
-              Delete model
-            </button>
-          )}
+    <article className={`installed-model-row${expanded ? " is-expanded" : ""}`}>
+      <button
+        type="button"
+        className="installed-model-row-head"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((value) => !value)}
+      >
+        <span className={`installed-model-icon is-${item.model_type === "embedding" ? "search" : "answer"}`} aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            {item.model_type === "embedding" ? (
+              <><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></>
+            ) : (
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            )}
+          </svg>
+        </span>
+        <span className="installed-model-name-block">
+          <span className="installed-model-name">{item.display_name}</span>
+          <span className="installed-model-role">{roleLabel}</span>
+        </span>
+        {installed ? (
+          <span className="installed-model-size">{formatModelBytes(item.size_bytes)}</span>
+        ) : (
+          <span className={`model-status-pill model-status-${item.status}`}>{item.status}</span>
+        )}
+        <svg className="installed-model-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {expanded ? (
+        <div className="installed-model-detail">
+          {item.detail ? <p className="installed-model-detail-text">{item.detail}</p> : null}
+          <dl className="installed-model-metadata">
+            <div>
+              <dt>Source</dt>
+              <dd>{item.installed_as ? `Installed as ${item.installed_as}` : `${item.provider}/${item.model}`}</dd>
+            </div>
+            <div>
+              <dt>Parameters</dt>
+              <dd>{item.parameter_size ?? "—"}</dd>
+            </div>
+            <div>
+              <dt>Quantization</dt>
+              <dd>{item.quantization_level ?? "—"}</dd>
+            </div>
+            <div>
+              <dt>{item.model_type === "embedding" ? "Embedding size" : "Context length"}</dt>
+              <dd>{contextValue != null ? contextValue.toLocaleString() : "—"}</dd>
+            </div>
+            <div>
+              <dt>Capabilities</dt>
+              <dd>{asArray(item.capabilities).join(", ") || "—"}</dd>
+            </div>
+            <div>
+              <dt>Installed / updated</dt>
+              <dd>{formatModelTimestamp(item.modified_at)}</dd>
+            </div>
+          </dl>
+          {installed ? (
+            <div className="installed-model-actions">
+              {confirmName === deleteName ? (
+                <>
+                  <button
+                    type="button"
+                    className="workspace-card-action is-danger"
+                    disabled={deletingModelName !== null}
+                    onClick={() => {
+                      onDelete(deleteName);
+                      onRequestConfirm(null);
+                    }}
+                  >
+                    {deletingModelName === deleteName ? "Deleting…" : "Confirm delete"}
+                  </button>
+                  <button
+                    type="button"
+                    className="workspace-card-action"
+                    disabled={deletingModelName !== null}
+                    onClick={() => onRequestConfirm(null)}
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="workspace-card-action is-danger"
+                  disabled={deletingModelName !== null}
+                  onClick={() => onRequestConfirm(deleteName)}
+                >
+                  Delete model
+                </button>
+              )}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </article>
@@ -2734,7 +2766,7 @@ function SimpleModelCard({
         <strong>{displayModel}</strong>
       </div>
       <p>{description}</p>
-      <StatusBadge label={status} />
+      {status !== "Ready" ? <StatusBadge label={status} /> : null}
     </article>
   );
 }
