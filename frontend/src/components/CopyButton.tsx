@@ -41,7 +41,7 @@ export function CopyButton({ text, label = "command", iconOnly = false }: CopyBu
       <button
         className={`answer-icon-button copy-button is-${copyState}`}
         type="button"
-        title={feedbackLabel}
+        data-tip={feedbackLabel}
         aria-label={`Copy ${label}`}
         onClick={() => void copyText()}
       >

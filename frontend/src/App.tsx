@@ -795,6 +795,7 @@ function App() {
     if (setupComplete && takeoverWasActiveRef.current) {
       takeoverWasActiveRef.current = false;
       setActiveTab("ask");
+      setSidebarCollapsed(true);
     }
   }, [setupComplete]);
 
@@ -939,7 +940,7 @@ function App() {
             <button
               className="icon-button"
               type="button"
-              title="Refresh projects"
+              data-tip="Refresh projects"
               aria-label="Refresh projects"
               onClick={() => void loadWorkspaces()}
             >
@@ -951,7 +952,8 @@ function App() {
             <button
               className="icon-button sidebar-new-project-icon"
               type="button"
-              title="New project"
+              data-tip="New project"
+              data-tip-align="end"
               aria-label="New project"
               onClick={() => setShowCreateWorkspace(true)}
             >
