@@ -8,11 +8,13 @@ import {
   getWorkspaceJob,
   getWorkspaceLatestScan,
   getWorkspaceScanChanges,
+  getWorkspaceTodos,
 } from "../api/client";
 import type {
   GitInsightsResponse,
   ProjectFileResponse,
   ProjectScanResponse,
+  ProjectTodosResponse,
   ProjectUnderstandingResponse,
   ScanChanges,
   WorkspaceDashboard,
@@ -241,6 +243,7 @@ export function ProjectUnderstanding({
   const [changes, setChanges] = useState<ScanChanges | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
   const [git, setGit] = useState<GitInsightsResponse | null>(null);
+  const [todos, setTodos] = useState<ProjectTodosResponse | null>(null);
   const autoTriedRef = useRef(false);
 
   useEffect(() => {
@@ -251,6 +254,7 @@ export function ProjectUnderstanding({
     setGenError(null);
     setChanges(null);
     setGit(null);
+    setTodos(null);
     autoTriedRef.current = false;
     // Have files on disk changed since the last scan? Only after a user gesture,
     // so this never triggers a macOS folder-access prompt on a cold launch.
@@ -269,6 +273,14 @@ export function ProjectUnderstanding({
         })
         .catch(() => {
           /* ignore — the activity card simply does not render */
+        });
+      // Deterministic TODO/FIXME inventory (also walks the folder).
+      getWorkspaceTodos(dashboard.workspace_id)
+        .then((result) => {
+          if (!cancelled && result.total > 0) setTodos(result);
+        })
+        .catch(() => {
+          /* ignore — the TODO card simply does not render */
         });
     }
     getWorkspaceLatestScan(dashboard.workspace_id)
@@ -494,6 +506,73 @@ export function ProjectUnderstanding({
         {genError ? <p className="pu-analysis-error">{genError}</p> : null}
       </div>
 
+      {understanding && understanding.architecture ? (
+        <div className="pu-card">
+          <div className="pu-card-head">
+            <MetaIcon><><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /></></MetaIcon>
+            <span>Architecture at a glance</span>
+          </div>
+          <p className="pu-guide-text">{understanding.architecture}</p>
+        </div>
+      ) : null}
+
+      {understanding && understanding.start_here.length > 0 ? (
+        <div className="pu-card">
+          <div className="pu-card-head">
+            <MetaIcon><><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 13l2 2 4-4" /></></MetaIcon>
+            <span>Where to start</span>
+          </div>
+          <ol className="pu-start-list">
+            {understanding.start_here.map((point) => (
+              <li key={point.file}>
+                <code title={point.file}>{point.file}</code>
+                {point.reason ? <span>{point.reason}</span> : null}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+
+      {understanding && understanding.run_commands.length > 0 ? (
+        <div className="pu-card">
+          <div className="pu-card-head">
+            <MetaIcon><><path d="M4 17l6-6-6-6M12 19h8" /></></MetaIcon>
+            <span>How to run</span>
+          </div>
+          <div className="pu-run-list">
+            {understanding.run_commands.map((command, index) => (
+              <div className="pu-run-row" key={`${command.command}-${index}`}>
+                <code>{command.command}</code>
+                {command.note ? <span>{command.note}</span> : null}
+              </div>
+            ))}
+          </div>
+          <p className="pu-guide-foot">Commands found in your project files — review before running.</p>
+        </div>
+      ) : null}
+
+      {todos ? (
+        <div className="pu-card">
+          <div className="pu-card-head">
+            <MetaIcon><><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></></MetaIcon>
+            <span>TODOs &amp; loose ends</span>
+            <small>{todos.total}</small>
+          </div>
+          <ul className="pu-todo-list">
+            {todos.items.slice(0, 8).map((item, index) => (
+              <li key={`${item.file}-${item.line}-${index}`}>
+                <span className={`pu-todo-marker pu-todo-${item.marker.toLowerCase()}`}>{item.marker}</span>
+                <span className="pu-todo-text">{item.text}</span>
+                <code className="pu-todo-loc" title={`${item.file}:${item.line}`}>{item.file.split("/").pop()}:{item.line}</code>
+              </li>
+            ))}
+          </ul>
+          {todos.truncated || todos.total > Math.min(8, todos.items.length) ? (
+            <p className="pu-guide-foot">Showing {Math.min(8, todos.items.length)} of {todos.total} found in your files.</p>
+          ) : null}
+        </div>
+      ) : null}
+
       {loading ? (
         <p className="pu-loading">Reading your project…</p>
       ) : (
@@ -543,14 +622,6 @@ export function ProjectUnderstanding({
           <div className="pu-source is-active">
             <MetaIcon>{GROUP_META.docs.icon}</MetaIcon>
             <div><strong>Local files</strong><small>{scan ? `Active · ${scan.scanned_files.toLocaleString()} files` : "Active"}</small></div>
-          </div>
-          <div className="pu-source" title="Integration coming soon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
-            <div><strong>Confluence</strong><small>Coming soon</small></div>
-          </div>
-          <div className="pu-source" title="Integration coming soon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9z" /></svg>
-            <div><strong>Jira</strong><small>Coming soon</small></div>
           </div>
           {git || gitAvailable ? (
             <div className={`pu-source${git ? " is-active" : ""}`}>

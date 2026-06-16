@@ -277,6 +277,16 @@ from app.api.schemas.git_insights_schemas import (
     GitInsightsResponse,
     to_git_insights_response,
 )
+from app.core.use_cases.get_workspace_todos import (
+    GetWorkspaceTodosInput,
+    GetWorkspaceTodosUseCase,
+    WorkspaceTodosNotFoundError,
+)
+from app.core.use_cases.scan_project import ScanProjectUseCase
+from app.api.schemas.project_todos_schemas import (
+    ProjectTodosResponse,
+    to_project_todos_response,
+)
 from app.core.use_cases.backfill_workspace_timeline import (
     BackfillWorkspaceTimelineInput,
     BackfillWorkspaceTimelineUseCase,
@@ -1974,6 +1984,33 @@ def get_workspace_git_insights(workspace_id: str) -> GitInsightsResponse:
             detail=str(exc),
         ) from exc
     return to_git_insights_response(insights)
+
+
+@router.get(
+    "/{workspace_id}/todos",
+    response_model=ProjectTodosResponse,
+)
+def get_workspace_todos(workspace_id: str) -> ProjectTodosResponse:
+    resolved_rules = _resolve_file_rules(workspace_id, None)
+    use_case = GetWorkspaceTodosUseCase(
+        workspace_repository=workspace_repository,
+        file_system=file_system,
+        scan_use_case=ScanProjectUseCase(file_system),
+    )
+    try:
+        todos = use_case.execute(
+            GetWorkspaceTodosInput(
+                workspace_id=workspace_id,
+                include_patterns=resolved_rules.include_patterns,
+                exclude_patterns=resolved_rules.exclude_patterns,
+            )
+        )
+    except WorkspaceTodosNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return to_project_todos_response(todos)
 
 
 @router.get(

@@ -145,16 +145,29 @@ def build_project_understanding_prompt(
         "fences.\n"
         '- The JSON shape is exactly: {"summary": "<2-4 sentences, plain '
         'language>", "risks": [{"text": "<short risk or gap>", "file": "<the '
-        'source_path the evidence came from, or null>"}]}.\n'
+        'source_path the evidence came from, or null>"}], "architecture": '
+        '"<2-3 plain-language sentences on the main components and how they fit '
+        'together, or empty string>", "start_here": [{"file": "<a source_path '
+        'from above>", "reason": "<one short line why a newcomer should read it '
+        'first>"}], "run_commands": [{"command": "<an exact setup/run/test '
+        'command found in the excerpts>", "note": "<what it does>"}]}.\n'
         "- Only state what is supported by the provided excerpts. Never invent "
-        "facts, files, or features.\n"
+        "facts, files, features, or commands.\n"
         "- Each risk must cite the source_path it is grounded in via the \"file\" "
         "field, copied exactly as shown above; use null only if no single file "
         "supports it.\n"
         f"- Include at most {max_risks} risks. If the excerpts do not provide "
         "enough evidence for risks, return an empty risks list and a brief, "
         "honest summary.\n"
-        "- Keep the summary plain-language and concise.\n"
+        "- For \"start_here\", list at most 4 files, each \"file\" copied exactly "
+        "from the source paths above; order them as a sensible reading order. Use "
+        "an empty list if unsure.\n"
+        "- For \"run_commands\", list at most 5 commands and ONLY commands that "
+        "literally appear in the excerpts (e.g. in a README or config). Never "
+        "guess commands; use an empty list if none appear.\n"
+        "- For \"architecture\", keep it plain-language and grounded; use an empty "
+        "string if the excerpts do not support it.\n"
+        "- Keep all text plain-language and concise.\n"
         "- Do not include markdown, commentary, or explanations outside the JSON."
     )
 

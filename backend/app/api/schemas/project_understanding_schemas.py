@@ -8,6 +8,16 @@ class ProjectRiskResponse(BaseModel):
     file: str | None = None
 
 
+class ProjectStartPointResponse(BaseModel):
+    file: str
+    reason: str = ""
+
+
+class ProjectRunCommandResponse(BaseModel):
+    command: str
+    note: str = ""
+
+
 class ProjectUnderstandingResponse(BaseModel):
     workspace_id: str
     model: str
@@ -17,6 +27,9 @@ class ProjectUnderstandingResponse(BaseModel):
     risks: list[ProjectRiskResponse]
     sources: list[str]
     is_stale: bool
+    architecture: str = ""
+    start_here: list[ProjectStartPointResponse] = []
+    run_commands: list[ProjectRunCommandResponse] = []
 
 
 def to_project_understanding_response(
@@ -35,4 +48,13 @@ def to_project_understanding_response(
         ],
         sources=list(understanding.sources),
         is_stale=is_stale,
+        architecture=understanding.architecture,
+        start_here=[
+            ProjectStartPointResponse(file=point.file, reason=point.reason)
+            for point in understanding.start_here
+        ],
+        run_commands=[
+            ProjectRunCommandResponse(command=command.command, note=command.note)
+            for command in understanding.run_commands
+        ],
     )
