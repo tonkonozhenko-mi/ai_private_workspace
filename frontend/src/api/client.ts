@@ -8,6 +8,7 @@ import type {
   CreateWorkspaceRequest,
   CreatedWorkspace,
   WorkspaceFileWriteResult,
+  GitInsightsResponse,
   ProjectScanResponse,
   ProjectUnderstandingResponse,
   ScanChanges,
@@ -561,6 +562,19 @@ export function getWorkspaceScanChanges(
   options: { signal?: AbortSignal } = {},
 ): Promise<ScanChanges> {
   return requestJson<ScanChanges>(`/workspaces/${workspaceId}/scan/changes`, {
+    signal: options.signal,
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+}
+
+// Read-only git history snapshot for the project folder. Returns is_repo=false
+// when the folder is not a git repo or git is unavailable.
+export function getWorkspaceGitInsights(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<GitInsightsResponse> {
+  return requestJson<GitInsightsResponse>(`/workspaces/${workspaceId}/git-insights`, {
     signal: options.signal,
     method: "GET",
     headers: { Accept: "application/json" },

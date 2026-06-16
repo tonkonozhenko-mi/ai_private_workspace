@@ -4,11 +4,13 @@ import type { ReactNode } from "react";
 import {
   generateProjectUnderstanding,
   getProjectUnderstanding,
+  getWorkspaceGitInsights,
   getWorkspaceJob,
   getWorkspaceLatestScan,
   getWorkspaceScanChanges,
 } from "../api/client";
 import type {
+  GitInsightsResponse,
   ProjectFileResponse,
   ProjectScanResponse,
   ProjectUnderstandingResponse,
@@ -52,7 +54,22 @@ function relativeTime(iso: string): string {
   if (minutes < 60) return `${minutes} min ago`;
   const hours = Math.round(minutes / 60);
   if (hours < 24) return `${hours} h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `${days} d ago`;
   return new Date(iso).toLocaleDateString();
+}
+
+// Human-readable span since the first commit, e.g. "8 months" or "12 days".
+function humanAge(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const days = Math.max(0, Math.round((Date.now() - then) / 86400000));
+  if (days < 1) return "today";
+  if (days < 30) return `${days} day${days === 1 ? "" : "s"}`;
+  const months = Math.round(days / 30.4);
+  if (months < 12) return `${months} month${months === 1 ? "" : "s"}`;
+  const years = (days / 365).toFixed(days < 730 ? 1 : 0);
+  return `${years} year${years === "1" ? "" : "s"}`;
 }
 
 type FileGroupKey = "code" | "infra" | "ci" | "tests" | "docs" | "config";
@@ -143,6 +160,61 @@ function MetaIcon({ children }: { children: ReactNode }) {
   );
 }
 
+function GitActivityCard({ git }: { git: GitInsightsResponse }) {
+  const maxHotspot = git.hotspots.reduce((max, h) => Math.max(max, h.changes), 0) || 1;
+  const stats: Array<{ label: string; value: string }> = [
+    { label: "Commits", value: git.total_commits.toLocaleString() },
+    { label: "Last 30 days", value: git.commits_last_30_days.toLocaleString() },
+    { label: "Contributors", value: git.contributors_count.toLocaleString() },
+  ];
+  if (git.first_commit_at) stats.push({ label: "Active for", value: humanAge(git.first_commit_at) });
+
+  return (
+    <div className="pu-card pu-git-activity">
+      <div className="pu-card-head">
+        <MetaIcon><><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="9" r="3" /><path d="M18 12a9 9 0 0 1-9 9M6 9v6" /></></MetaIcon>
+        <span>Project activity</span>
+        {git.branch ? <small className="pu-git-branch">{git.branch}</small> : null}
+      </div>
+
+      {git.last_commit ? (
+        <div className="pu-git-last">
+          <p className="pu-git-last-subject" title={git.last_commit.subject}>{git.last_commit.subject}</p>
+          <p className="pu-git-last-meta">
+            {git.last_commit.author}
+            {git.last_commit.committed_at ? ` · ${relativeTime(git.last_commit.committed_at)}` : ""}
+            {git.last_commit.short_hash ? <> · <code>{git.last_commit.short_hash}</code></> : null}
+          </p>
+        </div>
+      ) : null}
+
+      <div className="pu-git-stats">
+        {stats.map((stat) => (
+          <div className="pu-git-stat" key={stat.label}>
+            <strong>{stat.value}</strong>
+            <span>{stat.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {git.hotspots.length > 0 ? (
+        <div className="pu-git-hotspots">
+          <div className="pu-eyebrow">Most active files · last 90 days</div>
+          <ul>
+            {git.hotspots.map((hotspot) => (
+              <li key={hotspot.path} title={hotspot.path}>
+                <span className="pu-git-hotspot-bar"><span style={{ width: `${Math.round((hotspot.changes / maxHotspot) * 100)}%` }} /></span>
+                <span className="pu-git-hotspot-path">{hotspot.path}</span>
+                <span className="pu-git-hotspot-count">{hotspot.changes}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function ProjectUnderstanding({
   dashboard,
   projectPath,
@@ -168,6 +240,7 @@ export function ProjectUnderstanding({
   const [genError, setGenError] = useState<string | null>(null);
   const [changes, setChanges] = useState<ScanChanges | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [git, setGit] = useState<GitInsightsResponse | null>(null);
   const autoTriedRef = useRef(false);
 
   useEffect(() => {
@@ -177,6 +250,7 @@ export function ProjectUnderstanding({
     setUnderstandingChecked(false);
     setGenError(null);
     setChanges(null);
+    setGit(null);
     autoTriedRef.current = false;
     // Have files on disk changed since the last scan? Only after a user gesture,
     // so this never triggers a macOS folder-access prompt on a cold launch.
@@ -187,6 +261,14 @@ export function ProjectUnderstanding({
         })
         .catch(() => {
           /* ignore — no banner if the check fails */
+        });
+      // Read-only git snapshot (also walks the folder, so it is gated too).
+      getWorkspaceGitInsights(dashboard.workspace_id)
+        .then((result) => {
+          if (!cancelled && result.is_repo) setGit(result);
+        })
+        .catch(() => {
+          /* ignore — the activity card simply does not render */
         });
     }
     getWorkspaceLatestScan(dashboard.workspace_id)
@@ -450,6 +532,8 @@ export function ProjectUnderstanding({
         </>
       )}
 
+      {git ? <GitActivityCard git={git} /> : null}
+
       <div className="pu-card pu-sources">
         <div className="pu-sources-head">
           <span className="pu-eyebrow">Sources</span>
@@ -468,10 +552,10 @@ export function ProjectUnderstanding({
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9z" /></svg>
             <div><strong>Jira</strong><small>Coming soon</small></div>
           </div>
-          {gitAvailable ? (
-            <div className="pu-source">
+          {git || gitAvailable ? (
+            <div className={`pu-source${git ? " is-active" : ""}`}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="9" r="3" /><path d="M18 12a9 9 0 0 1-9 9M6 9v6" /></svg>
-              <div><strong>Git history</strong><small>Available</small></div>
+              <div><strong>Git history</strong><small>{git?.last_commit?.committed_at ? `Active · ${relativeTime(git.last_commit.committed_at)}` : "Available"}</small></div>
             </div>
           ) : null}
         </div>
