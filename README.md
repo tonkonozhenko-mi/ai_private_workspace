@@ -9,7 +9,9 @@
 
 The v0.1 release candidate is a source handoff for developers and reviewers. It is not yet a signed installer-grade product.
 
-![AI Private Workspace flow](docs/assets/product-flow.svg)
+<p align="center">
+  <img src="docs/assets/screenshots/01-ask.png" alt="Ask a question about your project and get an answer grounded in local sources" width="820">
+</p>
 
 ## Contents
 
@@ -55,6 +57,25 @@ your organization's device management.
 - Lets Ask turn an answer into a reviewed project-file draft; a file is written only after the user confirms its relative path, exact content, and overwrite intent.
 - Provides Agent and MCP planning UX without automatic tool execution.
 - Includes macOS, Windows, and Tauri packaging foundations for future installer-grade releases.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/02-setup.png" alt="Guided local setup" width="100%"><br><sub><b>Guided setup</b> — one calm step at a time, models install inline.</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/03-overview.png" alt="Project overview" width="100%"><br><sub><b>Project overview</b> — detected tech, status, and next actions.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/04-models.png" alt="Model management and comparison" width="100%"><br><sub><b>Models</b> — choose, install, and compare local models.</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/05-light.png" alt="Light theme" width="100%"><br><sub><b>Light theme</b> — the whole app in light or dark.</sub></td>
+  </tr>
+</table>
+
+> Capturing these? See [`docs/assets/screenshots/CAPTURE_GUIDE.md`](docs/assets/screenshots/CAPTURE_GUIDE.md) for the exact shots and file names.
+
+The end-to-end flow at a glance:
+
+![AI Private Workspace flow](docs/assets/product-flow.svg)
 
 ## Safety model
 
