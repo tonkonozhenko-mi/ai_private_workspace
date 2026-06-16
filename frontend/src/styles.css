@@ -3419,7 +3419,7 @@ details.onboarding-guide-panel[open] > summary {
   background: var(--c-surface-2);
   border: 1px solid var(--c-border);
   border-radius: var(--r-pill);
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--c-text-2);
 }
 .ask-file-chip-icon {

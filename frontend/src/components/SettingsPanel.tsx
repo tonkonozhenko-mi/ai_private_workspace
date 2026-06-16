@@ -523,7 +523,7 @@ export function SettingsPanel({
               <div className="settings-reset-actions">
                 <span className="settings-danger-confirm">Can't be undone.</span>
                 <button
-                  className="secondary-action settings-danger-button"
+                  className="primary-button settings-danger-button"
                   type="button"
                   disabled={resetting}
                   onClick={() => void resetWorkspaces()}
