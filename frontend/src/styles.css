@@ -480,7 +480,11 @@ a {
   border-radius: var(--r-md);
   padding: 9px 18px;
   font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease;
 }
+.guided-model-card .model-selection-save-button { width: 100%; }
+.model-selection-save-button:disabled { opacity: 0.65; cursor: default; }
 .overview-cta-button:hover,
 .model-selection-save-button:hover {
   background: var(--c-accent-hover);
@@ -1591,15 +1595,18 @@ details.onboarding-guide-panel[open] > summary {
 .installed-models-grid { display: flex; flex-direction: column; gap: 8px; }
 .installed-models-group + .installed-models-group { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--c-border); }
 .installed-models-group-label { margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-text-3); }
-.installed-model-row { border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-surface-2); overflow: hidden; }
-.installed-model-row.is-expanded { background: var(--c-surface); border-color: var(--c-border-strong); }
+.installed-model-row { border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-surface-2); overflow: hidden; transition: border-color 120ms ease, box-shadow 120ms ease; }
+.installed-model-row:hover { border-color: var(--c-border-strong); }
+.installed-model-row.is-expanded { background: var(--c-surface); border-color: var(--c-border-strong); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); }
 .installed-model-row-head { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 14px; background: transparent; border: none; cursor: pointer; text-align: left; color: var(--c-text); }
 .installed-model-icon { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; background: var(--c-accent-soft); color: var(--c-accent); flex: 0 0 auto; }
+.installed-model-icon.is-search { background: var(--c-surface); border: 1px solid var(--c-border-strong); color: var(--c-text-2); }
 .installed-model-icon svg { width: 16px; height: 16px; }
 .installed-model-name-block { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .installed-model-name { font-size: 13.5px; font-weight: 500; font-family: var(--font-mono, ui-monospace, monospace); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .installed-model-role { font-size: 11.5px; color: var(--c-text-3); }
-.installed-model-size { font-size: 12.5px; color: var(--c-text-2); flex: 0 0 auto; }
+.installed-model-size { font-size: 12px; font-weight: 500; color: var(--c-text-2); flex: 0 0 auto; padding: 2px 9px; border-radius: var(--r-pill); background: var(--c-surface); border: 1px solid var(--c-border); }
+.installed-model-row.is-expanded .installed-model-size { background: var(--c-surface-2); }
 .installed-model-chevron { width: 16px; height: 16px; color: var(--c-text-3); flex: 0 0 auto; transition: transform 0.15s ease; }
 .installed-model-row.is-expanded .installed-model-chevron { transform: rotate(180deg); }
 .installed-model-detail { padding: 0 14px 14px; }
@@ -1777,7 +1784,11 @@ details.onboarding-guide-panel[open] > summary {
 .file-preview-panel { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: var(--s-4); }
 .first-launch-card { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: var(--s-4); }
 .first-launch-footnote { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: var(--s-4); }
-.guided-model-card { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: var(--s-4); }
+.guided-model-card { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: var(--s-4); display: flex; flex-direction: column; }
+/* Push the action button to the bottom so "Use & install" lines up across cards
+   even when the meta/notes above them differ in height. */
+.guided-model-card .model-selection-save-button { margin-top: auto; }
+.guided-model-card .install-progress { margin-top: 12px; }
 .guided-model-notes { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: var(--s-4); }
 .guided-model-option { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: var(--s-4); }
 .guided-model-option-badge { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: var(--s-4); }
@@ -1846,7 +1857,22 @@ details.onboarding-guide-panel[open] > summary {
 .getting-ready-error { margin-top: 14px; color: var(--c-danger); font-size: 13px; }
 .getting-ready-foot { margin-top: 40px; color: var(--c-text-3); font-size: 12px; }
 .gr-job-progress { margin-top: 20px; width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 8px; }
+.gr-job-progress-foot { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .gr-job-progress-label { font-size: 12.5px; color: var(--c-text-2); text-align: center; }
+.gr-job-stop {
+  appearance: none;
+  border: 1px solid var(--c-border-strong);
+  background: var(--c-surface);
+  color: var(--c-text-2);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 5px 16px;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+.gr-job-stop:hover:not(:disabled) { color: var(--c-danger); border-color: var(--c-danger); background: var(--c-surface-2); }
+.gr-job-stop:disabled { opacity: 0.6; cursor: default; }
 
 /* Advanced inspector (setup-only) — clean, light cards */
 .overview-advanced-disclosure { padding: 0; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-md); }
