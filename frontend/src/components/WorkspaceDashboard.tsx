@@ -13,6 +13,7 @@ import {
 } from "./fileIndexingPreferences";
 import { ModelsSummaryCard } from "./ModelsSummaryCard";
 import { WorkspaceGettingReady } from "./WorkspaceGettingReady";
+import { ProjectUnderstanding } from "./ProjectUnderstanding";
 import { StatusBadge } from "./StatusBadge";
 import type { StatusTone } from "./statusTone";
 import {
@@ -80,15 +81,22 @@ export function WorkspaceDashboard({
       </header>
 
       {fullyReady ? (
-        <DailyUseStatusPanel
-          dashboard={dashboard}
-          modelsSummary={modelsSummary}
-          onOpenAsk={onOpenAsk}
-          onOpenModels={onOpenModels}
-          onOpenCapabilities={onOpenCapabilities}
-          onStartScan={() => void onStartScanJob()}
-          onStartIndex={() => void onStartIndexJob()}
-        />
+        <>
+          <ProjectUnderstanding
+            dashboard={dashboard}
+            onOpenAsk={onOpenAsk}
+            onOpenSettings={onOpenSettings}
+          />
+          <DailyUseStatusPanel
+            dashboard={dashboard}
+            modelsSummary={modelsSummary}
+            onOpenAsk={onOpenAsk}
+            onOpenModels={onOpenModels}
+            onOpenCapabilities={onOpenCapabilities}
+            onStartScan={() => void onStartScanJob()}
+            onStartIndex={() => void onStartIndexJob()}
+          />
+        </>
       ) : (
         <WorkspaceGettingReady
           dashboard={dashboard}

@@ -540,6 +540,19 @@ export function scanWorkspace(
   });
 }
 
+// Read-only fetch of the latest scan result (detected skills + files) without
+// re-scanning. Used by the project-understanding home screen.
+export function getWorkspaceLatestScan(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ProjectScanResponse> {
+  return requestJson<ProjectScanResponse>(`/workspaces/${workspaceId}/scan`, {
+    signal: options.signal,
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+}
+
 export function indexWorkspace(
   workspaceId: string,
   options: { signal?: AbortSignal } = {},
