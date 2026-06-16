@@ -220,13 +220,10 @@ export function SettingsPanel({
 
   return (
     <div className="settings-simplified-page">
-      <section className="panel settings-clean-hero">
-        <div>
-          <p className="eyebrow">Settings</p>
-          <h2>Keep daily use simple.</h2>
-          <p>A few everyday preferences. Choosing your AI lives in the Models tab.</p>
-        </div>
-      </section>
+      <header className="settings-page-header">
+        <p className="eyebrow">Settings</p>
+        <p>Everyday preferences. Your AI models live in the Models tab.</p>
+      </header>
 
       <section className="settings-clean-grid">
         <article className="panel settings-clean-card">

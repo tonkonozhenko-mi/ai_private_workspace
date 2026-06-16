@@ -57,9 +57,12 @@ def build_local_model_install_status(
     runtime_url: str,
     error: str | None = None,
 ) -> LocalModelInstallStatus:
+    # The lighter model is the first-run default (fast download, runs on more
+    # Macs). Heavier/sharper models like qwen2.5-coder stay available as an
+    # upgrade in the Models catalog. Only index 0 is flagged "recommended".
     preferred = [
-        ("llm", "qwen2.5-coder"),
         ("llm", "llama3.2"),
+        ("llm", "qwen2.5-coder"),
         ("embedding", "nomic-embed-text"),
     ]
     catalog_by_key = {

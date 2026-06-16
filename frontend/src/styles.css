@@ -1691,7 +1691,10 @@ details.onboarding-guide-panel[open] > summary {
 .report-quality-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.55rem; }
 .report-safety-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; }
 .reports-layout { display: grid; grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.1fr); gap: 1rem; }
-.settings-clean-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.settings-clean-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; max-width: 760px; }
+.settings-page-header { margin-bottom: 6px; }
+.settings-page-header .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-text-3); }
+.settings-page-header p:last-child { margin: 5px 0 0; font-size: 14px; color: var(--c-text-2); }
 .settings-clean-guidance-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .settings-clean-guidance-list-focused { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
 .settings-clean-hero { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }

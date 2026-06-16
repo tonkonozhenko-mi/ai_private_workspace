@@ -363,7 +363,7 @@ export function WorkspaceGettingReady({
           <h2>Give your project a local brain</h2>
           <p>
             Downloads two small local models — one to answer, one to search your files
-            (about 5 GB, runs offline). Want to choose your own instead? Open Models.
+            (about 2.5 GB, runs offline). Want a bigger, sharper model? Open Models.
           </p>
 
           <ul className="getting-ready-checklist">
