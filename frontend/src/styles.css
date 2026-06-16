@@ -1636,6 +1636,31 @@ details.onboarding-guide-panel[open] > summary {
 .pu-source small { font-size: 11px; color: var(--c-text-3); }
 .pu-source.is-active { border-color: var(--c-accent-border); color: var(--c-accent); }
 .pu-source.is-active small { color: var(--c-accent); }
+
+/* Deep analysis card (Phase 2a) */
+.pu-analysis-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pu-analysis-reanalyze { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--c-text-2); background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: 8px; padding: 6px 11px; cursor: pointer; }
+.pu-analysis-reanalyze:hover:not(:disabled) { color: var(--c-text); border-color: var(--c-border-strong); }
+.pu-analysis-reanalyze svg { width: 14px; height: 14px; }
+.pu-analysis-loading { margin: 12px 0 0; font-size: 14px; color: var(--c-text-2); line-height: 1.6; }
+.pu-analysis-summary { margin: 12px 0 0; font-size: 14.5px; line-height: 1.65; color: var(--c-text); }
+.pu-analysis-risks-label { display: block; margin: 16px 0 8px; }
+.pu-analysis-risks { display: flex; flex-direction: column; gap: 8px; }
+.pu-risk { display: flex; align-items: flex-start; gap: 9px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: 9px; padding: 10px 12px; }
+.pu-risk svg { width: 16px; height: 16px; color: var(--c-warning); flex: 0 0 auto; margin-top: 1px; }
+.pu-risk-text { display: block; font-size: 13px; color: var(--c-text); }
+.pu-risk-file { display: block; margin-top: 2px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; color: var(--c-text-3); }
+.pu-analysis-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--c-border); }
+.pu-analysis-model { font-size: 11.5px; color: var(--c-text-3); }
+.pu-analysis-model strong { color: var(--c-text-2); font-weight: 500; }
+.pu-analysis-nudge { display: inline-flex; align-items: center; font-size: 11.5px; color: var(--c-warning); background: rgba(242, 201, 107, 0.12); border-radius: 999px; padding: 5px 11px; }
+.pu-analysis-hint { display: inline-flex; align-items: center; font-size: 11.5px; color: var(--c-accent); background: var(--c-accent-soft); border-radius: 999px; padding: 5px 11px; }
+.pu-analysis-pitch { margin: 12px 0 14px; font-size: 13.5px; color: var(--c-text-2); line-height: 1.6; }
+.pu-analysis-cta { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px; border: none; background: var(--c-accent); color: var(--c-accent-ink); font-size: 13px; font-weight: 500; cursor: pointer; }
+.pu-analysis-cta:hover:not(:disabled) { background: var(--c-accent-hover); }
+.pu-analysis-cta:disabled { opacity: 0.5; cursor: default; }
+.pu-analysis-cta svg { width: 16px; height: 16px; }
+.pu-analysis-error { margin: 10px 0 0; font-size: 12.5px; color: var(--c-danger); }
 .models-workflow-panel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .native-action-catalog { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 0.42fr); gap: var(--space-5); }
 .native-action-details-list { display: grid; grid-template-columns: minmax(92px, 0.45fr) minmax(0, 1fr); gap: var(--s-4); }

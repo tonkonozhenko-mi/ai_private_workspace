@@ -56,6 +56,22 @@ export interface FileSelectionPreview {
   excluded_samples: FileSelectionPreviewItem[];
 }
 
+export interface ProjectRisk {
+  text: string;
+  file: string | null;
+}
+
+export interface ProjectUnderstandingResponse {
+  workspace_id: string;
+  model: string;
+  generated_at: string;
+  index_signature: string;
+  summary: string;
+  risks: ProjectRisk[];
+  sources: string[];
+  is_stale: boolean;
+}
+
 export interface ProjectScanResponse {
   project_path: string;
   total_files: number;

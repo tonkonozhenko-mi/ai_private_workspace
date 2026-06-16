@@ -29,6 +29,9 @@ from app.adapters.memory.in_memory_model_experiment_rating_repository import (
 from app.adapters.memory.in_memory_project_scan_repository import (
     InMemoryProjectScanRepository,
 )
+from app.adapters.memory.in_memory_project_understanding_repository import (
+    InMemoryProjectUnderstandingRepository,
+)
 from app.adapters.memory.in_memory_report_repository import InMemoryReportRepository
 from app.adapters.memory.in_memory_skill_profile_repository import InMemorySkillProfileRepository
 from app.adapters.memory.in_memory_timeline_repository import InMemoryTimelineRepository
@@ -49,6 +52,9 @@ from app.adapters.memory.sqlite_model_experiment_rating_repository import (
     SQLiteModelExperimentRatingRepository,
 )
 from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScanRepository
+from app.adapters.memory.sqlite_project_understanding_repository import (
+    SQLiteProjectUnderstandingRepository,
+)
 from app.adapters.memory.sqlite_report_repository import SQLiteReportRepository
 from app.adapters.memory.sqlite_skill_profile_repository import SQLiteSkillProfileRepository
 from app.adapters.memory.sqlite_timeline_repository import SQLiteTimelineRepository
@@ -93,6 +99,9 @@ from app.core.ports.model_experiment_rating_repository import (
     ModelExperimentRatingRepositoryPort,
 )
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
+from app.core.ports.project_understanding_repository import (
+    ProjectUnderstandingRepositoryPort,
+)
 from app.core.ports.report_repository import ReportRepositoryPort
 from app.core.ports.runtime_health_checker import RuntimeHealthCheckerPort
 from app.core.ports.skill_profile_repository import SkillProfileRepositoryPort
@@ -141,6 +150,18 @@ def build_report_repository() -> ReportRepositoryPort:
         return SQLiteReportRepository(settings.workspace_db_path)
 
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+def build_project_understanding_repository() -> ProjectUnderstandingRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryProjectUnderstandingRepository()
+    if repository_type == "sqlite":
+        return SQLiteProjectUnderstandingRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
 
 def build_mcp_repository() -> MCPRepositoryPort:
     settings = get_settings()
@@ -459,6 +480,7 @@ def build_model_catalog_registry() -> ModelCatalogRegistry:
 workspace_repository = build_workspace_repository()
 project_scan_repository = build_project_scan_repository()
 report_repository = build_report_repository()
+project_understanding_repository = build_project_understanding_repository()
 agent_workflow_repository = build_agent_workflow_repository()
 mcp_repository = build_mcp_repository()
 command_repository = build_command_repository()

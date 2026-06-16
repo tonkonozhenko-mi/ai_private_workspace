@@ -1,12 +1,29 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
-import { getWorkspaceLatestScan } from "../api/client";
+import {
+  generateProjectUnderstanding,
+  getProjectUnderstanding,
+  getWorkspaceLatestScan,
+} from "../api/client";
 import type {
   ProjectFileResponse,
   ProjectScanResponse,
+  ProjectUnderstandingResponse,
   WorkspaceDashboard,
 } from "../api/types";
+
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const seconds = Math.max(0, Math.round((Date.now() - then) / 1000));
+  if (seconds < 45) return "just now";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  return new Date(iso).toLocaleDateString();
+}
 
 type FileGroupKey = "code" | "infra" | "ci" | "tests" | "docs" | "config";
 
@@ -67,10 +84,15 @@ export function ProjectUnderstanding({
 }) {
   const [scan, setScan] = useState<ProjectScanResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [understanding, setUnderstanding] = useState<ProjectUnderstandingResponse | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setUnderstanding(null);
+    setGenError(null);
     getWorkspaceLatestScan(dashboard.workspace_id)
       .then((result) => {
         if (!cancelled) setScan(result);
@@ -81,10 +103,33 @@ export function ProjectUnderstanding({
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+    // Load any previously generated deep analysis (404 = none yet, treated as null).
+    getProjectUnderstanding(dashboard.workspace_id)
+      .then((result) => {
+        if (!cancelled) setUnderstanding(result);
+      })
+      .catch(() => {
+        if (!cancelled) setUnderstanding(null);
+      });
     return () => {
       cancelled = true;
     };
   }, [dashboard.workspace_id]);
+
+  const selectedModel = dashboard.models_summary?.selected_llm ?? null;
+
+  async function handleAnalyze() {
+    setGenerating(true);
+    setGenError(null);
+    try {
+      const result = await generateProjectUnderstanding(dashboard.workspace_id);
+      setUnderstanding(result);
+    } catch (error) {
+      setGenError(error instanceof Error ? error.message : "Could not analyze the project.");
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   const lens = LENSES[dashboard.assistant_mode] ?? LENSES.developer;
   const skills = scan ? scan.detected_skills : [];
@@ -124,6 +169,64 @@ export function ProjectUnderstanding({
         <span className="pu-eyebrow">What this project is</span>
         <p>{summaryLine}</p>
         <span className="pu-summary-foot">{lens.focus} · From your local scan.</span>
+      </div>
+
+      <div className="pu-card pu-analysis">
+        <div className="pu-analysis-head">
+          <div className="pu-card-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l1.9 4.9L19 9l-4.1 1.1L12 15l-1.9-4.9L6 9l4.1-1.1zM5 16l.9 2.1L8 19l-2.1.9L5 22l-.9-2.1L2 19l2.1-.9zM19 14l.7 1.8L21 16.5l-1.3.7L19 19l-.7-1.8L17 16.5l1.3-.7z" /></svg>
+            <span>Deep project analysis</span>
+          </div>
+          {understanding && !generating ? (
+            <button className="pu-analysis-reanalyze" type="button" disabled={generating || !selectedModel} onClick={() => void handleAnalyze()}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v5h-5" /></svg>
+              Re-analyze
+            </button>
+          ) : null}
+        </div>
+
+        {generating ? (
+          <p className="pu-analysis-loading">Analyzing your project with {selectedModel ?? "your local model"}… this runs locally and can take up to a minute.</p>
+        ) : understanding ? (
+          <>
+            <p className="pu-analysis-summary">{understanding.summary}</p>
+            {understanding.risks.length > 0 ? (
+              <>
+                <div className="pu-eyebrow pu-analysis-risks-label">Detected risks</div>
+                <div className="pu-analysis-risks">
+                  {understanding.risks.map((risk, index) => (
+                    <div className="pu-risk" key={`${risk.text}-${index}`}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01" /></svg>
+                      <div>
+                        <span className="pu-risk-text">{risk.text}</span>
+                        {risk.file ? <span className="pu-risk-file">{risk.file}</span> : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : null}
+            <div className="pu-analysis-foot">
+              <span className="pu-analysis-model">Analyzed with <strong>{understanding.model}</strong> · {relativeTime(understanding.generated_at)}</span>
+              {understanding.is_stale ? (
+                <span className="pu-analysis-nudge">
+                  Now using {selectedModel ?? "a different model"} — re-analyze for an updated view.
+                </span>
+              ) : (
+                <span className="pu-analysis-hint">Want sharper insight? Use a bigger model, then re-analyze.</span>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="pu-analysis-pitch">Your local AI reads the project and writes a grounded summary and risks — each pointing to the file it came from. Bigger models give sharper results. Runs locally.</p>
+            <button className="pu-analysis-cta" type="button" disabled={!selectedModel} onClick={() => void handleAnalyze()}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l1.9 4.9L19 9l-4.1 1.1L12 15l-1.9-4.9L6 9l4.1-1.1z" /></svg>
+              {selectedModel ? `Analyze with ${selectedModel}` : "Set up a model to analyze"}
+            </button>
+          </>
+        )}
+        {genError ? <p className="pu-analysis-error">{genError}</p> : null}
       </div>
 
       {loading ? (

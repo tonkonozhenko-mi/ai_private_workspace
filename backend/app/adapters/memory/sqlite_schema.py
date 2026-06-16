@@ -284,6 +284,19 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
             )
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS workspace_project_understanding (
+                workspace_id TEXT PRIMARY KEY,
+                model TEXT NOT NULL,
+                generated_at TEXT NOT NULL,
+                index_signature TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                risks_json TEXT NOT NULL DEFAULT '[]',
+                sources_json TEXT NOT NULL DEFAULT '[]'
+            )
+            """
+        )
         _add_column_if_missing(
             connection,
             table_name="workspaces",
