@@ -1,10 +1,28 @@
 # AI Private Workspace
 
+[![CI](https://github.com/tonkonozhenko-mi/ai_private_workspace/actions/workflows/ci.yml/badge.svg)](https://github.com/tonkonozhenko-mi/ai_private_workspace/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE)
+[![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey.svg)](#installing-on-macos-first-launch)
+[![Local-first](https://img.shields.io/badge/local--first-no%20cloud-2ea44f.svg)](#safety-model)
+
 **AI Private Workspace** is a local-first desktop-oriented workspace for private project onboarding, local RAG, model management, project reports, and safe Agent/MCP planning.
 
 The v0.1 release candidate is a source handoff for developers and reviewers. It is not yet a signed installer-grade product.
 
 ![AI Private Workspace flow](docs/assets/product-flow.svg)
+
+## Contents
+
+- [Installing on macOS](#installing-on-macos-first-launch)
+- [What it does](#what-it-does)
+- [Safety model](#safety-model)
+- [Main product flows](#main-product-flows)
+- [Current status](#current-status)
+- [Repository layout](#repository-layout)
+- [Developer startup](#developer-startup)
+- [Validation](#validation)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Installing on macOS (first launch)
 
@@ -85,6 +103,7 @@ backend/     FastAPI backend, domain services, adapters, tests
 frontend/    React/Vite UI
 docs/        product, architecture, release, and packaging docs
 scripts/     local runtime, audit, packaging, and release helper scripts
+assets/      brand assets (app icons, logos)
 .github/     CI workflows and contribution templates
 ```
 
@@ -194,6 +213,13 @@ Do not commit:
 - `.pytest_cache/`
 - `__pycache__/`
 - `*.db`, `*.sqlite`, `*.sqlite3`
+
+## Contributing
+
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for the
+product principles, development flow, and source-hygiene rules before opening a
+pull request. Security issues should follow [SECURITY.md](SECURITY.md) — please
+report them privately rather than in a public issue.
 
 ## License
 

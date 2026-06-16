@@ -1,0 +1,29 @@
+# Tooling configuration for the backend package.
+# Ruff is the linter/formatter; see https://docs.astral.sh/ruff/
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [
+    ".venv",
+    ".venv-x86_64",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+# A pragmatic, mostly-default set:
+#   E/W  pycodestyle    F  pyflakes        I  isort
+#   UP   pyupgrade      B  bugbear         C4 comprehensions
+#   SIM  simplify
+select = ["E", "W", "F", "I", "UP", "B", "C4", "SIM"]
+ignore = [
+    "E501", # line length is enforced by the formatter, not the linter
+    "B008", # FastAPI uses `Depends()` defaults in signatures by design
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests may use assert-heavy patterns and longer fixtures.
+"tests/**" = ["B011"]
+
+[tool.ruff.format]
+quote-style = "double"

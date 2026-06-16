@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   cancelLocalModelDownloadJob,
@@ -63,7 +63,6 @@ export function WorkspaceGettingReady({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checkedAt, setCheckedAt] = useState<number | null>(null);
-  const prevActiveJobsRef = useRef(0);
 
   // Single poll tick: refresh install status, in-flight downloads, and the
   // parent workspace state so scan/index/model completion advances the step.
@@ -78,11 +77,9 @@ export function WorkspaceGettingReady({
         (job) => job.status === "running" || job.status === "queued",
       );
       setDownloadJobs(active);
-      // When the last download finishes, pull fresh workspace state so the step advances.
-      if (prevActiveJobsRef.current > 0 && active.length === 0) {
-        await onRefreshWorkspaceState();
-      }
-      prevActiveJobsRef.current = active.length;
+      // Always pull fresh workspace state so scan / model-selection / index
+      // completion advances the step automatically (no manual refresh needed).
+      await onRefreshWorkspaceState();
     } catch {
       // Ignore transient polling errors.
     }
@@ -120,32 +117,37 @@ export function WorkspaceGettingReady({
         setError("Ollama isn’t running yet. Start it, then tap Re-check.");
         return;
       }
-      const capability = await getLocalModelDownloadExecutionCapability();
-      const missing = asArray(status.items).filter(
-        (item) => item.recommended && item.status !== "installed",
-      );
-      if (missing.length === 0) {
+      const recommended = asArray(status.items).filter((item) => item.recommended);
+      if (recommended.length === 0) {
         await onRefreshWorkspaceState();
-        setMessage("Both models are already installed.");
         return;
       }
-      if (!capability.execution_enabled) {
+      const capability = await getLocalModelDownloadExecutionCapability();
+      const missing = recommended.filter((item) => item.status !== "installed");
+      if (missing.length > 0 && !capability.execution_enabled) {
         setError(
           "Automatic download is turned off in this build. Open Models to install them manually.",
         );
         return;
       }
-      for (const item of missing) {
+      let started = 0;
+      // For every recommended model: start its download if missing, and ALWAYS
+      // select it for this workspace — selecting an already-installed model is
+      // what flips can_ask / can_search to ready and advances the step.
+      for (const item of recommended) {
         const modelType = (item.model_type === "embedding" ? "embedding" : "llm") as
           | "llm"
           | "embedding";
-        const draft = await createLocalModelInstallDraft({
-          workspace_id: dashboard.workspace_id,
-          provider: item.provider,
-          model: item.model,
-          model_type: modelType,
-        });
-        await startLocalModelDownloadJob(draft.command_proposal.id);
+        if (item.status !== "installed") {
+          const draft = await createLocalModelInstallDraft({
+            workspace_id: dashboard.workspace_id,
+            provider: item.provider,
+            model: item.model,
+            model_type: modelType,
+          });
+          await startLocalModelDownloadJob(draft.command_proposal.id);
+          started += 1;
+        }
         await updateWorkspaceModelSelection(dashboard.workspace_id, {
           provider: item.provider,
           model: item.model,
@@ -153,7 +155,11 @@ export function WorkspaceGettingReady({
           selected_reason: "First-run recommended setup.",
         });
       }
-      setMessage("Downloading your local AI — progress shows below. Keep this open.");
+      setMessage(
+        started > 0
+          ? "Downloading your local AI — progress shows below. Keep this open."
+          : "Models ready — moving on.",
+      );
       await tick();
     } catch (installError) {
       setError(installError instanceof Error ? installError.message : "Could not start the install.");
