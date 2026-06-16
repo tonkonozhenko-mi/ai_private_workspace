@@ -989,62 +989,27 @@ function WorkspaceSkillsSection({
   const suggestedFocus = getAssistantFocus(dashboard.assistant_mode);
 
   return (
-    <section className="panel workspace-skills-panel">
-      <div className="workspace-skills-heading">
-        <div>
-          <p className="eyebrow">Workspace skills</p>
-          <h2>Project lens: {suggestedFocus.title}</h2>
-          <p>{suggestedFocus.description}</p>
+    <section className="adv-card">
+      <div className="adv-card-head">
+        <span className="adv-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" /></svg>
+        </span>
+        <div className="adv-card-title">
+          <strong>Project lens</strong>
+          <span>{suggestedFocus.title}</span>
         </div>
-        <div className="workspace-skills-badges">
-          <StatusBadge
-            label={
-              summary.has_scan
-                ? `${summary.detected_skills_count} detected`
-                : "scan first"
-            }
-            tone={summary.has_scan ? "success" : "warning"}
-            size="md"
-          />
-          <StatusBadge
-            label={`${activeSkillPresets.length} active`}
-            tone="info"
-            size="md"
-          />
-        </div>
-      </div>
-
-      <dl className="workspace-skills-stats">
-        <div>
-          <dt>Detected in project</dt>
-          <dd>
-            {summary.has_scan
-              ? `${summary.detected_skills_count} technology signal(s)`
-              : "Run a scan to detect"}
-          </dd>
-        </div>
-        <div>
-          <dt>Active presets</dt>
-          <dd>
-            {activeSkillPresets.length > 0
-              ? activeSkillPresets.map((preset) => preset.name).join(", ")
-              : "Defaults"}
-          </dd>
-        </div>
-      </dl>
-
-      <div className="workspace-skills-footer">
-        <p>
-          Skills shape how answers are framed for this project. Tune presets and
-          custom instructions in Settings.
-        </p>
-        <button
-          className="secondary-action"
-          type="button"
-          onClick={onOpenSettings}
-        >
-          Manage skills
+        <button className="adv-card-link" type="button" onClick={onOpenSettings}>
+          Manage in Settings
         </button>
+      </div>
+      <p className="adv-card-desc">{suggestedFocus.description}</p>
+      <div className="adv-card-facts">
+        <span>
+          <b>{summary.has_scan ? summary.detected_skills_count : "—"}</b> technologies detected
+        </span>
+        <span>
+          <b>{activeSkillPresets.length}</b> skill preset(s) active
+        </span>
       </div>
     </section>
   );
@@ -1171,50 +1136,37 @@ function WorkspaceFilesSection({
   const scanReady = summary.has_scan;
 
   return (
-    <section className="panel workspace-files-panel">
-      <div className="workspace-skills-heading">
-        <div>
-          <p className="eyebrow">Files and context</p>
-          <h2>What gets searched</h2>
-          <p>
-            Defaults keep source, docs, and infrastructure files and skip
-            generated or heavy folders. Rebuilding context is always an explicit
-            action.
-          </p>
+    <section className="adv-card">
+      <div className="adv-card-head">
+        <span className="adv-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8" /></svg>
+        </span>
+        <div className="adv-card-title">
+          <strong>Files &amp; context</strong>
+          <span>What gets searched</span>
         </div>
-        <div className="workspace-skills-badges">
-          <StatusBadge label={`${includeCount} include`} tone="info" />
-          <StatusBadge label={`${excludeCount} exclude`} tone="neutral" />
-        </div>
-      </div>
-
-      <dl className="workspace-skills-stats">
-        <div>
-          <dt>Included</dt>
-          <dd>Source, docs, configs, IaC — Terraform, Kubernetes, Docker, CI/CD</dd>
-        </div>
-        <div>
-          <dt>Skipped</dt>
-          <dd>node_modules, .venv, dist, build, caches, binaries, logs</dd>
-        </div>
-      </dl>
-
-      <div className="workspace-skills-footer">
-        <p>
-          {contextReady
-            ? "Search context is ready."
-            : scanReady
-              ? "Review file rules, then build context."
-              : "Scan first, then review file rules."}{" "}
-          Adjust include/exclude rules in Settings.
-        </p>
-        <button
-          className="secondary-action"
-          type="button"
-          onClick={onOpenSettings}
-        >
-          Edit file rules
+        <button className="adv-card-link" type="button" onClick={onOpenSettings}>
+          Edit rules in Settings
         </button>
+      </div>
+      <p className="adv-card-desc">
+        Defaults keep source, docs, and infrastructure files and skip generated or
+        heavy folders. Rebuilding context is always an explicit action.
+      </p>
+      <div className="adv-card-facts">
+        <span>
+          <b>{includeCount}</b> include rule(s)
+        </span>
+        <span>
+          <b>{excludeCount}</b> exclude rule(s)
+        </span>
+        <span className={`adv-card-status${contextReady ? " is-ready" : ""}`}>
+          {contextReady
+            ? "Context ready"
+            : scanReady
+              ? "Review, then build context"
+              : "Scan first"}
+        </span>
       </div>
     </section>
   );

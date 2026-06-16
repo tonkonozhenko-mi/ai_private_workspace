@@ -1826,6 +1826,30 @@ details.onboarding-guide-panel[open] > summary {
 .gr-job-progress { margin-top: 20px; width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 8px; }
 .gr-job-progress-label { font-size: 12.5px; color: var(--c-text-2); text-align: center; }
 
+/* Advanced inspector (setup-only) — clean, light cards */
+.overview-advanced-disclosure { padding: 0; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-md); }
+.overview-advanced-disclosure > summary { cursor: pointer; padding: 16px 18px; list-style: none; }
+.overview-advanced-disclosure > summary::-webkit-details-marker { display: none; }
+.overview-advanced-disclosure[open] > summary { border-bottom: 1px solid var(--c-border); }
+.overview-advanced-disclosure > summary .eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-text-3); }
+.overview-advanced-disclosure > summary h2 { margin: 3px 0 0; font-size: 15px; font-weight: 500; }
+.overview-advanced-disclosure > summary > div > span { display: block; margin-top: 2px; font-size: 13px; color: var(--c-text-2); }
+.adv-card { padding: 15px 18px; }
+.adv-card + .adv-card { border-top: 1px solid var(--c-border); }
+.adv-card-head { display: flex; align-items: center; gap: 10px; }
+.adv-card-icon { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; background: var(--c-accent-soft); color: var(--c-accent); flex: 0 0 auto; }
+.adv-card-icon svg { width: 16px; height: 16px; }
+.adv-card-title { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.adv-card-title strong { font-size: 13.5px; font-weight: 500; }
+.adv-card-title span { font-size: 12px; color: var(--c-text-3); }
+.adv-card-link { background: none; border: none; color: var(--c-accent); font-size: 12.5px; cursor: pointer; padding: 0; flex: 0 0 auto; }
+.adv-card-link:hover { text-decoration: underline; }
+.adv-card-desc { margin: 11px 0 0; font-size: 13px; color: var(--c-text-2); line-height: 1.55; }
+.adv-card-facts { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 11px; font-size: 12.5px; color: var(--c-text-2); }
+.adv-card-facts b { color: var(--c-text); font-weight: 500; }
+.adv-card-status { color: var(--c-text-3); }
+.adv-card-status.is-ready { color: var(--c-accent); }
+
 /* Models-step status checklist (Ollama + recommended models) */
 .getting-ready-checklist { list-style: none; margin: 24px 0 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 8px; }
 .gr-check { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); text-align: left; }
