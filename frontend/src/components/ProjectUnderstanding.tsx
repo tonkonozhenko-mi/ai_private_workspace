@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import {
@@ -87,14 +87,18 @@ export function ProjectUnderstanding({
   const [scan, setScan] = useState<ProjectScanResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [understanding, setUnderstanding] = useState<ProjectUnderstandingResponse | null>(null);
+  const [understandingChecked, setUnderstandingChecked] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
+  const autoTriedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setUnderstanding(null);
+    setUnderstandingChecked(false);
     setGenError(null);
+    autoTriedRef.current = false;
     getWorkspaceLatestScan(dashboard.workspace_id)
       .then((result) => {
         if (!cancelled) setScan(result);
@@ -112,6 +116,9 @@ export function ProjectUnderstanding({
       })
       .catch(() => {
         if (!cancelled) setUnderstanding(null);
+      })
+      .finally(() => {
+        if (!cancelled) setUnderstandingChecked(true);
       });
     return () => {
       cancelled = true;
@@ -119,6 +126,25 @@ export function ProjectUnderstanding({
   }, [dashboard.workspace_id]);
 
   const selectedModel = dashboard.models_summary?.selected_llm ?? null;
+
+  // First time on a ready project with no cached analysis: run it automatically,
+  // once, in the background. Failure (e.g. backend without the endpoint) falls
+  // back to the manual button and is not retried in a loop.
+  useEffect(() => {
+    if (
+      understandingChecked &&
+      !understanding &&
+      !generating &&
+      !genError &&
+      selectedModel &&
+      !autoTriedRef.current
+    ) {
+      autoTriedRef.current = true;
+      void handleAnalyze();
+    }
+    // handleAnalyze is intentionally omitted; it is stable in effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [understandingChecked, understanding, generating, genError, selectedModel]);
 
   async function handleAnalyze() {
     setGenerating(true);
