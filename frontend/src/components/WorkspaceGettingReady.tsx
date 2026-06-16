@@ -5,6 +5,7 @@ import {
   createLocalModelInstallDraft,
   getLocalModelDownloadExecutionCapability,
   getLocalModelInstallStatus,
+  getWorkspaceJob,
   listLocalModelDownloadJobs,
   startLocalModelDownloadJob,
   updateWorkspaceModelSelection,
@@ -13,6 +14,7 @@ import type {
   LocalModelDownloadJob,
   LocalModelInstallStatus,
   LocalModelStatusItem,
+  WorkspaceJob,
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
 } from "../api/types";
@@ -70,8 +72,83 @@ export function WorkspaceGettingReady({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checkedAt, setCheckedAt] = useState<number | null>(null);
+  const [jobProgress, setJobProgress] = useState<{
+    kind: "scan" | "index";
+    current: number | null;
+    total: number | null;
+    percent: number | null;
+    step: string | null;
+  } | null>(null);
   const prevActiveJobsRef = useRef(0);
   const prevInstalledCountRef = useRef<number | null>(null);
+
+  // Start a scan/index job, then poll it for real progress (X of Y files, %),
+  // and advance when it completes — so the user always sees what's happening.
+  async function runJob(kind: "scan" | "index", starter: () => Promise<unknown> | void) {
+    setBusy(kind);
+    setError(null);
+    setMessage(null);
+    setJobProgress({ kind, current: null, total: null, percent: null, step: "Starting…" });
+    try {
+      const result = (await starter()) as WorkspaceJob | undefined;
+      const jobId = result?.job_id;
+      if (!jobId) {
+        await onRefreshWorkspaceState();
+        return;
+      }
+      for (let attempt = 0; attempt < 900; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1000));
+        let job: WorkspaceJob;
+        try {
+          job = await getWorkspaceJob(dashboard.workspace_id, jobId);
+        } catch {
+          continue;
+        }
+        setJobProgress({
+          kind,
+          current: job.progress_current,
+          total: job.progress_total,
+          percent: job.progress_percent,
+          step: job.current_step ?? job.message,
+        });
+        if (["completed", "failed", "cancelled"].includes(job.status)) {
+          if (job.status === "failed") {
+            setError(job.error ?? "That step failed. Please try again.");
+          }
+          await onRefreshWorkspaceState();
+          break;
+        }
+      }
+    } catch (jobError) {
+      setError(jobError instanceof Error ? jobError.message : "Could not run this step.");
+    } finally {
+      setBusy(null);
+      setJobProgress(null);
+    }
+  }
+
+  function renderJobProgress(progress: NonNullable<typeof jobProgress>) {
+    const label =
+      progress.total != null && progress.current != null
+        ? `${progress.current.toLocaleString()} of ${progress.total.toLocaleString()} files`
+        : progress.step ?? "Working…";
+    const percent =
+      progress.percent ??
+      (progress.total && progress.current != null
+        ? Math.round((progress.current / progress.total) * 100)
+        : null);
+    return (
+      <div className="gr-job-progress">
+        <div className={`install-progress-bar${percent === null ? " is-indeterminate" : ""}`}>
+          <span style={percent === null ? undefined : { width: `${percent}%` }} />
+        </div>
+        <span className="gr-job-progress-label">
+          {label}
+          {percent !== null ? ` · ${percent}%` : ""}
+        </span>
+      </div>
+    );
+  }
 
   // Lightweight poll: only install status + in-flight downloads (2 cheap calls).
   // The heavy workspace refresh (8 calls) runs ONLY on a real transition — a
@@ -187,6 +264,11 @@ export function WorkspaceGettingReady({
       // change tick can detect, so we must pull fresh state to advance the step.
       await tick();
       await onRefreshWorkspaceState();
+      // Hold the disabled state briefly so the step advances before the button
+      // re-enables — otherwise it looks like the click "did nothing".
+      if (started === 0) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1200));
+      }
     } catch (installError) {
       setError(installError instanceof Error ? installError.message : "Could not start the install.");
     } finally {
@@ -255,10 +337,11 @@ export function WorkspaceGettingReady({
           <h2>Look at your project</h2>
           <p>A quick, local scan lists your files so the AI knows what it can search. Nothing leaves this Mac.</p>
           <div className="getting-ready-actions">
-            <button className="getting-ready-cta" type="button" disabled={busy !== null} onClick={() => { setBusy("scan"); void onStartScanJob(); window.setTimeout(() => setBusy(null), 4000); }}>
+            <button className="getting-ready-cta" type="button" disabled={busy !== null} onClick={() => void runJob("scan", onStartScanJob)}>
               {busy === "scan" ? "Scanning…" : "Scan project"}
             </button>
           </div>
+          {jobProgress && jobProgress.kind === "scan" ? renderJobProgress(jobProgress) : null}
         </div>
       ) : step === "models" ? (
         <div className="getting-ready-step">
@@ -343,10 +426,11 @@ export function WorkspaceGettingReady({
           <h2>Build understanding</h2>
           <p>Turn your scanned files into searchable local context, so answers come from your real project.</p>
           <div className="getting-ready-actions">
-            <button className="getting-ready-cta" type="button" disabled={busy !== null} onClick={() => { setBusy("index"); void onStartIndexJob(); window.setTimeout(() => setBusy(null), 4000); }}>
+            <button className="getting-ready-cta" type="button" disabled={busy !== null} onClick={() => void runJob("index", onStartIndexJob)}>
               {busy === "index" ? "Building…" : "Build search context"}
             </button>
           </div>
+          {jobProgress && jobProgress.kind === "index" ? renderJobProgress(jobProgress) : null}
         </div>
       ) : (
         <div className="getting-ready-step">
