@@ -20,6 +20,7 @@ from app.api.dependencies import (
     model_experiment_repository,
     model_experiment_rating_repository,
     project_scan_repository,
+    project_understanding_repository,
     report_repository,
     readiness_configuration,
     runtime_health_checkers,
@@ -253,6 +254,16 @@ from app.core.use_cases.archive_workspace import (
     ArchiveWorkspaceInput,
     ArchiveWorkspaceNotFoundError,
     ArchiveWorkspaceUseCase,
+)
+from app.core.use_cases.generate_project_understanding import (
+    GenerateProjectUnderstandingInput,
+    GenerateProjectUnderstandingNotFoundError,
+    GenerateProjectUnderstandingUseCase,
+    GenerateProjectUnderstandingValidationError,
+)
+from app.api.schemas.project_understanding_schemas import (
+    ProjectUnderstandingResponse,
+    to_project_understanding_response,
 )
 from app.core.use_cases.backfill_workspace_timeline import (
     BackfillWorkspaceTimelineInput,
@@ -1888,6 +1899,91 @@ def ask_workspace_question_with_selected_llm(
         len(result.quality_warnings),
     )
     return to_workspace_question_answer_response(result)
+
+
+def _current_selected_llm_label(workspace_id: str) -> str | None:
+    """Return the `provider/model` label of the workspace's selected LLM, if any."""
+    selection = workspace_model_selection_repository.get(workspace_id)
+    selected_llm = selection.selected_llm if selection is not None else None
+    if selected_llm is None:
+        return None
+    if selected_llm.model:
+        return f"{selected_llm.provider}/{selected_llm.model}"
+    return selected_llm.provider
+
+
+@router.get(
+    "/{workspace_id}/understanding",
+    response_model=ProjectUnderstandingResponse,
+)
+def get_workspace_understanding(workspace_id: str) -> ProjectUnderstandingResponse:
+    if workspace_repository.get(workspace_id) is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace not found",
+        )
+    understanding = project_understanding_repository.get(workspace_id)
+    if understanding is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                "No project understanding has been generated for this workspace "
+                "yet. Generate one first."
+            ),
+        )
+    current_label = _current_selected_llm_label(workspace_id)
+    is_stale = current_label is not None and current_label != understanding.model
+    return to_project_understanding_response(understanding, is_stale=is_stale)
+
+
+@router.post(
+    "/{workspace_id}/understanding",
+    response_model=ProjectUnderstandingResponse,
+)
+def generate_workspace_understanding(
+    workspace_id: str,
+) -> ProjectUnderstandingResponse:
+    logger.info(
+        "workspace understanding requested workspace_id=%s",
+        workspace_id,
+    )
+    use_case = GenerateProjectUnderstandingUseCase(
+        workspace_repository=workspace_repository,
+        embedding_provider=embedding_provider,
+        vector_store=vector_store,
+        llm_provider_factory=llm_provider_factory,
+        index_status_repository=index_status_repository,
+        selection_repository=workspace_model_selection_repository,
+        understanding_repository=project_understanding_repository,
+    )
+    try:
+        understanding = use_case.execute(
+            GenerateProjectUnderstandingInput(workspace_id=workspace_id)
+        )
+    except GenerateProjectUnderstandingNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except GenerateProjectUnderstandingValidationError as exc:
+        logger.warning(
+            "workspace understanding rejected workspace_id=%s reason=%s",
+            workspace_id,
+            exc,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    logger.info(
+        "workspace understanding completed workspace_id=%s model=%s risks=%s sources=%s",
+        workspace_id,
+        understanding.model,
+        len(understanding.risks),
+        len(understanding.sources),
+    )
+    return to_project_understanding_response(understanding, is_stale=False)
 
 
 def _sse_event(event: str, data: dict) -> str:

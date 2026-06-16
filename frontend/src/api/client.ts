@@ -9,6 +9,7 @@ import type {
   CreatedWorkspace,
   WorkspaceFileWriteResult,
   ProjectScanResponse,
+  ProjectUnderstandingResponse,
   FileSelectionPreview,
   FileSelectionRulesRequest,
   WorkspaceIndexingRules,
@@ -549,6 +550,30 @@ export function getWorkspaceLatestScan(
   return requestJson<ProjectScanResponse>(`/workspaces/${workspaceId}/scan`, {
     signal: options.signal,
     method: "GET",
+    headers: { Accept: "application/json" },
+  });
+}
+
+// Project understanding (deep analysis). GET returns the cached result (404 if
+// none yet); POST generates a fresh one with the workspace's selected LLM.
+export function getProjectUnderstanding(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ProjectUnderstandingResponse> {
+  return requestJson<ProjectUnderstandingResponse>(`/workspaces/${workspaceId}/understanding`, {
+    signal: options.signal,
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+}
+
+export function generateProjectUnderstanding(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ProjectUnderstandingResponse> {
+  return requestJson<ProjectUnderstandingResponse>(`/workspaces/${workspaceId}/understanding`, {
+    signal: options.signal,
+    method: "POST",
     headers: { Accept: "application/json" },
   });
 }
