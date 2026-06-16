@@ -47,6 +47,7 @@ import { UIActionsPanel } from "./components/UIActionsPanel";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { ensureAppOwnedBackendRuntime, isRunningInsideTauri, tauriBridgeDiagnostic, registerDesktopCloseGuard, closeDesktopWindow } from "./desktopRuntime";
 import { WorkspaceDashboard } from "./components/WorkspaceDashboard";
+import { WorkspaceGettingReady } from "./components/WorkspaceGettingReady";
 import { WorkspaceList } from "./components/WorkspaceList";
 import {
   DEFAULT_FILE_INDEXING_PREFERENCES,
@@ -237,6 +238,7 @@ function App() {
   const [workspacesError, setWorkspacesError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
+  const [setupTakeoverDismissed, setSetupTakeoverDismissed] = useState(false);
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
   const [archivingWorkspaceId, setArchivingWorkspaceId] = useState<string | null>(null);
   const [restoringWorkspaceId, setRestoringWorkspaceId] = useState<string | null>(null);
@@ -770,6 +772,62 @@ function App() {
         productName={preferences.productName}
         onOpen={() => setShowCreateWorkspace(true)}
       />
+    );
+  }
+
+  // ---- Full-window setup takeover ---------------------------------------
+  // A brand-new / not-yet-ready workspace gets an immersive, distraction-free
+  // setup flow (no sidebar, no tabs) — like the first-run screen. A subtle
+  // "Skip for now" returns to the full app shell.
+  const setupComplete = detail
+    ? detail.dashboard.summary.has_scan &&
+      detail.dashboard.summary.index_status.status === "indexed" &&
+      detail.modelsSummary.can_search_with_selected_embedding &&
+      detail.modelsSummary.can_ask_with_selected_llm
+    : true;
+
+  if (
+    detail &&
+    !detailLoading &&
+    !detailError &&
+    !setupComplete &&
+    !setupTakeoverDismissed
+  ) {
+    const ws = detail.dashboard.workspace_id;
+    return (
+      <div className="setup-takeover">
+        <UpdateNotice />
+        <div className="setup-takeover-bar">
+          <div className="setup-takeover-brand">
+            <img src="/app-icon.png" alt={preferences.productName} width={28} height={28} />
+            <span>{detail.dashboard.workspace_name}</span>
+          </div>
+          <button
+            className="text-button"
+            type="button"
+            onClick={() => setSetupTakeoverDismissed(true)}
+          >
+            Skip for now
+          </button>
+        </div>
+        <div className="setup-takeover-body">
+          <WorkspaceGettingReady
+            dashboard={detail.dashboard}
+            modelsSummary={detail.modelsSummary}
+            onOpenAsk={() => {
+              setSetupTakeoverDismissed(true);
+              setActiveTab("ask");
+            }}
+            onOpenModels={() => {
+              setSetupTakeoverDismissed(true);
+              setActiveTab("models");
+            }}
+            onStartScanJob={() => handleStartScanJob(ws)}
+            onStartIndexJob={() => handleStartIndexJob(ws)}
+            onRefreshWorkspaceState={() => refreshWorkspaceReadOnlyState(ws)}
+          />
+        </div>
+      </div>
     );
   }
 
