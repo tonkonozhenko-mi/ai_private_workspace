@@ -288,8 +288,6 @@ export function ModelsDetail({
           ["catalog", "Choose & install"],
           ["skills", "Skills"],
           ["compare", "Compare"],
-          ["tools", "MCP tools"],
-          ["advanced", "Advanced"],
         ] as Array<[ModelsSection, string]>).filter(
           ([id]) => developerMode || id === "catalog",
         )).map(([id, label]) => (
@@ -313,47 +311,37 @@ export function ModelsDetail({
             onApplySelection={applyGuidedSelection}
           />
           {developerMode ? (
-            <LocalModelInstallPanel
-              key={[
-                workspaceId,
-                dashboard.selected_llm_provider,
-                dashboard.selected_llm_model,
-                dashboard.selected_embedding_provider,
-                dashboard.selected_embedding_model,
-              ].join("-")}
-              workspaceId={workspaceId}
-              onSelectionUpdated={onSelectionUpdated}
-            />
+            <>
+              <LocalModelInstallPanel
+                key={[
+                  workspaceId,
+                  dashboard.selected_llm_provider,
+                  dashboard.selected_llm_model,
+                  dashboard.selected_embedding_provider,
+                  dashboard.selected_embedding_model,
+                ].join("-")}
+                workspaceId={workspaceId}
+                onSelectionUpdated={onSelectionUpdated}
+              />
+              <ModelSelectionEditor
+                workspaceId={workspaceId}
+                selectedLlmProvider={dashboard.selected_llm_provider}
+                selectedLlmModel={dashboard.selected_llm_model}
+                selectedEmbeddingProvider={dashboard.selected_embedding_provider}
+                selectedEmbeddingModel={dashboard.selected_embedding_model}
+                llmOptions={llmOptions}
+                embeddingOptions={embeddingOptions}
+                reindexReason={reindexReason}
+                hasScan={hasScan}
+                onSelectionUpdated={onSelectionUpdated}
+              />
+            </>
           ) : null}
         </>
       ) : null}
 
       {activeSection === "skills" ? (
-        <ModelSkillPresetPanel
-          workspaceId={workspaceId}
-          dashboard={dashboard}
-          onSelectionUpdated={onSelectionUpdated}
-        />
-      ) : null}
-
-      {activeSection === "compare" ? (
-        <ModelExperimentPlanner
-          workspaceId={workspaceId}
-          llmOptions={llmOptions}
-          selectedLlmProvider={dashboard.selected_llm_provider}
-          selectedLlmModel={dashboard.selected_llm_model}
-          activeLlmProvider={usage.active_llm_provider}
-          activeLlmModel={usage.active_llm_model}
-          onSelectionUpdated={onSelectionUpdated}
-        />
-      ) : null}
-
-      {activeSection === "tools" ? (
-        <MCPServerRegistryPanel workspaceId={workspaceId} />
-      ) : null}
-
-      {activeSection === "advanced" ? (
-        <div className="models-advanced-stack">
+        <>
           <section className="panel models-simple-panel">
             <PanelHeading
               eyebrow="Answer tuning"
@@ -377,45 +365,26 @@ export function ModelsDetail({
               ))}
             </div>
           </section>
-          <ModelSelectionEditor
+          <ModelSkillPresetPanel
             workspaceId={workspaceId}
-            selectedLlmProvider={dashboard.selected_llm_provider}
-            selectedLlmModel={dashboard.selected_llm_model}
-            selectedEmbeddingProvider={dashboard.selected_embedding_provider}
-            selectedEmbeddingModel={dashboard.selected_embedding_model}
-            llmOptions={llmOptions}
-            embeddingOptions={embeddingOptions}
-            reindexReason={reindexReason}
-            hasScan={hasScan}
+            dashboard={dashboard}
             onSelectionUpdated={onSelectionUpdated}
           />
-          <details className="panel models-disclosure-panel activation-panel">
-            <summary>
-              <div>
-                <p className="eyebrow">Manual commands</p>
-                <h2>Copy-only setup notes</h2>
-                <span>Only for troubleshooting when the built-in model manager is not enough.</span>
-              </div>
-            </summary>
-            <p className="activation-safety-note">Commands are copied only. The frontend never executes them.</p>
-            <div className="activation-step-list">
-              {activationGuide.steps.slice(0, 4).map((step) => (
-                <article className="activation-step" key={step.id}>
-                  <div className="activation-step-heading">
-                    <div>
-                      <span>{formatLabel(step.category)}</span>
-                      <strong>{step.title}</strong>
-                    </div>
-                    <StatusBadge label={friendlyStatus(step.status)} />
-                  </div>
-                  <p>{step.description}</p>
-                  <CommandList primaryCommand={step.command} commands={step.commands ?? []} />
-                </article>
-              ))}
-            </div>
-          </details>
-        </div>
+        </>
       ) : null}
+
+      {activeSection === "compare" ? (
+        <ModelExperimentPlanner
+          workspaceId={workspaceId}
+          llmOptions={llmOptions}
+          selectedLlmProvider={dashboard.selected_llm_provider}
+          selectedLlmModel={dashboard.selected_llm_model}
+          activeLlmProvider={usage.active_llm_provider}
+          activeLlmModel={usage.active_llm_model}
+          onSelectionUpdated={onSelectionUpdated}
+        />
+      ) : null}
+
     </div>
   );
 }

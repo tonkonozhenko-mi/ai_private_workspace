@@ -125,6 +125,7 @@ export function WorkspaceGettingReady({
     setBusy("models");
     setError(null);
     setMessage(null);
+    setCheckedAt(null);
     try {
       const status = await getLocalModelInstallStatus();
       setInstallStatus(status);
@@ -175,7 +176,10 @@ export function WorkspaceGettingReady({
           ? "Downloading your local AI — progress shows below. Keep this open."
           : "Models ready — moving on.",
       );
+      // Refresh the parent directly: selecting already-installed models is not a
+      // change tick can detect, so we must pull fresh state to advance the step.
       await tick();
+      await onRefreshWorkspaceState();
     } catch (installError) {
       setError(installError instanceof Error ? installError.message : "Could not start the install.");
     } finally {
@@ -320,7 +324,9 @@ export function WorkspaceGettingReady({
           </div>
           {checkedAt && !downloading ? (
             <p className="getting-ready-message">
-              Checked — {modelsReady ? "all set, moving on." : "still missing a model above."}
+              Checked — {modelsReady
+                ? "all set, moving on."
+                : "tap Install & continue to use these models here."}
             </p>
           ) : null}
         </div>
