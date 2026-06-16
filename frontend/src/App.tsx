@@ -759,6 +759,12 @@ function App() {
     };
   }, [loadWorkspaces, preferences.apiBaseUrl]);
 
+  // A newly selected/created workspace should re-engage the immersive setup
+  // takeover (a previous "Skip for now" must not leak across workspaces).
+  useEffect(() => {
+    setSetupTakeoverDismissed(false);
+  }, [selectedWorkspaceId]);
+
   const isFirstRun =
     !workspacesLoading &&
     !workspacesError &&

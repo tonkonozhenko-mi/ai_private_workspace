@@ -17,6 +17,11 @@ on:
 permissions:
   contents: write # needed to create the GitHub Release
 
+# One release run per tag; never cancel a publish midway.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     strategy:

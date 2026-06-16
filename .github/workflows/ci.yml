@@ -5,6 +5,15 @@ on:
   push:
     branches: [main]
 
+# Least-privilege by default; jobs only read the repo.
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same ref to save runner minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend:
     name: Backend tests
@@ -14,6 +23,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.lock
       - name: Install backend dependencies
         run: |
           cd backend
@@ -43,6 +54,24 @@ jobs:
           cd frontend
           npm run typecheck
           npm run build
+
+  lint:
+    name: Backend lint (advisory)
+    runs-on: ubuntu-latest
+    # Advisory while the lint baseline is being cleaned up: surfaces issues on
+    # PRs without blocking merges. Set this to false to make lint required.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install ruff
+        run: python -m pip install ruff
+      - name: Ruff lint
+        run: ruff check backend
+      - name: Ruff format check
+        run: ruff format --check backend
 
   release-audit:
     name: Release candidate audit
