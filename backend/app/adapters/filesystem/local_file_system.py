@@ -26,7 +26,7 @@ class LocalFileSystem:
         candidates = self._collect_candidates(root)
         chart_roots = {
             relative_path.parent.as_posix()
-            for relative_path, _, _ in candidates
+            for relative_path, _, _, _ in candidates
             if relative_path.name == "Chart.yaml"
         }
 
@@ -34,7 +34,7 @@ class LocalFileSystem:
         skipped_files = 0
         total_size_bytes = 0
 
-        for relative_path, full_path, size_bytes in candidates:
+        for relative_path, full_path, size_bytes, modified_at in candidates:
             if size_bytes > MAX_FILE_SIZE_BYTES:
                 skipped_files += 1
                 continue
@@ -46,6 +46,7 @@ class LocalFileSystem:
                     extension=self._extension(relative_path),
                     size_bytes=size_bytes,
                     detected_type=detected_type,
+                    modified_at=modified_at,
                 )
             )
             total_size_bytes += size_bytes
@@ -112,8 +113,8 @@ class LocalFileSystem:
         target_path.write_text(content, encoding="utf-8")
         return replaced_existing
 
-    def _collect_candidates(self, root: Path) -> list[tuple[Path, Path, int]]:
-        candidates: list[tuple[Path, Path, int]] = []
+    def _collect_candidates(self, root: Path) -> list[tuple[Path, Path, int, float | None]]:
+        candidates: list[tuple[Path, Path, int, float | None]] = []
 
         for current_path in root.rglob("*"):
             if self._is_in_skipped_directory(current_path.relative_to(root)):
@@ -122,11 +123,19 @@ class LocalFileSystem:
                 continue
 
             try:
-                size_bytes = current_path.stat().st_size
+                stat_result = current_path.stat()
             except OSError:
                 continue
 
-            candidates.append((current_path.relative_to(root), current_path, size_bytes))
+            size_bytes = stat_result.st_size
+            try:
+                modified_at: float | None = stat_result.st_mtime
+            except (OSError, AttributeError):
+                modified_at = None
+
+            candidates.append(
+                (current_path.relative_to(root), current_path, size_bytes, modified_at)
+            )
 
         return candidates
 

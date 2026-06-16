@@ -75,11 +75,34 @@ def to_file_selection_preview_response(result) -> FileSelectionPreviewResponse:
     )
 
 
+class ScanChangesResponse(BaseModel):
+    has_baseline: bool
+    changed: bool
+    added_count: int
+    removed_count: int
+    modified_count: int
+    current_file_count: int
+    previous_file_count: int
+
+
+def to_scan_changes_response(result) -> ScanChangesResponse:
+    return ScanChangesResponse(
+        has_baseline=result.has_baseline,
+        changed=result.changed,
+        added_count=result.added_count,
+        removed_count=result.removed_count,
+        modified_count=result.modified_count,
+        current_file_count=result.current_file_count,
+        previous_file_count=result.previous_file_count,
+    )
+
+
 class ProjectFileResponse(BaseModel):
     path: str
     extension: str | None
     size_bytes: int
     detected_type: str
+    modified_at: float | None = None
 
 
 class DetectedSkillResponse(BaseModel):
@@ -105,6 +128,7 @@ def to_project_file_response(project_file: ProjectFile) -> ProjectFileResponse:
         extension=project_file.extension,
         size_bytes=project_file.size_bytes,
         detected_type=project_file.detected_type,
+        modified_at=project_file.modified_at,
     )
 
 

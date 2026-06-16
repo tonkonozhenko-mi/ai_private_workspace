@@ -56,6 +56,16 @@ export interface FileSelectionPreview {
   excluded_samples: FileSelectionPreviewItem[];
 }
 
+export interface ScanChanges {
+  has_baseline: boolean;
+  changed: boolean;
+  added_count: number;
+  removed_count: number;
+  modified_count: number;
+  current_file_count: number;
+  previous_file_count: number;
+}
+
 export interface ProjectRisk {
   text: string;
   file: string | null;

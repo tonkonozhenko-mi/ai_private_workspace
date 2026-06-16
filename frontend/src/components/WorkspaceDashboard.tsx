@@ -88,6 +88,9 @@ export function WorkspaceDashboard({
           projectPath={summary.project_path}
           onOpenAsk={onOpenAsk}
           onOpenSettings={onOpenSettings}
+          onStartScanJob={onStartScanJob}
+          onStartIndexJob={onStartIndexJob}
+          onRefreshWorkspaceState={onRefreshWorkspaceState}
         />
       ) : (
         <WorkspaceGettingReady

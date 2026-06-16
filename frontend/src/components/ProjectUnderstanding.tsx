@@ -4,14 +4,30 @@ import type { ReactNode } from "react";
 import {
   generateProjectUnderstanding,
   getProjectUnderstanding,
+  getWorkspaceJob,
   getWorkspaceLatestScan,
+  getWorkspaceScanChanges,
 } from "../api/client";
 import type {
   ProjectFileResponse,
   ProjectScanResponse,
   ProjectUnderstandingResponse,
+  ScanChanges,
   WorkspaceDashboard,
+  WorkspaceJob,
 } from "../api/types";
+
+async function pollJobDone(workspaceId: string, jobId: string): Promise<void> {
+  for (let attempt = 0; attempt < 900; attempt += 1) {
+    await new Promise((resolve) => window.setTimeout(resolve, 1000));
+    try {
+      const job: WorkspaceJob = await getWorkspaceJob(workspaceId, jobId);
+      if (["completed", "failed", "cancelled"].includes(job.status)) return;
+    } catch {
+      // keep polling through transient errors
+    }
+  }
+}
 
 function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
@@ -78,11 +94,17 @@ export function ProjectUnderstanding({
   projectPath,
   onOpenAsk,
   onOpenSettings,
+  onStartScanJob,
+  onStartIndexJob,
+  onRefreshWorkspaceState,
 }: {
   dashboard: WorkspaceDashboard;
   projectPath: string;
   onOpenAsk: () => void;
   onOpenSettings: () => void;
+  onStartScanJob: () => Promise<unknown> | void;
+  onStartIndexJob: () => Promise<unknown> | void;
+  onRefreshWorkspaceState: () => Promise<void> | void;
 }) {
   const [scan, setScan] = useState<ProjectScanResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,6 +112,8 @@ export function ProjectUnderstanding({
   const [understandingChecked, setUnderstandingChecked] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
+  const [changes, setChanges] = useState<ScanChanges | null>(null);
+  const [updating, setUpdating] = useState<string | null>(null);
   const autoTriedRef = useRef(false);
 
   useEffect(() => {
@@ -98,7 +122,16 @@ export function ProjectUnderstanding({
     setUnderstanding(null);
     setUnderstandingChecked(false);
     setGenError(null);
+    setChanges(null);
     autoTriedRef.current = false;
+    // Have files on disk changed since the last scan?
+    getWorkspaceScanChanges(dashboard.workspace_id)
+      .then((result) => {
+        if (!cancelled && result.changed) setChanges(result);
+      })
+      .catch(() => {
+        /* ignore — no banner if the check fails */
+      });
     getWorkspaceLatestScan(dashboard.workspace_id)
       .then((result) => {
         if (!cancelled) setScan(result);
@@ -159,6 +192,30 @@ export function ProjectUnderstanding({
     }
   }
 
+  // Re-scan → rebuild context → re-analyze, in sequence, with status text.
+  async function handleUpdateProject() {
+    const ws = dashboard.workspace_id;
+    try {
+      setUpdating("Re-scanning project…");
+      const scanJob = (await onStartScanJob()) as WorkspaceJob | undefined;
+      if (scanJob?.job_id) await pollJobDone(ws, scanJob.job_id);
+
+      setUpdating("Rebuilding search context…");
+      const indexJob = (await onStartIndexJob()) as WorkspaceJob | undefined;
+      if (indexJob?.job_id) await pollJobDone(ws, indexJob.job_id);
+
+      await onRefreshWorkspaceState();
+      setChanges(null);
+
+      setUpdating("Re-analyzing…");
+      await handleAnalyze();
+    } catch (error) {
+      setGenError(error instanceof Error ? error.message : "Could not update the project.");
+    } finally {
+      setUpdating(null);
+    }
+  }
+
   const lens = LENSES[dashboard.assistant_mode] ?? LENSES.developer;
   const skills = scan ? scan.detected_skills : [];
   const files = scan ? scan.files : [];
@@ -192,6 +249,42 @@ export function ProjectUnderstanding({
           Ask about this
         </button>
       </header>
+
+      {changes ? (
+        <div className="pu-changes-banner">
+          <svg className="pu-changes-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v5h-5" /></svg>
+          <div className="pu-changes-text">
+            <strong>Project files changed since the last scan.</strong>
+            <span>
+              {[
+                changes.added_count ? `${changes.added_count} added` : null,
+                changes.modified_count ? `${changes.modified_count} changed` : null,
+                changes.removed_count ? `${changes.removed_count} removed` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          </div>
+          <button
+            className="pu-changes-update"
+            type="button"
+            disabled={updating !== null}
+            onClick={() => void handleUpdateProject()}
+          >
+            {updating ?? "Re-scan & rebuild"}
+          </button>
+          {updating === null ? (
+            <button
+              className="pu-changes-dismiss"
+              type="button"
+              aria-label="Dismiss"
+              onClick={() => setChanges(null)}
+            >
+              ✕
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="pu-summary-card">
         <span className="pu-eyebrow">What this project is</span>

@@ -38,9 +38,11 @@ logger = logging.getLogger("uvicorn.error.ai_private_workspace.workspace_api")
 from app.api.project_scan_schemas import (
     FileSelectionPreviewResponse,
     ProjectScanResponse,
+    ScanChangesResponse,
     ScanWorkspaceProjectRequest,
     to_file_selection_preview_response,
     to_project_scan_response,
+    to_scan_changes_response,
 )
 from app.api.schemas.analysis_schemas import (
     AnalysisSummaryResponse,
@@ -305,6 +307,11 @@ from app.api.schemas.workspace_storage_schemas import (
 from app.core.use_cases.get_workspace_latest_scan import (
     GetWorkspaceLatestScanInput,
     GetWorkspaceLatestScanUseCase,
+)
+from app.core.use_cases.get_workspace_scan_changes import (
+    GetWorkspaceScanChangesInput,
+    GetWorkspaceScanChangesUseCase,
+    WorkspaceScanChangesWorkspaceNotFoundError,
 )
 from app.core.use_cases.get_workspace_index_status import (
     GetWorkspaceIndexStatusInput,
@@ -1174,6 +1181,32 @@ def get_workspace_latest_scan(workspace_id: str) -> ProjectScanResponse:
         )
 
     return to_project_scan_response(result)
+
+
+@router.get("/{workspace_id}/scan/changes", response_model=ScanChangesResponse)
+def get_workspace_scan_changes(workspace_id: str) -> ScanChangesResponse:
+    resolved_rules = _resolve_file_rules(workspace_id, None)
+    use_case = GetWorkspaceScanChangesUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+        file_system=file_system,
+    )
+
+    try:
+        result = use_case.execute(
+            GetWorkspaceScanChangesInput(
+                workspace_id=workspace_id,
+                include_patterns=resolved_rules.include_patterns,
+                exclude_patterns=resolved_rules.exclude_patterns,
+            )
+        )
+    except WorkspaceScanChangesWorkspaceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return to_scan_changes_response(result)
 
 
 @router.post("/{workspace_id}/index", response_model=WorkspaceIndexResponse)

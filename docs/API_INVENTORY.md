@@ -103,6 +103,7 @@ models, run benchmarks, or change active runtime configuration.
 | `POST /projects/scan` | Deterministically scan an arbitrary local project path. | No | No | Local filesystem read | Project inspection |
 | `POST /workspaces/{workspace_id}/scan` | Scan the workspace project and persist the latest result. | Scan and timeline | No | Local filesystem read | Workspace setup |
 | `GET /workspaces/{workspace_id}/scan` | Get the latest persisted scan. | No | No | No | Detected skills/files |
+| `GET /workspaces/{workspace_id}/scan/changes` | Read-only detection of whether on-disk project files changed (added/removed/modified by size or mtime) since the last saved scan, so the UI can offer to re-scan/re-index. Never re-scans, persists, or indexes. | No | No | Local filesystem read | Re-scan prompt |
 | `POST /workspaces/{workspace_id}/index` | Chunk scanned files, embed them, and update the active vector store. | Index status, vector store, timeline | No | Filesystem plus configured embedding/vector providers | Workspace setup |
 | `GET /workspaces/{workspace_id}/index/status` | Get persistent index-status metadata. | No | No | No | Workspace setup |
 | `GET /workspaces/{workspace_id}/context/search` | Search active indexed context. | No | No | Configured embedding/vector providers | Context inspector |
