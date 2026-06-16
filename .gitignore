@@ -35,6 +35,8 @@ frontend/src-tauri/target/
 # IDE and OS metadata
 .idea/
 **/.DS_Store
+# Linux virtiofs/NFS placeholder files left by some editors/sync layers
+**/.fuse_hidden*
 
 # Guard: never re-commit accidental nested project copies
 frontend/frontend/
