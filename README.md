@@ -70,6 +70,10 @@ your organization's device management.
     <td width="50%"><img src="docs/assets/screenshots/04-install-models.png" alt="Guided local model install" width="100%"><br><sub><b>Guided setup</b> — install local models in one click, with live progress.</sub></td>
     <td width="50%"><img src="docs/assets/screenshots/05-build-context.png" alt="Building local search context" width="100%"><br><sub><b>Build context</b> — index your files locally, with real per-file progress.</sub></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/06-dark-ask.png" alt="Ask screen in dark theme" width="100%"><br><sub><b>Dark theme</b> — the whole app follows your system light/dark preference.</sub></td>
+    <td width="50%"></td>
+  </tr>
 </table>
 
 > Capturing these? See [`docs/assets/screenshots/CAPTURE_GUIDE.md`](docs/assets/screenshots/CAPTURE_GUIDE.md) for the exact shots and file names.

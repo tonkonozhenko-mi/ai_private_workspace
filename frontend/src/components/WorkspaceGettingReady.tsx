@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   cancelLocalModelDownloadJob,
+  cancelWorkspaceJob,
   createLocalModelInstallDraft,
   getLocalModelDownloadExecutionCapability,
   getLocalModelInstallStatus,
@@ -81,6 +82,8 @@ export function WorkspaceGettingReady({
     percent: number | null;
     step: string | null;
   } | null>(null);
+  const [runningJobId, setRunningJobId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const prevActiveJobsRef = useRef(0);
   const prevInstalledCountRef = useRef<number | null>(null);
 
@@ -98,6 +101,7 @@ export function WorkspaceGettingReady({
         await onRefreshWorkspaceState();
         return;
       }
+      setRunningJobId(jobId);
       for (let attempt = 0; attempt < 900; attempt += 1) {
         await new Promise((resolve) => window.setTimeout(resolve, 1000));
         let job: WorkspaceJob;
@@ -126,6 +130,23 @@ export function WorkspaceGettingReady({
     } finally {
       setBusy(null);
       setJobProgress(null);
+      setRunningJobId(null);
+      setCancelling(false);
+    }
+  }
+
+  // Let the user stop a long-running scan/index. The backend marks the job
+  // cancelled; the poll loop above then observes "cancelled" and unwinds. The
+  // project files on disk are never touched.
+  async function stopJob() {
+    if (!runningJobId || cancelling) return;
+    setCancelling(true);
+    setJobProgress((current) => (current ? { ...current, step: "Stopping…" } : current));
+    try {
+      await cancelWorkspaceJob(dashboard.workspace_id, runningJobId);
+    } catch {
+      // If cancel fails (e.g. job already finished), the poller resolves it.
+      setCancelling(false);
     }
   }
 
@@ -144,10 +165,22 @@ export function WorkspaceGettingReady({
         <div className={`install-progress-bar${percent === null ? " is-indeterminate" : ""}`}>
           <span style={percent === null ? undefined : { width: `${percent}%` }} />
         </div>
-        <span className="gr-job-progress-label">
-          {label}
-          {percent !== null ? ` · ${percent}%` : ""}
-        </span>
+        <div className="gr-job-progress-foot">
+          <span className="gr-job-progress-label">
+            {label}
+            {percent !== null ? ` · ${percent}%` : ""}
+          </span>
+          {runningJobId ? (
+            <button
+              className="gr-job-stop"
+              type="button"
+              disabled={cancelling}
+              onClick={() => void stopJob()}
+            >
+              {cancelling ? "Stopping…" : "Stop"}
+            </button>
+          ) : null}
+        </div>
       </div>
     );
   }

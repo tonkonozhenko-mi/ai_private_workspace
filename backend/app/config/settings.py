@@ -6,6 +6,8 @@ from pydantic import BaseModel
 
 
 PRODUCT_NAME = "AI Private Workspace"
+# Keep in sync with frontend/src-tauri/tauri.conf.json on every release bump.
+APP_VERSION = "0.1.83"
 # Keep the legacy hidden runtime directory for backward compatibility with
 # existing local installations. It is not a product-facing name.
 DEFAULT_APP_DATA_DIR = Path(".ai-workbench")
@@ -34,6 +36,7 @@ def _prepare_runtime_path(path_value: str, *, label: str, create_parent: bool) -
 
 class Settings(BaseModel):
     app_name: str = PRODUCT_NAME
+    app_version: str = APP_VERSION
     CORS_ALLOWED_ORIGINS: list[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",

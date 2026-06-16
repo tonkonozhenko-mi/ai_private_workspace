@@ -24,16 +24,71 @@ from app.core.ports.workspace_model_selection_repository import (
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 
 
-# Small, fixed set of retrieval queries that together cover the most useful lenses
-# for a grounded project understanding. Each is embedded and searched separately;
-# the resulting chunks are deduped by source path and budgeted before prompting.
-RETRIEVAL_QUERIES = [
+# Retrieval queries shape WHICH evidence the model sees, so we tune them per role.
+# A tester pulls in test/verification context; a DevOps engineer pulls deploy/infra
+# context; etc. This makes the analysis genuinely "through the role's eyes" rather
+# than a generic summary with a one-line instruction. Each query is embedded and
+# searched separately; chunks are deduped by source path and budgeted.
+BASE_RETRIEVAL_QUERIES = [
     "architecture and what this project does",
-    "deployment and infrastructure",
-    "configuration and environment",
-    "tests",
     "risks, TODOs, missing pieces",
 ]
+ROLE_RETRIEVAL_QUERIES: dict[str, list[str]] = {
+    "developer": [
+        "main modules and where to start reading the code",
+        "tests",
+        "configuration and environment",
+    ],
+    "devops": [
+        "deployment and infrastructure",
+        "CI/CD pipelines and release process",
+        "configuration, environment variables, and secrets",
+        "operational risks and failure modes",
+    ],
+    "tester": [
+        "tests and test coverage",
+        "how to run the tests",
+        "critical paths and behavior that need verification",
+        "untested, fragile, or error-prone areas",
+    ],
+    "business_analyst": [
+        "what this project does and its main features",
+        "who the users are and the main workflows",
+        "limitations, gaps, and assumptions",
+    ],
+    "documentation": [
+        "how the project is structured and how to onboard",
+        "public interfaces and APIs",
+        "where documentation is thin or missing",
+    ],
+    "support_incident": [
+        "operational behavior, runbooks, and diagnostics",
+        "failure modes, logging, and error handling",
+        "configuration and environment",
+    ],
+    "manager_summary": [
+        "overall readiness, status, and release process",
+        "tests and quality",
+        "deployment and infrastructure",
+    ],
+}
+
+
+def retrieval_queries_for_mode(assistant_mode: str | None) -> list[str]:
+    key = (assistant_mode or "").strip().lower()
+    role_queries = ROLE_RETRIEVAL_QUERIES.get(key, ROLE_RETRIEVAL_QUERIES["developer"])
+    # Role-specific queries first so they win the per-chunk budget, then the
+    # shared baseline that every project benefits from.
+    ordered = role_queries + BASE_RETRIEVAL_QUERIES
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for query in ordered:
+        if query not in seen:
+            seen.add(query)
+            deduped.append(query)
+    return deduped
+
+
 PER_QUERY_LIMIT = 4
 MAX_CHUNKS = 12
 MAX_TOTAL_CHARS = 12000
@@ -89,7 +144,9 @@ class GenerateProjectUnderstandingUseCase:
 
         llm_provider = self._resolve_selected_llm(request.workspace_id)
 
-        context_results = self._retrieve_context(request.workspace_id)
+        context_results = self._retrieve_context(
+            request.workspace_id, workspace.assistant_mode
+        )
         if not context_results:
             raise GenerateProjectUnderstandingValidationError(
                 "No indexed context was found for this workspace. Reindex the "
@@ -145,10 +202,12 @@ class GenerateProjectUnderstandingUseCase:
         except LLMProviderFactoryError as exc:
             raise GenerateProjectUnderstandingValidationError(str(exc)) from exc
 
-    def _retrieve_context(self, workspace_id: str) -> list[ContextSearchResult]:
+    def _retrieve_context(
+        self, workspace_id: str, assistant_mode: str | None = None
+    ) -> list[ContextSearchResult]:
         collected: dict[str, ContextSearchResult] = {}
         total_chars = 0
-        for query in RETRIEVAL_QUERIES:
+        for query in retrieval_queries_for_mode(assistant_mode):
             query_embedding = self.embedding_provider.embed_text(query)
             results = self.vector_store.search(
                 workspace_id=workspace_id,

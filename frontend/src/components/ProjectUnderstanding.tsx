@@ -61,18 +61,21 @@ interface Lens {
   label: string;
   focus: string;
   groups: FileGroupKey[];
+  risksLabel: string;
 }
 
 // Each assistant mode is a lens: same project, different emphasis. Unknown
-// modes fall back to the developer lens (matches the backend default).
+// modes fall back to the developer lens (matches the backend default). The
+// backend now also retrieves and prompts through the same role lens, so the
+// summary and risks below are written from this role's point of view.
 const LENSES: Record<string, Lens> = {
-  developer: { label: "Developer", focus: "Code structure, where to start, and tests.", groups: ["code", "tests", "docs"] },
-  devops: { label: "DevOps", focus: "Deployment, infrastructure, and CI/CD.", groups: ["infra", "ci", "config"] },
-  tester: { label: "Tester / QA", focus: "Tests, what to verify, and how to run them.", groups: ["tests", "code", "ci"] },
-  business_analyst: { label: "Business analyst", focus: "What the project does, in plain language.", groups: ["docs", "code"] },
-  manager_summary: { label: "Manager", focus: "Summary, key areas, and where the risk sits.", groups: ["docs", "infra"] },
-  documentation: { label: "Documentation", focus: "Docs, structure, and onboarding.", groups: ["docs", "code"] },
-  support_incident: { label: "Support", focus: "Runbooks, config, and troubleshooting.", groups: ["docs", "config", "infra"] },
+  developer: { label: "Developer", focus: "Code structure, where to start, and tests.", groups: ["code", "tests", "docs"], risksLabel: "Risks & gaps" },
+  devops: { label: "DevOps", focus: "Deployment, infrastructure, and CI/CD.", groups: ["infra", "ci", "config"], risksLabel: "Operational risks" },
+  tester: { label: "Tester / QA", focus: "Tests, what to verify, and how to run them.", groups: ["tests", "code", "ci"], risksLabel: "What to verify" },
+  business_analyst: { label: "Business analyst", focus: "What the project does, in plain language.", groups: ["docs", "code"], risksLabel: "Gaps & limitations" },
+  manager_summary: { label: "Manager", focus: "Summary, key areas, and where the risk sits.", groups: ["docs", "infra"], risksLabel: "Key risks" },
+  documentation: { label: "Documentation", focus: "Docs, structure, and onboarding.", groups: ["docs", "code"], risksLabel: "Documentation gaps" },
+  support_incident: { label: "Support", focus: "Runbooks, config, and troubleshooting.", groups: ["docs", "config", "infra"], risksLabel: "Failure modes" },
 };
 
 const GROUP_META: Record<FileGroupKey, { label: string; icon: ReactNode }> = {
@@ -84,15 +87,52 @@ const GROUP_META: Record<FileGroupKey, { label: string; icon: ReactNode }> = {
   config: { label: "Config", icon: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 14H4.5a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 6 8.6l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 11 5.6V4.5a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 18.4 6l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 21.4 12H21" /></> },
 };
 
+// Real source-code extensions. Anything outside this set (requirements.txt,
+// package.json, *.lock, LICENSE, …) is treated as config, so "Key modules"
+// stays a list of actual code rather than metadata files.
+const SOURCE_EXTENSIONS = new Set([
+  "py", "ts", "tsx", "js", "jsx", "mjs", "cjs", "rs", "go", "java", "kt", "kts",
+  "rb", "php", "c", "cc", "cpp", "h", "hpp", "cs", "swift", "scala", "m", "mm",
+  "vue", "svelte", "sh", "bash", "sql", "lua", "r", "dart", "ex", "exs", "clj",
+]);
+
 function categorize(file: ProjectFileResponse): FileGroupKey {
   const p = file.path.toLowerCase();
   if (/dockerfile|docker-compose|\.tf(\.|$)|\/terraform\/|\/k8s\/|kubernetes|\/helm\/|\/charts\/|ansible/.test(p)) return "infra";
   if (/\.github\/workflows|\.gitlab-ci|jenkinsfile|\.circleci|azure-pipelines|\.drone/.test(p)) return "ci";
   if (/(^|\/)tests?\/|\.test\.|\.spec\.|__tests__|_test\.|\/spec\//.test(p)) return "tests";
   const ext = (file.extension ?? "").toLowerCase();
-  if (ext === "md" || /(^|\/)docs?\//.test(p) || /readme/.test(p)) return "docs";
-  if (/\.(ya?ml|toml|ini|cfg|conf)$/.test(p) || /\.env/.test(p) || /(^|\/)config/.test(p)) return "config";
-  return "code";
+  if (ext === "md" || ext === "rst" || ext === "txt" || /(^|\/)docs?\//.test(p) || /readme|license|changelog|contributing/.test(p)) return "docs";
+  if (SOURCE_EXTENSIONS.has(ext)) return "code";
+  return "config";
+}
+
+// Surface likely entry points first (main/index/app/cli/server…), then shallower
+// paths, so the short preview list shows the files that matter most.
+function keyFileRank(path: string): number {
+  const name = path.toLowerCase().split("/").pop() ?? "";
+  if (/^(main|index|app|server|cli|__main__|lib|mod)\.[a-z]+$/.test(name)) return 0;
+  return 1;
+}
+
+function byImportance(a: ProjectFileResponse, b: ProjectFileResponse): number {
+  const rank = keyFileRank(a.path) - keyFileRank(b.path);
+  if (rank !== 0) return rank;
+  const depth = a.path.split("/").length - b.path.split("/").length;
+  if (depth !== 0) return depth;
+  return a.path.localeCompare(b.path);
+}
+
+function formatBytes(bytes: number): string {
+  if (!bytes || bytes < 1024) return `${bytes || 0} B`;
+  const units = ["KB", "MB", "GB"];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value >= 10 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
 }
 
 function MetaIcon({ children }: { children: ReactNode }) {
@@ -335,7 +375,7 @@ export function ProjectUnderstanding({
             <p className="pu-analysis-summary">{understanding.summary}</p>
             {understanding.risks.length > 0 ? (
               <>
-                <div className="pu-eyebrow pu-analysis-risks-label">Detected risks</div>
+                <div className="pu-eyebrow pu-analysis-risks-label">{lens.risksLabel}</div>
                 <div className="pu-analysis-risks">
                   {understanding.risks.map((risk, index) => (
                     <div className="pu-risk" key={`${risk.text}-${index}`}>
@@ -362,7 +402,7 @@ export function ProjectUnderstanding({
           </>
         ) : (
           <>
-            <p className="pu-analysis-pitch">Your local AI reads the project and writes a grounded summary and risks — each pointing to the file it came from. Bigger models give sharper results. Runs locally.</p>
+            <p className="pu-analysis-pitch">Your local AI reads the project through your <strong>{lens.label}</strong> lens and writes a grounded summary and risks — each pointing to the file it came from. Bigger models give sharper results. Runs locally.</p>
             <button className="pu-analysis-cta" type="button" disabled={!selectedModel} onClick={() => void handleAnalyze()}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l1.9 4.9L19 9l-4.1 1.1L12 15l-1.9-4.9L6 9l4.1-1.1z" /></svg>
               {selectedModel ? `Analyze with ${selectedModel}` : "Set up a model to analyze"}
@@ -399,7 +439,7 @@ export function ProjectUnderstanding({
                     <small>{groupFiles.length}</small>
                   </div>
                   <ul className="pu-file-list">
-                    {groupFiles.slice(0, 6).map((file) => (
+                    {[...groupFiles].sort(byImportance).slice(0, 6).map((file) => (
                       <li key={file.path} title={file.path}>{file.path}</li>
                     ))}
                   </ul>
