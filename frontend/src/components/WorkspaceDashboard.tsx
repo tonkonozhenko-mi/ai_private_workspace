@@ -101,26 +101,28 @@ export function WorkspaceDashboard({
         />
       )}
 
-      <details className="panel overview-advanced-disclosure">
-        <summary>
-          <div>
-            <p className="eyebrow">Advanced</p>
-            <h2>Project details and detected skills</h2>
-            <span>Open only when you need to inspect file rules or skill guidance.</span>
-          </div>
-        </summary>
-        <WorkspaceSkillsSection
-          dashboard={dashboard}
-          onOpenAsk={onOpenAsk}
-          onOpenSettings={onOpenSettings}
-          skillPreferences={skillPreferences}
-        />
-        <WorkspaceFilesSection
-          dashboard={dashboard}
-          fileIndexingPreferences={fileIndexingPreferences}
-          onOpenSettings={onOpenSettings}
-        />
-      </details>
+      {!fullyReady ? (
+        <details className="panel overview-advanced-disclosure">
+          <summary>
+            <div>
+              <p className="eyebrow">Advanced</p>
+              <h2>Project details and detected skills</h2>
+              <span>Open only when you need to inspect file rules or skill guidance.</span>
+            </div>
+          </summary>
+          <WorkspaceSkillsSection
+            dashboard={dashboard}
+            onOpenAsk={onOpenAsk}
+            onOpenSettings={onOpenSettings}
+            skillPreferences={skillPreferences}
+          />
+          <WorkspaceFilesSection
+            dashboard={dashboard}
+            fileIndexingPreferences={fileIndexingPreferences}
+            onOpenSettings={onOpenSettings}
+          />
+        </details>
+      ) : null}
     </>
   );
 }
