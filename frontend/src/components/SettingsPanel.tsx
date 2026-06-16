@@ -84,11 +84,20 @@ export function SettingsPanel({
       for (const item of overview.items) {
         await deleteWorkspace(item.workspace_id);
       }
+      // Also clear locally-saved settings (theme, developer mode, accent, skill
+      // and file rules, …) so this is a genuine clean slate — not just projects.
+      // Everything here is app-owned browser storage; project files on disk and
+      // installed Ollama models are never touched.
+      try {
+        window.localStorage.clear();
+      } catch {
+        /* ignore storage errors — the project/index reset still applies */
+      }
       setResetMessage(
-        `Removed ${overview.items.length} project(s) and their local index data. Reloading…`,
+        `Removed ${overview.items.length} project(s), their local index data, and your app settings. Reloading…`,
       );
-      // A reload re-fetches a now-empty state, the cleanest way to land back at
-      // the first-run screen. Project files on disk are never touched.
+      // A reload re-fetches a now-empty state and default settings, the cleanest
+      // way to land back at the first-run screen.
       window.setTimeout(() => window.location.reload(), 700);
     } catch (resetError) {
       setResetMessage(
@@ -476,8 +485,9 @@ export function SettingsPanel({
             <p className="eyebrow">Reset</p>
             <h3>Start over from scratch</h3>
             <p className="panel-helper">
-              Removes every project from this app and its local search index, returning
-              you to the first-run screen. Your actual project files on disk are never
+              Removes every project from this app, its local search index, and your
+              app settings (theme, developer mode, skills, file rules…), returning you
+              to a true first-run state. Your actual project files on disk are never
               touched, and installed Ollama models are left alone.
             </p>
           </div>
