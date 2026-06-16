@@ -1928,6 +1928,9 @@ details.onboarding-guide-panel[open] > summary {
 }
 .app-shell.is-sidebar-collapsed .sidebar {
   border-right: none;
+  padding-left: 0;
+  padding-right: 0;
+  overflow: hidden;
 }
 .sidebar .brand {
   position: relative;
@@ -3442,6 +3445,27 @@ details.onboarding-guide-panel[open] > summary {
   background: var(--c-surface-3);
   color: var(--c-text);
 }
+/* Clear chat — a calm secondary action, pushed to the right of the toolbar */
+.ask-clear-chat-button {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--c-border);
+  background: transparent;
+  color: var(--c-text-3);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ask-clear-chat-button:hover:not(:disabled) {
+  border-color: var(--c-danger);
+  color: var(--c-danger);
+  background: var(--c-surface-2);
+}
+.ask-clear-chat-button:disabled { opacity: 0.5; cursor: default; }
 .ask-saved-chevron {
   font-size: 10px;
   color: var(--c-text-3);

@@ -770,6 +770,7 @@ function App() {
   // takeover (a previous "Skip for now" must not leak across workspaces).
   useEffect(() => {
     setSetupTakeoverDismissed(false);
+    takeoverWasActiveRef.current = false;
   }, [selectedWorkspaceId]);
 
   useEffect(() => {
@@ -779,6 +780,23 @@ function App() {
       // Ignore storage failures (private mode, etc.).
     }
   }, [sidebarCollapsed]);
+
+  const setupComplete = detail
+    ? detail.dashboard.summary.has_scan &&
+      detail.dashboard.summary.index_status.status === "indexed" &&
+      detail.modelsSummary.can_search_with_selected_embedding &&
+      detail.modelsSummary.can_ask_with_selected_llm
+    : true;
+
+  // When the immersive setup finishes, land the user straight on Ask — the
+  // first useful thing to do with a ready workspace.
+  const takeoverWasActiveRef = useRef(false);
+  useEffect(() => {
+    if (setupComplete && takeoverWasActiveRef.current) {
+      takeoverWasActiveRef.current = false;
+      setActiveTab("ask");
+    }
+  }, [setupComplete]);
 
   const isFirstRun =
     !workspacesLoading &&
@@ -816,13 +834,6 @@ function App() {
   // A brand-new / not-yet-ready workspace gets an immersive, distraction-free
   // setup flow (no sidebar, no tabs) — like the first-run screen. A subtle
   // "Skip for now" returns to the full app shell.
-  const setupComplete = detail
-    ? detail.dashboard.summary.has_scan &&
-      detail.dashboard.summary.index_status.status === "indexed" &&
-      detail.modelsSummary.can_search_with_selected_embedding &&
-      detail.modelsSummary.can_ask_with_selected_llm
-    : true;
-
   if (
     detail &&
     !detailLoading &&
@@ -831,6 +842,7 @@ function App() {
     !setupTakeoverDismissed &&
     !exitPrompt
   ) {
+    takeoverWasActiveRef.current = true;
     const ws = detail.dashboard.workspace_id;
     return (
       <div className="setup-takeover">
