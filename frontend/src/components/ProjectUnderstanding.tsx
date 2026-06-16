@@ -75,10 +75,12 @@ function MetaIcon({ children }: { children: ReactNode }) {
 
 export function ProjectUnderstanding({
   dashboard,
+  projectPath,
   onOpenAsk,
   onOpenSettings,
 }: {
   dashboard: WorkspaceDashboard;
+  projectPath: string;
   onOpenAsk: () => void;
   onOpenSettings: () => void;
 }) {
@@ -151,12 +153,12 @@ export function ProjectUnderstanding({
   return (
     <section className="project-understanding">
       <header className="pu-header">
-        <div>
-          <span className="pu-eyebrow">Project</span>
+        <div className="pu-header-main">
           <h1>{dashboard.workspace_name}</h1>
-          <button className="pu-lens-chip" type="button" onClick={onOpenSettings} title="Change the project lens in Settings">
+          <p className="pu-path">{projectPath}</p>
+          <button className="pu-lens-chip" type="button" onClick={onOpenSettings} data-tip="Change the project lens in Settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" /></svg>
-            Tuned for {lens.label} · change in Settings
+            {lens.label} view
           </button>
         </div>
         <button className="pu-ask-button" type="button" onClick={onOpenAsk}>
@@ -178,9 +180,14 @@ export function ProjectUnderstanding({
             <span>Deep project analysis</span>
           </div>
           {understanding && !generating ? (
-            <button className="pu-analysis-reanalyze" type="button" disabled={generating || !selectedModel} onClick={() => void handleAnalyze()}>
+            <button
+              className={`pu-analysis-reanalyze${understanding.is_stale ? " is-prominent" : ""}`}
+              type="button"
+              disabled={generating || !selectedModel}
+              onClick={() => void handleAnalyze()}
+            >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v5h-5" /></svg>
-              Re-analyze
+              {understanding.is_stale ? "Re-analyze with new model" : "Re-analyze"}
             </button>
           ) : null}
         </div>

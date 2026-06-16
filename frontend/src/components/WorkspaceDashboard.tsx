@@ -68,35 +68,27 @@ export function WorkspaceDashboard({
 
   return (
     <>
-      <header className="workspace-header">
-        <div>
-          <p className="eyebrow">Workspace overview</p>
-          <h1>{dashboard.workspace_name}</h1>
-          <p className="workspace-header-path">{summary.project_path}</p>
-        </div>
-        <div className="workspace-header-status">
-          <StatusBadge label={dashboard.status} size="md" />
-          <span>{formatLabel(dashboard.assistant_mode)} mode</span>
-        </div>
-      </header>
+      {!fullyReady ? (
+        <header className="workspace-header">
+          <div>
+            <p className="eyebrow">Workspace overview</p>
+            <h1>{dashboard.workspace_name}</h1>
+            <p className="workspace-header-path">{summary.project_path}</p>
+          </div>
+          <div className="workspace-header-status">
+            <StatusBadge label={dashboard.status} size="md" />
+            <span>{formatLabel(dashboard.assistant_mode)} mode</span>
+          </div>
+        </header>
+      ) : null}
 
       {fullyReady ? (
-        <>
-          <ProjectUnderstanding
-            dashboard={dashboard}
-            onOpenAsk={onOpenAsk}
-            onOpenSettings={onOpenSettings}
-          />
-          <DailyUseStatusPanel
-            dashboard={dashboard}
-            modelsSummary={modelsSummary}
-            onOpenAsk={onOpenAsk}
-            onOpenModels={onOpenModels}
-            onOpenCapabilities={onOpenCapabilities}
-            onStartScan={() => void onStartScanJob()}
-            onStartIndex={() => void onStartIndexJob()}
-          />
-        </>
+        <ProjectUnderstanding
+          dashboard={dashboard}
+          projectPath={summary.project_path}
+          onOpenAsk={onOpenAsk}
+          onOpenSettings={onOpenSettings}
+        />
       ) : (
         <WorkspaceGettingReady
           dashboard={dashboard}
