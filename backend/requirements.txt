@@ -4,5 +4,5 @@ pydantic>=2.7,<3.0
 pytest>=8.0,<9.0
 PyYAML>=6.0,<7.0
 uvicorn[standard]>=0.29,<1.0
-pyinstaller>=6.0,<7.0
+pyinstaller>=6.21.0,<7.0
 python-dotenv>=1.0
