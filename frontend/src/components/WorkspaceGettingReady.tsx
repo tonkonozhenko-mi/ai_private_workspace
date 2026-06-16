@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   cancelLocalModelDownloadJob,
@@ -63,9 +63,14 @@ export function WorkspaceGettingReady({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checkedAt, setCheckedAt] = useState<number | null>(null);
+  const prevActiveJobsRef = useRef(0);
+  const prevInstalledCountRef = useRef<number | null>(null);
 
-  // Single poll tick: refresh install status, in-flight downloads, and the
-  // parent workspace state so scan/index/model completion advances the step.
+  // Lightweight poll: only install status + in-flight downloads (2 cheap calls).
+  // The heavy workspace refresh (8 calls) runs ONLY on a real transition — a
+  // download finishing or a model becoming installed — so we never storm the
+  // local backend or race with scan/forget/delete actions. Scan and index steps
+  // advance via their own job pollers in App (pollSetupJobThenRefresh).
   const tick = useCallback(async () => {
     try {
       const [status, jobList] = await Promise.all([
@@ -77,9 +82,19 @@ export function WorkspaceGettingReady({
         (job) => job.status === "running" || job.status === "queued",
       );
       setDownloadJobs(active);
-      // Always pull fresh workspace state so scan / model-selection / index
-      // completion advances the step automatically (no manual refresh needed).
-      await onRefreshWorkspaceState();
+
+      const installedCount = asArray(status.items).filter(
+        (item) => item.status === "installed",
+      ).length;
+      const downloadsJustFinished = prevActiveJobsRef.current > 0 && active.length === 0;
+      const installedChanged =
+        prevInstalledCountRef.current !== null && installedCount !== prevInstalledCountRef.current;
+      prevActiveJobsRef.current = active.length;
+      prevInstalledCountRef.current = installedCount;
+
+      if (downloadsJustFinished || installedChanged) {
+        await onRefreshWorkspaceState();
+      }
     } catch {
       // Ignore transient polling errors.
     }
@@ -92,7 +107,7 @@ export function WorkspaceGettingReady({
       await tick();
     };
     void run();
-    const id = window.setInterval(() => void run(), 2500);
+    const id = window.setInterval(() => void run(), 3000);
     return () => {
       cancelled = true;
       window.clearInterval(id);
@@ -182,6 +197,7 @@ export function WorkspaceGettingReady({
     setError(null);
     setMessage(null);
     await tick();
+    await onRefreshWorkspaceState();
     setCheckedAt(Date.now());
     setBusy(null);
   }

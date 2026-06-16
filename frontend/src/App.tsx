@@ -797,7 +797,8 @@ function App() {
     !detailLoading &&
     !detailError &&
     !setupComplete &&
-    !setupTakeoverDismissed
+    !setupTakeoverDismissed &&
+    !exitPrompt
   ) {
     const ws = detail.dashboard.workspace_id;
     return (
