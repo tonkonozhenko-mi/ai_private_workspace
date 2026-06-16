@@ -17,6 +17,20 @@ import type {
   WorkspaceJob,
 } from "../api/types";
 
+// The on-disk change check walks the project folder, which makes macOS prompt
+// for folder access. We only run it AFTER the user has interacted with the app,
+// so the prompt is tied to deliberate use — never to a silent cold launch.
+let userHasInteracted = false;
+if (typeof window !== "undefined") {
+  const mark = () => {
+    userHasInteracted = true;
+    window.removeEventListener("pointerdown", mark);
+    window.removeEventListener("keydown", mark);
+  };
+  window.addEventListener("pointerdown", mark);
+  window.addEventListener("keydown", mark);
+}
+
 async function pollJobDone(workspaceId: string, jobId: string): Promise<void> {
   for (let attempt = 0; attempt < 900; attempt += 1) {
     await new Promise((resolve) => window.setTimeout(resolve, 1000));
@@ -124,14 +138,17 @@ export function ProjectUnderstanding({
     setGenError(null);
     setChanges(null);
     autoTriedRef.current = false;
-    // Have files on disk changed since the last scan?
-    getWorkspaceScanChanges(dashboard.workspace_id)
-      .then((result) => {
-        if (!cancelled && result.changed) setChanges(result);
-      })
-      .catch(() => {
-        /* ignore — no banner if the check fails */
-      });
+    // Have files on disk changed since the last scan? Only after a user gesture,
+    // so this never triggers a macOS folder-access prompt on a cold launch.
+    if (userHasInteracted) {
+      getWorkspaceScanChanges(dashboard.workspace_id)
+        .then((result) => {
+          if (!cancelled && result.changed) setChanges(result);
+        })
+        .catch(() => {
+          /* ignore — no banner if the check fails */
+        });
+    }
     getWorkspaceLatestScan(dashboard.workspace_id)
       .then((result) => {
         if (!cancelled) setScan(result);
