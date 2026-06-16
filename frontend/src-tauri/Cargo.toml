@@ -1,6 +1,6 @@
 [package]
 name = "ai-private-workspace"
-version = "0.1.59"
+version = "0.1.60"
 description = "Local-first AI Private Workspace desktop shell"
 authors = ["AI Private Workspace"]
 edition = "2021"

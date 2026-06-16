@@ -1211,6 +1211,7 @@ function ConversationPanel({
         conversationContextPreview={conversationContextPreview}
         conversationStatus={conversationStatus}
         onNewConversation={onNewConversation}
+        onClear={onClear}
         onOpenConversation={onOpenConversation}
         onRenameConversation={onRenameConversation}
         onDeleteConversation={onDeleteConversation}
@@ -1227,12 +1228,6 @@ function ConversationPanel({
         onToggleShowArchived={onToggleShowArchived}
         onTogglePinnedOnly={onTogglePinnedOnly}
       />
-      <div className="ask-thread-bar">
-        <button className="text-button" type="button" onClick={onClear}>
-          Clear chat
-        </button>
-      </div>
-
       <div className="ask-message-list">
         {chronologicalHistory.map((item) => (
           <ConversationTurn
@@ -1430,6 +1425,7 @@ function ConversationHistoryBar({
   conversationContextPreview,
   conversationStatus,
   onNewConversation,
+  onClear,
   onOpenConversation,
   onRenameConversation,
   onDeleteConversation,
@@ -1458,6 +1454,7 @@ function ConversationHistoryBar({
   conversationContextPreview: ConversationContextPreview | null;
   conversationStatus: string | null;
   onNewConversation: () => void;
+  onClear?: () => void;
   onOpenConversation: (conversationId: string) => void;
   onRenameConversation: (conversationId: string, currentTitle: string) => void;
   onDeleteConversation: (conversationId: string) => void;
@@ -1518,6 +1515,17 @@ function ConversationHistoryBar({
           Saved chats &amp; notes
           <span className="ask-saved-chevron" aria-hidden="true">{open ? "▴" : "▾"}</span>
         </button>
+        {onClear ? (
+          <button
+            className="ask-clear-chat-button"
+            type="button"
+            disabled={loading}
+            onClick={onClear}
+            title="Clear the current chat"
+          >
+            Clear chat
+          </button>
+        ) : null}
       </div>
 
       {open ? (
