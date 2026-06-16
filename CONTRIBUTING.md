@@ -1,6 +1,7 @@
 # Contributing
 
-Thanks for helping improve AI Private Workspace.
+Thanks for helping improve AI Private Workspace. By participating, you agree to
+abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Product principles
 
