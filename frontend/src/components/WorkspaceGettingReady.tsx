@@ -1,14 +1,18 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  cancelLocalModelDownloadJob,
   createLocalModelInstallDraft,
   getLocalModelDownloadExecutionCapability,
   getLocalModelInstallStatus,
+  listLocalModelDownloadJobs,
   startLocalModelDownloadJob,
   updateWorkspaceModelSelection,
 } from "../api/client";
 import type {
+  LocalModelDownloadJob,
   LocalModelInstallStatus,
+  LocalModelStatusItem,
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
 } from "../api/types";
@@ -17,9 +21,17 @@ function asArray<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [];
 }
 
+function roleLabel(item: LocalModelStatusItem): string {
+  return item.model_type === "embedding" ? "search" : "answers";
+}
+
 /**
  * One calm setup step at a time, done inline — no detour into Models/Settings.
  * Order: (Ollama) -> scan -> local models -> build context -> ready to ask.
+ *
+ * The models step polls download jobs + install status so progress and
+ * green/▢ status are visible right here (this screen can run full-window with
+ * no sidebar, so progress must live inline rather than in the sidebar).
  */
 export function WorkspaceGettingReady({
   dashboard,
@@ -46,23 +58,56 @@ export function WorkspaceGettingReady({
   const modelsReady = embeddingReady && llmReady;
 
   const [installStatus, setInstallStatus] = useState<LocalModelInstallStatus | null>(null);
+  const [downloadJobs, setDownloadJobs] = useState<LocalModelDownloadJob[]>([]);
   const [busy, setBusy] = useState<"scan" | "models" | "index" | "check" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [checkedAt, setCheckedAt] = useState<number | null>(null);
+  const prevActiveJobsRef = useRef(0);
 
-  async function refreshInstallStatus() {
+  // Single poll tick: refresh install status, in-flight downloads, and the
+  // parent workspace state so scan/index/model completion advances the step.
+  const tick = useCallback(async () => {
     try {
-      setInstallStatus(await getLocalModelInstallStatus());
+      const [status, jobList] = await Promise.all([
+        getLocalModelInstallStatus(),
+        listLocalModelDownloadJobs(),
+      ]);
+      setInstallStatus(status);
+      const active = asArray(jobList.jobs).filter(
+        (job) => job.status === "running" || job.status === "queued",
+      );
+      setDownloadJobs(active);
+      // When the last download finishes, pull fresh workspace state so the step advances.
+      if (prevActiveJobsRef.current > 0 && active.length === 0) {
+        await onRefreshWorkspaceState();
+      }
+      prevActiveJobsRef.current = active.length;
     } catch {
-      // Ignore; treated as "unknown" below.
+      // Ignore transient polling errors.
     }
-  }
+  }, [onRefreshWorkspaceState]);
 
   useEffect(() => {
-    void refreshInstallStatus();
-  }, []);
+    let cancelled = false;
+    const run = async () => {
+      if (cancelled) return;
+      await tick();
+    };
+    void run();
+    const id = window.setInterval(() => void run(), 2500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [tick]);
 
   const ollamaReachable = installStatus ? installStatus.runtime_reachable : true;
+  const recommendedItems = asArray(installStatus?.items).filter((item) => item.recommended);
+
+  function jobForModel(model: string): LocalModelDownloadJob | undefined {
+    return downloadJobs.find((job) => job.model === model);
+  }
 
   async function installRecommendedModels() {
     setBusy("models");
@@ -72,7 +117,7 @@ export function WorkspaceGettingReady({
       const status = await getLocalModelInstallStatus();
       setInstallStatus(status);
       if (!status.runtime_reachable) {
-        setError("Ollama isn’t running yet. Start it, then try again.");
+        setError("Ollama isn’t running yet. Start it, then tap Re-check.");
         return;
       }
       const capability = await getLocalModelDownloadExecutionCapability();
@@ -81,6 +126,13 @@ export function WorkspaceGettingReady({
       );
       if (missing.length === 0) {
         await onRefreshWorkspaceState();
+        setMessage("Both models are already installed.");
+        return;
+      }
+      if (!capability.execution_enabled) {
+        setError(
+          "Automatic download is turned off in this build. Open Models to install them manually.",
+        );
         return;
       }
       for (const item of missing) {
@@ -93,9 +145,7 @@ export function WorkspaceGettingReady({
           model: item.model,
           model_type: modelType,
         });
-        if (capability.execution_enabled) {
-          await startLocalModelDownloadJob(draft.command_proposal.id);
-        }
+        await startLocalModelDownloadJob(draft.command_proposal.id);
         await updateWorkspaceModelSelection(dashboard.workspace_id, {
           provider: item.provider,
           model: item.model,
@@ -103,10 +153,8 @@ export function WorkspaceGettingReady({
           selected_reason: "First-run recommended setup.",
         });
       }
-      setMessage(
-        "Downloading your local AI — watch progress in the sidebar. This step finishes once both models are installed; then tap Re-check.",
-      );
-      await onRefreshWorkspaceState();
+      setMessage("Downloading your local AI — progress shows below. Keep this open.");
+      await tick();
     } catch (installError) {
       setError(installError instanceof Error ? installError.message : "Could not start the install.");
     } finally {
@@ -114,10 +162,21 @@ export function WorkspaceGettingReady({
     }
   }
 
+  async function stopDownload(jobId: string) {
+    try {
+      await cancelLocalModelDownloadJob(jobId);
+      setDownloadJobs((current) => current.filter((job) => job.id !== jobId));
+    } catch {
+      // Next poll reflects the real state.
+    }
+  }
+
   async function recheck() {
     setBusy("check");
-    await refreshInstallStatus();
-    await onRefreshWorkspaceState();
+    setError(null);
+    setMessage(null);
+    await tick();
+    setCheckedAt(Date.now());
     setBusy(null);
   }
 
@@ -130,6 +189,7 @@ export function WorkspaceGettingReady({
   else step = "ready";
 
   const stepNumber = { ollama: 0, scan: 1, models: 2, index: 3, ready: 4 }[step];
+  const downloading = downloadJobs.length > 0;
 
   return (
     <section className="getting-ready">
@@ -175,13 +235,59 @@ export function WorkspaceGettingReady({
             Downloads two small local models — one to answer, one to search your files
             (about 5 GB, runs offline). Want to choose your own instead? Open Models.
           </p>
-          <div className="getting-ready-models">
-            <span>qwen2.5-coder · answers</span>
-            <span>nomic-embed-text · search</span>
-          </div>
+
+          <ul className="getting-ready-checklist">
+            <li className={`gr-check gr-check--${ollamaReachable ? "done" : "bad"}`}>
+              <span className="gr-check-icon" aria-hidden="true" />
+              <span className="gr-check-name">Ollama engine</span>
+              <span className="gr-check-state">{ollamaReachable ? "Running" : "Not running"}</span>
+            </li>
+            {(recommendedItems.length > 0
+              ? recommendedItems
+              : []
+            ).map((item) => {
+              const job = jobForModel(item.model);
+              const installed = item.status === "installed";
+              const pct = job?.progress_percent ?? null;
+              const state = installed ? "done" : job ? "load" : "wait";
+              return (
+                <li className={`gr-check gr-check--${state}`} key={item.model}>
+                  <span className="gr-check-icon" aria-hidden="true">
+                    {job ? <span className="gr-check-spin" /> : null}
+                  </span>
+                  <span className="gr-check-name">
+                    {item.display_name}
+                    <small>· {roleLabel(item)}</small>
+                  </span>
+                  {job ? (
+                    <span className="gr-check-progress">
+                      <span className="install-progress-bar">
+                        <span style={pct === null ? undefined : { width: `${pct}%` }} />
+                      </span>
+                      <button
+                        type="button"
+                        className="gr-check-stop"
+                        onClick={() => void stopDownload(job.id)}
+                      >
+                        Stop
+                      </button>
+                    </span>
+                  ) : (
+                    <span className="gr-check-state">{installed ? "Installed" : "Not yet"}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+
           <div className="getting-ready-actions">
-            <button className="getting-ready-cta" type="button" disabled={busy !== null} onClick={() => void installRecommendedModels()}>
-              {busy === "models" ? "Starting…" : "Install & continue"}
+            <button
+              className="getting-ready-cta"
+              type="button"
+              disabled={busy !== null || downloading}
+              onClick={() => void installRecommendedModels()}
+            >
+              {downloading ? "Downloading…" : busy === "models" ? "Starting…" : "Install & continue"}
             </button>
             <button className="secondary-action" type="button" disabled={busy !== null} onClick={() => void recheck()}>
               {busy === "check" ? "Checking…" : "Re-check"}
@@ -190,6 +296,11 @@ export function WorkspaceGettingReady({
               Choose models yourself
             </button>
           </div>
+          {checkedAt && !downloading ? (
+            <p className="getting-ready-message">
+              Checked — {modelsReady ? "all set, moving on." : "still missing a model above."}
+            </p>
+          ) : null}
         </div>
       ) : step === "index" ? (
         <div className="getting-ready-step">
