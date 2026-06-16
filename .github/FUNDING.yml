@@ -1,0 +1,8 @@
+# Shows a "Sponsor" button on the repository. Fill in the platforms you use;
+# remove the rest. GitHub Sponsors requires the account to be enrolled at
+# https://github.com/sponsors before the button appears.
+github: [tonkonozhenko-mi]
+# patreon: your-handle
+# open_collective: your-collective
+# ko_fi: your-handle
+# custom: ["https://example.com/donate"]
