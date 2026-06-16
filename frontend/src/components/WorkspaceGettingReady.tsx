@@ -53,8 +53,15 @@ export function WorkspaceGettingReady({
   const summary = dashboard.summary;
   const hasScan = summary.has_scan;
   const indexReady = summary.index_status.status === "indexed";
-  const embeddingReady = modelsSummary.can_search_with_selected_embedding;
+  // The "models" step must pass BEFORE indexing, so it can only check that the
+  // models are chosen — not that search works (can_search_with_selected_embedding
+  // requires an existing index, which is the NEXT step → a chicken-and-egg that
+  // would trap the user here forever). Embedding is "ready to index" when the
+  // selected embedding matches the active runtime config.
   const llmReady = modelsSummary.can_ask_with_selected_llm;
+  const embeddingReady =
+    modelsSummary.selected_embedding != null &&
+    modelsSummary.selected_embedding_matches_active_runtime;
   const modelsReady = embeddingReady && llmReady;
 
   const [installStatus, setInstallStatus] = useState<LocalModelInstallStatus | null>(null);
