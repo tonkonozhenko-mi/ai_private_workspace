@@ -85,10 +85,14 @@ export interface WorkbenchPreferences {
 
 export type AnswerCreativityPreference = "precise" | "balanced" | "creative";
 
+// Temperature sent to the model per creativity setting. "Precise" is 0.0 on
+// purpose: at temperature 0 the model is (near-)deterministic, so asking the
+// same question twice gives the same answer — that repeatability is how you can
+// actually tell the setting is taking effect. Higher values vary the phrasing.
 export const ANSWER_CREATIVITY_TEMPERATURE: Record<AnswerCreativityPreference, number> = {
-  precise: 0.1,
+  precise: 0.0,
   balanced: 0.5,
-  creative: 0.9,
+  creative: 1.0,
 };
 
 const PREFERENCES_STORAGE_KEY = "ai-private-workspace.preferences.v1";
