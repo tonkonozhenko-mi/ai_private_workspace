@@ -1482,26 +1482,6 @@ function LocalModelInstallPanel({
           </button>
         </div>
       ) : null}
-      <div
-        className="model-manager-summary-grid"
-        aria-label="Local model manager summary"
-      >
-        <article>
-          <span className="model-manager-stat-label">Installed</span>
-          <strong>
-            {installStatus?.runtime_reachable
-              ? `${installedRecommendedCount}/${recommendedInstallItems.length} recommended`
-              : "Ollama offline"}
-          </strong>
-        </article>
-        <article>
-          <span className="model-manager-stat-label">Downloads</span>
-          <strong>
-            {activeJobs.length > 0 ? `${activeJobs.length} active` : "None active"}
-          </strong>
-        </article>
-      </div>
-
       {activeJobs.length > 0 ? (
         <div className="model-manager-active-stack">
           {activeJobs.slice(0, 2).map((job) => (
