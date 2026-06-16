@@ -3,7 +3,6 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from app.core.domain.command import CommandProposal, CommandStatus
-from app.core.domain.command_policy import evaluate_command_policy
 from app.core.domain.command_risk import classify_command_risk
 from app.core.domain.local_model_install_draft import (
     LocalModelInstallDraft,
@@ -67,7 +66,6 @@ class CreateLocalModelInstallDraftUseCase:
         )
         command = f"ollama pull {model.model_name}"
         risk = classify_command_risk(command)
-        policy = evaluate_command_policy(command, risk)
         proposal = CommandProposal(
             id=str(uuid4()),
             workspace_id=request.workspace_id,

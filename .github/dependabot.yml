@@ -14,6 +14,19 @@ updates:
         dependency-type: "development"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # The app targets React 18, so keep the React runtime and its type
+      # packages on the matching major. A v19 bump of @types/react breaks the
+      # @types/react-dom@18 peer requirement (npm ci ERESOLVE). Revisit these
+      # when migrating the app to React 19.
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major"]
 
   # Backend (pip) — FastAPI/runtime dependencies.
   - package-ecosystem: "pip"
