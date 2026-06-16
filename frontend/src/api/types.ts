@@ -92,6 +92,35 @@ export interface ProjectScanResponse {
   files: ProjectFileResponse[];
 }
 
+export interface GitCommitResponse {
+  short_hash: string;
+  subject: string;
+  author: string;
+  committed_at: string;
+}
+
+export interface GitContributorResponse {
+  name: string;
+  commits: number;
+}
+
+export interface GitFileHotspotResponse {
+  path: string;
+  changes: number;
+}
+
+export interface GitInsightsResponse {
+  is_repo: boolean;
+  branch: string | null;
+  last_commit: GitCommitResponse | null;
+  total_commits: number;
+  commits_last_30_days: number;
+  contributors_count: number;
+  first_commit_at: string | null;
+  top_contributors: GitContributorResponse[];
+  hotspots: GitFileHotspotResponse[];
+}
+
 export interface IndexedDocumentSummaryResponse {
   source_path: string;
   chunks_count: number;

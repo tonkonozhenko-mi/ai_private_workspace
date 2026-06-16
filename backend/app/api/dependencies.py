@@ -2,6 +2,7 @@ from app.adapters.commands.fake_command_runner import FakeCommandRunner
 from app.adapters.commands.local_command_runner import LocalCommandRunner
 from app.adapters.embeddings.fake_embedding_provider import FakeEmbeddingProvider
 from app.adapters.filesystem.local_file_system import LocalFileSystem
+from app.adapters.system.local_git_history import LocalGitHistory
 from app.adapters.llm.fake_llm_provider import FakeLLMProvider
 from app.adapters.llm.llm_provider_factory import LLMProviderFactory
 from app.adapters.memory.in_memory_agent_workflow_repository import InMemoryAgentWorkflowRepository
@@ -495,6 +496,7 @@ model_experiment_rating_repository = build_model_experiment_rating_repository()
 workspace_model_selection_repository = build_workspace_model_selection_repository()
 workspace_storage_gateway = build_workspace_storage_gateway()
 file_system = LocalFileSystem()
+git_history = LocalGitHistory()
 command_runner = build_command_runner()
 embedding_provider = build_embedding_provider()
 llm_provider_factory = build_llm_provider_factory()

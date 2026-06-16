@@ -12,6 +12,7 @@ from app.api.dependencies import (
     conversation_repository,
     embedding_provider,
     file_system,
+    git_history,
     index_status_repository,
     indexing_rules_repository,
     skill_profile_repository,
@@ -266,6 +267,15 @@ from app.core.use_cases.generate_project_understanding import (
 from app.api.schemas.project_understanding_schemas import (
     ProjectUnderstandingResponse,
     to_project_understanding_response,
+)
+from app.core.use_cases.get_workspace_git_insights import (
+    GetWorkspaceGitInsightsInput,
+    GetWorkspaceGitInsightsUseCase,
+    WorkspaceGitInsightsNotFoundError,
+)
+from app.api.schemas.git_insights_schemas import (
+    GitInsightsResponse,
+    to_git_insights_response,
 )
 from app.core.use_cases.backfill_workspace_timeline import (
     BackfillWorkspaceTimelineInput,
@@ -1943,6 +1953,27 @@ def _current_selected_llm_label(workspace_id: str) -> str | None:
     if selected_llm.model:
         return f"{selected_llm.provider}/{selected_llm.model}"
     return selected_llm.provider
+
+
+@router.get(
+    "/{workspace_id}/git-insights",
+    response_model=GitInsightsResponse,
+)
+def get_workspace_git_insights(workspace_id: str) -> GitInsightsResponse:
+    use_case = GetWorkspaceGitInsightsUseCase(
+        workspace_repository=workspace_repository,
+        git_history=git_history,
+    )
+    try:
+        insights = use_case.execute(
+            GetWorkspaceGitInsightsInput(workspace_id=workspace_id)
+        )
+    except WorkspaceGitInsightsNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return to_git_insights_response(insights)
 
 
 @router.get(
