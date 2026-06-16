@@ -64,7 +64,9 @@ export function WorkspaceGettingReady({
   const embeddingReady =
     modelsSummary.selected_embedding != null &&
     modelsSummary.selected_embedding_matches_active_runtime;
-  const modelsReady = embeddingReady && llmReady;
+  // NOTE: modelsReady is computed below — it also requires the recommended models
+  // to be actually INSTALLED (not just selected), so the step doesn't skip ahead
+  // while a download is still in flight.
 
   const [installStatus, setInstallStatus] = useState<LocalModelInstallStatus | null>(null);
   const [downloadJobs, setDownloadJobs] = useState<LocalModelDownloadJob[]>([]);
@@ -200,6 +202,12 @@ export function WorkspaceGettingReady({
 
   const ollamaReachable = installStatus ? installStatus.runtime_reachable : true;
   const recommendedItems = asArray(installStatus?.items).filter((item) => item.recommended);
+  // Models step is done only when the recommended models are SELECTED (llm/embedding
+  // ready) AND actually installed in Ollama — so we never skip to indexing while a
+  // download is still running. Requires install status to have loaded.
+  const recommendedInstalled =
+    recommendedItems.length > 0 && recommendedItems.every((item) => item.status === "installed");
+  const modelsReady = llmReady && embeddingReady && recommendedInstalled;
 
   function jobForModel(model: string): LocalModelDownloadJob | undefined {
     return downloadJobs.find((job) => job.model === model);

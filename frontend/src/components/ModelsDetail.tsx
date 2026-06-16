@@ -4240,10 +4240,10 @@ function ModelExperimentPlanner({
   }
 
   return (
-    <details className="panel model-experiment-planner-panel models-disclosure-panel">
+    <details className="panel model-experiment-planner-panel models-disclosure-panel" open>
       <summary>
         <div>
-          <p className="eyebrow">Optional</p>
+          <p className="eyebrow">Compare</p>
           <h2>Model face-off</h2>
           <span>
             Two local models, one question — see which answers your project
