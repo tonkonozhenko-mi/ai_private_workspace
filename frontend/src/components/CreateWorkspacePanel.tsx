@@ -10,7 +10,14 @@ interface CreateWorkspacePanelProps {
   onCancel: () => void;
 }
 
-type AssistantMode = "devops" | "developer" | "documentation" | "support_incident" | "manager_summary";
+type AssistantMode =
+  | "devops"
+  | "developer"
+  | "documentation"
+  | "support_incident"
+  | "manager_summary"
+  | "tester"
+  | "business_analyst";
 
 const assistantModes: Array<{
   id: AssistantMode;
@@ -41,6 +48,16 @@ const assistantModes: Array<{
     id: "manager_summary",
     label: "Manager summary",
     description: "High-level summaries, risks, progress, and stakeholder notes.",
+  },
+  {
+    id: "tester",
+    label: "Tester / QA",
+    description: "Test coverage, how to run tests, and what to verify.",
+  },
+  {
+    id: "business_analyst",
+    label: "Business analyst",
+    description: "Plain-language overview, features, and stakeholders — no deep code.",
   },
 ];
 

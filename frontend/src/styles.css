@@ -1602,6 +1602,40 @@ details.onboarding-guide-panel[open] > summary {
 .installed-model-metadata dt { font-size: 11px; color: var(--c-text-3); }
 .installed-model-metadata dd { margin: 0; font-size: 12.5px; color: var(--c-text); word-break: break-word; }
 .installed-model-actions { margin-top: 12px; display: flex; gap: 8px; }
+
+/* Project understanding — adaptive home screen --------------------------------- */
+.project-understanding { display: flex; flex-direction: column; gap: 14px; }
+.pu-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.pu-eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-text-3); }
+.pu-header h1 { margin: 2px 0 0; font-size: 24px; font-weight: 500; }
+.pu-lens-chip { display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--c-accent-border); background: var(--c-accent-soft); color: var(--c-accent); font-size: 12px; cursor: pointer; }
+.pu-lens-chip svg { width: 14px; height: 14px; }
+.pu-ask-button { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 10px; border: none; background: var(--c-accent); color: var(--c-accent-ink); font-size: 13px; font-weight: 500; cursor: pointer; flex: 0 0 auto; }
+.pu-ask-button:hover { background: var(--c-accent-hover); }
+.pu-ask-button svg { width: 16px; height: 16px; }
+.pu-summary-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: 16px 18px; }
+.pu-summary-card p { margin: 6px 0 0; font-size: 15px; line-height: 1.6; color: var(--c-text); }
+.pu-summary-foot { display: block; margin-top: 8px; font-size: 12px; color: var(--c-text-3); }
+.pu-loading { font-size: 13px; color: var(--c-text-3); padding: 6px 2px; }
+.pu-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: 16px 18px; }
+.pu-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.pu-card-head svg { width: 17px; height: 17px; color: var(--c-accent); flex: 0 0 auto; }
+.pu-card-head > span { font-size: 14px; font-weight: 500; }
+.pu-card-head small { margin-left: auto; font-size: 12px; color: var(--c-text-3); }
+.pu-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pu-chip { font-size: 12px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: 6px; padding: 3px 9px; color: var(--c-text); }
+.pu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.pu-file-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.pu-file-list li { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; color: var(--c-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pu-sources-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; }
+.pu-sources-note { font-size: 11.5px; color: var(--c-text-3); }
+.pu-sources-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.pu-source { display: flex; align-items: center; gap: 9px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: 9px; padding: 10px 12px; color: var(--c-text-3); }
+.pu-source svg { width: 17px; height: 17px; flex: 0 0 auto; }
+.pu-source strong { display: block; font-size: 12.5px; font-weight: 500; color: var(--c-text); }
+.pu-source small { font-size: 11px; color: var(--c-text-3); }
+.pu-source.is-active { border-color: var(--c-accent-border); color: var(--c-accent); }
+.pu-source.is-active small { color: var(--c-accent); }
 .models-workflow-panel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .native-action-catalog { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 0.42fr); gap: var(--space-5); }
 .native-action-details-list { display: grid; grid-template-columns: minmax(92px, 0.45fr) minmax(0, 1fr); gap: var(--s-4); }
