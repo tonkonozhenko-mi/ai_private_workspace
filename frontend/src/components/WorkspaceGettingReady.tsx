@@ -391,7 +391,10 @@ export function WorkspaceGettingReady({
                   </span>
                   {job ? (
                     <span className="gr-check-progress">
-                      <span className="install-progress-bar">
+                      <span className="gr-check-pct">
+                        {pct === null ? "…" : `${Math.round(pct)}%`}
+                      </span>
+                      <span className={`install-progress-bar${pct === null ? " is-indeterminate" : ""}`}>
                         <span style={pct === null ? undefined : { width: `${pct}%` }} />
                       </span>
                       <button
