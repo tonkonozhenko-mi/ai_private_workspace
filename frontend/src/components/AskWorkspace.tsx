@@ -1907,7 +1907,7 @@ function AnswerResult({
               <button
                 className="answer-icon-button"
                 type="button"
-                title="Save as note"
+                data-tip="Save as note"
                 aria-label="Save as note"
                 disabled={!answer.conversation_id || !answer.conversation_message_id}
                 onClick={() => onSaveAnswerNote(answer)}
@@ -1920,7 +1920,8 @@ function AnswerResult({
               <button
                 className={`answer-icon-button${showFileDraft ? " is-active" : ""}`}
                 type="button"
-                title={showFileDraft ? "Close file draft" : "Create file from this answer"}
+                data-tip={showFileDraft ? "Close file draft" : "Create file"}
+                data-tip-align="end"
                 aria-label={showFileDraft ? "Close file draft" : "Create file from this answer"}
                 onClick={() => setShowFileDraft((current) => !current)}
               >

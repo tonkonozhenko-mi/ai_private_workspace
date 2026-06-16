@@ -2425,13 +2425,10 @@ details.onboarding-guide-panel[open] > summary {
   flex-wrap: wrap;
   position: sticky;
   top: 0;
-  z-index: 20;
-  padding: var(--s-2) 0 var(--s-4);
-  background: linear-gradient(
-    to bottom,
-    var(--c-bg) 70%,
-    transparent
-  );
+  z-index: 30;
+  padding: var(--s-3) 0;
+  background: var(--c-bg);
+  border-bottom: 1px solid var(--c-border);
 }
 
 /* reset legacy borders/background on the nav containers */
@@ -2538,6 +2535,30 @@ details.onboarding-guide-panel[open] > summary {
 .answer-icon-button.is-active { color: var(--c-accent); background: var(--c-accent-soft); border-color: var(--c-accent-border); }
 .answer-icon-button:disabled { opacity: 0.4; cursor: default; }
 .copy-button.answer-icon-button.is-copied { color: var(--c-success); }
+
+/* Lightweight hover tooltips (data-tip) — immediate, themed, no clipping fuss */
+[data-tip] { position: relative; }
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--c-elevated);
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+  font-size: 11.5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  z-index: 200;
+  box-shadow: var(--shadow-sm);
+}
+[data-tip]:hover::after { opacity: 1; }
+[data-tip][data-tip-align="end"]::after { left: auto; right: 0; transform: none; }
 
 /* Quieter top nav — smaller, less shouty, so it stops competing with content */
 .workspace-tabs button { padding: 6px 12px; font-size: 12.5px; }
