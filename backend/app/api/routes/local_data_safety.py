@@ -1235,7 +1235,6 @@ def get_tauri_supervisor_static_gate() -> TauriSupervisorStaticGateResponse:
     """Return the static safety gate for the read-only Tauri supervisor bridge."""
     root = Path(__file__).resolve().parents[4]
     bridge_file = root / "frontend" / "src-tauri" / "src" / "lib.rs"
-    check_script = root / "scripts" / "check_tauri_supervisor_bridge.sh"
     source = bridge_file.read_text(encoding="utf-8") if bridge_file.exists() else ""
 
     items = [
@@ -1839,8 +1838,6 @@ def get_frozen_backend_runtime_selection() -> FrozenBackendRuntimeSelectionRespo
         / "backend-runtime"
         / "AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.json"
     )
-    tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
-    check_script = root / "scripts" / "check_tauri_runtime_selection.sh"
 
     candidates = [
         RuntimeSelectionCandidateResponse(
@@ -2093,7 +2090,6 @@ def get_app_owned_backend_startup_gate() -> AppOwnedBackendStartupGateResponse:
     """Return the safe gate before Tauri may start an app-owned backend runtime."""
     root = Path(__file__).resolve().parents[4]
     tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
-    startup_check = root / "scripts" / "check_tauri_app_owned_startup_gate.sh"
     frozen_manifest = (
         root
         / "build"
@@ -2191,7 +2187,6 @@ def get_app_owned_backend_startup_implementation() -> AppOwnedBackendStartupImpl
     """Return the real-but-gated Tauri backend startup implementation status."""
     root = Path(__file__).resolve().parents[4]
     tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
-    check_script = root / "scripts" / "check_tauri_app_owned_backend_startup.sh"
     frozen_manifest = (
         root
         / "build"
@@ -2311,7 +2306,6 @@ def get_app_owned_backend_health_readiness() -> AppOwnedBackendHealthReadinessRe
     """Return the Tauri /health readiness gate for app-owned backend startup."""
     root = Path(__file__).resolve().parents[4]
     tauri_bridge = root / "frontend" / "src-tauri" / "src" / "lib.rs"
-    check_script = root / "scripts" / "check_tauri_backend_health_readiness.sh"
     bridge_text = tauri_bridge.read_text(encoding="utf-8") if tauri_bridge.exists() else ""
 
     items = [
@@ -2821,7 +2815,6 @@ def get_packaging_toolchain_prerequisites() -> PackagingToolchainPrerequisitesRe
     requirements = root / "backend" / "requirements.txt"
     spec_file = root / "backend" / "packaging" / "ai_private_workspace_backend.spec"
     package_json = root / "frontend" / "package.json"
-    check_script = root / "scripts" / "check_packaging_toolchain_prerequisites.sh"
 
     items = [
         PackagingToolchainPrerequisiteItemResponse(
@@ -3223,7 +3216,6 @@ def get_macos_packaged_app_smoke_result() -> MacOSPackagedAppSmokeResultResponse
     """Return the local macOS packaged app smoke result milestone and remaining gates."""
     root = Path(__file__).resolve().parents[4]
     app_bundle = root / "frontend/src-tauri/target/release/bundle/macos/AI Private Workspace.app"
-    tauri_binary = root / "frontend/src-tauri/target/release/ai-private-workspace"
     frozen_manifest = (
         root
         / "build/desktop/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"
@@ -3658,7 +3650,6 @@ def get_desktop_runtime_preflight() -> DesktopRuntimePreflightResponse:
         root / "build" / "macos" / "backend-runtime" / "AI_PRIVATE_WORKSPACE_RUNTIME_MANIFEST.txt"
     )
     package_script = root / "scripts" / "package_macos_app_foundation.sh"
-    preflight_script = root / "scripts" / "check_desktop_runtime_preflight.sh"
     frontend_dist = root / "frontend" / "dist" / "index.html"
     backend_app = root / "backend" / "app" / "main.py"
     tauri_main = root / "frontend" / "src-tauri" / "src" / "main.rs"
