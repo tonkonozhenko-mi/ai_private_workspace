@@ -1557,7 +1557,24 @@ details.onboarding-guide-panel[open] > summary {
 .models-detail-simple .models-overview-top { grid-template-columns: 1fr; gap: var(--s-5); }
 .models-detail-simple .models-section-nav { margin-top: calc(-1 * var(--s-2)); }
 .models-secondary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.models-simple-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.models-simple-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+
+/* Models screen — breathing room + one consistent type scale ---------------- */
+.models-simple-panel-clean { padding: 22px 24px; }
+.models-simple-panel-clean .models-simple-grid { margin-top: 6px; }
+.model-manager-panel { display: flex; flex-direction: column; gap: 14px; }
+.model-manager-section { border: 1px solid var(--c-border); border-radius: var(--r-md); background: var(--c-surface-2); }
+.model-manager-section > summary { cursor: pointer; padding: 14px 16px; list-style: none; }
+.model-manager-section > summary::-webkit-details-marker { display: none; }
+.model-manager-section > summary > div { display: flex; flex-direction: column; gap: 3px; }
+.model-manager-section > summary .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-text-3); }
+.model-manager-section > summary strong { font-size: 15px; font-weight: 500; color: var(--c-text); }
+.model-manager-section > summary p { margin: 2px 0 0; font-size: 13px; line-height: 1.5; color: var(--c-text-2); }
+.model-manager-section[open] > summary { border-bottom: 1px solid var(--c-border); margin-bottom: 4px; }
+.model-install-section-heading { padding: 12px 16px 0; }
+.model-install-section-heading .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-text-3); }
+.model-install-section-heading strong { display: block; font-size: 14px; font-weight: 500; margin-top: 3px; }
+.model-install-section-heading p { margin: 3px 0 0; font-size: 13px; color: var(--c-text-2); line-height: 1.5; }
 .models-workflow-panel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .native-action-catalog { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 0.42fr); gap: var(--space-5); }
 .native-action-details-list { display: grid; grid-template-columns: minmax(92px, 0.45fr) minmax(0, 1fr); gap: var(--s-4); }
