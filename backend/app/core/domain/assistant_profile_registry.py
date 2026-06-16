@@ -142,4 +142,47 @@ DEFAULT_ASSISTANT_PROFILES = [
             "LLM_PROVIDER": "fake",
         },
     ),
+    AssistantProfile(
+        id="tester",
+        name="Tester / QA Assistant",
+        description="Review test coverage, how to run tests, and what to verify.",
+        target_users=["QA engineers", "Testers", "SDETs"],
+        primary_capabilities=[
+            "project_scan",
+            "code_context_search",
+            "workspace_ask",
+            "command_suggestions",
+        ],
+        recommended_actions=[
+            "scan_project",
+            "index_workspace",
+            "ask_workspace_question",
+        ],
+        recommended_runtime={
+            "VECTOR_STORE": "qdrant",
+            "EMBEDDING_PROVIDER": "ollama",
+            "LLM_PROVIDER": "ollama",
+        },
+    ),
+    AssistantProfile(
+        id="business_analyst",
+        name="Business Analyst Assistant",
+        description="Explain in plain language what the project does, its features, and stakeholders.",
+        target_users=["Business analysts", "Product managers", "Stakeholders"],
+        primary_capabilities=[
+            "project_overview_report",
+            "analysis_summary",
+            "workspace_ask",
+        ],
+        recommended_actions=[
+            "generate_project_overview",
+            "index_workspace",
+            "ask_workspace_question",
+        ],
+        recommended_runtime={
+            "VECTOR_STORE": "qdrant",
+            "EMBEDDING_PROVIDER": "ollama",
+            "LLM_PROVIDER": "ollama",
+        },
+    ),
 ]
