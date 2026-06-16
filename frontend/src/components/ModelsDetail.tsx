@@ -323,8 +323,9 @@ export function ModelsDetail({
             />
             <p className="panel-helper">
               How freely the AI words its answers. <strong>Precise</strong> sticks closely to
-              your project (best for code and facts); <strong>Creative</strong> allows more
-              varied phrasing. Applies to new questions in Ask.
+              your project (best for code and facts, and the most repeatable — the same
+              question gives the same answer); <strong>Creative</strong> allows more varied
+              phrasing. Applies to new questions in Ask.
             </p>
             <div className="segmented-control" aria-label="Answer creativity">
               {(["precise", "balanced", "creative"] as const).map((value) => (
