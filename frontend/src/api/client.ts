@@ -10,6 +10,7 @@ import type {
   WorkspaceFileWriteResult,
   GitInsightsResponse,
   ProjectScanResponse,
+  ProjectTodosResponse,
   ProjectUnderstandingResponse,
   ScanChanges,
   FileSelectionPreview,
@@ -575,6 +576,18 @@ export function getWorkspaceGitInsights(
   options: { signal?: AbortSignal } = {},
 ): Promise<GitInsightsResponse> {
   return requestJson<GitInsightsResponse>(`/workspaces/${workspaceId}/git-insights`, {
+    signal: options.signal,
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+}
+
+// Deterministic TODO/FIXME inventory read directly from project files.
+export function getWorkspaceTodos(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ProjectTodosResponse> {
+  return requestJson<ProjectTodosResponse>(`/workspaces/${workspaceId}/todos`, {
     signal: options.signal,
     method: "GET",
     headers: { Accept: "application/json" },

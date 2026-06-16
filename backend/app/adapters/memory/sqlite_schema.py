@@ -299,6 +299,12 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
         )
         _add_column_if_missing(
             connection,
+            table_name="workspace_project_understanding",
+            column_name="guide_json",
+            column_definition="guide_json TEXT NOT NULL DEFAULT '{}'",
+        )
+        _add_column_if_missing(
+            connection,
             table_name="workspaces",
             column_name="archived_at",
             column_definition="archived_at TEXT NULL",

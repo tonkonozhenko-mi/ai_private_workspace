@@ -5,7 +5,12 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from app.core.domain.indexing import ContextSearchResult
-from app.core.domain.project_understanding import ProjectRisk, ProjectUnderstanding
+from app.core.domain.project_understanding import (
+    ProjectRisk,
+    ProjectRunCommand,
+    ProjectStartPoint,
+    ProjectUnderstanding,
+)
 from app.core.domain.rag_prompt import build_project_understanding_prompt
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
@@ -93,6 +98,8 @@ PER_QUERY_LIMIT = 4
 MAX_CHUNKS = 12
 MAX_TOTAL_CHARS = 12000
 MAX_RISKS = 8
+MAX_START_HERE = 4
+MAX_RUN_COMMANDS = 5
 
 
 @dataclass(frozen=True)
@@ -169,7 +176,7 @@ class GenerateProjectUnderstandingUseCase:
         used_paths = list(
             dict.fromkeys(result.source_path for result in context_results)
         )
-        summary, risks = self._parse_understanding(raw_answer, used_paths)
+        parsed = self._parse_understanding(raw_answer, used_paths)
 
         model_label = self._model_label(llm_provider)
         understanding = ProjectUnderstanding(
@@ -177,9 +184,12 @@ class GenerateProjectUnderstandingUseCase:
             model=model_label,
             generated_at=datetime.now().astimezone().isoformat(),
             index_signature=self._index_signature(request.workspace_id, used_paths),
-            summary=summary,
-            risks=risks,
+            summary=parsed["summary"],
+            risks=parsed["risks"],
             sources=used_paths,
+            architecture=parsed["architecture"],
+            start_here=parsed["start_here"],
+            run_commands=parsed["run_commands"],
         )
         return self.understanding_repository.save(understanding)
 
@@ -234,11 +244,17 @@ class GenerateProjectUnderstandingUseCase:
         self,
         raw_answer: str,
         used_paths: list[str],
-    ) -> tuple[str, list[ProjectRisk]]:
+    ) -> dict:
         payload = _extract_json_object(raw_answer)
         if not isinstance(payload, dict):
-            # Robust fallback: keep the raw text as the summary, no risks.
-            return raw_answer.strip(), []
+            # Robust fallback: keep the raw text as the summary, nothing else.
+            return {
+                "summary": raw_answer.strip(),
+                "risks": [],
+                "architecture": "",
+                "start_here": [],
+                "run_commands": [],
+            }
 
         summary = payload.get("summary")
         if not isinstance(summary, str) or not summary.strip():
@@ -264,7 +280,62 @@ class GenerateProjectUnderstandingUseCase:
                 )
                 if len(risks) >= MAX_RISKS:
                     break
-        return summary.strip(), risks
+
+        architecture = payload.get("architecture")
+        if not isinstance(architecture, str):
+            architecture = ""
+
+        return {
+            "summary": summary.strip(),
+            "risks": risks,
+            "architecture": architecture.strip(),
+            "start_here": self._parse_start_here(payload.get("start_here"), used_paths),
+            "run_commands": self._parse_run_commands(payload.get("run_commands")),
+        }
+
+    @staticmethod
+    def _parse_start_here(
+        raw: object, used_paths: list[str]
+    ) -> list[ProjectStartPoint]:
+        points: list[ProjectStartPoint] = []
+        if not isinstance(raw, list):
+            return points
+        for entry in raw:
+            if not isinstance(entry, dict):
+                continue
+            file = entry.get("file")
+            reason = entry.get("reason")
+            if not isinstance(file, str) or file.strip() not in used_paths:
+                # Only keep reading-order entries that point at a real source path.
+                continue
+            reason_text = reason.strip() if isinstance(reason, str) else ""
+            points.append(ProjectStartPoint(file=file.strip(), reason=reason_text))
+            if len(points) >= MAX_START_HERE:
+                break
+        return points
+
+    @staticmethod
+    def _parse_run_commands(raw: object) -> list[ProjectRunCommand]:
+        commands: list[ProjectRunCommand] = []
+        if not isinstance(raw, list):
+            return commands
+        seen: set[str] = set()
+        for entry in raw:
+            if not isinstance(entry, dict):
+                continue
+            command = entry.get("command")
+            if not isinstance(command, str) or not command.strip():
+                continue
+            normalized = command.strip()
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            note = entry.get("note")
+            note_text = note.strip() if isinstance(note, str) else ""
+            commands.append(ProjectRunCommand(command=normalized, note=note_text))
+            if len(commands) >= MAX_RUN_COMMANDS:
+                break
+        return commands
 
     def _model_label(self, llm_provider: LLMProviderPort) -> str:
         model = llm_provider.model_name or ""

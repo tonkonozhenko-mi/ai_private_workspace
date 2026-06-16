@@ -71,6 +71,16 @@ export interface ProjectRisk {
   file: string | null;
 }
 
+export interface ProjectStartPoint {
+  file: string;
+  reason: string;
+}
+
+export interface ProjectRunCommand {
+  command: string;
+  note: string;
+}
+
 export interface ProjectUnderstandingResponse {
   workspace_id: string;
   model: string;
@@ -80,6 +90,22 @@ export interface ProjectUnderstandingResponse {
   risks: ProjectRisk[];
   sources: string[];
   is_stale: boolean;
+  architecture: string;
+  start_here: ProjectStartPoint[];
+  run_commands: ProjectRunCommand[];
+}
+
+export interface ProjectTodo {
+  file: string;
+  line: number;
+  marker: string;
+  text: string;
+}
+
+export interface ProjectTodosResponse {
+  total: number;
+  truncated: boolean;
+  items: ProjectTodo[];
 }
 
 export interface ProjectScanResponse {
