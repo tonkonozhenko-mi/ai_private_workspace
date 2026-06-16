@@ -47,6 +47,18 @@ export const DEFAULT_EXCLUDE_PATTERNS = [
   ".pytest_cache/**",
   ".mypy_cache/**",
   "__pycache__/**",
+  // Depth-agnostic guards (matcher '*' spans '/') so nested virtualenvs and
+  // dependency folders are skipped too, e.g. backend/.venv-x86_64, */site-packages.
+  "*.venv*",
+  "*/venv/*",
+  "*/venv-*/*",
+  "*site-packages*",
+  "*node_modules*",
+  "*__pycache__*",
+  "*.pytest_cache*",
+  "*.mypy_cache*",
+  "*.egg-info*",
+  "*.tox*",
   "*.pyc",
   "*.log",
   "*.lock",
