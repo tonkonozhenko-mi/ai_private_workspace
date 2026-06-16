@@ -962,21 +962,14 @@ function RuntimeNextActionPanel({
 
   if (isReady) {
     return (
-      <div className="runtime-next-action-panel runtime-next-action-panel-ready">
-        <div className="runtime-next-action-copy">
-          <StatusBadge label="Ready" />
-          <div>
-            <strong>Ready to ask questions.</strong>
-            <p>
-              AI model <code>{selectedLlm || activeLlm}</code> and search model <code>{selectedEmbedding || activeEmbedding}</code> are ready for this workspace.
-            </p>
-          </div>
-        </div>
-        <div className="runtime-next-action-buttons">
-          <button className="secondary-action" type="button" onClick={() => void recheckRuntime()}>
-            Re-check runtime
-          </button>
-        </div>
+      <div className="runtime-next-action-panel runtime-next-action-panel-ready is-compact">
+        <span className="runtime-ready-line">
+          <span className="runtime-ready-dot" aria-hidden="true" />
+          Ready — answers use your local project context.
+        </span>
+        <button className="runtime-ready-recheck" type="button" onClick={() => void recheckRuntime()}>
+          {actionBusy === "recheck" ? "Checking…" : "Re-check"}
+        </button>
         {actionMessage ? <p className="model-selection-message">{actionMessage}</p> : null}
         {actionError ? <p className="model-selection-error">{actionError}</p> : null}
       </div>
@@ -1591,10 +1584,6 @@ function LocalModelInstallPanel({
                   </div>
                 </dl>
                 <div className="model-install-actions">
-                  <CopyButton
-                    text={option.install_command}
-                    label="Copy pull command"
-                  />
                   <button
                     className="secondary-button model-install-draft-button"
                     type="button"
@@ -1608,8 +1597,11 @@ function LocalModelInstallPanel({
                       ? "Installed"
                       : draftingKey === `${option.provider}-${option.model}`
                         ? "Preparing…"
-                        : "Create download draft"}
+                        : "Download"}
                   </button>
+                  {!isInstalled && !executionCapability?.execution_enabled ? (
+                    <CopyButton text={option.install_command} label="pull command" />
+                  ) : null}
                 </div>
               </article>
             );
@@ -1621,14 +1613,13 @@ function LocalModelInstallPanel({
         {draft ? (
           <div className="model-install-draft-summary">
             <div>
-              <span className="eyebrow">Download draft</span>
+              <span className="eyebrow">Ready to download</span>
               <strong>{draft.display_name}</strong>
               <p>{draft.safety_summary}</p>
             </div>
             <div className="model-install-draft-actions">
-              <CopyButton text={draft.command} label="Copy command" />
               <button
-                className="secondary-button model-install-draft-button"
+                className="primary-action"
                 type="button"
                 disabled={
                   !executionCapability?.execution_enabled || runningDraft
@@ -1636,25 +1627,12 @@ function LocalModelInstallPanel({
                 onClick={() => void startDownloadJob()}
                 title={executionCapability?.disabled_reason ?? undefined}
               >
-                {runningDraft ? "Starting…" : "Run approved download"}
+                {runningDraft ? "Starting…" : "Start download"}
               </button>
+              {!executionCapability?.execution_enabled ? (
+                <CopyButton text={draft.command} label="command" />
+              ) : null}
             </div>
-            <dl>
-              <div>
-                <dt>Status</dt>
-                <dd>{draft.status}</dd>
-              </div>
-              <div>
-                <dt>Execution</dt>
-                <dd>
-                  {draft.execution_supported ? "Supported" : "Manual only"}
-                </dd>
-              </div>
-              <div>
-                <dt>Safety</dt>
-                <dd>{draft.command_proposal.policy_mode ?? "manual only"}</dd>
-              </div>
-            </dl>
           </div>
         ) : null}
       </details>
