@@ -425,6 +425,8 @@ a {
   border: none;
   border-radius: var(--r-md);
   font-weight: 600;
+  font-size: 13.5px;
+  padding: 9px 18px;
 }
 :root[data-theme] .primary-button:hover:not(:disabled),
 .primary-button:hover:not(:disabled),
@@ -1452,11 +1454,12 @@ details.onboarding-guide-panel[open] > summary {
 .mcp-template-grid { display: grid; grid-template-columns: minmax(16rem, 0.8fr) minmax(20rem, 1.2fr); gap: var(--space-3); }
 .migration-table-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--s-4); }
 .model-download-history-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
-.model-download-job-actions { display: grid; grid-template-columns: 1fr; gap: var(--s-4); }
+.model-download-job-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.model-download-job-actions > button { flex: 0 0 auto; }
 .model-download-job-card { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .model-experiment-candidate-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .model-experiment-candidates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.model-install-card-heading { display: grid; grid-template-columns: 1fr; gap: var(--s-4); }
+.model-install-card-heading { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; }
 .model-install-draft-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
 .model-install-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--ui-block-gap, 18px); }
 .model-manager-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
@@ -1544,7 +1547,9 @@ details.onboarding-guide-panel[open] > summary {
 .model-role-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
 .model-runtime-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .model-selection-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.model-skill-preset-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+.model-skill-preset-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; align-items: start; }
+/* Keep the save button its natural size instead of stretching to the grid row. */
+.model-skill-preset-body .primary-button { align-self: start; justify-self: start; }
 .model-summary-list { display: grid; grid-template-columns: minmax(110px, 0.8fr) minmax(0, 1.2fr); gap: 12px; }
 .model-usage-flow-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .model-worker-guardrails { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
@@ -1561,7 +1566,7 @@ details.onboarding-guide-panel[open] > summary {
 .models-detail-simple .models-overview-top { grid-template-columns: 1fr; gap: var(--s-5); }
 .models-detail-simple .models-section-nav { margin-top: calc(-1 * var(--s-2)); }
 .models-secondary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.models-simple-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.models-simple-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 
 /* Models screen — breathing room + one consistent type scale ---------------- */
 .models-simple-panel-clean { padding: 22px 24px; }
@@ -1641,7 +1646,7 @@ details.onboarding-guide-panel[open] > summary {
 .pu-card-head > span { font-size: 14px; font-weight: 500; }
 .pu-card-head small { margin-left: auto; font-size: 12px; color: var(--c-text-3); }
 .pu-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.pu-chip { font-size: 12px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: 6px; padding: 3px 9px; color: var(--c-text); }
+.pu-chip { font-size: 12px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 3px 9px; color: var(--c-text); }
 .pu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
 .pu-file-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
 .pu-file-list li { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; color: var(--c-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1683,7 +1688,7 @@ details.onboarding-guide-panel[open] > summary {
 .pu-git-last-meta code { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; }
 .pu-git-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; margin-bottom: 14px; }
 .pu-git-stat { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: 9px; padding: 9px 12px; display: flex; flex-direction: column; gap: 2px; }
-.pu-git-stat strong { font-size: 18px; font-weight: 600; color: var(--c-text); line-height: 1.1; }
+.pu-git-stat strong { font-size: 16px; font-weight: 600; color: var(--c-text); line-height: 1.1; }
 .pu-git-stat span { font-size: 11px; color: var(--c-text-3); }
 .pu-git-hotspots .pu-eyebrow { display: block; margin-bottom: 8px; }
 .pu-git-hotspots ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -2000,6 +2005,11 @@ details.onboarding-guide-panel[open] > summary {
 .settings-danger-card { border-color: rgba(240, 144, 141, 0.32); }
 .settings-danger-confirm { color: var(--c-danger); font-size: 13px; align-self: center; }
 .settings-danger-button { border-color: rgba(240, 144, 141, 0.4); color: var(--c-danger); }
+.settings-reset-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.settings-reset-option { display: flex; flex-direction: column; gap: 12px; justify-content: space-between; padding: 14px; border: 1px solid var(--c-border); border-radius: var(--r-md); background: var(--c-surface-2); }
+.settings-reset-option > div strong { display: block; font-size: 13.5px; color: var(--c-text); }
+.settings-reset-option > div small { display: block; margin-top: 4px; font-size: 12.5px; line-height: 1.5; color: var(--c-text-2); }
+.settings-reset-option > button { align-self: flex-start; }
 .settings-danger-card .settings-danger-button.primary-button { background: var(--c-danger); color: var(--c-accent-ink); border: none; }
 .model-candidate-headline { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-bottom: 10px; }
 .model-candidate-headline code { font-size: 12px; color: var(--c-text-3); }
@@ -2113,7 +2123,7 @@ details.onboarding-guide-panel[open] > summary {
 .settings-developer-toggle { display: flex; align-items: flex-start; gap: 10px; }
 .settings-disclosure-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
 .settings-inline-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-.settings-reset-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
+.settings-reset-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .settings-reset-panel { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
 .settings-safety-list { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .settings-segmented-control { display: flex; gap: 4px; flex-wrap: wrap; }

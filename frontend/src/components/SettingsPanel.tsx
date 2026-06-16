@@ -72,11 +72,22 @@ export function SettingsPanel({
   const [selectedSkillKey, setSelectedSkillKey] = useState<string>(SKILL_PRESETS[0].id);
   const [newSkillName, setNewSkillName] = useState("");
   const [newSkillInstructions, setNewSkillInstructions] = useState("");
-  const [resetConfirming, setResetConfirming] = useState(false);
+  const [confirmingReset, setConfirmingReset] = useState<null | "settings" | "workspaces">(null);
   const [resetting, setResetting] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
-  async function resetAllAppData() {
+  // Reset settings only: restores every app preference (theme, developer mode,
+  // accent, skills, file rules, …) to defaults. Projects and their index stay.
+  function resetSettings() {
+    onResetPreferences();
+    setConfirmingReset(null);
+    setResetMessage("App settings restored to defaults. Your projects are untouched.");
+  }
+
+  // Reset projects only: removes all workspaces and their local index, returning
+  // to the first-run screen. Settings stay. Project files on disk and installed
+  // Ollama models are never touched.
+  async function resetWorkspaces() {
     setResetting(true);
     setResetMessage(null);
     try {
@@ -84,27 +95,16 @@ export function SettingsPanel({
       for (const item of overview.items) {
         await deleteWorkspace(item.workspace_id);
       }
-      // Also clear locally-saved settings (theme, developer mode, accent, skill
-      // and file rules, …) so this is a genuine clean slate — not just projects.
-      // Everything here is app-owned browser storage; project files on disk and
-      // installed Ollama models are never touched.
-      try {
-        window.localStorage.clear();
-      } catch {
-        /* ignore storage errors — the project/index reset still applies */
-      }
       setResetMessage(
-        `Removed ${overview.items.length} project(s), their local index data, and your app settings. Reloading…`,
+        `Removed ${overview.items.length} project(s) and their local index data. Reloading…`,
       );
-      // A reload re-fetches a now-empty state and default settings, the cleanest
-      // way to land back at the first-run screen.
       window.setTimeout(() => window.location.reload(), 700);
     } catch (resetError) {
       setResetMessage(
-        resetError instanceof Error ? resetError.message : "Could not reset app data.",
+        resetError instanceof Error ? resetError.message : "Could not reset projects.",
       );
       setResetting(false);
-      setResetConfirming(false);
+      setConfirmingReset(null);
     }
   }
 
@@ -279,9 +279,6 @@ export function SettingsPanel({
               <small>Show advanced model, file, and integration settings. Off by default for a simpler experience.</small>
             </span>
           </label>
-          <button className="secondary-action" type="button" onClick={onResetPreferences}>
-            Reset appearance
-          </button>
         </article>
       </section>
 
@@ -483,45 +480,71 @@ export function SettingsPanel({
         <div className="panel-heading compact-heading">
           <div>
             <p className="eyebrow">Reset</p>
-            <h3>Start over from scratch</h3>
+            <h3>Reset settings or projects</h3>
             <p className="panel-helper">
-              Removes every project from this app, its local search index, and your
-              app settings (theme, developer mode, skills, file rules…), returning you
-              to a true first-run state. Your actual project files on disk are never
-              touched, and installed Ollama models are left alone.
+              Two separate resets. Your actual project files on disk are never touched,
+              and installed Ollama models are always left alone.
             </p>
           </div>
         </div>
-        <div className="settings-clean-actions">
-          {resetConfirming ? (
-            <>
-              <span className="settings-danger-confirm">This can't be undone. Reset the app?</span>
-              <button
-                className="primary-button settings-danger-button"
-                type="button"
-                disabled={resetting}
-                onClick={() => void resetAllAppData()}
-              >
-                {resetting ? "Resetting…" : "Yes, reset everything"}
-              </button>
+        <div className="settings-reset-grid">
+          <div className="settings-reset-option">
+            <div>
+              <strong>Reset settings</strong>
+              <small>Theme, developer mode, accent, skills, and file rules go back to defaults. Your projects stay.</small>
+            </div>
+            {confirmingReset === "settings" ? (
+              <div className="settings-reset-actions">
+                <button className="secondary-action settings-danger-button" type="button" onClick={resetSettings}>
+                  Yes, reset settings
+                </button>
+                <button className="text-button" type="button" onClick={() => setConfirmingReset(null)}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
               <button
                 className="secondary-action"
                 type="button"
                 disabled={resetting}
-                onClick={() => setResetConfirming(false)}
+                onClick={() => { setResetMessage(null); setConfirmingReset("settings"); }}
               >
-                Cancel
+                Reset settings
               </button>
-            </>
-          ) : (
-            <button
-              className="secondary-action settings-danger-button"
-              type="button"
-              onClick={() => setResetConfirming(true)}
-            >
-              Reset app data
-            </button>
-          )}
+            )}
+          </div>
+
+          <div className="settings-reset-option">
+            <div>
+              <strong>Reset projects &amp; data</strong>
+              <small>Removes every project and its local search index, returning to the first-run screen. Your settings stay.</small>
+            </div>
+            {confirmingReset === "workspaces" ? (
+              <div className="settings-reset-actions">
+                <span className="settings-danger-confirm">Can't be undone.</span>
+                <button
+                  className="secondary-action settings-danger-button"
+                  type="button"
+                  disabled={resetting}
+                  onClick={() => void resetWorkspaces()}
+                >
+                  {resetting ? "Resetting…" : "Yes, remove projects"}
+                </button>
+                <button className="text-button" type="button" disabled={resetting} onClick={() => setConfirmingReset(null)}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                className="secondary-action settings-danger-button"
+                type="button"
+                disabled={resetting}
+                onClick={() => { setResetMessage(null); setConfirmingReset("workspaces"); }}
+              >
+                Reset projects &amp; data
+              </button>
+            )}
+          </div>
         </div>
         {resetMessage ? <p className="settings-message">{resetMessage}</p> : null}
       </section>
