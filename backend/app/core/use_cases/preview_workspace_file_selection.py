@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 from fnmatch import fnmatch
 
+from app.core.domain.gitignore_matcher import (
+    GitignoreMatcher,
+    discover_gitignore_relative_paths,
+)
 from app.core.domain.project_scan import ProjectFile
 from app.core.ports.file_system import FileSystemPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -12,6 +16,7 @@ class PreviewWorkspaceFileSelectionInput:
     include_patterns: tuple[str, ...] = ()
     exclude_patterns: tuple[str, ...] = ()
     file_rules_profile: str | None = None
+    respect_gitignore: bool = True
     sample_limit: int = 8
 
 
@@ -73,13 +78,20 @@ class PreviewWorkspaceFileSelectionUseCase:
         discovered_files = self.file_system.list_files(workspace.project_path)
         include_rules = _normalize_patterns(request.include_patterns)
         exclude_rules = _normalize_patterns(request.exclude_patterns)
+        gitignore_matcher = self._build_gitignore_matcher(
+            project_path=workspace.project_path,
+            discovered_files=list(discovered_files),
+            respect_gitignore=request.respect_gitignore,
+        )
         included_samples: list[FileSelectionPreviewItem] = []
         excluded_samples: list[FileSelectionPreviewItem] = []
         included_count = 0
         excluded_count = 0
 
         for project_file in discovered_files:
-            decision = _classify_file(project_file.path, include_rules, exclude_rules)
+            decision = _classify_file(
+                project_file.path, include_rules, exclude_rules, gitignore_matcher
+            )
             item = FileSelectionPreviewItem(
                 path=project_file.path,
                 detected_type=project_file.detected_type,
@@ -118,6 +130,29 @@ class PreviewWorkspaceFileSelectionUseCase:
             excluded_samples=excluded_samples,
         )
 
+    def _build_gitignore_matcher(
+        self,
+        project_path: str,
+        discovered_files: list,
+        respect_gitignore: bool,
+    ) -> GitignoreMatcher:
+        if not respect_gitignore:
+            return GitignoreMatcher.empty()
+        relative_paths = discover_gitignore_relative_paths(
+            [project_file.path for project_file in discovered_files]
+        )
+        if not relative_paths:
+            return GitignoreMatcher.empty()
+        sources: dict[str, str] = {}
+        for relative_path in relative_paths:
+            try:
+                content = self.file_system.read_text_file(project_path, relative_path)
+            except Exception:
+                content = ""
+            if content:
+                sources[relative_path] = content
+        return GitignoreMatcher.from_sources(sources)
+
 
 @dataclass(frozen=True)
 class _FileDecision:
@@ -127,7 +162,10 @@ class _FileDecision:
 
 
 def _classify_file(
-    path: str, include_rules: tuple[str, ...], exclude_rules: tuple[str, ...]
+    path: str,
+    include_rules: tuple[str, ...],
+    exclude_rules: tuple[str, ...],
+    gitignore_matcher: GitignoreMatcher | None = None,
 ) -> _FileDecision:
     exclude_rule = _first_matching_rule(path, exclude_rules)
     if exclude_rule is not None:
@@ -135,6 +173,13 @@ def _classify_file(
             decision="excluded",
             reason="Matched exclude rule",
             matched_rule=exclude_rule,
+        )
+
+    if gitignore_matcher is not None and gitignore_matcher.is_ignored(path):
+        return _FileDecision(
+            decision="excluded",
+            reason="Ignored by .gitignore",
+            matched_rule=".gitignore",
         )
 
     if include_rules:

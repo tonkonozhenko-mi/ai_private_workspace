@@ -2,6 +2,10 @@ from dataclasses import dataclass
 from typing import Callable
 from fnmatch import fnmatch
 
+from app.core.domain.gitignore_matcher import (
+    GitignoreMatcher,
+    discover_gitignore_relative_paths,
+)
 from app.core.domain.project_scan import ProjectScanResult
 from app.core.domain.skill_registry import SkillRegistry
 from app.core.ports.file_system import FileSystemPort
@@ -12,6 +16,7 @@ class ScanProjectInput:
     project_path: str
     include_patterns: tuple[str, ...] = ()
     exclude_patterns: tuple[str, ...] = ()
+    respect_gitignore: bool = True
     cancellation_check: Callable[[], bool] | None = None
     progress_callback: Callable[[int, int, str], None] | None = None
 
@@ -44,10 +49,16 @@ class ScanProjectUseCase:
             request.progress_callback(0, 1, "Discovering project files...")
         discovered_files = self.file_system.list_files(request.project_path)
         self._checkpoint(request.cancellation_check)
+        gitignore_matcher = self._build_gitignore_matcher(
+            project_path=request.project_path,
+            discovered_files=list(discovered_files),
+            respect_gitignore=request.respect_gitignore,
+        )
         files = self._apply_file_rules(
             files=list(discovered_files),
             include_patterns=request.include_patterns,
             exclude_patterns=request.exclude_patterns,
+            gitignore_matcher=gitignore_matcher,
             cancellation_check=request.cancellation_check,
             progress_callback=request.progress_callback,
         )
@@ -75,23 +86,50 @@ class ScanProjectUseCase:
             files=list(files),
         )
 
+    def _build_gitignore_matcher(
+        self,
+        project_path: str,
+        discovered_files: list,
+        respect_gitignore: bool,
+    ) -> GitignoreMatcher:
+        if not respect_gitignore:
+            return GitignoreMatcher.empty()
+        relative_paths = discover_gitignore_relative_paths(
+            [project_file.path for project_file in discovered_files]
+        )
+        if not relative_paths:
+            return GitignoreMatcher.empty()
+        sources: dict[str, str] = {}
+        for relative_path in relative_paths:
+            try:
+                content = self.file_system.read_text_file(project_path, relative_path)
+            except Exception:
+                content = ""
+            if content:
+                sources[relative_path] = content
+        return GitignoreMatcher.from_sources(sources)
+
     def _apply_file_rules(
         self,
         files: list,
         include_patterns: tuple[str, ...],
         exclude_patterns: tuple[str, ...],
+        gitignore_matcher: GitignoreMatcher | None = None,
         cancellation_check: Callable[[], bool] | None = None,
         progress_callback: Callable[[int, int, str], None] | None = None,
     ) -> list:
         include_rules = self._normalize_patterns(include_patterns)
         exclude_rules = self._normalize_patterns(exclude_patterns)
+        matcher = gitignore_matcher or GitignoreMatcher.empty()
         selected_files = []
         total = len(files) or 1
 
         for index, project_file in enumerate(files, start=1):
             self._checkpoint(cancellation_check)
-            if self._is_included(project_file.path, include_rules) and not self._is_excluded(
-                project_file.path, exclude_rules
+            if (
+                self._is_included(project_file.path, include_rules)
+                and not self._is_excluded(project_file.path, exclude_rules)
+                and not matcher.is_ignored(project_file.path)
             ):
                 selected_files.append(project_file)
             if progress_callback is not None:

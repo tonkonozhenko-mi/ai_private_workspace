@@ -47,6 +47,7 @@ your organization's device management.
 - Creates local workspaces for private projects.
 - Scans source folders and detects skills such as Terraform, Terragrunt, Kubernetes, Helm, Docker, Python, GitLab CI, and documentation.
 - Builds local search context only after explicit user action.
+- Respects the project's own `.gitignore` when indexing, so virtualenvs, `node_modules`, build output, caches, and local `.env` secrets stay out of the local index — the same files you would not commit to git.
 - Answers questions from retrieved project sources instead of unsupported guesses.
 - Keeps conversations, answer history, model choices, reports, and timeline state locally.
 - Guides local Ollama/model setup and detects installed local models.
