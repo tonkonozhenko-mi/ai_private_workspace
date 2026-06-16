@@ -246,7 +246,6 @@ function App() {
       return false;
     }
   });
-  const [projectSwitcherOpen, setProjectSwitcherOpen] = useState(false);
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
   const [archivingWorkspaceId, setArchivingWorkspaceId] = useState<string | null>(null);
   const [restoringWorkspaceId, setRestoringWorkspaceId] = useState<string | null>(null);
@@ -1072,67 +1071,24 @@ function App() {
                   ))}
                 </div>
               </nav>
-              <div className="workspace-switcher">
-                <button
-                  className="workspace-context-chip"
-                  type="button"
-                  aria-haspopup="listbox"
-                  aria-expanded={projectSwitcherOpen}
-                  aria-label="Switch project"
-                  onClick={() => setProjectSwitcherOpen((value) => !value)}
-                >
-                  <span
-                    className={`ws-status-dot${detail.dashboard.status === "ready" ? " is-ready" : ""}`}
-                    aria-hidden="true"
-                  />
-                  <span className="ws-chip-name">{detail.dashboard.workspace_name}</span>
-                  <svg className="ws-chip-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
-                </button>
-                {projectSwitcherOpen ? (
-                  <>
-                    <button
-                      className="ws-switcher-backdrop"
-                      type="button"
-                      tabIndex={-1}
-                      aria-hidden="true"
-                      onClick={() => setProjectSwitcherOpen(false)}
-                    />
-                    <div className="ws-switcher-menu" role="listbox" aria-label="Projects">
-                      {workspaces.map((workspace) => (
-                        <button
-                          key={workspace.workspace_id}
-                          type="button"
-                          role="option"
-                          aria-selected={workspace.workspace_id === selectedWorkspaceId}
-                          className={`ws-switcher-item${workspace.workspace_id === selectedWorkspaceId ? " is-active" : ""}`}
-                          onClick={() => {
-                            setProjectSwitcherOpen(false);
-                            setShowCreateWorkspace(false);
-                            setResumeMessage(null);
-                            void loadWorkspaceDetail(workspace.workspace_id);
-                          }}
-                        >
-                          <span className="ws-switcher-item-name">{workspace.name}</span>
-                          {workspace.workspace_id === selectedWorkspaceId ? (
-                            <span className="ws-switcher-check" aria-hidden="true">✓</span>
-                          ) : null}
-                        </button>
-                      ))}
-                      <button
-                        type="button"
-                        className="ws-switcher-new"
-                        onClick={() => {
-                          setProjectSwitcherOpen(false);
-                          setShowCreateWorkspace(true);
-                        }}
-                      >
-                        + New project
-                      </button>
-                    </div>
-                  </>
-                ) : null}
+              <div
+                className="workspace-context-chip"
+                aria-label={`Current project: ${detail.dashboard.workspace_name}, ${
+                  detail.modelsSummary.can_ask_with_selected_llm ? "ready to chat" : "not ready"
+                }`}
+                title={
+                  detail.modelsSummary.can_ask_with_selected_llm
+                    ? "Ready to chat with the local AI"
+                    : "Not ready — finish setup to chat"
+                }
+              >
+                <span
+                  className={`ws-status-dot${
+                    detail.modelsSummary.can_ask_with_selected_llm ? " is-ready" : " is-offline"
+                  }`}
+                  aria-hidden="true"
+                />
+                <span className="ws-chip-name">{detail.dashboard.workspace_name}</span>
               </div>
             </header>
 

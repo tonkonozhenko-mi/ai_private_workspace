@@ -1905,20 +1905,29 @@ function AnswerResult({
             </div>
             <div className="answer-header-actions">
               <button
-                className="text-button"
+                className="answer-icon-button"
                 type="button"
+                title="Save as note"
+                aria-label="Save as note"
                 disabled={!answer.conversation_id || !answer.conversation_message_id}
                 onClick={() => onSaveAnswerNote(answer)}
               >
-                Save note
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                </svg>
               </button>
-              <CopyButton text={answer.answer} label="answer" />
+              <CopyButton text={answer.answer} label="answer" iconOnly />
               <button
-                className="text-button"
+                className={`answer-icon-button${showFileDraft ? " is-active" : ""}`}
                 type="button"
+                title={showFileDraft ? "Close file draft" : "Create file from this answer"}
+                aria-label={showFileDraft ? "Close file draft" : "Create file from this answer"}
                 onClick={() => setShowFileDraft((current) => !current)}
               >
-                {showFileDraft ? "Close file draft" : "Create file"}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <path d="M14 2v6h6M12 12v6M9 15h6" />
+                </svg>
               </button>
             </div>
           </div>
