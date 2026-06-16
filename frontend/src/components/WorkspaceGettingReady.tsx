@@ -260,15 +260,12 @@ export function WorkspaceGettingReady({
           ? "Downloading your local AI — progress shows below. Keep this open."
           : "Models ready — moving on.",
       );
-      // Refresh the parent directly: selecting already-installed models is not a
-      // change tick can detect, so we must pull fresh state to advance the step.
-      await tick();
-      await onRefreshWorkspaceState();
-      // Hold the disabled state briefly so the step advances before the button
-      // re-enables — otherwise it looks like the click "did nothing".
-      if (started === 0) {
-        await new Promise((resolve) => window.setTimeout(resolve, 1200));
-      }
+      // Trigger refreshes but DON'T await them — on some local backends a single
+      // refresh call can stall, and the button must never freeze on it. The
+      // models-step poll (below) advances the step once the selection registers.
+      void tick();
+      void onRefreshWorkspaceState();
+      await new Promise((resolve) => window.setTimeout(resolve, 1500));
     } catch (installError) {
       setError(installError instanceof Error ? installError.message : "Could not start the install.");
     } finally {
@@ -305,6 +302,15 @@ export function WorkspaceGettingReady({
 
   const stepNumber = { ollama: 0, scan: 1, models: 2, index: 3, ready: 4 }[step];
   const downloading = downloadJobs.length > 0;
+
+  // While stuck on the models step (e.g. right after selecting already-installed
+  // models), gently re-pull parent state so the step advances even if a one-off
+  // refresh stalled. Stops automatically once the step moves on.
+  useEffect(() => {
+    if (step !== "models") return;
+    const id = window.setInterval(() => void onRefreshWorkspaceState(), 3000);
+    return () => window.clearInterval(id);
+  }, [step, onRefreshWorkspaceState]);
 
   return (
     <section className="getting-ready">
