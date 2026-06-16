@@ -274,6 +274,84 @@
   --accent-soft: rgba(52, 194, 126, 0.14);
 }
 
+/* ---------- Light theme ----------
+   Selected via <html data-theme="light">. Same specificity as the legacy dark
+   bridge above but loaded later, so these win. Covers both the new --c-* tokens
+   and the legacy color tokens. (System + Dark stay dark.) */
+:root[data-theme="light"] {
+  /* Brand — slightly deeper green so white text stays readable on buttons */
+  --c-accent: #1b9e5f;
+  --c-accent-hover: #178a55;
+  --c-accent-press: #137a4a;
+  --c-accent-ink: #ffffff;
+  --c-accent-soft: rgba(27, 158, 95, 0.12);
+  --c-accent-border: rgba(27, 158, 95, 0.34);
+
+  /* Backgrounds */
+  --c-bg: #f3f6f4;
+  --c-surface: #ffffff;
+  --c-surface-2: #eef2f0;
+  --c-surface-3: #e3e9e6;
+  --c-elevated: #ffffff;
+
+  /* Lines */
+  --c-border: rgba(17, 32, 26, 0.12);
+  --c-border-strong: rgba(17, 32, 26, 0.22);
+
+  /* Text */
+  --c-text: rgba(16, 28, 23, 0.96);
+  --c-text-2: rgba(40, 56, 48, 0.72);
+  --c-text-3: rgba(40, 56, 48, 0.52);
+
+  /* Status */
+  --c-danger: #cf4642;
+  --c-warning: #a9750f;
+  --c-success: #1b9e5f;
+
+  /* Legacy token bridge — light values */
+  --color-page: #f3f6f4;
+  --color-surface: #ffffff;
+  --color-surface-soft: #eef2f0;
+  --color-surface-raised: #ffffff;
+  --color-surface-strong: #ffffff;
+  --color-border: rgba(17, 32, 26, 0.12);
+  --color-border-soft: rgba(17, 32, 26, 0.07);
+  --color-text: rgba(16, 28, 23, 0.96);
+  --color-text-strong: #0c1712;
+  --color-text-muted: rgba(40, 56, 48, 0.72);
+  --color-text-subtle: rgba(40, 56, 48, 0.5);
+  --color-accent: #1b9e5f;
+  --color-accent-strong: #178a55;
+  --color-accent-soft: rgba(27, 158, 95, 0.12);
+  --color-accent-border: rgba(27, 158, 95, 0.32);
+  --color-info-soft: rgba(40, 110, 170, 0.1);
+  --color-info-border: rgba(40, 110, 170, 0.38);
+
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-muted: #eef2f0;
+  --app-bg: #f3f6f4;
+  --text-primary: #0c1712;
+  --text-secondary: rgba(40, 56, 48, 0.78);
+  --text-muted: rgba(40, 56, 48, 0.55);
+  --accent-strong: #178a55;
+  --apple-green: #1b9e5f;
+  --accent: #1b9e5f;
+  --accent-border: rgba(27, 158, 95, 0.4);
+  --accent-soft: rgba(27, 158, 95, 0.12);
+}
+
+/* Light-theme fixes for rules that hardcode white-alpha */
+:root[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(17, 32, 26, 0.18);
+}
+:root[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(17, 32, 26, 0.3);
+}
+:root[data-theme="light"] .workspace-tabs button:hover {
+  background: rgba(17, 32, 26, 0.05);
+}
+
 /* ---------- Base reset ---------- */
 *,
 *::before,
