@@ -9,6 +9,7 @@ class ProjectFile:
     extension: str | None
     size_bytes: int
     detected_type: str
+    modified_at: float | None = None
 
 
 DetectedSkill = SkillMatch

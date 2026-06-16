@@ -10,6 +10,7 @@ import type {
   WorkspaceFileWriteResult,
   ProjectScanResponse,
   ProjectUnderstandingResponse,
+  ScanChanges,
   FileSelectionPreview,
   FileSelectionRulesRequest,
   WorkspaceIndexingRules,
@@ -548,6 +549,18 @@ export function getWorkspaceLatestScan(
   options: { signal?: AbortSignal } = {},
 ): Promise<ProjectScanResponse> {
   return requestJson<ProjectScanResponse>(`/workspaces/${workspaceId}/scan`, {
+    signal: options.signal,
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+}
+
+// Read-only check: have project files on disk changed since the last scan?
+export function getWorkspaceScanChanges(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ScanChanges> {
+  return requestJson<ScanChanges>(`/workspaces/${workspaceId}/scan/changes`, {
     signal: options.signal,
     method: "GET",
     headers: { Accept: "application/json" },

@@ -80,6 +80,7 @@ class SQLiteProjectScanRepository:
                     "extension": project_file.extension,
                     "size_bytes": project_file.size_bytes,
                     "detected_type": project_file.detected_type,
+                    "modified_at": project_file.modified_at,
                 }
                 for project_file in scan_result.files
             ],
@@ -108,6 +109,7 @@ class SQLiteProjectScanRepository:
                     extension=project_file["extension"],
                     size_bytes=project_file["size_bytes"],
                     detected_type=project_file["detected_type"],
+                    modified_at=project_file.get("modified_at"),
                 )
                 for project_file in data["files"]
             ],
