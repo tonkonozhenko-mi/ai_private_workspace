@@ -311,11 +311,13 @@ export function WorkspaceGettingReady({
   const stepNumber = { ollama: 0, scan: 1, models: 2, index: 3, ready: 4 }[step];
   const downloading = downloadJobs.length > 0;
 
-  // While stuck on the models step (e.g. right after selecting already-installed
-  // models), gently re-pull parent state so the step advances even if a one-off
-  // refresh stalled. Stops automatically once the step moves on.
+  // While on the models or index step, gently re-pull parent state so the step
+  // advances on its own once selection/indexing registers — even if the one-off
+  // refresh right after the job stalled or landed a beat too early (which made
+  // "Build context" / Install look like they needed a second click). Stops once
+  // the step moves on.
   useEffect(() => {
-    if (step !== "models") return;
+    if (step !== "models" && step !== "index") return;
     const id = window.setInterval(() => void onRefreshWorkspaceState(), 3000);
     return () => window.clearInterval(id);
   }, [step, onRefreshWorkspaceState]);

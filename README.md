@@ -62,12 +62,12 @@ your organization's device management.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/screenshots/02-setup.png" alt="Guided local setup" width="100%"><br><sub><b>Guided setup</b> — one calm step at a time, models install inline.</sub></td>
-    <td width="50%"><img src="docs/assets/screenshots/03-overview.png" alt="Project overview" width="100%"><br><sub><b>Project overview</b> — detected tech, status, and next actions.</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/02-welcome.png" alt="Local-first welcome screen" width="100%"><br><sub><b>First run</b> — a calm welcome. Point it at a folder; nothing leaves your Mac.</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/03-create-workspace.png" alt="Create a workspace and choose a role lens" width="100%"><br><sub><b>Open a project</b> — pick a folder and a role lens (DevOps, Developer, Tester, BA…).</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/assets/screenshots/04-models.png" alt="Model management and comparison" width="100%"><br><sub><b>Models</b> — choose, install, and compare local models.</sub></td>
-    <td width="50%"><img src="docs/assets/screenshots/05-light.png" alt="Light theme" width="100%"><br><sub><b>Light theme</b> — the whole app in light or dark.</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/04-install-models.png" alt="Guided local model install" width="100%"><br><sub><b>Guided setup</b> — install local models in one click, with live progress.</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/05-build-context.png" alt="Building local search context" width="100%"><br><sub><b>Build context</b> — index your files locally, with real per-file progress.</sub></td>
   </tr>
 </table>
 
