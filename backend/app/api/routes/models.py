@@ -281,6 +281,82 @@ def _to_gguf_job_response(job) -> "GgufDownloadJobResponse":
     )
 
 
+class ResolveGgufRequest(BaseModel):
+    repo_id: str = Field(..., min_length=1)
+    quant: str | None = None
+
+
+class ResolveGgufResponse(BaseModel):
+    repo_id: str
+    filename: str
+    name: str
+
+
+# Preferred quantizations, best size/quality first. Used to auto-pick a file so
+# the user only needs to paste a Hugging Face repo (like llama.cpp's -hf).
+_QUANT_PREFERENCE = ("q4_k_m", "q4_k_s", "q5_k_m", "q4_0", "q5_k_s", "q8_0", "q6_k")
+
+
+@router.post("/gguf-resolve", response_model=ResolveGgufResponse)
+def resolve_gguf(request: ResolveGgufRequest) -> ResolveGgufResponse:
+    """Pick a usable GGUF file from a Hugging Face repo, so the user only needs to
+    paste the repo id (the app chooses a good quant automatically)."""
+    repo = request.repo_id.strip().strip("/")
+    try:
+        response = httpx.get(
+            f"https://huggingface.co/api/models/{repo}",
+            timeout=20,
+            follow_redirects=True,
+        )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Could not reach Hugging Face: {exc}",
+        ) from exc
+    if response.status_code == 404:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Repository not found on Hugging Face: {repo}",
+        )
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Hugging Face returned {response.status_code} for {repo}.",
+        )
+
+    siblings = response.json().get("siblings", []) if response.text else []
+    files = [
+        s.get("rfilename", "")
+        for s in siblings
+        if isinstance(s, dict) and s.get("rfilename", "").lower().endswith(".gguf")
+    ]
+    # Exclude non-model GGUFs: vocab-only, multimodal projectors, and multi-part
+    # shards (our downloader fetches a single file).
+    files = [
+        f
+        for f in files
+        if "vocab" not in f.lower()
+        and "mmproj" not in f.lower()
+        and "-of-" not in f.lower()
+    ]
+    if not files:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"No single-file GGUF model found in {repo}. This repo may be "
+                "for special hardware (e.g. NPU) or sharded — try another repo."
+            ),
+        )
+
+    preferred = (request.quant or "").strip().lower()
+    order = (preferred, *_QUANT_PREFERENCE) if preferred else _QUANT_PREFERENCE
+    chosen = next(
+        (f for quant in order for f in files if quant and quant in f.lower()),
+        files[0],
+    )
+    return ResolveGgufResponse(repo_id=repo, filename=chosen, name=chosen)
+
+
 @router.post("/gguf-downloads", response_model=GgufDownloadJobResponse)
 def start_gguf_download(request: StartGgufDownloadRequest) -> GgufDownloadJobResponse:
     """Start a background GGUF model download (llama.cpp backend)."""
