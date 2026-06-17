@@ -72,10 +72,19 @@ export function WorkspaceGettingReady({
   // to be actually INSTALLED (not just selected), so the step doesn't skip ahead
   // while a download is still in flight.
 
+  // The workspace already records its engine in its selected providers, so a
+  // returning project opens on the right toggle (no Ollama gate for a llama.cpp
+  // project, and vice-versa).
+  const workspaceBackend: "ollama" | "llamacpp" =
+    modelsSummary.selected_llm?.startsWith("llamacpp") ||
+    modelsSummary.selected_embedding?.startsWith("llamacpp")
+      ? "llamacpp"
+      : "ollama";
+
   const [installStatus, setInstallStatus] = useState<LocalModelInstallStatus | null>(null);
   const [downloadJobs, setDownloadJobs] = useState<LocalModelDownloadJob[]>([]);
   const [busy, setBusy] = useState<"scan" | "models" | "index" | "check" | null>(null);
-  const [backendChoice, setBackendChoice] = useState<"ollama" | "llamacpp">("ollama");
+  const [backendChoice, setBackendChoice] = useState<"ollama" | "llamacpp">(workspaceBackend);
   // True once the built-in llama.cpp engine reports running (models downloaded,
   // engine up, selections applied). Used to pass the "models" step in llama.cpp
   // mode, the same way recommendedInstalled does for Ollama.
@@ -241,6 +250,12 @@ export function WorkspaceGettingReady({
     };
   }, [tick]);
 
+  // Opening a different workspace re-syncs the toggle to that project's engine.
+  useEffect(() => {
+    setBackendChoice(workspaceBackend);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dashboard.workspace_id]);
+
   const ollamaReachable = installStatus ? installStatus.runtime_reachable : true;
   const recommendedItems = asArray(installStatus?.items).filter((item) => item.recommended);
   // Models step is done only when the recommended models are SELECTED (llm/embedding
@@ -248,11 +263,13 @@ export function WorkspaceGettingReady({
   // download is still running. Requires install status to have loaded.
   const recommendedInstalled =
     recommendedItems.length > 0 && recommendedItems.every((item) => item.status === "installed");
-  // In llama.cpp mode the engine running (with its models) IS the readiness
-  // signal; otherwise fall back to the Ollama selected+installed checks.
+  // In llama.cpp mode the step passes when the engine reports running (fresh
+  // setup) OR when the backend already says the selected models are usable and
+  // match the active runtime (returning project — no need to press Start again).
+  // Otherwise fall back to the Ollama selected+installed checks.
   const modelsReady =
     backendChoice === "llamacpp"
-      ? llamaReady
+      ? llamaReady || (llmReady && embeddingReady)
       : llmReady && embeddingReady && recommendedInstalled;
 
   function jobForModel(model: string): LocalModelDownloadJob | undefined {

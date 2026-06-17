@@ -25,6 +25,7 @@ class ListWorkspacesOverviewUseCase:
         timeline_repository: TimelineRepositoryPort,
         configuration: dict[str, str],
         storage_gateway: WorkspaceStorageGatewayPort | None = None,
+        selection_repository=None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.project_scan_repository = project_scan_repository
@@ -33,6 +34,7 @@ class ListWorkspacesOverviewUseCase:
         self.timeline_repository = timeline_repository
         self.configuration = configuration
         self.storage_gateway = storage_gateway
+        self.selection_repository = selection_repository
 
     def execute(self, include_archived: bool = False) -> WorkspacesOverview:
         items = [
@@ -100,7 +102,26 @@ class ListWorkspacesOverviewUseCase:
             last_event_at=last_event.created_at if last_event is not None else None,
             storage_total_bytes=storage_total_bytes,
             storage_breakdown=storage_breakdown,
+            engine=self._engine(workspace.id),
         )
+
+    def _engine(self, workspace_id: str) -> str | None:
+        """The local engine the workspace uses, from its selected providers."""
+        if self.selection_repository is None:
+            return None
+        try:
+            selection = self.selection_repository.get(workspace_id)
+        except Exception:  # noqa: BLE001 - engine label must never break the overview
+            return None
+        if selection is None:
+            return None
+        for selected in (selection.selected_llm, selection.selected_embedding):
+            if selected is not None and selected.provider.lower() == "llamacpp":
+                return "llamacpp"
+        for selected in (selection.selected_llm, selection.selected_embedding):
+            if selected is not None and selected.provider.lower() == "ollama":
+                return "ollama"
+        return None
 
     def _storage(self, workspace_id: str) -> tuple[int, dict[str, int]]:
         if self.storage_gateway is None:

@@ -639,6 +639,7 @@ def list_workspaces_overview(
         timeline_repository=timeline_repository,
         configuration=readiness_configuration,
         storage_gateway=workspace_storage_gateway,
+        selection_repository=workspace_model_selection_repository,
     ).execute(include_archived=include_archived)
     return to_workspaces_overview_response(overview)
 

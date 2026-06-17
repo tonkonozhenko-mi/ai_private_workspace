@@ -255,6 +255,7 @@ export interface WorkspaceOverviewItem {
   storage_total_bytes: number;
   storage_breakdown: Record<string, number>;
   persistence: string;
+  engine: string | null;
 }
 
 export interface WorkspacesOverview {

@@ -64,11 +64,26 @@ export function WorkspaceDashboard({
   const indexStatus = summary.index_status;
 
   // The active model backend is app-global, so opening this workspace re-points
-  // the engine/embeddings at the backend it uses (Ollama or llama.cpp). Without
-  // this, switching between projects on different backends would leave the wrong
-  // engine active. Best-effort; failures never block the dashboard.
+  // the engine/embeddings at the backend it uses (Ollama or llama.cpp), then
+  // refreshes so readiness reflects the now-correct runtime. Without this,
+  // switching between projects on different backends would leave the wrong
+  // engine active and a set-up project would wrongly show the setup screen.
+  // Best-effort; failures never block the dashboard.
   useEffect(() => {
-    void activateWorkspaceRuntime(dashboard.workspace_id).catch(() => {});
+    let cancelled = false;
+    void (async () => {
+      try {
+        await activateWorkspaceRuntime(dashboard.workspace_id);
+        if (!cancelled) await onRefreshWorkspaceState();
+      } catch {
+        /* leave current state; the user can still act manually */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Only re-run when the opened workspace changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboard.workspace_id]);
   const fullyReady =
     summary.has_scan &&
