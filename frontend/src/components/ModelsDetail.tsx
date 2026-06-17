@@ -12,6 +12,7 @@ import {
   deleteWorkspaceMCPConfig,
   getAgentWorkflowExecutionReadiness,
   getFirstLaunchReadiness,
+  getGgufCatalog,
   getGuidedModelSetup,
   getLocalModelInstallGuide,
   getOllamaModelRecommendations,
@@ -165,41 +166,73 @@ export function ModelsDetail({
     ],
   );
   // Compare/face-off must only offer models that are actually downloaded and
-  // runnable (not recommendations or fake), and never the embedding model.
+  // runnable (not recommendations or fake), never the embedding model, and ONLY
+  // from this project's backend — you can't face-off an Ollama model against a
+  // llama.cpp model (different engines).
+  const comparisonBackend: "ollama" | "llamacpp" =
+    dashboard.selected_llm_provider === "llamacpp" ||
+    dashboard.selected_embedding_provider === "llamacpp"
+      ? "llamacpp"
+      : "ollama";
   const [compareInstallStatus, setCompareInstallStatus] =
     useState<LocalModelInstallStatus | null>(null);
+  const [compareGgufModels, setCompareGgufModels] = useState<
+    Array<{ id: string; installed: boolean; active: boolean }>
+  >([]);
   useEffect(() => {
     let cancelled = false;
-    getLocalModelInstallStatus()
-      .then((status) => {
-        if (!cancelled) setCompareInstallStatus(status);
-      })
-      .catch(() => {
-        /* optional — selection/active still provide at least one option */
-      });
+    if (comparisonBackend === "llamacpp") {
+      getGgufCatalog("llm")
+        .then((models) => {
+          if (!cancelled) {
+            setCompareGgufModels(
+              models.map((m) => ({ id: m.id, installed: m.installed, active: m.active })),
+            );
+          }
+        })
+        .catch(() => {});
+    } else {
+      getLocalModelInstallStatus()
+        .then((status) => {
+          if (!cancelled) setCompareInstallStatus(status);
+        })
+        .catch(() => {});
+    }
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [comparisonBackend]);
   const comparisonLlmOptions = useMemo(() => {
     const options = new Map<string, ModelOption>();
-    addOption(
-      options,
-      dashboard.selected_llm_provider,
-      dashboard.selected_llm_model,
-      "Current selection",
-    );
+    if (comparisonBackend === "llamacpp") {
+      for (const m of compareGgufModels) {
+        if (m.installed) {
+          addOption(options, "llamacpp", m.id, m.active ? "In use" : "Downloaded");
+        }
+      }
+      return Array.from(options.values());
+    }
+    if (dashboard.selected_llm_provider === "ollama") {
+      addOption(
+        options,
+        dashboard.selected_llm_provider,
+        dashboard.selected_llm_model,
+        "Current selection",
+      );
+    }
     for (const item of asArray(compareInstallStatus?.items)) {
       if (
         item.model_type === "llm" &&
         item.status === "installed" &&
-        item.provider !== "fake"
+        item.provider === "ollama"
       ) {
         addOption(options, item.provider, item.model, "Installed");
       }
     }
     return Array.from(options.values());
   }, [
+    comparisonBackend,
+    compareGgufModels,
     compareInstallStatus,
     dashboard.selected_llm_provider,
     dashboard.selected_llm_model,
