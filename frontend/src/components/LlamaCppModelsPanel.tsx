@@ -234,13 +234,17 @@ export function LlamaCppModelsPanel({
   }
 
   // Switch the running engine to a different, already-downloaded answer model.
-  async function useModel(modelId: string) {
-    setSwitchingId(modelId);
+  // Custom models (not in the catalog) are switched by their HF repo + filename.
+  async function useModel(model: GgufCatalogItem) {
+    setSwitchingId(model.id);
     setError(null);
     try {
-      const status = await switchLlamaRuntimeLlm({ model_id: modelId });
+      const ref = model.custom
+        ? { repo_id: model.repo_id, filename: model.filename }
+        : { model_id: model.id };
+      const status = await switchLlamaRuntimeLlm(ref);
       setRuntime(status);
-      await applyWorkspaceSelection(modelId);
+      await applyWorkspaceSelection(model.id);
       await refreshCatalog();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not switch the answer model.");
@@ -308,7 +312,11 @@ export function LlamaCppModelsPanel({
     setDeletingId(model.id);
     setError(null);
     try {
-      await deleteGgufModel({ model_id: model.id });
+      await deleteGgufModel(
+        model.custom
+          ? { repo_id: model.repo_id, filename: model.filename }
+          : { model_id: model.id },
+      );
       setExpandedId(null);
       await refreshCatalog();
     } catch (e) {
@@ -380,7 +388,7 @@ export function LlamaCppModelsPanel({
               type="button"
               className="gr-check-use"
               disabled={switchingId !== null}
-              onClick={() => void useModel(model.id)}
+              onClick={() => void useModel(model)}
             >
               {switchingId === model.id ? "Switching…" : "Use this model"}
             </button>

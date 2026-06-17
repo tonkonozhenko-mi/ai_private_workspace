@@ -122,6 +122,7 @@ export interface GgufCatalogItem {
   download_url: string;
   installed: boolean;
   active: boolean;
+  custom: boolean;
 }
 
 export interface GgufDownloadJob {
