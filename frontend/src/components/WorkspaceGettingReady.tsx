@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { LlamaCppModelsPanel } from "./LlamaCppModelsPanel";
+
 import {
   cancelLocalModelDownloadJob,
   cancelWorkspaceJob,
@@ -72,6 +74,7 @@ export function WorkspaceGettingReady({
   const [installStatus, setInstallStatus] = useState<LocalModelInstallStatus | null>(null);
   const [downloadJobs, setDownloadJobs] = useState<LocalModelDownloadJob[]>([]);
   const [busy, setBusy] = useState<"scan" | "models" | "index" | "check" | null>(null);
+  const [backendChoice, setBackendChoice] = useState<"ollama" | "llamacpp">("ollama");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checkedAt, setCheckedAt] = useState<number | null>(null);
@@ -401,6 +404,31 @@ export function WorkspaceGettingReady({
             (about 2.5 GB, runs offline). Want a bigger, sharper model? Open Models.
           </p>
 
+          <div className="gr-backend-toggle" role="tablist" aria-label="Local engine">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={backendChoice === "ollama"}
+              className={backendChoice === "ollama" ? "is-selected" : ""}
+              onClick={() => setBackendChoice("ollama")}
+            >
+              Ollama
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={backendChoice === "llamacpp"}
+              className={backendChoice === "llamacpp" ? "is-selected" : ""}
+              onClick={() => setBackendChoice("llamacpp")}
+            >
+              Built-in (llama.cpp)
+            </button>
+          </div>
+
+          {backendChoice === "llamacpp" ? (
+            <LlamaCppModelsPanel />
+          ) : (
+          <>
           <ul className="getting-ready-checklist">
             <li className={`gr-check gr-check--${ollamaReachable ? "done" : "bad"}`}>
               <span className="gr-check-icon" aria-hidden="true" />
@@ -471,6 +499,8 @@ export function WorkspaceGettingReady({
                 : "tap Install & continue to use these models here."}
             </p>
           ) : null}
+          </>
+          )}
         </div>
       ) : step === "index" ? (
         <div className="getting-ready-step">

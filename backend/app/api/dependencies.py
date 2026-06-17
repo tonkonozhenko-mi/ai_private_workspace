@@ -377,6 +377,16 @@ def build_embedding_provider() -> EmbeddingProviderPort:
             model=settings.ollama_embedding_model,
             timeout_seconds=settings.ollama_timeout_seconds,
         )
+    if provider_type == "llamacpp":
+        from app.adapters.embeddings.llama_server_embedding_provider import (
+            LlamaServerEmbeddingProvider,
+        )
+
+        return LlamaServerEmbeddingProvider(
+            base_url=f"http://{settings.LLAMA_SERVER_HOST}:{settings.LLAMA_SERVER_EMBED_PORT}",
+            model=settings.ollama_embedding_model,
+            timeout_seconds=settings.ollama_timeout_seconds,
+        )
 
     raise ValueError(f"Unsupported embedding provider: {settings.embedding_provider}")
 
@@ -392,6 +402,14 @@ def build_llm_provider() -> LLMProviderPort:
 
         return OllamaLLMProvider(
             base_url=settings.ollama_base_url,
+            model=settings.ollama_llm_model,
+            timeout_seconds=settings.ollama_llm_timeout_seconds,
+        )
+    if provider_type == "llamacpp":
+        from app.adapters.llm.llama_server_llm_provider import LlamaServerLLMProvider
+
+        return LlamaServerLLMProvider(
+            base_url=f"http://{settings.LLAMA_SERVER_HOST}:{settings.LLAMA_SERVER_LLM_PORT}",
             model=settings.ollama_llm_model,
             timeout_seconds=settings.ollama_llm_timeout_seconds,
         )
