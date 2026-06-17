@@ -208,6 +208,7 @@ class GgufCatalogItemResponse(BaseModel):
     download_url: str
     installed: bool = False
     active: bool = False
+    custom: bool = False
 
 
 @router.get("/gguf-catalog", response_model=list[GgufCatalogItemResponse])
@@ -223,28 +224,88 @@ def list_gguf_catalog(model_type: str | None = None) -> list[GgufCatalogItemResp
     runtime = llama_runtime_manager.status()
     active_llm = runtime.get("active_llm_model")
     engine_running = bool(runtime.get("running"))
-    return [
-        GgufCatalogItemResponse(
-            id=model.id,
-            name=model.name,
-            model_type=model.model_type,
-            repo_id=model.repo_id,
-            filename=model.filename,
-            quantization=model.quantization,
-            size_bytes=model.size_bytes,
-            recommended=model.recommended,
-            min_ram_gb=model.min_ram_gb,
-            ollama_tag=model.ollama_tag,
-            download_url=model.download_url,
-            installed=_gguf_download_use_case.is_installed(model),
-            # "active" only when the engine is actually running this model, so the
-            # UI never shows "In use" for a stopped engine.
-            active=engine_running
-            and model.model_type == "llm"
-            and model.id == active_llm,
+
+    items: list[GgufCatalogItemResponse] = []
+    known_paths: set[str] = set()
+    for model in list_gguf_models(model_type):
+        known_paths.add(str(_gguf_download_use_case.destination_path(model)))
+        items.append(
+            GgufCatalogItemResponse(
+                id=model.id,
+                name=model.name,
+                model_type=model.model_type,
+                repo_id=model.repo_id,
+                filename=model.filename,
+                quantization=model.quantization,
+                size_bytes=model.size_bytes,
+                recommended=model.recommended,
+                min_ram_gb=model.min_ram_gb,
+                ollama_tag=model.ollama_tag,
+                download_url=model.download_url,
+                installed=_gguf_download_use_case.is_installed(model),
+                # "active" only when the engine is actually running this model, so
+                # the UI never shows "In use" for a stopped engine.
+                active=engine_running
+                and model.model_type == "llm"
+                and model.id == active_llm,
+            )
         )
-        for model in list_gguf_models(model_type)
-    ]
+
+    # Also surface custom models the user downloaded by Hugging Face repo (not in
+    # the curated catalog), by scanning the GGUF storage dir — so they appear in
+    # the manager and can be switched to or deleted. Only when listing LLMs (or
+    # all), since custom embeddings aren't supported here.
+    if model_type in (None, "llm"):
+        items.extend(
+            _custom_gguf_items(known_paths, active_llm, engine_running)
+        )
+    return items
+
+
+def _custom_gguf_items(
+    known_paths: set[str], active_llm: str | None, engine_running: bool
+) -> list[GgufCatalogItemResponse]:
+    import re
+
+    root = _gguf_download_use_case.app_data_dir / "models" / "gguf"
+    results: list[GgufCatalogItemResponse] = []
+    if not root.is_dir():
+        return results
+    for repo_dir in sorted(root.iterdir()):
+        if not repo_dir.is_dir():
+            continue
+        repo_id = repo_dir.name.replace("__", "/")
+        for path in sorted(repo_dir.glob("*.gguf")):
+            if str(path) in known_paths:
+                continue  # already a curated catalog model
+            try:
+                size = path.stat().st_size
+            except OSError:
+                continue
+            if size < 1_000_000:  # half-written / vocab stubs
+                continue
+            filename = path.name
+            model_id = f"{repo_id}/{filename}"
+            quant_match = re.search(r"(IQ\d\w*|Q\d[_A-Z0-9]*|f16|bf16)", filename)
+            results.append(
+                GgufCatalogItemResponse(
+                    id=model_id,
+                    name=filename,
+                    model_type="llm",
+                    repo_id=repo_id,
+                    filename=filename,
+                    quantization=quant_match.group(0) if quant_match else "custom",
+                    size_bytes=size,
+                    recommended=False,
+                    download_url=(
+                        f"https://huggingface.co/{repo_id}/resolve/main/{filename}"
+                    ),
+                    installed=True,
+                    active=engine_running and model_id == active_llm,
+                    custom=True,
+                )
+            )
+    return results
 
 
 class StartGgufDownloadRequest(BaseModel):
