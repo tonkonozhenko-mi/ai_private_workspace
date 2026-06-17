@@ -118,7 +118,7 @@ class Settings(BaseModel):
     COMMAND_RUNNER: str = "fake"
     COMMAND_TIMEOUT_SECONDS: int = 30
     COMMAND_OUTPUT_LIMIT_CHARS: int = 20000
-    VECTOR_STORE: str = "memory"
+    VECTOR_STORE: str = "sqlite"
     VECTOR_STORE_PATH: Path = DEFAULT_APP_DATA_DIR / "data" / "vector_store.db"
     QDRANT_URL: str = "http://localhost:6333"
     QDRANT_COLLECTION: str = DEFAULT_QDRANT_COLLECTION
@@ -299,7 +299,10 @@ def get_settings() -> Settings:
         COMMAND_RUNNER=os.getenv("COMMAND_RUNNER", "fake"),
         COMMAND_TIMEOUT_SECONDS=int(os.getenv("COMMAND_TIMEOUT_SECONDS", "30")),
         COMMAND_OUTPUT_LIMIT_CHARS=int(os.getenv("COMMAND_OUTPUT_LIMIT_CHARS", "20000")),
-        VECTOR_STORE=os.getenv("VECTOR_STORE", "memory"),
+        # Persist the search index by default so it survives backend restarts.
+        # In-memory is wiped on restart (→ "no chunks" after a reindex). Tests
+        # force "memory" via conftest; the packaged app sets "sqlite" explicitly.
+        VECTOR_STORE=os.getenv("VECTOR_STORE", "sqlite"),
         VECTOR_STORE_PATH=vector_store_path,
         QDRANT_URL=os.getenv("QDRANT_URL", "http://localhost:6333"),
         QDRANT_COLLECTION=os.getenv("QDRANT_COLLECTION", DEFAULT_QDRANT_COLLECTION),
