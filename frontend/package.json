@@ -1,7 +1,7 @@
 {
   "name": "ai-private-workspace-frontend",
   "private": true,
-  "version": "0.1.93",
+  "version": "0.1.94",
   "type": "module",
   "scripts": {
     "dev": "bash ../scripts/dev-local.sh",

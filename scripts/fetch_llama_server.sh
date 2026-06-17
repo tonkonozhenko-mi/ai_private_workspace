@@ -65,12 +65,19 @@ if [ -z "$SERVER_BIN" ]; then
   echo "llama-server not found inside the downloaded archive." >&2
   exit 1
 fi
-BIN_DIR="$(dirname "$SERVER_BIN")"
-
 rm -rf "$DEST"
 mkdir -p "$DEST"
-cp "$SERVER_BIN" "$DEST/"
-find "$BIN_DIR" -maxdepth 1 -type f -name '*.dylib' -exec cp {} "$DEST/" \;
+cp -L "$SERVER_BIN" "$DEST/"
+
+# Copy EVERY dylib from the whole extracted tree (binaries live under bin/, but
+# libraries are often in a sibling lib/). Do NOT restrict to -type f: release
+# archives ship a versioned real file (libllama.0.0.9675.dylib) plus unversioned
+# symlink aliases (libllama-common.0.dylib) — the binary loads via @rpath using
+# the alias name, so the alias must be materialized too. `cp -L` dereferences
+# each symlink into a real file under its own name, so both names end up present.
+find "$TMP/unzip" -name '*.dylib' | while IFS= read -r dylib; do
+  cp -L "$dylib" "$DEST/$(basename "$dylib")" 2>/dev/null || true
+done
 chmod +x "$DEST/llama-server"
 
 echo "Staged llama-server for ${ARCH} at ${DEST}:"

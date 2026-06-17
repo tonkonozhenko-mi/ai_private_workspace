@@ -12,6 +12,7 @@ the llama.cpp backend.
 
 import os
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 
@@ -36,6 +37,7 @@ class LlamaServerProcessManager:
         self.startup_timeout_seconds = startup_timeout_seconds
         self._process: subprocess.Popen | None = None
         self._port: int | None = None
+        self._log_path: Path | None = None
 
     @property
     def base_url(self) -> str | None:
@@ -83,28 +85,49 @@ class LlamaServerProcessManager:
             existing = env.get(key)
             env[key] = f"{lib_dir}:{existing}" if existing else lib_dir
 
+        # Capture stdout+stderr to a log file so a startup failure surfaces the
+        # actual llama.cpp error (missing dylib, bad flag, model load failure…)
+        # instead of an opaque "exited during startup".
+        log_handle = tempfile.NamedTemporaryFile(
+            mode="w+", suffix="-llama-server.log", delete=False
+        )
+        self._log_path = Path(log_handle.name)
         try:
             self._process = subprocess.Popen(
                 args,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stdout=log_handle,
+                stderr=subprocess.STDOUT,
                 shell=False,
                 cwd=lib_dir,
                 env=env,
             )
         except OSError as exc:
+            log_handle.close()
             raise LlamaServerStartError(f"Could not launch llama-server: {exc}") from exc
+        finally:
+            log_handle.close()
 
         self._port = port
         self._wait_until_healthy()
         return f"http://{self.host}:{port}"
+
+    def _log_tail(self, max_chars: int = 600) -> str:
+        try:
+            text = self._log_path.read_text(encoding="utf-8", errors="replace").strip()
+        except (OSError, AttributeError):
+            return ""
+        return text[-max_chars:] if text else ""
 
     def _wait_until_healthy(self) -> None:
         url = f"{self.base_url}/health"
         deadline = time.monotonic() + self.startup_timeout_seconds
         while time.monotonic() < deadline:
             if not self.is_running():
-                raise LlamaServerStartError("llama-server exited during startup")
+                detail = self._log_tail()
+                raise LlamaServerStartError(
+                    "llama-server exited during startup"
+                    + (f": {detail}" if detail else "")
+                )
             try:
                 response = httpx.get(url, timeout=2)
                 if response.status_code == 200:
@@ -112,9 +135,11 @@ class LlamaServerProcessManager:
             except httpx.HTTPError:
                 pass
             time.sleep(0.5)
+        detail = self._log_tail()
         self.stop()
         raise LlamaServerStartError(
             f"llama-server did not become healthy within {self.startup_timeout_seconds}s"
+            + (f": {detail}" if detail else "")
         )
 
     def stop(self) -> None:
