@@ -20,7 +20,13 @@ function formatGb(bytes: number): string {
 
 // llama.cpp setup: the engine binary ships inside the app; here we only
 // download the small GGUF model files (one to answer, one for search).
-export function LlamaCppModelsPanel({ workspaceId }: { workspaceId?: string }) {
+export function LlamaCppModelsPanel({
+  workspaceId,
+  onReady,
+}: {
+  workspaceId?: string;
+  onReady?: () => void;
+}) {
   const [models, setModels] = useState<GgufCatalogItem[] | null>(null);
   const [jobs, setJobs] = useState<Record<string, GgufDownloadJob>>({});
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +34,15 @@ export function LlamaCppModelsPanel({ workspaceId }: { workspaceId?: string }) {
   const [runtime, setRuntime] = useState<LlamaRuntimeStatus | null>(null);
   const [starting, setStarting] = useState(false);
   const pollers = useRef<Record<string, number>>({});
+
+  // Tell the parent setup flow once the engine is actually running, so the
+  // "models" step can advance to indexing → chat — mirroring the Ollama path.
+  // Kept in a ref so the effect below doesn't re-fire on every parent re-render.
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
+  useEffect(() => {
+    if (runtime?.running) onReadyRef.current?.();
+  }, [runtime?.running]);
 
   useEffect(() => {
     let cancelled = false;
