@@ -80,6 +80,7 @@ from app.adapters.runtime_health.qdrant_runtime_health_checker import (
 )
 from app.adapters.system.gguf_download_job_runner import GgufDownloadJobRunner
 from app.adapters.system.huggingface_gguf_downloader import HuggingFaceGgufDownloader
+from app.adapters.system.llama_runtime_manager import LlamaRuntimeManager
 from app.adapters.system.local_git_history import LocalGitHistory
 from app.core.use_cases.download_gguf_model import DownloadGgufModelUseCase
 from app.adapters.vector_store.in_memory_vector_store import InMemoryVectorStore
@@ -515,8 +516,15 @@ workspace_model_selection_repository = build_workspace_model_selection_repositor
 workspace_storage_gateway = build_workspace_storage_gateway()
 file_system = LocalFileSystem()
 git_history = LocalGitHistory()
-gguf_download_job_runner = GgufDownloadJobRunner(
-    DownloadGgufModelUseCase(HuggingFaceGgufDownloader(), get_settings().app_data_dir)
+_gguf_download_use_case = DownloadGgufModelUseCase(
+    HuggingFaceGgufDownloader(), get_settings().app_data_dir
+)
+gguf_download_job_runner = GgufDownloadJobRunner(_gguf_download_use_case)
+llama_runtime_manager = LlamaRuntimeManager(
+    _gguf_download_use_case,
+    host=get_settings().LLAMA_SERVER_HOST,
+    llm_port=get_settings().LLAMA_SERVER_LLM_PORT,
+    embed_port=get_settings().LLAMA_SERVER_EMBED_PORT,
 )
 command_runner = build_command_runner()
 embedding_provider = build_embedding_provider()

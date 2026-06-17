@@ -4,9 +4,11 @@ import {
   cancelGgufDownload,
   getGgufCatalog,
   getGgufDownload,
+  getLlamaRuntimeStatus,
   startGgufDownload,
+  startLlamaRuntime,
 } from "../api/client";
-import type { GgufCatalogItem, GgufDownloadJob } from "../api/types";
+import type { GgufCatalogItem, GgufDownloadJob, LlamaRuntimeStatus } from "../api/types";
 
 function formatGb(bytes: number): string {
   if (!bytes) return "";
@@ -21,10 +23,19 @@ export function LlamaCppModelsPanel() {
   const [jobs, setJobs] = useState<Record<string, GgufDownloadJob>>({});
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [runtime, setRuntime] = useState<LlamaRuntimeStatus | null>(null);
+  const [starting, setStarting] = useState(false);
   const pollers = useRef<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
+    getLlamaRuntimeStatus()
+      .then((status) => {
+        if (!cancelled) setRuntime(status);
+      })
+      .catch(() => {
+        /* status optional — panel still works for downloads */
+      });
     getGgufCatalog()
       .then((all) => {
         if (cancelled) return;
@@ -88,6 +99,18 @@ export function LlamaCppModelsPanel() {
     });
   }
 
+  async function startEngine() {
+    setStarting(true);
+    setError(null);
+    try {
+      setRuntime(await startLlamaRuntime());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not start the engine.");
+    } finally {
+      setStarting(false);
+    }
+  }
+
   const allDone =
     models != null &&
     models.length > 0 &&
@@ -138,14 +161,32 @@ export function LlamaCppModelsPanel() {
       </ul>
 
       <div className="getting-ready-actions">
-        <button
-          className="getting-ready-cta"
-          type="button"
-          disabled={busy || models == null || allDone}
-          onClick={() => void downloadAll()}
-        >
-          {allDone ? "Models ready" : busy ? "Starting…" : "Download models"}
-        </button>
+        {!allDone ? (
+          <button
+            className="getting-ready-cta"
+            type="button"
+            disabled={busy || models == null}
+            onClick={() => void downloadAll()}
+          >
+            {busy ? "Starting…" : "Download models"}
+          </button>
+        ) : runtime?.running ? (
+          <span className="gr-llama-running">✓ Engine running — ready to use</span>
+        ) : runtime && !runtime.binary_available ? (
+          <span className="gr-llama-note">
+            Models downloaded. The engine ships with the packaged app — it will
+            start automatically there.
+          </span>
+        ) : (
+          <button
+            className="getting-ready-cta"
+            type="button"
+            disabled={starting}
+            onClick={() => void startEngine()}
+          >
+            {starting ? "Starting engine…" : "Start engine"}
+          </button>
+        )}
       </div>
     </div>
   );
