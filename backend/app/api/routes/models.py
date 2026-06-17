@@ -302,6 +302,7 @@ def cancel_gguf_download(job_id: str) -> GgufDownloadJobResponse:
 
 class LlamaRuntimeStatusResponse(BaseModel):
     binary_available: bool
+    binary_path: str | None = None
     models_ready: bool
     running: bool
     llm_url: str | None = None

@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 PRODUCT_NAME = "AI Private Workspace"
 # Keep in sync with frontend/src-tauri/tauri.conf.json on every release bump.
-APP_VERSION = "0.1.92"
+APP_VERSION = "0.1.93"
 # Keep the legacy hidden runtime directory for backward compatibility with
 # existing local installations. It is not a product-facing name.
 DEFAULT_APP_DATA_DIR = Path(".ai-workbench")
@@ -40,27 +40,69 @@ def _llama_arch_dir() -> str:
     return "x64"  # x86_64 / amd64 / Intel
 
 
-def resolve_llama_server_binary_path() -> Path | None:
-    """Locate the bundled ``llama-server`` binary, or ``None`` if not present.
+def llama_server_binary_candidates() -> list[Path]:
+    """Every place we look for the bundled ``llama-server`` binary, in order.
 
-    Priority:
-    1. ``LLAMA_SERVER_BINARY_PATH`` (the desktop shell sets this to the path
-       inside the packaged ``.app`` resources).
-    2. The dev-staged path ``<repo>/build/desktop/llama-runtime/<arch>/llama-server``
-       produced by ``scripts/fetch_llama_server.sh`` — so the feature works when
-       running the backend from a source checkout, not just the packaged app.
-
-    Returns ``None`` when no binary is staged, so the app degrades to Ollama
-    instead of crashing.
+    Covers: an explicit env path (set by the desktop shell), a source checkout
+    (``<repo>/build/desktop/llama-runtime/<arch>/``), the current dir and its
+    ancestors (launcher run from the repo), and — for the packaged ``.app`` —
+    locations relative to the frozen backend executable, including
+    ``…/Contents/Resources/llama-runtime/<arch>/``.
     """
+    import sys
+
+    arch = _llama_arch_dir()
+    build_rel = Path("build") / "desktop" / "llama-runtime" / arch / "llama-server"
+    res_rel = Path("llama-runtime") / arch / "llama-server"
+
+    candidates: list[Path] = []
+
     override = os.getenv("LLAMA_SERVER_BINARY_PATH", "").strip()
     if override:
-        candidate = Path(override).expanduser()
-        return candidate if candidate.is_file() else None
+        candidates.append(Path(override).expanduser())
 
-    repo_root = Path(__file__).resolve().parents[3]
-    candidate = repo_root / "build" / "desktop" / "llama-runtime" / _llama_arch_dir() / "llama-server"
-    return candidate if candidate.is_file() else None
+    # Source checkout: settings.py is backend/app/config/settings.py.
+    candidates.append(Path(__file__).resolve().parents[3] / build_rel)
+
+    # Current working dir and a few ancestors (launcher started from the repo).
+    cwd = Path.cwd()
+    for base in [cwd, *list(cwd.parents)[:6]]:
+        candidates.append(base / build_rel)
+
+    # Packaged app: relative to the frozen backend executable and its ancestors,
+    # including the macOS .app `Contents/Resources` layout.
+    try:
+        exe_dir = Path(sys.executable).resolve().parent
+        for base in [exe_dir, *list(exe_dir.parents)[:8]]:
+            candidates.append(base / res_rel)
+            candidates.append(base / "Resources" / res_rel)
+            candidates.append(base / build_rel)
+    except (OSError, ValueError):
+        pass
+
+    # De-dupe while preserving order.
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for candidate in candidates:
+        key = str(candidate)
+        if key not in seen:
+            seen.add(key)
+            unique.append(candidate)
+    return unique
+
+
+def resolve_llama_server_binary_path() -> Path | None:
+    """Return the first existing ``llama-server`` binary, or ``None``.
+
+    ``None`` means the app degrades to Ollama instead of crashing.
+    """
+    for candidate in llama_server_binary_candidates():
+        try:
+            if candidate.is_file():
+                return candidate
+        except OSError:
+            continue
+    return None
 
 
 class Settings(BaseModel):
