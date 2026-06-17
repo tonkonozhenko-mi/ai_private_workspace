@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from app.adapters.commands.fake_command_runner import FakeCommandRunner
 from app.adapters.commands.local_command_runner import LocalCommandRunner
 from app.adapters.embeddings.fake_embedding_provider import FakeEmbeddingProvider
@@ -5,6 +7,7 @@ from app.adapters.embeddings.switchable_embedding_provider import (
     SwitchableEmbeddingProvider,
 )
 from app.adapters.filesystem.local_file_system import LocalFileSystem
+from app.adapters.system.runtime_state_store import RuntimeStateStore
 from app.adapters.llm.fake_llm_provider import FakeLLMProvider
 from app.adapters.llm.llm_provider_factory import LLMProviderFactory
 from app.adapters.memory.in_memory_agent_workflow_repository import InMemoryAgentWorkflowRepository
@@ -554,6 +557,9 @@ llama_runtime_manager = LlamaRuntimeManager(
 )
 command_runner = build_command_runner()
 embedding_provider = SwitchableEmbeddingProvider(build_embedding_provider())
+runtime_state_store = RuntimeStateStore(
+    Path(get_settings().app_data_dir) / "runtime_state.json"
+)
 llm_provider_factory = build_llm_provider_factory()
 vector_store = build_vector_store()
 readiness_configuration = build_readiness_configuration()
@@ -564,3 +570,44 @@ model_catalog_registry = build_model_catalog_registry()
 from app.api.workspace_job_runner import WorkspaceJobRunner
 
 workspace_job_runner = WorkspaceJobRunner()
+
+
+def build_active_model_configuration() -> dict[str, str]:
+    """Readiness config whose *active* embedding reflects the LIVE provider.
+
+    The static ``readiness_configuration`` reports ``EMBEDDING_PROVIDER`` from the
+    environment, which never changes even after the user switches to llama.cpp at
+    runtime. For the model-selection dashboard we want the real, currently-active
+    embedding engine so the "matches active runtime" check is truthful (and does
+    not raise a false mismatch when llama.cpp is in fact active).
+    """
+    config = dict(readiness_configuration)
+    try:
+        live_provider = embedding_provider.provider_name
+        live_model = getattr(embedding_provider, "model_name", "") or ""
+        if live_provider:
+            config["EMBEDDING_PROVIDER"] = live_provider
+        if live_model:
+            config["OLLAMA_EMBEDDING_MODEL"] = live_model
+    except Exception:  # noqa: BLE001 - never let status reporting break a request
+        pass
+    return config
+
+
+def restore_active_backend() -> None:
+    """Re-activate the persisted engine on startup so index and search agree.
+
+    If the user last activated llama.cpp, bring the engine up and point the live
+    embedding provider at it. Fully best-effort: any failure (binary missing,
+    models not downloaded, engine won't start) silently leaves the default
+    (Ollama) active, so the app still boots.
+    """
+    backend = runtime_state_store.get_active_backend()
+    if backend != "llamacpp":
+        return
+    try:
+        status = llama_runtime_manager.start()
+        if status.get("running") and hasattr(embedding_provider, "set_delegate"):
+            embedding_provider.set_delegate(build_embedding_for_backend("llamacpp"))
+    except Exception:  # noqa: BLE001 - degrade to Ollama default on any failure
+        pass

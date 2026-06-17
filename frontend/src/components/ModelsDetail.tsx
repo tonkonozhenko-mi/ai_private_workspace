@@ -81,6 +81,7 @@ import type {
 } from "../api/types";
 import { CopyButton } from "./CopyButton";
 import { EmptyState } from "./EmptyState";
+import { LlamaCppModelsPanel } from "./LlamaCppModelsPanel";
 import { StatusBadge } from "./StatusBadge";
 import {
   SKILL_PROFILE_TEMPLATES,
@@ -296,6 +297,12 @@ export function ModelsDetail({
           <GuidedModelSetupPanel
             workspaceId={workspaceId}
             developerMode={developerMode}
+            backend={
+              dashboard.selected_llm_provider === "llamacpp" ||
+              dashboard.selected_embedding_provider === "llamacpp"
+                ? "llamacpp"
+                : "ollama"
+            }
             onApplySelection={applyGuidedSelection}
           />
           {developerMode ? (
@@ -2324,10 +2331,12 @@ function FirstLaunchSetupPanel() {
 function GuidedModelSetupPanel({
   workspaceId,
   developerMode = false,
+  backend = "ollama",
   onApplySelection,
 }: {
   workspaceId: string;
   developerMode?: boolean;
+  backend?: "ollama" | "llamacpp";
   onApplySelection: (
     modelType: "llm" | "embedding",
     provider: string,
@@ -2342,7 +2351,24 @@ function GuidedModelSetupPanel({
   const [customEmbedding, setCustomEmbedding] = useState("");
   const [saving, setSaving] = useState<"llm" | "embedding" | null>(null);
   const [installPercent, setInstallPercent] = useState<number | null>(null);
+  const [installJobId, setInstallJobId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  // The built-in llama.cpp engine manages GGUF model files, not Ollama pulls, so
+  // in that mode the Ollama guided controls don't apply — show the llama.cpp
+  // panel instead (it has its own per-model download + Stop).
+  if (backend === "llamacpp") {
+    return (
+      <section className="panel guided-model-setup-panel">
+        <PanelHeading eyebrow="Guided setup" title="Built-in engine models" />
+        <p className="panel-intro">
+          This workspace uses the built-in llama.cpp engine. Manage its local
+          models below — nothing is installed through Ollama.
+        </p>
+        <LlamaCppModelsPanel workspaceId={workspaceId} />
+      </section>
+    );
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -2425,6 +2451,7 @@ function GuidedModelSetupPanel({
       const capability = await getLocalModelDownloadExecutionCapability();
       if (capability.execution_enabled) {
         let current = await startLocalModelDownloadJob(draft.command_proposal.id);
+        setInstallJobId(current.id);
         setInstallPercent(current.progress_percent ?? 0);
         setMessage(`Downloading ${provider}/${model}…`);
         for (
@@ -2469,6 +2496,19 @@ function GuidedModelSetupPanel({
     } finally {
       setSaving(null);
       setInstallPercent(null);
+      setInstallJobId(null);
+    }
+  }
+
+  async function cancelGuidedDownload() {
+    if (!installJobId) {
+      return;
+    }
+    try {
+      await cancelLocalModelDownloadJob(installJobId);
+      setMessage("Download stopped.");
+    } catch (cancelError) {
+      setError(errorMessage(cancelError));
     }
   }
 
@@ -2505,6 +2545,8 @@ function GuidedModelSetupPanel({
           disabled={saving !== null}
           isSaving={saving === "llm"}
           installPercent={installPercent}
+          canStop={saving === "llm" && installJobId !== null}
+          onStop={() => void cancelGuidedDownload()}
           note="The model that writes the answers when you ask questions."
           onChange={setLlmChoice}
           onCustomChange={setCustomLlm}
@@ -2517,6 +2559,8 @@ function GuidedModelSetupPanel({
           disabled={saving !== null}
           isSaving={saving === "embedding"}
           installPercent={installPercent}
+          canStop={saving === "embedding" && installJobId !== null}
+          onStop={() => void cancelGuidedDownload()}
           note="Turns your project into searchable form so the AI can find relevant files. nomic-embed-text is a great default; changing it later rebuilds the index."
           onChange={setEmbeddingChoice}
           onCustomChange={setCustomEmbedding}
@@ -2540,6 +2584,8 @@ function GuidedModelSetupControl({
   disabled,
   isSaving,
   installPercent,
+  canStop = false,
+  onStop,
   note,
   onChange,
   onCustomChange,
@@ -2551,6 +2597,8 @@ function GuidedModelSetupControl({
   disabled: boolean;
   isSaving: boolean;
   installPercent: number | null;
+  canStop?: boolean;
+  onStop?: () => void;
   note?: string;
   onChange: (value: string) => void;
   onCustomChange: (value: string) => void;
@@ -2639,6 +2687,15 @@ function GuidedModelSetupControl({
           <span className="install-progress-label">
             {installPercent === null ? "Preparing…" : `${installPercent}%`}
           </span>
+          {canStop && onStop ? (
+            <button
+              type="button"
+              className="guided-model-stop-button"
+              onClick={onStop}
+            >
+              Stop
+            </button>
+          ) : null}
         </div>
       ) : null}
     </article>

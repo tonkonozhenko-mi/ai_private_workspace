@@ -346,12 +346,41 @@ export function WorkspaceGettingReady({
   }
 
   // ---- Which step are we on? --------------------------------------------
+  // The "install Ollama" gate only applies when the user actually chose Ollama.
+  // If they picked the built-in llama.cpp engine, Ollama is irrelevant and must
+  // not block them — skip straight to scan/models.
   let step: "ollama" | "scan" | "models" | "index" | "ready";
-  if (!ollamaReachable) step = "ollama";
+  if (backendChoice === "ollama" && !ollamaReachable) step = "ollama";
   else if (!hasScan) step = "scan";
   else if (!modelsReady) step = "models";
   else if (!indexReady) step = "index";
   else step = "ready";
+
+  // Backend toggle, shared between the Ollama-install gate and the models step so
+  // the user can switch engines at either point (picking llama.cpp clears the
+  // Ollama requirement immediately).
+  const backendToggle = (
+    <div className="gr-backend-toggle" role="tablist" aria-label="Local engine">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={backendChoice === "ollama"}
+        className={backendChoice === "ollama" ? "is-selected" : ""}
+        onClick={() => setBackendChoice("ollama")}
+      >
+        Ollama
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={backendChoice === "llamacpp"}
+        className={backendChoice === "llamacpp" ? "is-selected" : ""}
+        onClick={() => setBackendChoice("llamacpp")}
+      >
+        Built-in (llama.cpp)
+      </button>
+    </div>
+  );
 
   const stepNumber = { ollama: 0, scan: 1, models: 2, index: 3, ready: 4 }[step];
   const downloading = downloadJobs.length > 0;
@@ -377,12 +406,13 @@ export function WorkspaceGettingReady({
 
       {step === "ollama" ? (
         <div className="getting-ready-step">
-          <span className="getting-ready-kicker">First — the local engine</span>
-          <h2>Install Ollama to run AI on your Mac</h2>
+          <span className="getting-ready-kicker">First — pick a local engine</span>
+          <h2>Choose how to run AI on your Mac</h2>
           <p>
-            {dashboard.workspace_name} runs models locally through Ollama — a free,
-            private engine. Install it once, start it, then come back.
+            {dashboard.workspace_name} runs models locally. Use the built-in
+            llama.cpp engine (nothing to install), or Ollama if you prefer it.
           </p>
+          {backendToggle}
           <div className="getting-ready-actions">
             <a className="getting-ready-cta" href="https://ollama.com/download" target="_blank" rel="noreferrer">
               Get Ollama
@@ -391,6 +421,9 @@ export function WorkspaceGettingReady({
               {busy === "check" ? "Checking…" : "I’ve installed it — re-check"}
             </button>
           </div>
+          <p className="gr-llama-note">
+            Or pick “Built-in (llama.cpp)” above to skip Ollama entirely.
+          </p>
         </div>
       ) : step === "scan" ? (
         <div className="getting-ready-step">
@@ -413,26 +446,7 @@ export function WorkspaceGettingReady({
             (about 2.5 GB, runs offline). Want a bigger, sharper model? Open Models.
           </p>
 
-          <div className="gr-backend-toggle" role="tablist" aria-label="Local engine">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={backendChoice === "ollama"}
-              className={backendChoice === "ollama" ? "is-selected" : ""}
-              onClick={() => setBackendChoice("ollama")}
-            >
-              Ollama
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={backendChoice === "llamacpp"}
-              className={backendChoice === "llamacpp" ? "is-selected" : ""}
-              onClick={() => setBackendChoice("llamacpp")}
-            >
-              Built-in (llama.cpp)
-            </button>
-          </div>
+          {backendToggle}
 
           {backendChoice === "llamacpp" ? (
             <LlamaCppModelsPanel
