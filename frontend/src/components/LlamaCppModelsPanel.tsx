@@ -279,48 +279,78 @@ export function LlamaCppModelsPanel({
     );
   }
 
+  const installedLlm = llmModels.filter((m) => isInstalled(m));
+  const addableLlm = llmModels.filter((m) => !isInstalled(m));
+
+  const engineCta = !requiredInstalled ? (
+    <button
+      className="getting-ready-cta"
+      type="button"
+      disabled={busy || anyDownloading || models == null}
+      onClick={() => void downloadRequired()}
+    >
+      {anyDownloading ? "Downloading…" : busy ? "Starting…" : "Download models"}
+    </button>
+  ) : runtime?.running ? (
+    <span className="gr-llama-running">✓ Engine running — ready to use</span>
+  ) : runtime && !runtime.binary_available ? (
+    <span className="gr-llama-note">
+      Models downloaded. The engine ships with the packaged app — it will start
+      automatically there.
+    </span>
+  ) : (
+    <button
+      className="getting-ready-cta"
+      type="button"
+      disabled={starting}
+      onClick={() => void startEngine()}
+    >
+      {starting ? "Starting engine…" : "Start engine"}
+    </button>
+  );
+
+  if (!interactive) {
+    // First-run setup: recommended answer model + embedder, download and go.
+    return (
+      <div className="gr-llama">
+        <p className="gr-llama-note">
+          The llama.cpp engine is built into the app — nothing to install. Just
+          download the two small models below.
+        </p>
+        {error ? <p className="getting-ready-error">{error}</p> : null}
+        <ul className="getting-ready-checklist">
+          {visibleLlmModels.map((model) => renderRow(model, "llm"))}
+          {embedModel ? renderRow(embedModel, "embedding") : null}
+        </ul>
+        <div className="getting-ready-actions">{engineCta}</div>
+      </div>
+    );
+  }
+
+  // Models tab: installed models + info first, then an "Add a model" section.
   return (
     <div className="gr-llama">
-      <p className="gr-llama-note">
-        {interactive
-          ? "The llama.cpp engine is built into the app — nothing to install. Download an answer model and the search model below."
-          : "The llama.cpp engine is built into the app — nothing to install. Just download the two small models below."}
-      </p>
       {error ? <p className="getting-ready-error">{error}</p> : null}
 
+      <p className="gr-llama-section-label">Your engine models</p>
       <ul className="getting-ready-checklist">
-        {visibleLlmModels.map((model) => renderRow(model, "llm"))}
+        {installedLlm.map((model) => renderRow(model, "llm"))}
         {embedModel ? renderRow(embedModel, "embedding") : null}
       </ul>
+      <div className="getting-ready-actions">{engineCta}</div>
 
-      <div className="getting-ready-actions">
-        {!requiredInstalled ? (
-          <button
-            className="getting-ready-cta"
-            type="button"
-            disabled={busy || anyDownloading || models == null}
-            onClick={() => void downloadRequired()}
-          >
-            {anyDownloading ? "Downloading…" : busy ? "Starting…" : "Download models"}
-          </button>
-        ) : runtime?.running ? (
-          <span className="gr-llama-running">✓ Engine running — ready to use</span>
-        ) : runtime && !runtime.binary_available ? (
-          <span className="gr-llama-note">
-            Models downloaded. The engine ships with the packaged app — it will
-            start automatically there.
-          </span>
-        ) : (
-          <button
-            className="getting-ready-cta"
-            type="button"
-            disabled={starting}
-            onClick={() => void startEngine()}
-          >
-            {starting ? "Starting engine…" : "Start engine"}
-          </button>
-        )}
-      </div>
+      <p className="gr-llama-section-label">Add a model</p>
+      <p className="gr-llama-note">
+        Download another answer model to switch to. Models are shared across all
+        your projects.
+      </p>
+      {addableLlm.length > 0 ? (
+        <ul className="getting-ready-checklist">
+          {addableLlm.map((model) => renderRow(model, "llm"))}
+        </ul>
+      ) : (
+        <p className="gr-llama-note">Every catalog model is already downloaded.</p>
+      )}
     </div>
   );
 }
