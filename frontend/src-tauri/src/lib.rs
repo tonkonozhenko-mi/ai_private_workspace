@@ -226,6 +226,37 @@ fn runtime_manifest_candidates() -> Vec<PathBuf> {
     candidates
 }
 
+/// Locate the bundled `llama-server` binary for the llama.cpp backend. Returns
+/// an empty string when it isn't present, so the backend just degrades to
+/// Ollama. Mirrors how the frozen backend runtime is found (cwd for source
+/// runs, `../Resources` for the packaged `.app`).
+fn llama_server_binary_path() -> String {
+    let arch = if std::env::consts::ARCH == "aarch64" {
+        "arm64"
+    } else {
+        "x64"
+    };
+    let rel = format!("llama-runtime/{}/llama-server", arch);
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Ok(cwd) = env::current_dir() {
+        candidates.push(cwd.join(format!("build/desktop/{}", rel)));
+        candidates.push(cwd.join(format!("../build/desktop/{}", rel)));
+    }
+    if let Ok(exe) = env::current_exe() {
+        if let Some(exe_dir) = exe.parent() {
+            candidates.push(exe_dir.join(&rel));
+            candidates.push(exe_dir.join(format!("../Resources/{}", rel)));
+            candidates.push(exe_dir.join(format!("../../Resources/{}", rel)));
+        }
+    }
+    for candidate in candidates {
+        if candidate.is_file() {
+            return candidate.to_string_lossy().to_string();
+        }
+    }
+    String::new()
+}
+
 fn resolve_frozen_backend_executable() -> Result<PathBuf, String> {
     let candidates = runtime_manifest_candidates();
     append_supervisor_log(&format!(
@@ -659,6 +690,7 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
         // workspace's selected Ollama models never match the active runtime.
         .env("LLM_PROVIDER", "ollama")
         .env("EMBEDDING_PROVIDER", "ollama")
+        .env("LLAMA_SERVER_BINARY_PATH", llama_server_binary_path())
         .env("COMMAND_RUNNER", "local")
         .env("COMMAND_TIMEOUT_SECONDS", "3600")
         .env("MODEL_DOWNLOAD_EXECUTION_ENABLED", "true")
