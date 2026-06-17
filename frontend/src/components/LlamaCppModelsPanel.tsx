@@ -426,14 +426,26 @@ export function LlamaCppModelsPanel({
                 In use — switch to another model before deleting.
               </span>
             ) : (
-              <button
-                type="button"
-                className="gr-model-delete"
-                disabled={deletingId !== null}
-                onClick={() => void removeModel(model)}
-              >
-                {deletingId === model.id ? "Deleting…" : "Delete model"}
-              </button>
+              <>
+                {kind === "llm" ? (
+                  <button
+                    type="button"
+                    className="gr-check-use"
+                    disabled={switchingId !== null}
+                    onClick={() => void useModel(model)}
+                  >
+                    {switchingId === model.id ? "Switching…" : "Use this model"}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="gr-model-delete"
+                  disabled={deletingId !== null}
+                  onClick={() => void removeModel(model)}
+                >
+                  {deletingId === model.id ? "Deleting…" : "Delete model"}
+                </button>
+              </>
             )}
           </div>
         </li>

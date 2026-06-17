@@ -1975,7 +1975,7 @@ details.onboarding-guide-panel[open] > summary {
 .gr-model-detail-row dl > div { display: flex; flex-direction: column; gap: 2px; }
 .gr-model-detail-row dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--c-text-3); }
 .gr-model-detail-row dd { margin: 0; font-size: 12.5px; color: var(--c-text-1); word-break: break-all; }
-.gr-model-detail-actions { margin-top: 12px; }
+.gr-model-detail-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
 .gr-model-delete { padding: 5px 14px; font-size: 12.5px; font-weight: 600; color: var(--c-danger); background: none; border: 1px solid var(--c-border); border-radius: var(--r-sm); cursor: pointer; }
 .gr-model-delete:hover:not(:disabled) { border-color: var(--c-danger); }
 .gr-model-delete:disabled { opacity: 0.5; cursor: default; }
