@@ -140,7 +140,10 @@ class GetSelectedEmbeddingIndexingPlanUseCase:
 
     def _active_embedding(self) -> tuple[str, str]:
         provider = self.configuration.get("EMBEDDING_PROVIDER", "").lower()
-        if provider == "ollama":
+        # Ollama and the built-in llama.cpp engine both identify the embedder by
+        # the configured model name (the GGUF id matches the Ollama tag, e.g.
+        # "nomic-embed-text"), so resolve them the same way.
+        if provider in ("ollama", "llamacpp"):
             return provider, self.configuration.get("OLLAMA_EMBEDDING_MODEL", "")
         if provider == "fake":
             return provider, "fake-embedding"

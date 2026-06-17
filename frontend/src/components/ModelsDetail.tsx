@@ -305,7 +305,12 @@ export function ModelsDetail({
             }
             onApplySelection={applyGuidedSelection}
           />
-          {developerMode ? (
+          {/* The detailed Ollama model manager is meaningless in llama.cpp mode
+              (it pulls Ollama models) — the llama.cpp panel above manages GGUF
+              models instead. Only show it for the Ollama backend. */}
+          {developerMode &&
+          dashboard.selected_llm_provider !== "llamacpp" &&
+          dashboard.selected_embedding_provider !== "llamacpp" ? (
             <LocalModelInstallPanel
               key={[
                 workspaceId,
