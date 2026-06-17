@@ -78,7 +78,10 @@ from app.adapters.runtime_health.ollama_runtime_health_checker import (
 from app.adapters.runtime_health.qdrant_runtime_health_checker import (
     QdrantRuntimeHealthChecker,
 )
+from app.adapters.system.gguf_download_job_runner import GgufDownloadJobRunner
+from app.adapters.system.huggingface_gguf_downloader import HuggingFaceGgufDownloader
 from app.adapters.system.local_git_history import LocalGitHistory
+from app.core.use_cases.download_gguf_model import DownloadGgufModelUseCase
 from app.adapters.vector_store.in_memory_vector_store import InMemoryVectorStore
 from app.adapters.vector_store.sqlite_vector_store import SQLiteVectorStore
 from app.config.settings import get_settings
@@ -494,6 +497,9 @@ workspace_model_selection_repository = build_workspace_model_selection_repositor
 workspace_storage_gateway = build_workspace_storage_gateway()
 file_system = LocalFileSystem()
 git_history = LocalGitHistory()
+gguf_download_job_runner = GgufDownloadJobRunner(
+    DownloadGgufModelUseCase(HuggingFaceGgufDownloader(), get_settings().app_data_dir)
+)
 command_runner = build_command_runner()
 embedding_provider = build_embedding_provider()
 llm_provider_factory = build_llm_provider_factory()

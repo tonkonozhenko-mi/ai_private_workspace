@@ -38,6 +38,10 @@ filesystem, provider, or command-runner activity outside SQLite repositories.
 | Endpoint | Purpose | Writes | Executes commands | Runtime | Main UI surface |
 | --- | --- | --- | --- | --- | --- |
 | `GET /models/catalog` | List and filter static plus valid user-defined model metadata. | No | No | No | Model selection |
+| `GET /models/gguf-catalog` | Curated GGUF models (Hugging Face repo + file) for the llama.cpp / Ollama-free backend, with download URLs and recommended flags. Read-only metadata; downloads happen via a separate job. | No | No | No | Model selection (llama.cpp) |
+| `POST /models/gguf-downloads` | Start a background GGUF model download (by catalog id, or a custom Hugging Face repo + filename) for the llama.cpp backend. Returns a pollable job. Streams to a temp file and publishes atomically on success. | In-memory download job | No | Hugging Face download | Model setup (llama.cpp) |
+| `GET /models/gguf-downloads/{job_id}` | Poll a GGUF download job's progress (bytes, percent, status, destination). | No | No | No | Model setup (llama.cpp) |
+| `POST /models/gguf-downloads/{job_id}/cancel` | Request cancellation of a running GGUF download; the partial file is discarded. | In-memory download job | No | No | Model setup (llama.cpp) |
 | `GET /models/catalog/details` | List filtered models plus user-catalog loading and validation warnings. | No | No | No | Model catalog diagnostics |
 | `POST /models/catalog/reload` | Reload the configured user model file into the in-memory catalog. | In-memory catalog only | No | Local metadata file read | Model catalog settings |
 | `POST /models/recommend` | Rank catalog models for an assistant profile, laptop profile, task, and model type. | No | No | No | Model selection/setup wizard |

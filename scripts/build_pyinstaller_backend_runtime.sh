@@ -47,6 +47,11 @@ fi
 rm -rf "$OUTPUT_DIR" "$WORK_DIR" "$DIST_DIR"
 mkdir -p "$OUTPUT_DIR"
 
+# Ensure the bundled llama.cpp resource dir always exists so `tauri build` does
+# not fail when llama-server has not been staged (e.g. a local Ollama-only
+# build). CI's "Stage llama-server binary" step fills it for release builds.
+mkdir -p "$ROOT_DIR/build/desktop/llama-runtime"
+
 cd "$ROOT_DIR"
 "$PYTHON_BIN" -m PyInstaller \
   --clean \

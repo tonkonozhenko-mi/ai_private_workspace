@@ -46,7 +46,8 @@
       "icons/icon.png"
     ],
     "resources": [
-      "../../build/desktop/frozen-backend-runtime"
+      "../../build/desktop/frozen-backend-runtime",
+      "../../build/desktop/llama-runtime"
     ]
   },
   "plugins": {

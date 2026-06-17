@@ -58,6 +58,23 @@ jobs:
           # Produces build/desktop/frozen-backend-runtime (referenced by tauri.conf resources).
           bash scripts/build_pyinstaller_backend_runtime.sh
 
+      # --- llama.cpp: stage the bundled llama-server binary for this arch so the
+      #     app ships it inside the signed .app (end users never fetch it). ---
+      - name: Stage llama-server binary
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Pinned llama.cpp release for reproducible builds (the script also
+          # pins this default). Bump deliberately to update.
+          LLAMA_CPP_VERSION: "b9675"
+        run: |
+          case "${{ matrix.args }}" in
+            *aarch64*) ARCH=arm64 ;;
+            *x86_64*)  ARCH=x64 ;;
+            *) echo "Unknown target; skipping llama-server stage"; exit 0 ;;
+          esac
+          bash scripts/fetch_llama_server.sh "$ARCH"
+
       # --- Frontend toolchain ---
       - uses: actions/setup-node@v4
         with:
