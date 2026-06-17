@@ -11,6 +11,7 @@ import {
   patternLines,
   type FileIndexingPreferences,
 } from "./fileIndexingPreferences";
+import { activateWorkspaceRuntime } from "../api/client";
 import { ModelsSummaryCard } from "./ModelsSummaryCard";
 import { WorkspaceGettingReady } from "./WorkspaceGettingReady";
 import { ProjectUnderstanding } from "./ProjectUnderstanding";
@@ -61,6 +62,14 @@ export function WorkspaceDashboard({
 }: WorkspaceDashboardProps) {
   const summary = dashboard.summary;
   const indexStatus = summary.index_status;
+
+  // The active model backend is app-global, so opening this workspace re-points
+  // the engine/embeddings at the backend it uses (Ollama or llama.cpp). Without
+  // this, switching between projects on different backends would leave the wrong
+  // engine active. Best-effort; failures never block the dashboard.
+  useEffect(() => {
+    void activateWorkspaceRuntime(dashboard.workspace_id).catch(() => {});
+  }, [dashboard.workspace_id]);
   const fullyReady =
     summary.has_scan &&
     indexStatus.status === "indexed" &&
