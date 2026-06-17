@@ -7,6 +7,7 @@ from app.adapters.vector_store.in_memory_vector_store import InMemoryVectorStore
 from app.adapters.vector_store.qdrant_collection_naming import (
     build_qdrant_collection_name,
 )
+from app.adapters.vector_store.sqlite_vector_store import SQLiteVectorStore
 from app.api.dependencies import build_vector_store
 from app.config.settings import get_settings
 from app.core.domain.indexing import TextChunk
@@ -14,8 +15,21 @@ from app.core.domain.indexing import TextChunk
 RUN_QDRANT_TESTS = os.getenv("RUN_QDRANT_TESTS", "").lower() == "true"
 
 
-def test_build_vector_store_uses_memory_by_default(monkeypatch) -> None:
+def test_build_vector_store_defaults_to_persistent_sqlite(monkeypatch) -> None:
+    # The default must persist across backend restarts (in-memory loses the index
+    # → "no chunks" after a restart). conftest forces memory globally, so this
+    # test deletes the override to exercise the real default.
     monkeypatch.delenv("VECTOR_STORE", raising=False)
+    get_settings.cache_clear()
+
+    vector_store = build_vector_store()
+
+    assert isinstance(vector_store, SQLiteVectorStore)
+    get_settings.cache_clear()
+
+
+def test_build_vector_store_uses_memory_when_configured(monkeypatch) -> None:
+    monkeypatch.setenv("VECTOR_STORE", "memory")
     get_settings.cache_clear()
 
     vector_store = build_vector_store()
