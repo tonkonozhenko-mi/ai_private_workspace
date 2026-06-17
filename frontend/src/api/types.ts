@@ -135,6 +135,14 @@ export interface GgufDownloadJob {
   error: string | null;
 }
 
+export interface LlamaRuntimeStatus {
+  binary_available: boolean;
+  models_ready: boolean;
+  running: boolean;
+  llm_url: string | null;
+  embed_url: string | null;
+}
+
 export interface ProjectScanResponse {
   project_path: string;
   total_files: number;

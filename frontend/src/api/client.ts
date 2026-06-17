@@ -10,6 +10,7 @@ import type {
   WorkspaceFileWriteResult,
   GgufCatalogItem,
   GgufDownloadJob,
+  LlamaRuntimeStatus,
   GitInsightsResponse,
   ProjectScanResponse,
   ProjectTodosResponse,
@@ -597,6 +598,24 @@ export function getGgufDownload(jobId: string): Promise<GgufDownloadJob> {
 
 export function cancelGgufDownload(jobId: string): Promise<GgufDownloadJob> {
   return requestJson<GgufDownloadJob>(`/models/gguf-downloads/${jobId}/cancel`, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
+}
+
+export function getLlamaRuntimeStatus(): Promise<LlamaRuntimeStatus> {
+  return getJson<LlamaRuntimeStatus>(`/models/llama-runtime/status`);
+}
+
+export function startLlamaRuntime(): Promise<LlamaRuntimeStatus> {
+  return requestJson<LlamaRuntimeStatus>(`/models/llama-runtime/start`, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
+}
+
+export function stopLlamaRuntime(): Promise<LlamaRuntimeStatus> {
+  return requestJson<LlamaRuntimeStatus>(`/models/llama-runtime/stop`, {
     method: "POST",
     headers: { Accept: "application/json" },
   });

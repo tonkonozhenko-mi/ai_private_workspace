@@ -10,6 +10,7 @@ from app.api.dependencies import (
     embedding_provider,
     gguf_download_job_runner,
     index_status_repository,
+    llama_runtime_manager,
     llm_provider_factory,
     local_model_download_job_repository,
     model_catalog_registry,
@@ -297,6 +298,37 @@ def cancel_gguf_download(job_id: str) -> GgufDownloadJobResponse:
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Download job not found")
     return _to_gguf_job_response(job)
+
+
+class LlamaRuntimeStatusResponse(BaseModel):
+    binary_available: bool
+    models_ready: bool
+    running: bool
+    llm_url: str | None = None
+    embed_url: str | None = None
+
+
+@router.get("/llama-runtime/status", response_model=LlamaRuntimeStatusResponse)
+def llama_runtime_status() -> LlamaRuntimeStatusResponse:
+    return LlamaRuntimeStatusResponse(**llama_runtime_manager.status())
+
+
+@router.post("/llama-runtime/start", response_model=LlamaRuntimeStatusResponse)
+def llama_runtime_start() -> LlamaRuntimeStatusResponse:
+    from app.adapters.system.llama_runtime_manager import LlamaRuntimeError
+    from app.adapters.system.llama_server_process_manager import LlamaServerStartError
+
+    try:
+        return LlamaRuntimeStatusResponse(**llama_runtime_manager.start())
+    except (LlamaRuntimeError, LlamaServerStartError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
+
+
+@router.post("/llama-runtime/stop", response_model=LlamaRuntimeStatusResponse)
+def llama_runtime_stop() -> LlamaRuntimeStatusResponse:
+    return LlamaRuntimeStatusResponse(**llama_runtime_manager.stop())
 
 
 @router.get("/catalog", response_model=list[LocalModelDefinitionResponse])
