@@ -13,7 +13,12 @@ import threading
 
 from app.adapters.system.llama_server_process_manager import LlamaServerProcessManager
 from app.config.settings import resolve_llama_server_binary_path
-from app.core.domain.gguf_catalog import default_gguf_embedding, default_gguf_llm
+from app.core.domain.gguf_catalog import (
+    GgufModel,
+    default_gguf_embedding,
+    default_gguf_llm,
+    find_gguf_model,
+)
 from app.core.use_cases.download_gguf_model import DownloadGgufModelUseCase
 
 
@@ -56,6 +61,7 @@ class LlamaRuntimeManager:
         self._embed_port = embed_port
         self._llm: LlamaServerProcessManager | None = None
         self._embed: LlamaServerProcessManager | None = None
+        self._llm_model_id: str | None = None
         self._lock = threading.Lock()
 
     def _running(self) -> bool:
@@ -66,9 +72,33 @@ class LlamaRuntimeManager:
             and self._embed.is_running()
         )
 
+    def _resolve_llm_model(self) -> GgufModel:
+        """The chosen answer model, or the recommended default if none/invalid."""
+        if self._llm_model_id:
+            chosen = find_gguf_model(self._llm_model_id)
+            if chosen is not None and chosen.model_type == "llm":
+                return chosen
+        return default_gguf_llm()
+
+    def set_llm_model(self, model_id: str | None) -> None:
+        """Remember which answer model to run (validated against the catalog).
+
+        Does not (re)start anything — ``start``/``switch_llm`` use it. Invalid ids
+        are ignored, so a stale persisted id can never break startup.
+        """
+        if not model_id:
+            return
+        model = find_gguf_model(model_id)
+        if model is not None and model.model_type == "llm":
+            self._llm_model_id = model.id
+
+    @property
+    def active_llm_model_id(self) -> str:
+        return self._resolve_llm_model().id
+
     def status(self) -> dict:
         binary = resolve_llama_server_binary_path()
-        llm_model = default_gguf_llm()
+        llm_model = self._resolve_llm_model()
         embed_model = default_gguf_embedding()
         running = self._running()
         return {
@@ -77,6 +107,7 @@ class LlamaRuntimeManager:
             "models_ready": self._dl.is_installed(llm_model)
             and self._dl.is_installed(embed_model),
             "running": running,
+            "active_llm_model": llm_model.id,
             "llm_url": f"http://{self._host}:{self._llm_port}" if running else None,
             "embed_url": f"http://{self._host}:{self._embed_port}" if running else None,
         }
@@ -88,7 +119,7 @@ class LlamaRuntimeManager:
                 "The llama.cpp engine is not bundled in this build yet. "
                 "Run scripts/fetch_llama_server.sh or use a packaged release."
             )
-        llm_model = default_gguf_llm()
+        llm_model = self._resolve_llm_model()
         embed_model = default_gguf_embedding()
         if not self._dl.is_installed(llm_model):
             raise LlamaRuntimeError("The answer model has not been downloaded yet.")
@@ -106,6 +137,29 @@ class LlamaRuntimeManager:
             )
         return self.status()
 
+    def switch_llm(self, model_id: str) -> dict:
+        """Restart only the answer engine on a different (already downloaded) model.
+
+        Search/embeddings keep running untouched. Raises ``LlamaRuntimeError`` if
+        the model is unknown, not an LLM, or not downloaded yet.
+        """
+        model = find_gguf_model(model_id)
+        if model is None or model.model_type != "llm":
+            raise LlamaRuntimeError(f"Unknown answer model: {model_id}")
+        if not self._dl.is_installed(model):
+            raise LlamaRuntimeError("That answer model has not been downloaded yet.")
+        binary = resolve_llama_server_binary_path()
+        if binary is None:
+            raise LlamaRuntimeError("The llama.cpp engine is not bundled in this build.")
+
+        with self._lock:
+            self._llm_model_id = model.id
+            if self._llm is not None:
+                self._llm.stop()
+            self._llm = LlamaServerProcessManager(binary, host=self._host)
+            self._llm.start(self._dl.destination_path(model), self._llm_port)
+        return self.status()
+
     def memory(self) -> list[dict]:
         """Resident memory of the running llama-server processes (answer + search).
 
@@ -113,7 +167,8 @@ class LlamaRuntimeManager:
         no extra dependency (psutil) is needed and it works in the packaged app.
         """
         entries: list[dict] = []
-        for label, mgr in (("llama3.2", self._llm), ("nomic-embed-text", self._embed)):
+        labels = (self._resolve_llm_model().id, default_gguf_embedding().id)
+        for label, mgr in zip(labels, (self._llm, self._embed)):
             pid = mgr.pid if mgr is not None else None
             if pid is None:
                 continue

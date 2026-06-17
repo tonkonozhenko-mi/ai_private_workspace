@@ -1970,6 +1970,10 @@ details.onboarding-guide-panel[open] > summary {
 .gr-check-pct { font-size: 12px; color: var(--c-text-2); min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
 .gr-check-stop { background: none; border: none; color: var(--c-text-3); font-size: 12px; cursor: pointer; padding: 0; flex: 0 0 auto; }
 .gr-check-stop:hover { color: var(--c-danger); }
+.gr-check-use { flex: 0 0 auto; padding: 4px 12px; font-size: 12.5px; font-weight: 600; color: var(--c-text-1); background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-sm); cursor: pointer; }
+.gr-check-use:hover:not(:disabled) { border-color: var(--c-accent); color: var(--c-accent); }
+.gr-check-use:disabled { opacity: 0.5; cursor: default; }
+.gr-check-state--on { color: var(--c-accent); font-weight: 600; }
 
 /* Full-window setup takeover frame */
 .setup-takeover { min-height: 100vh; display: flex; flex-direction: column; background: var(--c-bg); }

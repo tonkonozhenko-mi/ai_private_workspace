@@ -606,6 +606,8 @@ def restore_active_backend() -> None:
     if backend != "llamacpp":
         return
     try:
+        # Restore the previously chosen answer model before starting the engine.
+        llama_runtime_manager.set_llm_model(runtime_state_store.get_llamacpp_llm_model())
         status = llama_runtime_manager.start()
         if status.get("running") and hasattr(embedding_provider, "set_delegate"):
             embedding_provider.set_delegate(build_embedding_for_backend("llamacpp"))

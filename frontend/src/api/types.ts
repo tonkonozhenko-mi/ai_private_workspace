@@ -120,6 +120,8 @@ export interface GgufCatalogItem {
   min_ram_gb: number | null;
   ollama_tag: string | null;
   download_url: string;
+  installed: boolean;
+  active: boolean;
 }
 
 export interface GgufDownloadJob {
@@ -139,6 +141,7 @@ export interface LlamaRuntimeStatus {
   binary_available: boolean;
   models_ready: boolean;
   running: boolean;
+  active_llm_model: string | null;
   llm_url: string | null;
   embed_url: string | null;
 }

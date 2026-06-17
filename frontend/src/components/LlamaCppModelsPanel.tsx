@@ -8,6 +8,7 @@ import {
   setActiveBackend,
   startGgufDownload,
   startLlamaRuntime,
+  switchLlamaRuntimeLlm,
   updateWorkspaceModelSelection,
 } from "../api/client";
 import type { GgufCatalogItem, GgufDownloadJob, LlamaRuntimeStatus } from "../api/types";
@@ -18,8 +19,9 @@ function formatGb(bytes: number): string {
   return gb >= 1 ? `${gb.toFixed(1)} GB` : `${Math.round(bytes / 1024 ** 2)} MB`;
 }
 
-// llama.cpp setup: the engine binary ships inside the app; here we only
-// download the small GGUF model files (one to answer, one for search).
+// llama.cpp setup: the engine binary ships inside the app; here we download the
+// GGUF model files. The catalog reports real on-disk install state, so models
+// downloaded for one workspace already show as installed in the next one.
 export function LlamaCppModelsPanel({
   workspaceId,
   onReady,
@@ -33,16 +35,21 @@ export function LlamaCppModelsPanel({
   const [busy, setBusy] = useState(false);
   const [runtime, setRuntime] = useState<LlamaRuntimeStatus | null>(null);
   const [starting, setStarting] = useState(false);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
   const pollers = useRef<Record<string, number>>({});
 
   // Tell the parent setup flow once the engine is actually running, so the
   // "models" step can advance to indexing → chat — mirroring the Ollama path.
-  // Kept in a ref so the effect below doesn't re-fire on every parent re-render.
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
   useEffect(() => {
     if (runtime?.running) onReadyRef.current?.();
   }, [runtime?.running]);
+
+  const refreshCatalog = useCallback(async () => {
+    const all = await getGgufCatalog();
+    setModels(all);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,48 +62,74 @@ export function LlamaCppModelsPanel({
       });
     getGgufCatalog()
       .then((all) => {
-        if (cancelled) return;
-        // One recommended LLM + the recommended embedder.
-        const llm = all.find((m) => m.model_type === "llm" && m.recommended) ?? all.find((m) => m.model_type === "llm");
-        const embed = all.find((m) => m.model_type === "embedding" && m.recommended) ?? all.find((m) => m.model_type === "embedding");
-        setModels([llm, embed].filter((m): m is GgufCatalogItem => Boolean(m)));
+        if (!cancelled) setModels(all);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Could not load the model list."));
+    const active = pollers.current;
     return () => {
       cancelled = true;
-      Object.values(pollers.current).forEach((id) => window.clearInterval(id));
+      Object.values(active).forEach((id) => window.clearInterval(id));
     };
   }, []);
 
-  const poll = useCallback((modelId: string, jobId: string) => {
-    window.clearInterval(pollers.current[jobId]);
-    pollers.current[jobId] = window.setInterval(async () => {
-      try {
-        const job = await getGgufDownload(jobId);
-        setJobs((current) => ({ ...current, [modelId]: job }));
-        if (["succeeded", "failed", "cancelled"].includes(job.status)) {
-          window.clearInterval(pollers.current[jobId]);
+  const poll = useCallback(
+    (modelId: string, jobId: string) => {
+      window.clearInterval(pollers.current[jobId]);
+      pollers.current[jobId] = window.setInterval(async () => {
+        try {
+          const job = await getGgufDownload(jobId);
+          setJobs((current) => ({ ...current, [modelId]: job }));
+          if (["succeeded", "failed", "cancelled"].includes(job.status)) {
+            window.clearInterval(pollers.current[jobId]);
+            if (job.status === "succeeded") void refreshCatalog();
+          }
+        } catch {
+          /* keep polling through transient errors */
         }
-      } catch {
-        /* keep polling through transient errors */
-      }
-    }, 1000);
-  }, []);
+      }, 1000);
+    },
+    [refreshCatalog],
+  );
 
-  async function downloadAll() {
-    if (!models) return;
+  const isInstalled = useCallback(
+    (model: GgufCatalogItem) =>
+      model.installed || jobs[model.id]?.status === "succeeded",
+    [jobs],
+  );
+
+  const llmModels = (models ?? []).filter((m) => m.model_type === "llm");
+  const embedModel =
+    (models ?? []).find((m) => m.model_type === "embedding" && m.recommended) ??
+    (models ?? []).find((m) => m.model_type === "embedding");
+  const recommendedLlm =
+    llmModels.find((m) => m.recommended) ?? llmModels[0];
+
+  // The minimum to run: a recommended answer model + the embedder.
+  const requiredModels = [recommendedLlm, embedModel].filter(
+    (m): m is GgufCatalogItem => Boolean(m),
+  );
+  const requiredInstalled =
+    requiredModels.length > 0 && requiredModels.every((m) => isInstalled(m));
+
+  async function download(modelId: string) {
+    setError(null);
+    try {
+      const job = await startGgufDownload({ model_id: modelId });
+      setJobs((current) => ({ ...current, [modelId]: job }));
+      poll(modelId, job.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not start the download.");
+    }
+  }
+
+  async function downloadRequired() {
     setBusy(true);
     setError(null);
     try {
-      for (const model of models) {
-        const existing = jobs[model.id];
-        if (existing && existing.status === "succeeded") continue;
-        const job = await startGgufDownload({ model_id: model.id });
-        setJobs((current) => ({ ...current, [model.id]: job }));
-        poll(model.id, job.id);
+      for (const model of requiredModels) {
+        if (isInstalled(model)) continue;
+        await download(model.id);
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not start the download.");
     } finally {
       setBusy(false);
     }
@@ -116,6 +149,25 @@ export function LlamaCppModelsPanel({
     });
   }
 
+  async function applyWorkspaceSelection(llmId: string) {
+    await setActiveBackend("llamacpp").catch(() => {});
+    if (!workspaceId) return;
+    await updateWorkspaceModelSelection(workspaceId, {
+      provider: "llamacpp",
+      model: llmId,
+      model_type: "llm",
+      selected_reason: "Built-in llama.cpp engine",
+    }).catch(() => {});
+    if (embedModel) {
+      await updateWorkspaceModelSelection(workspaceId, {
+        provider: "llamacpp",
+        model: embedModel.id,
+        model_type: "embedding",
+        selected_reason: "Built-in llama.cpp engine",
+      }).catch(() => {});
+    }
+  }
+
   async function startEngine() {
     setStarting(true);
     setError(null);
@@ -123,28 +175,8 @@ export function LlamaCppModelsPanel({
       const status = await startLlamaRuntime();
       setRuntime(status);
       if (status.running) {
-        // Route search embeddings and this workspace's models through llama.cpp.
-        await setActiveBackend("llamacpp").catch(() => {});
-        if (workspaceId) {
-          const llm = models?.find((m) => m.model_type === "llm");
-          const embed = models?.find((m) => m.model_type === "embedding");
-          if (llm) {
-            await updateWorkspaceModelSelection(workspaceId, {
-              provider: "llamacpp",
-              model: llm.id,
-              model_type: "llm",
-              selected_reason: "Built-in llama.cpp engine",
-            }).catch(() => {});
-          }
-          if (embed) {
-            await updateWorkspaceModelSelection(workspaceId, {
-              provider: "llamacpp",
-              model: embed.id,
-              model_type: "embedding",
-              selected_reason: "Built-in llama.cpp engine",
-            }).catch(() => {});
-          }
-        }
+        await applyWorkspaceSelection(status.active_llm_model ?? recommendedLlm?.id ?? "");
+        await refreshCatalog();
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not start the engine.");
@@ -153,70 +185,106 @@ export function LlamaCppModelsPanel({
     }
   }
 
-  const anyRunning =
-    models?.some((m) => {
-      const s = jobs[m.id]?.status;
-      return s === "running" || s === "queued";
-    }) ?? false;
+  // Switch the running engine to a different, already-downloaded answer model.
+  async function useModel(modelId: string) {
+    setSwitchingId(modelId);
+    setError(null);
+    try {
+      const status = await switchLlamaRuntimeLlm(modelId);
+      setRuntime(status);
+      await applyWorkspaceSelection(modelId);
+      await refreshCatalog();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not switch the answer model.");
+    } finally {
+      setSwitchingId(null);
+    }
+  }
 
-  const allDone =
-    models != null &&
-    models.length > 0 &&
-    models.every((m) => jobs[m.id]?.status === "succeeded");
+  const anyDownloading = Object.values(jobs).some(
+    (j) => j.status === "running" || j.status === "queued",
+  );
+
+  function renderRow(model: GgufCatalogItem, kind: "llm" | "embedding") {
+    const job = jobs[model.id];
+    const pct = job?.progress_percent ?? null;
+    const downloading = job?.status === "running" || job?.status === "queued";
+    const installed = isInstalled(model);
+    const active = model.active && kind === "llm";
+    const state = active ? "done" : installed ? "done" : downloading ? "load" : "wait";
+    return (
+      <li className={`gr-check gr-check--${state}`} key={model.id}>
+        <span className="gr-check-icon" aria-hidden="true">
+          {downloading ? <span className="gr-check-spin" /> : null}
+        </span>
+        <span className="gr-check-name">
+          {model.name}
+          <small>
+            · {kind === "embedding" ? "search" : "answers"} · {formatGb(model.size_bytes)}
+            {model.recommended ? " · recommended" : ""}
+          </small>
+        </span>
+        {downloading ? (
+          <span className="gr-check-progress">
+            <span className="gr-check-pct">{pct === null ? "…" : `${Math.round(pct)}%`}</span>
+            <span className={`install-progress-bar${pct === null ? " is-indeterminate" : ""}`}>
+              <span style={pct === null ? undefined : { width: `${pct}%` }} />
+            </span>
+            <button type="button" className="gr-check-stop" onClick={() => void stop(model.id, job!.id)}>
+              Stop
+            </button>
+          </span>
+        ) : active ? (
+          <span className="gr-check-state gr-check-state--on">In use</span>
+        ) : installed ? (
+          kind === "llm" && runtime?.running ? (
+            <button
+              type="button"
+              className="gr-check-use"
+              disabled={switchingId !== null}
+              onClick={() => void useModel(model.id)}
+            >
+              {switchingId === model.id ? "Switching…" : "Use this model"}
+            </button>
+          ) : (
+            <span className="gr-check-state">Downloaded</span>
+          )
+        ) : (
+          <button
+            type="button"
+            className="gr-check-use"
+            disabled={anyDownloading}
+            onClick={() => void download(model.id)}
+          >
+            Download
+          </button>
+        )}
+      </li>
+    );
+  }
 
   return (
     <div className="gr-llama">
       <p className="gr-llama-note">
-        The llama.cpp engine is built into the app — nothing to install. Just
-        download the two small models below.
+        The llama.cpp engine is built into the app — nothing to install. Download
+        an answer model and the search model below.
       </p>
       {error ? <p className="getting-ready-error">{error}</p> : null}
 
       <ul className="getting-ready-checklist">
-        {(models ?? []).map((model) => {
-          const job = jobs[model.id];
-          const pct = job?.progress_percent ?? null;
-          const done = job?.status === "succeeded";
-          const running = job?.status === "running" || job?.status === "queued";
-          const state = done ? "done" : running ? "load" : "wait";
-          return (
-            <li className={`gr-check gr-check--${state}`} key={model.id}>
-              <span className="gr-check-icon" aria-hidden="true">
-                {running ? <span className="gr-check-spin" /> : null}
-              </span>
-              <span className="gr-check-name">
-                {model.name}
-                <small>· {model.model_type === "embedding" ? "search" : "answers"} · {formatGb(model.size_bytes)}</small>
-              </span>
-              {running ? (
-                <span className="gr-check-progress">
-                  <span className="gr-check-pct">{pct === null ? "…" : `${Math.round(pct)}%`}</span>
-                  <span className={`install-progress-bar${pct === null ? " is-indeterminate" : ""}`}>
-                    <span style={pct === null ? undefined : { width: `${pct}%` }} />
-                  </span>
-                  <button type="button" className="gr-check-stop" onClick={() => void stop(model.id, job!.id)}>
-                    Stop
-                  </button>
-                </span>
-              ) : (
-                <span className="gr-check-state">
-                  {done ? "Downloaded" : job?.status === "failed" ? "Failed" : "Not yet"}
-                </span>
-              )}
-            </li>
-          );
-        })}
+        {llmModels.map((model) => renderRow(model, "llm"))}
+        {embedModel ? renderRow(embedModel, "embedding") : null}
       </ul>
 
       <div className="getting-ready-actions">
-        {!allDone ? (
+        {!requiredInstalled ? (
           <button
             className="getting-ready-cta"
             type="button"
-            disabled={busy || anyRunning || models == null}
-            onClick={() => void downloadAll()}
+            disabled={busy || anyDownloading || models == null}
+            onClick={() => void downloadRequired()}
           >
-            {anyRunning ? "Downloading…" : busy ? "Starting…" : "Download models"}
+            {anyDownloading ? "Downloading…" : busy ? "Starting…" : "Download models"}
           </button>
         ) : runtime?.running ? (
           <span className="gr-llama-running">✓ Engine running — ready to use</span>

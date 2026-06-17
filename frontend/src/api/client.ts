@@ -621,6 +621,15 @@ export function stopLlamaRuntime(): Promise<LlamaRuntimeStatus> {
   });
 }
 
+// Switch the built-in engine's answer model to another already-downloaded GGUF.
+export function switchLlamaRuntimeLlm(modelId: string): Promise<LlamaRuntimeStatus> {
+  return requestJson<LlamaRuntimeStatus>(`/models/llama-runtime/llm`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ model_id: modelId }),
+  });
+}
+
 // Switch the app-wide embedding engine (Ollama vs llama.cpp) so search matches
 // the chosen backend. Index after switching to keep vectors consistent.
 export function setActiveBackend(backend: "ollama" | "llamacpp"): Promise<{ active_backend: string }> {
