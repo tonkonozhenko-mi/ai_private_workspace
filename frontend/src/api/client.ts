@@ -633,6 +633,22 @@ export function switchLlamaRuntimeLlm(
   });
 }
 
+// Auto-pick a usable GGUF filename from a Hugging Face repo (so the user only
+// needs to paste the repo id, like llama.cpp's -hf shorthand).
+export function resolveGgufModel(
+  repoId: string,
+  quant?: string,
+): Promise<{ repo_id: string; filename: string; name: string }> {
+  return requestJson<{ repo_id: string; filename: string; name: string }>(
+    `/models/gguf-resolve`,
+    {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ repo_id: repoId, quant: quant || null }),
+    },
+  );
+}
+
 // Delete a downloaded GGUF model file (catalog id or custom repo/filename).
 export function deleteGgufModel(
   ref: { model_id?: string; repo_id?: string; filename?: string },

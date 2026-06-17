@@ -6,6 +6,7 @@ import {
   getGgufCatalog,
   getGgufDownload,
   getLlamaRuntimeStatus,
+  resolveGgufModel,
   setActiveBackend,
   startGgufDownload,
   startLlamaRuntime,
@@ -46,6 +47,7 @@ export function LlamaCppModelsPanel({
   const [customRepo, setCustomRepo] = useState("");
   const [customFile, setCustomFile] = useState("");
   const [customBusy, setCustomBusy] = useState(false);
+  const [customJobKey, setCustomJobKey] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const pollers = useRef<Record<string, number>>({});
@@ -251,15 +253,22 @@ export function LlamaCppModelsPanel({
   // on it. Works end-to-end: the engine starts the downloaded file directly.
   async function addCustomModel() {
     const repo = customRepo.trim();
-    const file = customFile.trim();
-    if (!repo || !file) {
-      setError("Enter a Hugging Face repo and a .gguf filename.");
+    if (!repo) {
+      setError("Enter a Hugging Face repo (e.g. bartowski/Qwen2.5-0.5B-Instruct-GGUF).");
       return;
     }
-    const key = `${repo}/${file}`;
     setCustomBusy(true);
     setError(null);
     try {
+      // The user only needs the repo — pick a good GGUF file automatically
+      // (a specific filename can still be given to override).
+      let file = customFile.trim();
+      if (!file) {
+        const resolved = await resolveGgufModel(repo);
+        file = resolved.filename;
+      }
+      const key = `${repo}/${file}`;
+      setCustomJobKey(key);
       let job = await startGgufDownload({ repo_id: repo, filename: file });
       setJobs((current) => ({ ...current, [key]: job }));
       for (
@@ -312,8 +321,7 @@ export function LlamaCppModelsPanel({
   const anyDownloading = Object.values(jobs).some(
     (j) => j.status === "running" || j.status === "queued",
   );
-  const customKey = `${customRepo.trim()}/${customFile.trim()}`;
-  const customJob = jobs[customKey];
+  const customJob = customJobKey ? jobs[customJobKey] : undefined;
 
   function renderRow(model: GgufCatalogItem, kind: "llm" | "embedding") {
     const job = jobs[model.id];
@@ -509,28 +517,21 @@ export function LlamaCppModelsPanel({
       <div className="gr-llama-custom">
         <p className="gr-llama-custom-title">Add your own model</p>
         <p className="gr-llama-note gr-llama-note--left">
-          Paste a Hugging Face GGUF repo and filename. It downloads, then the
-          engine switches to it.
+          Paste a Hugging Face GGUF repo — the app picks a good quant and switches
+          the engine to it. (Avoid repos tagged npu/mobilint or vocab-only files.)
         </p>
         <div className="gr-llama-custom-fields">
           <input
             type="text"
             value={customRepo}
-            placeholder="repo, e.g. bartowski/Qwen2.5-Coder-7B-Instruct-GGUF"
+            placeholder="Hugging Face repo, e.g. bartowski/Qwen2.5-0.5B-Instruct-GGUF"
             disabled={customBusy}
             onChange={(e) => setCustomRepo(e.target.value)}
-          />
-          <input
-            type="text"
-            value={customFile}
-            placeholder="file, e.g. Qwen2.5-Coder-7B-Instruct-Q4_K_M.gguf"
-            disabled={customBusy}
-            onChange={(e) => setCustomFile(e.target.value)}
           />
           <button
             type="button"
             className="gr-check-use"
-            disabled={customBusy || !customRepo.trim() || !customFile.trim()}
+            disabled={customBusy || !customRepo.trim()}
             onClick={() => void addCustomModel()}
           >
             {customBusy ? "Working…" : "Download & use"}
