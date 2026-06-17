@@ -164,6 +164,47 @@ export function ModelsDetail({
       usage.active_embedding_provider,
     ],
   );
+  // Compare/face-off must only offer models that are actually downloaded and
+  // runnable (not recommendations or fake), and never the embedding model.
+  const [compareInstallStatus, setCompareInstallStatus] =
+    useState<LocalModelInstallStatus | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getLocalModelInstallStatus()
+      .then((status) => {
+        if (!cancelled) setCompareInstallStatus(status);
+      })
+      .catch(() => {
+        /* optional — selection/active still provide at least one option */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const comparisonLlmOptions = useMemo(() => {
+    const options = new Map<string, ModelOption>();
+    addOption(
+      options,
+      dashboard.selected_llm_provider,
+      dashboard.selected_llm_model,
+      "Current selection",
+    );
+    for (const item of asArray(compareInstallStatus?.items)) {
+      if (
+        item.model_type === "llm" &&
+        item.status === "installed" &&
+        item.provider !== "fake"
+      ) {
+        addOption(options, item.provider, item.model, "Installed");
+      }
+    }
+    return Array.from(options.values());
+  }, [
+    compareInstallStatus,
+    dashboard.selected_llm_provider,
+    dashboard.selected_llm_model,
+  ]);
+
   const reindexReason = getModelReindexReason(dashboard);
   const llmDiffersFromBackendDefault =
     Boolean(dashboard.selected_llm_provider && dashboard.selected_llm_model) &&
@@ -363,7 +404,7 @@ export function ModelsDetail({
       {activeSection === "compare" ? (
         <ModelExperimentPlanner
           workspaceId={workspaceId}
-          llmOptions={llmOptions}
+          llmOptions={comparisonLlmOptions}
           selectedLlmProvider={dashboard.selected_llm_provider}
           selectedLlmModel={dashboard.selected_llm_model}
           activeLlmProvider={usage.active_llm_provider}

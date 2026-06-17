@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
+    _gguf_download_use_case,
     command_repository,
     command_runner,
     embedding_provider,
@@ -205,13 +206,21 @@ class GgufCatalogItemResponse(BaseModel):
     min_ram_gb: int | None = None
     ollama_tag: str | None = None
     download_url: str
+    installed: bool = False
+    active: bool = False
 
 
 @router.get("/gguf-catalog", response_model=list[GgufCatalogItemResponse])
 def list_gguf_catalog(model_type: str | None = None) -> list[GgufCatalogItemResponse]:
-    """Curated GGUF models for the llama.cpp (Ollama-free) backend."""
+    """Curated GGUF models for the llama.cpp (Ollama-free) backend.
+
+    ``installed`` reflects whether the GGUF file is actually present on disk
+    (these are stored globally, so a model downloaded once is installed for every
+    workspace). ``active`` marks the answer model the engine currently runs.
+    """
     from app.core.domain.gguf_catalog import list_gguf_models
 
+    active_llm = llama_runtime_manager.active_llm_model_id
     return [
         GgufCatalogItemResponse(
             id=model.id,
@@ -225,6 +234,8 @@ def list_gguf_catalog(model_type: str | None = None) -> list[GgufCatalogItemResp
             min_ram_gb=model.min_ram_gb,
             ollama_tag=model.ollama_tag,
             download_url=model.download_url,
+            installed=_gguf_download_use_case.is_installed(model),
+            active=model.model_type == "llm" and model.id == active_llm,
         )
         for model in list_gguf_models(model_type)
     ]
@@ -305,6 +316,7 @@ class LlamaRuntimeStatusResponse(BaseModel):
     binary_path: str | None = None
     models_ready: bool
     running: bool
+    active_llm_model: str | None = None
     llm_url: str | None = None
     embed_url: str | None = None
 
@@ -330,6 +342,31 @@ def llama_runtime_start() -> LlamaRuntimeStatusResponse:
 @router.post("/llama-runtime/stop", response_model=LlamaRuntimeStatusResponse)
 def llama_runtime_stop() -> LlamaRuntimeStatusResponse:
     return LlamaRuntimeStatusResponse(**llama_runtime_manager.stop())
+
+
+class SwitchLlamaLlmRequest(BaseModel):
+    model_id: str = Field(..., min_length=1)
+
+
+@router.post("/llama-runtime/llm", response_model=LlamaRuntimeStatusResponse)
+def switch_llama_runtime_llm(request: SwitchLlamaLlmRequest) -> LlamaRuntimeStatusResponse:
+    """Switch the built-in engine's answer model to another downloaded GGUF.
+
+    Persists the choice so it survives restarts, and restarts only the answer
+    process (search/embeddings keep running).
+    """
+    from app.adapters.system.llama_runtime_manager import LlamaRuntimeError
+    from app.adapters.system.llama_server_process_manager import LlamaServerStartError
+    from app.api.dependencies import runtime_state_store
+
+    try:
+        result = llama_runtime_manager.switch_llm(request.model_id)
+    except (LlamaRuntimeError, LlamaServerStartError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
+    runtime_state_store.set_llamacpp_llm_model(request.model_id)
+    return LlamaRuntimeStatusResponse(**result)
 
 
 class SetActiveBackendRequest(BaseModel):
