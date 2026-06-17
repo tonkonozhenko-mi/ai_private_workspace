@@ -41,22 +41,6 @@ WORKSPACE_NOT_INDEXED_ANSWER = (
     "This workspace has not been indexed yet. Run workspace indexing first."
 )
 WORKSPACE_NOT_INDEXED_MESSAGE = "No workspace index metadata was found."
-INDEX_METADATA_WITHOUT_CHUNKS_ANSWER = "No context chunks were found in the active vector store."
-INDEX_METADATA_WITHOUT_CHUNKS_MESSAGE = (
-    "Index metadata exists, but the active vector store returned no chunks. "
-    "If VECTOR_STORE=memory, reindex after API restart. If VECTOR_STORE=qdrant, "
-    "verify VECTOR_STORE, EMBEDDING_PROVIDER, model, and collection settings."
-)
-NO_RELEVANT_CONTEXT_ANSWER = (
-    "I answer using this project's files, and I didn't find anything relevant to "
-    "that question here. Try asking about the project's code, configuration, "
-    "documentation, or setup. (General questions that aren't about the project — "
-    "like which AI model is running — aren't answered from project files; the "
-    "current model is shown above each answer.)"
-)
-NO_RELEVANT_CONTEXT_MESSAGE = (
-    "The active vector store returned no context chunks for this question."
-)
 
 # When the best retrieved chunk is below this cosine-similarity score, the
 # question is treated as general conversation (e.g. "what time is it", "how are
@@ -71,6 +55,31 @@ GENERAL_CHAT_DIAGNOSTIC_MESSAGE = (
     "No project files were relevant to this question, so it was answered as "
     "general conversation instead of from project context."
 )
+
+
+def _empty_context_warning(index_status: str) -> RagQualityWarning:
+    """A non-blocking note: the question was answered without project context
+    because none was retrievable. When the index says 'indexed' but the store is
+    empty, the index very likely needs rebuilding (e.g. after a backend restart
+    or a vector-store/embedding change)."""
+    if index_status == "indexed":
+        message = (
+            "Answered without project context: the search index reports 'indexed' "
+            "but the vector store returned no chunks — rebuild the search context "
+            "(scan, then build) to search your files again."
+        )
+    else:
+        message = (
+            "Answered without project context: nothing relevant was found for this "
+            "question in the project. Build/rebuild the search context to enable "
+            "project-grounded answers."
+        )
+    return RagQualityWarning(
+        code="answered_without_project_context",
+        message=message,
+        severity="review",
+        evidence=[],
+    )
 
 
 @dataclass(frozen=True)
@@ -169,24 +178,15 @@ class AskWorkspaceQuestionUseCase:
         ]
 
         if not context_results:
-            if index_status.status == "indexed":
-                return self._record_question_event(
-                    self._diagnostic_answer(
-                        request=request,
-                        llm_provider=llm_provider,
-                        answer=INDEX_METADATA_WITHOUT_CHUNKS_ANSWER,
-                        diagnostic_code="index_metadata_exists_but_no_chunks_found",
-                        diagnostic_message=INDEX_METADATA_WITHOUT_CHUNKS_MESSAGE,
-                    ),
-                    request,
-                )
+            # No project context available (empty/stale index, or nothing
+            # relevant). Still answer the question normally — a greeting or a
+            # general question shouldn't fail — and attach a note that project
+            # search wasn't used (with a rebuild hint when the index is stale).
             return self._record_question_event(
-                self._diagnostic_answer(
-                    request=request,
-                    llm_provider=llm_provider,
-                    answer=NO_RELEVANT_CONTEXT_ANSWER,
-                    diagnostic_code="no_relevant_context_found",
-                    diagnostic_message=NO_RELEVANT_CONTEXT_MESSAGE,
+                self._answer_general_conversation(
+                    request,
+                    llm_provider,
+                    extra_warnings=[_empty_context_warning(index_status.status)],
                 ),
                 request,
             )
@@ -298,37 +298,15 @@ class AskWorkspaceQuestionUseCase:
             for result in context_results
         ]
 
-        if not context_results:
-            if index_status.status == "indexed":
-                yield AskStreamFinal(
-                    self._record_question_event(
-                        self._diagnostic_answer(
-                            request=request,
-                            llm_provider=llm_provider,
-                            answer=INDEX_METADATA_WITHOUT_CHUNKS_ANSWER,
-                            diagnostic_code="index_metadata_exists_but_no_chunks_found",
-                            diagnostic_message=INDEX_METADATA_WITHOUT_CHUNKS_MESSAGE,
-                        ),
-                        request,
-                    )
-                )
-                return
-            yield AskStreamFinal(
-                self._record_question_event(
-                    self._diagnostic_answer(
-                        request=request,
-                        llm_provider=llm_provider,
-                        answer=NO_RELEVANT_CONTEXT_ANSWER,
-                        diagnostic_code="no_relevant_context_found",
-                        diagnostic_message=NO_RELEVANT_CONTEXT_MESSAGE,
-                    ),
-                    request,
-                )
-            )
-            return
+        # No project context (empty/stale index, or nothing relevant): fall
+        # through to a normal general-chat answer with a non-blocking note, so a
+        # greeting or general question still gets answered instead of a hard error.
+        empty_context_warnings = (
+            [_empty_context_warning(index_status.status)] if not context_results else []
+        )
 
         best_score = max((result.score for result in context_results), default=0.0)
-        if best_score < self._relevance_threshold():
+        if not context_results or best_score < self._relevance_threshold():
             prompt = build_general_chat_prompt(
                 question=request.question,
                 skill_instructions=request.skill_instructions,
@@ -372,7 +350,10 @@ class AskWorkspaceQuestionUseCase:
                         llm_model=llm_provider.model_name,
                         diagnostic_code=GENERAL_CHAT_DIAGNOSTIC_CODE,
                         diagnostic_message=GENERAL_CHAT_DIAGNOSTIC_MESSAGE,
-                        quality_warnings=list(request.additional_quality_warnings),
+                        quality_warnings=[
+                            *empty_context_warnings,
+                            *request.additional_quality_warnings,
+                        ],
                         usage=usage,
                         skill_profile=self._skill_profile_audit(request),
                         conversation_id=request.conversation_id,
@@ -531,6 +512,7 @@ class AskWorkspaceQuestionUseCase:
         self,
         request: AskWorkspaceQuestionInput,
         llm_provider: LLMProviderPort,
+        extra_warnings: list[RagQualityWarning] | None = None,
     ) -> WorkspaceQuestionAnswer:
         prompt = build_general_chat_prompt(
             question=request.question,
@@ -568,7 +550,10 @@ class AskWorkspaceQuestionUseCase:
             llm_model=llm_provider.model_name,
             diagnostic_code=GENERAL_CHAT_DIAGNOSTIC_CODE,
             diagnostic_message=GENERAL_CHAT_DIAGNOSTIC_MESSAGE,
-            quality_warnings=list(request.additional_quality_warnings),
+            quality_warnings=[
+                *(extra_warnings or []),
+                *request.additional_quality_warnings,
+            ],
             usage=usage,
             skill_profile=self._skill_profile_audit(request),
             conversation_id=request.conversation_id,

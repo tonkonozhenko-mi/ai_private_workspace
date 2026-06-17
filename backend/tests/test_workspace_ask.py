@@ -38,9 +38,11 @@ def test_ask_before_indexing_returns_workspace_not_indexed_diagnostic(tmp_path) 
     assert result["quality_warnings"] == []
 
 
-def test_ask_with_index_metadata_but_empty_active_store_returns_diagnostic(
+def test_ask_with_index_metadata_but_empty_active_store_answers_with_warning(
     tmp_path,
 ) -> None:
+    # Empty/stale store should NOT hard-fail: the question is still answered
+    # (general conversation), with a non-blocking warning to rebuild the index.
     _write_text(tmp_path / "README.md", "persisted metadata but transient chunks")
     workspace = _create_workspace(tmp_path)
     scan_response = client.post(f"/workspaces/{workspace['id']}/scan")
@@ -53,13 +55,17 @@ def test_ask_with_index_metadata_but_empty_active_store_returns_diagnostic(
 
     assert response.status_code == 200
     result = response.json()
-    assert result["answer"] == "No context chunks were found in the active vector store."
-    assert result["diagnostic_code"] == "index_metadata_exists_but_no_chunks_found"
-    assert "reindex after API restart" in result["diagnostic_message"]
-    assert "verify VECTOR_STORE, EMBEDDING_PROVIDER" in result["diagnostic_message"]
+    assert "Fake answer" in result["answer"]
+    assert result["diagnostic_code"] == "answered_as_general_conversation"
     assert result["sources"] == []
     assert result["used_context_chunks"] == 0
-    assert result["quality_warnings"] == []
+    warning_codes = [w["code"] for w in result["quality_warnings"]]
+    assert "answered_without_project_context" in warning_codes
+    rebuild_hint = next(
+        w for w in result["quality_warnings"]
+        if w["code"] == "answered_without_project_context"
+    )
+    assert "rebuild" in rebuild_hint["message"].lower()
 
 
 def test_ask_response_contains_llm_usage_metrics(tmp_path) -> None:
