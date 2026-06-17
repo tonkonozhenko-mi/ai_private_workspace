@@ -128,6 +128,24 @@ export function LlamaCppModelsPanel({
   const requiredInstalled =
     requiredModels.length > 0 && requiredModels.every((m) => isInstalled(m));
 
+  // If the models are downloaded and the bundled binary is present, bring the
+  // engine up on its own — the user already chose llama.cpp and downloaded the
+  // models, so they shouldn't have to press "Start engine" every visit. Runs at
+  // most once per mount; the button stays as a manual fallback if it fails.
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (
+      !autoStartedRef.current &&
+      requiredInstalled &&
+      runtime?.binary_available &&
+      !runtime.running &&
+      !starting
+    ) {
+      autoStartedRef.current = true;
+      void startEngine();
+    }
+  }, [requiredInstalled, runtime?.binary_available, runtime?.running, starting]);
+
   async function download(modelId: string) {
     setError(null);
     try {
@@ -363,10 +381,6 @@ export function LlamaCppModelsPanel({
     // First-run setup: recommended answer model + embedder, download and go.
     return (
       <div className="gr-llama">
-        <p className="gr-llama-note">
-          The llama.cpp engine is built into the app — nothing to install. Just
-          download the two small models below.
-        </p>
         {error ? <p className="getting-ready-error">{error}</p> : null}
         <ul className="getting-ready-checklist">
           {visibleLlmModels.map((model) => renderRow(model, "llm"))}
