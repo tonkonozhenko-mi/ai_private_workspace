@@ -48,6 +48,12 @@ class LlamaServerProcessManager:
     def is_running(self) -> bool:
         return self._process is not None and self._process.poll() is None
 
+    @property
+    def pid(self) -> int | None:
+        if self._process is not None and self._process.poll() is None:
+            return self._process.pid
+        return None
+
     def start(self, model_path: str | Path, port: int, embedding: bool = False) -> str:
         """Start llama-server for ``model_path`` on ``port``; return the base URL."""
         if not self.binary_path.is_file():

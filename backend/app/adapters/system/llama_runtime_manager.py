@@ -8,6 +8,7 @@ clear error and the app stays on Ollama. Nothing here runs unless the user picks
 the llama.cpp backend.
 """
 
+import subprocess
 import threading
 
 from app.adapters.system.llama_server_process_manager import LlamaServerProcessManager
@@ -18,6 +19,27 @@ from app.core.use_cases.download_gguf_model import DownloadGgufModelUseCase
 
 class LlamaRuntimeError(RuntimeError):
     pass
+
+
+def _process_rss_bytes(pid: int) -> int:
+    """Resident set size of a process in bytes, via ``ps`` (KB → bytes).
+
+    Returns 0 if the process is gone or ``ps`` is unavailable. macOS and Linux
+    both support ``ps -o rss= -p <pid>`` (kilobytes).
+    """
+    try:
+        out = subprocess.run(
+            ["ps", "-o", "rss=", "-p", str(pid)],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return 0
+    raw = out.stdout.strip()
+    if not raw.isdigit():
+        return 0
+    return int(raw) * 1024
 
 
 class LlamaRuntimeManager:
@@ -83,6 +105,22 @@ class LlamaRuntimeManager:
                 self._dl.destination_path(embed_model), self._embed_port, embedding=True
             )
         return self.status()
+
+    def memory(self) -> list[dict]:
+        """Resident memory of the running llama-server processes (answer + search).
+
+        Read-only. Returns [] when nothing is running. RSS is read via ``ps`` so
+        no extra dependency (psutil) is needed and it works in the packaged app.
+        """
+        entries: list[dict] = []
+        for label, mgr in (("llama3.2", self._llm), ("nomic-embed-text", self._embed)):
+            pid = mgr.pid if mgr is not None else None
+            if pid is None:
+                continue
+            rss = _process_rss_bytes(pid)
+            if rss > 0:
+                entries.append({"name": f"llamacpp/{label}", "rss_bytes": rss})
+        return entries
 
     def stop(self) -> dict:
         with self._lock:
