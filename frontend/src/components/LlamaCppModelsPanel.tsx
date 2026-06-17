@@ -25,10 +25,16 @@ function formatGb(bytes: number): string {
 export function LlamaCppModelsPanel({
   workspaceId,
   onReady,
+  mode = "manage",
 }: {
   workspaceId?: string;
   onReady?: () => void;
+  // "setup" = first-run: just the recommended answer model + embedder, download
+  // and go (like Ollama). "manage" = Models tab: full list with per-model
+  // download and live answer-model switching.
+  mode?: "setup" | "manage";
 }) {
+  const interactive = mode === "manage";
   const [models, setModels] = useState<GgufCatalogItem[] | null>(null);
   const [jobs, setJobs] = useState<Record<string, GgufDownloadJob>>({});
   const [error, setError] = useState<string | null>(null);
@@ -103,6 +109,14 @@ export function LlamaCppModelsPanel({
     (models ?? []).find((m) => m.model_type === "embedding");
   const recommendedLlm =
     llmModels.find((m) => m.recommended) ?? llmModels[0];
+
+  // First-run setup stays simple: only the recommended answer model is shown.
+  // The Models tab ("manage") shows every answer model with download/switch.
+  const visibleLlmModels = interactive
+    ? llmModels
+    : recommendedLlm
+      ? [recommendedLlm]
+      : [];
 
   // The minimum to run: a recommended answer model + the embedder.
   const requiredModels = [recommendedLlm, embedModel].filter(
@@ -237,7 +251,7 @@ export function LlamaCppModelsPanel({
         ) : active ? (
           <span className="gr-check-state gr-check-state--on">In use</span>
         ) : installed ? (
-          kind === "llm" && runtime?.running ? (
+          interactive && kind === "llm" && runtime?.running ? (
             <button
               type="button"
               className="gr-check-use"
@@ -249,7 +263,7 @@ export function LlamaCppModelsPanel({
           ) : (
             <span className="gr-check-state">Downloaded</span>
           )
-        ) : (
+        ) : interactive ? (
           <button
             type="button"
             className="gr-check-use"
@@ -258,6 +272,8 @@ export function LlamaCppModelsPanel({
           >
             Download
           </button>
+        ) : (
+          <span className="gr-check-state">Not yet</span>
         )}
       </li>
     );
@@ -266,13 +282,14 @@ export function LlamaCppModelsPanel({
   return (
     <div className="gr-llama">
       <p className="gr-llama-note">
-        The llama.cpp engine is built into the app — nothing to install. Download
-        an answer model and the search model below.
+        {interactive
+          ? "The llama.cpp engine is built into the app — nothing to install. Download an answer model and the search model below."
+          : "The llama.cpp engine is built into the app — nothing to install. Just download the two small models below."}
       </p>
       {error ? <p className="getting-ready-error">{error}</p> : null}
 
       <ul className="getting-ready-checklist">
-        {llmModels.map((model) => renderRow(model, "llm"))}
+        {visibleLlmModels.map((model) => renderRow(model, "llm"))}
         {embedModel ? renderRow(embedModel, "embedding") : null}
       </ul>
 

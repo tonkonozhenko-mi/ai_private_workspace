@@ -451,6 +451,7 @@ export function WorkspaceGettingReady({
           {backendChoice === "llamacpp" ? (
             <LlamaCppModelsPanel
               workspaceId={dashboard.workspace_id}
+              mode="setup"
               onReady={() => {
                 setLlamaReady(true);
                 void onRefreshWorkspaceState();
