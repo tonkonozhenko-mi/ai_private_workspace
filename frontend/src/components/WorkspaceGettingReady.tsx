@@ -59,18 +59,8 @@ export function WorkspaceGettingReady({
   const summary = dashboard.summary;
   const hasScan = summary.has_scan;
   const indexReady = summary.index_status.status === "indexed";
-  // The "models" step must pass BEFORE indexing, so it can only check that the
-  // models are chosen — not that search works (can_search_with_selected_embedding
-  // requires an existing index, which is the NEXT step → a chicken-and-egg that
-  // would trap the user here forever). Embedding is "ready to index" when the
-  // selected embedding matches the active runtime config.
-  const llmReady = modelsSummary.can_ask_with_selected_llm;
-  const embeddingReady =
-    modelsSummary.selected_embedding != null &&
-    modelsSummary.selected_embedding_matches_active_runtime;
-  // NOTE: modelsReady is computed below — it also requires the recommended models
-  // to be actually INSTALLED (not just selected), so the step doesn't skip ahead
-  // while a download is still in flight.
+  // The "models" step checks that models are CHOSEN + INSTALLED (computed below),
+  // not that search works — search needs an index, which is the NEXT step.
 
   // The workspace already records its engine in its selected providers, so a
   // returning project opens on the right toggle (no Ollama gate for a llama.cpp
@@ -263,15 +253,17 @@ export function WorkspaceGettingReady({
   // download is still running. Requires install status to have loaded.
   const recommendedInstalled =
     recommendedItems.length > 0 && recommendedItems.every((item) => item.status === "installed");
-  // In llama.cpp mode the step passes only when the user explicitly continues
-  // from the panel (llamaReady) — so picking "llama" shows its setup panel
-  // instead of instantly skipping to indexing. Returning, fully-ready projects
-  // never reach this screen (handled by fullyReady upstream). Ollama keeps the
-  // selected+installed checks.
+  // llama.cpp: pass only on explicit Continue from the panel (llamaReady).
+  // Ollama: pass once the models are SELECTED and INSTALLED — NOT tied to whether
+  // they match the currently-active runtime, which is app-global and flips when
+  // you switch projects (reactivation re-points it on open). Tying the step to it
+  // made a set-up project wrongly reappear in setup after switching projects.
+  const ollamaModelsReady =
+    modelsSummary.selected_llm != null &&
+    modelsSummary.selected_embedding != null &&
+    recommendedInstalled;
   const modelsReady =
-    backendChoice === "llamacpp"
-      ? llamaReady
-      : llmReady && embeddingReady && recommendedInstalled;
+    backendChoice === "llamacpp" ? llamaReady : ollamaModelsReady;
 
   function jobForModel(model: string): LocalModelDownloadJob | undefined {
     return downloadJobs.find((job) => job.model === model);
