@@ -621,6 +621,16 @@ export function stopLlamaRuntime(): Promise<LlamaRuntimeStatus> {
   });
 }
 
+// Switch the app-wide embedding engine (Ollama vs llama.cpp) so search matches
+// the chosen backend. Index after switching to keep vectors consistent.
+export function setActiveBackend(backend: "ollama" | "llamacpp"): Promise<{ active_backend: string }> {
+  return requestJson<{ active_backend: string }>(`/models/active-backend`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ backend }),
+  });
+}
+
 // Read-only git history snapshot for the project folder. Returns is_repo=false
 // when the folder is not a git repo or git is unavailable.
 export function getWorkspaceGitInsights(

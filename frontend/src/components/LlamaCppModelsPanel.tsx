@@ -5,8 +5,10 @@ import {
   getGgufCatalog,
   getGgufDownload,
   getLlamaRuntimeStatus,
+  setActiveBackend,
   startGgufDownload,
   startLlamaRuntime,
+  updateWorkspaceModelSelection,
 } from "../api/client";
 import type { GgufCatalogItem, GgufDownloadJob, LlamaRuntimeStatus } from "../api/types";
 
@@ -18,7 +20,7 @@ function formatGb(bytes: number): string {
 
 // llama.cpp setup: the engine binary ships inside the app; here we only
 // download the small GGUF model files (one to answer, one for search).
-export function LlamaCppModelsPanel() {
+export function LlamaCppModelsPanel({ workspaceId }: { workspaceId?: string }) {
   const [models, setModels] = useState<GgufCatalogItem[] | null>(null);
   const [jobs, setJobs] = useState<Record<string, GgufDownloadJob>>({});
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +105,32 @@ export function LlamaCppModelsPanel() {
     setStarting(true);
     setError(null);
     try {
-      setRuntime(await startLlamaRuntime());
+      const status = await startLlamaRuntime();
+      setRuntime(status);
+      if (status.running) {
+        // Route search embeddings and this workspace's models through llama.cpp.
+        await setActiveBackend("llamacpp").catch(() => {});
+        if (workspaceId) {
+          const llm = models?.find((m) => m.model_type === "llm");
+          const embed = models?.find((m) => m.model_type === "embedding");
+          if (llm) {
+            await updateWorkspaceModelSelection(workspaceId, {
+              provider: "llamacpp",
+              model: llm.id,
+              model_type: "llm",
+              selected_reason: "Built-in llama.cpp engine",
+            }).catch(() => {});
+          }
+          if (embed) {
+            await updateWorkspaceModelSelection(workspaceId, {
+              provider: "llamacpp",
+              model: embed.id,
+              model_type: "embedding",
+              selected_reason: "Built-in llama.cpp engine",
+            }).catch(() => {});
+          }
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not start the engine.");
     } finally {

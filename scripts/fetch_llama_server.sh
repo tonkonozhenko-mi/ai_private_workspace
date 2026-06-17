@@ -31,15 +31,18 @@ else
   API="https://api.github.com/repos/${REPO}/releases/tags/${VERSION}"
 fi
 
-AUTH=()
-if [ -n "${GITHUB_TOKEN:-}" ]; then AUTH=(-H "Authorization: Bearer ${GITHUB_TOKEN}"); fi
-
 echo "Resolving llama.cpp release (${VERSION}) for macos-${ARCH}…"
-RELEASE_JSON="$(curl -fsSL "${AUTH[@]}" "$API")"
+# No bash arrays here: macOS ships bash 3.2, where an empty "${arr[@]}" under
+# `set -u` is an "unbound variable" error. Branch on the token instead.
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+  RELEASE_JSON="$(curl -fsSL -H "Authorization: Bearer ${GITHUB_TOKEN}" "$API")"
+else
+  RELEASE_JSON="$(curl -fsSL "$API")"
+fi
 ASSET_URL="$(printf '%s' "$RELEASE_JSON" | python3 -c "
 import json, sys
 data = json.load(sys.stdin)
-needle = 'bin-macos-${ARCH}.zip'
+needle = 'bin-macos-${ARCH}.tar.gz'
 for asset in data.get('assets', []):
     if asset.get('name', '').endswith(needle):
         print(asset['browser_download_url']); break
@@ -51,11 +54,12 @@ if [ -z "$ASSET_URL" ]; then
 fi
 
 echo "Downloading $ASSET_URL"
-curl -fSL "$ASSET_URL" -o "$TMP/llama.zip"
-unzip -q "$TMP/llama.zip" -d "$TMP/unzip"
+mkdir -p "$TMP/unzip"
+curl -fSL "$ASSET_URL" -o "$TMP/llama.tar.gz"
+tar -xzf "$TMP/llama.tar.gz" -C "$TMP/unzip"
 
-# The zip puts binaries under build/bin (or similar); collect llama-server and
-# every dylib it needs into a flat staging dir so the binary finds them.
+# The archive puts binaries under build/bin (or similar); collect llama-server
+# and every dylib it needs into a flat staging dir so the binary finds them.
 SERVER_BIN="$(find "$TMP/unzip" -type f -name 'llama-server' | head -n1)"
 if [ -z "$SERVER_BIN" ]; then
   echo "llama-server not found inside the downloaded archive." >&2

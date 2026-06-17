@@ -45,6 +45,7 @@ filesystem, provider, or command-runner activity outside SQLite repositories.
 | `GET /models/llama-runtime/status` | Report the llama.cpp runtime: whether the bundled binary is present, whether the default models are downloaded, whether the answer/embedding servers are running, and their URLs. | No | No | Local process check | Model setup (llama.cpp) |
 | `POST /models/llama-runtime/start` | Start the bundled `llama-server` for answers and a second one (`--embedding`) for search, against the downloaded GGUF models. 409 if the binary is not bundled or models are missing. | Local llama-server processes | No | Launches bundled binary | Model setup (llama.cpp) |
 | `POST /models/llama-runtime/stop` | Stop both llama-server processes. | Local llama-server processes | No | No | Model setup (llama.cpp) |
+| `POST /models/active-backend` | Switch the app-wide embedding engine between Ollama and llama.cpp so indexing and search use the chosen backend. | Active embedding delegate | No | No | Model setup (engine choice) |
 | `GET /models/catalog/details` | List filtered models plus user-catalog loading and validation warnings. | No | No | No | Model catalog diagnostics |
 | `POST /models/catalog/reload` | Reload the configured user model file into the in-memory catalog. | In-memory catalog only | No | Local metadata file read | Model catalog settings |
 | `POST /models/recommend` | Rank catalog models for an assistant profile, laptop profile, task, and model type. | No | No | No | Model selection/setup wizard |
