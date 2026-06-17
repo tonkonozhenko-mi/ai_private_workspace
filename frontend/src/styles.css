@@ -1942,6 +1942,13 @@ details.onboarding-guide-panel[open] > summary {
 .adv-card-status.is-ready { color: var(--c-accent); }
 
 /* Models-step status checklist (Ollama + recommended models) */
+/* Setup: choose the local engine (Ollama vs built-in llama.cpp) */
+.gr-backend-toggle { display: inline-flex; gap: 4px; margin: 20px auto 0; padding: 4px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-pill); }
+.gr-backend-toggle button { appearance: none; border: none; background: none; color: var(--c-text-2); font-size: 13px; font-weight: 500; padding: 6px 16px; border-radius: var(--r-pill); cursor: pointer; }
+.gr-backend-toggle button.is-selected { background: var(--c-accent); color: var(--c-accent-ink); }
+.gr-llama { width: 100%; display: flex; flex-direction: column; align-items: center; }
+.gr-llama-note { margin: 20px 0 0; font-size: 13px; color: var(--c-text-2); line-height: 1.5; max-width: 520px; }
+
 .getting-ready-checklist { list-style: none; margin: 24px 0 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 8px; }
 .gr-check { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); text-align: left; }
 .gr-check-icon { flex: 0 0 18px; width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid var(--c-border-strong); position: relative; }
