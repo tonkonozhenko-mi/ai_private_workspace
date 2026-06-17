@@ -10,6 +10,7 @@ import {
   getLocalModelInstallStatus,
   getWorkspaceJob,
   listLocalModelDownloadJobs,
+  setActiveBackend,
   startLocalModelDownloadJob,
   updateWorkspaceModelSelection,
 } from "../api/client";
@@ -308,6 +309,10 @@ export function WorkspaceGettingReady({
           selected_reason: "First-run recommended setup.",
         });
       }
+      // The active embedding engine is global. If a previous project switched it
+      // to llama.cpp, this Ollama project's embedding would "not match the active
+      // runtime" and the step would never advance — so point it back at Ollama.
+      await setActiveBackend("ollama").catch(() => {});
       setMessage(
         started > 0
           ? "Downloading your local AI — progress shows below. Keep this open."
