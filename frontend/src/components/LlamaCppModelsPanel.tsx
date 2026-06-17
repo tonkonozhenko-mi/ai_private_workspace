@@ -517,10 +517,16 @@ export function LlamaCppModelsPanel({
       {error ? <p className="getting-ready-error">{error}</p> : null}
 
       <p className="gr-llama-section-label">Your engine models</p>
+      <p className="gr-llama-subhead">Answer models</p>
       <ul className="getting-ready-checklist">
         {installedLlm.map((model) => renderRow(model, "llm"))}
-        {embedModel ? renderRow(embedModel, "embedding") : null}
       </ul>
+      {embedModel ? (
+        <>
+          <p className="gr-llama-subhead gr-llama-subhead--divided">Search model</p>
+          <ul className="getting-ready-checklist">{renderRow(embedModel, "embedding")}</ul>
+        </>
+      ) : null}
       <div className="getting-ready-actions">{engineCta}</div>
 
       <p className="gr-llama-section-label">Add a model</p>
