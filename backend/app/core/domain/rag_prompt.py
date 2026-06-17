@@ -171,6 +171,7 @@ def build_general_chat_prompt(
     skill_instructions: list[SkillPromptInstruction] | None = None,
     current_time: str | None = None,
     attached_section: str = "",
+    assistant_identity: str | None = None,
 ) -> str:
     normalized_skill_instructions = _normalize_skill_instructions(skill_instructions or [])
     skill_section = _build_skill_section(normalized_skill_instructions)
@@ -179,11 +180,19 @@ def build_general_chat_prompt(
         if current_time
         else ""
     )
+    identity_line = (
+        f"You are running locally as the model `{assistant_identity}`. If the user "
+        "asks what model or assistant you are, tell them this directly and briefly; "
+        "do not describe the app or its source files.\n\n"
+        if assistant_identity
+        else ""
+    )
 
     return (
         "You are a friendly, helpful local AI assistant. The user is making "
         "general conversation that is not about their project files, so answer "
         "naturally and directly like a normal chat assistant.\n\n"
+        f"{identity_line}"
         f"{time_line}"
         f"{skill_section}"
         f"{attached_section}"

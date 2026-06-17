@@ -498,6 +498,23 @@ def get_runtime_memory() -> RuntimeMemoryResponse:
     except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPError, ValueError):
         reachable = False
 
+    # Built-in llama.cpp engine: report the resident memory of its running
+    # server processes (answer + search), measured from the OS — so the RAM bar
+    # works even when Ollama is not the active runtime.
+    try:
+        for entry in llama_runtime_manager.memory():
+            reachable = True
+            rss = int(entry.get("rss_bytes") or 0)
+            models.append(
+                RuntimeMemoryModelInfo(
+                    name=str(entry.get("name") or "llamacpp"),
+                    size_bytes=rss,
+                    size_vram_bytes=0,
+                )
+            )
+    except Exception:  # noqa: BLE001 - memory reporting must never break Ask
+        pass
+
     return RuntimeMemoryResponse(
         runtime_reachable=reachable,
         total_ram_bytes=_total_physical_ram_bytes(),
