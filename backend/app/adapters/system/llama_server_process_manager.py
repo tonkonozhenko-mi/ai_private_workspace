@@ -10,6 +10,7 @@ files are downloaded separately. Nothing here runs unless the user has chosen
 the llama.cpp backend.
 """
 
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -73,12 +74,23 @@ class LlamaServerProcessManager:
         if embedding:
             args.append("--embedding")
 
+        # The prebuilt llama.cpp binary ships its dylibs alongside it. Point the
+        # dynamic loader at that folder so the libraries resolve regardless of
+        # how the binary's rpath was baked, and run from there for good measure.
+        lib_dir = str(self.binary_path.parent)
+        env = os.environ.copy()
+        for key in ("DYLD_LIBRARY_PATH", "DYLD_FALLBACK_LIBRARY_PATH", "LD_LIBRARY_PATH"):
+            existing = env.get(key)
+            env[key] = f"{lib_dir}:{existing}" if existing else lib_dir
+
         try:
             self._process = subprocess.Popen(
                 args,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 shell=False,
+                cwd=lib_dir,
+                env=env,
             )
         except OSError as exc:
             raise LlamaServerStartError(f"Could not launch llama-server: {exc}") from exc
