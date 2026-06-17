@@ -8,7 +8,6 @@ from datetime import UTC, datetime
 from threading import Lock
 from uuid import uuid4
 
-TERMINAL_JOB_STATUSES = {"completed", "failed", "cancelled"}
 logger = logging.getLogger("uvicorn.error.ai_private_workspace.workspace_jobs")
 
 

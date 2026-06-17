@@ -30,10 +30,6 @@ except Exception:  # pragma: no cover - defensive fallback
 GITIGNORE_FILENAME = ".gitignore"
 
 
-def pathspec_available() -> bool:
-    return _PATHSPEC_AVAILABLE
-
-
 def _posix(path: str) -> str:
     return path.replace("\\", "/").lstrip("/")
 
