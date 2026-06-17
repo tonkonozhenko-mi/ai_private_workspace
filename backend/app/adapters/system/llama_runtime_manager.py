@@ -51,6 +51,7 @@ class LlamaRuntimeManager:
         running = self._running()
         return {
             "binary_available": binary is not None,
+            "binary_path": str(binary) if binary is not None else None,
             "models_ready": self._dl.is_installed(llm_model)
             and self._dl.is_installed(embed_model),
             "running": running,
