@@ -4322,17 +4322,15 @@ function ModelExperimentPlanner({
   }
 
   return (
-    <details className="panel model-experiment-planner-panel models-disclosure-panel" open>
-      <summary>
-        <div>
-          <p className="eyebrow">Compare</p>
-          <h2>Model face-off</h2>
-          <span>
-            Two local models, one question — see which answers your project
-            better, then make the winner this project's model.
-          </span>
-        </div>
-      </summary>
+    <section className="panel model-experiment-planner-panel">
+      <div className="model-experiment-header">
+        <p className="eyebrow">Compare</p>
+        <h2>Model face-off</h2>
+        <span>
+          Two local models, one question — see which answers your project
+          better, then make the winner this project's model.
+        </span>
+      </div>
       <div className="model-experiment-form">
         <label
           className={`model-experiment-question${isDraggingFile ? " is-drag-over" : ""}`}
@@ -4418,7 +4416,7 @@ function ModelExperimentPlanner({
           disabled={isRunning || llmOptions.length < 2}
           onClick={() => void runComparisonExperiment()}
         >
-          {isRunning ? "Running…" : "⚔️ Run face-off"}
+          {isRunning ? "Running…" : "Run face-off"}
         </button>
         <span className="model-experiment-run-hint">
           Both models answer on your machine. Nothing else in your setup changes.
@@ -4457,7 +4455,7 @@ function ModelExperimentPlanner({
         onRefresh={() => void loadExperimentHistory()}
         onSelectExperiment={setRunResult}
       />
-    </details>
+    </section>
   );
 }
 

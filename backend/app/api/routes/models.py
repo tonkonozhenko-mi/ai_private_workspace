@@ -220,7 +220,9 @@ def list_gguf_catalog(model_type: str | None = None) -> list[GgufCatalogItemResp
     """
     from app.core.domain.gguf_catalog import list_gguf_models
 
-    active_llm = llama_runtime_manager.active_llm_model_id
+    runtime = llama_runtime_manager.status()
+    active_llm = runtime.get("active_llm_model")
+    engine_running = bool(runtime.get("running"))
     return [
         GgufCatalogItemResponse(
             id=model.id,
@@ -235,7 +237,11 @@ def list_gguf_catalog(model_type: str | None = None) -> list[GgufCatalogItemResp
             ollama_tag=model.ollama_tag,
             download_url=model.download_url,
             installed=_gguf_download_use_case.is_installed(model),
-            active=model.model_type == "llm" and model.id == active_llm,
+            # "active" only when the engine is actually running this model, so the
+            # UI never shows "In use" for a stopped engine.
+            active=engine_running
+            and model.model_type == "llm"
+            and model.id == active_llm,
         )
         for model in list_gguf_models(model_type)
     ]
