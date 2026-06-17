@@ -85,10 +85,15 @@ export function WorkspaceDashboard({
     // Only re-run when the opened workspace changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboard.workspace_id]);
+  // Readiness must be a STABLE, per-workspace fact — not tied to the app-global
+  // active runtime (which flips when you switch projects). A project is ready
+  // once it is scanned, indexed, and has both models chosen. Opening it
+  // re-activates its engine separately, so Ask uses the right backend.
   const fullyReady =
     summary.has_scan &&
     indexStatus.status === "indexed" &&
-    modelsSummary.overall_status === "ready";
+    modelsSummary.selected_llm != null &&
+    modelsSummary.selected_embedding != null;
 
   return (
     <>
