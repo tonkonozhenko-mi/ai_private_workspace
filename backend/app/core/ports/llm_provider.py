@@ -1,17 +1,4 @@
-from collections.abc import Iterator
-from typing import Protocol, runtime_checkable
-
-
-@runtime_checkable
-class StreamingLLMProviderPort(Protocol):
-    def generate_stream(
-        self,
-        prompt: str,
-        images: list[str] | None = None,
-        temperature: float | None = None,
-        think: bool | None = None,
-    ) -> Iterator[str]:
-        """Yield answer text deltas as the model produces them."""
+from typing import Protocol
 
 
 class LLMProviderPort(Protocol):
@@ -38,5 +25,6 @@ class LLMProviderPort(Protocol):
         on thinking-capable models. Providers that don't support these ignore them.
         """
 
-
-LLMProvider = LLMProviderPort
+    # Streaming is optional: providers that support it expose ``generate_stream``
+    # with the same signature, yielding answer-text deltas. Consumers detect it
+    # via getattr, so it is intentionally not a required method here.
