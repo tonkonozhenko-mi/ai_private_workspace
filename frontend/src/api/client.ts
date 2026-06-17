@@ -621,12 +621,15 @@ export function stopLlamaRuntime(): Promise<LlamaRuntimeStatus> {
   });
 }
 
-// Switch the built-in engine's answer model to another already-downloaded GGUF.
-export function switchLlamaRuntimeLlm(modelId: string): Promise<LlamaRuntimeStatus> {
+// Switch the built-in engine's answer model to another already-downloaded GGUF
+// — by catalog id, or by a custom Hugging Face repo + filename.
+export function switchLlamaRuntimeLlm(
+  ref: { model_id?: string; repo_id?: string; filename?: string },
+): Promise<LlamaRuntimeStatus> {
   return requestJson<LlamaRuntimeStatus>(`/models/llama-runtime/llm`, {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({ model_id: modelId }),
+    body: JSON.stringify(ref),
   });
 }
 

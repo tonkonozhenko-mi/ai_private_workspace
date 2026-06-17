@@ -17,9 +17,13 @@ from app.core.domain.gguf_catalog import (
     GgufModel,
     default_gguf_embedding,
     default_gguf_llm,
-    find_gguf_model,
 )
-from app.core.use_cases.download_gguf_model import DownloadGgufModelUseCase
+from app.core.use_cases.download_gguf_model import (
+    DownloadGgufModelUseCase,
+    GgufModelNotResolvedError,
+    GgufModelRef,
+    resolve_gguf_model,
+)
 
 
 class LlamaRuntimeError(RuntimeError):
@@ -61,7 +65,7 @@ class LlamaRuntimeManager:
         self._embed_port = embed_port
         self._llm: LlamaServerProcessManager | None = None
         self._embed: LlamaServerProcessManager | None = None
-        self._llm_model_id: str | None = None
+        self._llm_model: GgufModel | None = None
         self._lock = threading.Lock()
 
     def _running(self) -> bool:
@@ -74,23 +78,20 @@ class LlamaRuntimeManager:
 
     def _resolve_llm_model(self) -> GgufModel:
         """The chosen answer model, or the recommended default if none/invalid."""
-        if self._llm_model_id:
-            chosen = find_gguf_model(self._llm_model_id)
-            if chosen is not None and chosen.model_type == "llm":
-                return chosen
-        return default_gguf_llm()
+        return self._llm_model or default_gguf_llm()
 
-    def set_llm_model(self, model_id: str | None) -> None:
-        """Remember which answer model to run (validated against the catalog).
+    def set_llm_ref(self, ref: GgufModelRef | None) -> None:
+        """Remember which answer model to run (catalog id or custom repo/file).
 
-        Does not (re)start anything — ``start``/``switch_llm`` use it. Invalid ids
-        are ignored, so a stale persisted id can never break startup.
+        Does not (re)start anything — ``start``/``switch_llm`` use it. Invalid
+        refs are ignored, so a stale persisted choice can never break startup.
         """
-        if not model_id:
+        if ref is None:
             return
-        model = find_gguf_model(model_id)
-        if model is not None and model.model_type == "llm":
-            self._llm_model_id = model.id
+        try:
+            self._llm_model = resolve_gguf_model(ref)
+        except GgufModelNotResolvedError:
+            pass
 
     @property
     def active_llm_model_id(self) -> str:
@@ -137,15 +138,17 @@ class LlamaRuntimeManager:
             )
         return self.status()
 
-    def switch_llm(self, model_id: str) -> dict:
+    def switch_llm(self, ref: GgufModelRef) -> dict:
         """Restart only the answer engine on a different (already downloaded) model.
 
-        Search/embeddings keep running untouched. Raises ``LlamaRuntimeError`` if
-        the model is unknown, not an LLM, or not downloaded yet.
+        Accepts a catalog id or a custom Hugging Face repo/file. Search/embeddings
+        keep running untouched. Raises ``LlamaRuntimeError`` if the model cannot be
+        resolved or is not downloaded yet.
         """
-        model = find_gguf_model(model_id)
-        if model is None or model.model_type != "llm":
-            raise LlamaRuntimeError(f"Unknown answer model: {model_id}")
+        try:
+            model = resolve_gguf_model(ref)
+        except GgufModelNotResolvedError as exc:
+            raise LlamaRuntimeError(str(exc)) from exc
         if not self._dl.is_installed(model):
             raise LlamaRuntimeError("That answer model has not been downloaded yet.")
         binary = resolve_llama_server_binary_path()
@@ -153,7 +156,7 @@ class LlamaRuntimeManager:
             raise LlamaRuntimeError("The llama.cpp engine is not bundled in this build.")
 
         with self._lock:
-            self._llm_model_id = model.id
+            self._llm_model = model
             if self._llm is not None:
                 self._llm.stop()
             self._llm = LlamaServerProcessManager(binary, host=self._host)
