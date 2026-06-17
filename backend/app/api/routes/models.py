@@ -255,11 +255,16 @@ def list_gguf_catalog(model_type: str | None = None) -> list[GgufCatalogItemResp
     # the curated catalog), by scanning the GGUF storage dir — so they appear in
     # the manager and can be switched to or deleted. Only when listing LLMs (or
     # all), since custom embeddings aren't supported here.
-    if model_type in (None, "llm"):
-        items.extend(
-            _custom_gguf_items(known_paths, active_llm, engine_running)
-        )
+    custom = _custom_gguf_items(known_paths, active_llm, engine_running)
+    if model_type is not None:
+        custom = [item for item in custom if item.model_type == model_type]
+    items.extend(custom)
     return items
+
+
+# Heuristic: filenames that strongly indicate an embedding model, so a custom
+# download isn't mistaken for an answer model (and thus excluded from Compare).
+_EMBEDDING_NAME_HINTS = ("embed", "nomic", "bge-", "bge_", "gte-", "e5-", "minilm", "mxbai")
 
 
 def _custom_gguf_items(
@@ -285,13 +290,19 @@ def _custom_gguf_items(
             if size < 1_000_000:  # half-written / vocab stubs
                 continue
             filename = path.name
+            lower = f"{repo_id}/{filename}".lower()
+            kind = (
+                "embedding"
+                if any(hint in lower for hint in _EMBEDDING_NAME_HINTS)
+                else "llm"
+            )
             model_id = f"{repo_id}/{filename}"
             quant_match = re.search(r"(IQ\d\w*|Q\d[_A-Z0-9]*|f16|bf16)", filename)
             results.append(
                 GgufCatalogItemResponse(
                     id=model_id,
                     name=filename,
-                    model_type="llm",
+                    model_type=kind,
                     repo_id=repo_id,
                     filename=filename,
                     quantization=quant_match.group(0) if quant_match else "custom",
@@ -301,7 +312,9 @@ def _custom_gguf_items(
                         f"https://huggingface.co/{repo_id}/resolve/main/{filename}"
                     ),
                     installed=True,
-                    active=engine_running and model_id == active_llm,
+                    active=engine_running
+                    and kind == "llm"
+                    and model_id == active_llm,
                     custom=True,
                 )
             )
