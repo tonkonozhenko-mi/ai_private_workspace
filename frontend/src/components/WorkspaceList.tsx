@@ -303,6 +303,11 @@ function WorkspaceCard({
         <span className="workspace-list-labels">
           <span>{formatLabel(workspace.assistant_mode)} mode</span>
           <span>{formatLabel(workspace.quick_start_status)}</span>
+          {workspace.engine ? (
+            <span className={`workspace-engine-pill workspace-engine-pill--${workspace.engine}`}>
+              {workspace.engine === "llamacpp" ? "llama.cpp" : "Ollama"}
+            </span>
+          ) : null}
         </span>
         <span className="workspace-list-signals">
           <span>{workspace.detected_skills_count} technologies found</span>

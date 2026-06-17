@@ -1965,19 +1965,21 @@ details.onboarding-guide-panel[open] > summary {
 .gr-llama-running { font-size: 14px; font-weight: 500; color: var(--c-success); }
 
 .getting-ready-checklist { list-style: none; margin: 24px 0 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 8px; }
-.gr-check { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 14px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); text-align: left; }
-.gr-check-name--button { display: inline-flex; align-items: center; gap: 8px; background: none; border: none; padding: 0; cursor: pointer; font: inherit; color: var(--c-text); }
+.gr-check { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); text-align: left; }
+.gr-check-name--button { display: inline-flex; align-items: center; gap: 8px; min-width: 0; background: none; border: none; padding: 0; cursor: pointer; font: inherit; color: var(--c-text); text-align: left; }
 .gr-check-name--button:hover { color: var(--c-text-1); }
-.gr-check-caret { font-size: 10px; color: var(--c-text-3); }
-.gr-model-detail { flex: 1 0 100%; margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--c-border); }
-.gr-model-detail dl { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin: 0; }
-.gr-model-detail dl > div { display: flex; flex-direction: column; gap: 2px; }
-.gr-model-detail dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--c-text-3); }
-.gr-model-detail dd { margin: 0; font-size: 12.5px; color: var(--c-text-1); word-break: break-all; }
+.gr-check-caret { flex: 0 0 auto; font-size: 10px; color: var(--c-text-3); }
+.gr-model-detail-row { display: block; padding: 12px 14px; margin-top: -6px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-top: none; border-radius: 0 0 var(--r-md) var(--r-md); }
+.gr-model-detail-row dl { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin: 0; }
+.gr-model-detail-row dl > div { display: flex; flex-direction: column; gap: 2px; }
+.gr-model-detail-row dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--c-text-3); }
+.gr-model-detail-row dd { margin: 0; font-size: 12.5px; color: var(--c-text-1); word-break: break-all; }
 .gr-model-detail-actions { margin-top: 12px; }
 .gr-model-delete { padding: 5px 14px; font-size: 12.5px; font-weight: 600; color: var(--c-danger); background: none; border: 1px solid var(--c-border); border-radius: var(--r-sm); cursor: pointer; }
 .gr-model-delete:hover:not(:disabled) { border-color: var(--c-danger); }
 .gr-model-delete:disabled { opacity: 0.5; cursor: default; }
+.workspace-engine-pill { padding: 1px 8px; font-size: 11px; font-weight: 600; border-radius: 999px; border: 1px solid var(--c-border); color: var(--c-text-2); }
+.workspace-engine-pill--llamacpp { color: var(--c-accent); border-color: var(--c-accent-soft); }
 .gr-check-icon { flex: 0 0 18px; width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid var(--c-border-strong); position: relative; }
 .gr-check--done .gr-check-icon { background: var(--c-accent); border-color: var(--c-accent); }
 .gr-check--done .gr-check-icon::after { content: ""; width: 5px; height: 9px; border: solid var(--c-accent-ink); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
@@ -1986,7 +1988,7 @@ details.onboarding-guide-panel[open] > summary {
 .gr-check--load .gr-check-icon { border-color: var(--c-accent); }
 .gr-check-spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--c-accent-soft); border-top-color: var(--c-accent); animation: gr-spin 0.7s linear infinite; }
 @keyframes gr-spin { to { transform: rotate(360deg); } }
-.gr-check-name { flex: 1 1 auto; font-size: 14px; color: var(--c-text); }
+.gr-check-name { flex: 1 1 auto; min-width: 0; font-size: 14px; color: var(--c-text); }
 .gr-check-name small { color: var(--c-text-3); font-size: 12px; margin-left: 4px; }
 .gr-check-state { flex: 0 0 auto; font-size: 12.5px; color: var(--c-text-2); }
 .gr-check--done .gr-check-state { color: var(--c-accent); }

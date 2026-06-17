@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 import {
   cancelGgufDownload,
@@ -328,7 +328,8 @@ export function LlamaCppModelsPanel({
       </>
     );
     return (
-      <li className={`gr-check gr-check--${state}`} key={model.id}>
+      <Fragment key={model.id}>
+      <li className={`gr-check gr-check--${state}`}>
         <span className="gr-check-icon" aria-hidden="true">
           {downloading ? <span className="gr-check-spin" /> : null}
         </span>
@@ -382,37 +383,38 @@ export function LlamaCppModelsPanel({
         ) : (
           <span className="gr-check-state">Not yet</span>
         )}
-        {canExpand && expanded ? (
-          <div className="gr-model-detail">
-            <dl>
-              <div><dt>Repository</dt><dd>{model.repo_id}</dd></div>
-              <div><dt>File</dt><dd>{model.filename}</dd></div>
-              <div><dt>Quantization</dt><dd>{model.quantization}</dd></div>
-              <div><dt>Size</dt><dd>{formatGb(model.size_bytes)}</dd></div>
-              <div><dt>Type</dt><dd>{model.model_type === "embedding" ? "search / embeddings" : "answers"}</dd></div>
-              {model.min_ram_gb ? (
-                <div><dt>Needs RAM</dt><dd>≥ {model.min_ram_gb} GB</dd></div>
-              ) : null}
-            </dl>
-            <div className="gr-model-detail-actions">
-              {active ? (
-                <span className="gr-llama-note gr-llama-note--left">
-                  In use — switch to another model before deleting.
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  className="gr-model-delete"
-                  disabled={deletingId !== null}
-                  onClick={() => void removeModel(model)}
-                >
-                  {deletingId === model.id ? "Deleting…" : "Delete model"}
-                </button>
-              )}
-            </div>
-          </div>
-        ) : null}
       </li>
+      {canExpand && expanded ? (
+        <li className="gr-model-detail-row">
+          <dl>
+            <div><dt>Repository</dt><dd>{model.repo_id}</dd></div>
+            <div><dt>File</dt><dd>{model.filename}</dd></div>
+            <div><dt>Quantization</dt><dd>{model.quantization}</dd></div>
+            <div><dt>Size</dt><dd>{formatGb(model.size_bytes)}</dd></div>
+            <div><dt>Type</dt><dd>{model.model_type === "embedding" ? "search / embeddings" : "answers"}</dd></div>
+            {model.min_ram_gb ? (
+              <div><dt>Needs RAM</dt><dd>≥ {model.min_ram_gb} GB</dd></div>
+            ) : null}
+          </dl>
+          <div className="gr-model-detail-actions">
+            {active ? (
+              <span className="gr-llama-note gr-llama-note--left">
+                In use — switch to another model before deleting.
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="gr-model-delete"
+                disabled={deletingId !== null}
+                onClick={() => void removeModel(model)}
+              >
+                {deletingId === model.id ? "Deleting…" : "Delete model"}
+              </button>
+            )}
+          </div>
+        </li>
+      ) : null}
+      </Fragment>
     );
   }
 

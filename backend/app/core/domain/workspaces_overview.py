@@ -25,6 +25,9 @@ class WorkspaceOverviewItem:
     last_event_at: str | None
     storage_total_bytes: int = 0
     storage_breakdown: dict[str, int] = field(default_factory=dict)
+    # Which local engine this workspace uses: "ollama", "llamacpp", or None when
+    # no model has been selected yet.
+    engine: str | None = None
 
 
 @dataclass(frozen=True)
