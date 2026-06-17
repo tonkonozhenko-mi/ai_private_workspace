@@ -138,6 +138,12 @@ export function LlamaCppModelsPanel({ workspaceId }: { workspaceId?: string }) {
     }
   }
 
+  const anyRunning =
+    models?.some((m) => {
+      const s = jobs[m.id]?.status;
+      return s === "running" || s === "queued";
+    }) ?? false;
+
   const allDone =
     models != null &&
     models.length > 0 &&
@@ -192,10 +198,10 @@ export function LlamaCppModelsPanel({ workspaceId }: { workspaceId?: string }) {
           <button
             className="getting-ready-cta"
             type="button"
-            disabled={busy || models == null}
+            disabled={busy || anyRunning || models == null}
             onClick={() => void downloadAll()}
           >
-            {busy ? "Starting…" : "Download models"}
+            {anyRunning ? "Downloading…" : busy ? "Starting…" : "Download models"}
           </button>
         ) : runtime?.running ? (
           <span className="gr-llama-running">✓ Engine running — ready to use</span>
