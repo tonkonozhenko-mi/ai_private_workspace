@@ -331,6 +331,34 @@ def llama_runtime_stop() -> LlamaRuntimeStatusResponse:
     return LlamaRuntimeStatusResponse(**llama_runtime_manager.stop())
 
 
+class SetActiveBackendRequest(BaseModel):
+    backend: str  # "ollama" | "llamacpp"
+
+
+class ActiveBackendResponse(BaseModel):
+    active_backend: str
+
+
+@router.post("/active-backend", response_model=ActiveBackendResponse)
+def set_active_backend(request: SetActiveBackendRequest) -> ActiveBackendResponse:
+    """Switch the app-wide embedding engine so search uses the chosen backend.
+
+    Indexing should follow this switch so the index and later search use the
+    same vectorizer (the setup flow chooses the backend before building context).
+    """
+    from app.api.dependencies import build_embedding_for_backend
+
+    backend = request.backend.strip().lower()
+    if backend not in {"ollama", "llamacpp"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="backend must be 'ollama' or 'llamacpp'",
+        )
+    if hasattr(embedding_provider, "set_delegate"):
+        embedding_provider.set_delegate(build_embedding_for_backend(backend))
+    return ActiveBackendResponse(active_backend=backend)
+
+
 @router.get("/catalog", response_model=list[LocalModelDefinitionResponse])
 def list_model_catalog(
     model_type: str | None = None,

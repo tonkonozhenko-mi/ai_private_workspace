@@ -1,6 +1,9 @@
 from app.adapters.commands.fake_command_runner import FakeCommandRunner
 from app.adapters.commands.local_command_runner import LocalCommandRunner
 from app.adapters.embeddings.fake_embedding_provider import FakeEmbeddingProvider
+from app.adapters.embeddings.switchable_embedding_provider import (
+    SwitchableEmbeddingProvider,
+)
 from app.adapters.filesystem.local_file_system import LocalFileSystem
 from app.adapters.llm.fake_llm_provider import FakeLLMProvider
 from app.adapters.llm.llm_provider_factory import LLMProviderFactory
@@ -392,6 +395,29 @@ def build_embedding_provider() -> EmbeddingProviderPort:
     raise ValueError(f"Unsupported embedding provider: {settings.embedding_provider}")
 
 
+def build_embedding_for_backend(backend: str) -> EmbeddingProviderPort:
+    """Build an embedding provider for an explicit backend ('ollama'|'llamacpp')."""
+    settings = get_settings()
+    name = backend.strip().lower()
+    if name == "llamacpp":
+        from app.adapters.embeddings.llama_server_embedding_provider import (
+            LlamaServerEmbeddingProvider,
+        )
+
+        return LlamaServerEmbeddingProvider(
+            base_url=f"http://{settings.LLAMA_SERVER_HOST}:{settings.LLAMA_SERVER_EMBED_PORT}",
+            model=settings.ollama_embedding_model,
+            timeout_seconds=settings.ollama_timeout_seconds,
+        )
+    from app.adapters.embeddings.ollama_embedding_provider import OllamaEmbeddingProvider
+
+    return OllamaEmbeddingProvider(
+        base_url=settings.ollama_base_url,
+        model=settings.ollama_embedding_model,
+        timeout_seconds=settings.ollama_timeout_seconds,
+    )
+
+
 def build_llm_provider() -> LLMProviderPort:
     settings = get_settings()
     provider_type = settings.llm_provider.lower()
@@ -527,7 +553,7 @@ llama_runtime_manager = LlamaRuntimeManager(
     embed_port=get_settings().LLAMA_SERVER_EMBED_PORT,
 )
 command_runner = build_command_runner()
-embedding_provider = build_embedding_provider()
+embedding_provider = SwitchableEmbeddingProvider(build_embedding_provider())
 llm_provider_factory = build_llm_provider_factory()
 vector_store = build_vector_store()
 readiness_configuration = build_readiness_configuration()

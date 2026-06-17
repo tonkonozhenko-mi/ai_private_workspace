@@ -426,7 +426,7 @@ export function WorkspaceGettingReady({
           </div>
 
           {backendChoice === "llamacpp" ? (
-            <LlamaCppModelsPanel />
+            <LlamaCppModelsPanel workspaceId={dashboard.workspace_id} />
           ) : (
           <>
           <ul className="getting-ready-checklist">

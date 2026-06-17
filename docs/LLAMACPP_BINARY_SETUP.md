@@ -48,9 +48,9 @@ If both answer, the code path is correct and only packaging remains.
 
 1. Download the prebuilt macOS binaries from the llama.cpp GitHub releases
    (`ggml-org/llama.cpp`), for both arches:
-   - `llama-bXXXX-bin-macos-arm64.zip` (Apple Silicon)
-   - `llama-bXXXX-bin-macos-x64.zip` (Intel)
-   Each zip contains `llama-server` **plus its `.dylib`s** — keep them together.
+   - `llama-bXXXX-bin-macos-arm64.tar.gz` (Apple Silicon)
+   - `llama-bXXXX-bin-macos-x64.tar.gz` (Intel)
+   Each archive contains `llama-server` **plus its `.dylib`s** — keep them together.
 2. Place them under a build resource dir, e.g.
    `build/desktop/llama-runtime/<arch>/` (alongside the frozen backend runtime).
 3. Add that dir to `frontend/src-tauri/tauri.conf.json` → `bundle.resources`
