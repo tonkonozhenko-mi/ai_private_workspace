@@ -1,4 +1,5 @@
 import os
+import platform
 from functools import lru_cache
 from pathlib import Path
 
@@ -31,6 +32,37 @@ def _prepare_runtime_path(path_value: str, *, label: str, create_parent: bool) -
     return path
 
 
+def _llama_arch_dir() -> str:
+    """Map the running machine to our bundled llama.cpp arch folder name."""
+    machine = platform.machine().lower()
+    if machine in {"arm64", "aarch64"}:
+        return "arm64"
+    return "x64"  # x86_64 / amd64 / Intel
+
+
+def resolve_llama_server_binary_path() -> Path | None:
+    """Locate the bundled ``llama-server`` binary, or ``None`` if not present.
+
+    Priority:
+    1. ``LLAMA_SERVER_BINARY_PATH`` (the desktop shell sets this to the path
+       inside the packaged ``.app`` resources).
+    2. The dev-staged path ``<repo>/build/desktop/llama-runtime/<arch>/llama-server``
+       produced by ``scripts/fetch_llama_server.sh`` — so the feature works when
+       running the backend from a source checkout, not just the packaged app.
+
+    Returns ``None`` when no binary is staged, so the app degrades to Ollama
+    instead of crashing.
+    """
+    override = os.getenv("LLAMA_SERVER_BINARY_PATH", "").strip()
+    if override:
+        candidate = Path(override).expanduser()
+        return candidate if candidate.is_file() else None
+
+    repo_root = Path(__file__).resolve().parents[3]
+    candidate = repo_root / "build" / "desktop" / "llama-runtime" / _llama_arch_dir() / "llama-server"
+    return candidate if candidate.is_file() else None
+
+
 class Settings(BaseModel):
     app_name: str = PRODUCT_NAME
     app_version: str = APP_VERSION
@@ -55,6 +87,10 @@ class Settings(BaseModel):
     LLM_PROVIDER: str = "fake"
     OLLAMA_LLM_MODEL: str = "llama3.2"
     OLLAMA_LLM_TIMEOUT_SECONDS: int = 120
+    # llama.cpp (Ollama-free) backend: the bundled llama-server listens here.
+    LLAMA_SERVER_HOST: str = "127.0.0.1"
+    LLAMA_SERVER_LLM_PORT: int = 8080
+    LLAMA_SERVER_EMBED_PORT: int = 8081
     RUNTIME_HEALTH_TIMEOUT_SECONDS: int = 3
     USER_MODEL_CATALOG_PATH: str = ""
     USER_MODEL_CATALOG_URL: str = ""

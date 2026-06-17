@@ -8,6 +8,8 @@ import type {
   CreateWorkspaceRequest,
   CreatedWorkspace,
   WorkspaceFileWriteResult,
+  GgufCatalogItem,
+  GgufDownloadJob,
   GitInsightsResponse,
   ProjectScanResponse,
   ProjectTodosResponse,
@@ -565,6 +567,37 @@ export function getWorkspaceScanChanges(
   return requestJson<ScanChanges>(`/workspaces/${workspaceId}/scan/changes`, {
     signal: options.signal,
     method: "GET",
+    headers: { Accept: "application/json" },
+  });
+}
+
+// --- llama.cpp (Ollama-free) GGUF model catalog + downloads ---
+export function getGgufCatalog(
+  modelType?: "llm" | "embedding",
+): Promise<GgufCatalogItem[]> {
+  const query = modelType ? `?model_type=${modelType}` : "";
+  return getJson<GgufCatalogItem[]>(`/models/gguf-catalog${query}`);
+}
+
+export function startGgufDownload(body: {
+  model_id?: string;
+  repo_id?: string;
+  filename?: string;
+}): Promise<GgufDownloadJob> {
+  return requestJson<GgufDownloadJob>(`/models/gguf-downloads`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function getGgufDownload(jobId: string): Promise<GgufDownloadJob> {
+  return getJson<GgufDownloadJob>(`/models/gguf-downloads/${jobId}`);
+}
+
+export function cancelGgufDownload(jobId: string): Promise<GgufDownloadJob> {
+  return requestJson<GgufDownloadJob>(`/models/gguf-downloads/${jobId}/cancel`, {
+    method: "POST",
     headers: { Accept: "application/json" },
   });
 }

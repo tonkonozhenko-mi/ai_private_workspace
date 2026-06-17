@@ -8,6 +8,7 @@ from app.api.dependencies import (
     command_repository,
     command_runner,
     embedding_provider,
+    gguf_download_job_runner,
     index_status_repository,
     llm_provider_factory,
     local_model_download_job_repository,
@@ -189,6 +190,113 @@ from app.core.use_cases.run_model_experiment import (
 )
 
 router = APIRouter(prefix="/models", tags=["models"])
+
+
+class GgufCatalogItemResponse(BaseModel):
+    id: str
+    name: str
+    model_type: str
+    repo_id: str
+    filename: str
+    quantization: str
+    size_bytes: int
+    recommended: bool
+    min_ram_gb: int | None = None
+    ollama_tag: str | None = None
+    download_url: str
+
+
+@router.get("/gguf-catalog", response_model=list[GgufCatalogItemResponse])
+def list_gguf_catalog(model_type: str | None = None) -> list[GgufCatalogItemResponse]:
+    """Curated GGUF models for the llama.cpp (Ollama-free) backend."""
+    from app.core.domain.gguf_catalog import list_gguf_models
+
+    return [
+        GgufCatalogItemResponse(
+            id=model.id,
+            name=model.name,
+            model_type=model.model_type,
+            repo_id=model.repo_id,
+            filename=model.filename,
+            quantization=model.quantization,
+            size_bytes=model.size_bytes,
+            recommended=model.recommended,
+            min_ram_gb=model.min_ram_gb,
+            ollama_tag=model.ollama_tag,
+            download_url=model.download_url,
+        )
+        for model in list_gguf_models(model_type)
+    ]
+
+
+class StartGgufDownloadRequest(BaseModel):
+    model_id: str | None = None
+    repo_id: str | None = None
+    filename: str | None = None
+
+
+class GgufDownloadJobResponse(BaseModel):
+    id: str
+    model_id: str
+    name: str
+    model_type: str
+    status: str
+    downloaded_bytes: int
+    total_bytes: int | None = None
+    progress_percent: int | None = None
+    destination_path: str | None = None
+    error: str | None = None
+
+
+def _to_gguf_job_response(job) -> "GgufDownloadJobResponse":
+    return GgufDownloadJobResponse(
+        id=job.id,
+        model_id=job.model_id,
+        name=job.name,
+        model_type=job.model_type,
+        status=job.status,
+        downloaded_bytes=job.downloaded_bytes,
+        total_bytes=job.total_bytes,
+        progress_percent=job.progress_percent,
+        destination_path=job.destination_path,
+        error=job.error,
+    )
+
+
+@router.post("/gguf-downloads", response_model=GgufDownloadJobResponse)
+def start_gguf_download(request: StartGgufDownloadRequest) -> GgufDownloadJobResponse:
+    """Start a background GGUF model download (llama.cpp backend)."""
+    from app.core.use_cases.download_gguf_model import GgufModelNotResolvedError, GgufModelRef
+
+    try:
+        job = gguf_download_job_runner.start(
+            GgufModelRef(
+                model_id=request.model_id,
+                repo_id=request.repo_id,
+                filename=request.filename,
+            )
+        )
+    except GgufModelNotResolvedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    return _to_gguf_job_response(job)
+
+
+@router.get("/gguf-downloads/{job_id}", response_model=GgufDownloadJobResponse)
+def get_gguf_download(job_id: str) -> GgufDownloadJobResponse:
+    job = gguf_download_job_runner.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Download job not found")
+    return _to_gguf_job_response(job)
+
+
+@router.post("/gguf-downloads/{job_id}/cancel", response_model=GgufDownloadJobResponse)
+def cancel_gguf_download(job_id: str) -> GgufDownloadJobResponse:
+    job = gguf_download_job_runner.cancel(job_id)
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Download job not found")
+    return _to_gguf_job_response(job)
 
 
 @router.get("/catalog", response_model=list[LocalModelDefinitionResponse])

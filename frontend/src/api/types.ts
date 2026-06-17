@@ -108,6 +108,33 @@ export interface ProjectTodosResponse {
   items: ProjectTodo[];
 }
 
+export interface GgufCatalogItem {
+  id: string;
+  name: string;
+  model_type: "llm" | "embedding";
+  repo_id: string;
+  filename: string;
+  quantization: string;
+  size_bytes: number;
+  recommended: boolean;
+  min_ram_gb: number | null;
+  ollama_tag: string | null;
+  download_url: string;
+}
+
+export interface GgufDownloadJob {
+  id: string;
+  model_id: string;
+  name: string;
+  model_type: "llm" | "embedding";
+  status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+  downloaded_bytes: number;
+  total_bytes: number | null;
+  progress_percent: number | null;
+  destination_path: string | null;
+  error: string | null;
+}
+
 export interface ProjectScanResponse {
   project_path: string;
   total_files: number;
