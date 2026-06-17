@@ -34,20 +34,31 @@ class RuntimeStateStore:
             return
         self._update("active_backend", backend)
 
-    def get_llamacpp_llm_model(self) -> str | None:
+    def get_llamacpp_llm(self) -> dict | None:
+        """Return the saved answer-model ref: {model_id} or {repo_id, filename}."""
         try:
             data = json.loads(self._path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return None
-        value = data.get("llamacpp_llm_model") if isinstance(data, dict) else None
-        return value if isinstance(value, str) and value else None
+        ref = data.get("llamacpp_llm") if isinstance(data, dict) else None
+        return ref if isinstance(ref, dict) and ref else None
 
-    def set_llamacpp_llm_model(self, model_id: str) -> None:
-        model_id = (model_id or "").strip()
+    def set_llamacpp_llm(
+        self,
+        model_id: str | None = None,
+        repo_id: str | None = None,
+        filename: str | None = None,
+    ) -> None:
+        ref: dict[str, str] = {}
         if model_id:
-            self._update("llamacpp_llm_model", model_id)
+            ref["model_id"] = model_id.strip()
+        if repo_id and filename:
+            ref["repo_id"] = repo_id.strip()
+            ref["filename"] = filename.strip()
+        if ref:
+            self._update("llamacpp_llm", ref)
 
-    def _update(self, key: str, value: str) -> None:
+    def _update(self, key: str, value: object) -> None:
         with self._lock:
             data: dict = {}
             try:

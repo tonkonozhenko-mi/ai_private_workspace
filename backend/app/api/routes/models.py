@@ -351,27 +351,40 @@ def llama_runtime_stop() -> LlamaRuntimeStatusResponse:
 
 
 class SwitchLlamaLlmRequest(BaseModel):
-    model_id: str = Field(..., min_length=1)
+    model_id: str | None = None
+    repo_id: str | None = None
+    filename: str | None = None
 
 
 @router.post("/llama-runtime/llm", response_model=LlamaRuntimeStatusResponse)
 def switch_llama_runtime_llm(request: SwitchLlamaLlmRequest) -> LlamaRuntimeStatusResponse:
     """Switch the built-in engine's answer model to another downloaded GGUF.
 
-    Persists the choice so it survives restarts, and restarts only the answer
-    process (search/embeddings keep running).
+    Accepts a catalog id (``model_id``) or a custom Hugging Face ``repo_id`` +
+    ``filename``. Persists the choice so it survives restarts, and restarts only
+    the answer process (search/embeddings keep running).
     """
     from app.adapters.system.llama_runtime_manager import LlamaRuntimeError
     from app.adapters.system.llama_server_process_manager import LlamaServerStartError
     from app.api.dependencies import runtime_state_store
+    from app.core.use_cases.download_gguf_model import GgufModelRef
 
+    ref = GgufModelRef(
+        model_id=request.model_id,
+        repo_id=request.repo_id,
+        filename=request.filename,
+    )
     try:
-        result = llama_runtime_manager.switch_llm(request.model_id)
+        result = llama_runtime_manager.switch_llm(ref)
     except (LlamaRuntimeError, LlamaServerStartError) as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail=str(exc)
         ) from exc
-    runtime_state_store.set_llamacpp_llm_model(request.model_id)
+    runtime_state_store.set_llamacpp_llm(
+        model_id=request.model_id,
+        repo_id=request.repo_id,
+        filename=request.filename,
+    )
     return LlamaRuntimeStatusResponse(**result)
 
 

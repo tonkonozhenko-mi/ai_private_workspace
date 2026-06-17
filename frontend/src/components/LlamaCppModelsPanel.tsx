@@ -42,6 +42,9 @@ export function LlamaCppModelsPanel({
   const [runtime, setRuntime] = useState<LlamaRuntimeStatus | null>(null);
   const [starting, setStarting] = useState(false);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
+  const [customRepo, setCustomRepo] = useState("");
+  const [customFile, setCustomFile] = useState("");
+  const [customBusy, setCustomBusy] = useState(false);
   const pollers = useRef<Record<string, number>>({});
 
   // Tell the parent setup flow once the engine is actually running, so the
@@ -204,7 +207,7 @@ export function LlamaCppModelsPanel({
     setSwitchingId(modelId);
     setError(null);
     try {
-      const status = await switchLlamaRuntimeLlm(modelId);
+      const status = await switchLlamaRuntimeLlm({ model_id: modelId });
       setRuntime(status);
       await applyWorkspaceSelection(modelId);
       await refreshCatalog();
@@ -215,9 +218,56 @@ export function LlamaCppModelsPanel({
     }
   }
 
+  // Download a custom Hugging Face GGUF by repo + filename, then run the engine
+  // on it. Works end-to-end: the engine starts the downloaded file directly.
+  async function addCustomModel() {
+    const repo = customRepo.trim();
+    const file = customFile.trim();
+    if (!repo || !file) {
+      setError("Enter a Hugging Face repo and a .gguf filename.");
+      return;
+    }
+    const key = `${repo}/${file}`;
+    setCustomBusy(true);
+    setError(null);
+    try {
+      let job = await startGgufDownload({ repo_id: repo, filename: file });
+      setJobs((current) => ({ ...current, [key]: job }));
+      for (
+        let i = 0;
+        i < 7200 && !["succeeded", "failed", "cancelled"].includes(job.status);
+        i += 1
+      ) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1000));
+        try {
+          job = await getGgufDownload(job.id);
+        } catch {
+          break;
+        }
+        setJobs((current) => ({ ...current, [key]: job }));
+      }
+      if (job.status !== "succeeded") {
+        setError("Download did not finish. Check the repo and filename, then retry.");
+        return;
+      }
+      const status = await switchLlamaRuntimeLlm({ repo_id: repo, filename: file });
+      setRuntime(status);
+      await applyWorkspaceSelection(key);
+      setCustomRepo("");
+      setCustomFile("");
+      await refreshCatalog();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not add that model.");
+    } finally {
+      setCustomBusy(false);
+    }
+  }
+
   const anyDownloading = Object.values(jobs).some(
     (j) => j.status === "running" || j.status === "queued",
   );
+  const customKey = `${customRepo.trim()}/${customFile.trim()}`;
+  const customJob = jobs[customKey];
 
   function renderRow(model: GgufCatalogItem, kind: "llm" | "embedding") {
     const job = jobs[model.id];
@@ -348,9 +398,61 @@ export function LlamaCppModelsPanel({
         <ul className="getting-ready-checklist">
           {addableLlm.map((model) => renderRow(model, "llm"))}
         </ul>
-      ) : (
-        <p className="gr-llama-note">Every catalog model is already downloaded.</p>
-      )}
+      ) : null}
+
+      <div className="gr-llama-custom">
+        <p className="gr-llama-custom-title">Add your own model</p>
+        <p className="gr-llama-note gr-llama-note--left">
+          Paste a Hugging Face GGUF repo and filename. It downloads, then the
+          engine switches to it.
+        </p>
+        <div className="gr-llama-custom-fields">
+          <input
+            type="text"
+            value={customRepo}
+            placeholder="repo, e.g. bartowski/Qwen2.5-Coder-7B-Instruct-GGUF"
+            disabled={customBusy}
+            onChange={(e) => setCustomRepo(e.target.value)}
+          />
+          <input
+            type="text"
+            value={customFile}
+            placeholder="file, e.g. Qwen2.5-Coder-7B-Instruct-Q4_K_M.gguf"
+            disabled={customBusy}
+            onChange={(e) => setCustomFile(e.target.value)}
+          />
+          <button
+            type="button"
+            className="gr-check-use"
+            disabled={customBusy || !customRepo.trim() || !customFile.trim()}
+            onClick={() => void addCustomModel()}
+          >
+            {customBusy ? "Working…" : "Download & use"}
+          </button>
+        </div>
+        {customBusy && customJob ? (
+          <div className="install-progress">
+            <div
+              className={`install-progress-bar${
+                customJob.progress_percent === null ? " is-indeterminate" : ""
+              }`}
+            >
+              <span
+                style={
+                  customJob.progress_percent === null
+                    ? undefined
+                    : { width: `${customJob.progress_percent}%` }
+                }
+              />
+            </div>
+            <span className="install-progress-label">
+              {customJob.progress_percent === null
+                ? "Preparing…"
+                : `${customJob.progress_percent}%`}
+            </span>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

@@ -607,7 +607,17 @@ def restore_active_backend() -> None:
         return
     try:
         # Restore the previously chosen answer model before starting the engine.
-        llama_runtime_manager.set_llm_model(runtime_state_store.get_llamacpp_llm_model())
+        saved_llm = runtime_state_store.get_llamacpp_llm()
+        if saved_llm:
+            from app.core.use_cases.download_gguf_model import GgufModelRef
+
+            llama_runtime_manager.set_llm_ref(
+                GgufModelRef(
+                    model_id=saved_llm.get("model_id"),
+                    repo_id=saved_llm.get("repo_id"),
+                    filename=saved_llm.get("filename"),
+                )
+            )
         status = llama_runtime_manager.start()
         if status.get("running") and hasattr(embedding_provider, "set_delegate"):
             embedding_provider.set_delegate(build_embedding_for_backend("llamacpp"))
