@@ -49,3 +49,15 @@ app.include_router(onboarding_router)
 app.include_router(projects_router)
 app.include_router(workspaces_router)
 app.include_router(commands_router)
+
+
+@app.on_event("startup")
+def _restore_runtime_backend() -> None:
+    """Re-activate the last-used local engine (e.g. llama.cpp) without blocking
+    boot. Runs in a background thread because starting the engine waits on a
+    health check; the API stays responsive meanwhile."""
+    import threading
+
+    from app.api.dependencies import restore_active_backend
+
+    threading.Thread(target=restore_active_backend, daemon=True).start()

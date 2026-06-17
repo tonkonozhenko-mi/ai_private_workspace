@@ -787,7 +787,7 @@ export function AskWorkspace({
               <span>Select an AI model in the Models tab, then try again.</span>
             ) : null}
             {modelRuntimeError ? (
-              <span>Open Models, choose a ready local model, or install the selected Ollama model and try again. Your chat history is still saved.</span>
+              <span>Open Models, choose a ready local model, or install the selected model and try again. Your chat history is still saved.</span>
             ) : null}
           </div>
         ) : null}
@@ -2854,7 +2854,7 @@ export function friendlyAskError(message: string): string {
   const normalized = message.trim();
   const lower = normalized.toLowerCase();
   if (lower.includes("load failed")) {
-    return "The selected model did not load successfully. This usually means the model is not installed, Ollama is not running, or the model is too heavy for this Mac.";
+    return "The selected model did not load successfully. This usually means the model is not installed, the local engine is not running, or the model is too heavy for this Mac.";
   }
   if (lower.includes("unable to reach ollama")) {
     return "Ollama is not reachable. Start Ollama or choose a fake/local-ready model for smoke testing.";

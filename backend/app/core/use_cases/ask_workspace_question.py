@@ -1,5 +1,4 @@
 import os
-import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -72,23 +71,6 @@ GENERAL_CHAT_DIAGNOSTIC_MESSAGE = (
     "No project files were relevant to this question, so it was answered as "
     "general conversation instead of from project context."
 )
-
-# Questions about the assistant itself ("what model are you?", "who are you?")
-# must never be grounded in project files — a fuzzy embedding match to a README
-# would otherwise make the model describe the app instead of itself. These go
-# straight to general chat, which is told the real running model identity.
-_ASSISTANT_META_QUESTION_RE = re.compile(
-    r"\b(what|which)\b[^?]{0,40}\b(model|llm|ai|assistant|chatbot)\b"
-    r"|\bwho\s+are\s+you\b"
-    r"|\bwhat\s+are\s+you\b"
-    r"|\bare\s+you\s+(an?\s+ai|a\s+(?:language\s+)?model|chatgpt|gpt|claude|llama|gemini)\b"
-    r"|\byour\s+(name|model|version)\b",
-    re.IGNORECASE,
-)
-
-
-def _is_assistant_meta_question(question: str) -> bool:
-    return bool(_ASSISTANT_META_QUESTION_RE.search(question or ""))
 
 
 @dataclass(frozen=True)
@@ -210,9 +192,7 @@ class AskWorkspaceQuestionUseCase:
             )
 
         best_score = max((result.score for result in context_results), default=0.0)
-        if best_score < self._relevance_threshold() or _is_assistant_meta_question(
-            request.question
-        ):
+        if best_score < self._relevance_threshold():
             return self._record_question_event(
                 self._answer_general_conversation(request, llm_provider),
                 request,
@@ -225,6 +205,7 @@ class AskWorkspaceQuestionUseCase:
             attached_section=build_attached_documents_section(
                 request.question, request.attached_documents
             ),
+            assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
         )
         try:
             answer, usage = self._generate_answer_with_usage(
@@ -237,8 +218,8 @@ class AskWorkspaceQuestionUseCase:
                     llm_provider=llm_provider,
                     answer=(
                         "The selected local model could not answer right now. "
-                        "Check that Ollama is running and that this model is installed, "
-                        "or choose another ready model in Models."
+                        "Check that the local model engine is running and that this "
+                        "model is installed, or choose another ready model in Models."
                     ),
                     diagnostic_code="selected_llm_runtime_unavailable",
                     diagnostic_message=str(exc),
@@ -347,9 +328,7 @@ class AskWorkspaceQuestionUseCase:
             return
 
         best_score = max((result.score for result in context_results), default=0.0)
-        if best_score < self._relevance_threshold() or _is_assistant_meta_question(
-            request.question
-        ):
+        if best_score < self._relevance_threshold():
             prompt = build_general_chat_prompt(
                 question=request.question,
                 skill_instructions=request.skill_instructions,
@@ -370,8 +349,9 @@ class AskWorkspaceQuestionUseCase:
                             llm_provider=llm_provider,
                             answer=(
                                 "The selected local model could not answer right now. "
-                                "Check that Ollama is running and that this model is "
-                                "installed, or choose another ready model in Models."
+                                "Check that the local model engine is running and that "
+                                "this model is installed, or choose another ready model "
+                                "in Models."
                             ),
                             diagnostic_code="selected_llm_runtime_unavailable",
                             diagnostic_message=failed,
@@ -409,6 +389,7 @@ class AskWorkspaceQuestionUseCase:
             attached_section=build_attached_documents_section(
                 request.question, request.attached_documents
             ),
+            assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
         )
         answer_text, usage, failed = yield from self._stream_generation(
             llm_provider, prompt, request
@@ -421,8 +402,9 @@ class AskWorkspaceQuestionUseCase:
                         llm_provider=llm_provider,
                         answer=(
                             "The selected local model could not answer right now. "
-                            "Check that Ollama is running and that this model is "
-                            "installed, or choose another ready model in Models."
+                            "Check that the local model engine is running and that "
+                            "this model is installed, or choose another ready model "
+                            "in Models."
                         ),
                         diagnostic_code="selected_llm_runtime_unavailable",
                         diagnostic_message=failed,
@@ -569,8 +551,8 @@ class AskWorkspaceQuestionUseCase:
                 llm_provider=llm_provider,
                 answer=(
                     "The selected local model could not answer right now. "
-                    "Check that Ollama is running and that this model is installed, "
-                    "or choose another ready model in Models."
+                    "Check that the local model engine is running and that this "
+                    "model is installed, or choose another ready model in Models."
                 ),
                 diagnostic_code="selected_llm_runtime_unavailable",
                 diagnostic_message=str(exc),

@@ -39,8 +39,9 @@ def test_rag_prompt_requires_grounded_source_aware_answer() -> None:
         ],
     )
 
-    assert "Prefer the provided context" in prompt
-    assert "you may answer from your general knowledge" in prompt
+    assert "decide for yourself whether they actually apply" in prompt
+    assert "Decide first: is this question about the user's project?" in prompt
+    assert "ignore the files and answer directly" in prompt
     assert "When making any technical claim, name the actual source_path exactly" in prompt
     assert "If multiple files contain relevant configuration, compare them" in prompt
     assert "Available source paths: main.tf" in prompt

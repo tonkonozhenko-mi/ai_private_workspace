@@ -347,7 +347,7 @@ def set_active_backend(request: SetActiveBackendRequest) -> ActiveBackendRespons
     Indexing should follow this switch so the index and later search use the
     same vectorizer (the setup flow chooses the backend before building context).
     """
-    from app.api.dependencies import build_embedding_for_backend
+    from app.api.dependencies import build_embedding_for_backend, runtime_state_store
 
     backend = request.backend.strip().lower()
     if backend not in {"ollama", "llamacpp"}:
@@ -357,6 +357,9 @@ def set_active_backend(request: SetActiveBackendRequest) -> ActiveBackendRespons
         )
     if hasattr(embedding_provider, "set_delegate"):
         embedding_provider.set_delegate(build_embedding_for_backend(backend))
+    # Remember the choice so the same engine is re-activated on next startup —
+    # otherwise an index built now would be searched with the env-default engine.
+    runtime_state_store.set_active_backend(backend)
     return ActiveBackendResponse(active_backend=backend)
 
 

@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
+    build_active_model_configuration,
     command_repository,
     conversation_repository,
     embedding_provider,
@@ -3104,7 +3105,7 @@ def get_workspace_model_selection_status(
             workspace_repository=workspace_repository,
             selection_repository=workspace_model_selection_repository,
             index_status_repository=index_status_repository,
-            configuration=readiness_configuration,
+            configuration=build_active_model_configuration(),
         ).execute(GetWorkspaceModelSelectionStatusInput(workspace_id=workspace_id))
     except WorkspaceModelSelectionStatusNotFoundError as exc:
         raise HTTPException(
@@ -3127,7 +3128,7 @@ def get_selected_model_usage_plan(
             selection_repository=workspace_model_selection_repository,
             index_status_repository=index_status_repository,
             llm_provider_factory=llm_provider_factory,
-            configuration=readiness_configuration,
+            configuration=build_active_model_configuration(),
         ).execute(GetSelectedModelUsagePlanInput(workspace_id=workspace_id))
     except SelectedModelUsagePlanNotFoundError as exc:
         raise HTTPException(
@@ -3160,32 +3161,35 @@ def get_selected_embedding_indexing_plan(
 
 
 def _build_workspace_models_dashboard_use_case() -> GetWorkspaceModelsDashboardUseCase:
+    # Use the LIVE active embedding (not the static env) so "matches active
+    # runtime" is truthful after switching to the built-in llama.cpp engine.
+    active_configuration = build_active_model_configuration()
     return GetWorkspaceModelsDashboardUseCase(
         workspace_repository=workspace_repository,
         selection_use_case=GetWorkspaceModelSelectionUseCase(
             workspace_repository=workspace_repository,
             selection_repository=workspace_model_selection_repository,
             model_catalog_registry=model_catalog_registry,
-            configuration=readiness_configuration,
+            configuration=active_configuration,
         ),
         selection_status_use_case=GetWorkspaceModelSelectionStatusUseCase(
             workspace_repository=workspace_repository,
             selection_repository=workspace_model_selection_repository,
             index_status_repository=index_status_repository,
-            configuration=readiness_configuration,
+            configuration=active_configuration,
         ),
         usage_plan_use_case=GetSelectedModelUsagePlanUseCase(
             workspace_repository=workspace_repository,
             selection_repository=workspace_model_selection_repository,
             index_status_repository=index_status_repository,
             llm_provider_factory=llm_provider_factory,
-            configuration=readiness_configuration,
+            configuration=active_configuration,
         ),
         embedding_indexing_plan_use_case=GetSelectedEmbeddingIndexingPlanUseCase(
             workspace_repository=workspace_repository,
             selection_repository=workspace_model_selection_repository,
             index_status_repository=index_status_repository,
-            configuration=readiness_configuration,
+            configuration=active_configuration,
         ),
         recommendation_use_case=RecommendWorkspaceModelsUseCase(
             workspace_repository=workspace_repository,

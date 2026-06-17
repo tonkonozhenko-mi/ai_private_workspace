@@ -235,7 +235,10 @@ class GetSelectedModelUsagePlanUseCase:
             ollama_model = self.configuration.get("OLLAMA_EMBEDDING_MODEL", "")
             fake_model = "fake-embedding"
 
-        if provider == "ollama":
+        # Both Ollama and the built-in llama.cpp engine identify their model by the
+        # configured model name (the GGUF id matches the Ollama tag, e.g.
+        # "nomic-embed-text" / "llama3.2"), so resolve them the same way.
+        if provider in ("ollama", "llamacpp"):
             return provider, ollama_model
         if provider == "fake":
             return provider, fake_model
