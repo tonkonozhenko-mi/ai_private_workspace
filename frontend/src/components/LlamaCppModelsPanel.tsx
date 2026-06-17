@@ -50,13 +50,11 @@ export function LlamaCppModelsPanel({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const pollers = useRef<Record<string, number>>({});
 
-  // Tell the parent setup flow once the engine is actually running, so the
-  // "models" step can advance to indexing → chat — mirroring the Ollama path.
+  // The setup flow advances only when the user clicks "Continue" below — never
+  // automatically on mount — so picking "llama" shows this panel instead of
+  // instantly skipping to indexing.
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
-  useEffect(() => {
-    if (runtime?.running) onReadyRef.current?.();
-  }, [runtime?.running]);
 
   const refreshCatalog = useCallback(async () => {
     const all = await getGgufCatalog();
@@ -221,6 +219,16 @@ export function LlamaCppModelsPanel({
     } finally {
       setStarting(false);
     }
+  }
+
+  // Setup "Continue": make sure this workspace is recorded as llama.cpp (the
+  // engine may already be running from another project, so auto-start didn't
+  // apply the selection), then advance the setup flow.
+  async function continueSetup() {
+    await applyWorkspaceSelection(
+      runtime?.active_llm_model ?? recommendedLlm?.id ?? "",
+    );
+    onReadyRef.current?.();
   }
 
   // Switch the running engine to a different, already-downloaded answer model.
@@ -431,7 +439,20 @@ export function LlamaCppModelsPanel({
       {anyDownloading ? "Downloading…" : busy ? "Starting…" : "Download models"}
     </button>
   ) : runtime?.running ? (
-    <span className="gr-llama-running">✓ Engine running — ready to use</span>
+    interactive ? (
+      <span className="gr-llama-running">✓ Engine running — ready to use</span>
+    ) : (
+      <div className="gr-llama-running-row">
+        <span className="gr-llama-running">✓ Engine running</span>
+        <button
+          className="getting-ready-cta"
+          type="button"
+          onClick={() => void continueSetup()}
+        >
+          Continue
+        </button>
+      </div>
+    )
   ) : runtime && !runtime.binary_available ? (
     <span className="gr-llama-note">
       Models downloaded. The engine ships with the packaged app — it will start

@@ -1963,6 +1963,7 @@ details.onboarding-guide-panel[open] > summary {
 .gr-llama-custom-fields input:focus { outline: none; border-color: var(--c-accent); }
 .gr-llama-custom-fields .gr-check-use { flex: 0 0 auto; }
 .gr-llama-running { font-size: 14px; font-weight: 500; color: var(--c-success); }
+.gr-llama-running-row { display: inline-flex; align-items: center; gap: 14px; }
 
 .getting-ready-checklist { list-style: none; margin: 24px 0 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 8px; }
 .gr-check { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); text-align: left; }
