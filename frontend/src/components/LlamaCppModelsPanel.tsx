@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   cancelGgufDownload,
+  deleteGgufModel,
   getGgufCatalog,
   getGgufDownload,
   getLlamaRuntimeStatus,
@@ -45,6 +46,8 @@ export function LlamaCppModelsPanel({
   const [customRepo, setCustomRepo] = useState("");
   const [customFile, setCustomFile] = useState("");
   const [customBusy, setCustomBusy] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const pollers = useRef<Record<string, number>>({});
 
   // Tell the parent setup flow once the engine is actually running, so the
@@ -281,6 +284,23 @@ export function LlamaCppModelsPanel({
     }
   }
 
+  async function removeModel(model: GgufCatalogItem) {
+    if (!window.confirm(`Delete ${model.name}? The model file is removed from disk.`)) {
+      return;
+    }
+    setDeletingId(model.id);
+    setError(null);
+    try {
+      await deleteGgufModel({ model_id: model.id });
+      setExpandedId(null);
+      await refreshCatalog();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not delete the model.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   const anyDownloading = Object.values(jobs).some(
     (j) => j.status === "running" || j.status === "queued",
   );
@@ -294,18 +314,37 @@ export function LlamaCppModelsPanel({
     const installed = isInstalled(model);
     const active = model.active && kind === "llm";
     const state = active ? "done" : installed ? "done" : downloading ? "load" : "wait";
+    // In the Models tab, an installed model can be expanded to show details and a
+    // delete action.
+    const canExpand = interactive && installed;
+    const expanded = expandedId === model.id;
+    const nameContent = (
+      <>
+        {model.name}
+        <small>
+          · {kind === "embedding" ? "search" : "answers"} · {formatGb(model.size_bytes)}
+          {model.recommended ? " · recommended" : ""}
+        </small>
+      </>
+    );
     return (
       <li className={`gr-check gr-check--${state}`} key={model.id}>
         <span className="gr-check-icon" aria-hidden="true">
           {downloading ? <span className="gr-check-spin" /> : null}
         </span>
-        <span className="gr-check-name">
-          {model.name}
-          <small>
-            · {kind === "embedding" ? "search" : "answers"} · {formatGb(model.size_bytes)}
-            {model.recommended ? " · recommended" : ""}
-          </small>
-        </span>
+        {canExpand ? (
+          <button
+            type="button"
+            className="gr-check-name gr-check-name--button"
+            aria-expanded={expanded}
+            onClick={() => setExpandedId(expanded ? null : model.id)}
+          >
+            {nameContent}
+            <span className="gr-check-caret" aria-hidden="true">{expanded ? "▴" : "▾"}</span>
+          </button>
+        ) : (
+          <span className="gr-check-name">{nameContent}</span>
+        )}
         {downloading ? (
           <span className="gr-check-progress">
             <span className="gr-check-pct">{pct === null ? "…" : `${Math.round(pct)}%`}</span>
@@ -343,6 +382,36 @@ export function LlamaCppModelsPanel({
         ) : (
           <span className="gr-check-state">Not yet</span>
         )}
+        {canExpand && expanded ? (
+          <div className="gr-model-detail">
+            <dl>
+              <div><dt>Repository</dt><dd>{model.repo_id}</dd></div>
+              <div><dt>File</dt><dd>{model.filename}</dd></div>
+              <div><dt>Quantization</dt><dd>{model.quantization}</dd></div>
+              <div><dt>Size</dt><dd>{formatGb(model.size_bytes)}</dd></div>
+              <div><dt>Type</dt><dd>{model.model_type === "embedding" ? "search / embeddings" : "answers"}</dd></div>
+              {model.min_ram_gb ? (
+                <div><dt>Needs RAM</dt><dd>≥ {model.min_ram_gb} GB</dd></div>
+              ) : null}
+            </dl>
+            <div className="gr-model-detail-actions">
+              {active ? (
+                <span className="gr-llama-note gr-llama-note--left">
+                  In use — switch to another model before deleting.
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="gr-model-delete"
+                  disabled={deletingId !== null}
+                  onClick={() => void removeModel(model)}
+                >
+                  {deletingId === model.id ? "Deleting…" : "Delete model"}
+                </button>
+              )}
+            </div>
+          </div>
+        ) : null}
       </li>
     );
   }

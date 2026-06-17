@@ -388,6 +388,92 @@ def switch_llama_runtime_llm(request: SwitchLlamaLlmRequest) -> LlamaRuntimeStat
     return LlamaRuntimeStatusResponse(**result)
 
 
+class DeleteGgufModelRequest(BaseModel):
+    model_id: str | None = None
+    repo_id: str | None = None
+    filename: str | None = None
+
+
+class DeleteGgufModelResponse(BaseModel):
+    deleted: bool
+
+
+@router.post("/gguf-delete", response_model=DeleteGgufModelResponse)
+def delete_gguf_model(request: DeleteGgufModelRequest) -> DeleteGgufModelResponse:
+    """Delete a downloaded GGUF model file. Refuses to delete the model the engine
+    is currently running (stop it or switch first). Only model data is removed."""
+    from app.core.use_cases.download_gguf_model import (
+        GgufModelNotResolvedError,
+        GgufModelRef,
+        resolve_gguf_model,
+    )
+
+    try:
+        model = resolve_gguf_model(
+            GgufModelRef(
+                model_id=request.model_id,
+                repo_id=request.repo_id,
+                filename=request.filename,
+            )
+        )
+    except GgufModelNotResolvedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+
+    runtime = llama_runtime_manager.status()
+    if runtime.get("running") and runtime.get("active_llm_model") == model.id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This model is in use. Switch to another model first, then delete it.",
+        )
+    return DeleteGgufModelResponse(deleted=_gguf_download_use_case.delete(model))
+
+
+class ActivateWorkspaceRuntimeResponse(BaseModel):
+    active_backend: str
+
+
+@router.post(
+    "/workspace-runtime/{workspace_id}",
+    response_model=ActivateWorkspaceRuntimeResponse,
+)
+def activate_workspace_runtime(workspace_id: str) -> ActivateWorkspaceRuntimeResponse:
+    """Re-activate the engine the given workspace uses, since the active backend is
+    app-global. Opening an Ollama project points embeddings back at Ollama; opening
+    a llama.cpp project starts its engine and points embeddings at it. Best-effort:
+    if a llama.cpp engine can't start (models missing), it degrades to Ollama."""
+    from app.api.dependencies import build_embedding_for_backend, runtime_state_store
+    from app.core.use_cases.download_gguf_model import GgufModelRef
+
+    selection = workspace_model_selection_repository.get(workspace_id)
+    selected_llm = selection.selected_llm if selection is not None else None
+    selected_embedding = selection.selected_embedding if selection is not None else None
+    wants_llamacpp = (
+        selected_llm is not None and selected_llm.provider.lower() == "llamacpp"
+    ) or (
+        selected_embedding is not None
+        and selected_embedding.provider.lower() == "llamacpp"
+    )
+
+    if wants_llamacpp:
+        try:
+            if selected_llm is not None and selected_llm.provider.lower() == "llamacpp":
+                llama_runtime_manager.set_llm_ref(GgufModelRef(model_id=selected_llm.model))
+            llama_runtime_manager.start()
+            if hasattr(embedding_provider, "set_delegate"):
+                embedding_provider.set_delegate(build_embedding_for_backend("llamacpp"))
+            runtime_state_store.set_active_backend("llamacpp")
+            return ActivateWorkspaceRuntimeResponse(active_backend="llamacpp")
+        except Exception:  # noqa: BLE001 - degrade to Ollama if the engine can't run
+            pass
+
+    if hasattr(embedding_provider, "set_delegate"):
+        embedding_provider.set_delegate(build_embedding_for_backend("ollama"))
+    runtime_state_store.set_active_backend("ollama")
+    return ActivateWorkspaceRuntimeResponse(active_backend="ollama")
+
+
 class SetActiveBackendRequest(BaseModel):
     backend: str  # "ollama" | "llamacpp"
 

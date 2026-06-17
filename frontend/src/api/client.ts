@@ -633,6 +633,28 @@ export function switchLlamaRuntimeLlm(
   });
 }
 
+// Delete a downloaded GGUF model file (catalog id or custom repo/filename).
+export function deleteGgufModel(
+  ref: { model_id?: string; repo_id?: string; filename?: string },
+): Promise<{ deleted: boolean }> {
+  return requestJson<{ deleted: boolean }>(`/models/gguf-delete`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(ref),
+  });
+}
+
+// Re-activate the engine a workspace uses (active backend is app-global). Call
+// when opening a workspace so its embeddings/answers run on the right engine.
+export function activateWorkspaceRuntime(
+  workspaceId: string,
+): Promise<{ active_backend: string }> {
+  return requestJson<{ active_backend: string }>(
+    `/models/workspace-runtime/${encodeURIComponent(workspaceId)}`,
+    { method: "POST", headers: { Accept: "application/json" } },
+  );
+}
+
 // Switch the app-wide embedding engine (Ollama vs llama.cpp) so search matches
 // the chosen backend. Index after switching to keep vectors consistent.
 export function setActiveBackend(backend: "ollama" | "llamacpp"): Promise<{ active_backend: string }> {

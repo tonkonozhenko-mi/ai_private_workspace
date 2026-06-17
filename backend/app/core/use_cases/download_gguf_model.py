@@ -70,6 +70,18 @@ class DownloadGgufModelUseCase:
         except OSError:
             return False
 
+    def delete(self, model: GgufModel) -> bool:
+        """Remove a downloaded GGUF file from disk. Returns True if a file was
+        deleted. Only model data is touched — never project files."""
+        path = self.destination_path(model)
+        try:
+            if path.is_file():
+                path.unlink()
+                return True
+        except OSError:
+            pass
+        return False
+
     def execute(
         self,
         ref: GgufModelRef,
