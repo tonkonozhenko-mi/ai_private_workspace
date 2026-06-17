@@ -75,6 +75,10 @@ export function WorkspaceGettingReady({
   const [downloadJobs, setDownloadJobs] = useState<LocalModelDownloadJob[]>([]);
   const [busy, setBusy] = useState<"scan" | "models" | "index" | "check" | null>(null);
   const [backendChoice, setBackendChoice] = useState<"ollama" | "llamacpp">("ollama");
+  // True once the built-in llama.cpp engine reports running (models downloaded,
+  // engine up, selections applied). Used to pass the "models" step in llama.cpp
+  // mode, the same way recommendedInstalled does for Ollama.
+  const [llamaReady, setLlamaReady] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checkedAt, setCheckedAt] = useState<number | null>(null);
@@ -243,7 +247,12 @@ export function WorkspaceGettingReady({
   // download is still running. Requires install status to have loaded.
   const recommendedInstalled =
     recommendedItems.length > 0 && recommendedItems.every((item) => item.status === "installed");
-  const modelsReady = llmReady && embeddingReady && recommendedInstalled;
+  // In llama.cpp mode the engine running (with its models) IS the readiness
+  // signal; otherwise fall back to the Ollama selected+installed checks.
+  const modelsReady =
+    backendChoice === "llamacpp"
+      ? llamaReady
+      : llmReady && embeddingReady && recommendedInstalled;
 
   function jobForModel(model: string): LocalModelDownloadJob | undefined {
     return downloadJobs.find((job) => job.model === model);
@@ -426,7 +435,13 @@ export function WorkspaceGettingReady({
           </div>
 
           {backendChoice === "llamacpp" ? (
-            <LlamaCppModelsPanel workspaceId={dashboard.workspace_id} />
+            <LlamaCppModelsPanel
+              workspaceId={dashboard.workspace_id}
+              onReady={() => {
+                setLlamaReady(true);
+                void onRefreshWorkspaceState();
+              }}
+            />
           ) : (
           <>
           <ul className="getting-ready-checklist">
