@@ -2,7 +2,7 @@
 name = "ai-private-workspace"
 version = "0.1.95"
 description = "Local-first AI Private Workspace desktop shell"
-authors = ["AI Private Workspace"]
+authors = ["Maks Tonkonozhenko"]
 edition = "2021"
 
 [lib]

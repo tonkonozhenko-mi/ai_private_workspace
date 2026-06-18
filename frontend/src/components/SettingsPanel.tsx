@@ -583,6 +583,34 @@ export function SettingsPanel({
         </div>
         {resetMessage ? <p className="settings-message">{resetMessage}</p> : null}
       </section>
+
+      <section className="panel settings-clean-card settings-about-card">
+        <div className="panel-heading compact-heading">
+          <div>
+            <p className="eyebrow">About</p>
+            <h3>AI Private Workspace</h3>
+          </div>
+        </div>
+        <p className="settings-about-by">Created by Maks Tonkonozhenko</p>
+        <p className="settings-about-note">Local-first. Your files never leave your computer.</p>
+        <div className="settings-about-links">
+          <a
+            href="https://github.com/tonkonozhenko-mi/ai_private_workspace"
+            target="_blank"
+            rel="noreferrer"
+          >
+            GitHub
+          </a>
+          <a
+            href="https://github.com/tonkonozhenko-mi/ai_private_workspace/blob/main/LICENSE"
+            target="_blank"
+            rel="noreferrer"
+          >
+            License: Apache 2.0
+          </a>
+        </div>
+        <p className="settings-about-credits">Built with llama.cpp, Ollama, Tauri, and FastAPI.</p>
+      </section>
     </div>
   );
 }
