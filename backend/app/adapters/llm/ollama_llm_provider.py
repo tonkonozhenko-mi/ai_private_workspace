@@ -9,6 +9,10 @@ class OllamaLLMProviderError(RuntimeError):
     pass
 
 
+def _coerce_int(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
 def _is_thinking_unsupported(response: "httpx.Response") -> bool:
     """True when Ollama rejected a request because the model can't think.
 
@@ -44,6 +48,10 @@ class OllamaLLMProvider:
         # window we report to the UI is the one actually used — Ollama otherwise
         # falls back to its own default, which we can't read back from a response.
         self.context_window = context_window
+        # Real token counts from the last generation (Ollama reports these), so the
+        # UI can show exact usage instead of a character-based estimate.
+        self.last_prompt_tokens: int | None = None
+        self.last_completion_tokens: int | None = None
 
     def _options(self, temperature: float | None) -> dict[str, object]:
         options: dict[str, object] = {"num_ctx": self.context_window}
@@ -62,12 +70,18 @@ class OllamaLLMProvider:
         temperature: float | None = None,
         think: bool | None = None,
     ) -> str:
+        self.last_prompt_tokens = None
+        self.last_completion_tokens = None
         response = self._request_with_one_local_retry(prompt, images, temperature, think)
 
         try:
             payload = response.json()
         except ValueError as exc:
             raise OllamaLLMProviderError("Ollama generation response was not valid JSON") from exc
+
+        if isinstance(payload, dict):
+            self.last_prompt_tokens = _coerce_int(payload.get("prompt_eval_count"))
+            self.last_completion_tokens = _coerce_int(payload.get("eval_count"))
 
         generated_text = payload.get("response") if isinstance(payload, dict) else None
         if not isinstance(generated_text, str) or not generated_text.strip():
@@ -106,6 +120,8 @@ class OllamaLLMProvider:
             payload["images"] = images
         payload["options"] = self._options(temperature)
 
+        self.last_prompt_tokens = None
+        self.last_completion_tokens = None
         think_open = False
         think_closed = False
         try:
@@ -163,6 +179,9 @@ class OllamaLLMProvider:
                             yield chunk
 
                         if data.get("done"):
+                            # Final chunk carries the real token counts.
+                            self.last_prompt_tokens = _coerce_int(data.get("prompt_eval_count"))
+                            self.last_completion_tokens = _coerce_int(data.get("eval_count"))
                             break
                     break
         except httpx.TimeoutException as exc:
