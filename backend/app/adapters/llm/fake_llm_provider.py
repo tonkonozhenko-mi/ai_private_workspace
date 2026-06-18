@@ -10,6 +10,7 @@ class FakeLLMProvider:
         images: list[str] | None = None,
         temperature: float | None = None,
         think: bool | None = None,
+        history: list[tuple[str, str]] | None = None,
     ) -> str:
         image_note = f" Received {len(images)} image(s)." if images else ""
         return (
@@ -23,9 +24,10 @@ class FakeLLMProvider:
         images: list[str] | None = None,
         temperature: float | None = None,
         think: bool | None = None,
+        history: list[tuple[str, str]] | None = None,
     ):
         # Stream the canned answer word-by-word so streaming code paths and the
         # UI can be exercised without a real model.
-        answer = self.generate(prompt, images, temperature, think)
+        answer = self.generate(prompt, images, temperature, think, history)
         for index, word in enumerate(answer.split(" ")):
             yield word if index == 0 else f" {word}"

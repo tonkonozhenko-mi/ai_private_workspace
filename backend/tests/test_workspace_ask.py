@@ -278,6 +278,7 @@ class _RecordingLLMProvider:
         images: list[str] | None = None,
         temperature: float | None = None,
         think: bool | None = None,
+        history: list[tuple[str, str]] | None = None,
     ) -> str:
         assert "selectedprovidertoken" in prompt
         assert "README.md" in prompt
