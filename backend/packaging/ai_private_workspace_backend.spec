@@ -45,13 +45,14 @@ a = Analysis(
 )
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
+# onedir build: the executable stays small and the runtime is laid out in a
+# folder next to it (_internal/). This avoids the onefile bootloader unpacking
+# the whole runtime to a temp dir on every launch, which made cold starts slow.
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
+    exclude_binaries=True,
     name="ai-private-workspace-backend",
     debug=False,
     bootloader_ignore_signals=False,
@@ -65,4 +66,15 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=False,
+    upx_exclude=[],
+    name="ai-private-workspace-backend",
 )

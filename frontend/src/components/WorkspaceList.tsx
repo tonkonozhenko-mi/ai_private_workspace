@@ -297,30 +297,38 @@ function WorkspaceCard({
             <StatusBadge label={archived ? "archived" : workspace.readiness_status} />
           )}
         </span>
-        <span className="workspace-path" title={workspace.project_path}>
-          {workspace.project_path}
-        </span>
-        <span className="workspace-list-labels">
-          <span>{formatLabel(workspace.assistant_mode)} mode</span>
-          <span>{formatLabel(workspace.quick_start_status)}</span>
+        <span className="workspace-meta">
+          <span className="workspace-meta-row">
+            <span className="workspace-meta-key">Path</span>
+            <span className="workspace-meta-val" title={workspace.project_path}>
+              {workspace.project_path}
+            </span>
+          </span>
+          <span className="workspace-meta-row">
+            <span className="workspace-meta-key">Status</span>
+            <span className="workspace-meta-val">
+              {formatLabel(workspace.quick_start_status)} · {formatLabel(workspace.assistant_mode)} mode
+            </span>
+          </span>
           {workspace.engine ? (
-            <span className={`workspace-engine-pill workspace-engine-pill--${workspace.engine}`}>
-              {workspace.engine === "llamacpp" ? "llama.cpp" : "Ollama"}
+            <span className="workspace-meta-row">
+              <span className="workspace-meta-key">Engine</span>
+              <span className="workspace-meta-val">
+                <span className={`workspace-engine-pill workspace-engine-pill--${workspace.engine}`}>
+                  {workspace.engine === "llamacpp" ? "llama.cpp" : "Ollama"}
+                </span>
+              </span>
             </span>
           ) : null}
-        </span>
-        <span className="workspace-list-signals">
-          <span>{workspace.detected_skills_count} technologies found</span>
-          <span>{formatContextStatus(workspace.index_status)}</span>
+          <span className="workspace-meta-row">
+            <span className="workspace-meta-key">Context</span>
+            <span className="workspace-meta-val">
+              {workspace.detected_skills_count} technologies · {formatContextStatus(workspace.index_status)}
+            </span>
+          </span>
         </span>
         {isTemporary && !archived ? (
           <span className="workspace-temporary-note">Forgets when you quit</span>
-        ) : null}
-        {workspace.next_action_title && !archived ? (
-          <span className="workspace-next-action">
-            <span>Next</span>
-            <strong>{formatNextAction(workspace.next_action_title)}</strong>
-          </span>
         ) : null}
       </button>
 
@@ -534,14 +542,5 @@ function formatLabel(value: string) {
 }
 
 function formatContextStatus(value: string) {
-  return value === "indexed" ? "Context ready" : `Context: ${formatLabel(value)}`;
-}
-
-function formatNextAction(value: string) {
-  return value
-    .replace(/Ask using selected LLM/gi, "Ask with chosen AI model")
-    .replace(/Ask first workspace question/gi, "Ask a question")
-    .replace(/Run project scan/gi, "Scan project")
-    .replace(/selected LLM/gi, "chosen AI model")
-    .replace(/LLM/gi, "AI model");
+  return value === "indexed" ? "ready" : formatLabel(value);
 }
