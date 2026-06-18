@@ -76,3 +76,36 @@ def test_clear_workspace_also_clears_keyword_index(tmp_path) -> None:
     _seed(store)
     store.clear_workspace("w1")
     assert store.search("w1", _QUERY, 3, "p", "m", 3, query_text="cif dev") == []
+
+
+def test_path_boost_lifts_the_matching_environment_file(tmp_path) -> None:
+    store = SQLiteVectorStore(tmp_path / "vec.db")
+    chunks = [
+        _chunk("dev_ecs", "accounts/dev/ca-central-1/cif/ecs.tf", "resource aws_ecs_service cif"),
+        _chunk(
+            "datasync",
+            "accounts/dev/eu-west-1/datasync/secretsmanager.tf",
+            "enable_ec2_endpoint_connect = true",
+        ),
+    ]
+    # datasync is the best vector match; only the path boost should overrule it.
+    embeddings = [[0.0, 1.0, 0.0], [1.0, 0.0, 0.0]]
+    store.upsert_chunks("w1", chunks, embeddings, embedding_provider="p", embedding_model="m", embedding_dimension=3)
+    results = store.search(
+        "w1", [1.0, 0.0, 0.0], 2, "p", "m", 3, query_text="how is ecs configured in cif dev"
+    )
+    # The dev/cif/ecs file (path segments dev + cif + ecs all match) leads.
+    assert results[0].chunk_id == "dev_ecs"
+
+
+def test_diversity_caps_chunks_from_one_file(tmp_path) -> None:
+    store = SQLiteVectorStore(tmp_path / "vec.db")
+    big = [_chunk(f"big{i}", "accounts/uat/cif/application.tf", f"cif config {i}") for i in range(5)]
+    other = [_chunk("dev", "accounts/dev/cif/ecs.tf", "cif config dev")]
+    chunks = big + other
+    embeddings = [[0.0, 1.0, 0.0]] * 5 + [[0.0, 1.0, 0.0]]
+    store.upsert_chunks("w1", chunks, embeddings, embedding_provider="p", embedding_model="m", embedding_dimension=3)
+    results = store.search("w1", [0.0, 1.0, 0.0], 3, "p", "m", 3, query_text="cif config")
+    paths = [r.source_path for r in results]
+    # The 5-chunk file must not fill all 3 slots — the other file gets a place.
+    assert "accounts/dev/cif/ecs.tf" in paths

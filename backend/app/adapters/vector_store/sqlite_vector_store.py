@@ -158,22 +158,29 @@ class SQLiteVectorStore:
             # Sparse ranking: BM25 keyword search over path + content.
             bm25_ids = self._bm25_ids(connection, workspace_id, query_text, fusion_cap)
 
-        # Reciprocal Rank Fusion. With no BM25 hits this reproduces vector order.
+        # --- Reciprocal Rank Fusion across three signals --------------------
+        # 1) dense vectors, 2) BM25 keywords, 3) a path/env boost: chunks whose
+        # FILE PATH contains query tokens (folder/env/component names like "dev"
+        # or "cif") are lifted, which sharpens environment-specific questions
+        # ("...in dev") where the right file lives under that path. With no BM25
+        # or path hits this reproduces the plain vector order.
         k = 60
         rrf: dict[str, float] = {}
         for rank, chunk_id in enumerate(vector_ids):
             rrf[chunk_id] = rrf.get(chunk_id, 0.0) + 1.0 / (k + rank + 1)
         for rank, chunk_id in enumerate(bm25_ids):
             rrf[chunk_id] = rrf.get(chunk_id, 0.0) + 1.0 / (k + rank + 1)
+        for rank, chunk_id in enumerate(
+            self._path_ranked_ids(query_text, cosine_by_id, fusion_cap)
+        ):
+            rrf[chunk_id] = rrf.get(chunk_id, 0.0) + 1.0 / (k + rank + 1)
 
-        ordered_ids = sorted(rrf, key=lambda cid: rrf[cid], reverse=True)[:limit]
+        ranked_ids = sorted(rrf, key=lambda cid: rrf[cid], reverse=True)
+        chosen = self._diversify(ranked_ids, cosine_by_id, limit)
 
         results: list[ContextSearchResult] = []
-        for chunk_id in ordered_ids:
-            entry = cosine_by_id.get(chunk_id)
-            if entry is None:
-                continue
-            score, row = entry
+        for chunk_id in chosen:
+            score, row = cosine_by_id[chunk_id]
             results.append(
                 ContextSearchResult(
                     chunk_id=row["chunk_id"],
@@ -186,6 +193,62 @@ class SQLiteVectorStore:
                 )
             )
         return results
+
+    @staticmethod
+    def _path_ranked_ids(
+        query_text: str | None,
+        cosine_by_id: dict[str, tuple[float, sqlite3.Row]],
+        limit: int,
+    ) -> list[str]:
+        """Rank candidates by how many query tokens match a path *segment*.
+
+        Segment matching (split on /._-) is exact, so "dev" matches the folder
+        ``dev`` but not the ``dev`` inside ``developer`` — avoiding false boosts.
+        """
+        tokens = SQLiteVectorStore._query_tokens(query_text)
+        if not tokens:
+            return []
+        scored: list[tuple[int, str]] = []
+        for chunk_id, (_, row) in cosine_by_id.items():
+            segments = set(re.split(r"[/\\._\-]+", row["source_path"].lower()))
+            hits = sum(1 for token in tokens if token in segments)
+            if hits:
+                scored.append((hits, chunk_id))
+        scored.sort(key=lambda item: item[0], reverse=True)
+        return [chunk_id for _, chunk_id in scored[:limit]]
+
+    @staticmethod
+    def _diversify(
+        ranked_ids: list[str],
+        cosine_by_id: dict[str, tuple[float, sqlite3.Row]],
+        limit: int,
+    ) -> list[str]:
+        """Cap chunks per file so results span more files (don't let one big file
+        fill the whole answer). Tops up ignoring the cap if it leaves us short,
+        so we never return fewer chunks than are available."""
+        max_per_file = max(2, limit // 2 + 1)
+        per_file: dict[str, int] = {}
+        chosen: list[str] = []
+        chosen_set: set[str] = set()
+        for chunk_id in ranked_ids:
+            entry = cosine_by_id.get(chunk_id)
+            if entry is None:
+                continue
+            path = entry[1]["source_path"]
+            if per_file.get(path, 0) >= max_per_file:
+                continue
+            per_file[path] = per_file.get(path, 0) + 1
+            chosen.append(chunk_id)
+            chosen_set.add(chunk_id)
+            if len(chosen) >= limit:
+                return chosen
+        for chunk_id in ranked_ids:
+            if chunk_id in chosen_set or cosine_by_id.get(chunk_id) is None:
+                continue
+            chosen.append(chunk_id)
+            if len(chosen) >= limit:
+                break
+        return chosen
 
     def _bm25_ids(
         self,
@@ -216,17 +279,19 @@ class SQLiteVectorStore:
         return [row["chunk_id"] for row in rows]
 
     @staticmethod
-    def _fts_match_query(query_text: str | None) -> str:
-        """Turn a raw question into a safe FTS5 OR-query.
-
-        We extract alphanumeric/underscore tokens and OR them (for recall),
-        quoting each so user punctuation can never break FTS5 MATCH syntax.
-        """
+    def _query_tokens(query_text: str | None) -> list[str]:
+        """Alphanumeric/underscore tokens from a query, lowercased, 1-char noise
+        dropped and capped — shared by the BM25 query and the path boost."""
         if not query_text:
-            return ""
+            return []
         tokens = re.findall(r"[A-Za-z0-9_]+", query_text.lower())
-        # Drop 1-char noise; cap to keep the query bounded.
-        tokens = [token for token in tokens if len(token) > 1][:32]
+        return [token for token in tokens if len(token) > 1][:32]
+
+    @staticmethod
+    def _fts_match_query(query_text: str | None) -> str:
+        """Turn a raw question into a safe FTS5 OR-query: tokens OR-ed (for
+        recall) and quoted so user punctuation can't break FTS5 MATCH syntax."""
+        tokens = SQLiteVectorStore._query_tokens(query_text)
         if not tokens:
             return ""
         return " OR ".join(f'"{token}"' for token in tokens)
