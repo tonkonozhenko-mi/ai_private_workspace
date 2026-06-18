@@ -10,8 +10,6 @@ Product, architecture, packaging, and release documentation for
 - [CONFIGURATION.md](CONFIGURATION.md) — settings and environment variables.
 - [ROADMAP.md](ROADMAP.md) — current roadmap and remaining work.
 - [V1_PRODUCT_COMPLETION_ROADMAP.md](V1_PRODUCT_COMPLETION_ROADMAP.md) — path from v0.1 source release to a v1.0 installer-grade product.
-- [PROJECT_CHECKPOINT.md](PROJECT_CHECKPOINT.md) — current project checkpoint.
-- [CONTINUE_MESSAGE.md](CONTINUE_MESSAGE.md) — development continuation notes.
 
 ## API & frontend
 
