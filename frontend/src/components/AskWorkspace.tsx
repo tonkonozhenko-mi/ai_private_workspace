@@ -2248,48 +2248,47 @@ function Sources({
   }
 
   return (
-    <section className="answer-context">
-      <div className="answer-context-head">
-        <p className="eyebrow">Context for this answer</p>
-        {sources.length > 0 ? (
-          <button
-            className="answer-context-toggle"
-            type="button"
-            onClick={() => setShowSources((current) => !current)}
-          >
-            {showSources ? "Hide project sources" : "Show project sources"}
-          </button>
-        ) : null}
-      </div>
-
+    <section className={`answer-context${showSources ? " is-open" : ""}`}>
       {hasAttached ? (
-        <div className="answer-context-group">
-          <span className="answer-context-label">Files you attached</span>
-          <div className="answer-context-files">
-            {attachedFileNames.map((name) => (
-              <span key={name} className="answer-context-file" title={name}>
-                <span className="answer-context-file-icon" aria-hidden="true">▤</span>
-                {name}
-              </span>
-            ))}
-          </div>
+        <div className="answer-context-files-row">
+          <span className="answer-context-files-label">Attached</span>
+          {attachedFileNames.map((name) => (
+            <span key={name} className="answer-context-file" title={name}>
+              <span className="answer-context-file-icon" aria-hidden="true">▤</span>
+              {name}
+            </span>
+          ))}
         </div>
       ) : null}
 
       {sources.length > 0 ? (
-        <div className="answer-context-group">
-          <span className="answer-context-label">
-            From your project · {sources.length} source{sources.length === 1 ? "" : "s"}
-            <span className="answer-context-sublabel">
-              {" "}· % = how closely it matches your question
+        <>
+          <button
+            className="answer-context-bar"
+            type="button"
+            aria-expanded={showSources}
+            onClick={() => setShowSources((current) => !current)}
+          >
+            <span className="answer-context-bar-dot" aria-hidden="true" />
+            <span className="answer-context-bar-text">
+              {sources.length} source{sources.length === 1 ? "" : "s"} from your project
             </span>
-          </span>
-          {!showSources ? (
-            <p className="answer-context-hint">
-              Strongest matches stay attached to this answer. Open them to verify a claim.
-            </p>
-          ) : (
-            <>
+            <span className="answer-context-bar-action">
+              {showSources ? "Hide" : "Show"}
+              <span
+                className={`answer-context-caret${showSources ? " is-open" : ""}`}
+                aria-hidden="true"
+              >
+                ›
+              </span>
+            </span>
+          </button>
+
+          {showSources ? (
+            <div className="answer-context-detail">
+              <p className="answer-context-legend">
+                % = how closely it matches your question
+              </p>
               {topSourceScoreIsLow ? (
                 <p className="answer-context-warn">
                   Top match is weak — the answer may be loosely grounded.
@@ -2344,9 +2343,9 @@ function Sources({
                     : `Show all ${sources.length} sources (${hiddenSourcesCount} more)`}
                 </button>
               ) : null}
-            </>
-          )}
-        </div>
+            </div>
+          ) : null}
+        </>
       ) : !hasAttached ? (
         <>
           <EmptyState
