@@ -18,6 +18,12 @@ experience, faster startup, and signed per-architecture macOS builds.
 
 ### Added
 
+- **Hybrid search (much more accurate retrieval).** The SQLite store now combines
+  dense vector similarity with a BM25 keyword index (SQLite FTS5) and fuses the
+  two rankings with Reciprocal Rank Fusion. File and folder paths are indexed
+  alongside the text, so exact identifiers — folder names like `dev`, variable
+  names like `cif_allowed_cidr` — are matched lexically instead of being missed by
+  pure semantic search. Falls back to vector-only if FTS5 is unavailable.
 - **Built-in llama.cpp engine — fully Ollama-free path.** The app can bundle
   `llama-server` and run GGUF models with no external install: pick the engine at
   setup, auto-launch the runtime, switchable embeddings, and a live RAM (RSS) bar
@@ -53,8 +59,9 @@ experience, faster startup, and signed per-architecture macOS builds.
   - Save note / Copy / Create file as compact actions.
   - **Honest answer metrics** (developer mode): real token counts (in / out /
     total) read from the engine, generation speed, latency, retrieved-context
-    count, and **context-window usage** ("used / window · %") from the engine's
-    real `n_ctx`.
+    count, and **context-window usage** ("used / window · %"). The window is the
+    engine's real running window — a fixed, memory-safe size used consistently by
+    both llama.cpp (`-c`) and Ollama (`num_ctx`), not the model's theoretical max.
 - **Settings:**
   - One unified Skills editor — edit any built-in skill or create your own,
     picked per question in Ask.
@@ -63,8 +70,8 @@ experience, faster startup, and signed per-architecture macOS builds.
   - Two clearly scoped resets — Reset settings and Reset projects & data.
 - **Onboarding:** full-window setup takeover, live scan/index progress (X of Y
   files + percent), inline model-download progress with a status checklist, a
-  Stop control during scan/index, an explicit engine-choice step, and a
-  back-to-engine step before the index is built.
+  Stop control during scan/index, and an explicit engine-choice step (the engine
+  can still be switched on the Models step before the index is built).
 - **Downloads:** a global active-downloads indicator (with per-job Stop) and a
   live model-memory indicator in the sidebar.
 - **Tester** and **Business analyst** assistant modes.
@@ -102,6 +109,9 @@ experience, faster startup, and signed per-architecture macOS builds.
 
 - llama-server "exited during startup" — bundle all required dylibs (including
   dereferenced symlink aliases) and surface the server's real stderr.
+- llama.cpp embedding API returning HTTP 500 on `/v1/embeddings` — the embedding
+  server now starts with mean pooling (and without the chat-template flag it does
+  not need), which many embedding GGUFs require to serve embeddings.
 - False "selected embedding not active" warning when running on llama.cpp.
 - Answer creativity is observable — "Precise" sends temperature `0.0`.
 - Ollama "Install & continue" no longer stalls (the backend is re-activated so
@@ -114,6 +124,9 @@ experience, faster startup, and signed per-architecture macOS builds.
 - Reduced a polling storm during onboarding (lightweight polls, refresh only on
   real transitions).
 - Files can be dropped into the webview (native drag-drop disabled).
+- The setup "Scan project" button could get stuck (no reaction) after installing
+  Ollama, because a stalled refresh left the step busy — the re-check now never
+  freezes the next action.
 - "Get Ollama" button contrast, plus assorted spacing, font, and button-sizing
   inconsistencies across Home, Models, Ask, and Settings.
 

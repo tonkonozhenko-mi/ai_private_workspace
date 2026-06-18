@@ -23,8 +23,14 @@ class VectorStorePort(Protocol):
         embedding_provider: str | None = None,
         embedding_model: str | None = None,
         embedding_dimension: int | None = None,
+        query_text: str | None = None,
     ) -> list[ContextSearchResult]:
-        """Return the most similar chunks for a workspace."""
+        """Return the most relevant chunks for a workspace.
+
+        ``query_text`` is the original question; stores that support hybrid
+        (keyword + vector) search use it for the keyword side. Vector-only stores
+        ignore it.
+        """
 
     def clear_workspace(
         self,

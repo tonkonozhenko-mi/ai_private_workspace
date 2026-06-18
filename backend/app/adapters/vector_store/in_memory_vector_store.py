@@ -40,7 +40,9 @@ class InMemoryVectorStore:
         embedding_provider: str | None = None,
         embedding_model: str | None = None,
         embedding_dimension: int | None = None,
+        query_text: str | None = None,
     ) -> list[ContextSearchResult]:
+        # query_text is accepted for interface parity; this store is vector-only.
         if limit <= 0:
             return []
 

@@ -45,23 +45,24 @@ class OllamaLLMProvider:
         self.timeout_seconds = timeout_seconds
         self.client = client or httpx.Client()
         # We pin Ollama's per-request window via ``num_ctx`` (see _options) so the
-        # window we report to the UI is the one actually used — Ollama otherwise
-        # falls back to its own default, which we can't read back from a response.
+        # window we report is the one actually used — and consistent with
+        # llama.cpp's ``-c``. The model may support a far larger context, but
+        # running it that wide costs a lot of RAM, so we use a sane fixed window.
         self.context_window = context_window
         # Real token counts from the last generation (Ollama reports these), so the
         # UI can show exact usage instead of a character-based estimate.
         self.last_prompt_tokens: int | None = None
         self.last_completion_tokens: int | None = None
 
+    @property
+    def model_name(self) -> str:
+        return self.model
+
     def _options(self, temperature: float | None) -> dict[str, object]:
         options: dict[str, object] = {"num_ctx": self.context_window}
         if temperature is not None:
             options["temperature"] = temperature
         return options
-
-    @property
-    def model_name(self) -> str:
-        return self.model
 
     def generate(
         self,
@@ -216,7 +217,7 @@ class OllamaLLMProvider:
         if images:
             # Ollama accepts base64-encoded images for vision-capable models.
             payload["images"] = images
-        # Ollama generation tuning (incl. the context window) goes under "options".
+        # Ollama generation tuning (incl. the pinned context window) goes here.
         payload["options"] = self._options(temperature)
         attempt = 0
         while attempt < 2:

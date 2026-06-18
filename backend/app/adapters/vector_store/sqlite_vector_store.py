@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from datetime import UTC, datetime
 from math import sqrt
@@ -20,6 +21,10 @@ class SQLiteVectorStore:
 
     def __init__(self, db_path: str | Path) -> None:
         self.db_path = Path(db_path).expanduser()
+        # Hybrid search needs an FTS5 keyword index alongside the vectors. FTS5 is
+        # compiled into most SQLite builds, but if it isn't we silently fall back
+        # to vector-only search so indexing/search never break.
+        self._fts_enabled = False
         self._initialize_schema()
 
     def upsert_chunks(
@@ -78,6 +83,23 @@ class SQLiteVectorStore:
                 """,
                 rows,
             )
+            if self._fts_enabled:
+                # Re-index these chunks in the keyword table. FTS5 has no upsert,
+                # so delete-then-insert. We index "<source_path>\n<content>" so
+                # both the file path and the text are keyword-searchable.
+                connection.executemany(
+                    "DELETE FROM workspace_vector_chunks_fts "
+                    "WHERE workspace_id = ? AND chunk_id = ?",
+                    [(workspace_id, chunk.id) for chunk in chunks],
+                )
+                connection.executemany(
+                    "INSERT INTO workspace_vector_chunks_fts "
+                    "(search_text, chunk_id, workspace_id) VALUES (?, ?, ?)",
+                    [
+                        (f"{chunk.source_path}\n{chunk.content}", chunk.id, workspace_id)
+                        for chunk in chunks
+                    ],
+                )
 
     def search(
         self,
@@ -87,7 +109,16 @@ class SQLiteVectorStore:
         embedding_provider: str | None = None,
         embedding_model: str | None = None,
         embedding_dimension: int | None = None,
+        query_text: str | None = None,
     ) -> list[ContextSearchResult]:
+        """Hybrid retrieval: dense (cosine) + sparse (BM25) fused with Reciprocal
+        Rank Fusion.
+
+        Pure vector search misses exact identifiers (folder/var/resource names);
+        BM25 catches them. RRF merges the two rankings without needing to
+        normalize their very different score scales. When ``query_text`` is absent
+        or FTS5 is unavailable, this degrades to the original vector-only ranking.
+        """
         if limit <= 0:
             return []
 
@@ -112,22 +143,93 @@ class SQLiteVectorStore:
                 ),
             ).fetchall()
 
-        scored: list[tuple[float, sqlite3.Row]] = []
-        for row in rows:
-            embedding = self._loads_embedding(row["embedding_json"])
-            scored.append((self._cosine_similarity(query_embedding, embedding), row))
-        scored.sort(key=lambda item: item[0], reverse=True)
+            # Dense ranking: cosine similarity over every candidate chunk.
+            scored: list[tuple[float, sqlite3.Row]] = []
+            for row in rows:
+                embedding = self._loads_embedding(row["embedding_json"])
+                scored.append((self._cosine_similarity(query_embedding, embedding), row))
+            scored.sort(key=lambda item: item[0], reverse=True)
 
-        return [
-            ContextSearchResult(
-                chunk_id=row["chunk_id"],
-                source_path=row["source_path"],
-                content=row["content"],
-                score=score,
-                metadata=self._loads_metadata(row["metadata_json"]),
+            # How wide to fuse: a generous window so BM25-only hits can surface.
+            fusion_cap = max(limit * 5, 50)
+            cosine_by_id = {row["chunk_id"]: (score, row) for score, row in scored}
+            vector_ids = [row["chunk_id"] for _, row in scored[:fusion_cap]]
+
+            # Sparse ranking: BM25 keyword search over path + content.
+            bm25_ids = self._bm25_ids(connection, workspace_id, query_text, fusion_cap)
+
+        # Reciprocal Rank Fusion. With no BM25 hits this reproduces vector order.
+        k = 60
+        rrf: dict[str, float] = {}
+        for rank, chunk_id in enumerate(vector_ids):
+            rrf[chunk_id] = rrf.get(chunk_id, 0.0) + 1.0 / (k + rank + 1)
+        for rank, chunk_id in enumerate(bm25_ids):
+            rrf[chunk_id] = rrf.get(chunk_id, 0.0) + 1.0 / (k + rank + 1)
+
+        ordered_ids = sorted(rrf, key=lambda cid: rrf[cid], reverse=True)[:limit]
+
+        results: list[ContextSearchResult] = []
+        for chunk_id in ordered_ids:
+            entry = cosine_by_id.get(chunk_id)
+            if entry is None:
+                continue
+            score, row = entry
+            results.append(
+                ContextSearchResult(
+                    chunk_id=row["chunk_id"],
+                    source_path=row["source_path"],
+                    # Display the cosine similarity as the match score so the
+                    # UI's relevance bar stays meaningful.
+                    score=score,
+                    content=row["content"],
+                    metadata=self._loads_metadata(row["metadata_json"]),
+                )
             )
-            for score, row in scored[:limit]
-        ]
+        return results
+
+    def _bm25_ids(
+        self,
+        connection: sqlite3.Connection,
+        workspace_id: str,
+        query_text: str | None,
+        limit: int,
+    ) -> list[str]:
+        if not self._fts_enabled:
+            return []
+        match_query = self._fts_match_query(query_text)
+        if not match_query:
+            return []
+        try:
+            rows = connection.execute(
+                """
+                SELECT chunk_id
+                FROM workspace_vector_chunks_fts
+                WHERE workspace_id = ?
+                  AND workspace_vector_chunks_fts MATCH ?
+                ORDER BY bm25(workspace_vector_chunks_fts)
+                LIMIT ?
+                """,
+                (workspace_id, match_query, limit),
+            ).fetchall()
+        except sqlite3.OperationalError:
+            return []
+        return [row["chunk_id"] for row in rows]
+
+    @staticmethod
+    def _fts_match_query(query_text: str | None) -> str:
+        """Turn a raw question into a safe FTS5 OR-query.
+
+        We extract alphanumeric/underscore tokens and OR them (for recall),
+        quoting each so user punctuation can never break FTS5 MATCH syntax.
+        """
+        if not query_text:
+            return ""
+        tokens = re.findall(r"[A-Za-z0-9_]+", query_text.lower())
+        # Drop 1-char noise; cap to keep the query bounded.
+        tokens = [token for token in tokens if len(token) > 1][:32]
+        if not tokens:
+            return ""
+        return " OR ".join(f'"{token}"' for token in tokens)
 
     def clear_workspace(
         self,
@@ -141,6 +243,11 @@ class SQLiteVectorStore:
                 "DELETE FROM workspace_vector_chunks WHERE workspace_id = ?",
                 (workspace_id,),
             )
+            if self._fts_enabled:
+                connection.execute(
+                    "DELETE FROM workspace_vector_chunks_fts WHERE workspace_id = ?",
+                    (workspace_id,),
+                )
 
     def _initialize_schema(self) -> None:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -177,6 +284,25 @@ class SQLiteVectorStore:
                 ON workspace_vector_chunks(workspace_id, embedding_provider, embedding_model, embedding_dimension)
                 """
             )
+            # Keyword (BM25) index for hybrid search. We index the source_path
+            # together with the chunk text so folder/file names (e.g. "dev",
+            # "cif") are matchable lexically — exactly what pure vector search
+            # misses. Guarded: if FTS5 is unavailable we stay vector-only.
+            try:
+                connection.execute(
+                    """
+                    CREATE VIRTUAL TABLE IF NOT EXISTS workspace_vector_chunks_fts
+                    USING fts5(
+                        search_text,
+                        chunk_id UNINDEXED,
+                        workspace_id UNINDEXED,
+                        tokenize = 'unicode61'
+                    )
+                    """
+                )
+                self._fts_enabled = True
+            except sqlite3.OperationalError:
+                self._fts_enabled = False
 
     def _connect(self) -> sqlite3.Connection:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
