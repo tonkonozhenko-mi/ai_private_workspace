@@ -8,8 +8,11 @@ clear error and the app stays on Ollama. Nothing here runs unless the user picks
 the llama.cpp backend.
 """
 
+import os
+import signal
 import subprocess
 import threading
+import time
 
 from app.adapters.system.llama_server_process_manager import LlamaServerProcessManager
 from app.config.settings import resolve_llama_server_binary_path
@@ -29,6 +32,43 @@ from app.core.use_cases.download_gguf_model import (
 
 class LlamaRuntimeError(RuntimeError):
     pass
+
+
+def _reap_orphan_llama_servers(binary_path: str) -> None:
+    """Kill leftover llama-server processes from a previous app run.
+
+    On macOS a child process is NOT killed when its parent (the backend) exits,
+    so a previous run can leave a ``llama-server`` still holding ports 8080/8081,
+    making the new server fail to bind ("couldn't bind HTTP server socket") and
+    requests hit the stale instance (HTTP 500).
+
+    We match the EXACT bundled binary path, so this only ever touches our own
+    orphaned llama-server instances — never unknown processes on those ports.
+    Called only before a fresh start, when this backend owns no live children.
+    """
+    try:
+        result = subprocess.run(
+            ["pgrep", "-f", binary_path],
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return
+    own_pid = os.getpid()
+    pids = [int(line) for line in result.stdout.split() if line.isdigit() and int(line) != own_pid]
+    for pid in pids:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            pass
+    if pids:
+        time.sleep(0.5)
+        for pid in pids:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except OSError:
+                pass
 
 
 def _process_rss_bytes(pid: int) -> int:
@@ -178,6 +218,11 @@ class LlamaRuntimeManager:
         with self._lock:
             if self._running():
                 return self.status()
+            # Fresh start (this backend owns no live servers): clear any orphaned
+            # llama-server from a previous app run that may still hold our ports,
+            # otherwise the new servers fail to bind and requests hit a stale one.
+            if self._llm is None and self._embed is None and self._rerank is None:
+                _reap_orphan_llama_servers(str(binary))
             self._llm = LlamaServerProcessManager(binary, host=self._host)
             self._llm.start(self._dl.destination_path(llm_model), self._llm_port)
             self._embed = LlamaServerProcessManager(binary, host=self._host)

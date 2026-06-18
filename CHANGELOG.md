@@ -129,12 +129,19 @@ experience, faster startup, and signed per-architecture macOS builds.
 
 - llama-server "exited during startup" — bundle all required dylibs (including
   dereferenced symlink aliases) and surface the server's real stderr.
-- llama.cpp embedding API returning HTTP 500 on `/v1/embeddings` — the embedding
-  server now starts with mean pooling (and without the chat-template flag it does
-  not need), which many embedding GGUFs require to serve embeddings. Indexing also
-  now retries transient embedding errors (a 5xx or dropped connection while the
-  server warms up or its slot is briefly busy) with a short backoff, so "Build
-  context" no longer fails intermittently.
+- llama.cpp engine failing to start its servers ("couldn't bind HTTP server
+  socket") and embeddings returning HTTP 500. A previous app run could leave an
+  orphaned `llama-server` holding ports 8080/8081 (macOS doesn't kill children
+  with the parent), so the new servers couldn't bind and requests hit the stale
+  one. The engine now clears its own orphaned llama-server processes (matched by
+  the exact bundled binary path) before a fresh start.
+- llama.cpp embedding API returning HTTP 500 on `/v1/embeddings`. The embedding
+  (and reranker) server now sets its physical batch size to the full context, so
+  a whole chunk fits in one batch — fixing the "input is too large to process,
+  increase the physical batch size" 500. It also starts with mean pooling (no
+  chat-template flag needed), sends the input as a single-item list (some
+  llama-server versions reject a bare string), and indexing retries any remaining
+  transient errors with a short backoff — so "Build context" stops failing.
 - False "selected embedding not active" warning when running on llama.cpp.
 - Answer creativity is observable — "Precise" sends temperature `0.0`.
 - Ollama "Install & continue" no longer stalls (the backend is re-activated so

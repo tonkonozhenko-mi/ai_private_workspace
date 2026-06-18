@@ -82,6 +82,13 @@ class LlamaServerProcessManager:
             "-c",
             str(self.context_size),
         ]
+        if reranking or embedding:
+            # Embedding/reranking process the whole input in one pass with pooling,
+            # so the entire input must fit in a single *physical* batch. The
+            # default ubatch is 512, which makes llama-server return HTTP 500
+            # ("input is too large to process. increase the physical batch size")
+            # for longer chunks. Size the batch to the context so any chunk fits.
+            args += ["-b", str(self.context_size), "-ub", str(self.context_size)]
         if reranking:
             # A cross-encoder reranker server: `--reranking` enables the /rerank
             # endpoint. No chat template, so `--jinja` is omitted.

@@ -52,7 +52,9 @@ class LlamaServerEmbeddingProvider:
             try:
                 candidate = self.client.post(
                     f"{self.base_url}/v1/embeddings",
-                    json={"model": self.model, "input": text},
+                    # `input` as a single-item list: some llama-server versions
+                    # reject a bare string on the OpenAI-compatible route.
+                    json={"model": self.model, "input": [text]},
                     timeout=self.timeout_seconds,
                 )
             except (httpx.TimeoutException, httpx.ConnectError) as exc:
