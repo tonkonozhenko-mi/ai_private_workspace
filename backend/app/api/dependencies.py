@@ -7,7 +7,6 @@ from app.adapters.embeddings.switchable_embedding_provider import (
     SwitchableEmbeddingProvider,
 )
 from app.adapters.filesystem.local_file_system import LocalFileSystem
-from app.adapters.system.runtime_state_store import RuntimeStateStore
 from app.adapters.llm.fake_llm_provider import FakeLLMProvider
 from app.adapters.llm.llm_provider_factory import LLMProviderFactory
 from app.adapters.memory.in_memory_agent_workflow_repository import InMemoryAgentWorkflowRepository
@@ -88,7 +87,7 @@ from app.adapters.system.gguf_download_job_runner import GgufDownloadJobRunner
 from app.adapters.system.huggingface_gguf_downloader import HuggingFaceGgufDownloader
 from app.adapters.system.llama_runtime_manager import LlamaRuntimeManager
 from app.adapters.system.local_git_history import LocalGitHistory
-from app.core.use_cases.download_gguf_model import DownloadGgufModelUseCase
+from app.adapters.system.runtime_state_store import RuntimeStateStore
 from app.adapters.vector_store.in_memory_vector_store import InMemoryVectorStore
 from app.adapters.vector_store.sqlite_vector_store import SQLiteVectorStore
 from app.config.settings import get_settings
@@ -124,6 +123,7 @@ from app.core.ports.workspace_model_selection_repository import (
 )
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.ports.workspace_storage_gateway import WorkspaceStorageGatewayPort
+from app.core.use_cases.download_gguf_model import DownloadGgufModelUseCase
 
 
 def build_workspace_repository() -> WorkspaceRepositoryPort:

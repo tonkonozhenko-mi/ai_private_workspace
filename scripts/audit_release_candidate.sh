@@ -107,7 +107,6 @@ release_docs=(
   docs/START_HERE.md
   docs/ROADMAP.md
   docs/API_INVENTORY.md
-  docs/PROJECT_CHECKPOINT.md
   docs/DESKTOP_PACKAGING_DESIGN_LOCK.md
   docs/WINDOWS_PACKAGING_FOUNDATION.md
   docs/V01_DEMO_HANDOFF.md
