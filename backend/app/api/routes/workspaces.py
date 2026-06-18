@@ -1841,6 +1841,7 @@ def ask_workspace_question(
         index_status_repository=index_status_repository,
         timeline_repository=timeline_repository,
         reranker=build_reranker(),
+        conversation_repository=conversation_repository,
     )
 
     try:
@@ -1926,6 +1927,7 @@ def ask_workspace_question_with_selected_llm(
         index_status_repository=index_status_repository,
         timeline_repository=timeline_repository,
         reranker=build_reranker(),
+        conversation_repository=conversation_repository,
     )
     use_case = AskWorkspaceQuestionWithSelectedLLMUseCase(
         workspace_repository=workspace_repository,
@@ -2148,6 +2150,7 @@ def ask_workspace_question_with_selected_llm_stream(
         index_status_repository=index_status_repository,
         timeline_repository=timeline_repository,
         reranker=build_reranker(),
+        conversation_repository=conversation_repository,
     )
     use_case = AskWorkspaceQuestionWithSelectedLLMUseCase(
         workspace_repository=workspace_repository,
