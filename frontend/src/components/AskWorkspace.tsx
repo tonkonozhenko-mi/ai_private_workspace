@@ -610,7 +610,10 @@ export function AskWorkspace({
           return comma >= 0 ? image.slice(comma + 1) : image;
         }),
         temperature: answerTemperature ?? null,
-        think: reasoning,
+        // Only send the reasoning flag when it's ON. When OFF (the default), we
+        // omit it entirely so non-reasoning models aren't asked to think (which
+        // on Ollama would trigger a rejected request + retry round-trip).
+        think: reasoning ? true : null,
         attachedDocuments: attachedFiles.map((file) => ({
           name: file.name,
           content: file.content,
