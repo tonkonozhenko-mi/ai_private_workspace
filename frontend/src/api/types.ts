@@ -1,5 +1,4 @@
 
-
 export interface ProjectFileResponse {
   path: string;
   extension: string | null;
@@ -20,7 +19,6 @@ export interface FileSelectionRulesRequest {
   exclude_patterns: string[];
 }
 
-
 export interface WorkspaceIndexingRules {
   workspace_id: string;
   profile: string;
@@ -31,7 +29,6 @@ export interface WorkspaceIndexingRules {
   updated_at: string | null;
   source: "saved" | "default" | string;
 }
-
 
 export interface FileSelectionPreviewItem {
   path: string;
@@ -299,66 +296,10 @@ export interface StartupChecklistItem {
   copy_command: string | null;
 }
 
-export interface StartupChecklist {
-  status: string;
-  summary: string;
-  items: StartupChecklistItem[];
-  safe_to_continue: boolean;
-  safety_note: string;
-}
-
-export interface LocalDataSafety {
-  status: string;
-  app_data_dir: string;
-  database_path: string;
-  database_exists: boolean;
-  database_size_bytes: number;
-  repository: string;
-  vector_store: string;
-  llm_provider: string;
-  embedding_provider: string;
-  workspaces_count: number | null;
-  conversations_count: number | null;
-  saved_reports_count: number | null;
-  answer_notes_count: number | null;
-  warnings: string[];
-  protected_paths: string[];
-  safe_update_excludes: string[];
-  backup_hints: LocalDataBackupHint[];
-}
-
-
-
-
 export interface DesktopStartupCommand {
   label: string;
   command: string;
   description: string;
-}
-
-export interface DesktopStartupExperience {
-  status: string;
-  summary: string;
-  open_last_workspace_enabled: boolean;
-  last_workspace_storage_key: string;
-  suggested_next_action: string;
-  startup_commands: DesktopStartupCommand[];
-  checklist: string[];
-  safety_notes: string[];
-}
-
-export interface SafeUpdateWorkflow {
-  status: string;
-  summary: string;
-  script_path: string;
-  dry_run_command: string;
-  apply_command: string;
-  required_excludes: string[];
-  backup_policy: string;
-  protected_paths: string[];
-  preflight_checks: string[];
-  warnings: string[];
-  safety_note: string;
 }
 
 export interface DatabaseBackup {
@@ -369,44 +310,11 @@ export interface DatabaseBackup {
   is_current_database: boolean;
 }
 
-export interface DatabaseBackupList {
-  database_path: string;
-  backups: DatabaseBackup[];
-  restore_note: string;
-}
-
-export interface CreateDatabaseBackupResponse {
-  status: string;
-  backup: DatabaseBackup;
-  safety_note: string;
-}
-
-export interface DatabaseRestorePlan {
-  status: string;
-  backup: DatabaseBackup;
-  steps: string[];
-  copy_commands: string[];
-  warnings: string[];
-  safety_note: string;
-}
-
 export interface DatabaseMigrationTable {
   name: string;
   exists: boolean;
   row_count: number | null;
 }
-
-export interface DatabaseMigrationSafety {
-  status: string;
-  database_path: string;
-  schema_version: string;
-  tables: DatabaseMigrationTable[];
-  missing_tables: string[];
-  warnings: string[];
-  recommended_actions: string[];
-  safety_note: string;
-}
-
 
 export interface RuntimeTroubleshootingStep {
   title: string;
@@ -423,17 +331,6 @@ export interface RuntimeTroubleshootingIssue {
   details: string;
   steps: RuntimeTroubleshootingStep[];
 }
-
-export interface RuntimeTroubleshooting {
-  status: string;
-  summary: string;
-  issues: RuntimeTroubleshootingIssue[];
-  quick_checks: RuntimeTroubleshootingStep[];
-  safe_restart_commands: RuntimeTroubleshootingStep[];
-  safety_note: string;
-}
-
-
 
 export interface FirstLaunchChecklistItem {
   id: string;
@@ -458,26 +355,6 @@ export interface TauriSupervisorBridgeCommand {
   execution: string;
 }
 
-export interface TauriSupervisorBridge {
-  status: string;
-  title: string;
-  summary: string;
-  package_goal: string;
-  bridge_file: string;
-  tauri_command_strategy: string;
-  backend_start_strategy: string;
-  readiness_strategy: string;
-  log_strategy: string;
-  startup_states: TauriSupervisorBridgeState[];
-  tauri_commands: TauriSupervisorBridgeCommand[];
-  implementation_steps: string[];
-  validation_steps: string[];
-  safety_rules: string[];
-  known_limitations: string[];
-  next_steps: string[];
-}
-
-
 export interface TauriSupervisorStaticGateItem {
   id: string;
   title: string;
@@ -485,19 +362,6 @@ export interface TauriSupervisorStaticGateItem {
   summary: string;
   evidence: string;
 }
-
-export interface TauriSupervisorStaticGate {
-  status: string;
-  title: string;
-  summary: string;
-  check_script: string;
-  bridge_file: string;
-  items: TauriSupervisorStaticGateItem[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  safety_rules: string[];
-  next_steps: string[];
-}
-
 
 export interface DesktopTechnologyOption {
   id: string;
@@ -507,20 +371,6 @@ export interface DesktopTechnologyOption {
   strengths: string[];
   tradeoffs: string[];
 }
-
-export interface DesktopTechnologyDecision {
-  status: string;
-  title: string;
-  summary: string;
-  current_candidate: string;
-  decision_state: string;
-  why_it_was_chosen: string[];
-  alternatives: DesktopTechnologyOption[];
-  decision_guardrails: string[];
-  when_to_reconsider: string[];
-  next_steps: string[];
-}
-
 
 export interface DesktopStackComponent {
   id: string;
@@ -539,24 +389,6 @@ export interface DesktopRuntimeFreezeMilestone {
   exit_criteria: string[];
 }
 
-export interface DesktopStackAndRuntimeContract {
-  status: string;
-  title: string;
-  summary: string;
-  desktop_shell: string;
-  backend_runtime_strategy: string;
-  frontend_strategy: string;
-  packaging_strategy: string;
-  stack_principles: string[];
-  selected_components: DesktopStackComponent[];
-  rejected_paths: DesktopTechnologyOption[];
-  runtime_freeze_milestones: DesktopRuntimeFreezeMilestone[];
-  staging_contract: string[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  safety_rules: string[];
-  next_steps: string[];
-}
-
 export interface WindowsPackagingArtifact {
   path: string;
   purpose: string;
@@ -570,29 +402,6 @@ export interface WindowsPackagingPhase {
   summary: string;
   deliverables: string[];
 }
-
-export interface WindowsPackagingFoundation {
-  status: string;
-  title: string;
-  summary: string;
-  package_goal: string;
-  shell_choice: string;
-  app_name: string;
-  app_data_directory: string;
-  logs_directory: string;
-  backend_health_url: string;
-  packaging_strategy: string;
-  supervisor_strategy: string;
-  installer_strategy: string;
-  scripts: WindowsPackagingArtifact[];
-  lifecycle_flow: string[];
-  implementation_phases: WindowsPackagingPhase[];
-  validation_steps: string[];
-  safety_rules: string[];
-  known_limitations: string[];
-  next_steps: string[];
-}
-
 
 export interface ReleaseCandidateAuditItem {
   id: string;
@@ -609,24 +418,6 @@ export interface ReleaseCandidateAuditCommand {
   purpose: string;
 }
 
-export interface ReleaseCandidateAudit {
-  status: string;
-  title: string;
-  summary: string;
-  release_label: string;
-  readiness_score: number;
-  audit_script: string;
-  source_archive_policy: string[];
-  blocked_items: ReleaseCandidateAuditItem[];
-  review_items: ReleaseCandidateAuditItem[];
-  passed_items: ReleaseCandidateAuditItem[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  final_handoff_steps: string[];
-  safety_rules: string[];
-  known_limitations: string[];
-}
-
-
 export interface V01DemoStep {
   id: string;
   title: string;
@@ -640,45 +431,12 @@ export interface V01RepositoryFile {
   purpose: string;
 }
 
-export interface V01Handoff {
-  status: string;
-  title: string;
-  release_label: string;
-  summary: string;
-  github_ready: boolean;
-  demo_story: string;
-  demo_steps: V01DemoStep[];
-  repository_highlights: string[];
-  important_files: V01RepositoryFile[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  release_notes: string[];
-  known_limitations: string[];
-  next_after_v01: string[];
-  safety_rules: string[];
-}
-
-
-
-
 export interface V01ReleaseGateItem {
   id: string;
   title: string;
   status: string;
   summary: string;
   command: string | null;
-}
-
-export interface V01ReleaseGate {
-  status: string;
-  title: string;
-  summary: string;
-  current_position: string;
-  source_rc_remaining_tasks: string;
-  v1_remaining_large_tasks: string;
-  release_gate_items: V01ReleaseGateItem[];
-  go_no_go_rule: string;
-  next_actions: string[];
-  safety_rules: string[];
 }
 
 export interface V01UISmokeCheckItem {
@@ -691,19 +449,6 @@ export interface V01UISmokeCheckItem {
   must_not_happen: string[];
 }
 
-export interface V01UISmokeCheck {
-  status: string;
-  title: string;
-  summary: string;
-  estimated_duration: string;
-  checklist: V01UISmokeCheckItem[];
-  copy_commands: ReleaseCandidateAuditCommand[];
-  pass_criteria: string[];
-  fail_fast_conditions: string[];
-  safety_note: string;
-}
-
-
 export interface V01PublicationHandoffStep {
   id: string;
   title: string;
@@ -711,23 +456,6 @@ export interface V01PublicationHandoffStep {
   summary: string;
   command: string | null;
   expected_result: string;
-}
-
-export interface V01PublicationHandoff {
-  status: string;
-  title: string;
-  summary: string;
-  current_position: string;
-  publish_verdict: string;
-  v01_remaining_work: string;
-  v1_remaining_work: string;
-  steps: V01PublicationHandoffStep[];
-  source_archive_name: string;
-  git_commit_message: string;
-  github_push_commands: ReleaseCandidateAuditCommand[];
-  do_not_commit: string[];
-  after_publish: string[];
-  safety_rules: string[];
 }
 
 export interface FinalProductStage {
@@ -738,24 +466,6 @@ export interface FinalProductStage {
   remaining_large_tasks: string;
 }
 
-export interface FinalProductStatus {
-  status: string;
-  title: string;
-  summary: string;
-  current_milestone: string;
-  current_stage_completion: string;
-  honest_v1_estimate: string;
-  source_rc_verdict: string;
-  remaining_current_stage_tasks: string[];
-  stages: FinalProductStage[];
-  next_recommended_tasks: string[];
-  publication_checks: ReleaseCandidateAuditCommand[];
-  stop_condition_for_v01: string[];
-  not_v1_yet: string[];
-  safety_rules: string[];
-}
-
-
 export interface FirstLaunchReadiness {
   status: string;
   title: string;
@@ -765,7 +475,6 @@ export interface FirstLaunchReadiness {
   copy_commands: DesktopStartupCommand[];
   safety_note: string;
 }
-
 
 export interface DesktopPackagingDecision {
   id: string;
@@ -782,51 +491,12 @@ export interface DesktopPackagingPhase {
   deliverables: string[];
 }
 
-export interface DesktopPackagingDesign {
-  status: string;
-  title: string;
-  summary: string;
-  chosen_shell: string;
-  backend_strategy: string;
-  frontend_strategy: string;
-  local_data_strategy: string;
-  port_strategy: string;
-  logging_strategy: string;
-  lifecycle_strategy: string;
-  decisions: DesktopPackagingDecision[];
-  phases: DesktopPackagingPhase[];
-  user_experience: string[];
-  safety_rules: string[];
-  not_in_scope_now: string[];
-}
-
-
 export interface MacOSAppPackageArtifact {
   name: string;
   purpose: string;
   path: string;
   included_in_generated_zip: boolean;
 }
-
-export interface MacOSAppPackageFoundation {
-  status: string;
-  title: string;
-  summary: string;
-  package_goal: string;
-  shell_choice: string;
-  build_script: string;
-  app_bundle_name: string;
-  expected_output_path: string;
-  launch_contract: string[];
-  supervisor_contract: string[];
-  artifacts: MacOSAppPackageArtifact[];
-  build_steps: string[];
-  validation_steps: string[];
-  safety_rules: string[];
-  not_yet_included: string[];
-  user_experience: string[];
-}
-
 
 export interface MacOSAppSupervisorWiringStep {
   id: string;
@@ -840,27 +510,6 @@ export interface MacOSAppSupervisorWiringFile {
   purpose: string;
   generated: boolean;
 }
-
-export interface MacOSAppSupervisorWiring {
-  status: string;
-  title: string;
-  summary: string;
-  package_goal: string;
-  build_script: string;
-  app_bundle_path: string;
-  launcher_path: string;
-  app_data_directory: string;
-  logs_directory: string;
-  backend_health_url: string;
-  startup_flow: MacOSAppSupervisorWiringStep[];
-  generated_files: MacOSAppSupervisorWiringFile[];
-  supervisor_guarantees: string[];
-  user_experience: string[];
-  validation_steps: string[];
-  known_limitations: string[];
-  next_steps: string[];
-}
-
 
 export interface BackendRuntimeBundleItem {
   id: string;
@@ -877,24 +526,6 @@ export interface BackendRuntimeBundleStep {
   command: string | null;
 }
 
-export interface BackendRuntimeBundlePlan {
-  status: string;
-  title: string;
-  summary: string;
-  package_goal: string;
-  recommended_strategy: string;
-  build_script: string;
-  runtime_manifest_path: string;
-  bundle_items: BackendRuntimeBundleItem[];
-  build_steps: BackendRuntimeBundleStep[];
-  validation_steps: string[];
-  safety_rules: string[];
-  known_limitations: string[];
-  next_steps: string[];
-}
-
-
-
 export interface DesktopRuntimeReadinessItem {
   id: string;
   title: string;
@@ -904,22 +535,6 @@ export interface DesktopRuntimeReadinessItem {
   next_action: string;
 }
 
-export interface DesktopRuntimeReadiness {
-  status: string;
-  title: string;
-  summary: string;
-  current_phase: string;
-  v01_position: string;
-  v02_goal: string;
-  readiness_items: DesktopRuntimeReadinessItem[];
-  implementation_order: string[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  blocked_until: string[];
-  safety_rules: string[];
-  honest_remaining_work: string;
-}
-
-
 export interface DesktopRuntimePreflightItem {
   id: string;
   title: string;
@@ -927,21 +542,6 @@ export interface DesktopRuntimePreflightItem {
   summary: string;
   evidence: string;
   fix_command: string | null;
-}
-
-export interface DesktopRuntimePreflight {
-  status: string;
-  title: string;
-  summary: string;
-  preflight_script: string;
-  runtime_manifest_path: string;
-  package_script: string;
-  items: DesktopRuntimePreflightItem[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  pass_criteria: string[];
-  fail_fast_conditions: string[];
-  safety_rules: string[];
-  next_steps: string[];
 }
 
 export interface TauriShellScaffoldFile {
@@ -957,24 +557,6 @@ export interface TauriShellScaffoldPhase {
   summary: string;
   deliverables: string[];
 }
-
-export interface TauriShellScaffold {
-  status: string;
-  title: string;
-  summary: string;
-  package_goal: string;
-  shell_path: string;
-  scaffold_script: string;
-  chosen_stack: string;
-  supervisor_mapping: string[];
-  generated_files: TauriShellScaffoldFile[];
-  implementation_phases: TauriShellScaffoldPhase[];
-  safety_rules: string[];
-  validation_steps: string[];
-  known_limitations: string[];
-  next_steps: string[];
-}
-
 
 export interface DesktopSupervisorPortRule {
   id: string;
@@ -997,26 +579,6 @@ export interface DesktopSupervisorState {
   technical_behavior: string;
 }
 
-export interface DesktopSupervisorContract {
-  status: string;
-  title: string;
-  summary: string;
-  package_goal: string;
-  supervisor_script: string;
-  default_backend_port: number;
-  health_endpoint: string;
-  logs_directory: string;
-  data_directory: string;
-  port_rules: DesktopSupervisorPortRule[];
-  startup_states: DesktopSupervisorState[];
-  log_streams: DesktopSupervisorLogStream[];
-  environment_contract: string[];
-  shutdown_contract: string[];
-  safety_rules: string[];
-  validation_steps: string[];
-  next_packaging_steps: string[];
-}
-
 export interface ProductionReadinessItem {
   id: string;
   title: string;
@@ -1033,16 +595,6 @@ export interface PackagingOption {
   summary: string;
   steps: string[];
   copy_commands: string[];
-}
-
-export interface ProductionReadiness {
-  status: string;
-  summary: string;
-  readiness_score: number;
-  items: ProductionReadinessItem[];
-  packaging_options: PackagingOption[];
-  recommended_next_steps: string[];
-  safety_note: string;
 }
 
 export interface TimelineEvent {
@@ -1069,7 +621,6 @@ export interface RagQualityWarning {
   severity: string;
   evidence: string[];
 }
-
 
 export interface SkillProfileItem {
   id: string;
@@ -1133,7 +684,6 @@ export interface WorkspaceQuestionAnswer {
   usage?: LLMUsageMetrics | null;
   skill_profile?: AskSkillProfileAudit | null;
 }
-
 
 export interface ConversationMessage {
   id: string;
@@ -1213,7 +763,6 @@ export interface WorkspaceConversation {
   is_archived: boolean;
 }
 
-
 export interface ReportSection {
   title: string;
   content: string;
@@ -1263,7 +812,6 @@ export interface ReportCatalog {
   templates: ReportTemplate[];
   safety_notes: string[];
 }
-
 
 export interface BuildCustomWorkspaceReportRequest {
   title?: string | null;
@@ -1361,7 +909,6 @@ export interface WorkspaceSelectedModel {
   selected_at: string;
   selected_reason: string | null;
 }
-
 
 export interface WorkspaceModelSelection {
   workspace_id: string;
@@ -1497,7 +1044,6 @@ export interface WorkspaceModelsDashboard {
   notes: string[];
 }
 
-
 export interface ModelExperimentCandidateRequest {
   provider: string;
   model: string;
@@ -1560,7 +1106,6 @@ export interface ModelExperimentRun {
   candidates: ModelExperimentRunCandidate[];
   notes: string[];
 }
-
 
 export interface ModelExperimentRatingRequest {
   provider: string;
@@ -1677,7 +1222,6 @@ export interface WorkspaceJob {
   duration_ms: number | null;
 }
 
-
 export interface MCPServerTemplate {
   id: string;
   name: string;
@@ -1791,7 +1335,6 @@ export interface AgentPlanningPreview {
   safety_note: string;
 }
 
-
 export interface AgentWorkflowStep {
   id: string;
   order: number;
@@ -1885,7 +1428,6 @@ export interface AgentWorkflowStepApprovalPreview {
   blocked_actions: string[];
   safety_note: string;
 }
-
 
 export interface AgentWorkflowExecutionReadinessStep {
   step_id: string;
@@ -2021,8 +1563,6 @@ export interface GuidedModelSetupGuide {
   safety_notes: string[];
 }
 
-
-
 export interface OllamaModelRole {
   id: string;
   title: string;
@@ -2075,7 +1615,6 @@ export interface LocalModelInstallGuide {
   next_steps: string[];
 }
 
-
 export interface LocalModelStatusItem {
   provider: string;
   model: string;
@@ -2107,7 +1646,6 @@ export interface LocalModelInstallStatus {
   safety_notes: string[];
 }
 
-
 export interface LocalModelDownloadWorkerStep {
   id: string;
   title: string;
@@ -2134,7 +1672,6 @@ export interface LocalModelDownloadWorkerPlan {
   future_endpoints: string[];
   user_flow: string[];
 }
-
 
 export interface CommandProposal {
   id: string;
@@ -2234,31 +1771,12 @@ export interface LocalModelDownloadExecutionResult {
   next_steps: string[];
 }
 
-
 export interface PyInstallerBackendRuntimeItem {
   id: string;
   title: string;
   status: string;
   summary: string;
   path: string | null;
-}
-
-export interface PyInstallerBackendRuntimeContract {
-  status: string;
-  title: string;
-  summary: string;
-  builder: string;
-  build_script: string;
-  check_script: string;
-  entrypoint_path: string;
-  spec_path: string;
-  frozen_runtime_dir: string;
-  manifest_path: string;
-  items: PyInstallerBackendRuntimeItem[];
-  runtime_contract: string[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  safety_rules: string[];
-  next_steps: string[];
 }
 
 export interface RuntimeSelectionCandidate {
@@ -2270,20 +1788,6 @@ export interface RuntimeSelectionCandidate {
   fallback_rule: string;
 }
 
-export interface FrozenBackendRuntimeSelection {
-  status: string;
-  title: string;
-  summary: string;
-  selection_strategy: string;
-  tauri_bridge_file: string;
-  check_script: string;
-  candidates: RuntimeSelectionCandidate[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  safety_rules: string[];
-  next_steps: string[];
-}
-
-
 export interface FrozenBackendSmokeItem {
   id: string;
   title: string;
@@ -2292,41 +1796,12 @@ export interface FrozenBackendSmokeItem {
   command: string | null;
 }
 
-export interface FrozenBackendSmokeContract {
-  status: string;
-  title: string;
-  summary: string;
-  smoke_script: string;
-  smoke_mode: string;
-  health_url: string;
-  items: FrozenBackendSmokeItem[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  safety_rules: string[];
-  next_steps: string[];
-}
-
-
-
 export interface FrozenBackendStartupDiagnosticsItem {
   id: string;
   title: string;
   status: string;
   summary: string;
   command: string | null;
-}
-
-export interface FrozenBackendStartupDiagnostics {
-  status: string;
-  title: string;
-  summary: string;
-  check_script: string;
-  smoke_script: string;
-  entrypoint_path: string;
-  spec_path: string;
-  diagnostics_items: FrozenBackendStartupDiagnosticsItem[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  safety_rules: string[];
-  next_steps: string[];
 }
 
 export interface AppOwnedBackendStartupGateItem {
@@ -2337,21 +1812,6 @@ export interface AppOwnedBackendStartupGateItem {
   command: string | null;
 }
 
-export interface AppOwnedBackendStartupGate {
-  status: string;
-  title: string;
-  summary: string;
-  startup_mode: string;
-  tauri_bridge_file: string;
-  check_script: string;
-  required_gates: AppOwnedBackendStartupGateItem[];
-  startup_contract: string[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  safety_rules: string[];
-  next_steps: string[];
-}
-
-
 export interface AppOwnedBackendStartupImplementationItem {
   id: string;
   title: string;
@@ -2360,22 +1820,6 @@ export interface AppOwnedBackendStartupImplementationItem {
   evidence: string;
   command: string | null;
 }
-
-export interface AppOwnedBackendStartupImplementation {
-  status: string;
-  title: string;
-  summary: string;
-  startup_mode: string;
-  tauri_bridge_file: string;
-  check_script: string;
-  runtime_priority: string[];
-  implementation_items: AppOwnedBackendStartupImplementationItem[];
-  tauri_commands: string[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  safety_rules: string[];
-  next_steps: string[];
-}
-
 
 export interface AppOwnedBackendHealthReadinessItem {
   id: string;
@@ -2386,21 +1830,6 @@ export interface AppOwnedBackendHealthReadinessItem {
   command: string | null;
 }
 
-export interface AppOwnedBackendHealthReadiness {
-  status: string;
-  title: string;
-  summary: string;
-  readiness_mode: string;
-  health_url: string;
-  tauri_bridge_file: string;
-  check_script: string;
-  implementation_items: AppOwnedBackendHealthReadinessItem[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  safety_rules: string[];
-  next_steps: string[];
-}
-
-
 export interface MacOSTauriSmokeRunbookItem {
   id: string;
   title: string;
@@ -2408,23 +1837,6 @@ export interface MacOSTauriSmokeRunbookItem {
   summary: string;
   command: string | null;
 }
-
-export interface MacOSTauriSmokeRunbook {
-  status: string;
-  title: string;
-  summary: string;
-  runbook_doc: string;
-  check_script: string;
-  platform: string;
-  prerequisites: string[];
-  smoke_steps: MacOSTauriSmokeRunbookItem[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  pass_criteria: string[];
-  fail_fast_conditions: string[];
-  safety_rules: string[];
-  next_steps: string[];
-}
-
 
 export interface MacOSPackagedAppSmokePreflightItem {
   id: string;
@@ -2434,42 +1846,12 @@ export interface MacOSPackagedAppSmokePreflightItem {
   command: string | null;
 }
 
-export interface MacOSPackagedAppSmokePreflight {
-  status: string;
-  title: string;
-  summary: string;
-  runbook_doc: string;
-  check_script: string;
-  package_manager: string;
-  desktop_shell: string;
-  preflight_items: MacOSPackagedAppSmokePreflightItem[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  pass_criteria: string[];
-  safety_rules: string[];
-  next_steps: string[];
-}
-
-
-
 export interface TauriPackagedAppBuildItem {
   id: string;
   title: string;
   status: string;
   summary: string;
   command: string | null;
-}
-
-export interface TauriPackagedAppBuildReadiness {
-  status: string;
-  title: string;
-  summary: string;
-  milestone: string;
-  check_script: string;
-  packaged_build_command: string;
-  readiness_items: TauriPackagedAppBuildItem[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  safety_rules: string[];
-  next_steps: string[];
 }
 
 export interface MacOSPackagedAppSmokeResultItem {
@@ -2481,19 +1863,6 @@ export interface MacOSPackagedAppSmokeResultItem {
   command: string | null;
 }
 
-export interface MacOSPackagedAppSmokeResult {
-  status: string;
-  title: string;
-  summary: string;
-  milestone: string;
-  check_script: string;
-  packaged_app_path: string;
-  local_results: MacOSPackagedAppSmokeResultItem[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  safety_rules: string[];
-  next_steps: string[];
-}
-
 export interface PackagedAppFrontendBootstrapItem {
   id: string;
   title: string;
@@ -2501,19 +1870,6 @@ export interface PackagedAppFrontendBootstrapItem {
   summary: string;
   evidence: string | null;
   command: string | null;
-}
-
-export interface PackagedAppFrontendBootstrap {
-  status: string;
-  title: string;
-  summary: string;
-  milestone: string;
-  check_script: string;
-  root_cause: string;
-  readiness_items: PackagedAppFrontendBootstrapItem[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  safety_rules: string[];
-  next_steps: string[];
 }
 
 export interface TauriRustStructureRegistryItem {
@@ -2524,21 +1880,6 @@ export interface TauriRustStructureRegistryItem {
   command: string | null;
 }
 
-export interface TauriRustStructureRegistry {
-  status: string;
-  title: string;
-  summary: string;
-  check_script: string;
-  rust_entrypoint: string;
-  rust_library: string;
-  npm_registry_policy: string;
-  validation_items: TauriRustStructureRegistryItem[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  safety_rules: string[];
-  next_steps: string[];
-}
-
-
 export interface TauriRustDependencyPinItem {
   id: string;
   title: string;
@@ -2547,39 +1888,10 @@ export interface TauriRustDependencyPinItem {
   command: string | null;
 }
 
-export interface TauriRustDependencyPins {
-  status: string;
-  title: string;
-  summary: string;
-  check_script: string;
-  cargo_toml_policy: string;
-  gitignore_policy: string;
-  validation_items: TauriRustDependencyPinItem[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  safety_rules: string[];
-  next_steps: string[];
-}
-
 export interface StagedBackendRuntimeItem {
   id: string;
   title: string;
   status: string;
   summary: string;
   path: string | null;
-}
-
-export interface StagedBackendRuntimeContract {
-  status: string;
-  title: string;
-  summary: string;
-  staging_script: string;
-  check_script: string;
-  staging_directory: string;
-  launcher_path: string;
-  manifest_path: string;
-  items: StagedBackendRuntimeItem[];
-  runtime_contract: string[];
-  validation_commands: ReleaseCandidateAuditCommand[];
-  safety_rules: string[];
-  next_steps: string[];
 }

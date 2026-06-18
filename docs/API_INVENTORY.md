@@ -11,16 +11,7 @@ filesystem, provider, or command-runner activity outside SQLite repositories.
 | `GET /health` | Process liveness check. | No | No | No | App shell |
 | `GET /runtime/health` | Report configured Qdrant, Ollama, and command-runner health. | No | No | Lightweight Qdrant/Ollama checks when configured | Runtime status |
 | `GET /runtime/troubleshooting` | Build a read-only troubleshooting plan for Ollama, Qdrant, fake providers, memory vector store, and safe restart commands. | No | No | Runtime health checks only | Settings troubleshooting assistant |
-| `GET /runtime/local-data` | Report local workspace database path, counts, safety warnings, protected paths, and safe update excludes. | No | No | Local SQLite metadata read only | Runtime diagnostics |
-| `GET /runtime/startup-checklist` | Report local startup readiness for Python, database, model providers, vector store, and safe-update workflow. | No | No | Read-only runtime settings and SQLite diagnostics | Settings startup checklist |
-| `GET /runtime/desktop-startup` | Return copy-only local startup commands, open-last-workspace behavior, and desktop-like readiness guidance. | No | No | Read-only runtime settings and SQLite diagnostics | Settings desktop startup |
 | `GET /runtime/first-launch-readiness` | Return read-only desktop post-launch checklist for backend, workspace data, local models, search store, and macOS launcher readiness. | No | No | Read-only runtime settings and SQLite diagnostics | Models desktop setup |
-| `GET /runtime/production-readiness` | Return final local production-readiness score, packaging options, and copy-only daily-use checklist. | No | No | Read-only runtime settings and SQLite diagnostics | Settings production readiness |
-| `GET /runtime/update-safety` | Return the safe generated-update workflow, required runtime-data excludes, dry-run/apply commands, backup policy, and preflight checks. | No | No | Read-only runtime settings and SQLite diagnostics | Settings update workflow |
-| `GET /runtime/database-backups` | List local workspace DB backup files stored next to the active database. | No | No | Local filesystem metadata read | Settings backup workflow |
-| `POST /runtime/database-backups` | Create an explicit local copy of the active workspace database. | Backup file only | No | Local filesystem copy by explicit user action | Settings backup workflow |
-| `POST /runtime/database-restore-plan` | Return manual restore steps and copy commands for a selected backup without modifying the active database. | No | No | Local filesystem metadata read | Settings restore workflow |
-| `GET /runtime/database-migration-safety` | Report read-only SQLite table readiness and migration safety recommendations. | No | No | Local SQLite metadata read only | Settings migration safety |
 | `POST /runtime/setup-guide` | Compare recommended onboarding runtime with active runtime health. | No | No | Lightweight Qdrant/Ollama checks when configured | Setup wizard |
 
 ## Onboarding And Assistant Profiles
@@ -302,109 +293,70 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 
 ## Task 214 — Desktop packaging design lock
 
-- `GET /runtime/desktop-packaging-design` — read-only packaging architecture target for the real two-click desktop app. It documents Tauri-first shell, supervised local backend, localhost-only API, protected local data, logging, lifecycle, implementation phases, and safety boundaries.
 
 ## Task 215 — macOS app package foundation
 
-- `GET /runtime/macos-app-package-foundation` — read-only macOS package foundation contract. It describes the `.app` skeleton, build script, expected artifacts, launch/supervisor contract, validation steps, safety rules, and items not yet included in the final package.
-- `GET /runtime/macos-app-supervisor-wiring` — read-only macOS app supervisor wiring contract. It describes how the generated `.app` launcher is connected to supervisor lifecycle rules, app-owned backend startup, health polling, logs, safe port behavior, generated files, limitations, and next packaging steps.
-- `GET /runtime/desktop-supervisor-contract` — read-only desktop supervisor lifecycle contract. It describes local backend startup states, localhost/port rules, log streams, shutdown behavior, validation steps, and safety boundaries for the future packaged app.
 
 ## Task 218 — backend runtime bundle readiness
 
-- `GET /runtime/backend-runtime-bundle-plan` — read-only macOS backend runtime bundling plan. It documents how to move from local `python3` dependency to an app-owned backend runtime, the runtime manifest, build sequence, validation checks, safety rules, and known limitations. It does not execute packaging commands.
-- `GET /runtime/tauri-shell-scaffold` — read-only Tauri desktop shell scaffold summary. It documents the source-controlled shell files, supervisor mapping, validation script, safety boundaries, current limitations, and next packaging steps. It does not install Tauri, start backend processes, execute shell commands, download models, or run MCP/agent workflows.
 
 ## Task 220 — Tauri supervisor bridge
 
-- `GET /runtime/tauri-supervisor-bridge` — read-only Tauri supervisor bridge contract. It documents startup states, Tauri command strategy, health readiness, log paths, validation steps, safety rules, and limitations. It does not start backend processes, install Tauri, run shell commands, download models, run MCP servers, or execute agent workflows.
 
-- `GET /runtime/tauri-supervisor-static-gate` — read-only Tauri supervisor static gate. It validates that the desktop bridge exposes status/log/preflight commands, keeps backend startup disabled, and contains no process execution API before frozen runtime work begins.
 
-- `GET /runtime/windows-packaging-foundation` — read-only Windows packaging foundation. It documents Windows app data/log paths, supervisor lifecycle, Tauri/installer direction, validation scripts, safety rules, and current limitations. It does not build an installer, start backend processes, execute PowerShell, download models, run MCP servers, or execute agent workflows.
 
 
 ### Release candidate audit
 
-- `GET /runtime/release-candidate-audit` — read-only v0.1 release candidate audit for source structure, no-runtime-data policy, docs, safety boundaries, and packaging readiness.
 
 ## Task 223 — v0.1 demo and GitHub handoff
 
-- `GET /runtime/v0.1-handoff` — read-only v0.1 handoff guide for demo flow, GitHub repository highlights, important docs, validation commands, release notes, limitations, next steps, and safety boundaries.
 
-| `GET /runtime/product-completion-roadmap` | Return an honest v0.1-to-v1 completion roadmap, remaining large work packages, and safety boundaries. | No | No | No | Settings / GitHub handoff |
-| `GET /runtime/final-product-status` | Return the final v0.1 source-RC status, v1.0 runway, remaining tasks, publication checks, and safety boundaries. | No | No | No | Settings / final handoff |
-| `GET /runtime/v0.1-release-gate` | Return the final local go/no-go checklist before publishing the v0.1 source RC or creating the release archive. | No | No | No | Release checklist / GitHub handoff |
-| `GET /runtime/v0.1-ui-smoke-check` | Return the manual browser smoke-check checklist for Models, Settings, onboarding, Ask, and startup safety before v0.1 publication. | No | No | No | Release checklist / local UI verification |
-| `GET /runtime/v0.1-publication-handoff` | Return the final copyable publication path after local smoke-check: audit, tests, build, archive, git status, commit/push commands, and do-not-commit list. | No | No | No | GitHub/source release handoff |
 
-| `GET /runtime/desktop-runtime-readiness` | Return the Phase 22 / v0.2 desktop runtime readiness plan, implementation order, validation commands, blockers, and safety boundaries. | No | No | No | Settings / desktop runtime roadmap |
-| `GET /runtime/desktop-runtime-preflight` | Return the Phase 22 desktop runtime preflight, packaging inputs, pass/fail criteria, validation commands, and safety rules. | No | No | No | Settings / desktop runtime preflight |
 
-| `GET /runtime/desktop-technology-decision` | Return the explicit desktop shell technology decision, why Tauri is the current candidate, alternatives, guardrails, and reconsideration triggers. | No | No | No | Settings / desktop runtime architecture |
 
 ## Task 242 runtime endpoint
 
-- `GET /runtime/desktop-stack-runtime-contract` — selected open-source/free cross-platform desktop stack, rejected alternatives, runtime freeze milestones, staging contract, validation commands, and safety rules.
 
-- `GET /runtime/staged-backend-runtime-contract` — staged backend runtime layout, manifest, launcher and validation contract for v0.2 desktop packaging.
 
 ## Task 244 runtime endpoint
 
-- `GET /runtime/pyinstaller-backend-runtime-contract` — PyInstaller frozen backend runtime proof-of-concept contract, build/check scripts, entrypoint/spec paths, validation commands, and safety rules.
 
 ## Task 245 runtime endpoint
 
-- `GET /runtime/frozen-backend-smoke-contract` — developer-only frozen backend smoke contract. It documents `scripts/smoke_frozen_backend_runtime.sh`, PID-owned cleanup, `/health` verification, and the rule that frontend/Tauri still cannot auto-start backend until later gates pass.
-- `GET /runtime/frozen-backend-runtime-selection` — read-only runtime selection contract for frozen PyInstaller backend, staged source runtime fallback, and manual developer backend. It also records safety rules for future Tauri startup gating.
 
 ## Task 247 runtime endpoint
 
-- `GET /runtime/app-owned-backend-startup-gate` — read-only gate before Tauri may start an app-owned backend runtime. It records frozen manifest, developer smoke, PID-owned shutdown, health readiness, no kill-by-port behavior, and the rule that this task still does not enable automatic backend startup.
 
 
 ## Task 248 — app-owned backend startup implementation
 
-- `GET /runtime/app-owned-backend-startup-implementation` records the first real Tauri backend lifecycle implementation.
 - Tauri now has narrow commands to report, start, and stop only the app-owned frozen backend runtime.
 - Startup is gated by the frozen backend manifest; missing manifest means blocked startup, not arbitrary fallback.
 - Shutdown is PID-owned and no kill-by-port/generic shell execution is allowed.
-- Settings crash coverage for `GET /runtime/v0.1-handoff` was added.
-- `GET /runtime/macos-tauri-smoke-runbook` — local macOS frozen runtime and Tauri smoke runbook. It records the safe sequence for building the PyInstaller backend runtime, smoking it outside Tauri, then running the Tauri desktop smoke with app-owned startup and PID-owned shutdown.
 
 
 ## Task 250 — Tauri backend health readiness
 
-- `GET /runtime/app-owned-backend-health-readiness` — records the health readiness gate for real Tauri app-owned backend startup. It requires HTTP `GET /health` to return 200 before the desktop shell treats startup as successful, and keeps failed-startup cleanup PID-owned with no kill-by-port behavior.
 
 ## Task 251 — macOS packaged app smoke preflight
 
-- `GET /runtime/macos-packaged-app-smoke-preflight` — records the reproducible macOS packaged-app smoke preflight. It validates Tauri CLI npm wiring, package-lock support, Rust/Tauri scaffold presence, frozen backend manifest readiness, HTTP `/health` readiness, and no generic shell/kill-by-port behavior before package smoke.
 
 
-- `GET /runtime/packaging-toolchain-prerequisites` — Packaging prerequisite contract for PyInstaller dependency, spec path resolution, Tauri CLI scripts, and Rust/Cargo local setup.
 
-- `GET /runtime/tauri-rust-dependency-pins` — validates the Tauri Rust dependency compatibility pin for the local `cookie`/`time` Cargo conflict and confirms `frontend/src-tauri/target/` is ignored as local build output.
-- `GET /runtime/tauri-rust-structure-registry` — validates Tauri Rust `main.rs`/`lib.rs` structure and npm lockfile registry hygiene. It catches the missing `src/lib.rs` Cargo blocker and prevents internal registry URLs from leaking into committed `package-lock.json`.
 
 ## Task 255 — Tauri icon assets
 
-- `GET /runtime/tauri-icon-assets` — validates required Tauri RGBA PNG icon assets and Rust import hygiene so `cargo check --manifest-path frontend/src-tauri/Cargo.toml` does not fail on missing/non-RGBA icons or warning-only cleanup.
 
 ## Task 256 — Tauri dev smoke readiness
 
-- `GET /runtime/tauri-dev-smoke-readiness` — records that local `cargo check` / `npm run tauri dev` now works after the Rust structure, dependency pin, npm registry, and RGBA icon blockers were fixed. It defines the remaining safe path toward packaged macOS app smoke while preserving frozen-manifest, `/health`, PID-owned shutdown, and no-auto-scan/index/Agent/MCP/model-download guardrails.
 
 ## Task 257 — Tauri packaged app build readiness
 
-- `GET /runtime/tauri-packaged-app-build-readiness` — records the packaged macOS/Tauri app build readiness gate. It verifies Tauri bundle activation, package icons, frozen backend runtime resource wiring, packaged manifest lookup paths, `/health` readiness, and `.idea`/`.DS_Store`/Tauri target hygiene before `npm run tauri:build`.
 
 ## Task 258 — frozen backend startup diagnostics
 
-- `GET /runtime/frozen-backend-startup-diagnostics` — records the hardened frozen backend diagnostics path after local smoke showed `Connection refused`. It validates explicit import preflight, broader PyInstaller hidden imports, app-owned smoke data paths, and log-tail diagnostics when `/health` does not become ready.
-- `GET /runtime/macos-packaged-app-smoke-result` — records the local milestone where frozen backend smoke and Tauri packaged macOS app build passed, and exposes the remaining packaged `.app` smoke steps.
 
-- `GET /runtime/packaged-app-frontend-bootstrap` — packaged app frontend bootstrap contract for app-owned backend startup.
 
 
 ## Task 261 note
