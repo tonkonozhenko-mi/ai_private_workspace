@@ -5,7 +5,16 @@ instance/port, separate from the answer model — the same shape Ollama uses
 internally. Uses the OpenAI-compatible ``/v1/embeddings`` endpoint.
 """
 
+import time
+
 import httpx
+
+# The embedding server can briefly return 5xx (or refuse a connection) while it
+# warms up after /health goes green, or when its single slot is momentarily busy
+# during a burst of indexing requests. Those are transient, so we retry a few
+# times with a short backoff instead of failing the whole "Build context" step.
+_RETRY_ATTEMPTS = 4
+_RETRY_BASE_DELAY_SECONDS = 0.5
 
 
 class LlamaServerEmbeddingProviderError(RuntimeError):
@@ -37,21 +46,37 @@ class LlamaServerEmbeddingProvider:
         return self._embedding_dimension
 
     def embed_text(self, text: str) -> list[float]:
-        try:
-            response = self.client.post(
-                f"{self.base_url}/v1/embeddings",
-                json={"model": self.model, "input": text},
-                timeout=self.timeout_seconds,
+        response: httpx.Response | None = None
+        last_detail = ""
+        for attempt in range(_RETRY_ATTEMPTS):
+            try:
+                candidate = self.client.post(
+                    f"{self.base_url}/v1/embeddings",
+                    json={"model": self.model, "input": text},
+                    timeout=self.timeout_seconds,
+                )
+            except (httpx.TimeoutException, httpx.ConnectError) as exc:
+                last_detail = str(exc)
+            else:
+                if candidate.status_code < 500:
+                    try:
+                        candidate.raise_for_status()
+                    except httpx.HTTPError as exc:
+                        raise LlamaServerEmbeddingProviderError(
+                            f"Unable to reach llama-server embedding API at "
+                            f"{self.base_url}: {exc}"
+                        ) from exc
+                    response = candidate
+                    break
+                last_detail = f"HTTP {candidate.status_code}"
+            if attempt < _RETRY_ATTEMPTS - 1:
+                time.sleep(min(2.0, _RETRY_BASE_DELAY_SECONDS * (2**attempt)))
+
+        if response is None:
+            raise LlamaServerEmbeddingProviderError(
+                f"llama-server embedding API at {self.base_url} did not respond "
+                f"successfully after {_RETRY_ATTEMPTS} attempts: {last_detail}"
             )
-            response.raise_for_status()
-        except httpx.TimeoutException as exc:
-            raise LlamaServerEmbeddingProviderError(
-                f"llama-server embedding request timed out after {self.timeout_seconds}s"
-            ) from exc
-        except httpx.HTTPError as exc:
-            raise LlamaServerEmbeddingProviderError(
-                f"Unable to reach llama-server embedding API at {self.base_url}: {exc}"
-            ) from exc
 
         try:
             payload = response.json()

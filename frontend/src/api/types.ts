@@ -108,7 +108,7 @@ export interface ProjectTodosResponse {
 export interface GgufCatalogItem {
   id: string;
   name: string;
-  model_type: "llm" | "embedding";
+  model_type: "llm" | "embedding" | "reranker";
   repo_id: string;
   filename: string;
   quantization: string;
@@ -126,7 +126,7 @@ export interface GgufDownloadJob {
   id: string;
   model_id: string;
   name: string;
-  model_type: "llm" | "embedding";
+  model_type: "llm" | "embedding" | "reranker";
   status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
   downloaded_bytes: number;
   total_bytes: number | null;

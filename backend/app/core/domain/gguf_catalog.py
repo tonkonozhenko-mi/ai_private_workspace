@@ -19,7 +19,7 @@ HUGGINGFACE_BASE_URL = "https://huggingface.co"
 class GgufModel:
     id: str  # friendly key, aligned with the Ollama tag where one exists
     name: str
-    model_type: str  # "llm" | "embedding"
+    model_type: str  # "llm" | "embedding" | "reranker"
     repo_id: str
     filename: str
     quantization: str
@@ -79,6 +79,17 @@ GGUF_CATALOG: tuple[GgufModel, ...] = (
         min_ram_gb=8,
         ollama_tag="nomic-embed-text",
     ),
+    GgufModel(
+        id="bge-reranker-v2-m3",
+        name="BGE Reranker v2 m3",
+        model_type="reranker",
+        repo_id="gpustack/bge-reranker-v2-m3-GGUF",
+        filename="bge-reranker-v2-m3-Q4_K_M.gguf",
+        quantization="Q4_K_M",
+        size_bytes=370_000_000,
+        recommended=True,
+        min_ram_gb=8,
+    ),
 )
 
 
@@ -108,3 +119,10 @@ def default_gguf_embedding() -> GgufModel:
         if model.model_type == "embedding" and model.recommended:
             return model
     return next(model for model in GGUF_CATALOG if model.model_type == "embedding")
+
+
+def default_gguf_reranker() -> GgufModel:
+    for model in GGUF_CATALOG:
+        if model.model_type == "reranker" and model.recommended:
+            return model
+    return next(model for model in GGUF_CATALOG if model.model_type == "reranker")

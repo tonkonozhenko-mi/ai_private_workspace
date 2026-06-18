@@ -28,19 +28,23 @@ def build_workspace_question_prompt(
     source_paths = ", ".join(result.source_path for result in context_results)
     normalized_skill_instructions = _normalize_skill_instructions(skill_instructions or [])
     skill_section = _build_skill_section(normalized_skill_instructions)
-    identity_line = (
-        f"You are running locally as the model `{assistant_identity}`. If the user "
-        "asks what model or assistant you are, just tell them this — do not describe "
-        "the project or its files.\n\n"
+    # Identity is a low-priority end-clause, not a headline: small models otherwise
+    # latch onto it and answer a clear project question with their model name.
+    identity_clause = (
+        "\n- Only if the user explicitly asks which AI model or assistant you are, "
+        f"reply that you are `{assistant_identity}` and nothing else. Never answer a "
+        "question about the project with your model name."
         if assistant_identity
         else ""
     )
 
     return (
-        "You are a helpful local AI assistant. The files below were retrieved as "
+        "You are a helpful local AI assistant for the user's project. Default to "
+        "answering the question from the project files below and citing the exact "
+        "source_path.\n\n"
+        "The files below were retrieved as "
         "possibly-relevant context for the question, but you must decide for "
         "yourself whether they actually apply.\n\n"
-        f"{identity_line}"
         "Decide first: is this question about the user's project? If it is, answer "
         "from the files below and cite the exact source_path. If instead it is about "
         "you (the assistant/model), a general question, or otherwise not answerable "
@@ -73,6 +77,7 @@ def build_workspace_question_prompt(
         "safe proposed change: target path, exact file content or patch, and a "
         "short approval note saying the app must ask before applying changes.\n"
         "- Do not invent facts."
+        f"{identity_clause}"
     )
 
 

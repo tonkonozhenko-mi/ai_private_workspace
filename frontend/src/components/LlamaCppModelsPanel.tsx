@@ -60,7 +60,9 @@ export function LlamaCppModelsPanel({
 
   const refreshCatalog = useCallback(async () => {
     const all = await getGgufCatalog();
-    setModels(all);
+    // Rerankers are managed only via Settings ("Sharper search"), never as an
+    // answer/search model here.
+    setModels(all.filter((model) => model.model_type !== "reranker"));
   }, []);
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export function LlamaCppModelsPanel({
       });
     getGgufCatalog()
       .then((all) => {
-        if (!cancelled) setModels(all);
+        if (!cancelled) setModels(all.filter((model) => model.model_type !== "reranker"));
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Could not load the model list."));
     const active = pollers.current;

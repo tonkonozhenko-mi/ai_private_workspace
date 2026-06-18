@@ -83,6 +83,7 @@ import type {
 import { CopyButton } from "./CopyButton";
 import { EmptyState } from "./EmptyState";
 import { LlamaCppModelsPanel } from "./LlamaCppModelsPanel";
+import { RerankerSetting } from "./RerankerSetting";
 import { StatusBadge } from "./StatusBadge";
 import {
   SKILL_PROFILE_TEMPLATES,
@@ -379,6 +380,9 @@ export function ModelsDetail({
             }
             onApplySelection={applyGuidedSelection}
           />
+          {/* Reranker ("sharper search") is a llama.cpp-only precision pass —
+              only offer it when this project runs on the built-in engine. */}
+          {comparisonBackend === "llamacpp" ? <RerankerSetting /> : null}
           {/* The detailed Ollama model manager is meaningless in llama.cpp mode
               (it pulls Ollama models) — the llama.cpp panel above manages GGUF
               models instead. Only show it for the Ollama backend. */}

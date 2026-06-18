@@ -376,6 +376,25 @@ export function cancelGgufDownload(jobId: string): Promise<GgufDownloadJob> {
   });
 }
 
+export interface RerankerStatus {
+  enabled: boolean;
+  model_id: string;
+  model_installed: boolean;
+  running: boolean;
+}
+
+export function getRerankerStatus(): Promise<RerankerStatus> {
+  return getJson<RerankerStatus>(`/models/reranker`);
+}
+
+export function setRerankerEnabled(enabled: boolean): Promise<RerankerStatus> {
+  return requestJson<RerankerStatus>(`/models/reranker`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ enabled }),
+  });
+}
+
 export function getLlamaRuntimeStatus(): Promise<LlamaRuntimeStatus> {
   return getJson<LlamaRuntimeStatus>(`/models/llama-runtime/status`);
 }

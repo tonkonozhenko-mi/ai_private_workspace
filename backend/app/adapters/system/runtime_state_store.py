@@ -58,6 +58,17 @@ class RuntimeStateStore:
         if ref:
             self._update("llamacpp_llm", ref)
 
+    def get_rerank_enabled(self) -> bool:
+        """Whether the optional "sharper search" reranker should run."""
+        try:
+            data = json.loads(self._path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return False
+        return bool(data.get("rerank_enabled")) if isinstance(data, dict) else False
+
+    def set_rerank_enabled(self, enabled: bool) -> None:
+        self._update("rerank_enabled", bool(enabled))
+
     def _update(self, key: str, value: object) -> None:
         with self._lock:
             data: dict = {}

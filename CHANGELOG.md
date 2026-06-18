@@ -9,12 +9,21 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Added
 
-- **Reranker foundation (opt-in, in progress).** A cross-encoder reranker
-  abstraction (`RerankerPort` + a llama.cpp `/rerank` adapter) and an optional
-  precision pass in Ask: hybrid retrieval pulls a wider candidate set, the
-  reranker re-sorts it, and the best are kept. Fully gated and transparent — with
-  no reranker configured (the default), Ask behaves exactly as before. The
-  bundled reranker model, its runtime, and the "sharper search" toggle land next.
+- **"Sharper search" reranker (opt-in).** A cross-encoder reranker precision pass:
+  hybrid retrieval pulls a wider candidate set, a reranker model re-scores each
+  (question, snippet) pair, and the best are kept — noticeably more relevant
+  sources on tricky questions. A Settings toggle downloads a small reranker model
+  (~370 MB) on first enable and runs it on the built-in llama.cpp engine
+  (separate `llama-server --reranking` process). Fully gated and graceful: off by
+  default, and if the model/engine isn't available Ask falls back to plain hybrid
+  retrieval, so it can never break answering.
+
+### Changed
+
+- Stronger path/env signal in the answer prompt: it now leads with "answer from
+  the project files and cite the source_path", and the model-identity note is a
+  low-priority end clause — so small models stop replying to a project question
+  with just their model name.
 
 ## [0.1.95] - 2026-06-18
 
@@ -122,7 +131,10 @@ experience, faster startup, and signed per-architecture macOS builds.
   dereferenced symlink aliases) and surface the server's real stderr.
 - llama.cpp embedding API returning HTTP 500 on `/v1/embeddings` — the embedding
   server now starts with mean pooling (and without the chat-template flag it does
-  not need), which many embedding GGUFs require to serve embeddings.
+  not need), which many embedding GGUFs require to serve embeddings. Indexing also
+  now retries transient embedding errors (a 5xx or dropped connection while the
+  server warms up or its slot is briefly busy) with a short backoff, so "Build
+  context" no longer fails intermittently.
 - False "selected embedding not active" warning when running on llama.cpp.
 - Answer creativity is observable — "Precise" sends temperature `0.0`.
 - Ollama "Install & continue" no longer stalls (the backend is re-activated so
@@ -138,6 +150,10 @@ experience, faster startup, and signed per-architecture macOS builds.
 - The setup "Scan project" button could get stuck (no reaction) after installing
   Ollama, because a stalled refresh left the step busy — the re-check now never
   freezes the next action.
+- Small models sometimes answered a clear project question with just their model
+  name ("I am …"). The answer prompt now leads with "answer from the project
+  files and cite the source_path" and demotes the model-identity note to a
+  low-priority end clause, so the retrieved context is actually used.
 - "Get Ollama" button contrast, plus assorted spacing, font, and button-sizing
   inconsistencies across Home, Models, Ask, and Settings.
 
