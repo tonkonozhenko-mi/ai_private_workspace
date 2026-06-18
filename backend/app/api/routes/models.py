@@ -500,6 +500,57 @@ def llama_runtime_stop() -> LlamaRuntimeStatusResponse:
     return LlamaRuntimeStatusResponse(**llama_runtime_manager.stop())
 
 
+class RerankerToggleRequest(BaseModel):
+    enabled: bool
+
+
+class RerankerStatusResponse(BaseModel):
+    enabled: bool
+    model_id: str
+    model_installed: bool
+    running: bool
+
+
+def _reranker_status_response() -> "RerankerStatusResponse":
+    from app.api.dependencies import runtime_state_store
+
+    status_dict = llama_runtime_manager.status()
+    return RerankerStatusResponse(
+        enabled=runtime_state_store.get_rerank_enabled(),
+        model_id=status_dict.get("rerank_model_id", ""),
+        model_installed=bool(status_dict.get("rerank_model_installed")),
+        running=bool(status_dict.get("rerank_running")),
+    )
+
+
+@router.get("/reranker", response_model=RerankerStatusResponse)
+def reranker_status() -> RerankerStatusResponse:
+    return _reranker_status_response()
+
+
+@router.post("/reranker", response_model=RerankerStatusResponse)
+def set_reranker(request: RerankerToggleRequest) -> RerankerStatusResponse:
+    """Toggle the optional "sharper search" reranker (llama.cpp only).
+
+    Enabling persists the choice and starts the reranker server *if* its model is
+    downloaded; if not, the response shows ``model_installed=false`` and the UI
+    should download the reranker model first, then re-enable. Disabling stops it.
+    """
+    from app.adapters.system.llama_runtime_manager import LlamaRuntimeError
+    from app.adapters.system.llama_server_process_manager import LlamaServerStartError
+    from app.api.dependencies import runtime_state_store
+
+    runtime_state_store.set_rerank_enabled(request.enabled)
+    if request.enabled:
+        try:
+            llama_runtime_manager.enable_rerank()
+        except (LlamaRuntimeError, LlamaServerStartError):
+            pass  # model not ready / failed to start; the status reflects it
+    else:
+        llama_runtime_manager.disable_rerank()
+    return _reranker_status_response()
+
+
 class SwitchLlamaLlmRequest(BaseModel):
     model_id: str | None = None
     repo_id: str | None = None

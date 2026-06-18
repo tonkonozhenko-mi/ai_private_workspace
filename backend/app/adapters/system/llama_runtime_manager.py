@@ -17,6 +17,7 @@ from app.core.domain.gguf_catalog import (
     GgufModel,
     default_gguf_embedding,
     default_gguf_llm,
+    default_gguf_reranker,
 )
 from app.core.use_cases.download_gguf_model import (
     DownloadGgufModelUseCase,
@@ -58,13 +59,16 @@ class LlamaRuntimeManager:
         host: str = "127.0.0.1",
         llm_port: int = 8080,
         embed_port: int = 8081,
+        rerank_port: int = 8082,
     ) -> None:
         self._dl = download_use_case
         self._host = host
         self._llm_port = llm_port
         self._embed_port = embed_port
+        self._rerank_port = rerank_port
         self._llm: LlamaServerProcessManager | None = None
         self._embed: LlamaServerProcessManager | None = None
+        self._rerank: LlamaServerProcessManager | None = None
         self._llm_model: GgufModel | None = None
         self._lock = threading.Lock()
 
@@ -97,11 +101,20 @@ class LlamaRuntimeManager:
     def active_llm_model_id(self) -> str:
         return self._resolve_llm_model().id
 
+    def _rerank_running(self) -> bool:
+        return self._rerank is not None and self._rerank.is_running()
+
+    @property
+    def rerank_url(self) -> str:
+        return f"http://{self._host}:{self._rerank_port}"
+
     def status(self) -> dict:
         binary = resolve_llama_server_binary_path()
         llm_model = self._resolve_llm_model()
         embed_model = default_gguf_embedding()
+        rerank_model = default_gguf_reranker()
         running = self._running()
+        rerank_running = self._rerank_running()
         return {
             "binary_available": binary is not None,
             "binary_path": str(binary) if binary is not None else None,
@@ -111,7 +124,42 @@ class LlamaRuntimeManager:
             "active_llm_model": llm_model.id,
             "llm_url": f"http://{self._host}:{self._llm_port}" if running else None,
             "embed_url": f"http://{self._host}:{self._embed_port}" if running else None,
+            # Reranker is an optional "sharper search" precision pass (llama.cpp).
+            "rerank_model_id": rerank_model.id,
+            "rerank_model_installed": self._dl.is_installed(rerank_model),
+            "rerank_running": rerank_running,
+            "rerank_url": self.rerank_url if rerank_running else None,
         }
+
+    def enable_rerank(self) -> dict:
+        """Download-gated: starts the reranker server if its model is installed.
+
+        Raises ``LlamaRuntimeError`` if the binary or model is missing, so the UI
+        can prompt a download. The main answer/search runtime is untouched.
+        """
+        binary = resolve_llama_server_binary_path()
+        if binary is None:
+            raise LlamaRuntimeError("The llama.cpp engine is not bundled in this build.")
+        rerank_model = default_gguf_reranker()
+        if not self._dl.is_installed(rerank_model):
+            raise LlamaRuntimeError("The reranker model has not been downloaded yet.")
+        with self._lock:
+            if self._rerank_running():
+                return self.status()
+            self._rerank = LlamaServerProcessManager(binary, host=self._host)
+            self._rerank.start(
+                self._dl.destination_path(rerank_model),
+                self._rerank_port,
+                reranking=True,
+            )
+        return self.status()
+
+    def disable_rerank(self) -> dict:
+        with self._lock:
+            if self._rerank is not None:
+                self._rerank.stop()
+                self._rerank = None
+        return self.status()
 
     def start(self) -> dict:
         binary = resolve_llama_server_binary_path()
@@ -170,8 +218,12 @@ class LlamaRuntimeManager:
         no extra dependency (psutil) is needed and it works in the packaged app.
         """
         entries: list[dict] = []
-        labels = (self._resolve_llm_model().id, default_gguf_embedding().id)
-        for label, mgr in zip(labels, (self._llm, self._embed)):
+        labels = (
+            self._resolve_llm_model().id,
+            default_gguf_embedding().id,
+            default_gguf_reranker().id,
+        )
+        for label, mgr in zip(labels, (self._llm, self._embed, self._rerank)):
             pid = mgr.pid if mgr is not None else None
             if pid is None:
                 continue
@@ -186,4 +238,7 @@ class LlamaRuntimeManager:
                 self._llm.stop()
             if self._embed is not None:
                 self._embed.stop()
+            if self._rerank is not None:
+                self._rerank.stop()
+                self._rerank = None
         return self.status()

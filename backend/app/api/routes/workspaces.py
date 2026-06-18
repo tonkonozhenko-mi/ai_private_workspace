@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
     build_active_model_configuration,
+    build_reranker,
     command_repository,
     conversation_repository,
     embedding_provider,
@@ -1839,6 +1840,7 @@ def ask_workspace_question(
         llm_provider_factory=llm_provider_factory,
         index_status_repository=index_status_repository,
         timeline_repository=timeline_repository,
+        reranker=build_reranker(),
     )
 
     try:
@@ -1923,6 +1925,7 @@ def ask_workspace_question_with_selected_llm(
         llm_provider_factory=llm_provider_factory,
         index_status_repository=index_status_repository,
         timeline_repository=timeline_repository,
+        reranker=build_reranker(),
     )
     use_case = AskWorkspaceQuestionWithSelectedLLMUseCase(
         workspace_repository=workspace_repository,
@@ -2144,6 +2147,7 @@ def ask_workspace_question_with_selected_llm_stream(
         llm_provider_factory=llm_provider_factory,
         index_status_repository=index_status_repository,
         timeline_repository=timeline_repository,
+        reranker=build_reranker(),
     )
     use_case = AskWorkspaceQuestionWithSelectedLLMUseCase(
         workspace_repository=workspace_repository,

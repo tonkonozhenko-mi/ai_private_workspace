@@ -85,6 +85,7 @@ from app.adapters.runtime_health.qdrant_runtime_health_checker import (
 )
 from app.adapters.system.gguf_download_job_runner import GgufDownloadJobRunner
 from app.adapters.system.huggingface_gguf_downloader import HuggingFaceGgufDownloader
+from app.adapters.llm.llama_server_reranker import LlamaServerReranker
 from app.adapters.system.llama_runtime_manager import LlamaRuntimeManager
 from app.adapters.system.local_git_history import LocalGitHistory
 from app.adapters.system.runtime_state_store import RuntimeStateStore
@@ -554,6 +555,7 @@ llama_runtime_manager = LlamaRuntimeManager(
     host=get_settings().LLAMA_SERVER_HOST,
     llm_port=get_settings().LLAMA_SERVER_LLM_PORT,
     embed_port=get_settings().LLAMA_SERVER_EMBED_PORT,
+    rerank_port=get_settings().LLAMA_SERVER_RERANK_PORT,
 )
 command_runner = build_command_runner()
 embedding_provider = SwitchableEmbeddingProvider(build_embedding_provider())
@@ -594,6 +596,23 @@ def build_active_model_configuration() -> dict[str, str]:
     return config
 
 
+def build_reranker() -> LlamaServerReranker | None:
+    """A reranker bound to the live runtime: enabled only when the reranker
+    server is actually running (llama.cpp "sharper search"). Returns None
+    otherwise, so Ask falls back to plain hybrid retrieval."""
+    try:
+        status = llama_runtime_manager.status()
+    except Exception:  # noqa: BLE001 - never let this break a normal ask
+        return None
+    if not status.get("rerank_running") or not status.get("rerank_url"):
+        return None
+    return LlamaServerReranker(
+        base_url=status["rerank_url"],
+        model=status.get("rerank_model_id", ""),
+        enabled=True,
+    )
+
+
 def restore_active_backend() -> None:
     """Re-activate the persisted engine on startup so index and search agree.
 
@@ -621,5 +640,11 @@ def restore_active_backend() -> None:
         status = llama_runtime_manager.start()
         if status.get("running") and hasattr(embedding_provider, "set_delegate"):
             embedding_provider.set_delegate(build_embedding_for_backend("llamacpp"))
+        # Restore the optional "sharper search" reranker if it was on.
+        if runtime_state_store.get_rerank_enabled():
+            try:
+                llama_runtime_manager.enable_rerank()
+            except Exception:  # noqa: BLE001 - reranker is optional, never block boot
+                pass
     except Exception:  # noqa: BLE001 - degrade to Ollama default on any failure
         pass

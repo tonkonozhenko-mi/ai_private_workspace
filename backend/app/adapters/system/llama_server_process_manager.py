@@ -54,7 +54,13 @@ class LlamaServerProcessManager:
             return self._process.pid
         return None
 
-    def start(self, model_path: str | Path, port: int, embedding: bool = False) -> str:
+    def start(
+        self,
+        model_path: str | Path,
+        port: int,
+        embedding: bool = False,
+        reranking: bool = False,
+    ) -> str:
         """Start llama-server for ``model_path`` on ``port``; return the base URL."""
         if not self.binary_path.is_file():
             raise LlamaServerStartError(
@@ -76,7 +82,11 @@ class LlamaServerProcessManager:
             "-c",
             str(self.context_size),
         ]
-        if embedding:
+        if reranking:
+            # A cross-encoder reranker server: `--reranking` enables the /rerank
+            # endpoint. No chat template, so `--jinja` is omitted.
+            args.append("--reranking")
+        elif embedding:
             # An embedding server needs pooling enabled, otherwise `/v1/embeddings`
             # returns HTTP 500 for many GGUFs whose metadata pooling type is
             # "none". `mean` is the safe default for sentence embeddings. It does
