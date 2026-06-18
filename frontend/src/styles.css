@@ -1868,26 +1868,21 @@ details.onboarding-guide-panel[open] > summary {
 .guided-model-selected-meta em { font-style: normal; }
 .installed-models-group + .installed-models-group { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--c-border); }
 .installed-models-group-label { margin: 0 0 10px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-text-3); font-weight: 600; }
-/* Compact density actually tightens spacing across the app (the toggle was a no-op before).
-   Both spacing scales are overridden because the codebase uses --s-* and --space-*. */
-:root[data-density="compact"] {
-  --s-1: 3px;
-  --s-2: 6px;
-  --s-3: 9px;
-  --s-4: 12px;
-  --s-5: 14px;
-  --s-6: 17px;
-  --s-8: 22px;
-  --space-1: 0.18rem;
-  --space-2: 0.36rem;
-  --space-3: 0.52rem;
-  --space-4: 0.52rem;
-  --space-5: 0.72rem;
-  --space-6: 0.85rem;
-  --space-8: 1.1rem;
-  --space-10: 1.8rem;
-}
-:root[data-density="compact"] .panel { padding: var(--s-4); }
+/* Text size scales the base font (Medium = default, no override). It uses both
+   a root font-size and a scale variable so px- and rem-based text both move. */
+:root { --text-scale: 1; }
+:root[data-text-size="small"] { --text-scale: 0.92; }
+:root[data-text-size="large"] { --text-scale: 1.1; }
+:root[data-text-size="small"] body { font-size: calc(15px * var(--text-scale)); }
+:root[data-text-size="large"] body { font-size: calc(15px * var(--text-scale)); }
+/* Nudge the most common hardcoded body-text sizes so the change is visible
+   across the app, not just on inherited text. */
+:root[data-text-size="small"] .panel-intro,
+:root[data-text-size="large"] .panel-intro,
+:root[data-text-size="small"] .panel-helper,
+:root[data-text-size="large"] .panel-helper,
+:root[data-text-size="small"] .ask-answer-body,
+:root[data-text-size="large"] .ask-answer-body { font-size: calc(14.5px * var(--text-scale)); }
 .getting-ready { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 48px 24px 36px; }
 .getting-ready-stepper { display: flex; gap: 8px; margin-bottom: 30px; }
 .getting-ready-stepper span { width: 24px; height: 4px; border-radius: 2px; background: var(--c-surface-3); }
@@ -2164,6 +2159,8 @@ details.onboarding-guide-panel[open] > summary {
 .settings-brand-editor { display: flex; align-items: center; gap: var(--space-3); }
 .settings-clean-template-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .settings-developer-toggle { display: flex; align-items: flex-start; gap: 10px; }
+.settings-field { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.settings-field-label { font-size: 12.5px; font-weight: 600; color: var(--c-text-2); }
 .settings-disclosure-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
 .settings-inline-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 .settings-reset-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

@@ -50,6 +50,8 @@ interface AskWorkspaceProps {
   skillProfileUpdatedAt?: string | null;
   developerMode?: boolean;
   answerTemperature?: number;
+  defaultReasoning?: boolean;
+  defaultStreaming?: boolean;
   onAsked?: () => void | Promise<void>;
 }
 
@@ -169,14 +171,18 @@ export function AskWorkspace({
   skillProfileUpdatedAt = null,
   developerMode = false,
   answerTemperature,
+  defaultReasoning = false,
+  defaultStreaming = true,
   onAsked,
 }: AskWorkspaceProps) {
   const [question, setQuestion] = useState("");
   // Developer details are off by default and can be toggled right here on the
   // Ask screen.
   const [devMode, setDevMode] = useState(false);
-  const [reasoning, setReasoning] = useState(true);
-  const [streaming, setStreaming] = useState(false);
+  // Reasoning / streaming start from the Settings defaults; the per-chat
+  // switches (in developer details) still override them for a single message.
+  const [reasoning, setReasoning] = useState(defaultReasoning);
+  const [streaming, setStreaming] = useState(defaultStreaming);
   const [streamingText, setStreamingText] = useState("");
   // Per-question "answer style" override (dev mode): "" = workspace default.
   // Value is a preset id or a custom-skill id.
@@ -604,7 +610,7 @@ export function AskWorkspace({
           return comma >= 0 ? image.slice(comma + 1) : image;
         }),
         temperature: answerTemperature ?? null,
-        think: devMode ? reasoning : null,
+        think: reasoning,
         attachedDocuments: attachedFiles.map((file) => ({
           name: file.name,
           content: file.content,
@@ -612,7 +618,7 @@ export function AskWorkspace({
       };
 
       let result;
-      if (devMode && streaming) {
+      if (streaming) {
         try {
           result = await askSelectedWorkspaceStream(
             workspaceId,

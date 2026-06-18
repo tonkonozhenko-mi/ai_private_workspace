@@ -61,14 +61,16 @@ import UpdateNotice from "./components/UpdateNotice";
 type WorkspaceTab = "overview" | "ask" | "models" | "reports" | "actions" | "activity" | "settings";
 
 type ThemePreference = "system" | "light" | "dark";
-type DensityPreference = "comfortable" | "compact";
+type TextSizePreference = "small" | "medium" | "large";
 type SourceSnippetPreference = 3 | 5 | 8 | 10;
 type AccentColorPreference = "green" | "blue" | "purple" | "orange";
 type DemoModePreference = "off" | "on";
 
 export interface WorkbenchPreferences {
   theme: ThemePreference;
-  density: DensityPreference;
+  textSize: TextSizePreference;
+  defaultReasoning: boolean;
+  defaultStreaming: boolean;
   defaultSourceSnippets: SourceSnippetPreference;
   landingTab: WorkspaceTab;
   apiBaseUrl: string;
@@ -100,7 +102,9 @@ const LEGACY_PREFERENCES_STORAGE_KEY = "private-project-ai-workbench.preferences
 const LAST_WORKSPACE_STORAGE_KEY = "ai-private-workspace.last-workspace-id.v1";
 const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   theme: "system",
-  density: "comfortable",
+  textSize: "medium",
+  defaultReasoning: false,
+  defaultStreaming: true,
   defaultSourceSnippets: 5,
   landingTab: "overview",
   apiBaseUrl: DEFAULT_API_BASE_URL,
@@ -717,7 +721,7 @@ function App() {
       JSON.stringify(preferences),
     );
     document.documentElement.dataset.theme = preferences.theme;
-    document.documentElement.dataset.density = preferences.density;
+    document.documentElement.dataset.textSize = preferences.textSize;
     setApiBaseUrl(preferences.apiBaseUrl);
     document.documentElement.dataset.accent = preferences.accentColor;
     document.documentElement.dataset.demoMode = preferences.demoMode;
@@ -1141,6 +1145,8 @@ function App() {
                   skillProfileUpdatedAt={workspaceSkillProfile?.updated_at ?? null}
                   developerMode={preferences.developerMode}
                   answerTemperature={ANSWER_CREATIVITY_TEMPERATURE[preferences.answerCreativity]}
+                  defaultReasoning={preferences.defaultReasoning}
+                  defaultStreaming={preferences.defaultStreaming}
                   onAsked={() => refreshAfterAsk(detail.dashboard.workspace_id)}
                 />
               </div>
@@ -1336,9 +1342,17 @@ function loadStoredPreferences(): WorkbenchPreferences {
       theme: isThemePreference(parsed.theme)
         ? parsed.theme
         : DEFAULT_PREFERENCES.theme,
-      density: isDensityPreference(parsed.density)
-        ? parsed.density
-        : DEFAULT_PREFERENCES.density,
+      textSize: isTextSizePreference(parsed.textSize)
+        ? parsed.textSize
+        : DEFAULT_PREFERENCES.textSize,
+      defaultReasoning:
+        typeof parsed.defaultReasoning === "boolean"
+          ? parsed.defaultReasoning
+          : DEFAULT_PREFERENCES.defaultReasoning,
+      defaultStreaming:
+        typeof parsed.defaultStreaming === "boolean"
+          ? parsed.defaultStreaming
+          : DEFAULT_PREFERENCES.defaultStreaming,
       defaultSourceSnippets: isSourceSnippetPreference(
         parsed.defaultSourceSnippets,
       )
@@ -1387,8 +1401,8 @@ function isThemePreference(value: unknown): value is ThemePreference {
   return value === "system" || value === "light" || value === "dark";
 }
 
-function isDensityPreference(value: unknown): value is DensityPreference {
-  return value === "comfortable" || value === "compact";
+function isTextSizePreference(value: unknown): value is TextSizePreference {
+  return value === "small" || value === "medium" || value === "large";
 }
 
 function isSourceSnippetPreference(value: unknown): value is SourceSnippetPreference {

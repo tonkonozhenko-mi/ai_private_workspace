@@ -254,20 +254,43 @@ export function SettingsPanel({
               </button>
             ))}
           </div>
-          {preferences.developerMode ? (
-            <div className="segmented-control" aria-label="Density">
-              {(["comfortable", "compact"] as const).map((density) => (
+          <div className="settings-field">
+            <span className="settings-field-label">Text size</span>
+            <div className="segmented-control" aria-label="Text size">
+              {(["small", "medium", "large"] as const).map((size) => (
                 <button
-                  key={density}
+                  key={size}
                   type="button"
-                  className={preferences.density === density ? "is-selected" : ""}
-                  onClick={() => updatePreference({ density })}
+                  className={preferences.textSize === size ? "is-selected" : ""}
+                  onClick={() => updatePreference({ textSize: size })}
                 >
-                  {formatLabel(density)}
+                  {formatLabel(size)}
                 </button>
               ))}
             </div>
-          ) : null}
+          </div>
+          <label className="settings-developer-toggle">
+            <input
+              type="checkbox"
+              checked={preferences.defaultStreaming}
+              onChange={(event) => updatePreference({ defaultStreaming: event.target.checked })}
+            />
+            <span>
+              <strong>Stream answers</strong>
+              <small>Show the answer word-by-word as the model writes it. New chats start with this.</small>
+            </span>
+          </label>
+          <label className="settings-developer-toggle">
+            <input
+              type="checkbox"
+              checked={preferences.defaultReasoning}
+              onChange={(event) => updatePreference({ defaultReasoning: event.target.checked })}
+            />
+            <span>
+              <strong>Reasoning by default</strong>
+              <small>Let thinking-capable models reason before answering (slower, often better). New chats start with this.</small>
+            </span>
+          </label>
           <label className="settings-developer-toggle">
             <input
               type="checkbox"
