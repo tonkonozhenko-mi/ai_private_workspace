@@ -159,9 +159,19 @@ class AskWorkspaceQuestionWithSelectedLLMUseCase:
         )
 
     def _embedding_matches_active(self, selected: WorkspaceSelectedModel) -> bool:
+        active_provider = self._active_embedding_provider()
+        active_model = self._active_embedding_model()
+        # We can only read the active embedding model for some providers (Ollama,
+        # fake). For others — notably llama.cpp — the active model id is not
+        # exposed through configuration, so active_model is empty. In that case we
+        # cannot prove a mismatch, and claiming "selected embedding not active"
+        # would be a false alarm (the embedding IS in use). Treat unknown as a
+        # match so the warning only fires when we can actually confirm a mismatch.
+        if not active_provider or not active_model:
+            return True
         return (
-            selected.provider.lower() == self._active_embedding_provider().lower()
-            and selected.model.lower() == self._active_embedding_model().lower()
+            selected.provider.lower() == active_provider.lower()
+            and selected.model.lower() == active_model.lower()
         )
 
     def _active_embedding_provider(self) -> str:

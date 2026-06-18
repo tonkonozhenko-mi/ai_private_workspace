@@ -34,11 +34,22 @@ class OllamaLLMProvider:
         model: str,
         timeout_seconds: int = 120,
         client: httpx.Client | None = None,
+        context_window: int = 4096,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout_seconds = timeout_seconds
         self.client = client or httpx.Client()
+        # We pin Ollama's per-request window via ``num_ctx`` (see _options) so the
+        # window we report to the UI is the one actually used — Ollama otherwise
+        # falls back to its own default, which we can't read back from a response.
+        self.context_window = context_window
+
+    def _options(self, temperature: float | None) -> dict[str, object]:
+        options: dict[str, object] = {"num_ctx": self.context_window}
+        if temperature is not None:
+            options["temperature"] = temperature
+        return options
 
     @property
     def model_name(self) -> str:
@@ -93,8 +104,7 @@ class OllamaLLMProvider:
             payload["think"] = think
         if images:
             payload["images"] = images
-        if temperature is not None:
-            payload["options"] = {"temperature": temperature}
+        payload["options"] = self._options(temperature)
 
         think_open = False
         think_closed = False
@@ -187,9 +197,8 @@ class OllamaLLMProvider:
         if images:
             # Ollama accepts base64-encoded images for vision-capable models.
             payload["images"] = images
-        if temperature is not None:
-            # Ollama generation tuning goes under "options".
-            payload["options"] = {"temperature": temperature}
+        # Ollama generation tuning (incl. the context window) goes under "options".
+        payload["options"] = self._options(temperature)
         attempt = 0
         while attempt < 2:
             try:

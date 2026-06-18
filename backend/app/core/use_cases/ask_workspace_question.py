@@ -473,6 +473,7 @@ class AskWorkspaceQuestionUseCase:
             provider=llm_provider.provider_name,
             model=llm_provider.model_name,
             estimated=True,
+            context_window=getattr(llm_provider, "context_window", None),
         )
         return answer_text, usage, None
 
@@ -494,6 +495,7 @@ class AskWorkspaceQuestionUseCase:
             provider=llm_provider.provider_name,
             model=llm_provider.model_name,
             estimated=True,
+            context_window=getattr(llm_provider, "context_window", None),
         )
         return answer, usage
 

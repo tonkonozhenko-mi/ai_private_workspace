@@ -62,6 +62,7 @@ class LLMUsageMetricsResponse(BaseModel):
     provider: str | None = None
     model: str | None = None
     estimated: bool = False
+    context_window: int | None = None
 
 
 class SkillProfileAuditResponse(BaseModel):
@@ -121,6 +122,7 @@ def to_llm_usage_metrics_response(usage) -> LLMUsageMetricsResponse | None:
         provider=usage.provider,
         model=usage.model,
         estimated=usage.estimated,
+        context_window=usage.context_window,
     )
 
 

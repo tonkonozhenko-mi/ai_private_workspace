@@ -438,6 +438,25 @@ fn get_supervisor_status() -> SupervisorStatus {
     }
 }
 
+/// Open an external URL in the user's default browser. Tauri does not follow
+/// `target="_blank"` links by itself, so the web layer calls this. Restricted to
+/// http(s) so it can never launch local files or arbitrary executables.
+#[tauri::command]
+fn open_external_url(url: String) -> Result<(), String> {
+    if !(url.starts_with("https://") || url.starts_with("http://")) {
+        return Err("Only http(s) URLs can be opened".to_string());
+    }
+    #[cfg(target_os = "macos")]
+    let spawned = Command::new("/usr/bin/open").arg(&url).spawn();
+    #[cfg(target_os = "windows")]
+    let spawned = Command::new("cmd").args(["/C", "start", "", &url]).spawn();
+    #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+    let spawned = Command::new("xdg-open").arg(&url).spawn();
+    spawned
+        .map(|_| ())
+        .map_err(|err| format!("Could not open URL: {}", err))
+}
+
 #[tauri::command]
 fn get_supervisor_log_paths() -> SupervisorLogPaths {
     let logs = logs_dir();
@@ -846,7 +865,8 @@ pub fn run() {
             get_app_owned_backend_process_status,
             start_app_owned_backend_runtime,
             stop_app_owned_backend_runtime,
-            choose_project_directory
+            choose_project_directory,
+            open_external_url
         ])
         .build(tauri::generate_context!())
         .expect("error while building AI Private Workspace desktop shell");

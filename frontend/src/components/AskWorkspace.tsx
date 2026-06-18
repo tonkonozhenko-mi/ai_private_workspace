@@ -25,7 +25,6 @@ import {
 } from "../api/client";
 import { CopyButton } from "./CopyButton";
 import type {
-  RagQualityWarning,
   RagSource,
   WorkspaceQuestionAnswer,
   SkillContextRequest,
@@ -1889,16 +1888,14 @@ function AnswerResult({
   onSaveAnswerNote: (answer: WorkspaceQuestionAnswer) => void;
 }) {
   const developerMode = useContext(AskDeveloperModeContext);
-  const allWarnings = answer.quality_warnings ?? [];
-  // By default keep the answer calm: only show important (high-severity) notices,
-  // such as "you're on the test model". Full verification notes are for developers.
-  const warnings = developerMode
-    ? allWarnings
-    : allWarnings.filter((warning) => warning.severity === "high");
-  const reindexReason = getAskReindexReason(answer);
-  const isMissingSourcePaths = allWarnings.some(
-    (warning) => warning.code === "answer_missing_source_paths",
+  // The verbose "Answer verification" panel (medium/low diagnostics) was removed.
+  // We still surface genuinely important, high-severity notices — e.g. "you're on
+  // the placeholder test model, answers aren't real" — as a single calm line so
+  // the product stays honest about when an answer can't be trusted.
+  const highWarnings = (answer.quality_warnings ?? []).filter(
+    (warning) => warning.severity === "high",
   );
+  const reindexReason = getAskReindexReason(answer);
   const [showFileDraft, setShowFileDraft] = useState(false);
 
   return (
@@ -1968,20 +1965,7 @@ function AnswerResult({
               </>
             );
           })()}
-          {developerMode ? (
-            <div className="ask-answer-details">
-              <div className="answer-stats">
-                <span>
-                  <strong>{answer.sources.length}</strong> sources
-                </span>
-                <span>
-                  <strong>{answer.used_context_chunks}</strong> context pieces
-                </span>
-              </div>
-              <LLMUsageSummary answer={answer} />
-              <AskSkillProfileAuditSummary answer={answer} />
-            </div>
-          ) : null}
+          {developerMode ? <AskUsageMetrics answer={answer} /> : null}
         </article>
 
         {showFileDraft ? (
@@ -2006,13 +1990,12 @@ function AnswerResult({
           />
         ) : null}
 
-        {warnings.length > 0 ? <QualityWarnings warnings={warnings} /> : null}
-
-        {developerMode && isMissingSourcePaths ? (
-          <p className="ask-source-path-note">
-            The model answered without mentioning source paths. Check retrieved
-            sources below.
-          </p>
+        {highWarnings.length > 0 ? (
+          <div className="ask-trust-notice" role="alert">
+            {highWarnings.map((warning, index) => (
+              <p key={`${warning.code}-${index}`}>{warning.message}</p>
+            ))}
+          </div>
         ) : null}
 
         {answer.sources.length > 0 || attachedFileNames.length > 0 ? (
@@ -2121,46 +2104,67 @@ function extractFirstCodeBlock(value: string): string | null {
 }
 
 
-function AskSkillProfileAuditSummary({ answer }: { answer: WorkspaceQuestionAnswer }) {
-  const profile = answer.skill_profile;
-  if (!profile) {
-    return null;
-  }
-
-  const sourceLabel = profile.source === "saved"
-    ? "Workspace saved profile"
-    : profile.source === "request"
-      ? "Temporary request guidance"
-      : "Default workspace profile";
-  const skills = profile.active_skills.length > 0
-    ? profile.active_skills.join(" + ")
-    : "No active skill guidance";
-
-  return (
-    <div className="ask-skill-audit" aria-label="Ask skill profile audit">
-      <span title="Skill profile source">{sourceLabel}</span>
-      <span title="Active skill guidance">{skills}</span>
-      <span title="Guidance items">{profile.guidance_count} guidance item{profile.guidance_count === 1 ? "" : "s"}</span>
-      {profile.updated_at ? <span title="Profile saved time">Saved {formatDateTime(profile.updated_at)}</span> : null}
-      <span title="Safety note">guidance only; facts need retrieved sources</span>
-    </div>
-  );
-}
-
-function LLMUsageSummary({ answer }: { answer: WorkspaceQuestionAnswer }) {
+// Developer-mode answer metrics. Labelled so each value is self-explanatory, and
+// trimmed to what actually carries meaning: token usage, speed, latency, and how
+// much retrieved context fed the model. (The old skill-profile audit row and the
+// redundant model-id pill were removed — the model is already in the header.)
+function AskUsageMetrics({ answer }: { answer: WorkspaceQuestionAnswer }) {
   const usage = answer.usage;
-  const provider = usage?.provider ?? answer.llm_provider;
-  const model = usage?.model ?? answer.llm_model ?? "default";
+  const total = usage?.total_tokens ?? null;
+  const window = usage?.context_window ?? null;
+  const windowPct =
+    total != null && window ? Math.min(100, Math.round((total / window) * 100)) : null;
+  const stats: { label: string; value: string; title: string }[] = [
+    {
+      label: "Tokens in",
+      value: formatMetricNumber(usage?.prompt_tokens),
+      title: "Tokens sent to the model — your question plus the retrieved project context",
+    },
+    {
+      label: "Tokens out",
+      value: formatMetricNumber(usage?.completion_tokens),
+      title: "Tokens the model generated for this answer",
+    },
+    {
+      label: window ? "Context used" : "Total",
+      value:
+        window && total != null
+          ? `${formatMetricNumber(total)} / ${formatMetricNumber(window)}${windowPct != null ? ` · ${windowPct}%` : ""}`
+          : formatMetricNumber(total),
+      title: window
+        ? "Tokens used this request vs the model's context window — the most it can hold at once. When it fills up, retrieved context gets dropped."
+        : "Prompt tokens + answer tokens",
+    },
+    {
+      label: "Speed",
+      value: formatSpeed(usage?.tokens_per_second),
+      title: "Generation speed, in tokens per second",
+    },
+    {
+      label: "Time",
+      value: formatLatency(usage?.latency_ms),
+      title: "Time from sending the request to receiving the full answer",
+    },
+    {
+      label: "Context",
+      value: `${answer.used_context_chunks}`,
+      title: "How many retrieved project snippets were fed to the model",
+    },
+  ];
 
   return (
-    <div className="llm-usage-summary" aria-label="LLM usage metrics">
-      <span title="Prompt tokens">In {formatMetricNumber(usage?.prompt_tokens)}</span>
-      <span title="Answer tokens">Out {formatMetricNumber(usage?.completion_tokens)}</span>
-      <span title="Total tokens">Total {formatMetricNumber(usage?.total_tokens)}</span>
-      <span title="Latency">{formatLatency(usage?.latency_ms)}</span>
-      <span title="Answer speed">{formatSpeed(usage?.tokens_per_second)}</span>
-      <span title="Provider and model">{provider}/{model}</span>
-      {usage?.estimated ? <span title="Token counts are estimated">est.</span> : null}
+    <div className="ask-usage" aria-label="Answer metrics">
+      {stats.map((stat) => (
+        <div className="ask-usage-stat" key={stat.label} title={stat.title}>
+          <span className="ask-usage-k">{stat.label}</span>
+          <span className="ask-usage-v">{stat.value}</span>
+        </div>
+      ))}
+      {usage?.estimated ? (
+        <span className="ask-usage-note" title="Token counts are estimated for this provider">
+          ≈ estimated
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -2181,31 +2185,6 @@ function formatLatency(value: number | null | undefined): string {
 
 function formatSpeed(value: number | null | undefined): string {
   return typeof value === "number" ? `${value.toFixed(1)} tok/s` : "— tok/s";
-}
-
-function QualityWarnings({ warnings }: { warnings: RagQualityWarning[] }) {
-  return (
-    <section className="panel quality-warnings">
-      <div className="panel-heading">
-        <div>
-          <p className="eyebrow">Answer verification</p>
-          <h2>Verification notes</h2>
-        </div>
-        <span className="panel-count">{warnings.length}</span>
-      </div>
-      <div className="quality-warning-list">
-        {warnings.map((warning, index) => (
-          <article key={`${warning.code}-${index}`}>
-            <StatusBadge label={warning.severity} />
-            <div>
-              <strong>{formatLabel(warning.code)}</strong>
-              <p>{warning.message}</p>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
 }
 
 function Sources({

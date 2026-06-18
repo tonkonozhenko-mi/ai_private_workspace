@@ -3751,21 +3751,36 @@ a.getting-ready-cta:visited { color: var(--c-accent-ink); }
   padding: var(--s-4) 0 0;
   margin: 0;
 }
-/* verification severity badge: a small, calm pill */
-.quality-warning-list .status-badge {
+/* Verification severity: a small colour-coded tag so high/medium/low read at a
+   glance instead of a wall of identical grey badges. */
+.qw-severity {
   flex: none;
-  min-width: 0;
-  width: auto;
-  height: auto;
+  align-self: flex-start;
   padding: 2px 9px;
   border-radius: var(--r-pill);
   background: var(--c-surface-3);
   border: 1px solid var(--c-border);
   color: var(--c-text-2);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10.5px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+}
+.qw-high .qw-severity {
+  background: color-mix(in srgb, var(--c-danger) 16%, transparent);
+  border-color: color-mix(in srgb, var(--c-danger) 45%, transparent);
+  color: var(--c-danger);
+}
+.qw-medium .qw-severity {
+  background: color-mix(in srgb, var(--c-warning) 16%, transparent);
+  border-color: color-mix(in srgb, var(--c-warning) 45%, transparent);
+  color: var(--c-warning);
+}
+.qw-low .qw-severity,
+.qw-info .qw-severity {
+  background: color-mix(in srgb, var(--c-text-3) 12%, transparent);
+  border-color: color-mix(in srgb, var(--c-border) 80%, transparent);
+  color: var(--c-text-3);
 }
 .ask-assistant-stack .panel-heading {
   display: flex;
@@ -3796,18 +3811,81 @@ a.getting-ready-cta:visited { color: var(--c-accent-ink); }
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 9px;
+  padding: 2px 9px;
   border-radius: var(--r-pill);
-  background: var(--c-surface-2);
-  border: 1px solid var(--c-border);
+  background: color-mix(in srgb, var(--c-surface-2) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-border) 70%, transparent);
   color: var(--c-text-3);
-  font-size: 12px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
   list-style: none;
 }
 .answer-stats strong,
 .llm-usage-summary strong {
-  color: var(--c-text-2);
+  color: var(--c-text);
   font-weight: 600;
+}
+/* The model id can be a long HF path; keep it from blowing out the row. */
+.llm-usage-model {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+}
+
+/* Developer-mode answer metrics: labelled stat strip (label over value) so each
+   number is self-explanatory, instead of a cloud of ambiguous pills. */
+.ask-usage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  align-items: baseline;
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--c-border);
+}
+.ask-usage-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ask-usage-k {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-text-3);
+}
+.ask-usage-v {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+.ask-usage-note {
+  align-self: center;
+  font-size: 11px;
+  color: var(--c-text-3);
+}
+
+/* High-severity honesty notice (e.g. placeholder test model) — calm amber band,
+   replaces the verbose "Answer verification" panel. */
+.ask-trust-notice {
+  margin-top: var(--s-3);
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--c-warning) 40%, transparent);
+  background: color-mix(in srgb, var(--c-warning) 12%, transparent);
+  border-radius: var(--r-md);
+}
+.ask-trust-notice p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--c-text);
+}
+.ask-trust-notice p + p {
+  margin-top: 6px;
 }
 .llm-usage-summary,
 .ask-skill-audit {
