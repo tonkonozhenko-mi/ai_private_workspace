@@ -97,23 +97,49 @@ class LlamaServerLLMProvider:
         if isinstance(completion_tokens, int) and not isinstance(completion_tokens, bool):
             self.last_completion_tokens = completion_tokens
 
-    def _build_messages(self, prompt: str, images: list[str] | None) -> list[dict]:
+    @staticmethod
+    def _history_messages(history: list[tuple[str, str]] | None) -> list[dict]:
+        """Prior turns as real chat messages so the model keeps conversational
+        context (resolves "it"/"that", follows up) the way ChatGPT/Claude do —
+        instead of us flattening the dialogue into one text blob."""
+        if not history:
+            return []
+        messages: list[dict] = []
+        for role, content in history:
+            normalized = "assistant" if role == "assistant" else "user"
+            text = content.strip()
+            if text:
+                messages.append({"role": normalized, "content": text})
+        return messages
+
+    def _build_messages(
+        self,
+        prompt: str,
+        images: list[str] | None,
+        history: list[tuple[str, str]] | None = None,
+    ) -> list[dict]:
+        history_messages = self._history_messages(history)
         if not images:
-            return [{"role": "user", "content": prompt}]
+            return [*history_messages, {"role": "user", "content": prompt}]
         # OpenAI-style multimodal content parts (supported by multimodal GGUFs
         # served with a projector). Plain-text models ignore images upstream.
         parts: list[dict] = [{"type": "text", "text": prompt}]
         for image in images:
             data_url = image if image.startswith("data:") else f"data:image/png;base64,{image}"
             parts.append({"type": "image_url", "image_url": {"url": data_url}})
-        return [{"role": "user", "content": parts}]
+        return [*history_messages, {"role": "user", "content": parts}]
 
     def _payload(
-        self, prompt: str, images: list[str] | None, temperature: float | None, stream: bool
+        self,
+        prompt: str,
+        images: list[str] | None,
+        temperature: float | None,
+        stream: bool,
+        history: list[tuple[str, str]] | None = None,
     ) -> dict:
         payload: dict[str, object] = {
             "model": self.model,
-            "messages": self._build_messages(prompt, images),
+            "messages": self._build_messages(prompt, images, history),
             "stream": stream,
             "stop": _STOP_TOKENS,
         }
@@ -131,13 +157,14 @@ class LlamaServerLLMProvider:
         images: list[str] | None = None,
         temperature: float | None = None,
         think: bool | None = None,
+        history: list[tuple[str, str]] | None = None,
     ) -> str:
         self.last_prompt_tokens = None
         self.last_completion_tokens = None
         try:
             response = self.client.post(
                 f"{self.base_url}/v1/chat/completions",
-                json=self._payload(prompt, images, temperature, stream=False),
+                json=self._payload(prompt, images, temperature, stream=False, history=history),
                 timeout=self.timeout_seconds,
             )
         except httpx.HTTPError as exc:
@@ -171,6 +198,7 @@ class LlamaServerLLMProvider:
         images: list[str] | None = None,
         temperature: float | None = None,
         think: bool | None = None,
+        history: list[tuple[str, str]] | None = None,
     ) -> Iterator[str]:
         """Yield answer text deltas via the OpenAI-compatible SSE stream."""
         self.last_prompt_tokens = None
@@ -179,7 +207,7 @@ class LlamaServerLLMProvider:
             with self.client.stream(
                 "POST",
                 f"{self.base_url}/v1/chat/completions",
-                json=self._payload(prompt, images, temperature, stream=True),
+                json=self._payload(prompt, images, temperature, stream=True, history=history),
                 timeout=self.timeout_seconds,
             ) as response:
                 if response.status_code >= 400:

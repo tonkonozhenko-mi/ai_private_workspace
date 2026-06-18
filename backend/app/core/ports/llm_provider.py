@@ -16,13 +16,17 @@ class LLMProviderPort(Protocol):
         images: list[str] | None = None,
         temperature: float | None = None,
         think: bool | None = None,
+        history: list[tuple[str, str]] | None = None,
     ) -> str:
         """Generate a response from a language model.
 
         ``images`` is an optional list of base64-encoded images for vision-capable
         models. ``temperature`` optionally tunes randomness (lower = more precise,
         higher = more creative). ``think`` optionally enables/disables reasoning
-        on thinking-capable models. Providers that don't support these ignore them.
+        on thinking-capable models. ``history`` is the prior conversation as
+        ``(role, content)`` turns ("user"/"assistant"); chat-native providers send
+        it as real preceding messages so follow-ups keep context the way ChatGPT or
+        Claude do. Providers that don't support a capability ignore it.
         """
 
     # Streaming is optional: providers that support it expose ``generate_stream``
