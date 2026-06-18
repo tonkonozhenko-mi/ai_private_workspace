@@ -31,6 +31,22 @@ function roleLabel(item: LocalModelStatusItem): string {
   return item.model_type === "embedding" ? "search" : "answers";
 }
 
+// Tauri does not follow target="_blank" links, so route external URLs through
+// the Rust `open_external_url` command (exposed via withGlobalTauri). Falls back
+// to window.open when running in a plain browser (dev).
+function openExternalUrl(url: string): void {
+  const invoke = (
+    window as unknown as {
+      __TAURI__?: { core?: { invoke?: (cmd: string, args?: unknown) => Promise<unknown> } };
+    }
+  ).__TAURI__?.core?.invoke;
+  if (invoke) {
+    void invoke("open_external_url", { url });
+  } else {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
+
 /**
  * One calm setup step at a time, done inline — no detour into Models/Settings.
  * Order: (Ollama) -> scan -> local models -> build context -> ready to ask.
@@ -448,9 +464,13 @@ export function WorkspaceGettingReady({
           ) : (
             <>
               <div className="getting-ready-actions">
-                <a className="getting-ready-cta" href="https://ollama.com/download" target="_blank" rel="noreferrer">
+                <button
+                  className="getting-ready-cta"
+                  type="button"
+                  onClick={() => openExternalUrl("https://ollama.com/download")}
+                >
                   Get Ollama
-                </a>
+                </button>
                 <button className="secondary-action" type="button" disabled={busy !== null} onClick={() => void recheck()}>
                   {busy === "check" ? "Checking…" : "I’ve installed it — re-check"}
                 </button>

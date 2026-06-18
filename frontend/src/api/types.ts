@@ -658,6 +658,7 @@ export interface LLMUsageMetrics {
   provider?: string | null;
   model?: string | null;
   estimated?: boolean;
+  context_window?: number | null;
 }
 
 export interface AskSkillProfileAudit {

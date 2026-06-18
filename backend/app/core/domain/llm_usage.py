@@ -21,6 +21,9 @@ class LLMUsageMetrics:
     provider: str | None = None
     model: str | None = None
     estimated: bool = False
+    # The model's context window (max tokens per request). None when the active
+    # provider does not expose it. Lets the UI show "used / window".
+    context_window: int | None = None
 
 
 def build_llm_usage_metrics(
@@ -34,6 +37,7 @@ def build_llm_usage_metrics(
     completion_tokens: int | None = None,
     total_tokens: int | None = None,
     estimated: bool = True,
+    context_window: int | None = None,
 ) -> LLMUsageMetrics:
     prompt_token_count = prompt_tokens if prompt_tokens is not None else estimate_llm_tokens(prompt)
     completion_token_count = (
@@ -55,4 +59,5 @@ def build_llm_usage_metrics(
         provider=provider,
         model=model,
         estimated=estimated,
+        context_window=context_window,
     )

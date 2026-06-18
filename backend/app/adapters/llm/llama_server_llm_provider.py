@@ -42,11 +42,15 @@ class LlamaServerLLMProvider:
         model: str,
         timeout_seconds: int = 120,
         client: httpx.Client | None = None,
+        context_window: int = 4096,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout_seconds = timeout_seconds
         self.client = client or httpx.Client()
+        # llama-server is launched with ``-c 4096`` (see LlamaServerProcessManager),
+        # so this is the real per-request token window. Surfaced for the UI.
+        self.context_window = context_window
 
     @property
     def model_name(self) -> str:
