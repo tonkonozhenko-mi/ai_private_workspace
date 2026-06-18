@@ -29,6 +29,7 @@ from app.core.ports.llm_provider_factory import (
     LLMProviderFactoryError,
     LLMProviderFactoryPort,
 )
+from app.core.ports.reranker import RerankerPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -151,6 +152,8 @@ class AskWorkspaceQuestionUseCase:
         llm_provider_factory: LLMProviderFactoryPort,
         index_status_repository: IndexStatusRepositoryPort,
         timeline_repository: TimelineRepositoryPort | None = None,
+        reranker: RerankerPort | None = None,
+        rerank_candidates: int = 30,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.embedding_provider = embedding_provider
@@ -158,6 +161,10 @@ class AskWorkspaceQuestionUseCase:
         self.llm_provider_factory = llm_provider_factory
         self.index_status_repository = index_status_repository
         self.timeline_repository = timeline_repository
+        # Optional cross-encoder precision pass. None (or a disabled reranker)
+        # means Ask behaves exactly as before — plain hybrid retrieval.
+        self.reranker: RerankerPort | None = reranker
+        self.rerank_candidates = rerank_candidates
 
     def execute(
         self,
@@ -617,15 +624,30 @@ class AskWorkspaceQuestionUseCase:
             return []
 
         query_embedding = self.embedding_provider.embed_text(request.question)
-        return self.vector_store.search(
+        rerank = self.reranker is not None and self.reranker.enabled
+        # When reranking, pull a wider candidate set so the cross-encoder has
+        # something to re-sort; otherwise fetch exactly what we need.
+        fetch_limit = (
+            max(request.limit, self.rerank_candidates) if rerank else request.limit
+        )
+        candidates = self.vector_store.search(
             workspace_id=request.workspace_id,
             query_embedding=query_embedding,
-            limit=request.limit,
+            limit=fetch_limit,
             embedding_provider=self.embedding_provider.provider_name,
             embedding_model=self.embedding_provider.model_name,
             embedding_dimension=len(query_embedding),
             query_text=request.question,
         )
+        if not rerank or len(candidates) <= request.limit:
+            return candidates[: request.limit]
+
+        order = self.reranker.rerank(
+            request.question, [result.content for result in candidates], request.limit
+        )
+        reranked = [candidates[index] for index in order if 0 <= index < len(candidates)]
+        # Safety net: if the reranker returned nothing usable, keep hybrid order.
+        return (reranked or candidates)[: request.limit]
 
     def _skill_profile_audit(
         self,
