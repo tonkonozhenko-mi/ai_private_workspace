@@ -1523,11 +1523,21 @@ details.onboarding-guide-panel[open] > summary {
 .guided-model-stop-button:hover { color: var(--c-text-1); border-color: var(--c-text-3); }
 .ask-thinking-note { display: block; margin-top: 6px; font-size: 12px; color: var(--c-text-3); line-height: 1.5; }
 .ask-assistant-stack { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.answer-context { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--c-border); display: flex; flex-direction: column; gap: 14px; }
-.answer-context-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.answer-context-head .eyebrow { margin: 0; }
-.answer-context-toggle { border: none; background: transparent; color: var(--c-accent); font-size: 12.5px; cursor: pointer; padding: 0; }
-.answer-context-toggle:hover { text-decoration: underline; }
+/* Context block is deliberately quiet: collapsed it's a single hairline-topped
+   row, not a card, so it never competes with the conversation. Detail (and a
+   light surface) appears only on expand. */
+.answer-context { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.answer-context-bar { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 2px; border: none; border-top: 1px solid var(--c-border); background: transparent; color: var(--c-text-3); font-size: 12.5px; text-align: left; cursor: pointer; transition: color 0.15s ease; }
+.answer-context-bar:hover { color: var(--c-text-2); }
+.answer-context-bar-dot { flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--c-accent); opacity: 0.85; }
+.answer-context-bar-text { flex: 1; min-width: 0; }
+.answer-context-bar-action { display: inline-flex; align-items: center; gap: 4px; color: var(--c-text-2); font-weight: 500; }
+.answer-context-caret { font-size: 14px; line-height: 1; transition: transform 0.15s ease; }
+.answer-context-caret.is-open { transform: rotate(90deg); }
+.answer-context-detail { display: flex; flex-direction: column; gap: 10px; padding: 2px 0 4px; }
+.answer-context-legend { margin: 0; font-size: 11.5px; color: var(--c-text-3); }
+.answer-context-files-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.answer-context-files-label { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--c-text-3); font-weight: 600; }
 .answer-context-group { display: flex; flex-direction: column; gap: 10px; }
 .answer-context-label { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--c-text-3); font-weight: 600; }
 .answer-context-hint, .answer-context-warn { margin: 0; font-size: 12.5px; color: var(--c-text-3); line-height: 1.5; }
@@ -1900,9 +1910,20 @@ details.onboarding-guide-panel[open] > summary {
    many places, so a font-size-only override doesn't cascade. Scaling the whole
    UI with `zoom` on the app root is reliable in WebKit (the Tauri renderer) and
    moves every element — text, spacing, controls — uniformly. */
-:root[data-text-size="small"] #root { zoom: 0.9; }
-:root[data-text-size="large"] #root { zoom: 1.12; }
-.getting-ready { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 48px 24px 36px; }
+:root { --ui-zoom: 1; }
+:root[data-text-size="small"] { --ui-zoom: 0.9; }
+:root[data-text-size="large"] { --ui-zoom: 1.12; }
+/* Zoom scales the whole UI for text size. We must divide the root box by the
+   same factor so the app still fills the viewport exactly — otherwise zoom < 1
+   shrinks #root and the body background shows through as a dark band. */
+#root {
+  zoom: var(--ui-zoom);
+  width: calc(100% / var(--ui-zoom));
+  height: calc(100% / var(--ui-zoom));
+}
+.getting-ready { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 100%; padding: 48px 24px 56px; }
+.gr-back-link { margin-top: 18px; border: none; background: transparent; color: var(--c-text-3); font-size: 12.5px; cursor: pointer; padding: 6px 8px; border-radius: var(--r-pill); transition: color 0.15s ease; }
+.gr-back-link:hover { color: var(--c-text); }
 .getting-ready-stepper { display: flex; gap: 8px; margin-bottom: 30px; }
 .getting-ready-stepper span { width: 24px; height: 4px; border-radius: 2px; background: var(--c-surface-3); }
 .getting-ready-stepper span.is-on { background: var(--c-accent); }
@@ -1914,6 +1935,12 @@ details.onboarding-guide-panel[open] > summary {
 .getting-ready-models span { text-align: left; }
 .getting-ready-actions { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center; }
 .getting-ready-cta { background: var(--c-accent); color: var(--c-accent-ink); font-size: 15px; font-weight: 500; padding: 13px 28px; border: none; border-radius: 12px; cursor: pointer; text-decoration: none; }
+/* When the CTA is a link (e.g. "Get Ollama"), the global `a { color: accent }`
+   rule would tie/override and make the label blend into the green. Qualify with
+   the element so the dark ink wins. */
+a.getting-ready-cta,
+a.getting-ready-cta:hover,
+a.getting-ready-cta:visited { color: var(--c-accent-ink); }
 .getting-ready-cta:hover { background: var(--c-accent-hover); }
 .getting-ready-message { margin-top: 18px; max-width: 460px; font-size: 13px; color: var(--c-text-2); line-height: 1.55; }
 .getting-ready-error { margin-top: 14px; color: var(--c-danger); font-size: 13px; }
@@ -2019,13 +2046,13 @@ details.onboarding-guide-panel[open] > summary {
 .gr-check-state--on { color: var(--c-accent); font-weight: 600; }
 
 /* Full-window setup takeover frame */
-.setup-takeover { min-height: 100vh; display: flex; flex-direction: column; background: var(--c-bg); }
+.setup-takeover { min-height: 100%; display: flex; flex-direction: column; background: var(--c-bg); }
 .setup-takeover-bar { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 16px 22px; }
 .setup-takeover-brand { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; color: var(--c-text-2); }
 .setup-takeover-brand img { border-radius: 7px; }
 .setup-takeover-body { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; padding: 0 24px 48px; }
 .setup-takeover-body .getting-ready { padding-top: 0; }
-.first-run { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 24px; background: var(--c-bg); }
+.first-run { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 40px 24px; background: var(--c-bg); }
 .first-run-inner { display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 540px; }
 .first-run-mark { width: 84px; height: 84px; border-radius: 20px; margin-bottom: 30px; display: block; }
 .first-run-eyebrow { margin: 0 0 18px; color: var(--c-text-3); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; }
@@ -2199,7 +2226,7 @@ details.onboarding-guide-panel[open] > summary {
 .app-shell {
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
-  height: 100vh;
+  height: 100%;
   width: 100%;
   overflow: hidden;
   background: var(--c-bg);
@@ -2586,7 +2613,7 @@ details.onboarding-guide-panel[open] > summary {
 .main-content {
   min-width: 0;
   min-height: 0;
-  height: 100vh;
+  height: 100%;
   overflow-y: auto;
   padding: var(--s-6);
   background: var(--c-bg);
@@ -4233,4 +4260,15 @@ details.onboarding-guide-panel[open] > summary {
 }
 .ask-scroll-buttons button:active {
   transform: scale(0.94);
+}
+
+/* UNLAYERED override — must stay outside @layer generated. The global
+   `a { color: var(--c-accent) }` is unlayered, so a layered rule (even with
+   higher specificity) loses to it and the "Get Ollama" link label turns green
+   on the green button (invisible). An unlayered, higher-specificity rule wins. */
+a.getting-ready-cta,
+a.getting-ready-cta:link,
+a.getting-ready-cta:visited,
+a.getting-ready-cta:hover {
+  color: var(--c-accent-ink);
 }
