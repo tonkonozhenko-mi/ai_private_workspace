@@ -91,10 +91,6 @@ export function WorkspaceGettingReady({
   const [downloadJobs, setDownloadJobs] = useState<LocalModelDownloadJob[]>([]);
   const [busy, setBusy] = useState<"scan" | "models" | "index" | "check" | null>(null);
   const [backendChoice, setBackendChoice] = useState<"ollama" | "llamacpp">(workspaceBackend);
-  // Lets the user step back to the engine chooser (e.g. switch from llama.cpp to
-  // Ollama) any time before the project index is built. After indexing it no
-  // longer makes sense, so it is gated on !indexReady below.
-  const [revisitEngine, setRevisitEngine] = useState(false);
   // True once the built-in llama.cpp engine reports running (models downloaded,
   // engine up, selections applied). Used to pass the "models" step in llama.cpp
   // mode, the same way recommendedInstalled does for Ollama.
@@ -374,10 +370,17 @@ export function WorkspaceGettingReady({
     setBusy("check");
     setError(null);
     setMessage(null);
-    await tick();
-    await onRefreshWorkspaceState();
-    setCheckedAt(Date.now());
-    setBusy(null);
+    try {
+      await tick();
+      // Fire-and-forget: on some local backends a single heavy refresh can stall,
+      // and awaiting it here would leave `busy` stuck — which disables the next
+      // step's button (e.g. "Scan project" never reacts). The step pollers and
+      // tick() already advance state on their own.
+      void onRefreshWorkspaceState();
+      setCheckedAt(Date.now());
+    } finally {
+      setBusy(null);
+    }
   }
 
   // ---- Which step are we on? --------------------------------------------
@@ -385,8 +388,7 @@ export function WorkspaceGettingReady({
   // If they picked the built-in llama.cpp engine, Ollama is irrelevant and must
   // not block them — skip straight to scan/models.
   let step: "ollama" | "scan" | "models" | "index" | "ready";
-  if (revisitEngine && !indexReady) step = "ollama";
-  else if (backendChoice === "ollama" && !ollamaReachable) step = "ollama";
+  if (backendChoice === "ollama" && !ollamaReachable) step = "ollama";
   else if (!hasScan) step = "scan";
   else if (!modelsReady) step = "models";
   else if (!indexReady) step = "index";
@@ -442,44 +444,28 @@ export function WorkspaceGettingReady({
 
       {step === "ollama" ? (
         <div className="getting-ready-step">
-          <span className="getting-ready-kicker">
-            {revisitEngine ? "Change engine" : "First — pick a local engine"}
-          </span>
+          <span className="getting-ready-kicker">First — pick a local engine</span>
           <h2>Choose how to run AI on your Mac</h2>
           <p>
             {dashboard.workspace_name} runs models locally. Use the built-in
             llama.cpp engine (nothing to install), or Ollama if you prefer it.
           </p>
           {backendToggle}
-          {revisitEngine && backendChoice === "llamacpp" ? (
-            <div className="getting-ready-actions">
-              <button
-                className="getting-ready-cta"
-                type="button"
-                onClick={() => setRevisitEngine(false)}
-              >
-                Continue with built-in
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="getting-ready-actions">
-                <button
-                  className="getting-ready-cta"
-                  type="button"
-                  onClick={() => openExternalUrl("https://ollama.com/download")}
-                >
-                  Get Ollama
-                </button>
-                <button className="secondary-action" type="button" disabled={busy !== null} onClick={() => void recheck()}>
-                  {busy === "check" ? "Checking…" : "I’ve installed it — re-check"}
-                </button>
-              </div>
-              <p className="gr-llama-note">
-                Or pick “Built-in (llama.cpp)” above to skip Ollama entirely.
-              </p>
-            </>
-          )}
+          <div className="getting-ready-actions">
+            <button
+              className="getting-ready-cta"
+              type="button"
+              onClick={() => openExternalUrl("https://ollama.com/download")}
+            >
+              Get Ollama
+            </button>
+            <button className="secondary-action" type="button" disabled={busy !== null} onClick={() => void recheck()}>
+              {busy === "check" ? "Checking…" : "I’ve installed it — re-check"}
+            </button>
+          </div>
+          <p className="gr-llama-note">
+            Or pick “Built-in (llama.cpp)” above to skip Ollama entirely.
+          </p>
         </div>
       ) : step === "scan" ? (
         <div className="getting-ready-step">
@@ -492,15 +478,6 @@ export function WorkspaceGettingReady({
             </button>
           </div>
           {jobProgress && jobProgress.kind === "scan" ? renderJobProgress(jobProgress) : null}
-          {busy === null ? (
-            <button
-              className="gr-back-link"
-              type="button"
-              onClick={() => setRevisitEngine(true)}
-            >
-              ‹ Change engine
-            </button>
-          ) : null}
         </div>
       ) : step === "models" ? (
         <div className="getting-ready-step">

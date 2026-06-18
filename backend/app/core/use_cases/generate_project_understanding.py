@@ -220,6 +220,7 @@ class GenerateProjectUnderstandingUseCase:
                 embedding_provider=self.embedding_provider.provider_name,
                 embedding_model=self.embedding_provider.model_name,
                 embedding_dimension=len(query_embedding),
+                query_text=query,
             )
             for result in results:
                 if result.source_path in collected:

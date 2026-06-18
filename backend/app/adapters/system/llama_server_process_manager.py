@@ -75,12 +75,17 @@ class LlamaServerProcessManager:
             str(port),
             "-c",
             str(self.context_size),
-            # Apply the model's own chat template from GGUF metadata, so turns end
-            # cleanly and special tokens (<|eot_id|>, …) are not emitted as text.
-            "--jinja",
         ]
         if embedding:
-            args.append("--embedding")
+            # An embedding server needs pooling enabled, otherwise `/v1/embeddings`
+            # returns HTTP 500 for many GGUFs whose metadata pooling type is
+            # "none". `mean` is the safe default for sentence embeddings. It does
+            # not need a chat template, so `--jinja` is intentionally omitted.
+            args += ["--embedding", "--pooling", "mean"]
+        else:
+            # Apply the model's own chat template from GGUF metadata, so turns end
+            # cleanly and special tokens (<|eot_id|>, …) are not emitted as text.
+            args.append("--jinja")
 
         # The prebuilt llama.cpp binary ships its dylibs alongside it. Point the
         # dynamic loader at that folder so the libraries resolve regardless of
