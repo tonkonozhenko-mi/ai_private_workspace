@@ -199,6 +199,24 @@ class AskWorkspaceQuestionUseCase:
         ]
         return turns[-self.max_history_turns :]
 
+    def _retrieval_query(self, request: AskWorkspaceQuestionInput) -> str:
+        """The text used for RAG retrieval, expanded with recent context.
+
+        A follow-up like "how do I disable it?" has no searchable subject on its
+        own, so retrieval would miss the files the conversation is actually about.
+        We prepend the last couple of user questions (which carry the real terms,
+        e.g. "ecs", "cif", "dev") so dense + keyword search lands on the right
+        files. The question shown to the model is unchanged — this only steers
+        retrieval. With no history it is exactly the current question.
+        """
+        history = self._conversation_history(request)
+        prior_user_questions = [
+            content for role, content in history if role == "user" and content.strip()
+        ][-2:]
+        if not prior_user_questions:
+            return request.question
+        return "\n".join([*prior_user_questions, request.question])
+
     def execute(
         self,
         request: AskWorkspaceQuestionInput,
@@ -670,7 +688,10 @@ class AskWorkspaceQuestionUseCase:
         if request.limit <= 0 or not request.question.strip():
             return []
 
-        query_embedding = self.embedding_provider.embed_text(request.question)
+        # Expand the follow-up with recent conversation terms so retrieval lands
+        # on the files the dialogue is about ("disable it" -> "...ecs...disable it").
+        retrieval_query = self._retrieval_query(request)
+        query_embedding = self.embedding_provider.embed_text(retrieval_query)
         rerank = self.reranker is not None and self.reranker.enabled
         # When reranking, pull a wider candidate set so the cross-encoder has
         # something to re-sort; otherwise fetch exactly what we need.
@@ -684,13 +705,13 @@ class AskWorkspaceQuestionUseCase:
             embedding_provider=self.embedding_provider.provider_name,
             embedding_model=self.embedding_provider.model_name,
             embedding_dimension=len(query_embedding),
-            query_text=request.question,
+            query_text=retrieval_query,
         )
         if not rerank or len(candidates) <= request.limit:
             return candidates[: request.limit]
 
         order = self.reranker.rerank(
-            request.question, [result.content for result in candidates], request.limit
+            retrieval_query, [result.content for result in candidates], request.limit
         )
         reranked = [candidates[index] for index in order if 0 <= index < len(candidates)]
         # Safety net: if the reranker returned nothing usable, keep hybrid order.

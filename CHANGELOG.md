@@ -16,8 +16,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
   chat messages (`user`/`assistant`) ahead of the new question — the native format
   models are trained on — so both the answer and the project-vs-general routing
   stay on topic. Ollama gets the same memory via a compact history preface in its
-  prompt. Best-effort and bounded (last few turns): a fresh chat or missing
-  history changes nothing.
+  prompt. Crucially, retrieval is **context-aware** too: a bare follow-up like
+  "disable it" carries no searchable subject, so the RAG query is expanded with
+  the last couple of user questions (which hold the real terms — "ecs", "cif",
+  "dev") before dense + keyword search runs. Without that, the right files would
+  never be retrieved no matter how good the prompt is. Best-effort and bounded
+  (last few turns): a fresh chat or missing history changes nothing.
 
 - **"Sharper search" reranker (opt-in).** A cross-encoder reranker precision pass:
   hybrid retrieval pulls a wider candidate set, a reranker model re-scores each
