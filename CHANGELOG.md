@@ -20,10 +20,14 @@ experience, faster startup, and signed per-architecture macOS builds.
 
 - **Hybrid search (much more accurate retrieval).** The SQLite store now combines
   dense vector similarity with a BM25 keyword index (SQLite FTS5) and fuses the
-  two rankings with Reciprocal Rank Fusion. File and folder paths are indexed
+  rankings with Reciprocal Rank Fusion. File and folder paths are indexed
   alongside the text, so exact identifiers — folder names like `dev`, variable
   names like `cif_allowed_cidr` — are matched lexically instead of being missed by
-  pure semantic search. Falls back to vector-only if FTS5 is unavailable.
+  pure semantic search. Two further signals sharpen results: a **path/env boost**
+  (chunks whose file path segments match query terms like `dev` or `cif` are
+  lifted, so environment-specific questions land on the right file) and a
+  **per-file diversity cap** (one big file can't fill the whole answer). Falls
+  back to vector-only if FTS5 is unavailable.
 - **Built-in llama.cpp engine — fully Ollama-free path.** The app can bundle
   `llama-server` and run GGUF models with no external install: pick the engine at
   setup, auto-launch the runtime, switchable embeddings, and a live RAM (RSS) bar

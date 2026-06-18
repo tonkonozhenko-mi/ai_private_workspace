@@ -17,6 +17,8 @@ The v0.1 release candidate is a source handoff for developers and reviewers. It 
 
 - [Installing on macOS](#installing-on-macos-first-launch)
 - [What it does](#what-it-does)
+- [Local engines](#local-engines)
+- [How search works](#how-search-works)
 - [Safety model](#safety-model)
 - [Main product flows](#main-product-flows)
 - [Current status](#current-status)
@@ -50,7 +52,8 @@ your organization's device management.
 - Respects the project's own `.gitignore` when indexing, so virtualenvs, `node_modules`, build output, caches, and local `.env` secrets stay out of the local index — the same files you would not commit to git.
 - Answers questions from retrieved project sources instead of unsupported guesses.
 - Keeps conversations, answer history, model choices, reports, and timeline state locally.
-- Guides local Ollama/model setup and detects installed local models.
+- Runs entirely on one of two local engines — the **built-in llama.cpp** engine (nothing to install) or **Ollama** — and lets you switch between them per project. See [Local engines](#local-engines).
+- Guides local model setup and detects installed local models.
 - Remembers custom Ollama model tags and enriches them from the local Ollama
   installation with size, parameter, quantization, and capability metadata.
 - Provides safe model download drafts and backend-owned download jobs behind explicit approval.
@@ -58,6 +61,48 @@ your organization's device management.
 - Lets Ask turn an answer into a reviewed project-file draft; a file is written only after the user confirms its relative path, exact content, and overwrite intent.
 - Provides Agent and MCP planning UX without automatic tool execution.
 - Includes macOS, Windows, and Tauri packaging foundations for future installer-grade releases.
+
+## Local engines
+
+Everything runs locally — no cloud, no accounts — on whichever engine you prefer,
+chosen per project and switchable at any time before indexing:
+
+- **Built-in llama.cpp** — the app bundles `llama-server` and runs GGUF models
+  with **nothing to install**. Add any model straight from a Hugging Face repo
+  and the app resolves a sensible quant for you. Best for a zero-setup start.
+- **Ollama** — if you already use Ollama, point the app at it and keep your
+  existing models and tags. Best if you live in the Ollama ecosystem.
+
+Both paths are first-class: the same setup flow, model manager, answer metrics
+(real token counts, generation speed, and context-window usage), and a live RAM
+indicator work identically. The answer model and the search (embedding) model are
+managed separately, so you can mix a strong answer model with a small, fast
+embedder.
+
+## How search works
+
+Answers are grounded in your project through a **hybrid retrieval** pipeline —
+the same approach used by strong production RAG systems, running fully on your
+machine:
+
+- **Dense vector search** — your question and every chunk are embedded; the
+  closest chunks by cosine similarity are retrieved. Great for meaning and
+  paraphrase, but weak at exact names.
+- **Keyword search (BM25)** — a full-text index (SQLite FTS5) over the chunk text
+  **and its file path**, so exact identifiers — folder names like `dev`, variable
+  names like `cif_allowed_cidr` — are matched literally, which pure vector search
+  misses.
+- **Reciprocal Rank Fusion (RRF)** — merges the vector and keyword rankings
+  without having to normalize their very different score scales.
+- **Path / environment boost** — chunks whose file-path segments match query
+  terms (e.g. `dev`, `cif`) are lifted, so environment-specific questions land on
+  the file under that path instead of a similarly-worded one elsewhere.
+- **Per-file diversity** — one large file can't fill the whole answer, so results
+  span more of the codebase.
+
+It degrades gracefully: if keyword indexing is unavailable it falls back to
+vector-only search. On the roadmap: a cross-encoder **reranker** for an extra
+precision pass.
 
 ## Screenshots
 
