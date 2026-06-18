@@ -235,73 +235,85 @@ export function SettingsPanel({
       </header>
 
       <section className="settings-clean-grid">
-        <article className="panel settings-clean-card">
+        <article className="panel settings-clean-card settings-appearance-card">
           <div className="panel-heading compact-heading">
             <div>
               <p className="eyebrow">Appearance</p>
               <h3>Look and feel</h3>
             </div>
           </div>
-          <div className="segmented-control" aria-label="Theme">
-            {(["system", "light", "dark"] as const).map((theme) => (
-              <button
-                key={theme}
-                type="button"
-                className={preferences.theme === theme ? "is-selected" : ""}
-                onClick={() => updatePreference({ theme })}
-              >
-                {formatLabel(theme)}
-              </button>
-            ))}
-          </div>
-          <div className="settings-field">
-            <span className="settings-field-label">Text size</span>
-            <div className="segmented-control" aria-label="Text size">
-              {(["small", "medium", "large"] as const).map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  className={preferences.textSize === size ? "is-selected" : ""}
-                  onClick={() => updatePreference({ textSize: size })}
-                >
-                  {formatLabel(size)}
-                </button>
-              ))}
+          <div className="settings-appearance-grid">
+            <div className="settings-appearance-col">
+              <div className="settings-field">
+                <span className="settings-field-label">Theme</span>
+                <div className="segmented-control" aria-label="Theme">
+                  {(["system", "light", "dark"] as const).map((theme) => (
+                    <button
+                      key={theme}
+                      type="button"
+                      className={preferences.theme === theme ? "is-selected" : ""}
+                      onClick={() => updatePreference({ theme })}
+                    >
+                      {formatLabel(theme)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="settings-field">
+                <span className="settings-field-label">Text size</span>
+                <div className="segmented-control" aria-label="Text size">
+                  {(["small", "medium", "large"] as const).map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      className={preferences.textSize === size ? "is-selected" : ""}
+                      onClick={() => updatePreference({ textSize: size })}
+                    >
+                      {formatLabel(size)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="settings-appearance-col settings-toggle-list">
+              <label className="settings-toggle-row">
+                <span>
+                  <strong>Stream answers</strong>
+                  <small>Show the answer word-by-word as the model writes it. New chats start with this.</small>
+                </span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={preferences.defaultStreaming}
+                  onChange={(event) => updatePreference({ defaultStreaming: event.target.checked })}
+                />
+              </label>
+              <label className="settings-toggle-row">
+                <span>
+                  <strong>Reasoning by default</strong>
+                  <small>Let thinking-capable models reason before answering (slower, often better). New chats start with this.</small>
+                </span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={preferences.defaultReasoning}
+                  onChange={(event) => updatePreference({ defaultReasoning: event.target.checked })}
+                />
+              </label>
+              <label className="settings-toggle-row">
+                <span>
+                  <strong>Developer mode</strong>
+                  <small>Show advanced model, file, and integration settings. Off by default for a simpler experience.</small>
+                </span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={preferences.developerMode}
+                  onChange={(event) => updatePreference({ developerMode: event.target.checked })}
+                />
+              </label>
             </div>
           </div>
-          <label className="settings-developer-toggle">
-            <input
-              type="checkbox"
-              checked={preferences.defaultStreaming}
-              onChange={(event) => updatePreference({ defaultStreaming: event.target.checked })}
-            />
-            <span>
-              <strong>Stream answers</strong>
-              <small>Show the answer word-by-word as the model writes it. New chats start with this.</small>
-            </span>
-          </label>
-          <label className="settings-developer-toggle">
-            <input
-              type="checkbox"
-              checked={preferences.defaultReasoning}
-              onChange={(event) => updatePreference({ defaultReasoning: event.target.checked })}
-            />
-            <span>
-              <strong>Reasoning by default</strong>
-              <small>Let thinking-capable models reason before answering (slower, often better). New chats start with this.</small>
-            </span>
-          </label>
-          <label className="settings-developer-toggle">
-            <input
-              type="checkbox"
-              checked={preferences.developerMode}
-              onChange={(event) => updatePreference({ developerMode: event.target.checked })}
-            />
-            <span>
-              <strong>Developer mode</strong>
-              <small>Show advanced model, file, and integration settings. Off by default for a simpler experience.</small>
-            </span>
-          </label>
         </article>
       </section>
 
