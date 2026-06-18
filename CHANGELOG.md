@@ -7,7 +7,14 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **Reranker foundation (opt-in, in progress).** A cross-encoder reranker
+  abstraction (`RerankerPort` + a llama.cpp `/rerank` adapter) and an optional
+  precision pass in Ask: hybrid retrieval pulls a wider candidate set, the
+  reranker re-sorts it, and the best are kept. Fully gated and transparent — with
+  no reranker configured (the default), Ask behaves exactly as before. The
+  bundled reranker model, its runtime, and the "sharper search" toggle land next.
 
 ## [0.1.95] - 2026-06-18
 
