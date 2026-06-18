@@ -4,9 +4,22 @@ from time import sleep
 
 import httpx
 
+from app.core.domain.rag_prompt import render_conversation_history
+
 
 class OllamaLLMProviderError(RuntimeError):
     pass
+
+
+def _with_history(prompt: str, history: list[tuple[str, str]] | None) -> str:
+    """Prepend recent dialogue to the prompt.
+
+    Ollama's ``/api/generate`` is prompt-only (no message array), so to give it
+    the same follow-up memory llama.cpp gets from real chat messages, we render
+    the prior turns as a short text preface.
+    """
+    section = render_conversation_history(history)
+    return f"{section}{prompt}" if section else prompt
 
 
 def _coerce_int(value: object) -> int | None:
@@ -70,9 +83,11 @@ class OllamaLLMProvider:
         images: list[str] | None = None,
         temperature: float | None = None,
         think: bool | None = None,
+        history: list[tuple[str, str]] | None = None,
     ) -> str:
         self.last_prompt_tokens = None
         self.last_completion_tokens = None
+        prompt = _with_history(prompt, history)
         response = self._request_with_one_local_retry(prompt, images, temperature, think)
 
         try:
@@ -103,6 +118,7 @@ class OllamaLLMProvider:
         images: list[str] | None = None,
         temperature: float | None = None,
         think: bool | None = None,
+        history: list[tuple[str, str]] | None = None,
     ) -> Iterator[str]:
         """Yield answer text deltas as Ollama produces them.
 
@@ -112,7 +128,7 @@ class OllamaLLMProvider:
         """
         payload: dict[str, object] = {
             "model": self.model,
-            "prompt": prompt,
+            "prompt": _with_history(prompt, history),
             "stream": True,
         }
         if think is not None:

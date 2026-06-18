@@ -261,11 +261,15 @@ class AskWorkspaceQuestionUseCase:
                 request.question, request.attached_documents
             ),
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
-            conversation_history=self._conversation_history(request),
         )
         try:
             answer, usage = self._generate_answer_with_usage(
-                llm_provider, prompt, request.images, request.temperature, request.think
+                llm_provider,
+                prompt,
+                request.images,
+                request.temperature,
+                request.think,
+                self._conversation_history(request),
             )
         except RuntimeError as exc:
             return self._record_question_event(
@@ -371,10 +375,9 @@ class AskWorkspaceQuestionUseCase:
                     request.question, request.attached_documents
                 ),
                 assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
-                conversation_history=self._conversation_history(request),
             )
             answer_text, usage, failed = yield from self._stream_generation(
-                llm_provider, prompt, request
+                llm_provider, prompt, request, self._conversation_history(request)
             )
             if failed:
                 yield AskStreamFinal(
@@ -428,7 +431,6 @@ class AskWorkspaceQuestionUseCase:
                 request.question, request.attached_documents
             ),
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
-            conversation_history=self._conversation_history(request),
         )
         answer_text, usage, failed = yield from self._stream_generation(
             llm_provider, prompt, request
@@ -488,6 +490,7 @@ class AskWorkspaceQuestionUseCase:
         llm_provider: LLMProviderPort,
         prompt: str,
         request: AskWorkspaceQuestionInput,
+        history: list[tuple[str, str]] | None = None,
     ) -> Iterator[AskStreamEvent]:
         """Yield ``AskStreamDelta`` chunks and return ``(answer, usage, error)``.
 
@@ -505,6 +508,7 @@ class AskWorkspaceQuestionUseCase:
                     request.images or None,
                     request.temperature,
                     request.think,
+                    history,
                 ):
                     if not delta:
                         continue
@@ -516,6 +520,7 @@ class AskWorkspaceQuestionUseCase:
                     request.images or None,
                     request.temperature,
                     request.think,
+                    history,
                 )
                 chunks.append(answer)
                 yield AskStreamDelta(answer)
@@ -541,9 +546,10 @@ class AskWorkspaceQuestionUseCase:
         images: list[str] | None = None,
         temperature: float | None = None,
         think: bool | None = None,
+        history: list[tuple[str, str]] | None = None,
     ) -> tuple[str, LLMUsageMetrics]:
         started_at = perf_counter()
-        answer = llm_provider.generate(prompt, images or None, temperature, think)
+        answer = llm_provider.generate(prompt, images or None, temperature, think, history)
         latency_ms = max(0, round((perf_counter() - started_at) * 1000))
         usage = build_llm_usage_metrics(
             prompt=prompt,
@@ -580,11 +586,15 @@ class AskWorkspaceQuestionUseCase:
                 request.question, request.attached_documents
             ),
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
-            conversation_history=self._conversation_history(request),
         )
         try:
             answer, usage = self._generate_answer_with_usage(
-                llm_provider, prompt, request.images, request.temperature, request.think
+                llm_provider,
+                prompt,
+                request.images,
+                request.temperature,
+                request.think,
+                self._conversation_history(request),
             )
         except RuntimeError as exc:
             return self._diagnostic_answer(
