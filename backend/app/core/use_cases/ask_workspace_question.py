@@ -22,6 +22,7 @@ from app.core.domain.rag_prompt import (
     build_general_chat_prompt,
     build_workspace_question_prompt,
 )
+from app.core.ports.conversation_repository import ConversationRepositoryPort
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.llm_provider import LLMProviderPort
@@ -154,6 +155,8 @@ class AskWorkspaceQuestionUseCase:
         timeline_repository: TimelineRepositoryPort | None = None,
         reranker: RerankerPort | None = None,
         rerank_candidates: int = 30,
+        conversation_repository: ConversationRepositoryPort | None = None,
+        max_history_turns: int = 6,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.embedding_provider = embedding_provider
@@ -161,10 +164,40 @@ class AskWorkspaceQuestionUseCase:
         self.llm_provider_factory = llm_provider_factory
         self.index_status_repository = index_status_repository
         self.timeline_repository = timeline_repository
+        # Optional conversation memory: when set, recent turns of the same
+        # conversation are fed into the prompt so follow-ups ("disable it") keep
+        # their context. None = stateless, exactly as before.
+        self.conversation_repository = conversation_repository
+        self.max_history_turns = max_history_turns
         # Optional cross-encoder precision pass. None (or a disabled reranker)
         # means Ask behaves exactly as before — plain hybrid retrieval.
         self.reranker: RerankerPort | None = reranker
         self.rerank_candidates = rerank_candidates
+
+    def _conversation_history(
+        self, request: AskWorkspaceQuestionInput
+    ) -> list[tuple[str, str]]:
+        """Recent (role, content) turns of this conversation for prompt context.
+
+        Best-effort: missing repo/conversation, or any error, yields no history so
+        answering never depends on it.
+        """
+        if self.conversation_repository is None or not request.conversation_id:
+            return []
+        try:
+            conversation = self.conversation_repository.get_conversation(
+                request.workspace_id, request.conversation_id
+            )
+        except Exception:  # noqa: BLE001 - history is optional, never fail the ask
+            return []
+        if conversation is None:
+            return []
+        turns = [
+            (message.role, message.content)
+            for message in conversation.messages
+            if message.role in ("user", "assistant") and message.content.strip()
+        ]
+        return turns[-self.max_history_turns :]
 
     def execute(
         self,
@@ -228,6 +261,7 @@ class AskWorkspaceQuestionUseCase:
                 request.question, request.attached_documents
             ),
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+            conversation_history=self._conversation_history(request),
         )
         try:
             answer, usage = self._generate_answer_with_usage(
@@ -337,6 +371,7 @@ class AskWorkspaceQuestionUseCase:
                     request.question, request.attached_documents
                 ),
                 assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+                conversation_history=self._conversation_history(request),
             )
             answer_text, usage, failed = yield from self._stream_generation(
                 llm_provider, prompt, request
@@ -393,6 +428,7 @@ class AskWorkspaceQuestionUseCase:
                 request.question, request.attached_documents
             ),
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+            conversation_history=self._conversation_history(request),
         )
         answer_text, usage, failed = yield from self._stream_generation(
             llm_provider, prompt, request
@@ -544,6 +580,7 @@ class AskWorkspaceQuestionUseCase:
                 request.question, request.attached_documents
             ),
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+            conversation_history=self._conversation_history(request),
         )
         try:
             answer, usage = self._generate_answer_with_usage(

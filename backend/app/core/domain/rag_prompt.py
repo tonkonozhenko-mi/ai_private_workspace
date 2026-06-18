@@ -9,12 +9,32 @@ class SkillPromptInstruction:
     instruction: str
 
 
+def _build_history_section(conversation_history: list[tuple[str, str]] | None) -> str:
+    """Render recent dialogue so the model can resolve follow-ups ("it", "that",
+    "disable it") against what was just discussed. Each turn is truncated to keep
+    the prompt bounded."""
+    if not conversation_history:
+        return ""
+    lines = [
+        "Earlier in this conversation (use it to resolve references like "
+        '"it"/"that" in the question below; it is not project evidence):'
+    ]
+    for role, content in conversation_history:
+        speaker = "User" if role == "user" else "Assistant"
+        text = " ".join(content.split())[:600]
+        if text:
+            lines.append(f"{speaker}: {text}")
+    lines.append("")
+    return "\n".join(lines) + "\n"
+
+
 def build_workspace_question_prompt(
     question: str,
     context_results: list[ContextSearchResult],
     skill_instructions: list[SkillPromptInstruction] | None = None,
     attached_section: str = "",
     assistant_identity: str | None = None,
+    conversation_history: list[tuple[str, str]] | None = None,
 ) -> str:
     context_sections = [
         (
@@ -51,6 +71,7 @@ def build_workspace_question_prompt(
         "from these files, ignore the files and answer directly and briefly — do not "
         "describe the project, do not cite source paths, and do not pretend the "
         "question was about the project.\n\n"
+        f"{_build_history_section(conversation_history)}"
         f"Question:\n{question}\n\n"
         f"{attached_section}"
         f"Context chunks:\n{context}\n\n"
@@ -187,6 +208,7 @@ def build_general_chat_prompt(
     current_time: str | None = None,
     attached_section: str = "",
     assistant_identity: str | None = None,
+    conversation_history: list[tuple[str, str]] | None = None,
 ) -> str:
     normalized_skill_instructions = _normalize_skill_instructions(skill_instructions or [])
     skill_section = _build_skill_section(normalized_skill_instructions)
@@ -210,6 +232,7 @@ def build_general_chat_prompt(
         f"{identity_line}"
         f"{time_line}"
         f"{skill_section}"
+        f"{_build_history_section(conversation_history)}"
         f"{attached_section}"
         f"Question:\n{question}\n\n"
         "Answer requirements:\n"

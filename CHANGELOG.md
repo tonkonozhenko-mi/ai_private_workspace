@@ -9,6 +9,11 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Added
 
+- **Conversation memory in Ask.** Follow-up questions now keep their context — ask
+  "how is ECS configured?" then "how do I disable it?" and the model knows "it"
+  refers to ECS. Recent turns of the same conversation are fed into the prompt
+  (best-effort; a fresh chat or missing history changes nothing).
+
 - **"Sharper search" reranker (opt-in).** A cross-encoder reranker precision pass:
   hybrid retrieval pulls a wider candidate set, a reranker model re-scores each
   (question, snippet) pair, and the best are kept — noticeably more relevant
