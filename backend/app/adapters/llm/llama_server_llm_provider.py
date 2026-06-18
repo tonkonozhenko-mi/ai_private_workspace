@@ -48,13 +48,54 @@ class LlamaServerLLMProvider:
         self.model = model
         self.timeout_seconds = timeout_seconds
         self.client = client or httpx.Client()
-        # llama-server is launched with ``-c 4096`` (see LlamaServerProcessManager),
-        # so this is the real per-request token window. Surfaced for the UI.
-        self.context_window = context_window
+        # Fallback window if /props can't be read; the real value is fetched live.
+        self._declared_context_window = context_window
+        self._context_window_cache: int | None = None
+        # Real token counts from the last generation (llama-server reports usage).
+        self.last_prompt_tokens: int | None = None
+        self.last_completion_tokens: int | None = None
 
     @property
     def model_name(self) -> str:
         return self.model
+
+    @property
+    def context_window(self) -> int:
+        """The server's real context size (``n_ctx``), read from /props once.
+
+        This reflects what llama-server actually loaded (the ``-c`` value), so the
+        UI shows the true window rather than a guess. Falls back to the declared
+        default if /props is unavailable.
+        """
+        if self._context_window_cache is not None:
+            return self._context_window_cache
+        n_ctx = self._declared_context_window
+        try:
+            response = self.client.get(f"{self.base_url}/props", timeout=self.timeout_seconds)
+            if response.status_code < 400:
+                data = response.json()
+                if isinstance(data, dict):
+                    candidate = data.get("n_ctx")
+                    settings = data.get("default_generation_settings")
+                    if candidate is None and isinstance(settings, dict):
+                        candidate = settings.get("n_ctx")
+                    if isinstance(candidate, int) and not isinstance(candidate, bool) and candidate > 0:
+                        n_ctx = candidate
+        except (httpx.HTTPError, ValueError):
+            pass
+        self._context_window_cache = n_ctx
+        return n_ctx
+
+    def _capture_usage(self, payload: object) -> None:
+        usage = payload.get("usage") if isinstance(payload, dict) else None
+        if not isinstance(usage, dict):
+            return
+        prompt_tokens = usage.get("prompt_tokens")
+        completion_tokens = usage.get("completion_tokens")
+        if isinstance(prompt_tokens, int) and not isinstance(prompt_tokens, bool):
+            self.last_prompt_tokens = prompt_tokens
+        if isinstance(completion_tokens, int) and not isinstance(completion_tokens, bool):
+            self.last_completion_tokens = completion_tokens
 
     def _build_messages(self, prompt: str, images: list[str] | None) -> list[dict]:
         if not images:
@@ -76,6 +117,10 @@ class LlamaServerLLMProvider:
             "stream": stream,
             "stop": _STOP_TOKENS,
         }
+        if stream:
+            # Ask for a trailing usage chunk so streamed answers also report real
+            # token counts (otherwise the stream carries only text deltas).
+            payload["stream_options"] = {"include_usage": True}
         if temperature is not None:
             payload["temperature"] = temperature
         return payload
@@ -87,6 +132,8 @@ class LlamaServerLLMProvider:
         temperature: float | None = None,
         think: bool | None = None,
     ) -> str:
+        self.last_prompt_tokens = None
+        self.last_completion_tokens = None
         try:
             response = self.client.post(
                 f"{self.base_url}/v1/chat/completions",
@@ -112,6 +159,8 @@ class LlamaServerLLMProvider:
                 "llama-server response did not include a message"
             ) from exc
 
+        self._capture_usage(payload)
+
         if not isinstance(content, str) or not content.strip():
             raise LlamaServerLLMProviderError("llama-server returned an empty answer")
         return _clean(content).strip()
@@ -124,6 +173,8 @@ class LlamaServerLLMProvider:
         think: bool | None = None,
     ) -> Iterator[str]:
         """Yield answer text deltas via the OpenAI-compatible SSE stream."""
+        self.last_prompt_tokens = None
+        self.last_completion_tokens = None
         try:
             with self.client.stream(
                 "POST",
@@ -144,8 +195,13 @@ class LlamaServerLLMProvider:
                         break
                     try:
                         chunk = json.loads(data)
+                    except ValueError:
+                        continue
+                    # The final usage chunk has empty choices but real token counts.
+                    self._capture_usage(chunk)
+                    try:
                         delta = chunk["choices"][0]["delta"].get("content")
-                    except (ValueError, KeyError, IndexError, TypeError):
+                    except (KeyError, IndexError, TypeError):
                         continue
                     if isinstance(delta, str) and delta:
                         # Stop at the first control token: emit text before it,

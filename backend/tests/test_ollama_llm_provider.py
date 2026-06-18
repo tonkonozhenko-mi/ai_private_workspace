@@ -22,6 +22,8 @@ def test_ollama_llm_provider_returns_generated_text() -> None:
             "model": "llama3.2",
             "prompt": "Explain the workspace.",
             "stream": False,
+            # We pin the context window so the reported "used / window" is real.
+            "options": {"num_ctx": 4096},
         }
         return httpx.Response(200, json={"response": "The workspace uses local RAG."})
 

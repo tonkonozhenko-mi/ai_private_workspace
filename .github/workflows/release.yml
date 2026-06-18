@@ -41,6 +41,45 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so we can diff against the previous tag for release notes.
+          fetch-depth: 0
+
+      # --- Release notes: the CHANGELOG section for this tag + an auto commit list.
+      #     Runs on every matrix entry but produces identical text; tauri-action
+      #     creates the release once and reuses it for the other architecture. ---
+      - name: Build release notes
+        id: notes
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          # Pull the "## [VERSION]" section out of CHANGELOG.md (up to the next "## [").
+          SECTION=$(awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" {flag=1; next}
+            flag && /^## \[/ {exit}
+            flag {print}
+          ' CHANGELOG.md)
+          PREV_TAG=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            COMMITS=$(git log --no-merges --pretty='- %s' "${PREV_TAG}..${TAG}")
+            RANGE_LINK="https://github.com/${GITHUB_REPOSITORY}/compare/${PREV_TAG}...${TAG}"
+          else
+            COMMITS=$(git log --no-merges --pretty='- %s' "${TAG}")
+            RANGE_LINK="https://github.com/${GITHUB_REPOSITORY}/commits/${TAG}"
+          fi
+          {
+            echo "body<<NOTES_EOF"
+            [ -n "$SECTION" ] && printf '%s\n\n' "$SECTION"
+            echo "<details><summary>All commits in this release</summary>"
+            echo ""
+            echo "$COMMITS"
+            echo ""
+            echo "</details>"
+            echo ""
+            echo "**Full changelog:** $RANGE_LINK"
+            echo "NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       # --- Backend: build the frozen Python runtime the app bundles ---
       - uses: actions/setup-python@v5
@@ -100,7 +139,7 @@ jobs:
           projectPath: frontend
           tagName: ${{ github.ref_name }}
           releaseName: "AI Private Workspace ${{ github.ref_name }}"
-          releaseBody: "See the assets below to download and install. The app updates itself after the first install."
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
           # Generates latest.json (the update manifest) alongside the installers.

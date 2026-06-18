@@ -57,6 +57,21 @@ GENERAL_CHAT_DIAGNOSTIC_MESSAGE = (
 )
 
 
+def _usage_kwargs(llm_provider: LLMProviderPort) -> dict[str, object | None]:
+    """Pull real per-request usage from the provider (token counts + context
+    window) when it exposes them, so the UI shows exact numbers instead of a
+    character-based estimate. Providers that don't expose these yield None."""
+    prompt_tokens = getattr(llm_provider, "last_prompt_tokens", None)
+    completion_tokens = getattr(llm_provider, "last_completion_tokens", None)
+    has_real = prompt_tokens is not None and completion_tokens is not None
+    return {
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "estimated": not has_real,
+        "context_window": getattr(llm_provider, "context_window", None),
+    }
+
+
 def _empty_context_warning(index_status: str) -> RagQualityWarning:
     """A non-blocking note: the question was answered without project context
     because none was retrievable. When the index says 'indexed' but the store is
@@ -472,8 +487,7 @@ class AskWorkspaceQuestionUseCase:
             latency_ms=latency_ms,
             provider=llm_provider.provider_name,
             model=llm_provider.model_name,
-            estimated=True,
-            context_window=getattr(llm_provider, "context_window", None),
+            **_usage_kwargs(llm_provider),
         )
         return answer_text, usage, None
 
@@ -494,8 +508,7 @@ class AskWorkspaceQuestionUseCase:
             latency_ms=latency_ms,
             provider=llm_provider.provider_name,
             model=llm_provider.model_name,
-            estimated=True,
-            context_window=getattr(llm_provider, "context_window", None),
+            **_usage_kwargs(llm_provider),
         )
         return answer, usage
 
