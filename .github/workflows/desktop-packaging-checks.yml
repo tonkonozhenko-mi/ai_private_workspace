@@ -32,7 +32,7 @@ jobs:
     name: Packaging script syntax
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Check shell scripts
         run: |
           bash -n scripts/package_macos_app_foundation.sh

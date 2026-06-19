@@ -40,7 +40,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # Full history so we can diff against the previous tag for release notes.
           fetch-depth: 0
@@ -160,7 +160,7 @@ jobs:
     needs: release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Add a grouped Downloads section to the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -207,7 +207,7 @@ jobs:
     needs: release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Generate SPDX SBOM
         uses: anchore/sbom-action@v0
         with:
@@ -228,7 +228,7 @@ jobs:
     needs: release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
