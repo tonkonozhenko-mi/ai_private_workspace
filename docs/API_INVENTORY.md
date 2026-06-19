@@ -163,6 +163,7 @@ models, run benchmarks, or change active runtime configuration.
 | `POST /workspaces/{workspace_id}/intelligence/build` | Build the Project Intelligence graph from deterministic analyzers (explicit action). | No | No | Local filesystem read | Project Intelligence |
 | `GET /workspaces/{workspace_id}/intelligence` | Latest project graph projected through the role lens. | No | No | Local DB read | Project Intelligence |
 | `GET /workspaces/{workspace_id}/intelligence/overview-text` | Optional LLM overview written only from the graph facts. | No | No | Local model | Project Intelligence |
+| `POST /workspaces/{workspace_id}/intelligence/ask` | Answer a free-text question using only the graph facts. | No | No | Local model | Project Intelligence |
 
 ## Command Approval
 

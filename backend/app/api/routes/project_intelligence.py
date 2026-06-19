@@ -6,6 +6,7 @@ the only LLM-written piece, and it is constrained to those facts.
 """
 
 from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
     file_system,
@@ -15,7 +16,12 @@ from app.api.dependencies import (
     workspace_repository,
 )
 from app.core.domain.project_graph import ProjectSnapshotMeta
+from app.core.domain.project_intelligence_flow import (
+    compare_environments,
+    derive_deployment_flow,
+)
 from app.core.domain.project_intelligence_prompt import (
+    build_ask_graph_prompt,
     build_project_intelligence_overview_prompt,
 )
 from app.core.domain.project_intelligence_view import (
@@ -91,6 +97,8 @@ def get_project_intelligence(workspace_id: str, role: str | None = None) -> dict
         "snapshot": _meta_dict(meta),
         "view": view,
         "graph": present_project_graph(graph),
+        "flow": derive_deployment_flow(graph),
+        "environment_comparison": compare_environments(graph),
     }
 
 
@@ -117,3 +125,33 @@ def get_project_intelligence_overview_text(workspace_id: str, role: str | None =
             detail=f"The local model could not generate an overview: {exc}",
         ) from exc
     return {"overview": text, "role": resolved_role}
+
+
+class AskProjectIntelligenceRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=500)
+    role: str | None = None
+
+
+@router.post("/{workspace_id}/intelligence/ask")
+def ask_project_intelligence(workspace_id: str, request: AskProjectIntelligenceRequest) -> dict:
+    """Answer a free-text question about the project using ONLY the graph facts.
+    The local model is instructed to say so when the answer is not in the files."""
+    graph = project_graph_repository.get_latest_graph(workspace_id)
+    if graph is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Build the project map first.",
+        )
+    resolved_role = _resolve_role(workspace_id, request.role)
+    lens = role_lens_for(resolved_role)
+    view = present_project_intelligence(graph, lens)
+    prompt = build_ask_graph_prompt(view, lens.label, request.question.strip())
+    try:
+        provider = llm_provider_factory.create(provider=None, model=None)
+        answer = provider.generate(prompt)
+    except (LLMProviderFactoryError, RuntimeError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"The local model could not answer: {exc}",
+        ) from exc
+    return {"answer": answer, "role": resolved_role}
