@@ -64,6 +64,7 @@ import {
   type WorkbenchPreferences,
 } from "./preferences";
 import { useWorkspaceJobs } from "./hooks/useWorkspaceJobs";
+import { useSidebarCollapsed } from "./hooks/useSidebarCollapsed";
 import { errorMessage } from "./lib/errorMessage";
 
 export type WorkspaceTab = "overview" | "ask" | "models" | "reports" | "actions" | "activity" | "settings";
@@ -207,13 +208,7 @@ function App() {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
   const [setupTakeoverDismissed, setSetupTakeoverDismissed] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
-    try {
-      return window.localStorage.getItem("apw.sidebarCollapsed") === "1";
-    } catch {
-      return false;
-    }
-  });
+  const [sidebarCollapsed, setSidebarCollapsed] = useSidebarCollapsed();
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
   const [archivingWorkspaceId, setArchivingWorkspaceId] = useState<string | null>(null);
   const [restoringWorkspaceId, setRestoringWorkspaceId] = useState<string | null>(null);
@@ -701,13 +696,6 @@ function App() {
     takeoverWasActiveRef.current = false;
   }, [selectedWorkspaceId]);
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("apw.sidebarCollapsed", sidebarCollapsed ? "1" : "0");
-    } catch {
-      // Ignore storage failures (private mode, etc.).
-    }
-  }, [sidebarCollapsed]);
 
   const setupComplete = detail
     ? detail.dashboard.summary.has_scan &&
