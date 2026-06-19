@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from app.adapters.commands.fake_command_runner import FakeCommandRunner
@@ -613,6 +614,27 @@ def build_reranker() -> LlamaServerReranker | None:
     )
 
 
+logger = logging.getLogger("ai_private_workspace.startup")
+
+# Structured, non-fatal startup problems. Best-effort startup steps (like
+# re-activating the persisted engine) degrade gracefully instead of crashing the
+# app — but we now record *why* so a silent runtime mismatch is visible in the
+# logs and via get_startup_diagnostics(), rather than being swallowed.
+_startup_diagnostics: list[dict[str, str]] = []
+
+
+def _record_startup_diagnostic(component: str, message: str) -> None:
+    _startup_diagnostics.append({"component": component, "message": message})
+    logger.warning("startup diagnostic [%s]: %s", component, message)
+
+
+def get_startup_diagnostics() -> list[dict[str, str]]:
+    """Non-fatal problems recorded during startup (e.g. the persisted llama.cpp
+    engine could not be re-activated and the app fell back to Ollama). Empty when
+    startup was clean. Surfaceable in a status/health response."""
+    return list(_startup_diagnostics)
+
+
 def restore_active_backend() -> None:
     """Re-activate the persisted engine on startup so index and search agree.
 
@@ -644,7 +666,15 @@ def restore_active_backend() -> None:
         if runtime_state_store.get_rerank_enabled():
             try:
                 llama_runtime_manager.enable_rerank()
-            except Exception:  # noqa: BLE001 - reranker is optional, never block boot
-                pass
-    except Exception:  # noqa: BLE001 - degrade to Ollama default on any failure
-        pass
+            except Exception as exc:  # noqa: BLE001 - reranker is optional, never block boot
+                _record_startup_diagnostic(
+                    "reranker",
+                    f"Could not restore the 'sharper search' reranker: {exc}",
+                )
+    except Exception as exc:  # noqa: BLE001 - degrade to Ollama default on any failure
+        _record_startup_diagnostic(
+            "engine",
+            "Could not re-activate the saved llama.cpp engine; fell back to the "
+            f"Ollama default. Answers/search use Ollama until you re-select the "
+            f"engine. Reason: {exc}",
+        )
