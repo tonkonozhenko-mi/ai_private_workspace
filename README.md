@@ -16,6 +16,7 @@ The v0.1 release candidate is a source handoff for developers and reviewers. It 
 ## Contents
 
 - [Installing on macOS](#installing-on-macos-first-launch)
+- [Install and first run](#install-and-first-run)
 - [What it does](#what-it-does)
 - [Local engines](#local-engines)
 - [How search works](#how-search-works)
@@ -43,6 +44,36 @@ xattr -cr "/Applications/AI Private Workspace.app"
 On a managed/work Mac (one with a configuration profile), this may be blocked by
 IT policy; in that case the app needs to be signed/notarized or deployed through
 your organization's device management.
+
+## Install and first run
+
+From the download to your first answer — eight steps, every one of them on your
+own Mac (no cloud, no accounts):
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/step-1-install.png" alt="Drag the app into the Applications folder" width="100%"><br><sub><b>1 · Install</b> — open the downloaded <code>.dmg</code> and drag <b>AI Private Workspace</b> into <b>Applications</b>.</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/step-2-welcome.png" alt="Local-first welcome screen" width="100%"><br><sub><b>2 · Welcome</b> — launch it and click <b>Open a project folder</b>. It runs entirely offline.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/step-3-create-workspace.png" alt="Create a local workspace and choose a role lens" width="100%"><br><sub><b>3 · Create a workspace</b> — name it, pick the folder, choose a role lens (DevOps, Developer, Tester, BA…) and whether the project is remembered.</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/step-4-scan.png" alt="Scan your project files locally" width="100%"><br><sub><b>4 · Scan</b> — a quick local pass lists your files so the AI knows what it can search. Nothing leaves the Mac.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/step-5-engine.png" alt="Choose a local engine and download models" width="100%"><br><sub><b>5 · Choose an engine</b> — built-in <b>llama.cpp</b> (nothing to install) or <b>Ollama</b>. Downloads two small local models (answer + search), then <b>Start engine</b>.</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/step-6-build-context.png" alt="Build local search context (RAG index)" width="100%"><br><sub><b>6 · Build context</b> — turn the scanned files into a searchable local index so answers come from your real project.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/step-7-folder-access.png" alt="macOS folder access permission prompt" width="100%"><br><sub><b>7 · Grant folder access</b> — macOS asks once before the app reads your folder. Click <b>Allow</b>.</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/step-8-ask.png" alt="Ask questions and get answers grounded in your project" width="100%"><br><sub><b>8 · Ask</b> — ask about your code, infra, CI/CD, or setup. Answers cite sources from your project and stay on your computer.</sub></td>
+  </tr>
+</table>
+
+The app also follows your system light/dark preference:
+
+<p align="center">
+  <img src="docs/assets/screenshots/06-dark-ask.png" alt="Ask screen in dark theme" width="720">
+</p>
 
 ## What it does
 
@@ -104,28 +135,13 @@ It degrades gracefully: if keyword indexing is unavailable it falls back to
 vector-only search. On the roadmap: a cross-encoder **reranker** for an extra
 precision pass.
 
-## Screenshots
-
-<table>
-  <tr>
-    <td width="50%"><img src="docs/assets/screenshots/02-welcome.png" alt="Local-first welcome screen" width="100%"><br><sub><b>First run</b> — a calm welcome. Point it at a folder; nothing leaves your Mac.</sub></td>
-    <td width="50%"><img src="docs/assets/screenshots/03-create-workspace.png" alt="Create a workspace and choose a role lens" width="100%"><br><sub><b>Open a project</b> — pick a folder and a role lens (DevOps, Developer, Tester, BA…).</sub></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/assets/screenshots/04-install-models.png" alt="Guided local model install" width="100%"><br><sub><b>Guided setup</b> — install local models in one click, with live progress.</sub></td>
-    <td width="50%"><img src="docs/assets/screenshots/05-build-context.png" alt="Building local search context" width="100%"><br><sub><b>Build context</b> — index your files locally, with real per-file progress.</sub></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/assets/screenshots/06-dark-ask.png" alt="Ask screen in dark theme" width="100%"><br><sub><b>Dark theme</b> — the whole app follows your system light/dark preference.</sub></td>
-    <td width="50%"></td>
-  </tr>
-</table>
-
-> Capturing these? See [`docs/assets/screenshots/CAPTURE_GUIDE.md`](docs/assets/screenshots/CAPTURE_GUIDE.md) for the exact shots and file names.
+## How it all connects
 
 The end-to-end flow at a glance:
 
 ![AI Private Workspace flow](docs/assets/product-flow.svg)
+
+> Capturing the screenshots above? See [`docs/assets/screenshots/CAPTURE_GUIDE.md`](docs/assets/screenshots/CAPTURE_GUIDE.md) for the exact shots and file names.
 
 ## Safety model
 
