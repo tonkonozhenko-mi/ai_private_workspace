@@ -9,9 +9,9 @@
 
 **AI Private Workspace** is a local-first desktop app (macOS and Windows) for
 thinking with your own projects. Point it at a folder and ask anything — about
-your code, infrastructure, CI/CD, or docs. It runs entirely offline on a local
-model, grounds every answer in your real files, and asks before it ever writes
-anything. Nothing leaves your computer.
+your code, infrastructure, CI/CD, or docs. Once the local model is downloaded it
+runs fully offline, grounds every answer in your real files, and asks before it
+ever writes anything. Nothing leaves your computer.
 
 ### ⬇️ [Download the latest release](https://github.com/tonkonozhenko-mi/ai_private_workspace/releases/latest)
 
@@ -24,7 +24,7 @@ macOS (Apple Silicon / Intel) and Windows x64 installers are on the
 
 ## Contents
 
-- [Installing on macOS](#installing-on-macos-first-launch)
+- [First launch (unsigned app)](#first-launch-unsigned-app)
 - [Install and first run](#install-and-first-run)
 - [What it does](#what-it-does)
 - [Local engines](#local-engines)
@@ -39,21 +39,26 @@ macOS (Apple Silicon / Intel) and Windows x64 installers are on the
 - [Contributing](#contributing)
 - [License](#license)
 
-## Installing on macOS (first launch)
+## First launch (unsigned app)
 
-The app is not signed with a paid Apple certificate yet, so on first launch macOS
-may say the app "is damaged and can't be opened." It is not damaged — that is
-just macOS blocking unsigned downloaded apps. After dragging the app into
-**Applications**, run this once in Terminal to clear the download quarantine,
-then open it normally:
+The app isn't code-signed with a paid certificate yet, so both systems show a
+one-time warning for unsigned downloaded apps. It's the standard prompt, not a
+problem with the app.
+
+**Windows.** SmartScreen may say "Windows protected your PC." Click **More info →
+Run anyway**.
+
+**macOS.** It may say the app "is damaged and can't be opened." It is not
+damaged — macOS just blocks unsigned downloaded apps. After dragging it into
+**Applications**, run this once in Terminal, then open it normally:
 
 ```bash
 xattr -cr "/Applications/AI Private Workspace.app"
 ```
 
-On a managed/work Mac (one with a configuration profile), this may be blocked by
-IT policy; in that case the app needs to be signed/notarized or deployed through
-your organization's device management.
+On a managed/work machine (configuration profile / MDM), this may be blocked by
+IT policy; there the app needs to be signed/notarized or deployed through your
+organization's device management.
 
 ## Install and first run
 
@@ -63,7 +68,7 @@ own Mac (no cloud, no accounts):
 <table>
   <tr>
     <td width="50%"><img src="docs/assets/screenshots/step-1-install.png" alt="Drag the app into the Applications folder" width="100%"><br><sub><b>1 · Install</b> — open the downloaded <code>.dmg</code> and drag <b>AI Private Workspace</b> into <b>Applications</b>.</sub></td>
-    <td width="50%"><img src="docs/assets/screenshots/step-2-welcome.png" alt="Local-first welcome screen" width="100%"><br><sub><b>2 · Welcome</b> — launch it and click <b>Open a project folder</b>. It runs entirely offline.</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/step-2-welcome.png" alt="Local-first welcome screen" width="100%"><br><sub><b>2 · Welcome</b> — launch it and click <b>Open a project folder</b>. Your files stay on your computer.</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="docs/assets/screenshots/step-3-create-workspace.png" alt="Create a local workspace and choose a role lens" width="100%"><br><sub><b>3 · Create a workspace</b> — name it, pick the folder, choose a role lens (DevOps, Developer, Tester, BA…) and whether the project is remembered.</sub></td>
@@ -150,7 +155,7 @@ AI Private Workspace is designed around explicit user control:
 - The frontend never executes shell commands.
 - App launch never starts scans, indexing, rebuilds, MCP servers, Agent workflows, or model downloads.
 - Model download execution is disabled by default and must be enabled backend-side in trusted local runtime only.
-- Agent workflows are planning/manual tracking only in v0.1.
+- Agent workflows are planning/manual tracking only.
 - Approval gates record user intent; they do not execute tools automatically.
 - Ask never writes a generated file automatically. The user must open the review panel and explicitly create it.
 - Runtime data, local databases, caches, and build artifacts are excluded from source archives.
@@ -203,17 +208,22 @@ space.
 
 ## Current status
 
-- **v0.1 source release candidate:** nearly ready for GitHub publication after local verification.
-- **v1.0 installer-grade product:** future stage. It still needs frozen backend runtime, signed macOS package, Windows installer, persistent jobs, sandboxed Agent/MCP execution, update flow, and final QA.
+Pre-1.0 and actively developed. Each tagged release builds from CI into
+signed-per-architecture macOS DMGs (Apple Silicon + Intel) and a Windows x64
+installer, with in-app auto-update. The app is usable day to day on both local
+engines; the road to 1.0 focuses on code signing (so there's no SmartScreen /
+Gatekeeper warning), sandboxed Agent/MCP execution, and broader QA.
+
+Every release also publishes **SHA256 checksums** (`SHA256SUMS.txt`), an **SPDX
+SBOM** (`sbom.spdx.json`) of the bundled dependencies, and an **automated-test
+report** (`TEST-REPORT.md`) of what actually ran — so you can verify what you
+download.
 
 See:
 
 - [Roadmap](docs/ROADMAP.md)
 - [Start here](docs/START_HERE.md)
-- [v0.1 demo handoff](docs/V01_DEMO_HANDOFF.md)
-- [v0.1 release notes](docs/V01_RELEASE_NOTES.md)
 - [Architecture](docs/ARCHITECTURE.md)
-- [GitHub publication checklist](docs/GITHUB_PUBLICATION_CHECKLIST.md)
 - [v1 product completion roadmap](docs/V1_PRODUCT_COMPLETION_ROADMAP.md)
 
 ## Repository layout
