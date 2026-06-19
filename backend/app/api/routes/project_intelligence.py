@@ -25,8 +25,10 @@ from app.core.domain.project_intelligence_prompt import (
     build_project_intelligence_overview_prompt,
 )
 from app.core.domain.project_intelligence_view import (
+    present_cloud,
     present_project_graph,
     present_project_intelligence,
+    present_references,
 )
 from app.core.domain.role_lens import role_lens_for
 from app.core.ports.llm_provider_factory import LLMProviderFactoryError
@@ -99,6 +101,8 @@ def get_project_intelligence(workspace_id: str, role: str | None = None) -> dict
         "graph": present_project_graph(graph),
         "flow": derive_deployment_flow(graph),
         "environment_comparison": compare_environments(graph),
+        "cloud": present_cloud(graph),
+        "references": present_references(graph),
     }
 
 

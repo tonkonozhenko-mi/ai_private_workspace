@@ -217,11 +217,23 @@ class LocalFileSystem:
         except OSError:
             return False
 
+        # Distinctive Terragrunt blocks and functions. Named includes
+        # (`include "root" {`) and Terragrunt-only functions are the reliable
+        # tells — plain `terraform {` also appears in vanilla HCL, so we lead
+        # with the unambiguous signals.
         terragrunt_signals = [
-            "terraform {",
             "include {",
+            'include "',
             'dependency "',
-            "inputs =",
+            "dependencies {",
+            'generate "',
             "remote_state {",
+            "find_in_parent_folders(",
+            "read_terragrunt_config(",
+            "path_relative_to_include(",
+            "get_terragrunt_dir(",
+            "get_parent_terragrunt_dir(",
+            "inputs =",
+            "terraform {",
         ]
         return any(signal in content for signal in terragrunt_signals)

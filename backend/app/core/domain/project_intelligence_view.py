@@ -121,6 +121,53 @@ def present_project_graph(graph: ProjectGraph) -> dict:
     }
 
 
+def present_cloud(graph: ProjectGraph) -> dict:
+    """Group the provisioned cloud services by provider for the Cloud tab."""
+    services = graph.entities_of_type(EntityType.CLOUD_SERVICE)
+    by_provider: dict[str, list[dict]] = {}
+    for entity in services:
+        provider = entity.metadata.get("provider", "Cloud")
+        by_provider.setdefault(provider, []).append(
+            {
+                "service": entity.metadata.get("service", entity.name),
+                "resources": int(entity.metadata.get("resources", "0") or "0"),
+                "source_file": entity.source_file,
+            }
+        )
+    providers = [
+        {
+            "provider": provider,
+            "services": sorted(items, key=lambda s: (-s["resources"], s["service"])),
+            "service_count": len(items),
+        }
+        for provider, items in sorted(by_provider.items())
+    ]
+    return {"providers": providers, "total_services": len(services)}
+
+
+def present_references(graph: ProjectGraph) -> dict:
+    """Group external references (URLs / ARNs / module sources) by kind."""
+    refs = graph.entities_of_type(EntityType.REFERENCE)
+    by_kind: dict[str, list[dict]] = {}
+    for entity in refs:
+        kind = entity.metadata.get("kind", "other")
+        by_kind.setdefault(kind, []).append(
+            {
+                "value": entity.name,
+                "count": int(entity.metadata.get("count", "1") or "1"),
+                "source_file": entity.source_file,
+            }
+        )
+    groups = [
+        {
+            "kind": kind,
+            "items": sorted(items, key=lambda r: (-r["count"], r["value"])),
+        }
+        for kind, items in sorted(by_kind.items())
+    ]
+    return {"groups": groups, "total": len(refs)}
+
+
 def present_project_intelligence(graph: ProjectGraph, lens: RoleLens) -> dict:
     services = graph.entities_of_type(EntityType.SERVICE)
     environments = graph.entities_of_type(EntityType.ENVIRONMENT)

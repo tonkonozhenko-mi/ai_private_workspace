@@ -7,6 +7,42 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.104] - 2026-06-19
+
+### Added
+
+- **Project Intelligence: Cloud tab.** A new tab lists the managed cloud
+  services the infrastructure-as-code provisions, grouped by provider
+  (AWS / Google Cloud / Azure / …), with a resource count and source file for
+  each. Derived deterministically from Terraform `provider` and `resource`
+  declarations, with a curated catalog of friendly service names (Lambda, S3,
+  EventBridge, RDS, GKE, AKS, …) and a sensible fallback for the rest.
+- **Project Intelligence: References tab.** A new tab surfaces the external
+  things the project points at — URLs, Terraform/Git module sources, AWS ARNs
+  and S3 URIs — de-duplicated, counted and grouped by kind, with sources.
+- **A more connected Map.** Terraform now links to the environments it manages
+  and to the cloud services it provisions, GitHub Actions workflows expose their
+  individual jobs, so the Map reads as a flow instead of disconnected columns.
+
+### Fixed
+
+- **Terragrunt now detected reliably.** Detection recognises named includes
+  (`include "root" {`) and Terragrunt-only functions
+  (`find_in_parent_folders`, `read_terragrunt_config`, `path_relative_to_include`,
+  …), so Terragrunt-driven repositories are no longer misreported as
+  "not detected".
+- **Production environments no longer missed.** The environment-name vocabulary
+  now includes `prd` / `prn` / `live` (→ production) plus `perf`, `demo` and
+  `integration`, so common naming like `accounts/prd/...` is inferred correctly.
+- **Infrastructure shows meaningful context, not a random file.** The Terraform
+  entry now points at a representative root (`main`/`backend`/`providers.tf`) and
+  shows file count, providers, and remote-state status instead of an arbitrary
+  module file.
+- **Deployment lists real pipeline jobs** for GitHub Actions workflows.
+- **The plain-language overview no longer mislabels tools** — it is explicitly
+  instructed not to assign roles the facts don't support (e.g. calling an
+  infrastructure-as-code tool an "application framework").
+
 ## [0.1.103] - 2026-06-19
 
 ### Added

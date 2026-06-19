@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -8,6 +8,12 @@ class AnalysisFinding:
     description: str
     severity: str
     evidence: list[str]
+
+
+@dataclass(frozen=True)
+class CloudResourceRef:
+    resource_type: str  # e.g. "aws_lambda_function"
+    source_file: str
 
 
 @dataclass(frozen=True)
@@ -22,6 +28,9 @@ class TerraformAnalysisResult:
     has_outputs: bool
     has_modules: bool
     findings: list[AnalysisFinding]
+    providers: list[str] = field(default_factory=list)
+    cloud_resources: list[CloudResourceRef] = field(default_factory=list)
+    root_files: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -73,6 +82,7 @@ class GitHubActionsWorkflow:
     uses_matrix: bool
     uses_permissions: bool
     has_secrets_reference: bool
+    job_names: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -151,6 +161,21 @@ class PythonAnalysisResult:
     has_tests: bool
     dependency_files: list[str]
     findings: list[AnalysisFinding]
+
+
+@dataclass(frozen=True)
+class ReferenceItem:
+    kind: str  # url | module_source | aws_arn | s3_bucket
+    value: str
+    count: int
+    source_file: str
+
+
+@dataclass(frozen=True)
+class ReferenceAnalysisResult:
+    workspace_id: str
+    project_path: str
+    references: list[ReferenceItem]
 
 
 @dataclass(frozen=True)

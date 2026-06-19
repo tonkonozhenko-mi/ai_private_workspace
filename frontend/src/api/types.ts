@@ -2032,6 +2032,39 @@ export interface ProjectEnvironmentComparison {
   has_production: boolean;
 }
 
+export interface ProjectCloudService {
+  service: string;
+  resources: number;
+  source_file: string | null;
+}
+
+export interface ProjectCloudProvider {
+  provider: string;
+  services: ProjectCloudService[];
+  service_count: number;
+}
+
+export interface ProjectCloud {
+  providers: ProjectCloudProvider[];
+  total_services: number;
+}
+
+export interface ProjectReferenceItem {
+  value: string;
+  count: number;
+  source_file: string | null;
+}
+
+export interface ProjectReferenceGroup {
+  kind: string;
+  items: ProjectReferenceItem[];
+}
+
+export interface ProjectReferences {
+  groups: ProjectReferenceGroup[];
+  total: number;
+}
+
 export interface ProjectIntelligenceResponse {
   built: boolean;
   role?: string;
@@ -2040,6 +2073,8 @@ export interface ProjectIntelligenceResponse {
   graph?: ProjectGraphPayload;
   flow?: ProjectDeploymentFlow;
   environment_comparison?: ProjectEnvironmentComparison;
+  cloud?: ProjectCloud;
+  references?: ProjectReferences;
 }
 
 export interface ProjectIntelligenceAnswer {
