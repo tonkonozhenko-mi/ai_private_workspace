@@ -33,6 +33,27 @@ def _facts_block(view: dict) -> str:
     return "\n".join(lines)
 
 
+def build_ask_graph_prompt(view: dict, role_label: str, question: str) -> str:
+    """Answer a free-text question using ONLY the graph facts. If the answer is
+    not in the facts, the model must say so rather than guess."""
+    return (
+        f"You are answering a {role_label}'s question about an unfamiliar software "
+        "project. The ONLY information you may use is the FACTS below, which were "
+        "extracted deterministically from the project's own files.\n\n"
+        "Facts:\n"
+        f"{_facts_block(view)}\n\n"
+        f"Question: {question}\n\n"
+        "Strict rules:\n"
+        "- Answer using ONLY the facts above. Do not use outside knowledge or "
+        "assumptions about how similar projects usually work.\n"
+        '- If the facts do not contain the answer, say plainly: "That isn\'t '
+        'visible in the analyzed files." — optionally noting what would need to be '
+        "checked.\n"
+        "- Be concise: 1-4 plain sentences, no markdown, no bullet lists.\n"
+        "- Do not invent services, environments, technologies, or risks."
+    )
+
+
 def build_project_intelligence_overview_prompt(view: dict, role_label: str) -> str:
     return (
         f"You are briefing a {role_label} on an unfamiliar software project. Below are "

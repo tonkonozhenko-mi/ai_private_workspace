@@ -7,6 +7,26 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.102] - 2026-06-19
+
+### Added
+
+- **Project Intelligence (M3): deployment flow, environment comparison, and
+  ask-the-graph.**
+  - The Deployment tab now opens with a **deployment-flow rail** — Source & CI →
+    Build artifacts → Deploy → Environments — derived deterministically from the
+    graph's relations, with honest **gaps** called out (CI with no image build,
+    services deployed without a detected pipeline, an image a service runs that
+    no CI job builds, or no environments inferred at all).
+  - The Environments tab gains a **comparison table**: each inferred environment
+    with the analyzer that detected it, how much evidence backs it, and its
+    source file, plus a one-line coverage summary (e.g. production present but no
+    pre-production environment found).
+  - A new **Ask about this project** box answers free-text questions using the
+    local model **constrained strictly to the graph facts** — when the answer
+    isn't in the analyzed files, it says so instead of guessing. New endpoint:
+    `POST /workspaces/{id}/intelligence/ask`.
+
 ## [0.1.101] - 2026-06-19
 
 ### Added

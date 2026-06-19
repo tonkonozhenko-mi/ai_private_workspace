@@ -1990,12 +1990,51 @@ export interface ProjectGraphPayload {
   edges: ProjectGraphEdge[];
 }
 
+export interface ProjectDeploymentStage {
+  key: string;
+  label: string;
+  count: number;
+  detail: string;
+}
+
+export interface ProjectFlowGap {
+  title: string;
+  explanation: string;
+}
+
+export interface ProjectDeploymentFlow {
+  stages: ProjectDeploymentStage[];
+  gaps: ProjectFlowGap[];
+}
+
+export interface ProjectEnvironmentRow {
+  name: string;
+  analyzer: string;
+  status: string;
+  confidence: string;
+  source_file: string | null;
+  evidence_count: number;
+}
+
+export interface ProjectEnvironmentComparison {
+  environments: ProjectEnvironmentRow[];
+  summary: string;
+  has_production: boolean;
+}
+
 export interface ProjectIntelligenceResponse {
   built: boolean;
   role?: string;
   snapshot?: ProjectIntelligenceSnapshot;
   view?: ProjectIntelligenceView;
   graph?: ProjectGraphPayload;
+  flow?: ProjectDeploymentFlow;
+  environment_comparison?: ProjectEnvironmentComparison;
+}
+
+export interface ProjectIntelligenceAnswer {
+  answer: string;
+  role: string;
 }
 
 export interface ProjectIntelligenceBuildResponse {

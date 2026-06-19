@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  askProjectIntelligence,
   buildProjectIntelligence,
   getProjectIntelligence,
   getProjectIntelligenceOverviewText,
   getWorkspaceLatestScan,
 } from "../api/client";
 import type {
+  ProjectDeploymentFlow,
+  ProjectEnvironmentComparison,
   ProjectGraphEntity,
   ProjectGraphFinding,
   ProjectGraphPayload,
@@ -157,6 +160,10 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
 
   const view = data?.built ? data.view : undefined;
   const graph: ProjectGraphPayload | undefined = data?.built ? data.graph : undefined;
+  const flow: ProjectDeploymentFlow | undefined = data?.built ? data.flow : undefined;
+  const comparison: ProjectEnvironmentComparison | undefined = data?.built
+    ? data.environment_comparison
+    : undefined;
   const hasMap = Boolean(graph && graph.nodes.length > 0);
 
   const tabs = useMemo(() => {
@@ -278,11 +285,17 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
               />
             ) : null}
             {activeTab === "infrastructure" ? <InfrastructureSection view={view} /> : null}
-            {activeTab === "deployment" ? <DeploymentSection view={view} /> : null}
-            {activeTab === "environments" ? <EnvironmentsSection view={view} /> : null}
+            {activeTab === "deployment" ? (
+              <DeploymentSection view={view} flow={flow} />
+            ) : null}
+            {activeTab === "environments" ? (
+              <EnvironmentsSection view={view} comparison={comparison} />
+            ) : null}
             {activeTab === "risks" ? <RisksSection view={view} /> : null}
             {activeTab === MAP_TAB && graph ? <ProjectMap graph={graph} /> : null}
           </div>
+
+          <AskPanel workspaceId={workspaceId} role={role} />
         </>
       ) : null}
     </section>
@@ -392,11 +405,63 @@ function InfrastructureSection({ view }: { view: ProjectIntelligenceView }) {
   );
 }
 
-function DeploymentSection({ view }: { view: ProjectIntelligenceView }) {
+function DeploymentSection({
+  view,
+  flow,
+}: {
+  view: ProjectIntelligenceView;
+  flow?: ProjectDeploymentFlow;
+}) {
   const { pipelines } = view.deployment;
-  if (pipelines.length === 0) {
-    return <EmptyNote text="No CI/CD pipelines were detected in this project." />;
-  }
+  return (
+    <div className="pi-deploy">
+      {flow ? <FlowRail flow={flow} /> : null}
+      {pipelines.length === 0 ? (
+        <EmptyNote text="No CI/CD pipelines were detected in this project." />
+      ) : (
+        <PipelineList pipelines={pipelines} />
+      )}
+    </div>
+  );
+}
+
+function FlowRail({ flow }: { flow: ProjectDeploymentFlow }) {
+  return (
+    <div className="pi-flow">
+      <p className="pi-eyebrow">How code reaches an environment</p>
+      <div className="pi-flow-rail">
+        {flow.stages.map((stage, i) => (
+          <div key={stage.key} className="pi-flow-stage-wrap">
+            <div className="pi-flow-stage">
+              <span className="pi-flow-count">{stage.count}</span>
+              <span className="pi-flow-label">{stage.label}</span>
+              <span className="pi-flow-detail">{stage.detail}</span>
+            </div>
+            {i < flow.stages.length - 1 ? <span className="pi-flow-arrow">→</span> : null}
+          </div>
+        ))}
+      </div>
+      {flow.gaps.length > 0 ? (
+        <ul className="pi-flow-gaps">
+          {flow.gaps.map((gap) => (
+            <li key={gap.title}>
+              <span className="pi-flow-gap-title">{gap.title}</span>
+              <span className="pi-flow-gap-explain">{gap.explanation}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="pi-muted">No gaps detected in the deployment chain.</p>
+      )}
+    </div>
+  );
+}
+
+function PipelineList({
+  pipelines,
+}: {
+  pipelines: ProjectIntelligenceView["deployment"]["pipelines"];
+}) {
   return (
     <div className="pi-pipelines">
       {pipelines.map((p) => (
@@ -423,7 +488,13 @@ function DeploymentSection({ view }: { view: ProjectIntelligenceView }) {
   );
 }
 
-function EnvironmentsSection({ view }: { view: ProjectIntelligenceView }) {
+function EnvironmentsSection({
+  view,
+  comparison,
+}: {
+  view: ProjectIntelligenceView;
+  comparison?: ProjectEnvironmentComparison;
+}) {
   const { environments } = view.environments;
   if (environments.length === 0) {
     return (
@@ -431,7 +502,7 @@ function EnvironmentsSection({ view }: { view: ProjectIntelligenceView }) {
     );
   }
   return (
-    <div>
+    <div className="pi-envs">
       <p className="pi-muted pi-env-note">
         Environments are inferred from naming conventions — confirm them with your team.
       </p>
@@ -446,6 +517,87 @@ function EnvironmentsSection({ view }: { view: ProjectIntelligenceView }) {
           );
         })}
       </div>
+
+      {comparison ? (
+        <div className="pi-env-compare">
+          <p className="pi-env-summary">{comparison.summary}</p>
+          <table className="pi-env-table">
+            <thead>
+              <tr>
+                <th>Environment</th>
+                <th>Detected by</th>
+                <th>Evidence</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              {comparison.environments.map((row) => (
+                <tr key={row.name}>
+                  <td>{row.name}</td>
+                  <td>{row.analyzer}</td>
+                  <td>{row.evidence_count} path(s)</td>
+                  <td>{row.source_file ? <code>{row.source_file}</code> : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AskPanel({ workspaceId, role }: { workspaceId: string; role: string | null }) {
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    const trimmed = question.trim();
+    if (!trimmed || loading) return;
+    setLoading(true);
+    setError(null);
+    setAnswer(null);
+    try {
+      const result = await askProjectIntelligence(workspaceId, trimmed, role ?? undefined);
+      setAnswer(result.answer);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The local model could not answer.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="pi-ask">
+      <p className="pi-eyebrow">Ask about this project</p>
+      <div className="pi-ask-row">
+        <input
+          className="pi-ask-input"
+          type="text"
+          value={question}
+          placeholder="e.g. How is production deployed?"
+          onChange={(e) => setQuestion(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit();
+          }}
+          disabled={loading}
+        />
+        <button
+          type="button"
+          className="pi-button"
+          onClick={submit}
+          disabled={loading || question.trim().length === 0}
+        >
+          {loading ? "Asking…" : "Ask"}
+        </button>
+      </div>
+      {answer ? <p className="pi-ask-answer">{answer}</p> : null}
+      {error ? <p className="pi-muted">{error}</p> : null}
+      {answer ? (
+        <p className="pi-ask-note">Answered only from the analyzed project files.</p>
+      ) : null}
     </div>
   );
 }
