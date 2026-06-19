@@ -37,8 +37,8 @@ class LlamaRuntimeError(RuntimeError):
 def _reap_orphan_llama_servers(binary_path: str) -> None:
     """Kill leftover llama-server processes from a previous app run.
 
-    On macOS a child process is NOT killed when its parent (the backend) exits,
-    so a previous run can leave a ``llama-server`` still holding ports 8080/8081,
+    A child process is NOT killed when its parent (the backend) exits, so a
+    previous run can leave a ``llama-server`` still holding ports 8080/8081,
     making the new server fail to bind ("couldn't bind HTTP server socket") and
     requests hit the stale instance (HTTP 500).
 
@@ -46,6 +46,13 @@ def _reap_orphan_llama_servers(binary_path: str) -> None:
     orphaned llama-server instances — never unknown processes on those ports.
     Called only before a fresh start, when this backend owns no live children.
     """
+    if os.name == "nt":
+        _reap_orphan_llama_servers_windows(binary_path)
+    else:
+        _reap_orphan_llama_servers_unix(binary_path)
+
+
+def _reap_orphan_llama_servers_unix(binary_path: str) -> None:
     try:
         result = subprocess.run(
             ["pgrep", "-f", binary_path],
@@ -69,6 +76,30 @@ def _reap_orphan_llama_servers(binary_path: str) -> None:
                 os.kill(pid, signal.SIGKILL)
             except OSError:
                 pass
+
+
+def _reap_orphan_llama_servers_windows(binary_path: str) -> None:
+    """Windows equivalent: match processes by their exact executable path via
+    PowerShell CIM (the same "only ever our own binary" guarantee pgrep gives on
+    Unix), then force-stop them. Best-effort — any failure is ignored."""
+    own_pid = os.getpid()
+    # Single-quote the path for PowerShell (literal string; backslashes are fine).
+    safe_path = binary_path.replace("'", "''")
+    script = (
+        "Get-CimInstance Win32_Process | Where-Object { "
+        f"$_.ExecutablePath -eq '{safe_path}' -and $_.ProcessId -ne {own_pid} "
+        "} | ForEach-Object { Stop-Process -Id $_.ProcessId -Force "
+        "-ErrorAction SilentlyContinue }"
+    )
+    try:
+        subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+            capture_output=True,
+            text=True,
+            timeout=8,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return
 
 
 def _process_rss_bytes(pid: int) -> int:

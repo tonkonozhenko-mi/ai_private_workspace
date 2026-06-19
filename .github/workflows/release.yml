@@ -32,10 +32,10 @@ jobs:
             args: "--target aarch64-apple-darwin"
           - platform: macos-latest # Intel Macs
             args: "--target x86_64-apple-darwin"
-          # Windows is disabled until the frozen-backend build script is made
-          # Windows-proof. Re-enable by uncommenting:
-          # - platform: windows-latest
-          #   args: ""
+          - platform: windows-latest # Windows x64 (NSIS installer)
+            # tauri.conf targets are macOS bundles (app/dmg); --bundles overrides
+            # that on Windows to build the NSIS installer (+ its updater artifact).
+            args: "--bundles nsis"
 
     runs-on: ${{ matrix.platform }}
 
@@ -107,11 +107,17 @@ jobs:
           # pins this default). Bump deliberately to update.
           LLAMA_CPP_VERSION: "b9675"
         run: |
-          case "${{ matrix.args }}" in
-            *aarch64*) ARCH=arm64 ;;
-            *x86_64*)  ARCH=x64 ;;
-            *) echo "Unknown target; skipping llama-server stage"; exit 0 ;;
-          esac
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            # Windows runners are x64; the fetch script auto-detects the OS and
+            # pulls the win-cpu-x64 build.
+            ARCH=x64
+          else
+            case "${{ matrix.args }}" in
+              *aarch64*) ARCH=arm64 ;;
+              *x86_64*)  ARCH=x64 ;;
+              *) echo "Unknown target; skipping llama-server stage"; exit 0 ;;
+            esac
+          fi
           bash scripts/fetch_llama_server.sh "$ARCH"
 
       # --- Frontend toolchain ---

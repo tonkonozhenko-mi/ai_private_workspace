@@ -78,7 +78,8 @@ if [ "${AI_PRIVATE_WORKSPACE_FORCE_BACKEND_BUILD:-0}" != "1" ] \
   && [ -f "$MANIFEST" ] \
   && [ -f "$FINGERPRINT_FILE" ] \
   && [ "$(cat "$FINGERPRINT_FILE")" = "$FINGERPRINT" ] \
-  && [ -x "$OUTPUT_DIR/ai-private-workspace-backend" ]; then
+  && { [ -x "$OUTPUT_DIR/ai-private-workspace-backend" ] \
+       || [ -f "$OUTPUT_DIR/ai-private-workspace-backend.exe" ]; }; then
   printf '✅ Frozen backend already up to date (no backend changes) — skipping rebuild.\n'
   printf '   Force a rebuild with AI_PRIVATE_WORKSPACE_FORCE_BACKEND_BUILD=1\n'
   exit 0

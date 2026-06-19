@@ -52,8 +52,11 @@ def llama_server_binary_candidates() -> list[Path]:
     import sys
 
     arch = _llama_arch_dir()
-    build_rel = Path("build") / "desktop" / "llama-runtime" / arch / "llama-server"
-    res_rel = Path("llama-runtime") / arch / "llama-server"
+    # The bundled binary is `llama-server` on macOS/Linux and `llama-server.exe`
+    # on Windows; without the suffix the packaged Windows app can't find it.
+    binary_name = "llama-server.exe" if os.name == "nt" else "llama-server"
+    build_rel = Path("build") / "desktop" / "llama-runtime" / arch / binary_name
+    res_rel = Path("llama-runtime") / arch / binary_name
 
     candidates: list[Path] = []
 
