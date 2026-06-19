@@ -178,3 +178,87 @@ jobs:
           BODY="$(gh release view "$TAG" --repo "$REPO" --json body --jq .body)"
           printf '%s\n\n%s\n' "$DOWNLOADS" "$BODY" \
             | gh release edit "$TAG" --repo "$REPO" --notes-file -
+
+      - name: Attach SHA256 checksums
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          # Read each installer asset's sha256 digest straight from the API (no
+          # re-download) and publish a standard SHA256SUMS.txt for verification.
+          gh api "repos/$REPO/releases/tags/$TAG" \
+            --jq '.assets[]
+                  | select(.digest != null and (.name | test("\\.(dmg|exe)$")))
+                  | "\(.digest | sub("^sha256:"; ""))  \(.name)"' \
+            > SHA256SUMS.txt || true
+          if [ -s SHA256SUMS.txt ]; then
+            cat SHA256SUMS.txt
+            gh release upload "$TAG" SHA256SUMS.txt --repo "$REPO" --clobber
+          else
+            echo "No installer digests available yet; skipping checksums."
+          fi
+
+  # --- Software Bill of Materials: scan the repo (Python requirements, npm
+  #     package-lock, Cargo.lock) and attach an SPDX SBOM to the release so users
+  #     can see exactly which dependencies ship. ---
+  sbom:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: sbom.spdx.json
+          upload-release-assets: false
+      - name: Attach SBOM to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: gh release upload "${{ github.ref_name }}" sbom.spdx.json --repo "${{ github.repository }}" --clobber
+
+  # --- Run the backend test suite and publish a concise report of what actually
+  #     ran (summary counts + the list of suites) as a release asset. Separate
+  #     from the build jobs, so it never blocks shipping the installers. ---
+  test-report:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Run backend tests and build the report
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.lock
+          # Record reality whether tests pass or fail (don't abort the report).
+          set +e
+          ( cd backend && pytest -q -p no:cacheprovider ) | tee /tmp/pytest.out
+          set -e
+          SUMMARY="$(grep -E '[0-9]+ (passed|failed|error|skipped|xfailed)' /tmp/pytest.out | tail -1)"
+          {
+            echo "# Automated tests — ${{ github.ref_name }}"
+            echo
+            echo "Backend suite (\`pytest\`), run in CI on commit \`${GITHUB_SHA:0:7}\`:"
+            echo
+            echo '```'
+            echo "${SUMMARY:-(see the CI logs)}"
+            echo '```'
+            echo
+            echo "## Suites executed"
+            echo
+            for f in backend/tests/test_*.py; do echo "- \`${f#backend/tests/}\`"; done
+            echo
+            echo "Frontend verification (\`tsc\` typecheck + \`vite build\`) runs in the CI workflow on every commit."
+          } > TEST-REPORT.md
+      - name: Attach the test report to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: gh release upload "${{ github.ref_name }}" TEST-REPORT.md --repo "${{ github.repository }}" --clobber
