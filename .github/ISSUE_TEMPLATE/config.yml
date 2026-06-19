@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Questions & ideas
+    url: https://github.com/tonkonozhenko-mi/ai_private_workspace/discussions
+    about: Ask questions, share ideas, or discuss usage (not a bug? start here).
+  - name: ⬇️ Download the app
+    url: https://github.com/tonkonozhenko-mi/ai_private_workspace/releases/latest
+    about: Get the latest macOS and Windows installers.
+  - name: 🔒 Report a security issue
+    url: https://github.com/tonkonozhenko-mi/ai_private_workspace/security/policy
+    about: Please report vulnerabilities privately, not as a public issue.

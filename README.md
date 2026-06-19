@@ -1,14 +1,22 @@
 # AI Private Workspace
 
+[![Latest release](https://img.shields.io/github/v/release/tonkonozhenko-mi/ai_private_workspace?label=latest&sort=semver&color=2ea44f)](https://github.com/tonkonozhenko-mi/ai_private_workspace/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/tonkonozhenko-mi/ai_private_workspace/total?color=2ea44f)](https://github.com/tonkonozhenko-mi/ai_private_workspace/releases)
 [![CI](https://github.com/tonkonozhenko-mi/ai_private_workspace/actions/workflows/ci.yml/badge.svg)](https://github.com/tonkonozhenko-mi/ai_private_workspace/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE)
-[![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey.svg)](#installing-on-macos-first-launch)
+[![Platform: macOS | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey.svg)](#install-and-first-run)
 [![Local-first](https://img.shields.io/badge/local--first-no%20cloud-2ea44f.svg)](#safety-model)
 
-**AI Private Workspace** is a local-first macOS app for thinking with your own
-projects. Point it at a folder and ask anything — about your code, infrastructure,
-CI/CD, or docs. It runs entirely offline on a local model, grounds every answer in
-your real files, and asks before it ever writes anything. Nothing leaves your Mac.
+**AI Private Workspace** is a local-first desktop app (macOS and Windows) for
+thinking with your own projects. Point it at a folder and ask anything — about
+your code, infrastructure, CI/CD, or docs. It runs entirely offline on a local
+model, grounds every answer in your real files, and asks before it ever writes
+anything. Nothing leaves your computer.
+
+### ⬇️ [Download the latest release](https://github.com/tonkonozhenko-mi/ai_private_workspace/releases/latest)
+
+macOS (Apple Silicon / Intel) and Windows x64 installers are on the
+[releases page](https://github.com/tonkonozhenko-mi/ai_private_workspace/releases/latest).
 
 <p align="center">
   <img src="docs/assets/screenshots/01-ask.png" alt="Ask a question about your project and get an answer grounded in local sources" width="820">
@@ -23,6 +31,7 @@ your real files, and asks before it ever writes anything. Nothing leaves your Ma
 - [How search works](#how-search-works)
 - [Safety model](#safety-model)
 - [Main product flows](#main-product-flows)
+- [Troubleshooting](#troubleshooting)
 - [Current status](#current-status)
 - [Repository layout](#repository-layout)
 - [Developer startup](#developer-startup)
@@ -80,7 +89,7 @@ The app also follows your system light/dark preference:
 
 - **Understands your project.** Point it at a folder; a local scan recognizes what's there — Terraform, Terragrunt, Kubernetes, Helm, Docker, Python, GitLab CI, docs, and more.
 - **Searches only when you ask.** The local index is built on an explicit action and respects your `.gitignore`, so virtualenvs, build output, caches, and `.env` secrets never enter it.
-- **Answers from your files.** Responses are grounded in retrieved sources with citations — not guesses — and your conversations, history, model choices, and reports stay on your Mac.
+- **Answers from your files.** Responses are grounded in retrieved sources with citations — not guesses — and your conversations, history, model choices, and reports stay on your computer.
 - **Runs on two local engines.** Built-in **llama.cpp** (nothing to install) or **Ollama**, switchable per project, with the answer and search models managed separately. See [Local engines](#local-engines).
 - **Writes nothing without consent.** Ask can turn an answer into a file draft, written only after you confirm the path and exact content. Agent and MCP work is planning and approval only — no tool ever runs on its own.
 
@@ -160,6 +169,38 @@ The frontend keeps the common workflows focused and progressively reveals techni
 - **MCP tools** provides an approval-first registry for creating, editing, enabling, disabling, and inspecting MCP server definitions. MCP tools are not executed automatically.
 - **Settings** shows a plain-language readiness checklist for the local backend, project scan, search context, and local AI.
 
+## Troubleshooting
+
+**Windows — "Windows protected your PC" (SmartScreen).** The app isn't
+code-signed yet, so Windows warns on first launch. Click **More info → Run
+anyway**. It's the standard prompt for unsigned apps, not a problem with the app.
+
+**macOS — "AI Private Workspace is damaged and can't be opened".** Not damaged —
+macOS blocks unsigned downloaded apps. After dragging it into **Applications**,
+run this once in Terminal, then open it normally:
+
+```bash
+xattr -cr "/Applications/AI Private Workspace.app"
+```
+
+**The app won't start / "backend startup failed".** Check the logs and attach
+them to a bug report:
+
+- macOS: `~/Library/Application Support/AI Private Workspace/logs/`
+- Windows: `%LOCALAPPDATA%\AI Private Workspace\logs\`
+
+`backend.log` has the engine's own output; `desktop-supervisor.log` shows what the
+launcher searched for.
+
+**Which engine should I pick?** Use **built-in llama.cpp** for a zero-setup start
+(nothing to install). Choose **Ollama** if you already use it and want your
+existing models. You can switch per project before the index is built.
+
+**Answers ignore my files.** Make sure you ran **Build context** after scanning —
+answers are grounded only once the local index exists. Changing the embedding
+(search) model requires rebuilding the index, since it creates a different vector
+space.
+
 ## Current status
 
 - **v0.1 source release candidate:** nearly ready for GitHub publication after local verification.
@@ -167,6 +208,7 @@ The frontend keeps the common workflows focused and progressively reveals techni
 
 See:
 
+- [Roadmap](docs/ROADMAP.md)
 - [Start here](docs/START_HERE.md)
 - [v0.1 demo handoff](docs/V01_DEMO_HANDOFF.md)
 - [v0.1 release notes](docs/V01_RELEASE_NOTES.md)
