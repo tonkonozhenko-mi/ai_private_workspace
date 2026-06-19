@@ -63,6 +63,8 @@ import {
   usePreferences,
   type WorkbenchPreferences,
 } from "./preferences";
+import { useWorkspaceJobs } from "./hooks/useWorkspaceJobs";
+import { errorMessage } from "./lib/errorMessage";
 
 export type WorkspaceTab = "overview" | "ask" | "models" | "reports" | "actions" | "activity" | "settings";
 
@@ -225,9 +227,8 @@ function App() {
   const [showArchivedWorkspaces, setShowArchivedWorkspaces] = useState(false);
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const { preferences, setPreferences } = usePreferences();
-  const [activityJobs, setActivityJobs] = useState<WorkspaceJob[]>([]);
-  const [activityJobsLoading, setActivityJobsLoading] = useState(false);
-  const [activityJobsError, setActivityJobsError] = useState<string | null>(null);
+  const { activityJobs, activityJobsLoading, activityJobsError, loadActivityJobs } =
+    useWorkspaceJobs({ activeTab, selectedWorkspaceId, selectedWorkspaceIdRef });
   const [workspaceSkillProfile, setWorkspaceSkillProfile] = useState<WorkspaceSkillProfile | null>(null);
   const [resumeMessage, setResumeMessage] = useState<string | null>(null);
   const [desktopStartupMessage, setDesktopStartupMessage] = useState<string | null>(null);
@@ -390,25 +391,6 @@ function App() {
   }, [loadWorkspaceDetail]);
 
 
-
-  const loadActivityJobs = useCallback(async (workspaceId: string) => {
-    setActivityJobsLoading(true);
-    setActivityJobsError(null);
-    try {
-      const jobs = await listWorkspaceJobs(workspaceId);
-      if (selectedWorkspaceIdRef.current === workspaceId) {
-        setActivityJobs(jobs);
-      }
-    } catch (error) {
-      if (selectedWorkspaceIdRef.current === workspaceId) {
-        setActivityJobsError(errorMessage(error));
-      }
-    } finally {
-      if (selectedWorkspaceIdRef.current === workspaceId) {
-        setActivityJobsLoading(false);
-      }
-    }
-  }, []);
 
   const refreshWorkspaceReadOnlyState = useCallback(async (workspaceId: string) => {
     const [
@@ -664,12 +646,6 @@ function App() {
       // The submitted answer remains visible if the optional read-only refresh fails.
     }
   }, []);
-
-  useEffect(() => {
-    if (activeTab === "activity" && selectedWorkspaceId) {
-      void loadActivityJobs(selectedWorkspaceId);
-    }
-  }, [activeTab, loadActivityJobs, selectedWorkspaceId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1271,10 +1247,6 @@ function App() {
       ) : null}
     </div>
   );
-}
-
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Unexpected request error";
 }
 
 export default App;
