@@ -14,6 +14,7 @@ import {
 import { activateWorkspaceRuntime } from "../api/client";
 import { ModelsSummaryCard } from "./ModelsSummaryCard";
 import { WorkspaceGettingReady } from "./WorkspaceGettingReady";
+import { ProjectIntelligence } from "./ProjectIntelligence";
 import { ProjectUnderstanding } from "./ProjectUnderstanding";
 import { StatusBadge } from "./StatusBadge";
 import type { StatusTone } from "./statusTone";
@@ -112,15 +113,18 @@ export function WorkspaceDashboard({
       ) : null}
 
       {fullyReady ? (
-        <ProjectUnderstanding
-          dashboard={dashboard}
-          projectPath={summary.project_path}
-          onOpenAsk={onOpenAsk}
-          onOpenSettings={onOpenSettings}
-          onStartScanJob={onStartScanJob}
-          onStartIndexJob={onStartIndexJob}
-          onRefreshWorkspaceState={onRefreshWorkspaceState}
-        />
+        <>
+          <ProjectUnderstanding
+            dashboard={dashboard}
+            projectPath={summary.project_path}
+            onOpenAsk={onOpenAsk}
+            onOpenSettings={onOpenSettings}
+            onStartScanJob={onStartScanJob}
+            onStartIndexJob={onStartIndexJob}
+            onRefreshWorkspaceState={onRefreshWorkspaceState}
+          />
+          <ProjectIntelligence dashboard={dashboard} />
+        </>
       ) : (
         <WorkspaceGettingReady
           dashboard={dashboard}

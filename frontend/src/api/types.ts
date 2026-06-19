@@ -1896,3 +1896,91 @@ export interface StagedBackendRuntimeItem {
   summary: string;
   path: string | null;
 }
+
+// --- Project Intelligence (M1) ---
+
+export interface ProjectIntelligenceSnapshot {
+  id: string;
+  workspace_id: string;
+  created_at: string;
+  entity_count: number;
+  relation_count: number;
+  finding_count: number;
+  analyzers_run: string[];
+  analyzers_skipped: string[];
+  scan_signature: string | null;
+}
+
+export interface ProjectGraphEntity {
+  id: string;
+  type: string;
+  name: string;
+  status: string;
+  confidence: string;
+  source_file: string | null;
+  analyzer: string;
+  metadata: Record<string, string>;
+}
+
+export interface ProjectGraphPipeline extends ProjectGraphEntity {
+  jobs: ProjectGraphEntity[];
+}
+
+export interface ProjectGraphFinding {
+  id: string;
+  category: string;
+  severity: string;
+  title: string;
+  explanation: string;
+  source_file: string | null;
+  evidence: string[];
+  confidence: string;
+  recommendation: string | null;
+  analyzer: string;
+}
+
+export interface ProjectIntelligenceQuestion {
+  question: string;
+  reason: string;
+}
+
+export interface ProjectIntelligenceView {
+  role: string;
+  role_label: string;
+  section_order: string[];
+  analyzers_run: string[];
+  analyzers_skipped: string[];
+  summary: {
+    description: string;
+    technology_chips: string[];
+    counts: {
+      services: number;
+      environments: number;
+      pipelines: number;
+      infrastructure: number;
+    };
+  };
+  infrastructure: { components: ProjectGraphEntity[]; images: ProjectGraphEntity[] };
+  deployment: { pipelines: ProjectGraphPipeline[] };
+  environments: { environments: ProjectGraphEntity[] };
+  risks: { findings: ProjectGraphFinding[]; highlighted_categories: string[] };
+  important_files: { files: { path: string; reason: string }[] };
+  questions: { questions: ProjectIntelligenceQuestion[] };
+}
+
+export interface ProjectIntelligenceResponse {
+  built: boolean;
+  role?: string;
+  snapshot?: ProjectIntelligenceSnapshot;
+  view?: ProjectIntelligenceView;
+}
+
+export interface ProjectIntelligenceBuildResponse {
+  built: boolean;
+  snapshot: ProjectIntelligenceSnapshot;
+}
+
+export interface ProjectIntelligenceOverviewText {
+  overview: string;
+  role: string;
+}
