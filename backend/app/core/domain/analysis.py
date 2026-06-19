@@ -133,6 +133,27 @@ class HelmAnalysisResult:
 
 
 @dataclass(frozen=True)
+class PythonModule:
+    name: str
+    path: str
+    internal_imports: list[str]
+
+
+@dataclass(frozen=True)
+class PythonAnalysisResult:
+    workspace_id: str
+    project_path: str
+    python_files_count: int
+    frameworks: list[str]
+    entrypoints: list[str]
+    modules: list[PythonModule]
+    notable_dependencies: list[str]
+    has_tests: bool
+    dependency_files: list[str]
+    findings: list[AnalysisFinding]
+
+
+@dataclass(frozen=True)
 class AnalyzerStatus:
     name: str
     status: str

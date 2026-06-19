@@ -20,6 +20,15 @@ class GitFileHotspotResponse(BaseModel):
     changes: int
 
 
+class GitBranchStrategyResponse(BaseModel):
+    default_branch: str | None = None
+    total_branches: int = 0
+    long_lived_branches: list[str] = []
+    prefixes: list[str] = []
+    inferred_strategy: str = "Unknown"
+    rationale: str = ""
+
+
 class GitInsightsResponse(BaseModel):
     is_repo: bool
     branch: str | None = None
@@ -30,6 +39,7 @@ class GitInsightsResponse(BaseModel):
     first_commit_at: str | None = None
     top_contributors: list[GitContributorResponse] = []
     hotspots: list[GitFileHotspotResponse] = []
+    branch_strategy: GitBranchStrategyResponse | None = None
 
 
 def to_git_insights_response(insights: GitInsights) -> GitInsightsResponse:
@@ -57,4 +67,16 @@ def to_git_insights_response(insights: GitInsights) -> GitInsightsResponse:
         hotspots=[
             GitFileHotspotResponse(path=h.path, changes=h.changes) for h in insights.hotspots
         ],
+        branch_strategy=(
+            GitBranchStrategyResponse(
+                default_branch=insights.branch_strategy.default_branch,
+                total_branches=insights.branch_strategy.total_branches,
+                long_lived_branches=list(insights.branch_strategy.long_lived_branches),
+                prefixes=list(insights.branch_strategy.prefixes),
+                inferred_strategy=insights.branch_strategy.inferred_strategy,
+                rationale=insights.branch_strategy.rationale,
+            )
+            if insights.branch_strategy is not None
+            else None
+        ),
     )

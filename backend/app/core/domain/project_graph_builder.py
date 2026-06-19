@@ -16,6 +16,7 @@ from app.core.domain.analysis import (
     GitLabCIAnalysisResult,
     HelmAnalysisResult,
     KubernetesAnalysisResult,
+    PythonAnalysisResult,
     TerraformAnalysisResult,
     TerragruntAnalysisResult,
 )
@@ -426,6 +427,98 @@ def from_helm(
     return entities, relations, findings
 
 
+def from_python(
+    result: PythonAnalysisResult,
+) -> tuple[list[ProjectEntity], list[ProjectRelation], list[ProjectFinding]]:
+    has_app = bool(result.frameworks or result.entrypoints or result.modules)
+    if not has_app:
+        return [], [], _findings(result.findings, "python", FindingCategory.GENERAL)
+
+    app_name = (
+        f"{result.frameworks[0]} application" if result.frameworks else "Python application"
+    )
+    application = ProjectEntity(
+        id=_entity_id(EntityType.APPLICATION, app_name),
+        type=EntityType.APPLICATION,
+        name=app_name,
+        analyzer="python",
+        source_file=result.entrypoints[0] if result.entrypoints else None,
+        metadata={
+            "frameworks": ", ".join(result.frameworks),
+            "entrypoints": str(len(result.entrypoints)),
+            "modules": str(len(result.modules)),
+            "has_tests": str(result.has_tests),
+        },
+    )
+    entities: list[ProjectEntity] = [application]
+    relations: list[ProjectRelation] = []
+
+    module_ids: dict[str, str] = {}
+    for module in result.modules:
+        entity = ProjectEntity(
+            id=_entity_id(EntityType.MODULE, module.name),
+            type=EntityType.MODULE,
+            name=module.name,
+            analyzer="python",
+            confidence=Confidence.HIGH,
+            status=EvidenceStatus.CONFIRMED,
+            source_file=module.path,
+            metadata={"internal_imports": str(len(module.internal_imports))},
+        )
+        entities.append(entity)
+        module_ids[module.name] = entity.id
+        relations.append(
+            ProjectRelation(
+                id=_relation_id(application.id, RelationType.INCLUDES, entity.id),
+                source_entity_id=application.id,
+                target_entity_id=entity.id,
+                relation_type=RelationType.INCLUDES,
+                analyzer="python",
+                source_file=module.path,
+            )
+        )
+
+    # Internal module → module import edges (the project's own architecture).
+    for module in result.modules:
+        for target in module.internal_imports:
+            target_id = module_ids.get(target)
+            if target_id is None:
+                continue
+            source_id = module_ids[module.name]
+            relations.append(
+                ProjectRelation(
+                    id=_relation_id(source_id, RelationType.DEPENDS_ON, target_id),
+                    source_entity_id=source_id,
+                    target_entity_id=target_id,
+                    relation_type=RelationType.DEPENDS_ON,
+                    analyzer="python",
+                    evidence=[f"{module.name} imports {target}"],
+                )
+            )
+
+    for dep in result.notable_dependencies:
+        dep_entity = ProjectEntity(
+            id=_entity_id(EntityType.DEPENDENCY, dep),
+            type=EntityType.DEPENDENCY,
+            name=dep,
+            analyzer="python",
+            source_file=result.dependency_files[0] if result.dependency_files else None,
+        )
+        entities.append(dep_entity)
+        relations.append(
+            ProjectRelation(
+                id=_relation_id(application.id, RelationType.DEPENDS_ON, dep_entity.id),
+                source_entity_id=application.id,
+                target_entity_id=dep_entity.id,
+                relation_type=RelationType.DEPENDS_ON,
+                analyzer="python",
+            )
+        )
+
+    findings = _findings(result.findings, "python", FindingCategory.GENERAL)
+    return entities, relations, findings
+
+
 # Deterministic "important file" scoring: a path's importance comes from its
 # role (entrypoint, infra root, CI, env root, dependency manifest, docs), not
 # from an LLM guess. Returns (path, score, reason) tuples, highest first.
@@ -465,6 +558,7 @@ def build_project_graph(
     github_actions: GitHubActionsAnalysisResult | None = None,
     kubernetes: KubernetesAnalysisResult | None = None,
     helm: HelmAnalysisResult | None = None,
+    python: PythonAnalysisResult | None = None,
     scan_paths: list[str] | None = None,
     analyzers_skipped: list[str] | None = None,
 ) -> ProjectGraph:
@@ -502,6 +596,8 @@ def build_project_graph(
         absorb(from_kubernetes(kubernetes), "kubernetes")
     if helm is not None:
         absorb(from_helm(helm), "helm")
+    if python is not None:
+        absorb(from_python(python), "python")
 
     # Important files become config_file entities (with a plain-language reason),
     # so the "Important files" section is part of the same evidence graph.

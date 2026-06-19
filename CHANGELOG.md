@@ -7,6 +7,28 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.103] - 2026-06-19
+
+### Added
+
+- **Project Intelligence (M4): Python application analysis.** For projects that
+  are mostly Python, the build now understands the code itself, not just the
+  infrastructure around it. Using only the standard library's `ast` (parse,
+  never execute), it detects the **framework(s)** in use (FastAPI / Flask /
+  Django / Celery / …), likely **entrypoints**, the project's top-level
+  **modules** and the **import edges between them** (its internal architecture),
+  and **notable third-party dependencies** from the manifests (a curated set, so
+  the list stays meaningful). The application, its modules and dependencies join
+  the same evidence graph — modules and their dependency edges are drawn on the
+  interactive **Map**, and the framework and key libraries appear as technology
+  chips in the Summary.
+- **Branch strategy in Git insights.** The Git activity card now infers the
+  repository's **branching model** — GitFlow, GitHub Flow, Trunk-based or
+  Unknown — deterministically from branch names (`git for-each-ref`, read-only),
+  showing the detected long-lived branches and prefixes (`feature/`, `release/`,
+  `hotfix/`, …) with a plain-language rationale. It is always labelled as
+  *inferred from branch names*, never asserted.
+
 ## [0.1.102] - 2026-06-19
 
 ### Added

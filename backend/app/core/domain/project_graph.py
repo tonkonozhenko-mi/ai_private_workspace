@@ -24,6 +24,9 @@ class EntityType:
     INFRA_COMPONENT = "infra_component"
     CONFIG_FILE = "config_file"
     CONTAINER_IMAGE = "container_image"
+    APPLICATION = "application"  # a runnable app (e.g. a Python service)
+    MODULE = "module"  # an internal top-level code package
+    DEPENDENCY = "dependency"  # a notable third-party library
 
 
 class RelationType:

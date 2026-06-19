@@ -15,6 +15,7 @@ from app.core.domain.git_insights import (
     GitContributor,
     GitFileHotspot,
     GitInsights,
+    infer_branch_strategy,
 )
 
 _UNIT = "\x1f"  # ASCII unit separator — safe field delimiter for git --pretty.
@@ -46,6 +47,7 @@ class LocalGitHistory:
             first_commit_at=self._first_commit_at(root),
             top_contributors=self._top_contributors(root),
             hotspots=self._hotspots(root),
+            branch_strategy=self._branch_strategy(root),
         )
 
     # -- individual queries -------------------------------------------------
@@ -56,6 +58,47 @@ class LocalGitHistory:
             return None
         value = value.strip()
         return value or None
+
+    def _branch_strategy(self, root: Path):
+        """List local + remote branch names and infer the branching model.
+
+        Remote-tracking names are normalised (``origin/feature/x`` →
+        ``feature/x``) and ``origin/HEAD`` is dropped. Read-only.
+        """
+        value = self._run(
+            root,
+            [
+                "for-each-ref",
+                "--format=%(refname:short)",
+                "refs/heads",
+                "refs/remotes",
+            ],
+        )
+        if value is None:
+            return None
+        branches: set[str] = set()
+        for line in value.splitlines():
+            name = line.strip()
+            if not name or name.endswith("/HEAD"):
+                continue
+            # Drop the remote name from remote-tracking refs (e.g. "origin/").
+            if "/" in name and name.split("/", 1)[0] in {"origin", "upstream"}:
+                name = name.split("/", 1)[1]
+            if name:
+                branches.add(name)
+        if not branches:
+            return None
+        return infer_branch_strategy(sorted(branches), self._default_branch(root))
+
+    def _default_branch(self, root: Path) -> str | None:
+        value = self._run(root, ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"])
+        if value:
+            name = value.strip()
+            if "/" in name and name.split("/", 1)[0] in {"origin", "upstream"}:
+                name = name.split("/", 1)[1]
+            if name:
+                return name
+        return self._branch(root)
 
     def _last_commit(self, root: Path) -> GitCommit | None:
         pretty = _UNIT.join(["%h", "%s", "%an", "%cI"])
