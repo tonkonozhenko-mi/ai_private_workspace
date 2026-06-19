@@ -213,6 +213,30 @@ function GitActivityCard({ git }: { git: GitInsightsResponse }) {
           </ul>
         </div>
       ) : null}
+
+      {git.branch_strategy && git.branch_strategy.total_branches > 0 ? (
+        <div className="pu-git-branching">
+          <div className="pu-eyebrow">Branching · inferred from branch names</div>
+          <div className="pu-git-branch-head">
+            <span className="pu-git-branch-strategy">
+              {git.branch_strategy.inferred_strategy}
+            </span>
+            <span className="pu-git-branch-count">
+              {git.branch_strategy.total_branches} branch(es)
+            </span>
+          </div>
+          <p className="pu-git-branch-rationale">{git.branch_strategy.rationale}</p>
+          {git.branch_strategy.prefixes.length > 0 ? (
+            <div className="pu-chips">
+              {git.branch_strategy.prefixes.map((p) => (
+                <span key={p} className="pu-chip">
+                  {p}/
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

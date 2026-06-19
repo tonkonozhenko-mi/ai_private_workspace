@@ -129,11 +129,31 @@ def present_project_intelligence(graph: ProjectGraph, lens: RoleLens) -> dict:
     infra = graph.entities_of_type(EntityType.INFRA_COMPONENT)
     images = graph.entities_of_type(EntityType.CONTAINER_IMAGE)
     config_files = graph.entities_of_type(EntityType.CONFIG_FILE)
+    applications = graph.entities_of_type(EntityType.APPLICATION)
+    modules = graph.entities_of_type(EntityType.MODULE)
+    dependencies = graph.entities_of_type(EntityType.DEPENDENCY)
 
-    technology_chips = sorted({e.name for e in infra} | {p.name for p in pipelines})
+    frameworks: set[str] = set()
+    for app in applications:
+        raw = app.metadata.get("frameworks", "")
+        frameworks |= {f.strip() for f in raw.split(",") if f.strip()}
+
+    technology_chips = sorted(
+        {e.name for e in infra}
+        | {p.name for p in pipelines}
+        | {d.name for d in dependencies}
+        | frameworks
+    )
 
     # A purely factual one-line description; the LLM (separately) elaborates.
     parts: list[str] = []
+    if applications:
+        app_part = "Python application"
+        if frameworks:
+            app_part += " (" + ", ".join(sorted(frameworks)) + ")"
+        if modules:
+            app_part += f", {len(modules)} module(s)"
+        parts.append(app_part)
     if infra:
         parts.append("infrastructure: " + ", ".join(sorted(e.name for e in infra)))
     if pipelines:

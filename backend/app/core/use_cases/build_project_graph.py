@@ -24,6 +24,7 @@ from app.core.use_cases.analyze_kubernetes import (
     AnalyzeKubernetesInput,
     AnalyzeKubernetesUseCase,
 )
+from app.core.use_cases.analyze_python import AnalyzePythonInput, AnalyzePythonUseCase
 from app.core.use_cases.analyze_terraform import AnalyzeTerraformInput, AnalyzeTerraformUseCase
 from app.core.use_cases.analyze_terragrunt import (
     AnalyzeTerragruntInput,
@@ -123,6 +124,13 @@ class BuildProjectGraphUseCase:
                 self.workspace_repository, self.project_scan_repository, self.file_system
             ).execute(AnalyzeHelmInput(workspace_id=ws_id)),
         )
+        python = _run(
+            "python",
+            "python",
+            lambda: AnalyzePythonUseCase(
+                self.workspace_repository, self.project_scan_repository, self.file_system
+            ).execute(AnalyzePythonInput(workspace_id=ws_id)),
+        )
 
         graph = build_project_graph(
             ws_id,
@@ -132,6 +140,7 @@ class BuildProjectGraphUseCase:
             github_actions=github_actions,
             kubernetes=kubernetes,
             helm=helm,
+            python=python,
             scan_paths=[project_file.path for project_file in latest_scan.files],
             analyzers_skipped=skipped,
         )

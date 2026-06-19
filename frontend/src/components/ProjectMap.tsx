@@ -9,8 +9,11 @@ const COLUMN_ORDER = [
   "infra_component",
   "pipeline",
   "pipeline_job",
+  "application",
+  "module",
   "service",
   "container_image",
+  "dependency",
 ];
 
 const TYPE_LABEL: Record<string, string> = {
@@ -18,8 +21,11 @@ const TYPE_LABEL: Record<string, string> = {
   infra_component: "Infrastructure",
   pipeline: "Pipeline",
   pipeline_job: "Job",
+  application: "Application",
+  module: "Module",
   service: "Service",
   container_image: "Image",
+  dependency: "Dependency",
   config_file: "File",
 };
 
@@ -28,8 +34,11 @@ const TYPE_COLOR: Record<string, string> = {
   infra_component: "#34c27e",
   pipeline: "#5eb0ef",
   pipeline_job: "#8ec7f2",
+  application: "#5ad1c4",
+  module: "#8fd19a",
   service: "#c4a6f0",
   container_image: "#e0b07a",
+  dependency: "#d6cf8a",
   config_file: "#9aa6a1",
 };
 

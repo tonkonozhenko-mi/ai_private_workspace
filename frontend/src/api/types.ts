@@ -171,6 +171,15 @@ export interface GitFileHotspotResponse {
   changes: number;
 }
 
+export interface GitBranchStrategyResponse {
+  default_branch: string | null;
+  total_branches: number;
+  long_lived_branches: string[];
+  prefixes: string[];
+  inferred_strategy: string;
+  rationale: string;
+}
+
 export interface GitInsightsResponse {
   is_repo: boolean;
   branch: string | null;
@@ -181,6 +190,7 @@ export interface GitInsightsResponse {
   first_commit_at: string | null;
   top_contributors: GitContributorResponse[];
   hotspots: GitFileHotspotResponse[];
+  branch_strategy: GitBranchStrategyResponse | null;
 }
 
 export interface IndexedDocumentSummaryResponse {
