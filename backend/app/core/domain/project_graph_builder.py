@@ -297,6 +297,7 @@ def build_project_graph(
     terragrunt: TerragruntAnalysisResult | None = None,
     gitlab_ci: GitLabCIAnalysisResult | None = None,
     github_actions: GitHubActionsAnalysisResult | None = None,
+    scan_paths: list[str] | None = None,
     analyzers_skipped: list[str] | None = None,
 ) -> ProjectGraph:
     """Compose all available analyzer results into one role-neutral graph.
@@ -329,6 +330,23 @@ def build_project_graph(
         absorb(from_gitlab_ci(gitlab_ci), "gitlab_ci")
     if github_actions is not None:
         absorb(from_github_actions(github_actions), "github_actions")
+
+    # Important files become config_file entities (with a plain-language reason),
+    # so the "Important files" section is part of the same evidence graph.
+    for important in important_files(scan_paths or []):
+        path = important["path"]
+        entity_id = _entity_id(EntityType.CONFIG_FILE, path)
+        entities.setdefault(
+            entity_id,
+            ProjectEntity(
+                id=entity_id,
+                type=EntityType.CONFIG_FILE,
+                name=path,
+                analyzer="scan",
+                source_file=path,
+                metadata={"reason": important["reason"]},
+            ),
+        )
 
     return ProjectGraph(
         workspace_id=workspace_id,

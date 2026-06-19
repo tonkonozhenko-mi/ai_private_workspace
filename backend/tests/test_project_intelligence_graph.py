@@ -18,7 +18,8 @@ from app.core.domain.project_graph_builder import (
     environments_from_paths,
     important_files,
 )
-from app.core.domain.role_lens import role_lens_for
+from app.core.domain.project_intelligence_view import present_project_intelligence
+from app.core.domain.role_lens import Section, role_lens_for
 
 
 def _terraform() -> TerraformAnalysisResult:
@@ -179,3 +180,32 @@ def test_role_lens_fallback_and_distinct_orders():
     # DevOps leads with infrastructure; tester leads with deployment/tests.
     assert role_lens_for("devops").section_order[1] == "infrastructure"
     assert role_lens_for("tester").section_order[1] == "deployment"
+
+
+def test_presenter_projects_sections_with_role_order_and_facts():
+    graph = build_project_graph(
+        "w1",
+        terraform=_terraform(),
+        terragrunt=_terragrunt(),
+        gitlab_ci=_gitlab(),
+        github_actions=_github(),
+        scan_paths=["accounts/dev/main.tf", ".github/workflows/release.yml", "Dockerfile"],
+    )
+    view = present_project_intelligence(graph, role_lens_for("devops"))
+    assert view["role"] == "devops"
+    assert view["section_order"][1] == Section.INFRASTRUCTURE
+    assert "Terraform" in view[Section.SUMMARY]["technology_chips"]
+    assert view[Section.SUMMARY]["counts"]["pipelines"] == 2
+    assert {"dev", "prod", "staging"} == {
+        e["name"] for e in view[Section.ENVIRONMENTS]["environments"]
+    }
+    # gap-based questions, never asserted defects
+    reasons = " ".join(q["reason"] for q in view[Section.QUESTIONS]["questions"])
+    assert "rollback" in reasons or "approval" in reasons
+
+
+def test_presenter_orders_risks_by_role_highlight():
+    # A devops lens highlights security/deployment; tester highlights testing.
+    graph = build_project_graph("w1", gitlab_ci=_gitlab())
+    devops_view = present_project_intelligence(graph, role_lens_for("devops"))
+    assert devops_view[Section.RISKS]["highlighted_categories"][0] == "security"
