@@ -10,7 +10,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 ### Added
 
 - **Conversation memory in Ask (multi-turn, like ChatGPT/Claude).** Follow-up
-  questions now keep their context — ask "what about ECS for cif in dev?" then
+  questions now keep their context — ask "what about ECS for <project name> in dev?" then
   "how do I disable it?" and the model knows "it" means ECS instead of losing the
   thread. On the llama.cpp engine the recent turns are sent as real role-tagged
   chat messages (`user`/`assistant`) ahead of the new question — the native format
@@ -18,7 +18,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
   stay on topic. Ollama gets the same memory via a compact history preface in its
   prompt. Crucially, retrieval is **context-aware** too: a bare follow-up like
   "disable it" carries no searchable subject, so the RAG query is expanded with
-  the last couple of user questions (which hold the real terms — "ecs", "cif",
+  the last couple of user questions (which hold the real terms — "ecs", "<project name>",
   "dev") before dense + keyword search runs. Without that, the right files would
   never be retrieved no matter how good the prompt is. Best-effort and bounded
   (last few turns): a fresh chat or missing history changes nothing.
@@ -62,9 +62,9 @@ experience, faster startup, and signed per-architecture macOS builds.
   dense vector similarity with a BM25 keyword index (SQLite FTS5) and fuses the
   rankings with Reciprocal Rank Fusion. File and folder paths are indexed
   alongside the text, so exact identifiers — folder names like `dev`, variable
-  names like `cif_allowed_cidr` — are matched lexically instead of being missed by
+  names like `<project name>_allowed_cidr` — are matched lexically instead of being missed by
   pure semantic search. Two further signals sharpen results: a **path/env boost**
-  (chunks whose file path segments match query terms like `dev` or `cif` are
+  (chunks whose file path segments match query terms like `dev` or `<project name>` are
   lifted, so environment-specific questions land on the right file) and a
   **per-file diversity cap** (one big file can't fill the whole answer). Falls
   back to vector-only if FTS5 is unavailable.

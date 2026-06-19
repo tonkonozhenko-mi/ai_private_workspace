@@ -161,7 +161,7 @@ class SQLiteVectorStore:
         # --- Reciprocal Rank Fusion across three signals --------------------
         # 1) dense vectors, 2) BM25 keywords, 3) a path/env boost: chunks whose
         # FILE PATH contains query tokens (folder/env/component names like "dev"
-        # or "cif") are lifted, which sharpens environment-specific questions
+        # or "<project name>") are lifted, which sharpens environment-specific questions
         # ("...in dev") where the right file lives under that path. With no BM25
         # or path hits this reproduces the plain vector order.
         k = 60
@@ -351,7 +351,7 @@ class SQLiteVectorStore:
             )
             # Keyword (BM25) index for hybrid search. We index the source_path
             # together with the chunk text so folder/file names (e.g. "dev",
-            # "cif") are matchable lexically — exactly what pure vector search
+            # "<project name>") are matchable lexically — exactly what pure vector search
             # misses. Guarded: if FTS5 is unavailable we stay vector-only.
             try:
                 connection.execute(
