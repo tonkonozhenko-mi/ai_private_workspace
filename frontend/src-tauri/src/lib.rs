@@ -249,10 +249,13 @@ fn runtime_manifest_candidates() -> Vec<PathBuf> {
             }
 
             // Windows/Linux: Tauri bundles resources next to the executable (no
-            // "Resources" folder), and a `../` resource path lands under an
-            // `_up_/…` subtree. Search the install directory itself so the
-            // manifest is found wherever Tauri placed it. Bounded to the app's
-            // own install tree, so it stays fast and never walks the wider disk.
+            // "Resources" folder), and a `../` resource path lands under a
+            // `resources/_up_/_up_/…` subtree. Try that exact path first (fast),
+            // then fall back to a bounded recursive search of the install tree in
+            // case the layout differs — never walking outside the app's own dir.
+            candidates.push(exe_dir.join(
+                "resources/_up_/_up_/build/desktop/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json",
+            ));
             candidates.extend(find_frozen_runtime_manifests_under(&exe_dir.to_path_buf(), 8));
         }
     }
@@ -287,6 +290,8 @@ fn llama_server_binary_path() -> String {
             candidates.push(exe_dir.join(&rel));
             candidates.push(exe_dir.join(format!("../Resources/{}", rel)));
             candidates.push(exe_dir.join(format!("../../Resources/{}", rel)));
+            // Windows NSIS layout (resources/_up_/_up_/… for a `../` resource).
+            candidates.push(exe_dir.join(format!("resources/_up_/_up_/build/desktop/{}", rel)));
         }
     }
     for candidate in candidates {
