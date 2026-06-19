@@ -151,3 +151,30 @@ jobs:
           # Generates latest.json (the update manifest) alongside the installers.
           includeUpdaterJson: true
           args: ${{ matrix.args }}
+
+  # --- After all installers are uploaded, prepend a tidy "Downloads" section to
+  #     the release notes, grouped by platform (macOS Apple Silicon / Intel,
+  #     Windows). Built from the assets that were actually uploaded, so the links
+  #     are always correct regardless of the exact file names. ---
+  download-links:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Add a grouped Downloads section to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          ASSETS_JSON="$(gh release view "$TAG" --repo "$REPO" --json assets)"
+          export ASSETS_JSON
+          DOWNLOADS="$(python3 scripts/release_download_links.py "$REPO" "$TAG")"
+          if [ -z "$DOWNLOADS" ]; then
+            echo "No installer assets found; leaving the release notes unchanged."
+            exit 0
+          fi
+          BODY="$(gh release view "$TAG" --repo "$REPO" --json body --jq .body)"
+          printf '%s\n\n%s\n' "$DOWNLOADS" "$BODY" \
+            | gh release edit "$TAG" --repo "$REPO" --notes-file -
