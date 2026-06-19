@@ -7,17 +7,31 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.97] - 2026-06-19
+
 ### Added
 
-- **Windows support (groundwork).** The app is being made Windows-native: the
-  release workflow now builds a Windows x64 NSIS installer on a `windows-latest`
-  runner alongside the macOS DMGs. Both engines are targeted — the bundled
-  llama.cpp `llama-server.exe` (CPU x64/arm64) is fetched and staged by the
-  build, and the backend's process management is cross-platform (Windows orphan
-  reaping via PowerShell CIM by exact binary path; DLLs resolved via `PATH`).
-  The desktop shell gained a native Windows folder picker and Windows-correct
-  `PATH`/binary handling. First Windows CI build will surface and pin the exact
-  packaged-resource paths.
+- **Windows support.** The app now ships a Windows x64 installer (NSIS `.exe`),
+  built on a `windows-latest` runner alongside the macOS DMGs, with both local
+  engines:
+  - The bundled llama.cpp `llama-server.exe` (CPU x64/arm64) is fetched and
+    staged at build time, so the built-in engine works with nothing to install.
+  - Backend process management is cross-platform: orphaned `llama-server`
+    processes are reaped via PowerShell CIM matched by the exact binary path
+    (the same "only ever our own process" guarantee as `pgrep` on Unix), DLLs are
+    resolved via `PATH`, and `uvloop` (Unix-only) is skipped on Windows so the
+    frozen backend builds.
+  - The desktop shell gained a native Windows folder picker, Windows-correct
+    `PATH` handling, and resolves the bundled backend manifest and `llama-server`
+    from the Windows installer layout (`resources/_up_/_up_/…`) with a recursive
+    fallback across the install tree.
+
+### Fixed
+
+- The Windows app no longer opens a console window. The release binary is built
+  as a GUI-subsystem app and the frozen backend is launched with
+  `CREATE_NO_WINDOW`; previously a terminal appeared on launch, and closing it
+  killed the app.
 
 ## [0.1.96] - 2026-06-19
 
@@ -219,7 +233,8 @@ model setup, safe model-download drafts, Agent/MCP planning UX, and the macOS +
 Tauri packaging foundation. See
 [docs/V01_RELEASE_NOTES.md](docs/V01_RELEASE_NOTES.md) for the full list.
 
-[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.96...HEAD
+[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.97...HEAD
+[0.1.97]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.96...v0.1.97
 [0.1.96]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.95...v0.1.96
 [0.1.95]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.0...v0.1.95
 [0.1.0]: https://github.com/tonkonozhenko-mi/ai_private_workspace/releases/tag/v0.1.0
