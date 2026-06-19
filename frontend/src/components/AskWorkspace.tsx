@@ -1,4 +1,41 @@
-import { FormEvent, createContext, useContext, useEffect, useRef, useState, type CSSProperties } from "react";
+import { FormEvent, createContext, useContext, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+
+// Offline syntax highlighting. We use the modular core build and register only a
+// curated set of languages so the bundle stays small (no full highlight.js).
+import hljs from "highlight.js/lib/core";
+import bash from "highlight.js/lib/languages/bash";
+import dockerfile from "highlight.js/lib/languages/dockerfile";
+import go from "highlight.js/lib/languages/go";
+import ini from "highlight.js/lib/languages/ini";
+import java from "highlight.js/lib/languages/java";
+import javascript from "highlight.js/lib/languages/javascript";
+import json from "highlight.js/lib/languages/json";
+import markdown from "highlight.js/lib/languages/markdown";
+import python from "highlight.js/lib/languages/python";
+import rust from "highlight.js/lib/languages/rust";
+import sql from "highlight.js/lib/languages/sql";
+import typescript from "highlight.js/lib/languages/typescript";
+import xml from "highlight.js/lib/languages/xml";
+import yaml from "highlight.js/lib/languages/yaml";
+
+for (const [name, lang] of Object.entries({
+  bash,
+  dockerfile,
+  go,
+  ini,
+  java,
+  javascript,
+  json,
+  markdown,
+  python,
+  rust,
+  sql,
+  typescript,
+  xml,
+  yaml,
+})) {
+  hljs.registerLanguage(name, lang);
+}
 
 // Lets deeply-nested answer rows know whether to show developer-only telemetry
 // (token counts, verification notes) without prop-drilling through the chat tree.
@@ -2420,6 +2457,34 @@ interface MarkdownBlock {
   language?: string;
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// Renders a fenced code block with offline syntax highlighting. If the fence's
+// language is one we registered, highlight.js colorizes it; otherwise we show the
+// code as safely-escaped plain text (better no colors than wrong colors). The
+// HTML highlight.js emits is just <span class="hljs-*"> around escaped text, so
+// setting it via dangerouslySetInnerHTML is safe.
+function HighlightedCode({ code, language }: { code: string; language?: string }) {
+  const html = useMemo(() => {
+    const lang = language?.toLowerCase().trim();
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
+      } catch {
+        // fall through to plain text
+      }
+    }
+    return escapeHtml(code);
+  }, [code, language]);
+
+  return <code className="hljs" dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
 function MarkdownAnswer({ content }: { content: string }) {
   const blocks = parseMarkdownBlocks(content);
 
@@ -2433,7 +2498,7 @@ function MarkdownAnswer({ content }: { content: string }) {
                 <span className="markdown-code-language">{block.language}</span>
               ) : null}
               <pre>
-                <code>{block.lines.join("\n")}</code>
+                <HighlightedCode code={block.lines.join("\n")} language={block.language} />
               </pre>
             </div>
           );

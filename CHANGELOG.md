@@ -32,8 +32,18 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
   default, and if the model/engine isn't available Ask falls back to plain hybrid
   retrieval, so it can never break answering.
 
+- **Syntax highlighting in answers (offline).** Fenced code blocks are now
+  colorized with highlight.js using a curated, bundled language set (Python, Java,
+  JS/TS, Go, Rust, SQL, JSON, YAML, Bash, Dockerfile, HTML/XML, INI/TOML,
+  Markdown) — no network needed. Token colors are theme variables, so code reads
+  well in both light and dark. Unknown languages fall back to safe plain text.
+
 ### Changed
 
+- Code blocks in answers got a proper redesign: their own surface, a header strip
+  naming the language, monospace body with horizontal scroll, and inline code as a
+  subtle chip — and a markdown vertical-rhythm fix so a code block can no longer
+  visually overlap the paragraph beneath it.
 - Stronger path/env signal in the answer prompt: it now leads with "answer from
   the project files and cite the source_path", and the model-identity note is a
   low-priority end clause — so small models stop replying to a project question
