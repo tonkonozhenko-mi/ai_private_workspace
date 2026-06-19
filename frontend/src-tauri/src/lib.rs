@@ -706,7 +706,8 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
     );
     #[cfg(target_os = "windows")]
     let desktop_path = inherited_path.clone();
-    let mut child = Command::new(&executable)
+    let mut command = Command::new(&executable);
+    command
         .env("APP_ENV", "desktop")
         .env("HOST", "127.0.0.1")
         .env("PORT", "8000")
@@ -732,7 +733,17 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
         .env("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://tauri.localhost,https://tauri.localhost,tauri://localhost,null")
         .stdin(Stdio::null())
         .stdout(Stdio::from(stdout_log))
-        .stderr(Stdio::from(stderr_log))
+        .stderr(Stdio::from(stderr_log));
+    // The frozen backend is a Windows console app; spawning it normally pops up a
+    // terminal window, and closing that window kills the backend. CREATE_NO_WINDOW
+    // launches it without a visible console. No-op on macOS/Linux.
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+    let mut child = command
         .spawn()
         .map_err(|err| {
             let message = format!("Could not start frozen backend runtime {}: {}", executable.display(), err);
