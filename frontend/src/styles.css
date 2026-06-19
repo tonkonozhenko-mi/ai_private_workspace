@@ -4288,24 +4288,85 @@ a.getting-ready-cta:visited { color: var(--c-accent-ink); }
   background: var(--c-accent-hover);
 }
 
-.markdown-code-block pre,
+/* Answer markdown: a clear vertical rhythm so blocks never collide. Using a
+   flex column with a gap guarantees separation regardless of margin collapsing —
+   this is what was letting a code block visually overlap the next paragraph. */
+.markdown-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  max-width: 100%;
+}
+.markdown-answer > p,
+.markdown-answer > ul,
+.markdown-answer > ol {
+  margin: 0;
+}
+
+/* Inline code: a subtle mono chip so identifiers stand out from prose. */
+.answer-content :not(pre) > code,
+.markdown-answer :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  padding: 0.1em 0.36em;
+  border-radius: 5px;
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Fenced code block: its own surface with a header strip naming the language,
+   horizontal scroll for long lines — contained, distinct, and never overlapping
+   the surrounding text. */
+.markdown-code-block {
+  max-width: 100%;
+  min-width: 0;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface-2);
+  overflow: hidden;
+}
+.markdown-code-language {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--c-text-3);
+  padding: 6px 12px;
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+}
+.markdown-code-block pre {
+  margin: 0;
+  padding: 12px 14px;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+.markdown-code-block pre code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--c-text);
+  background: transparent;
+  border: none;
+  padding: 0;
+}
 .runtime-next-action-copy code {
-  background: var(--c-bg);
+  background: var(--c-surface-2);
   color: var(--c-text);
   border: 1px solid var(--c-border);
   border-radius: var(--r-sm);
 }
-/* Keep long code/JSON inside the answer width: scroll it, never blow the layout. */
 .answer-content { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
-.markdown-code-block { max-width: 100%; min-width: 0; }
-.markdown-code-block pre {
-  max-width: 100%;
-  margin: 0;
-  overflow-x: auto;
-  white-space: pre;
-  padding: var(--s-3);
-}
-.answer-content :not(pre) > code { overflow-wrap: anywhere; word-break: break-word; }
 .ask-message-row { min-width: 0; max-width: 100%; }
 
 /* ---------- Scroll up/down control ---------- */
