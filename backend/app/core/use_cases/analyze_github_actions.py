@@ -119,12 +119,14 @@ class AnalyzeGitHubActionsUseCase:
         jobs = parsed_yaml.get("jobs")
         jobs_mapping = jobs if isinstance(jobs, dict) else {}
         job_values = [value for value in jobs_mapping.values() if isinstance(value, dict)]
+        job_names = [str(key) for key in jobs_mapping.keys()]
 
         return GitHubActionsWorkflow(
             path=path,
             name=parsed_yaml["name"] if isinstance(parsed_yaml.get("name"), str) else None,
             triggers=AnalyzeGitHubActionsUseCase._parse_triggers(parsed_yaml),
             jobs_count=len(jobs_mapping),
+            job_names=job_names,
             uses_reusable_workflows=any("uses" in job for job in job_values),
             uses_matrix=any(
                 isinstance(job.get("strategy"), dict)

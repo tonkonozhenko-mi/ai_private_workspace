@@ -17,6 +17,7 @@ from app.core.domain.analysis import (
     HelmAnalysisResult,
     KubernetesAnalysisResult,
     PythonAnalysisResult,
+    ReferenceAnalysisResult,
     TerraformAnalysisResult,
     TerragruntAnalysisResult,
 )
@@ -62,7 +63,15 @@ _ENV_TOKENS: dict[str, str] = {
     "preprod": "preprod",
     "pre-prod": "preprod",
     "prod": "prod",
+    "prd": "prod",
+    "prn": "prod",
     "production": "prod",
+    "live": "prod",
+    "perf": "perf",
+    "demo": "demo",
+    "int": "integration",
+    "intg": "integration",
+    "integration": "integration",
     "sandbox": "sandbox",
     "sbx": "sandbox",
     "mgmt": "management",
@@ -176,23 +185,98 @@ def _findings(
 def from_terraform(
     result: TerraformAnalysisResult,
 ) -> tuple[list[ProjectEntity], list[ProjectRelation], list[ProjectFinding]]:
-    entities: list[ProjectEntity] = [
-        ProjectEntity(
-            id=_entity_id(EntityType.INFRA_COMPONENT, "terraform"),
-            type=EntityType.INFRA_COMPONENT,
-            name="Terraform",
-            analyzer="terraform",
-            source_file=result.files[0] if result.files else None,
+    terraform = ProjectEntity(
+        id=_entity_id(EntityType.INFRA_COMPONENT, "terraform"),
+        type=EntityType.INFRA_COMPONENT,
+        name="Terraform",
+        analyzer="terraform",
+        # A meaningful representative root (main/backend/providers.tf), not a
+        # random file. None when there is no obvious root.
+        source_file=result.root_files[0] if result.root_files else None,
+        metadata={
+            "files": str(result.total_terraform_files),
+            "remote_state": str(result.has_backend_config),
+            "modules": str(result.has_modules),
+            "providers": ", ".join(result.providers),
+            "root_files": str(len(result.root_files)),
+        },
+    )
+    entities: list[ProjectEntity] = [terraform]
+    relations: list[ProjectRelation] = []
+
+    environments = environments_from_paths(result.files, "terraform")
+    entities.extend(environments)
+    # Connect Terraform to the environments it manages so the map reads as a flow.
+    for env in environments:
+        relations.append(
+            ProjectRelation(
+                id=_relation_id(terraform.id, RelationType.CONFIGURES, env.id),
+                source_entity_id=terraform.id,
+                target_entity_id=env.id,
+                relation_type=RelationType.CONFIGURES,
+                analyzer="terraform",
+                source_file=env.source_file,
+            )
+        )
+
+    # Cloud services provisioned by these resources, grouped by (provider, service).
+    cloud_entities, cloud_relations = _cloud_entities(
+        result.cloud_resources, terraform.id, "terraform"
+    )
+    entities.extend(cloud_entities)
+    relations.extend(cloud_relations)
+
+    findings = _findings(result.findings, "terraform", FindingCategory.CONFIGURATION)
+    return entities, relations, findings
+
+
+def _cloud_entities(
+    cloud_resources, source_entity_id: str, analyzer: str
+) -> tuple[list[ProjectEntity], list[ProjectRelation]]:
+    """Group raw cloud resource refs into one entity per (provider, service)."""
+    from app.core.domain.cloud_catalog import cloud_for_resource
+
+    grouped: dict[tuple[str, str], dict] = {}
+    for ref in cloud_resources:
+        mapped = cloud_for_resource(ref.resource_type)
+        if mapped is None:
+            continue
+        provider, service = mapped
+        key = (provider, service)
+        bucket = grouped.setdefault(
+            key, {"count": 0, "source": ref.source_file, "types": set()}
+        )
+        bucket["count"] += 1
+        bucket["types"].add(ref.resource_type)
+
+    entities: list[ProjectEntity] = []
+    relations: list[ProjectRelation] = []
+    for (provider, service), data in sorted(grouped.items()):
+        name = f"{provider} · {service}"
+        entity = ProjectEntity(
+            id=_entity_id(EntityType.CLOUD_SERVICE, name),
+            type=EntityType.CLOUD_SERVICE,
+            name=name,
+            analyzer=analyzer,
+            source_file=data["source"],
             metadata={
-                "files": str(result.total_terraform_files),
-                "remote_state": str(result.has_backend_config),
-                "modules": str(result.has_modules),
+                "provider": provider,
+                "service": service,
+                "resources": str(data["count"]),
             },
         )
-    ]
-    entities.extend(environments_from_paths(result.files, "terraform"))
-    findings = _findings(result.findings, "terraform", FindingCategory.CONFIGURATION)
-    return entities, [], findings
+        entities.append(entity)
+        relations.append(
+            ProjectRelation(
+                id=_relation_id(source_entity_id, RelationType.PROVISIONS, entity.id),
+                source_entity_id=source_entity_id,
+                target_entity_id=entity.id,
+                relation_type=RelationType.PROVISIONS,
+                analyzer=analyzer,
+                source_file=data["source"],
+            )
+        )
+    return entities, relations
 
 
 def from_terragrunt(
@@ -278,24 +362,46 @@ def from_github_actions(
     result: GitHubActionsAnalysisResult,
 ) -> tuple[list[ProjectEntity], list[ProjectRelation], list[ProjectFinding]]:
     entities: list[ProjectEntity] = []
+    relations: list[ProjectRelation] = []
     for workflow in result.workflows:
         name = workflow.name or os.path.basename(workflow.path)
-        entities.append(
-            ProjectEntity(
-                id=_entity_id(EntityType.PIPELINE, name),
-                type=EntityType.PIPELINE,
-                name=name,
+        pipeline = ProjectEntity(
+            id=_entity_id(EntityType.PIPELINE, name),
+            type=EntityType.PIPELINE,
+            name=name,
+            analyzer="github_actions",
+            source_file=workflow.path,
+            metadata={
+                "triggers": ", ".join(workflow.triggers),
+                "jobs": str(workflow.jobs_count),
+                "uses_secrets": str(workflow.has_secrets_reference),
+            },
+        )
+        entities.append(pipeline)
+        for job_name in workflow.job_names:
+            # Namespace the job id by workflow so identically named jobs in
+            # different workflows stay distinct.
+            job = ProjectEntity(
+                id=_entity_id(EntityType.PIPELINE_JOB, f"{name}-{job_name}"),
+                type=EntityType.PIPELINE_JOB,
+                name=job_name,
                 analyzer="github_actions",
                 source_file=workflow.path,
-                metadata={
-                    "triggers": ", ".join(workflow.triggers),
-                    "jobs": str(workflow.jobs_count),
-                    "uses_secrets": str(workflow.has_secrets_reference),
-                },
+                metadata={"pipeline": name},
             )
-        )
+            entities.append(job)
+            relations.append(
+                ProjectRelation(
+                    id=_relation_id(pipeline.id, RelationType.INCLUDES, job.id),
+                    source_entity_id=pipeline.id,
+                    target_entity_id=job.id,
+                    relation_type=RelationType.INCLUDES,
+                    analyzer="github_actions",
+                    source_file=workflow.path,
+                )
+            )
     findings = _findings(result.findings, "github_actions", FindingCategory.DEPLOYMENT)
-    return entities, [], findings
+    return entities, relations, findings
 
 
 def from_kubernetes(
@@ -519,6 +625,24 @@ def from_python(
     return entities, relations, findings
 
 
+def from_references(
+    result: ReferenceAnalysisResult,
+) -> tuple[list[ProjectEntity], list[ProjectRelation], list[ProjectFinding]]:
+    entities: list[ProjectEntity] = []
+    for ref in result.references:
+        entities.append(
+            ProjectEntity(
+                id=_entity_id(EntityType.REFERENCE, f"{ref.kind}:{ref.value}"),
+                type=EntityType.REFERENCE,
+                name=ref.value,
+                analyzer="references",
+                source_file=ref.source_file or None,
+                metadata={"kind": ref.kind, "count": str(ref.count)},
+            )
+        )
+    return entities, [], []
+
+
 # Deterministic "important file" scoring: a path's importance comes from its
 # role (entrypoint, infra root, CI, env root, dependency manifest, docs), not
 # from an LLM guess. Returns (path, score, reason) tuples, highest first.
@@ -559,6 +683,7 @@ def build_project_graph(
     kubernetes: KubernetesAnalysisResult | None = None,
     helm: HelmAnalysisResult | None = None,
     python: PythonAnalysisResult | None = None,
+    references: ReferenceAnalysisResult | None = None,
     scan_paths: list[str] | None = None,
     analyzers_skipped: list[str] | None = None,
 ) -> ProjectGraph:
@@ -598,6 +723,8 @@ def build_project_graph(
         absorb(from_helm(helm), "helm")
     if python is not None:
         absorb(from_python(python), "python")
+    if references is not None:
+        absorb(from_references(references), "references")
 
     # Important files become config_file entities (with a plain-language reason),
     # so the "Important files" section is part of the same evidence graph.

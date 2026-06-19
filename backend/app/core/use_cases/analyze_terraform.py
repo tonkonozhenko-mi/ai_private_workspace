@@ -1,6 +1,12 @@
+import posixpath
+import re
 from dataclasses import dataclass
 
-from app.core.domain.analysis import AnalysisFinding, TerraformAnalysisResult
+from app.core.domain.analysis import (
+    AnalysisFinding,
+    CloudResourceRef,
+    TerraformAnalysisResult,
+)
 from app.core.domain.project_scan import ProjectFile
 from app.core.ports.file_system import FileSystemPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
@@ -61,6 +67,9 @@ class AnalyzeTerraformUseCase:
         module_files = [path for path, content in file_contents.items() if 'module "' in content]
         has_modules = bool(module_files)
 
+        providers, cloud_resources = self._parse_cloud(file_contents)
+        root_files = self._root_files(terraform_file_paths)
+
         return TerraformAnalysisResult(
             workspace_id=workspace.id,
             project_path=workspace.project_path,
@@ -71,6 +80,9 @@ class AnalyzeTerraformUseCase:
             has_variables=has_variables,
             has_outputs=has_outputs,
             has_modules=has_modules,
+            providers=providers,
+            cloud_resources=cloud_resources,
+            root_files=root_files,
             findings=self._build_findings(
                 terraform_files=terraform_files,
                 terraform_file_paths=terraform_file_paths,
@@ -85,6 +97,31 @@ class AnalyzeTerraformUseCase:
     @staticmethod
     def _contains_any(file_contents: dict[str, str], needle: str) -> bool:
         return any(needle in content for content in file_contents.values())
+
+    _PROVIDER_RE = re.compile(r'provider\s+"([a-z0-9_-]+)"')
+    _RESOURCE_RE = re.compile(r'resource\s+"([a-z0-9]+_[a-z0-9_]+)"\s+"')
+
+    @classmethod
+    def _parse_cloud(
+        cls, file_contents: dict[str, str]
+    ) -> tuple[list[str], list[CloudResourceRef]]:
+        providers: set[str] = set()
+        resources: list[CloudResourceRef] = []
+        for path, content in file_contents.items():
+            for match in cls._PROVIDER_RE.findall(content):
+                providers.add(match)
+            for match in cls._RESOURCE_RE.findall(content):
+                resources.append(CloudResourceRef(resource_type=match, source_file=path))
+        return sorted(providers), resources
+
+    @staticmethod
+    def _root_files(paths: list[str]) -> list[str]:
+        """The shallowest, most representative root files (main/backend/providers/
+        versions.tf), so the UI shows meaningful entrypoints — not a random file."""
+        names = ("main.tf", "backend.tf", "providers.tf", "provider.tf", "versions.tf")
+        roots = [p for p in paths if posixpath.basename(p) in names]
+        roots.sort(key=lambda p: (p.count("/"), p))
+        return roots[:8]
 
     def _build_findings(
         self,

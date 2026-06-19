@@ -8,6 +8,7 @@ import {
   getWorkspaceLatestScan,
 } from "../api/client";
 import type {
+  ProjectCloud,
   ProjectDeploymentFlow,
   ProjectEnvironmentComparison,
   ProjectGraphEntity,
@@ -15,6 +16,7 @@ import type {
   ProjectGraphPayload,
   ProjectIntelligenceResponse,
   ProjectIntelligenceView,
+  ProjectReferences,
   WorkspaceDashboard,
 } from "../api/types";
 import { ProjectMap } from "./ProjectMap";
@@ -36,10 +38,21 @@ const SECTION_LABELS: Record<string, string> = {
   risks: "Risks",
   important_files: "Important files",
   questions: "Questions for the team",
+  cloud: "Cloud",
+  references: "References",
   map: "Map",
 };
 
 const MAP_TAB = "map";
+const CLOUD_TAB = "cloud";
+const REFERENCES_TAB = "references";
+
+const REFERENCE_KIND_LABELS: Record<string, string> = {
+  url: "URLs",
+  module_source: "Module sources",
+  aws_arn: "AWS ARNs",
+  s3_bucket: "S3 buckets",
+};
 
 // Only these appear as sub-nav tabs; files/questions ride along inside Summary.
 const TAB_SECTIONS = new Set([
@@ -164,13 +177,21 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
   const comparison: ProjectEnvironmentComparison | undefined = data?.built
     ? data.environment_comparison
     : undefined;
+  const cloud: ProjectCloud | undefined = data?.built ? data.cloud : undefined;
+  const references: ProjectReferences | undefined = data?.built ? data.references : undefined;
   const hasMap = Boolean(graph && graph.nodes.length > 0);
+  const hasCloud = Boolean(cloud && cloud.total_services > 0);
+  const hasReferences = Boolean(references && references.total > 0);
 
   const tabs = useMemo(() => {
     if (!view) return [];
     const sectionTabs = view.section_order.filter((s) => TAB_SECTIONS.has(s));
-    return hasMap ? [...sectionTabs, MAP_TAB] : sectionTabs;
-  }, [view, hasMap]);
+    const extra: string[] = [];
+    if (hasCloud) extra.push(CLOUD_TAB);
+    if (hasReferences) extra.push(REFERENCES_TAB);
+    if (hasMap) extra.push(MAP_TAB);
+    return [...sectionTabs, ...extra];
+  }, [view, hasMap, hasCloud, hasReferences]);
 
   useEffect(() => {
     // Keep the active tab valid when the lens reorders sections.
@@ -292,6 +313,10 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
               <EnvironmentsSection view={view} comparison={comparison} />
             ) : null}
             {activeTab === "risks" ? <RisksSection view={view} /> : null}
+            {activeTab === CLOUD_TAB && cloud ? <CloudSection cloud={cloud} /> : null}
+            {activeTab === REFERENCES_TAB && references ? (
+              <ReferencesSection references={references} />
+            ) : null}
             {activeTab === MAP_TAB && graph ? <ProjectMap graph={graph} /> : null}
           </div>
 
@@ -658,6 +683,20 @@ function FindingItem({ finding }: { finding: ProjectGraphFinding }) {
   );
 }
 
+function infraMetaChips(e: ProjectGraphEntity): string[] {
+  const chips: string[] = [];
+  const m = e.metadata || {};
+  if (m.files) chips.push(`${m.files} files`);
+  if (m.providers) chips.push(m.providers);
+  if (m.remote_state === "True") chips.push("remote state");
+  else if (m.remote_state === "False") chips.push("no remote state");
+  if (m.modules === "True") chips.push("modules");
+  if (m.charts) chips.push(`${m.charts} chart(s)`);
+  if (m.workloads) chips.push(`${m.workloads} workload(s)`);
+  if (m.namespaces) chips.push(m.namespaces);
+  return chips;
+}
+
 function EntityList({ title, entities }: { title: string; entities: ProjectGraphEntity[] }) {
   return (
     <div className="pi-entity-group">
@@ -665,15 +704,82 @@ function EntityList({ title, entities }: { title: string; entities: ProjectGraph
       <ul className="pi-entity-list">
         {entities.map((e) => {
           const note = statusNote(e);
+          const chips = infraMetaChips(e);
           return (
-            <li key={e.id} className="pi-entity">
-              <span className="pi-entity-name">{e.name}</span>
-              {note ? <span className="pi-entity-note">{note}</span> : null}
-              {e.source_file ? <code className="pi-source">{e.source_file}</code> : null}
+            <li key={e.id} className="pi-entity pi-entity-block">
+              <div className="pi-entity-row">
+                <span className="pi-entity-name">{e.name}</span>
+                {note ? <span className="pi-entity-note">{note}</span> : null}
+                {e.source_file ? <code className="pi-source">{e.source_file}</code> : null}
+              </div>
+              {chips.length > 0 ? (
+                <div className="pi-entity-meta">
+                  {chips.map((c) => (
+                    <span key={c} className="pi-meta-chip">
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </li>
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+function CloudSection({ cloud }: { cloud: ProjectCloud }) {
+  if (cloud.providers.length === 0) {
+    return <EmptyNote text="No managed cloud services were detected in the infrastructure." />;
+  }
+  return (
+    <div className="pi-cloud">
+      <p className="pi-muted">
+        Cloud services provisioned by the project's infrastructure-as-code, grouped by provider.
+      </p>
+      {cloud.providers.map((provider) => (
+        <div key={provider.provider} className="pi-cloud-provider">
+          <div className="pi-cloud-provider-head">
+            <span className="pi-cloud-provider-name">{provider.provider}</span>
+            <span className="pi-cloud-provider-count">{provider.service_count} service(s)</span>
+          </div>
+          <div className="pi-cloud-services">
+            {provider.services.map((s) => (
+              <div key={s.service} className="pi-cloud-service" title={s.source_file ?? ""}>
+                <span className="pi-cloud-service-name">{s.service}</span>
+                <span className="pi-cloud-service-count">{s.resources}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ReferencesSection({ references }: { references: ProjectReferences }) {
+  if (references.groups.length === 0) {
+    return <EmptyNote text="No external references were found in the project's files." />;
+  }
+  return (
+    <div className="pi-refs">
+      <p className="pi-muted">
+        External things the project points at — extracted from its files.
+      </p>
+      {references.groups.map((group) => (
+        <div key={group.kind} className="pi-ref-group">
+          <p className="pi-eyebrow">{REFERENCE_KIND_LABELS[group.kind] ?? group.kind}</p>
+          <ul className="pi-ref-list">
+            {group.items.map((item) => (
+              <li key={item.value} className="pi-ref-item" title={item.source_file ?? ""}>
+                <code className="pi-ref-value">{item.value}</code>
+                {item.count > 1 ? <span className="pi-ref-count">×{item.count}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }

@@ -27,6 +27,8 @@ class EntityType:
     APPLICATION = "application"  # a runnable app (e.g. a Python service)
     MODULE = "module"  # an internal top-level code package
     DEPENDENCY = "dependency"  # a notable third-party library
+    CLOUD_SERVICE = "cloud_service"  # a managed cloud service in use (AWS/GCP/Azure)
+    REFERENCE = "reference"  # an external reference (URL / ARN / module source)
 
 
 class RelationType:
@@ -38,6 +40,7 @@ class RelationType:
     DEFINED_IN = "defined_in"
     INCLUDES = "includes"
     RUNS = "runs"
+    PROVISIONS = "provisions"  # IaC provisions a cloud service
 
 
 class Confidence:

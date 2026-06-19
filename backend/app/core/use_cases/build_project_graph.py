@@ -25,6 +25,10 @@ from app.core.use_cases.analyze_kubernetes import (
     AnalyzeKubernetesUseCase,
 )
 from app.core.use_cases.analyze_python import AnalyzePythonInput, AnalyzePythonUseCase
+from app.core.use_cases.analyze_references import (
+    AnalyzeReferencesInput,
+    AnalyzeReferencesUseCase,
+)
 from app.core.use_cases.analyze_terraform import AnalyzeTerraformInput, AnalyzeTerraformUseCase
 from app.core.use_cases.analyze_terragrunt import (
     AnalyzeTerragruntInput,
@@ -131,6 +135,14 @@ class BuildProjectGraphUseCase:
                 self.workspace_repository, self.project_scan_repository, self.file_system
             ).execute(AnalyzePythonInput(workspace_id=ws_id)),
         )
+        # References scan many file types, so it is not gated on one detected
+        # type; it still degrades gracefully if it fails.
+        try:
+            references = AnalyzeReferencesUseCase(
+                self.workspace_repository, self.project_scan_repository, self.file_system
+            ).execute(AnalyzeReferencesInput(workspace_id=ws_id))
+        except Exception:  # noqa: BLE001
+            references = None
 
         graph = build_project_graph(
             ws_id,
@@ -141,6 +153,7 @@ class BuildProjectGraphUseCase:
             kubernetes=kubernetes,
             helm=helm,
             python=python,
+            references=references,
             scan_paths=[project_file.path for project_file in latest_scan.files],
             analyzers_skipped=skipped,
         )

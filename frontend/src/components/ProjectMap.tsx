@@ -13,6 +13,7 @@ const COLUMN_ORDER = [
   "module",
   "service",
   "container_image",
+  "cloud_service",
   "dependency",
 ];
 
@@ -25,6 +26,7 @@ const TYPE_LABEL: Record<string, string> = {
   module: "Module",
   service: "Service",
   container_image: "Image",
+  cloud_service: "Cloud service",
   dependency: "Dependency",
   config_file: "File",
 };
@@ -38,6 +40,7 @@ const TYPE_COLOR: Record<string, string> = {
   module: "#8fd19a",
   service: "#c4a6f0",
   container_image: "#e0b07a",
+  cloud_service: "#f0a878",
   dependency: "#d6cf8a",
   config_file: "#9aa6a1",
 };
