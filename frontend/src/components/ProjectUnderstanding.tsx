@@ -162,13 +162,103 @@ function MetaIcon({ children }: { children: ReactNode }) {
   );
 }
 
+const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
+
+function GitActivityCharts({ git }: { git: GitInsightsResponse }) {
+  const weeks = git.activity_weeks;
+  const weekday = git.activity_by_weekday;
+  const maxWeek = weeks.reduce((m, w) => Math.max(m, w.commits), 0);
+  const maxDay = weekday.reduce((m, d) => Math.max(m, d), 0);
+  if (maxWeek === 0 && maxDay === 0) return null;
+
+  return (
+    <div className="pu-git-activity-charts">
+      {maxWeek > 0 ? (
+        <div className="pu-git-chart">
+          <div className="pu-eyebrow">Commits · last 12 weeks</div>
+          <div className="pu-git-bars">
+            {weeks.map((w) => (
+              <span
+                key={w.period_start}
+                className="pu-git-bar"
+                title={`Week of ${w.period_start}: ${w.commits} commit(s)`}
+              >
+                <span
+                  style={{ height: `${maxWeek ? Math.round((w.commits / maxWeek) * 100) : 0}%` }}
+                />
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {maxDay > 0 ? (
+        <div className="pu-git-chart">
+          <div className="pu-eyebrow">When the team commits</div>
+          <div className="pu-git-weekday">
+            {weekday.map((count, i) => (
+              <div key={i} className="pu-git-weekday-col" title={`${count} commit(s)`}>
+                <span className="pu-git-weekday-bar">
+                  <span
+                    style={{ height: `${maxDay ? Math.round((count / maxDay) * 100) : 0}%` }}
+                  />
+                </span>
+                <span className="pu-git-weekday-label">{WEEKDAY_LABELS[i]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function GitContributors({ git }: { git: GitInsightsResponse }) {
+  const maxCommits = git.top_contributors.reduce((m, c) => Math.max(m, c.commits), 0) || 1;
+  return (
+    <div className="pu-git-contributors">
+      <div className="pu-eyebrow">Who commits</div>
+      <ul>
+        {git.top_contributors.map((c) => {
+          const active = c.commits_last_90_days > 0;
+          return (
+            <li key={c.name}>
+              <span className="pu-git-contrib-name" title={c.name}>
+                {c.name}
+              </span>
+              <span className="pu-git-contrib-bar">
+                <span style={{ width: `${Math.round((c.commits / maxCommits) * 100)}%` }} />
+              </span>
+              <span className="pu-git-contrib-meta">
+                {Math.round(c.share * 100)}%
+                {active ? (
+                  <span className="pu-git-contrib-active">active</span>
+                ) : c.last_active ? (
+                  <span className="pu-git-contrib-idle">
+                    last {relativeTime(c.last_active)}
+                  </span>
+                ) : null}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 function GitActivityCard({ git }: { git: GitInsightsResponse }) {
   const maxHotspot = git.hotspots.reduce((max, h) => Math.max(max, h.changes), 0) || 1;
   const stats: Array<{ label: string; value: string }> = [
     { label: "Commits", value: git.total_commits.toLocaleString() },
+    { label: "Last 7 days", value: git.commits_last_7_days.toLocaleString() },
     { label: "Last 30 days", value: git.commits_last_30_days.toLocaleString() },
     { label: "Contributors", value: git.contributors_count.toLocaleString() },
+    { label: "Active now", value: `${git.active_contributors_90d} / 90d` },
   ];
+  if (git.merge_commit_share > 0) {
+    stats.push({ label: "PR-merged", value: `${Math.round(git.merge_commit_share * 100)}%` });
+  }
   if (git.first_commit_at) stats.push({ label: "Active for", value: humanAge(git.first_commit_at) });
 
   return (
@@ -198,6 +288,29 @@ function GitActivityCard({ git }: { git: GitInsightsResponse }) {
           </div>
         ))}
       </div>
+
+      <GitActivityCharts git={git} />
+
+      {git.top_contributors.length > 0 ? (
+        <GitContributors git={git} />
+      ) : null}
+
+      {git.recent_commits.length > 0 ? (
+        <div className="pu-git-feed">
+          <div className="pu-eyebrow">Recent commits</div>
+          <ul>
+            {git.recent_commits.map((commit) => (
+              <li key={commit.short_hash} title={commit.subject}>
+                <span className="pu-git-feed-subject">{commit.subject}</span>
+                <span className="pu-git-feed-meta">
+                  {commit.author}
+                  {commit.committed_at ? ` · ${relativeTime(commit.committed_at)}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {git.hotspots.length > 0 ? (
         <div className="pu-git-hotspots">

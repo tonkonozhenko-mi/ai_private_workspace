@@ -164,11 +164,19 @@ export interface GitCommitResponse {
 export interface GitContributorResponse {
   name: string;
   commits: number;
+  share: number;
+  commits_last_90_days: number;
+  last_active: string | null;
 }
 
 export interface GitFileHotspotResponse {
   path: string;
   changes: number;
+}
+
+export interface GitActivityBucketResponse {
+  period_start: string;
+  commits: number;
 }
 
 export interface GitBranchStrategyResponse {
@@ -191,6 +199,13 @@ export interface GitInsightsResponse {
   top_contributors: GitContributorResponse[];
   hotspots: GitFileHotspotResponse[];
   branch_strategy: GitBranchStrategyResponse | null;
+  commits_last_7_days: number;
+  commits_last_90_days: number;
+  active_contributors_90d: number;
+  merge_commit_share: number;
+  recent_commits: GitCommitResponse[];
+  activity_weeks: GitActivityBucketResponse[];
+  activity_by_weekday: number[];
 }
 
 export interface IndexedDocumentSummaryResponse {

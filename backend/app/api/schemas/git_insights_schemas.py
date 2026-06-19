@@ -13,11 +13,19 @@ class GitCommitResponse(BaseModel):
 class GitContributorResponse(BaseModel):
     name: str
     commits: int
+    share: float = 0.0
+    commits_last_90_days: int = 0
+    last_active: str | None = None
 
 
 class GitFileHotspotResponse(BaseModel):
     path: str
     changes: int
+
+
+class GitActivityBucketResponse(BaseModel):
+    period_start: str
+    commits: int
 
 
 class GitBranchStrategyResponse(BaseModel):
@@ -40,6 +48,13 @@ class GitInsightsResponse(BaseModel):
     top_contributors: list[GitContributorResponse] = []
     hotspots: list[GitFileHotspotResponse] = []
     branch_strategy: GitBranchStrategyResponse | None = None
+    commits_last_7_days: int = 0
+    commits_last_90_days: int = 0
+    active_contributors_90d: int = 0
+    merge_commit_share: float = 0.0
+    recent_commits: list[GitCommitResponse] = []
+    activity_weeks: list[GitActivityBucketResponse] = []
+    activity_by_weekday: list[int] = []
 
 
 def to_git_insights_response(insights: GitInsights) -> GitInsightsResponse:
@@ -61,12 +76,36 @@ def to_git_insights_response(insights: GitInsights) -> GitInsightsResponse:
         contributors_count=insights.contributors_count,
         first_commit_at=insights.first_commit_at,
         top_contributors=[
-            GitContributorResponse(name=c.name, commits=c.commits)
+            GitContributorResponse(
+                name=c.name,
+                commits=c.commits,
+                share=c.share,
+                commits_last_90_days=c.commits_last_90_days,
+                last_active=c.last_active,
+            )
             for c in insights.top_contributors
         ],
         hotspots=[
             GitFileHotspotResponse(path=h.path, changes=h.changes) for h in insights.hotspots
         ],
+        commits_last_7_days=insights.commits_last_7_days,
+        commits_last_90_days=insights.commits_last_90_days,
+        active_contributors_90d=insights.active_contributors_90d,
+        merge_commit_share=insights.merge_commit_share,
+        recent_commits=[
+            GitCommitResponse(
+                short_hash=c.short_hash,
+                subject=c.subject,
+                author=c.author,
+                committed_at=c.committed_at,
+            )
+            for c in insights.recent_commits
+        ],
+        activity_weeks=[
+            GitActivityBucketResponse(period_start=b.period_start, commits=b.commits)
+            for b in insights.activity_weeks
+        ],
+        activity_by_weekday=list(insights.activity_by_weekday),
         branch_strategy=(
             GitBranchStrategyResponse(
                 default_branch=insights.branch_strategy.default_branch,
