@@ -205,7 +205,7 @@ class AskWorkspaceQuestionUseCase:
         A follow-up like "how do I disable it?" has no searchable subject on its
         own, so retrieval would miss the files the conversation is actually about.
         We prepend the last couple of user questions (which carry the real terms,
-        e.g. "ecs", "cif", "dev") so dense + keyword search lands on the right
+        e.g. "ecs", "<project name>", "dev") so dense + keyword search lands on the right
         files. The question shown to the model is unchanged — this only steers
         retrieval. With no history it is exactly the current question.
         """

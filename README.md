@@ -121,12 +121,12 @@ machine:
   paraphrase, but weak at exact names.
 - **Keyword search (BM25)** — a full-text index (SQLite FTS5) over the chunk text
   **and its file path**, so exact identifiers — folder names like `dev`, variable
-  names like `cif_allowed_cidr` — are matched literally, which pure vector search
+  names like `<project name>_allowed_cidr` — are matched literally, which pure vector search
   misses.
 - **Reciprocal Rank Fusion (RRF)** — merges the vector and keyword rankings
   without having to normalize their very different score scales.
 - **Path / environment boost** — chunks whose file-path segments match query
-  terms (e.g. `dev`, `cif`) are lifted, so environment-specific questions land on
+  terms (e.g. `dev`, `<project name>`) are lifted, so environment-specific questions land on
   the file under that path instead of a similarly-worded one elsewhere.
 - **Per-file diversity** — one large file can't fill the whole answer, so results
   span more of the codebase.
