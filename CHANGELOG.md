@@ -7,6 +7,30 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.101] - 2026-06-19
+
+### Added
+
+- **Project Intelligence (M2): Kubernetes & Helm + an interactive map.**
+  - A deterministic **Kubernetes analyzer** parses manifests (multi-document
+    YAML): workloads (Deployment / StatefulSet / DaemonSet / Job / CronJob /
+    Pod), their container images, replicas, resource limits and health probes,
+    plus Service / Ingress counts and namespaces. It flags mutable image tags
+    (`:latest`), missing resource limits, missing liveness/readiness probes and
+    single-replica Deployments — each finding cites its file.
+  - A deterministic **Helm analyzer** groups files by their owning `Chart.yaml`,
+    reporting each chart's name/version/appVersion, template count, values files
+    (including per-environment `values-<env>.yaml`) and dependencies, and flags
+    charts missing `values.yaml`, a version, or templates.
+  - Both feed the same role-neutral graph: Kubernetes workloads and Helm charts
+    become **services**, their images become **container images**, and
+    environments are inferred from namespaces and `values-<env>` filenames
+    (labelled "inferred", never asserted).
+  - A new **Map** tab renders the graph as an interactive, dependency-free
+    node-link diagram (infrastructure → pipelines → jobs → services → images,
+    with environments). Hovering a node traces its connections; clicking shows
+    its type, source file, evidence and relationships.
+
 ## [0.1.100] - 2026-06-19
 
 ### Added

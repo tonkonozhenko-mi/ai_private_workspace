@@ -19,6 +19,11 @@ from app.core.use_cases.analyze_github_actions import (
     AnalyzeGitHubActionsUseCase,
 )
 from app.core.use_cases.analyze_gitlab_ci import AnalyzeGitLabCIInput, AnalyzeGitLabCIUseCase
+from app.core.use_cases.analyze_helm import AnalyzeHelmInput, AnalyzeHelmUseCase
+from app.core.use_cases.analyze_kubernetes import (
+    AnalyzeKubernetesInput,
+    AnalyzeKubernetesUseCase,
+)
 from app.core.use_cases.analyze_terraform import AnalyzeTerraformInput, AnalyzeTerraformUseCase
 from app.core.use_cases.analyze_terragrunt import (
     AnalyzeTerragruntInput,
@@ -104,6 +109,20 @@ class BuildProjectGraphUseCase:
                 self.workspace_repository, self.project_scan_repository, self.file_system
             ).execute(AnalyzeGitHubActionsInput(workspace_id=ws_id)),
         )
+        kubernetes = _run(
+            "kubernetes",
+            "kubernetes",
+            lambda: AnalyzeKubernetesUseCase(
+                self.workspace_repository, self.project_scan_repository, self.file_system
+            ).execute(AnalyzeKubernetesInput(workspace_id=ws_id)),
+        )
+        helm = _run(
+            "helm",
+            "helm",
+            lambda: AnalyzeHelmUseCase(
+                self.workspace_repository, self.project_scan_repository, self.file_system
+            ).execute(AnalyzeHelmInput(workspace_id=ws_id)),
+        )
 
         graph = build_project_graph(
             ws_id,
@@ -111,6 +130,8 @@ class BuildProjectGraphUseCase:
             terragrunt=terragrunt,
             gitlab_ci=gitlab_ci,
             github_actions=github_actions,
+            kubernetes=kubernetes,
+            helm=helm,
             scan_paths=[project_file.path for project_file in latest_scan.files],
             analyzers_skipped=skipped,
         )

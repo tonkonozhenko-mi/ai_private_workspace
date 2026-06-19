@@ -93,6 +93,34 @@ def _team_questions(graph: ProjectGraph) -> list[dict]:
     return questions
 
 
+def present_project_graph(graph: ProjectGraph) -> dict:
+    """Role-neutral node/edge projection for the interactive map. The graph facts
+    are the same regardless of role; only the lens-based sections re-order them."""
+    return {
+        "nodes": [
+            {
+                "id": e.id,
+                "type": e.type,
+                "name": e.name,
+                "status": e.status,
+                "confidence": e.confidence,
+                "analyzer": e.analyzer,
+                "source_file": e.source_file,
+            }
+            for e in graph.entities
+        ],
+        "edges": [
+            {
+                "id": r.id,
+                "source": r.source_entity_id,
+                "target": r.target_entity_id,
+                "type": r.relation_type,
+            }
+            for r in graph.relations
+        ],
+    }
+
+
 def present_project_intelligence(graph: ProjectGraph, lens: RoleLens) -> dict:
     services = graph.entities_of_type(EntityType.SERVICE)
     environments = graph.entities_of_type(EntityType.ENVIRONMENT)

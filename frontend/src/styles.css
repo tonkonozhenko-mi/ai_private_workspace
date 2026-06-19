@@ -4563,3 +4563,28 @@ a.getting-ready-cta:hover {
 .pi-severity-info { background: var(--c-surface-3); color: var(--c-text-2); }
 .pi-evidence { display: flex; flex-direction: column; gap: 4px; margin-top: 2px; }
 .pi-evidence-line { font-size: 11.5px; color: var(--c-text-2); line-height: 1.5; }
+
+/* --- Project Intelligence M2: interactive map --- */
+.pi-map { display: flex; flex-direction: column; gap: 12px; }
+.pi-map-legend { display: flex; flex-wrap: wrap; gap: 12px; }
+.pi-map-legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--c-text-2); }
+.pi-map-swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+.pi-map-canvas { overflow: auto; border: 1px solid var(--c-border); border-radius: var(--r-md); background: var(--c-surface-2); padding: 8px; max-height: 460px; }
+.pi-map-canvas svg { display: block; }
+.pi-map-edge { stroke: var(--c-border-strong); stroke-width: 1.4; opacity: 0.5; transition: opacity 0.15s ease, stroke 0.15s ease; }
+.pi-map-edge-active { stroke: var(--c-accent); opacity: 0.95; }
+.pi-map-node { cursor: pointer; transition: opacity 0.15s ease; }
+.pi-map-rect { fill: var(--c-surface-3); stroke-width: 1.4; transition: fill 0.15s ease; }
+.pi-map-node:hover .pi-map-rect { fill: var(--c-surface); }
+.pi-map-rect-selected { fill: var(--c-surface); stroke-width: 2.2; }
+.pi-map-label { fill: var(--c-text); font-size: 12px; font-weight: 500; pointer-events: none; }
+.pi-map-inferred { fill: var(--c-text-3); font-size: 12px; text-anchor: end; pointer-events: none; }
+.pi-map-hint { font-size: 11.5px; color: var(--c-text-3); margin: 0; }
+.pi-map-detail { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.pi-map-detail-head { display: flex; align-items: center; gap: 8px; }
+.pi-map-detail-name { font-size: 13.5px; font-weight: 600; color: var(--c-text); }
+.pi-map-detail-type { font-size: 10.5px; color: var(--c-text-3); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 1px 7px; }
+.pi-map-detail-meta { font-size: 11.5px; color: var(--c-text-2); margin: 0; line-height: 1.5; }
+.pi-map-detail-meta code { font-size: 11px; }
+.pi-map-detail-edges { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.pi-map-detail-edges li { font-size: 12px; color: var(--c-text); }
