@@ -9,6 +9,27 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [0.1.105] - 2026-06-19
 
+This release introduces **Project Intelligence** — a deterministic, evidence-backed
+map of an unfamiliar project built entirely from its own files (no code leaves the
+machine) — and a much richer **Git intelligence** view. Highlights across the work
+rolled into this release:
+
+- **Project Intelligence (M1–M5):** a role-neutral evidence graph assembled from
+  Terraform, Terragrunt, GitLab CI, GitHub Actions, Kubernetes, Helm and Python
+  analyzers; **role lenses** (Developer / DevOps / Tester / Business analyst) that
+  re-prioritise the same facts without changing them; an interactive **Map**; a
+  **deployment-flow** view with honest gaps; **environment comparison**; an
+  **ask-the-graph** Q&A constrained strictly to the facts; a **Cloud** tab listing
+  the AWS/GCP/Azure services the IaC provisions; and a **References** tab (URLs,
+  module sources, ARNs, S3 URIs).
+- **Python application analysis:** framework detection, entrypoints, internal
+  module-dependency graph, and notable third-party dependencies.
+- **Git intelligence:** branch-strategy inference plus the live-activity additions
+  detailed below.
+- **Accuracy fixes:** reliable Terragrunt detection, more environment-name tokens
+  (incl. `prd`→production), meaningful Infrastructure context, GitHub Actions jobs,
+  and a tightened plain-language overview.
+
 ### Added
 
 - **Richer, live Git intelligence.** The project-activity card now reads much
