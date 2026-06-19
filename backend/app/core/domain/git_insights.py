@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 
 
 @dataclass(frozen=True)
@@ -13,6 +14,67 @@ class GitCommit:
 class GitContributor:
     name: str
     commits: int
+    share: float = 0.0  # fraction of all-time commits (0..1)
+    commits_last_90_days: int = 0
+    last_active: str | None = None  # ISO date of most recent commit, if known
+
+
+@dataclass(frozen=True)
+class GitActivityBucket:
+    period_start: str  # ISO date of the week's Monday
+    commits: int
+
+
+@dataclass(frozen=True)
+class GitActivitySummary:
+    weeks: list[GitActivityBucket]
+    by_weekday: list[int]  # length 7, Monday..Sunday
+    author_commits_90d: dict[str, int]
+    author_last_active: dict[str, str]
+    active_contributors: int
+
+
+def summarize_activity(
+    commits: list[tuple[datetime, str]], now: datetime, weeks_back: int = 12
+) -> GitActivitySummary:
+    """Pure aggregation of authored commits in the recent window.
+
+    ``commits`` is a list of (committed_at, author). Returns weekly buckets
+    (oldest→newest, always ``weeks_back`` long), a Monday..Sunday weekday
+    histogram, and per-author recency/volume — everything the UI needs to show
+    live activity without any further git calls.
+    """
+    this_monday = (now - timedelta(days=now.weekday())).date()
+    week_starts = [this_monday - timedelta(weeks=(weeks_back - 1 - i)) for i in range(weeks_back)]
+    week_index = {start: i for i, start in enumerate(week_starts)}
+    week_counts = [0] * weeks_back
+    weekday = [0] * 7
+    author_90d: dict[str, int] = {}
+    author_last: dict[str, str] = {}
+
+    for committed_at, author in commits:
+        d = committed_at.date()
+        monday = d - timedelta(days=committed_at.weekday())
+        idx = week_index.get(monday)
+        if idx is not None:
+            week_counts[idx] += 1
+        weekday[committed_at.weekday()] += 1
+        author_90d[author] = author_90d.get(author, 0) + 1
+        iso = d.isoformat()
+        if author not in author_last or iso > author_last[author]:
+            author_last[author] = iso
+
+    weeks = [
+        GitActivityBucket(period_start=start.isoformat(), commits=count)
+        for start, count in zip(week_starts, week_counts)
+    ]
+    return GitActivitySummary(
+        weeks=weeks,
+        by_weekday=weekday,
+        author_commits_90d=author_90d,
+        author_last_active=author_last,
+        active_contributors=len(author_90d),
+    )
 
 
 @dataclass(frozen=True)
@@ -129,6 +191,13 @@ class GitInsights:
     top_contributors: list[GitContributor] = field(default_factory=list)
     hotspots: list[GitFileHotspot] = field(default_factory=list)
     branch_strategy: GitBranchStrategy | None = None
+    commits_last_7_days: int = 0
+    commits_last_90_days: int = 0
+    active_contributors_90d: int = 0
+    merge_commit_share: float = 0.0  # fraction of merge commits over last 90 days
+    recent_commits: list[GitCommit] = field(default_factory=list)
+    activity_weeks: list[GitActivityBucket] = field(default_factory=list)
+    activity_by_weekday: list[int] = field(default_factory=list)  # length 7, Mon..Sun
 
     @staticmethod
     def not_a_repo() -> "GitInsights":

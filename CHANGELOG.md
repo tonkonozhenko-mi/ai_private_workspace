@@ -7,7 +7,23 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-## [0.1.104] - 2026-06-19
+## [0.1.105] - 2026-06-19
+
+### Added
+
+- **Richer, live Git intelligence.** The project-activity card now reads much
+  more from the repository's history (all read-only `git` queries):
+  - **Activity over time** — a 12-week commit sparkline and a "when the team
+    commits" weekday distribution, so you can see the project's pulse at a glance.
+  - **Who commits** — top contributors now show each person's share of all
+    commits, whether they're currently active (commits in the last 90 days) or
+    when they were last active, with a share bar.
+  - **Recent commits feed** — the latest commits (subject, author, relative time).
+  - **More headline stats** — commits in the last 7 / 30 days, contributors,
+    how many are active now, and the share of work that lands via merge commits
+    (a PR-based-workflow signal), alongside the existing branch-strategy block.
+
+
 
 ### Added
 

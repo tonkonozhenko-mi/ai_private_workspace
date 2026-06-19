@@ -8,14 +8,17 @@ never runs hooks, and degrades to ``not_a_repo()`` whenever anything is missing
 
 import subprocess
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 
 from app.core.domain.git_insights import (
+    GitActivitySummary,
     GitCommit,
     GitContributor,
     GitFileHotspot,
     GitInsights,
     infer_branch_strategy,
+    summarize_activity,
 )
 
 _UNIT = "\x1f"  # ASCII unit separator — safe field delimiter for git --pretty.
@@ -35,19 +38,42 @@ class LocalGitHistory:
         if inside is None or inside.strip() != "true":
             return GitInsights.not_a_repo()
 
+        total_commits = self._count(root, ["rev-list", "--count", "HEAD"])
+        window = self._activity_window(root)
+        summary = summarize_activity(window, datetime.now(timezone.utc))
+
+        commits_90 = self._count(
+            root, ["rev-list", "--count", "--since=90 days ago", "HEAD"]
+        )
+        commits_90_no_merges = self._count(
+            root, ["rev-list", "--count", "--since=90 days ago", "--no-merges", "HEAD"]
+        )
+        merge_share = (
+            (commits_90 - commits_90_no_merges) / commits_90 if commits_90 > 0 else 0.0
+        )
+
         return GitInsights(
             is_repo=True,
             branch=self._branch(root),
             last_commit=self._last_commit(root),
-            total_commits=self._count(root, ["rev-list", "--count", "HEAD"]),
+            total_commits=total_commits,
             commits_last_30_days=self._count(
                 root, ["rev-list", "--count", "--since=30 days ago", "HEAD"]
             ),
             contributors_count=self._contributors_count(root),
             first_commit_at=self._first_commit_at(root),
-            top_contributors=self._top_contributors(root),
+            top_contributors=self._top_contributors(root, total_commits, summary),
             hotspots=self._hotspots(root),
             branch_strategy=self._branch_strategy(root),
+            commits_last_7_days=self._count(
+                root, ["rev-list", "--count", "--since=7 days ago", "HEAD"]
+            ),
+            commits_last_90_days=commits_90,
+            active_contributors_90d=summary.active_contributors,
+            merge_commit_share=round(merge_share, 3),
+            recent_commits=self._recent_commits(root),
+            activity_weeks=summary.weeks,
+            activity_by_weekday=summary.by_weekday,
         )
 
     # -- individual queries -------------------------------------------------
@@ -137,7 +163,13 @@ class LocalGitHistory:
         first_line = value.splitlines()[0].strip() if value.strip() else ""
         return first_line or None
 
-    def _top_contributors(self, root: Path, limit: int = 4) -> list[GitContributor]:
+    def _top_contributors(
+        self,
+        root: Path,
+        total_commits: int,
+        summary: GitActivitySummary,
+        limit: int = 6,
+    ) -> list[GitContributor]:
         value = self._run(root, ["shortlog", "-sn", "--all", "--no-merges"])
         if not value:
             return []
@@ -157,10 +189,69 @@ class LocalGitHistory:
                 count = int(count_str.strip())
             except ValueError:
                 continue
-            contributors.append(GitContributor(name=name.strip(), commits=count))
+            clean = name.strip()
+            contributors.append(
+                GitContributor(
+                    name=clean,
+                    commits=count,
+                    share=round(count / total_commits, 3) if total_commits > 0 else 0.0,
+                    commits_last_90_days=summary.author_commits_90d.get(clean, 0),
+                    last_active=summary.author_last_active.get(clean),
+                )
+            )
             if len(contributors) >= limit:
                 break
         return contributors
+
+    def _activity_window(self, root: Path) -> list[tuple[datetime, str]]:
+        """Authored commits (no merges) in the last 90 days as (datetime, author)."""
+        value = self._run(
+            root,
+            [
+                "log",
+                "--since=90 days ago",
+                "--no-merges",
+                f"--pretty=format:%cI{_UNIT}%an",
+            ],
+        )
+        if not value:
+            return []
+        entries: list[tuple[datetime, str]] = []
+        for line in value.splitlines():
+            iso, _, author = line.partition(_UNIT)
+            parsed = self._parse_iso(iso.strip())
+            if parsed is not None and author.strip():
+                entries.append((parsed, author.strip()))
+        return entries
+
+    def _recent_commits(self, root: Path, limit: int = 10) -> list[GitCommit]:
+        pretty = _UNIT.join(["%h", "%s", "%an", "%cI"])
+        value = self._run(
+            root, ["log", f"-{limit}", "--no-merges", f"--pretty=format:{pretty}"]
+        )
+        if not value:
+            return []
+        commits: list[GitCommit] = []
+        for line in value.splitlines():
+            parts = line.split(_UNIT)
+            if len(parts) < 4:
+                continue
+            commits.append(
+                GitCommit(
+                    short_hash=parts[0].strip(),
+                    subject=parts[1].strip(),
+                    author=parts[2].strip(),
+                    committed_at=parts[3].strip(),
+                )
+            )
+        return commits
+
+    @staticmethod
+    def _parse_iso(value: str) -> datetime | None:
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError:
+            return None
 
     def _hotspots(self, root: Path, limit: int = 6) -> list[GitFileHotspot]:
         value = self._run(
