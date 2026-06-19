@@ -7,7 +7,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-## [0.1.97] - 2026-06-19
+## [0.1.99] - 2026-06-19
 
 ### Added
 
@@ -32,6 +32,14 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
   as a GUI-subsystem app and the frozen backend is launched with
   `CREATE_NO_WINDOW`; previously a terminal appeared on launch, and closing it
   killed the app.
+
+### Changed
+
+- Release automation: GitHub Actions updated to Node-24-compatible majors
+  (`checkout`/`setup-node`/`setup-python`/`upload-artifact` v6), and every GitHub
+  Release now opens with a platform-grouped **Downloads** section (macOS Apple
+  Silicon / Intel, Windows) built from the actually-uploaded installers, so the
+  links are always correct.
 
 ## [0.1.96] - 2026-06-19
 
@@ -233,8 +241,8 @@ model setup, safe model-download drafts, Agent/MCP planning UX, and the macOS +
 Tauri packaging foundation. See
 [docs/V01_RELEASE_NOTES.md](docs/V01_RELEASE_NOTES.md) for the full list.
 
-[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.97...HEAD
-[0.1.97]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.96...v0.1.97
+[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.99...HEAD
+[0.1.99]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.96...v0.1.99
 [0.1.96]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.95...v0.1.96
 [0.1.95]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.0...v0.1.95
 [0.1.0]: https://github.com/tonkonozhenko-mi/ai_private_workspace/releases/tag/v0.1.0
