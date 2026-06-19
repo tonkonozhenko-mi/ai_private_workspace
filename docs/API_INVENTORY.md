@@ -160,6 +160,9 @@ models, run benchmarks, or change active runtime configuration.
 | `GET /workspaces/{workspace_id}/analysis/terragrunt` | Analyze Terragrunt structure using static text rules. | No | No | Local filesystem read | Terragrunt analysis |
 | `GET /workspaces/{workspace_id}/analysis/gitlab-ci` | Analyze GitLab CI YAML. | No | No | Local filesystem read | CI/CD analysis |
 | `GET /workspaces/{workspace_id}/analysis/github-actions` | Analyze GitHub Actions YAML. | No | No | Local filesystem read | CI/CD analysis |
+| `POST /workspaces/{workspace_id}/intelligence/build` | Build the Project Intelligence graph from deterministic analyzers (explicit action). | No | No | Local filesystem read | Project Intelligence |
+| `GET /workspaces/{workspace_id}/intelligence` | Latest project graph projected through the role lens. | No | No | Local DB read | Project Intelligence |
+| `GET /workspaces/{workspace_id}/intelligence/overview-text` | Optional LLM overview written only from the graph facts. | No | No | Local model | Project Intelligence |
 
 ## Command Approval
 

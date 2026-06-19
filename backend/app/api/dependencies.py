@@ -13,6 +13,11 @@ from app.adapters.llm.llm_provider_factory import LLMProviderFactory
 from app.adapters.memory.in_memory_agent_workflow_repository import InMemoryAgentWorkflowRepository
 from app.adapters.memory.in_memory_command_repository import InMemoryCommandRepository
 from app.adapters.memory.in_memory_conversation_repository import InMemoryConversationRepository
+from app.adapters.memory.in_memory_project_graph_repository import InMemoryProjectGraphRepository
+from app.adapters.project_graph.sqlite_project_graph_repository import (
+    SQLiteProjectGraphRepository,
+)
+from app.core.ports.project_graph_repository import ProjectGraphRepositoryPort
 from app.adapters.memory.in_memory_index_status_repository import (
     InMemoryIndexStatusRepository,
 )
@@ -279,6 +284,18 @@ def build_conversation_repository() -> ConversationRepositoryPort:
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
 
+def build_project_graph_repository() -> ProjectGraphRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryProjectGraphRepository()
+    if repository_type == "sqlite":
+        return SQLiteProjectGraphRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
 def build_model_experiment_repository() -> ModelExperimentRepositoryPort:
     settings = get_settings()
     repository_type = settings.workspace_repository.lower()
@@ -541,6 +558,7 @@ indexing_rules_repository = build_indexing_rules_repository()
 skill_profile_repository = build_skill_profile_repository()
 timeline_repository = build_timeline_repository()
 conversation_repository = build_conversation_repository()
+project_graph_repository = build_project_graph_repository()
 model_experiment_repository = build_model_experiment_repository()
 model_experiment_rating_repository = build_model_experiment_rating_repository()
 workspace_model_selection_repository = build_workspace_model_selection_repository()
