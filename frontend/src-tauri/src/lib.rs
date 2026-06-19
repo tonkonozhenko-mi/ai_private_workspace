@@ -193,6 +193,33 @@ fn find_frozen_runtime_manifests_under(root: &PathBuf, max_depth: usize) -> Vec<
     found
 }
 
+fn find_first_file_under(root: &PathBuf, name: &str, max_depth: usize) -> Option<PathBuf> {
+    fn visit(dir: &PathBuf, depth: usize, max_depth: usize, name: &str) -> Option<PathBuf> {
+        if depth > max_depth {
+            return None;
+        }
+        let entries = fs::read_dir(dir).ok()?;
+        let mut dirs = Vec::new();
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                if path.file_name().and_then(|n| n.to_str()) == Some(name) {
+                    return Some(path);
+                }
+            } else if path.is_dir() {
+                dirs.push(path);
+            }
+        }
+        for dir in dirs {
+            if let Some(found) = visit(&dir, depth + 1, max_depth, name) {
+                return Some(found);
+            }
+        }
+        None
+    }
+    visit(root, 0, max_depth, name)
+}
+
 fn runtime_manifest_candidates() -> Vec<PathBuf> {
     let mut candidates = Vec::new();
     if let Ok(cwd) = env::current_dir() {
@@ -213,12 +240,20 @@ fn runtime_manifest_candidates() -> Vec<PathBuf> {
             candidates.push(exe_dir.join("../Resources/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"));
             candidates.push(exe_dir.join("../../Resources/frozen-backend-runtime/AI_PRIVATE_WORKSPACE_FROZEN_RUNTIME_MANIFEST.json"));
 
+            // macOS .app: the manifest lives under …/Contents/Resources/….
             for ancestor in exe_dir.ancestors().take(8) {
                 let resources = ancestor.join("Resources");
                 if resources.exists() {
                     candidates.extend(find_frozen_runtime_manifests_under(&resources, 6));
                 }
             }
+
+            // Windows/Linux: Tauri bundles resources next to the executable (no
+            // "Resources" folder), and a `../` resource path lands under an
+            // `_up_/…` subtree. Search the install directory itself so the
+            // manifest is found wherever Tauri placed it. Bounded to the app's
+            // own install tree, so it stays fast and never walks the wider disk.
+            candidates.extend(find_frozen_runtime_manifests_under(&exe_dir.to_path_buf(), 8));
         }
     }
     candidates.sort();
@@ -257,6 +292,15 @@ fn llama_server_binary_path() -> String {
     for candidate in candidates {
         if candidate.is_file() {
             return candidate.to_string_lossy().to_string();
+        }
+    }
+    // Fallback: Tauri may place the bundled binary under an `_up_/…` subtree next
+    // to the exe on Windows/Linux. Search the install dir for it by name.
+    if let Ok(exe) = env::current_exe() {
+        if let Some(exe_dir) = exe.parent() {
+            if let Some(found) = find_first_file_under(&exe_dir.to_path_buf(), binary, 8) {
+                return found.to_string_lossy().to_string();
+            }
         }
     }
     String::new()
