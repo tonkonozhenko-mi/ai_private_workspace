@@ -80,6 +80,9 @@ import type {
   LocalModelDownloadExecutionResult,
   LocalModelDownloadJob,
   LocalModelDownloadJobList,
+  ProjectIntelligenceBuildResponse,
+  ProjectIntelligenceOverviewText,
+  ProjectIntelligenceResponse,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -509,6 +512,40 @@ export function getProjectUnderstanding(
     method: "GET",
     headers: { Accept: "application/json" },
   });
+}
+
+export function getProjectIntelligence(
+  workspaceId: string,
+  role?: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ProjectIntelligenceResponse> {
+  const query = role ? `?role=${encodeURIComponent(role)}` : "";
+  return requestJson<ProjectIntelligenceResponse>(
+    `/workspaces/${workspaceId}/intelligence${query}`,
+    { signal: options.signal, method: "GET", headers: { Accept: "application/json" } },
+  );
+}
+
+export function buildProjectIntelligence(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ProjectIntelligenceBuildResponse> {
+  return requestJson<ProjectIntelligenceBuildResponse>(
+    `/workspaces/${workspaceId}/intelligence/build`,
+    { signal: options.signal, method: "POST", headers: { Accept: "application/json" } },
+  );
+}
+
+export function getProjectIntelligenceOverviewText(
+  workspaceId: string,
+  role?: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ProjectIntelligenceOverviewText> {
+  const query = role ? `?role=${encodeURIComponent(role)}` : "";
+  return requestJson<ProjectIntelligenceOverviewText>(
+    `/workspaces/${workspaceId}/intelligence/overview-text${query}`,
+    { signal: options.signal, method: "GET", headers: { Accept: "application/json" } },
+  );
 }
 
 export function generateProjectUnderstanding(

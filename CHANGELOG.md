@@ -7,6 +7,33 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.100] - 2026-06-19
+
+### Added
+
+- **Project Intelligence (M1).** A new block on the workspace Home builds a
+  deterministic, role-aware map of an unfamiliar project from its own files —
+  no LLM is required for the facts, and nothing runs or is modified.
+  - A role-neutral *evidence graph* (services, environments, CI/CD pipelines and
+    jobs, infrastructure tools, container images, important config files, and
+    risks) is assembled from the existing Terraform, Terragrunt, GitLab CI and
+    GitHub Actions analyzers. Every entity carries its confidence and evidence
+    status (confirmed / inferred / needs confirmation), so inferred facts (e.g.
+    environments guessed from directory naming) are labelled honestly.
+  - A **role lens** re-orders and prioritises the same facts for the selected
+    assistant mode (Developer, DevOps, Tester/QA, Business analyst) without ever
+    changing them. The view defaults to the workspace's own mode and can be
+    switched in place.
+  - The Home block presents Summary / Infrastructure / Deployment / Environments
+    / Risks, with sources collapsed by default, gap-based questions for the team,
+    a "where to start reading" file list, and honest empty / building / stale
+    states. An optional plain-language overview is the only LLM-written piece and
+    is constrained strictly to the graph's facts.
+  - The graph is persisted as a snapshot (SQLite) and is only (re)built on an
+    explicit request. New endpoints: `POST /workspaces/{id}/intelligence/build`,
+    `GET /workspaces/{id}/intelligence`, and
+    `GET /workspaces/{id}/intelligence/overview-text`.
+
 ## [0.1.99] - 2026-06-19
 
 ### Added
