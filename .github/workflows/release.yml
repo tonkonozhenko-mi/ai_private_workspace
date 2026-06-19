@@ -40,7 +40,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           # Full history so we can diff against the previous tag for release notes.
           fetch-depth: 0
@@ -82,7 +82,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       # --- Backend: build the frozen Python runtime the app bundles ---
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Build frozen backend runtime
@@ -121,7 +121,7 @@ jobs:
           bash scripts/fetch_llama_server.sh "$ARCH"
 
       # --- Frontend toolchain ---
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
       - name: Install frontend dependencies
