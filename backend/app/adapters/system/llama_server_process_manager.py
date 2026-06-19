@@ -109,9 +109,16 @@ class LlamaServerProcessManager:
         # how the binary's rpath was baked, and run from there for good measure.
         lib_dir = str(self.binary_path.parent)
         env = os.environ.copy()
-        for key in ("DYLD_LIBRARY_PATH", "DYLD_FALLBACK_LIBRARY_PATH", "LD_LIBRARY_PATH"):
-            existing = env.get(key)
-            env[key] = f"{lib_dir}:{existing}" if existing else lib_dir
+        if os.name == "nt":
+            # Windows resolves a binary's DLLs from PATH (and the exe's own dir).
+            # The prebuilt llama.cpp ships its DLLs next to llama-server.exe, so
+            # prepend that folder to PATH with the Windows separator.
+            existing_path = env.get("PATH", "")
+            env["PATH"] = f"{lib_dir};{existing_path}" if existing_path else lib_dir
+        else:
+            for key in ("DYLD_LIBRARY_PATH", "DYLD_FALLBACK_LIBRARY_PATH", "LD_LIBRARY_PATH"):
+                existing = env.get(key)
+                env[key] = f"{lib_dir}:{existing}" if existing else lib_dir
 
         # Capture stdout+stderr to a log file so a startup failure surfaces the
         # actual llama.cpp error (missing dylib, bad flag, model load failure…)

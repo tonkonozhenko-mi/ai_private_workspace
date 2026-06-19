@@ -236,7 +236,12 @@ fn llama_server_binary_path() -> String {
     } else {
         "x64"
     };
-    let rel = format!("llama-runtime/{}/llama-server", arch);
+    let binary = if cfg!(target_os = "windows") {
+        "llama-server.exe"
+    } else {
+        "llama-server"
+    };
+    let rel = format!("llama-runtime/{}/{}", arch, binary);
     let mut candidates: Vec<PathBuf> = Vec::new();
     if let Ok(cwd) = env::current_dir() {
         candidates.push(cwd.join(format!("build/desktop/{}", rel)));
@@ -691,10 +696,16 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
         .map_err(|err| format!("Could not clone backend log file handle: {}", err))?;
 
     let inherited_path = env::var("PATH").unwrap_or_default();
+    // On macOS/Linux we prepend the common Unix bin dirs (a GUI app launched from
+    // Finder/Dock often has a minimal PATH). On Windows those paths are meaningless
+    // and the ':' separator would corrupt PATH (Windows uses ';'), so inherit it.
+    #[cfg(not(target_os = "windows"))]
     let desktop_path = format!(
         "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:{}",
         inherited_path
     );
+    #[cfg(target_os = "windows")]
+    let desktop_path = inherited_path.clone();
     let mut child = Command::new(&executable)
         .env("APP_ENV", "desktop")
         .env("HOST", "127.0.0.1")
@@ -805,9 +816,34 @@ fn choose_project_directory() -> Result<Option<String>, String> {
         return Err(format!("Folder picker failed: {}", stderr.trim()));
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
     {
-        Err("Native folder picker is currently implemented for macOS packaged builds.".to_string())
+        // Native Windows folder picker via WinForms FolderBrowserDialog. Run in a
+        // single-threaded apartment (-STA), which the dialog requires, and write
+        // only the chosen path to stdout so we can read it back cleanly.
+        let script = "Add-Type -AssemblyName System.Windows.Forms; \
+$d = New-Object System.Windows.Forms.FolderBrowserDialog; \
+$d.Description = 'Choose a local project folder for AI Private Workspace'; \
+if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Out.Write($d.SelectedPath) }";
+        let output = Command::new("powershell")
+            .args(["-NoProfile", "-STA", "-Command", script])
+            .stdin(Stdio::null())
+            .output()
+            .map_err(|err| format!("Could not open Windows folder picker: {}", err))?;
+        if output.status.success() {
+            let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if value.is_empty() {
+                return Ok(None);
+            }
+            return Ok(Some(value));
+        }
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        return Err(format!("Folder picker failed: {}", stderr.trim()));
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        Err("Native folder picker is currently implemented for macOS and Windows builds.".to_string())
     }
 }
 

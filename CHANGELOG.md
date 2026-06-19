@@ -7,6 +7,18 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Added
+
+- **Windows support (groundwork).** The app is being made Windows-native: the
+  release workflow now builds a Windows x64 NSIS installer on a `windows-latest`
+  runner alongside the macOS DMGs. Both engines are targeted — the bundled
+  llama.cpp `llama-server.exe` (CPU x64/arm64) is fetched and staged by the
+  build, and the backend's process management is cross-platform (Windows orphan
+  reaping via PowerShell CIM by exact binary path; DLLs resolved via `PATH`).
+  The desktop shell gained a native Windows folder picker and Windows-correct
+  `PATH`/binary handling. First Windows CI build will surface and pin the exact
+  packaged-resource paths.
+
 ## [0.1.96] - 2026-06-19
 
 ### Added
