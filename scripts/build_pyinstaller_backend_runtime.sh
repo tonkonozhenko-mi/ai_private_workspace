@@ -113,13 +113,17 @@ cd "$ROOT_DIR"
 DIST_BUNDLE="$DIST_DIR/ai-private-workspace-backend"
 [ -d "$DIST_BUNDLE" ] || fail "PyInstaller did not create the expected onedir bundle: $DIST_BUNDLE"
 
-EXE_NAME="ai-private-workspace-backend"
-if [ ! -x "$DIST_BUNDLE/$EXE_NAME" ]; then
-  if [ -x "$DIST_BUNDLE/ai-private-workspace-backend.exe" ]; then
-    EXE_NAME="ai-private-workspace-backend.exe"
-  else
-    fail "PyInstaller did not create the expected backend executable inside the bundle"
-  fi
+# Windows produces a `.exe`; check it explicitly FIRST. Under Git Bash the
+# `-x`/`-f` test on the suffix-less name is fooled by MSYS auto-resolving `.exe`,
+# which would leave EXE_NAME without its real suffix and then break the manifest,
+# the sha256 step, and the Rust shell that launches the binary by that exact name
+# (the real `python` does not do the MSYS `.exe` magic).
+if [ -f "$DIST_BUNDLE/ai-private-workspace-backend.exe" ]; then
+  EXE_NAME="ai-private-workspace-backend.exe"
+elif [ -f "$DIST_BUNDLE/ai-private-workspace-backend" ]; then
+  EXE_NAME="ai-private-workspace-backend"
+else
+  fail "PyInstaller did not create the expected backend executable inside the bundle"
 fi
 
 # Copy the bundle contents (executable + _internal/ + datas) into OUTPUT_DIR.
