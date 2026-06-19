@@ -86,6 +86,53 @@ class GitHubActionsAnalysisResult:
 
 
 @dataclass(frozen=True)
+class KubernetesWorkload:
+    name: str
+    kind: str
+    namespace: str | None
+    images: list[str]
+    replicas: int | None
+    has_resource_limits: bool
+    has_liveness_probe: bool
+    has_readiness_probe: bool
+    source_file: str
+
+
+@dataclass(frozen=True)
+class KubernetesAnalysisResult:
+    workspace_id: str
+    project_path: str
+    manifests_count: int
+    workloads: list[KubernetesWorkload]
+    services_count: int
+    ingress_count: int
+    namespaces: list[str]
+    kinds: list[str]
+    findings: list[AnalysisFinding]
+
+
+@dataclass(frozen=True)
+class HelmChart:
+    name: str
+    version: str | None
+    app_version: str | None
+    chart_path: str
+    chart_file: str
+    has_values: bool
+    templates_count: int
+    value_files: list[str]
+    dependencies: list[str]
+
+
+@dataclass(frozen=True)
+class HelmAnalysisResult:
+    workspace_id: str
+    project_path: str
+    charts: list[HelmChart]
+    findings: list[AnalysisFinding]
+
+
+@dataclass(frozen=True)
 class AnalyzerStatus:
     name: str
     status: str

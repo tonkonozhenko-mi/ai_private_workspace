@@ -1968,11 +1968,34 @@ export interface ProjectIntelligenceView {
   questions: { questions: ProjectIntelligenceQuestion[] };
 }
 
+export interface ProjectGraphNode {
+  id: string;
+  type: string;
+  name: string;
+  status: string;
+  confidence: string;
+  analyzer: string;
+  source_file: string | null;
+}
+
+export interface ProjectGraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  type: string;
+}
+
+export interface ProjectGraphPayload {
+  nodes: ProjectGraphNode[];
+  edges: ProjectGraphEdge[];
+}
+
 export interface ProjectIntelligenceResponse {
   built: boolean;
   role?: string;
   snapshot?: ProjectIntelligenceSnapshot;
   view?: ProjectIntelligenceView;
+  graph?: ProjectGraphPayload;
 }
 
 export interface ProjectIntelligenceBuildResponse {

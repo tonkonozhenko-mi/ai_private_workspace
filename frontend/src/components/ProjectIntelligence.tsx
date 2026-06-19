@@ -9,10 +9,12 @@ import {
 import type {
   ProjectGraphEntity,
   ProjectGraphFinding,
+  ProjectGraphPayload,
   ProjectIntelligenceResponse,
   ProjectIntelligenceView,
   WorkspaceDashboard,
 } from "../api/types";
+import { ProjectMap } from "./ProjectMap";
 
 // Roles offered in the lens selector. The backend falls back to the developer
 // lens for any other assistant_mode, so this list stays small and canonical.
@@ -31,7 +33,10 @@ const SECTION_LABELS: Record<string, string> = {
   risks: "Risks",
   important_files: "Important files",
   questions: "Questions for the team",
+  map: "Map",
 };
+
+const MAP_TAB = "map";
 
 // Only these appear as sub-nav tabs; files/questions ride along inside Summary.
 const TAB_SECTIONS = new Set([
@@ -151,11 +156,14 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
   }, [workspaceId, role]);
 
   const view = data?.built ? data.view : undefined;
+  const graph: ProjectGraphPayload | undefined = data?.built ? data.graph : undefined;
+  const hasMap = Boolean(graph && graph.nodes.length > 0);
 
   const tabs = useMemo(() => {
     if (!view) return [];
-    return view.section_order.filter((s) => TAB_SECTIONS.has(s));
-  }, [view]);
+    const sectionTabs = view.section_order.filter((s) => TAB_SECTIONS.has(s));
+    return hasMap ? [...sectionTabs, MAP_TAB] : sectionTabs;
+  }, [view, hasMap]);
 
   useEffect(() => {
     // Keep the active tab valid when the lens reorders sections.
@@ -273,6 +281,7 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
             {activeTab === "deployment" ? <DeploymentSection view={view} /> : null}
             {activeTab === "environments" ? <EnvironmentsSection view={view} /> : null}
             {activeTab === "risks" ? <RisksSection view={view} /> : null}
+            {activeTab === MAP_TAB && graph ? <ProjectMap graph={graph} /> : null}
           </div>
         </>
       ) : null}
