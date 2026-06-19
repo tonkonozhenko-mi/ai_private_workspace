@@ -5,9 +5,10 @@
 [![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey.svg)](#installing-on-macos-first-launch)
 [![Local-first](https://img.shields.io/badge/local--first-no%20cloud-2ea44f.svg)](#safety-model)
 
-**AI Private Workspace** is a local-first desktop-oriented workspace for private project onboarding, local RAG, model management, project reports, and safe Agent/MCP planning.
-
-The v0.1 release candidate is a source handoff for developers and reviewers. It is not yet a signed installer-grade product.
+**AI Private Workspace** is a local-first macOS app for thinking with your own
+projects. Point it at a folder and ask anything — about your code, infrastructure,
+CI/CD, or docs. It runs entirely offline on a local model, grounds every answer in
+your real files, and asks before it ever writes anything. Nothing leaves your Mac.
 
 <p align="center">
   <img src="docs/assets/screenshots/01-ask.png" alt="Ask a question about your project and get an answer grounded in local sources" width="820">
@@ -77,21 +78,11 @@ The app also follows your system light/dark preference:
 
 ## What it does
 
-- Creates local workspaces for private projects.
-- Scans source folders and detects skills such as Terraform, Terragrunt, Kubernetes, Helm, Docker, Python, GitLab CI, and documentation.
-- Builds local search context only after explicit user action.
-- Respects the project's own `.gitignore` when indexing, so virtualenvs, `node_modules`, build output, caches, and local `.env` secrets stay out of the local index — the same files you would not commit to git.
-- Answers questions from retrieved project sources instead of unsupported guesses.
-- Keeps conversations, answer history, model choices, reports, and timeline state locally.
-- Runs entirely on one of two local engines — the **built-in llama.cpp** engine (nothing to install) or **Ollama** — and lets you switch between them per project. See [Local engines](#local-engines).
-- Guides local model setup and detects installed local models.
-- Remembers custom Ollama model tags and enriches them from the local Ollama
-  installation with size, parameter, quantization, and capability metadata.
-- Provides safe model download drafts and backend-owned download jobs behind explicit approval.
-- Provides working workspace model presets, comparisons, and an MCP registry with explicit approval planning.
-- Lets Ask turn an answer into a reviewed project-file draft; a file is written only after the user confirms its relative path, exact content, and overwrite intent.
-- Provides Agent and MCP planning UX without automatic tool execution.
-- Includes macOS, Windows, and Tauri packaging foundations for future installer-grade releases.
+- **Understands your project.** Point it at a folder; a local scan recognizes what's there — Terraform, Terragrunt, Kubernetes, Helm, Docker, Python, GitLab CI, docs, and more.
+- **Searches only when you ask.** The local index is built on an explicit action and respects your `.gitignore`, so virtualenvs, build output, caches, and `.env` secrets never enter it.
+- **Answers from your files.** Responses are grounded in retrieved sources with citations — not guesses — and your conversations, history, model choices, and reports stay on your Mac.
+- **Runs on two local engines.** Built-in **llama.cpp** (nothing to install) or **Ollama**, switchable per project, with the answer and search models managed separately. See [Local engines](#local-engines).
+- **Writes nothing without consent.** Ask can turn an answer into a file draft, written only after you confirm the path and exact content. Agent and MCP work is planning and approval only — no tool ever runs on its own.
 
 ## Local engines
 
@@ -238,25 +229,26 @@ backend also writes diagnostics to:
 ~/Library/Application Support/AI Private Workspace/logs/
 ```
 
-### Use a custom Ollama model
+### Use your own models
 
-1. Open **Models → Choose & install**.
-2. Choose **Custom Ollama model** and enter the exact Ollama tag, for example
-   `deepseek-r1:1.5b`.
-3. Select **Use this AI answer model**.
+Bring a different answer model on either engine. It is managed separately from
+the search (embedding) model, so you can pair a strong answer model with a small,
+fast embedder.
 
-The app saves the workspace selection and custom model metadata. If Ollama
-already has the model, the read-only Installed Models check marks it ready. If
-it is missing and the packaged desktop download worker is enabled, the app
-creates and starts a narrowly validated `ollama pull` job. Download history and
-custom catalog metadata survive app restarts.
-Models pulled directly in Terminal are shown separately as recent detected
-Ollama installs, so the UI does not falsely claim that the app downloaded them.
+**Ollama** — open **Models → Choose & install**, pick **Custom Ollama model**,
+enter the exact tag (e.g. `deepseek-r1:1.5b`), and choose **Use this AI answer
+model**. If Ollama already has it, it is marked ready; if not, and the desktop
+download worker is enabled, the app runs a narrowly validated `ollama pull`.
+Models you pulled yourself in Terminal appear as detected installs, so the app
+never claims it downloaded them.
 
-The guided LLM choice also pairs the workspace with `nomic-embed-text` when no
-embedding model has been selected yet. Changing the embedding model still
-requires an explicit context rebuild because it creates a different vector
-space.
+**Built-in llama.cpp** — open **Models** and, under **Add a model**, paste a
+Hugging Face **GGUF** repo (e.g. `bartowski/Qwen2.5-0.5B-Instruct-GGUF`). The app
+picks a sensible quant for you, downloads it, and switches the engine — no
+filename hunting. Your choice persists across restarts.
+
+Changing the embedding (search) model creates a different vector space, so it
+always requires an explicit context rebuild.
 
 ## Validation
 
