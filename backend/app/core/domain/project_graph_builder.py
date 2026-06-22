@@ -105,11 +105,26 @@ def environments_from_paths(paths: list[str], analyzer: str) -> list[ProjectEnti
                 analyzer=analyzer,
                 confidence=Confidence.MEDIUM,
                 status=EvidenceStatus.INFERRED,
-                source_file=evidence[0],
+                # The environment's root directory (e.g. "accounts/dev/"), not a
+                # random deep file — reads as the place the env actually lives.
+                source_file=_env_root(evidence, env),
                 metadata={"evidence_paths": str(len(evidence))},
             )
         )
     return entities
+
+
+def _env_root(evidence: list[str], env: str) -> str | None:
+    """Directory prefix up to and including the environment segment, from the
+    shallowest evidence path. e.g. accounts/dev/us-east-1/x.tf -> accounts/dev/."""
+    if not evidence:
+        return None
+    shallowest = min(evidence, key=lambda p: (p.count("/"), len(p)))
+    segments = shallowest.split("/")
+    for index, segment in enumerate(segments):
+        if _ENV_TOKENS.get(segment.lower()) == env:
+            return "/".join(segments[: index + 1]) + "/"
+    return shallowest
 
 
 def _environments_from_labels(
@@ -191,9 +206,9 @@ def from_terraform(
         type=EntityType.INFRA_COMPONENT,
         name="Terraform",
         analyzer="terraform",
-        # A meaningful representative root (main/backend/providers.tf), not a
-        # random file. None when there is no obvious root.
-        source_file=result.root_files[0] if result.root_files else None,
+        # An aggregate over many files has no single meaningful source — a lone
+        # representative path just reads as noise, so don't pin one.
+        source_file=None,
         metadata={
             "files": str(result.total_terraform_files),
             "remote_state": str(result.has_backend_config),
@@ -289,7 +304,7 @@ def from_terragrunt(
             type=EntityType.INFRA_COMPONENT,
             name="Terragrunt",
             analyzer="terragrunt",
-            source_file=result.files[0] if result.files else None,
+            source_file=None,
             metadata={
                 "files": str(result.total_terragrunt_files),
                 "remote_state": str(result.has_remote_state),
@@ -728,6 +743,23 @@ def build_project_graph(
         absorb(from_terraform(terraform), "terraform")
     if terragrunt is not None:
         absorb(from_terragrunt(terragrunt), "terragrunt")
+
+    # Terragrunt commonly owns the backend (a remote_state block in terragrunt.hcl),
+    # so a Terraform stack with no `backend` block in .tf is expected, not a problem.
+    # Reflect reality: mark Terraform's remote state as managed and drop the false
+    # "no backend block" finding so it doesn't read as a risk.
+    if terragrunt is not None and getattr(terragrunt, "has_remote_state", False):
+        from dataclasses import replace as _replace
+
+        tf_id = _entity_id(EntityType.INFRA_COMPONENT, "terraform")
+        tf = entities.get(tf_id)
+        if tf is not None:
+            entities[tf_id] = _replace(
+                tf,
+                metadata={**tf.metadata, "remote_state": "True", "remote_state_via": "Terragrunt"},
+            )
+        findings = [f for f in findings if f.id != "terraform:terraform_backend_missing"]
+
     if gitlab_ci is not None:
         absorb(from_gitlab_ci(gitlab_ci), "gitlab_ci")
     if github_actions is not None:

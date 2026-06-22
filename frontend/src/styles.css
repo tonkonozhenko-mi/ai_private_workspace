@@ -4569,8 +4569,11 @@ a.getting-ready-cta:hover {
 
 /* --- Project Intelligence M2: interactive map --- */
 .pi-map { display: flex; flex-direction: column; gap: 12px; }
-.pi-map-legend { display: flex; flex-wrap: wrap; gap: 12px; }
-.pi-map-legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--c-text-2); }
+.pi-map-legend { display: flex; flex-wrap: wrap; gap: 7px; }
+.pi-map-legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--c-text-2); background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-pill); padding: 3px 10px; cursor: pointer; user-select: none; transition: opacity 0.12s; }
+.pi-map-legend-item:hover { border-color: var(--c-border-strong, var(--c-text-3)); }
+.pi-map-legend-item.is-hidden { opacity: 0.45; text-decoration: line-through; }
+.pi-map-legend-count { font-size: 10.5px; color: var(--c-text-3); background: var(--c-surface-3); border-radius: var(--r-pill); padding: 0 6px; font-variant-numeric: tabular-nums; }
 .pi-map-swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
 .pi-map-canvas { overflow: auto; border: 1px solid var(--c-border); border-radius: var(--r-md); background: var(--c-surface-2); padding: 8px; max-height: 460px; }
 .pi-map-canvas svg { display: block; }

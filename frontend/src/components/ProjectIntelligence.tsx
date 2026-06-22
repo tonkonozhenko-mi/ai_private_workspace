@@ -908,8 +908,12 @@ function infraMetaChips(e: ProjectGraphEntity): string[] {
   const m = e.metadata || {};
   if (m.files) chips.push(`${m.files} files`);
   if (m.providers) chips.push(m.providers);
-  if (m.remote_state === "True") chips.push("remote state");
-  else if (m.remote_state === "False") chips.push("no remote state");
+  // Only the positive signal is reliable: a Terraform stack managed by Terragrunt
+  // keeps its backend in terragrunt.hcl, so "no backend block in .tf" is not the
+  // same as "no remote state" — don't assert the negative.
+  if (m.remote_state === "True") {
+    chips.push(m.remote_state_via ? `remote state · ${m.remote_state_via}` : "remote state");
+  }
   if (m.modules === "True") chips.push("modules");
   if (m.charts) chips.push(`${m.charts} chart(s)`);
   if (m.workloads) chips.push(`${m.workloads} workload(s)`);
