@@ -9,11 +9,13 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
+    embedding_provider,
     file_system,
     llm_provider_factory,
     project_graph_repository,
     project_scan_repository,
     project_watch_repository,
+    vector_store,
     workspace_repository,
 )
 from app.core.domain.project_graph import ProjectSnapshotMeta
@@ -38,6 +40,12 @@ from app.core.use_cases.build_project_graph import (
     BuildProjectGraphScanRequiredError,
     BuildProjectGraphUseCase,
     BuildProjectGraphWorkspaceNotFoundError,
+)
+from app.core.use_cases.investigate_project import (
+    InvestigateProjectError,
+    InvestigateProjectInput,
+    InvestigateProjectUseCase,
+    InvestigateProjectWorkspaceNotFoundError,
 )
 from app.core.use_cases.run_project_watch import (
     RunProjectWatchError,
@@ -181,6 +189,57 @@ def get_project_watch(workspace_id: str) -> dict:
     if digest is None:
         return {"has_digest": False}
     return {"has_digest": True, "digest": digest}
+
+
+class InvestigateRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=500)
+    role: str | None = None
+
+
+@router.post("/{workspace_id}/intelligence/investigate")
+def investigate_project(workspace_id: str, request: InvestigateRequest) -> dict:
+    """Read-only multi-step investigation: the local model uses read-only tools
+    (code search, file read, graph query, file listing) to answer a question, and
+    returns its transparent step trace plus the sources it consulted."""
+    use_case = InvestigateProjectUseCase(
+        workspace_repository=workspace_repository,
+        llm_provider_factory=llm_provider_factory,
+        embedding_provider=embedding_provider,
+        vector_store=vector_store,
+        file_system=file_system,
+        project_graph_repository=project_graph_repository,
+        project_scan_repository=project_scan_repository,
+    )
+    try:
+        result = use_case.execute(
+            InvestigateProjectInput(
+                workspace_id=workspace_id,
+                question=request.question.strip(),
+                role=request.role,
+            )
+        )
+    except InvestigateProjectWorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except InvestigateProjectError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"The local model could not run the investigation: {exc}",
+        ) from exc
+    return {
+        "answer": result.answer,
+        "steps": [
+            {
+                "thought": s.thought,
+                "tool": s.tool,
+                "tool_input": s.tool_input,
+                "observation": s.observation,
+            }
+            for s in result.steps
+        ],
+        "sources": result.sources,
+        "used_steps": result.used_steps,
+        "stopped_reason": result.stopped_reason,
+    }
 
 
 class AskProjectIntelligenceRequest(BaseModel):

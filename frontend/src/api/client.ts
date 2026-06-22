@@ -80,6 +80,7 @@ import type {
   LocalModelDownloadExecutionResult,
   LocalModelDownloadJob,
   LocalModelDownloadJobList,
+  InvestigationResponse,
   ProjectIntelligenceAnswer,
   ProjectIntelligenceBuildResponse,
   ProjectIntelligenceOverviewText,
@@ -559,6 +560,23 @@ export function askProjectIntelligence(
 ): Promise<ProjectIntelligenceAnswer> {
   return requestJson<ProjectIntelligenceAnswer>(
     `/workspaces/${workspaceId}/intelligence/ask`,
+    {
+      signal: options.signal,
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ question, role: role ?? null }),
+    },
+  );
+}
+
+export function investigateProject(
+  workspaceId: string,
+  question: string,
+  role?: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<InvestigationResponse> {
+  return requestJson<InvestigationResponse>(
+    `/workspaces/${workspaceId}/intelligence/investigate`,
     {
       signal: options.signal,
       method: "POST",
