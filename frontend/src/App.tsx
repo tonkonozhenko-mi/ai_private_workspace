@@ -36,6 +36,7 @@ import { AskWorkspace } from "./components/AskWorkspace";
 import { ActiveDownloads } from "./components/ActiveDownloads";
 import { CreateWorkspacePanel } from "./components/CreateWorkspacePanel";
 import { ModelsDetail } from "./components/ModelsDetail";
+import { ProjectIntelligence } from "./components/ProjectIntelligence";
 import { RenderCrashBoundary } from "./components/RenderCrashBoundary";
 import { ModelsSummaryCard } from "./components/ModelsSummaryCard";
 import { ReportsPanel } from "./components/ReportsPanel";
@@ -67,7 +68,7 @@ import { useWorkspaceJobs } from "./hooks/useWorkspaceJobs";
 import { useSidebarCollapsed } from "./hooks/useSidebarCollapsed";
 import { errorMessage } from "./lib/errorMessage";
 
-export type WorkspaceTab = "overview" | "ask" | "models" | "reports" | "actions" | "activity" | "settings";
+export type WorkspaceTab = "overview" | "intelligence" | "ask" | "models" | "reports" | "actions" | "activity" | "settings";
 
 const LAST_WORKSPACE_STORAGE_KEY = "ai-private-workspace.last-workspace-id.v1";
 
@@ -82,6 +83,7 @@ export { ANSWER_CREATIVITY_TEMPERATURE } from "./preferences";
 
 const workspaceTabs: Array<{ id: WorkspaceTab; label: string }> = [
   { id: "overview", label: "Home" },
+  { id: "intelligence", label: "Intelligence" },
   { id: "ask", label: "Ask" },
   { id: "models", label: "Models" },
   { id: "settings", label: "Settings" },
@@ -104,6 +106,15 @@ function NavIcon({ id }: { id: WorkspaceTab }) {
         <svg {...p}>
           <path d="M3 11.5 12 4l9 7.5" />
           <path d="M5 10v9h14v-9" />
+        </svg>
+      );
+    case "intelligence":
+      return (
+        <svg {...p}>
+          <circle cx="6" cy="6" r="2.4" />
+          <circle cx="18" cy="9" r="2.4" />
+          <circle cx="7" cy="18" r="2.4" />
+          <path d="M8.2 6.7 15.6 8.4M7.2 15.7l9-5M6.4 8.3 6.7 15.6" />
         </svg>
       );
     case "ask":
@@ -1040,6 +1051,9 @@ function App() {
                   skillPreferences={preferences.skillPreferences}
                   fileIndexingPreferences={preferences.fileIndexingPreferences}
                 />
+              ) : null}
+              {activeTab === "intelligence" ? (
+                <ProjectIntelligence dashboard={detail.dashboard} />
               ) : null}
               <div hidden={activeTab !== "ask"}>
                 <AskWorkspace

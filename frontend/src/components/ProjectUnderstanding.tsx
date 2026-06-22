@@ -47,6 +47,25 @@ async function pollJobDone(workspaceId: string, jobId: string): Promise<void> {
   }
 }
 
+// Some local models return the deep analysis wrapped in a ```json code block
+// (sometimes truncated). Salvage the human summary instead of dumping raw JSON.
+function cleanAnalysisSummary(raw: string): string {
+  if (!raw) return raw;
+  let text = raw.trim();
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced) text = fenced[1].trim();
+  if (text.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(text) as { summary?: unknown };
+      if (typeof parsed.summary === "string") return parsed.summary;
+    } catch {
+      const match = text.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      if (match) return match[1].replace(/\\"/g, '"').replace(/\\n/g, " ");
+    }
+  }
+  return raw;
+}
+
 function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return "";
@@ -640,7 +659,7 @@ export function ProjectUnderstanding({
           <p className="pu-analysis-loading">Analyzing your project with {selectedModel ?? "your local model"}… this runs locally and can take up to a minute.</p>
         ) : understanding ? (
           <>
-            <p className="pu-analysis-summary">{understanding.summary}</p>
+            <p className="pu-analysis-summary">{cleanAnalysisSummary(understanding.summary)}</p>
             {understanding.risks.length > 0 ? (
               <>
                 <div className="pu-eyebrow pu-analysis-risks-label">{lens.risksLabel}</div>

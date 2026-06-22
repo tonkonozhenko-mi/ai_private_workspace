@@ -44,6 +44,20 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
   (`feature/`, `hotfix/`, …) and which branches they merged into. Clearly labelled
   as approximate, since squash- and rebase-merged PRs are only partly visible.
 
+### Changed
+
+- **Project Intelligence is now its own top-level tab** (Home · Intelligence ·
+  Ask · Models · Settings), instead of a block stacked on an already-long Home.
+  Home becomes a calmer overview (project summary, watcher, git activity, memory,
+  sources) and the full map/agents live on their own screen.
+
+### Fixed
+
+- **Project Watcher no longer prints a wall of changes** — the digest caps at the
+  top changes with a "Show all N changes" toggle.
+- **Deep analysis no longer dumps raw JSON** — when a local model wraps its answer
+  in a ```json block, the human summary is salvaged instead of shown verbatim.
+
 ### Docs
 
 - **README: what the Investigator can reason about.** The agents section now lists
