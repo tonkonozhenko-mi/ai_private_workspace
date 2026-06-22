@@ -622,9 +622,6 @@ class AskWorkspaceQuestionUseCase:
                 request.question, request.attached_documents
             ),
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
-            project_memory_section=self._project_memory_section(
-                request.workspace_id, request.question
-            ),
         )
         try:
             answer, usage = self._generate_answer_with_usage(
