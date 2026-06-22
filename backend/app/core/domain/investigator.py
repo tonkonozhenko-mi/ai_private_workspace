@@ -156,3 +156,5 @@ class InvestigationResult:
     sources: list[str] = field(default_factory=list)
     used_steps: int = 0
     stopped_reason: str = "answered"  # answered | budget_exhausted | no_answer
+    memory_used: int = 0
+    facts_used: int = 0

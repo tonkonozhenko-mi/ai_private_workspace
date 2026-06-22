@@ -110,9 +110,21 @@ class InvestigateProjectUseCase:
 
         # Durable project context (handbook + memory + graph facts), once.
         context_block = ""
+        memory_used = 0
+        facts_used = 0
         if self.context_provider is not None:
             try:
-                context_block = self.context_provider(request.workspace_id, request.question) or ""
+                if hasattr(self.context_provider, "compose_with_stats"):
+                    context_block, stats = self.context_provider.compose_with_stats(
+                        request.workspace_id, request.question
+                    )
+                    context_block = context_block or ""
+                    memory_used = stats.memory_items
+                    facts_used = stats.graph_facts
+                else:
+                    context_block = (
+                        self.context_provider(request.workspace_id, request.question) or ""
+                    )
             except Exception:  # noqa: BLE001 - context is best-effort
                 context_block = ""
 
@@ -150,6 +162,8 @@ class InvestigateProjectUseCase:
                     sources=sources,
                     used_steps=len(steps),
                     stopped_reason="answered",
+                    memory_used=memory_used,
+                    facts_used=facts_used,
                 )
 
             if decision.kind == "invalid":
@@ -186,6 +200,8 @@ class InvestigateProjectUseCase:
             sources=sources,
             used_steps=len(steps),
             stopped_reason="budget_exhausted",
+            memory_used=memory_used,
+            facts_used=facts_used,
         )
 
     def _remember_answer(self, workspace_id: str, question: str, answer: str) -> None:

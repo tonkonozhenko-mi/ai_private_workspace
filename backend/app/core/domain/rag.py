@@ -44,3 +44,5 @@ class WorkspaceQuestionAnswer:
     skill_profile: SkillProfileAudit | None = None
     conversation_id: str | None = None
     conversation_message_id: str | None = None
+    project_memory_used: int = 0
+    project_facts_used: int = 0

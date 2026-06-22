@@ -23,6 +23,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
     into **both** the Ask tab and the Investigator (which also gains a
     `recall_memory` tool), so every answer benefits. Entirely local and
     deterministic in what it selects; backward-compatible (off when no memory).
+  - **Visible indicator.** Answers now show, in plain text, how much durable
+    context they drew on — e.g. "Used 2 memory note(s) and 3 map fact(s)" — in
+    both the Ask tab and the Investigator, so you can see the memory working
+    without an experiment.
 
 
 

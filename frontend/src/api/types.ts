@@ -711,6 +711,8 @@ export interface WorkspaceQuestionAnswer {
   answer: string;
   sources: RagSource[];
   used_context_chunks: number;
+  project_memory_used?: number;
+  project_facts_used?: number;
   llm_provider: string;
   llm_model: string | null;
   diagnostic_code?: string | null;
@@ -2166,6 +2168,7 @@ export interface InvestigationResponse {
   sources: string[];
   used_steps: number;
   stopped_reason: string;
+  context_used?: { memory: number; facts: number };
 }
 
 export interface ProjectMemoryItem {

@@ -693,6 +693,13 @@ function InvestigatePanel({
                 Reached the step limit — this is the best answer from what was gathered.
               </p>
             ) : null}
+            {result.context_used &&
+            (result.context_used.memory > 0 || result.context_used.facts > 0) ? (
+              <p className="pi-inv-note">
+                Used {result.context_used.memory} memory note(s) and{" "}
+                {result.context_used.facts} map fact(s) as background.
+              </p>
+            ) : null}
           </div>
 
           {result.steps.length > 0 ? (
