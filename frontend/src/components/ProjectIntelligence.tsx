@@ -44,7 +44,7 @@ const SECTION_LABELS: Record<string, string> = {
   cloud: "Cloud",
   references: "References",
   map: "Map",
-  investigate: "Ask the agent",
+  investigate: "Ask the map",
 };
 
 const MAP_TAB = "map";
@@ -326,11 +326,9 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
             ) : null}
             {activeTab === MAP_TAB && graph ? <ProjectMap graph={graph} /> : null}
             {activeTab === INVESTIGATE_TAB ? (
-              <InvestigatePanel workspaceId={workspaceId} role={role} />
+              <ProjectQa workspaceId={workspaceId} role={role} />
             ) : null}
           </div>
-
-          <AskPanel workspaceId={workspaceId} role={role} />
         </>
       ) : null}
     </section>
@@ -667,7 +665,10 @@ const TOOL_LABELS: Record<string, string> = {
   "(format)": "Retried",
 };
 
-function InvestigatePanel({
+// One place to ask about the project, with two depths: a quick answer from the
+// map facts, or a read-only agent that investigates step by step. This replaces
+// the old split between a quick "Ask" box and a separate "Investigate" panel.
+function ProjectQa({
   workspaceId,
   role,
 }: {
@@ -675,15 +676,36 @@ function InvestigatePanel({
   role: string | null;
 }) {
   const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState<string | null>(null);
   const [result, setResult] = useState<InvestigationResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<null | "ask" | "investigate">(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function submit() {
+  const empty = question.trim().length === 0;
+
+  async function runAsk() {
     const trimmed = question.trim();
     if (!trimmed || loading) return;
-    setLoading(true);
+    setLoading("ask");
     setError(null);
+    setAnswer(null);
+    setResult(null);
+    try {
+      const res = await askProjectIntelligence(workspaceId, trimmed, role ?? undefined);
+      setAnswer(res.answer);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The local model could not answer.");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function runInvestigate() {
+    const trimmed = question.trim();
+    if (!trimmed || loading) return;
+    setLoading("investigate");
+    setError(null);
+    setAnswer(null);
     setResult(null);
     try {
       const res = await investigateProject(workspaceId, trimmed, role ?? undefined);
@@ -691,15 +713,15 @@ function InvestigatePanel({
     } catch (err) {
       setError(err instanceof Error ? err.message : "The investigation could not run.");
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   }
 
   return (
-    <div className="pi-investigate">
-      <p className="pi-muted">
-        A read-only agent answers harder questions by searching code, reading files and
-        querying the map — step by step, with sources. Nothing is changed.
+    <div className="pi-qa">
+      <p className="pi-hint">
+        Ask for a quick answer from the project map, or send a read-only agent to
+        investigate — it searches code, reads files and shows its steps. Nothing is changed.
       </p>
       <div className="pi-ask-row">
         <input
@@ -709,24 +731,40 @@ function InvestigatePanel({
           placeholder="e.g. How does a request reach the database?"
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") submit();
+            if (e.key === "Enter") runAsk();
           }}
-          disabled={loading}
+          disabled={loading !== null}
         />
         <button
           type="button"
-          className="pi-button pi-button-primary"
-          onClick={submit}
-          disabled={loading || question.trim().length === 0}
+          className="pi-button"
+          onClick={runAsk}
+          disabled={loading !== null || empty}
         >
-          {loading ? "Investigating…" : "Investigate"}
+          {loading === "ask" ? "Asking…" : "Ask"}
+        </button>
+        <button
+          type="button"
+          className="pi-button pi-button-primary"
+          onClick={runInvestigate}
+          disabled={loading !== null || empty}
+        >
+          {loading === "investigate" ? "Investigating…" : "Investigate"}
         </button>
       </div>
 
-      {loading ? (
+      {loading === "investigate" ? (
         <p className="pi-muted">Working through the project step by step…</p>
       ) : null}
       {error ? <p className="pi-muted">{error}</p> : null}
+
+      {answer ? (
+        <div className="pi-qa-answer">
+          <p className="pi-eyebrow">Answer</p>
+          <p className="pi-ask-answer">{answer}</p>
+          <p className="pi-ask-note">A quick answer from the analyzed project files.</p>
+        </div>
+      ) : null}
 
       {result ? (
         <div className="pi-inv-result">
@@ -786,61 +824,6 @@ function InvestigatePanel({
             </div>
           ) : null}
         </div>
-      ) : null}
-    </div>
-  );
-}
-
-function AskPanel({ workspaceId, role }: { workspaceId: string; role: string | null }) {
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit() {
-    const trimmed = question.trim();
-    if (!trimmed || loading) return;
-    setLoading(true);
-    setError(null);
-    setAnswer(null);
-    try {
-      const result = await askProjectIntelligence(workspaceId, trimmed, role ?? undefined);
-      setAnswer(result.answer);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "The local model could not answer.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="pi-ask">
-      <p className="pi-eyebrow">Ask about this project</p>
-      <div className="pi-ask-row">
-        <input
-          className="pi-ask-input"
-          type="text"
-          value={question}
-          placeholder="e.g. How is production deployed?"
-          onChange={(e) => setQuestion(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") submit();
-          }}
-          disabled={loading}
-        />
-        <button
-          type="button"
-          className="pi-button"
-          onClick={submit}
-          disabled={loading || question.trim().length === 0}
-        >
-          {loading ? "Asking…" : "Ask"}
-        </button>
-      </div>
-      {answer ? <p className="pi-ask-answer">{answer}</p> : null}
-      {error ? <p className="pi-muted">{error}</p> : null}
-      {answer ? (
-        <p className="pi-ask-note">Answered only from the analyzed project files.</p>
       ) : null}
     </div>
   );

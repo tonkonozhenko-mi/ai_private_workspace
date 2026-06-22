@@ -4703,6 +4703,8 @@ a.getting-ready-cta:hover {
 
 /* --- Project Intelligence: Investigate (agent) tab --- */
 .pi-investigate { display: flex; flex-direction: column; gap: 12px; }
+.pi-qa { display: flex; flex-direction: column; gap: 12px; }
+.pi-qa-answer { display: flex; flex-direction: column; gap: 5px; }
 .pi-inv-result { display: flex; flex-direction: column; gap: 14px; }
 .pi-inv-answer { display: flex; flex-direction: column; gap: 5px; }
 .pi-inv-answer-text { font-size: 14px; color: var(--c-text); line-height: 1.6; margin: 0; }

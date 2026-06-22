@@ -64,7 +64,11 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
   become metric cards that name what they count (the actual environments,
   pipelines and infra tools found); every section gets a one-line description of
   what it's showing; Risks opens with a "N things worth a look · X high" summary;
-  and tabs are friendlier ("Overview", "Ask the agent").
+  and tabs are friendlier ("Overview", "Ask the map").
+- **One way to ask inside Intelligence.** The always-present quick "Ask" box and
+  the separate "Investigate" tab merged into a single "Ask the map" panel: one
+  question, two buttons — Ask (a quick answer from the map) or Investigate (the
+  read-only step-by-step agent). No more two question boxes on screen at once.
 
 ### Fixed
 
