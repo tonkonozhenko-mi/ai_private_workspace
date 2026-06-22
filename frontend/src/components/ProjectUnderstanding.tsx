@@ -51,17 +51,18 @@ async function pollJobDone(workspaceId: string, jobId: string): Promise<void> {
 // (sometimes truncated). Salvage the human summary instead of dumping raw JSON.
 function cleanAnalysisSummary(raw: string): string {
   if (!raw) return raw;
-  let text = raw.trim();
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fenced) text = fenced[1].trim();
+  // Strip a leading ```json fence (even when the closing fence is missing because
+  // the model's output was truncated), then salvage the human summary.
+  let text = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
   if (text.startsWith("{")) {
     try {
       const parsed = JSON.parse(text) as { summary?: unknown };
       if (typeof parsed.summary === "string") return parsed.summary;
     } catch {
-      const match = text.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-      if (match) return match[1].replace(/\\"/g, '"').replace(/\\n/g, " ");
+      // Truncated/invalid JSON — pull just the summary string out by regex.
     }
+    const match = text.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if (match) return match[1].replace(/\\"/g, '"').replace(/\\n/g, " ");
   }
   return raw;
 }
@@ -250,8 +251,6 @@ function MetaIcon({ children }: { children: ReactNode }) {
   );
 }
 
-const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
-
 // A plain-language one-liner so the activity panel reads like a sentence, not a
 // wall of numbers. Computed only from data we already have.
 function gitLeadSentence(git: GitInsightsResponse): string {
@@ -278,10 +277,8 @@ function gitLeadSentence(git: GitInsightsResponse): string {
 
 function GitActivityCharts({ git }: { git: GitInsightsResponse }) {
   const weeks = git.activity_weeks;
-  const weekday = git.activity_by_weekday;
   const maxWeek = weeks.reduce((m, w) => Math.max(m, w.commits), 0);
-  const maxDay = weekday.reduce((m, d) => Math.max(m, d), 0);
-  if (maxWeek === 0 && maxDay === 0) return null;
+  if (maxWeek === 0) return null;
 
   return (
     <div className="pu-git-activity-charts">
@@ -299,24 +296,6 @@ function GitActivityCharts({ git }: { git: GitInsightsResponse }) {
                   style={{ height: `${maxWeek ? Math.round((w.commits / maxWeek) * 100) : 0}%` }}
                 />
               </span>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {maxDay > 0 ? (
-        <div className="pu-git-chart">
-          <div className="pu-eyebrow">When the team commits</div>
-          <div className="pu-git-weekday">
-            {weekday.map((count, i) => (
-              <div key={i} className="pu-git-weekday-col" title={`${count} commit(s)`}>
-                <span className="pu-git-weekday-bar">
-                  <span
-                    style={{ height: `${maxDay ? Math.round((count / maxDay) * 100) : 0}%` }}
-                  />
-                </span>
-                <span className="pu-git-weekday-label">{WEEKDAY_LABELS[i]}</span>
-              </div>
             ))}
           </div>
         </div>
