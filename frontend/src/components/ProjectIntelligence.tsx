@@ -542,6 +542,7 @@ function CiScenarios({ ci }: { ci: ProjectCi }) {
   return (
     <div className="pi-ci">
       <p className="pi-eyebrow">What runs when</p>
+      <p className="pi-hint">Which CI workflows fire on each kind of event — inferred from their triggers.</p>
       <div className="pi-ci-list">
         {ci.scenarios.map((s) => (
           <div key={s.key} className="pi-ci-scenario">
@@ -573,6 +574,8 @@ function PipelineList({
 }) {
   return (
     <div className="pi-pipelines">
+      <p className="pi-eyebrow">Pipelines</p>
+      <p className="pi-hint">Every CI/CD pipeline found, with the jobs inside it.</p>
       {pipelines.map((p) => (
         <div key={p.id} className="pi-pipeline">
           <div className="pi-pipeline-head">
@@ -610,48 +613,55 @@ function EnvironmentsSection({
       <EmptyNote text="No environments were detected from the project's directory structure." />
     );
   }
+  const rows = comparison?.environments ?? [];
+  const maxEvidence = rows.reduce((m, r) => Math.max(m, r.evidence_count), 0) || 1;
   return (
     <div className="pi-envs">
-      <p className="pi-muted pi-env-note">
-        Environments are inferred from naming conventions — confirm them with your team.
+      <p className="pi-hint">
+        Inferred from directory and file naming — confirm them with your team. "Evidence" is
+        how many paths point at each environment.
       </p>
-      <div className="pi-chips">
-        {environments.map((e) => {
-          const note = statusNote(e);
-          return (
-            <span key={e.id} className="pi-chip pi-chip-env">
-              {e.name}
-              {note ? <em>{note}</em> : null}
-            </span>
-          );
-        })}
-      </div>
+      {comparison ? <p className="pi-env-summary">{comparison.summary}</p> : null}
 
-      {comparison ? (
-        <div className="pi-env-compare">
-          <p className="pi-env-summary">{comparison.summary}</p>
-          <table className="pi-env-table">
-            <thead>
-              <tr>
-                <th>Environment</th>
-                <th>Detected by</th>
-                <th>Evidence</th>
-                <th>Source</th>
-              </tr>
-            </thead>
-            <tbody>
-              {comparison.environments.map((row) => (
-                <tr key={row.name}>
-                  <td>{row.name}</td>
-                  <td>{row.analyzer}</td>
-                  <td>{row.evidence_count} path(s)</td>
-                  <td>{row.source_file ? <code>{row.source_file}</code> : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {rows.length > 0 ? (
+        <ul className="pi-env-list">
+          {rows.map((row) => {
+            const isProd = /(^|[^a-z])(prod|prd)([^a-z]|$)/i.test(row.name);
+            return (
+              <li key={row.name} className={`pi-env-row${isProd ? " is-prod" : ""}`}>
+                <span className="pi-env-name">
+                  {row.name}
+                  {isProd ? <em>production</em> : null}
+                </span>
+                <span className="pi-env-detector">{row.analyzer}</span>
+                <span className="pi-env-evidence">
+                  <span className="pi-env-evidence-bar">
+                    <span style={{ width: `${Math.round((row.evidence_count / maxEvidence) * 100)}%` }} />
+                  </span>
+                  {row.evidence_count} paths
+                </span>
+                {row.source_file ? (
+                  <code className="pi-env-source" title={row.source_file}>{row.source_file}</code>
+                ) : (
+                  <span className="pi-env-source pi-env-source-empty">—</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <div className="pi-chips">
+          {environments.map((e) => {
+            const note = statusNote(e);
+            return (
+              <span key={e.id} className="pi-chip pi-chip-env">
+                {e.name}
+                {note ? <em>{note}</em> : null}
+              </span>
+            );
+          })}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
@@ -945,25 +955,36 @@ function CloudSection({ cloud }: { cloud: ProjectCloud }) {
   }
   return (
     <div className="pi-cloud">
-      <p className="pi-muted">
-        Cloud services provisioned by the project's infrastructure-as-code, grouped by provider.
+      <p className="pi-hint">
+        Managed cloud services provisioned by the project's infrastructure-as-code. The number is
+        how many resources of that service were found; the bar shows its relative footprint.
       </p>
-      {cloud.providers.map((provider) => (
-        <div key={provider.provider} className="pi-cloud-provider">
-          <div className="pi-cloud-provider-head">
-            <span className="pi-cloud-provider-name">{provider.provider}</span>
-            <span className="pi-cloud-provider-count">{provider.service_count} service(s)</span>
-          </div>
-          <div className="pi-cloud-services">
-            {provider.services.map((s) => (
-              <div key={s.service} className="pi-cloud-service" title={s.source_file ?? ""}>
-                <span className="pi-cloud-service-name">{s.service}</span>
-                <span className="pi-cloud-service-count">{s.resources}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
+      {cloud.providers.map((provider) => {
+        const max = provider.services.reduce((m, s) => Math.max(m, s.resources), 0) || 1;
+        const top = provider.services.slice(0, 3).map((s) => s.service).join(", ");
+        return (
+          <section key={provider.provider} className="pi-cloud-provider">
+            <div className="pi-cloud-provider-head">
+              <span className="pi-cloud-provider-name">{provider.provider}</span>
+              <span className="pi-cloud-provider-count">{provider.service_count} services</span>
+              {top ? <span className="pi-cloud-top">most used: {top}</span> : null}
+            </div>
+            <div className="pi-cloud-services">
+              {provider.services.map((s) => (
+                <div key={s.service} className="pi-cloud-service" title={s.source_file ?? ""}>
+                  <div className="pi-cloud-service-row">
+                    <span className="pi-cloud-service-name">{s.service}</span>
+                    <span className="pi-cloud-service-count">{s.resources}</span>
+                  </div>
+                  <span className="pi-cloud-bar">
+                    <span style={{ width: `${Math.round((s.resources / max) * 100)}%` }} />
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -974,23 +995,49 @@ function ReferencesSection({ references }: { references: ProjectReferences }) {
   }
   return (
     <div className="pi-refs">
-      <p className="pi-muted">
-        External things the project points at — extracted from its files.
+      <p className="pi-hint">
+        External things the project points at — ARNs, URLs and module sources pulled from its
+        files. The number is how many times each appears.
       </p>
       {references.groups.map((group) => (
-        <div key={group.kind} className="pi-ref-group">
-          <p className="pi-eyebrow">{REFERENCE_KIND_LABELS[group.kind] ?? group.kind}</p>
-          <ul className="pi-ref-list">
-            {group.items.map((item) => (
-              <li key={item.value} className="pi-ref-item" title={item.source_file ?? ""}>
-                <code className="pi-ref-value">{item.value}</code>
-                {item.count > 1 ? <span className="pi-ref-count">×{item.count}</span> : null}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ReferenceGroup key={group.kind} group={group} />
       ))}
     </div>
+  );
+}
+
+function ReferenceGroup({
+  group,
+}: {
+  group: ProjectReferences["groups"][number];
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const LIMIT = 12;
+  const items = showAll ? group.items : group.items.slice(0, LIMIT);
+  return (
+    <section className="pi-ref-group">
+      <div className="pi-ga-head">
+        <span className="pi-eyebrow">{REFERENCE_KIND_LABELS[group.kind] ?? group.kind}</span>
+        <span className="pi-ga-hint">{group.items.length}</span>
+      </div>
+      <ul className="pi-ref-list">
+        {items.map((item) => (
+          <li
+            key={item.value}
+            className="pi-ref-item"
+            title={`${item.value}${item.source_file ? ` — ${item.source_file}` : ""}`}
+          >
+            <code className="pi-ref-value">{item.value}</code>
+            {item.count > 1 ? <span className="pi-ref-count">×{item.count}</span> : null}
+          </li>
+        ))}
+      </ul>
+      {group.items.length > LIMIT ? (
+        <button type="button" className="pi-link" onClick={() => setShowAll((v) => !v)}>
+          {showAll ? "Show fewer" : `Show all ${group.items.length}`}
+        </button>
+      ) : null}
+    </section>
   );
 }
 
