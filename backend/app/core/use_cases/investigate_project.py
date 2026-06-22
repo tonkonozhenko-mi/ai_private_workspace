@@ -21,6 +21,7 @@ from app.core.domain.investigator import (
 from app.core.domain.role_lens import role_lens_for
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.file_system import FileSystemPort
+from app.core.ports.git_history import GitHistoryPort
 from app.core.ports.llm_provider_factory import LLMProviderFactoryError, LLMProviderFactoryPort
 from app.core.ports.project_graph_repository import ProjectGraphRepositoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
@@ -67,6 +68,7 @@ class InvestigateProjectUseCase:
         file_system: FileSystemPort,
         project_graph_repository: ProjectGraphRepositoryPort,
         project_scan_repository: ProjectScanRepositoryPort,
+        git_history: GitHistoryPort,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.llm_provider_factory = llm_provider_factory
@@ -75,6 +77,7 @@ class InvestigateProjectUseCase:
         self.file_system = file_system
         self.project_graph_repository = project_graph_repository
         self.project_scan_repository = project_scan_repository
+        self.git_history = git_history
 
     def execute(self, request: InvestigateProjectInput) -> InvestigationResult:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -266,11 +269,33 @@ class InvestigateProjectUseCase:
             top = sorted({p.split("/", 1)[0] for p in paths})[:40]
             return "Top-level entries: " + ", ".join(top), []
 
+        def git_history(path: str) -> tuple[str, list[str]]:
+            path = path.strip().strip("\"'")
+            try:
+                activity = self.git_history.file_activity(project_path, path or None)
+            except Exception as exc:  # noqa: BLE001
+                return f"git_history failed: {exc}", []
+            if activity is None:
+                return "Not a git repository (or git is unavailable).", []
+            lines = [
+                f"{activity.path or 'Repository'}: {activity.total_commits} commit(s)"
+            ]
+            if activity.top_authors:
+                lines.append(
+                    "Top authors: "
+                    + ", ".join(f"{a.name} ({a.commits})" for a in activity.top_authors)
+                )
+            for commit in activity.recent_commits[:6]:
+                when = commit.committed_at[:10]
+                lines.append(f"- {commit.short_hash} {commit.subject} — {commit.author} ({when})")
+            return "\n".join(lines), ([activity.path] if activity.path else [])
+
         tools = {
             "search_code": search_code,
             "read_file": read_file,
             "graph_query": graph_query,
             "list_files": list_files,
+            "git_history": git_history,
         }
         specs = [
             ToolSpec("search_code", "search_code: <query>", "semantic search over the indexed code/docs"),
@@ -281,5 +306,10 @@ class InvestigateProjectUseCase:
                 "look up entities/relations in the project map",
             ),
             ToolSpec("list_files", "list_files: <substring>", "list project files matching a substring"),
+            ToolSpec(
+                "git_history",
+                "git_history: <relative/path or empty>",
+                "who changed a file and its recent commits (empty = whole repo)",
+            ),
         ]
         return tools, specs

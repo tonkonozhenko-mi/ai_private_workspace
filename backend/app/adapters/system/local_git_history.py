@@ -15,6 +15,7 @@ from app.core.domain.git_insights import (
     GitActivitySummary,
     GitCommit,
     GitContributor,
+    GitFileActivity,
     GitFileHotspot,
     GitInsights,
     infer_branch_strategy,
@@ -74,6 +75,62 @@ class LocalGitHistory:
             recent_commits=self._recent_commits(root),
             activity_weeks=summary.weeks,
             activity_by_weekday=summary.by_weekday,
+        )
+
+    def file_activity(
+        self, project_path: str, relative_path: str | None = None
+    ) -> GitFileActivity | None:
+        root = Path(project_path).expanduser()
+        if not root.exists() or not root.is_dir():
+            return None
+        inside = self._run(root, ["rev-parse", "--is-inside-work-tree"])
+        if inside is None or inside.strip() != "true":
+            return None
+
+        pathspec = ["--", relative_path] if relative_path else []
+
+        total = self._count(root, ["rev-list", "--count", "HEAD", *pathspec])
+
+        # Top authors of this path (or the repo), counted from the log.
+        authors_raw = self._run(
+            root, ["log", "--no-merges", "--pretty=format:%an", *pathspec]
+        )
+        counter: Counter[str] = Counter()
+        if authors_raw:
+            for line in authors_raw.splitlines():
+                name = line.strip()
+                if name:
+                    counter[name] += 1
+        top_authors = [
+            GitContributor(name=name, commits=count)
+            for name, count in counter.most_common(5)
+        ]
+
+        # Recent commits touching this path (or the repo).
+        pretty = _UNIT.join(["%h", "%s", "%an", "%cI"])
+        log_raw = self._run(
+            root, ["log", "-8", "--no-merges", f"--pretty=format:{pretty}", *pathspec]
+        )
+        recent: list[GitCommit] = []
+        if log_raw:
+            for line in log_raw.splitlines():
+                parts = line.split(_UNIT)
+                if len(parts) < 4:
+                    continue
+                recent.append(
+                    GitCommit(
+                        short_hash=parts[0].strip(),
+                        subject=parts[1].strip(),
+                        author=parts[2].strip(),
+                        committed_at=parts[3].strip(),
+                    )
+                )
+
+        return GitFileActivity(
+            path=relative_path,
+            total_commits=total,
+            top_authors=top_authors,
+            recent_commits=recent,
         )
 
     # -- individual queries -------------------------------------------------

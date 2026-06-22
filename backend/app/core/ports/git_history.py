@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from app.core.domain.git_insights import GitInsights
+from app.core.domain.git_insights import GitFileActivity, GitInsights
 
 
 class GitHistoryPort(Protocol):
@@ -10,4 +10,12 @@ class GitHistoryPort(Protocol):
         Implementations must never modify the repository and must degrade
         gracefully (returning ``GitInsights.not_a_repo()``) when the path is not
         a git repository or git is unavailable.
+        """
+
+    def file_activity(
+        self, project_path: str, relative_path: str | None = None
+    ) -> GitFileActivity | None:
+        """Ownership + recent commits for a file (or the whole repo when
+        ``relative_path`` is None). Returns None when not a git repository.
+        Read-only.
         """

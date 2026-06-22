@@ -27,6 +27,7 @@ macOS (Apple Silicon / Intel) and Windows x64 installers are on the
 - [First launch (unsigned app)](#first-launch-unsigned-app)
 - [Install and first run](#install-and-first-run)
 - [What it does](#what-it-does)
+- [Project intelligence and agents](#project-intelligence-and-agents)
 - [Local engines](#local-engines)
 - [How search works](#how-search-works)
 - [Safety model](#safety-model)
@@ -97,6 +98,71 @@ The app also follows your system light/dark preference:
 - **Answers from your files.** Responses are grounded in retrieved sources with citations — not guesses — and your conversations, history, model choices, and reports stay on your computer.
 - **Runs on two local engines.** Built-in **llama.cpp** (nothing to install) or **Ollama**, switchable per project, with the answer and search models managed separately. See [Local engines](#local-engines).
 - **Writes nothing without consent.** Ask can turn an answer into a file draft, written only after you confirm the path and exact content. Agent and MCP work is planning and approval only — no tool ever runs on its own.
+
+## Project intelligence and agents
+
+Beyond search, the app builds a **map of your project** and gives you two local
+agents that work over it. The guiding principle is the same throughout: every
+statement is backed by something found in your own files, the facts are produced
+deterministically wherever possible, and an agent is **read-only by default** —
+it can look, but it never writes files or runs commands.
+
+### Project Intelligence — the map
+
+On an explicit action, the app assembles a **role-neutral evidence graph** from
+deterministic analyzers (Terraform, Terragrunt, GitLab CI, GitHub Actions,
+Kubernetes, Helm, and Python). The result is a set of honest, source-linked views:
+a summary, infrastructure, deployment flow, environments, risks, a **Cloud** tab
+listing the AWS / Google Cloud / Azure services your IaC provisions, a
+**References** tab (URLs, module sources, ARNs), and an interactive **Map**.
+
+A **role lens** (Developer, DevOps, Tester, Business analyst) re-orders and
+prioritises the same facts for who's looking — it never changes them. Inferred
+facts (for example, an environment guessed from a directory name) are always
+labelled as inferred. The only LLM-written pieces — a plain-language overview and
+the "ask the graph" answer — are constrained strictly to the graph's facts.
+
+### The Watcher — a deterministic agent
+
+The Watcher answers **"what changed since I last looked?"** On demand it
+re-scans the project, rebuilds the graph, and **diffs it against the previous
+snapshot** — reporting new environments, newly detected technologies, new and
+resolved risks, new cloud services, and more. The facts come entirely from
+comparing two graphs (no model needed); the digest is persisted so it survives
+restarts. It is the foundation for scheduled, hands-off drift detection.
+
+### The Investigator — a read-only agent
+
+The Investigator answers harder, multi-step questions — _"How does a request
+reach the database?"_, _"Who should I ask about this module?"_ — by running a
+small **ReAct loop**: at each step the local model picks **one read-only tool**,
+reads the result, and decides what to do next, until it can answer.
+
+Its tools are intentionally small and safe — all read-only:
+
+| Tool | What it does |
+| --- | --- |
+| `search_code` | semantic search over the indexed code and docs |
+| `read_file` | read a project file's contents |
+| `graph_query` | look up entities and relations in the project map |
+| `list_files` | list project files matching a substring |
+| `git_history` | who changed a file, and its recent commits |
+
+The loop is built for **local models**: the protocol is plain text the app parses
+itself (`ACTION: <tool>: <input>` … `FINAL: <answer>`), with validation, a couple
+of retries on malformed replies, a step budget, and a graceful "out of steps"
+fallback rather than a guess. Every answer comes with a **transparent trace**
+(each tool call, its input, and what it returned) and the **sources consulted**,
+collected deterministically — so the answer is always backed by real evidence,
+even if the model forgets to cite.
+
+**How the agents stay trustworthy**
+
+- **Read-only by construction** — no agent tool writes a file or runs a command.
+- **Local and private** — everything runs on your machine; your code never leaves it.
+- **Evidence-backed** — deterministic facts first; sources attached to every answer.
+- **Transparent** — the Investigator shows exactly which tools it used and why.
+- **Bounded** — a step budget keeps a run finite; you stay in control.
 
 ## Local engines
 

@@ -585,6 +585,7 @@ const TOOL_LABELS: Record<string, string> = {
   read_file: "Read file",
   graph_query: "Queried the map",
   list_files: "Listed files",
+  git_history: "Checked git history",
   "(format)": "Retried",
 };
 

@@ -84,6 +84,17 @@ class GitFileHotspot:
 
 
 @dataclass(frozen=True)
+class GitFileActivity:
+    """Ownership + recent-change activity for a file (or the whole repo when
+    ``path`` is None). Read-only, from git history."""
+
+    path: str | None
+    total_commits: int
+    top_authors: list["GitContributor"]
+    recent_commits: list["GitCommit"]
+
+
+@dataclass(frozen=True)
 class GitBranchStrategy:
     """A deterministic, honest reading of the repository's branching model.
 

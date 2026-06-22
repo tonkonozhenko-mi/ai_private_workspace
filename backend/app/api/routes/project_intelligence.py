@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from app.api.dependencies import (
     embedding_provider,
     file_system,
+    git_history,
     llm_provider_factory,
     project_graph_repository,
     project_scan_repository,
@@ -209,6 +210,7 @@ def investigate_project(workspace_id: str, request: InvestigateRequest) -> dict:
         file_system=file_system,
         project_graph_repository=project_graph_repository,
         project_scan_repository=project_scan_repository,
+        git_history=git_history,
     )
     try:
         result = use_case.execute(
