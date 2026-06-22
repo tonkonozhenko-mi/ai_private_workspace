@@ -138,7 +138,10 @@ reach the database?"_, _"Who should I ask about this module?"_ — by running a
 small **ReAct loop**: at each step the local model picks **one read-only tool**,
 reads the result, and decides what to do next, until it can answer.
 
-Its tools are intentionally small and safe — all read-only:
+There is deliberately **one** investigator, not a swarm of narrow agents. Adding a
+new capability means giving it another read-only tool, which widens what it can
+reason about — the agent decides which tools to combine for a given question. Its
+toolbox is intentionally small and safe:
 
 | Tool | What it does |
 | --- | --- |
@@ -147,6 +150,7 @@ Its tools are intentionally small and safe — all read-only:
 | `graph_query` | look up entities and relations in the project map |
 | `list_files` | list project files matching a substring |
 | `git_history` | who changed a file, and its recent commits |
+| `ci_triggers` | what CI runs on push / pull request / tag / schedule |
 
 The loop is built for **local models**: the protocol is plain text the app parses
 itself (`ACTION: <tool>: <input>` … `FINAL: <answer>`), with validation, a couple
@@ -155,6 +159,29 @@ fallback rather than a guess. Every answer comes with a **transparent trace**
 (each tool call, its input, and what it returned) and the **sources consulted**,
 collected deterministically — so the answer is always backed by real evidence,
 even if the model forgets to cite.
+
+**What it can reason about**
+
+Through those tools the Investigator draws on the indexed code and docs, the
+project map (infrastructure, services, environments, pipelines, cloud services,
+risks), individual files, the git history and file ownership, and CI trigger
+behaviour. It is strongest on understanding-and-orientation questions, not on
+predicting runtime behaviour it can't see in the files.
+
+**Questions it answers well**
+
+- _Architecture & code_ — "How does a request reach the database?", "Which
+  modules depend on the billing module?", "Where is authentication handled?"
+- _Infrastructure & deployment_ — "What gets deployed to production?", "Which AWS
+  services does this project use?", "What runs in CI when I push to a feature
+  branch versus open a pull request?"
+- _Ownership & history_ — "Who should I ask about the payments module?", "When did
+  this config last change, and why?"
+- _Risk & orientation_ — "What are the biggest risks flagged here?", "Where should
+  I start reading to understand this repo?"
+
+When the answer isn't in the project's files, it says so plainly rather than
+guessing.
 
 **How the agents stay trustworthy**
 

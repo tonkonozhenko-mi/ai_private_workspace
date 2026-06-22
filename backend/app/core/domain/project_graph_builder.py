@@ -7,6 +7,7 @@ This composes (does not replace) the existing analyzers in
 ``app/core/domain/analysis.py``.
 """
 
+import json
 import os
 import re
 
@@ -365,6 +366,19 @@ def from_github_actions(
     relations: list[ProjectRelation] = []
     for workflow in result.workflows:
         name = workflow.name or os.path.basename(workflow.path)
+        triggers_json = json.dumps(
+            [
+                {
+                    "event": t.event,
+                    "branches": t.branches,
+                    "branches_ignore": t.branches_ignore,
+                    "tags": t.tags,
+                    "paths": t.paths,
+                    "cron": t.cron,
+                }
+                for t in workflow.trigger_rules
+            ]
+        )
         pipeline = ProjectEntity(
             id=_entity_id(EntityType.PIPELINE, name),
             type=EntityType.PIPELINE,
@@ -375,6 +389,7 @@ def from_github_actions(
                 "triggers": ", ".join(workflow.triggers),
                 "jobs": str(workflow.jobs_count),
                 "uses_secrets": str(workflow.has_secrets_reference),
+                "triggers_json": triggers_json,
             },
         )
         entities.append(pipeline)

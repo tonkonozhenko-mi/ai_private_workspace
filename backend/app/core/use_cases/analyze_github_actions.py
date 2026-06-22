@@ -6,6 +6,7 @@ import yaml
 from app.core.domain.analysis import (
     AnalysisFinding,
     GitHubActionsAnalysisResult,
+    GitHubActionsTrigger,
     GitHubActionsWorkflow,
 )
 from app.core.ports.file_system import FileSystemPort
@@ -136,7 +137,62 @@ class AnalyzeGitHubActionsUseCase:
             uses_permissions="permissions" in parsed_yaml
             or any("permissions" in job for job in job_values),
             has_secrets_reference="secrets." in content,
+            trigger_rules=AnalyzeGitHubActionsUseCase._parse_trigger_rules(parsed_yaml),
         )
+
+    @staticmethod
+    def _raw_on(parsed_yaml: dict[Any, Any]) -> Any:
+        raw = parsed_yaml.get("on")
+        if raw is None and True in parsed_yaml:
+            # YAML parses the bare key `on:` as the boolean True.
+            raw = parsed_yaml[True]
+        return raw
+
+    @classmethod
+    def _parse_trigger_rules(cls, parsed_yaml: dict[Any, Any]) -> list[GitHubActionsTrigger]:
+        """Capture each trigger event with its branch/tag/path/cron filters, so the
+        UI can explain what runs on a push to a branch vs a PR vs a tag, etc."""
+        raw = cls._raw_on(parsed_yaml)
+
+        def as_list(value: Any) -> list[str]:
+            if isinstance(value, str):
+                return [value]
+            if isinstance(value, list):
+                return [str(v) for v in value if isinstance(v, (str, int))]
+            return []
+
+        if isinstance(raw, str):
+            return [GitHubActionsTrigger(event=raw)]
+        if isinstance(raw, list):
+            return [GitHubActionsTrigger(event=str(e)) for e in raw if isinstance(e, str)]
+        if not isinstance(raw, dict):
+            return []
+
+        rules: list[GitHubActionsTrigger] = []
+        for event, config in raw.items():
+            event_name = str(event)
+            if not isinstance(config, dict):
+                if event_name == "schedule" and isinstance(config, list):
+                    crons = [
+                        c["cron"]
+                        for c in config
+                        if isinstance(c, dict) and isinstance(c.get("cron"), str)
+                    ]
+                    rules.append(GitHubActionsTrigger(event="schedule", cron=crons))
+                else:
+                    rules.append(GitHubActionsTrigger(event=event_name))
+                continue
+            rules.append(
+                GitHubActionsTrigger(
+                    event=event_name,
+                    branches=as_list(config.get("branches")),
+                    branches_ignore=as_list(config.get("branches-ignore")),
+                    tags=as_list(config.get("tags")),
+                    paths=as_list(config.get("paths")),
+                    cron=as_list(config.get("cron")),
+                )
+            )
+        return rules
 
     @staticmethod
     def _parse_triggers(parsed_yaml: dict[Any, Any]) -> list[str]:

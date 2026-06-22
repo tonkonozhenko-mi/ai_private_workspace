@@ -20,6 +20,7 @@ from app.core.domain.git_insights import (
     GitInsights,
     infer_branch_strategy,
     summarize_activity,
+    summarize_merges,
 )
 
 _UNIT = "\x1f"  # ASCII unit separator — safe field delimiter for git --pretty.
@@ -75,6 +76,7 @@ class LocalGitHistory:
             recent_commits=self._recent_commits(root),
             activity_weeks=summary.weeks,
             activity_by_weekday=summary.by_weekday,
+            merge_activity=self._merge_activity(root),
         )
 
     def file_activity(
@@ -259,6 +261,16 @@ class LocalGitHistory:
             if len(contributors) >= limit:
                 break
         return contributors
+
+    def _merge_activity(self, root: Path):
+        """Approximate PR/MR activity from merge-commit subjects + (#N)/!N refs."""
+        merges_raw = self._run(root, ["log", "--merges", "-500", "--pretty=format:%s"])
+        all_raw = self._run(root, ["log", "-1000", "--pretty=format:%s"])
+        if merges_raw is None and all_raw is None:
+            return None
+        merge_subjects = [s.strip() for s in (merges_raw or "").splitlines() if s.strip()]
+        all_subjects = [s.strip() for s in (all_raw or "").splitlines() if s.strip()]
+        return summarize_merges(merge_subjects, all_subjects)
 
     def _activity_window(self, root: Path) -> list[tuple[datetime, str]]:
         """Authored commits (no merges) in the last 90 days as (datetime, author)."""

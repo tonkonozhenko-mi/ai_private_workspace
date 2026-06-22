@@ -10,6 +10,7 @@ import {
 } from "../api/client";
 import type {
   InvestigationResponse,
+  ProjectCi,
   ProjectCloud,
   ProjectDeploymentFlow,
   ProjectEnvironmentComparison,
@@ -183,6 +184,7 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
     : undefined;
   const cloud: ProjectCloud | undefined = data?.built ? data.cloud : undefined;
   const references: ProjectReferences | undefined = data?.built ? data.references : undefined;
+  const ci: ProjectCi | undefined = data?.built ? data.ci : undefined;
   const hasMap = Boolean(graph && graph.nodes.length > 0);
   const hasCloud = Boolean(cloud && cloud.total_services > 0);
   const hasReferences = Boolean(references && references.total > 0);
@@ -312,7 +314,7 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
             ) : null}
             {activeTab === "infrastructure" ? <InfrastructureSection view={view} /> : null}
             {activeTab === "deployment" ? (
-              <DeploymentSection view={view} flow={flow} />
+              <DeploymentSection view={view} flow={flow} ci={ci} />
             ) : null}
             {activeTab === "environments" ? (
               <EnvironmentsSection view={view} comparison={comparison} />
@@ -441,14 +443,17 @@ function InfrastructureSection({ view }: { view: ProjectIntelligenceView }) {
 function DeploymentSection({
   view,
   flow,
+  ci,
 }: {
   view: ProjectIntelligenceView;
   flow?: ProjectDeploymentFlow;
+  ci?: ProjectCi;
 }) {
   const { pipelines } = view.deployment;
   return (
     <div className="pi-deploy">
       {flow ? <FlowRail flow={flow} /> : null}
+      {ci && ci.has_data ? <CiScenarios ci={ci} /> : null}
       {pipelines.length === 0 ? (
         <EmptyNote text="No CI/CD pipelines were detected in this project." />
       ) : (
@@ -486,6 +491,34 @@ function FlowRail({ flow }: { flow: ProjectDeploymentFlow }) {
       ) : (
         <p className="pi-muted">No gaps detected in the deployment chain.</p>
       )}
+    </div>
+  );
+}
+
+function CiScenarios({ ci }: { ci: ProjectCi }) {
+  return (
+    <div className="pi-ci">
+      <p className="pi-eyebrow">What runs when</p>
+      <div className="pi-ci-list">
+        {ci.scenarios.map((s) => (
+          <div key={s.key} className="pi-ci-scenario">
+            <span className="pi-ci-trigger">{s.label}</span>
+            <div className="pi-ci-workflows">
+              {s.workflows.map((w) => (
+                <span key={w.name} className="pi-ci-workflow" title={w.jobs.join(", ")}>
+                  {w.name}
+                  {w.jobs.length > 0 ? (
+                    <em>{w.jobs.length} job{w.jobs.length === 1 ? "" : "s"}</em>
+                  ) : null}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="pi-ci-note">
+        Inferred from GitHub Actions triggers — job-level rules may gate some steps further.
+      </p>
     </div>
   );
 }

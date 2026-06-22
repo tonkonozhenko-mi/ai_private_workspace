@@ -179,6 +179,14 @@ export interface GitActivityBucketResponse {
   commits: number;
 }
 
+export interface GitMergeActivityResponse {
+  merge_commits: number;
+  pull_requests_detected: number;
+  merge_requests_detected: number;
+  source_branch_types: Record<string, number>;
+  target_branches: Record<string, number>;
+}
+
 export interface GitBranchStrategyResponse {
   default_branch: string | null;
   total_branches: number;
@@ -206,6 +214,7 @@ export interface GitInsightsResponse {
   recent_commits: GitCommitResponse[];
   activity_weeks: GitActivityBucketResponse[];
   activity_by_weekday: number[];
+  merge_activity: GitMergeActivityResponse | null;
 }
 
 export interface IndexedDocumentSummaryResponse {
@@ -2080,6 +2089,24 @@ export interface ProjectReferences {
   total: number;
 }
 
+export interface ProjectCiWorkflow {
+  name: string;
+  jobs: string[];
+  source_file: string | null;
+  cron?: string[];
+}
+
+export interface ProjectCiScenario {
+  key: string;
+  label: string;
+  workflows: ProjectCiWorkflow[];
+}
+
+export interface ProjectCi {
+  has_data: boolean;
+  scenarios: ProjectCiScenario[];
+}
+
 export interface ProjectIntelligenceResponse {
   built: boolean;
   role?: string;
@@ -2090,6 +2117,7 @@ export interface ProjectIntelligenceResponse {
   environment_comparison?: ProjectEnvironmentComparison;
   cloud?: ProjectCloud;
   references?: ProjectReferences;
+  ci?: ProjectCi;
 }
 
 export interface ProjectIntelligenceAnswer {
