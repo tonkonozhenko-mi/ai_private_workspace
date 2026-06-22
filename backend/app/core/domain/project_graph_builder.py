@@ -690,7 +690,14 @@ _IMPORTANT_FILE_RULES: list[tuple[re.Pattern[str], int, str]] = [
 
 
 def important_files(paths: list[str], limit: int = 12) -> list[dict[str, str]]:
-    """Score and rank notable files with a plain-language reason for each."""
+    """Score and rank a few *distinct* entry points, each with a plain reason.
+
+    "Where to start reading" must be a short, varied list — not ten copies of the
+    same file. Infra repos have hundreds of identically-named files (e.g.
+    ``terragrunt.hcl`` in every directory); we keep only one representative per
+    filename (the shallowest, most root-like one), so the list reads as genuine
+    starting points rather than a directory dump.
+    """
     scored: dict[str, tuple[int, str]] = {}
     for path in paths:
         for pattern, score, reason in _IMPORTANT_FILE_RULES:
@@ -699,8 +706,20 @@ def important_files(paths: list[str], limit: int = 12) -> list[dict[str, str]]:
                 if existing is None or score > existing[0]:
                     scored[path] = (score, reason)
                 break
-    ranked = sorted(scored.items(), key=lambda item: (-item[1][0], item[0]))
-    return [{"path": path, "reason": reason} for path, (_, reason) in ranked[:limit]]
+    # Higher score first, then shallower path, then name — so the representative
+    # kept for a repeated filename is the most root-level one.
+    ranked = sorted(scored.items(), key=lambda item: (-item[1][0], item[0].count("/"), item[0]))
+    out: list[dict[str, str]] = []
+    seen_basenames: set[str] = set()
+    for path, (_, reason) in ranked:
+        basename = path.rsplit("/", 1)[-1].lower()
+        if basename in seen_basenames:
+            continue
+        seen_basenames.add(basename)
+        out.append({"path": path, "reason": reason})
+        if len(out) >= limit:
+            break
+    return out
 
 
 def build_project_graph(

@@ -7,6 +7,26 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.112] - 2026-06-22
+
+### Added
+
+- **Project memory entries are now editable.** Each note/correction has an inline edit (✎) — fix wording in place; the kind and pin state are preserved.
+- **Add a project to a group from its Manage menu.** If no groups exist yet, it offers to create one with this project; if groups exist, it lists them to pick from (or start a new one).
+- **Drag-and-drop grouping.** Drag one project onto another to create a group with both, or drag a project onto an existing group in the sidebar to add it there.
+- **Map blast radius.** Click any node on the project map to see its full impact: everything it depends on (upstream) and everything it affects (downstream), computed transitively over the graph. Unrelated nodes dim, and a panel summarizes the reach so you can judge what a change touches before making it.
+
+### Changed
+
+- **Manage actions are now compact icon buttons** (add-to-group, clear index, archive, delete, close) with tooltips, instead of a row of wide text buttons.
+- **"Where to start reading" no longer dumps near-identical files.** It keeps one representative per filename (the most root-level), so infra repos show a short, varied set of real entry points instead of ten copies of `terragrunt.hcl`.
+- **Removed the "Ask about this" button on Home** — it duplicated the Ask tab already in the top nav.
+- **Removed the "Ask the map" sub-tab** from Project Intelligence; the quick graph-only answer added little over the main Ask.
+
+### Fixed
+
+- **Creating and deleting a project group now works in the desktop app.** Native `window.prompt`/`confirm` are disabled inside the Tauri webview (they silently return null), so group creation now uses an inline name input and deletion uses an inline two-step confirm.
+
 ## [0.1.111] - 2026-06-22
 
 ### Added

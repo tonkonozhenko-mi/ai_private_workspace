@@ -54,6 +54,7 @@ export function GroupView({ groupId, groupName, allWorkspaces, onChanged, onDele
   const [error, setError] = useState<string | null>(null);
   const [busyMember, setBusyMember] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [draftName, setDraftName] = useState(groupName);
 
   const load = useCallback(async () => {
@@ -112,10 +113,9 @@ export function GroupView({ groupId, groupName, allWorkspaces, onChanged, onDele
     }
   };
 
+  // window.confirm is disabled in the Tauri webview, so deletion uses an inline
+  // two-step confirm instead of a native dialog.
   const handleDelete = async () => {
-    if (!window.confirm(`Delete the group "${groupName}"? The repositories themselves are not deleted.`)) {
-      return;
-    }
     try {
       await deleteProjectGroup(groupId);
       onChanged();
@@ -162,9 +162,21 @@ export function GroupView({ groupId, groupName, allWorkspaces, onChanged, onDele
             {" "}· treated as one project for Home, Ask and Intelligence
           </p>
         </div>
-        <button type="button" className="grp-delete" onClick={handleDelete}>
-          Delete group
-        </button>
+        {confirmDelete ? (
+          <span className="grp-delete-confirm">
+            <span className="grp-delete-q">Delete group?</span>
+            <button type="button" className="grp-delete" onClick={() => void handleDelete()}>
+              Yes, delete
+            </button>
+            <button type="button" className="grp-delete-cancel" onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </button>
+          </span>
+        ) : (
+          <button type="button" className="grp-delete" onClick={() => setConfirmDelete(true)}>
+            Delete group
+          </button>
+        )}
       </header>
 
       {error ? <p className="grp-error">{error}</p> : null}
