@@ -145,6 +145,75 @@ function categorize(file: ProjectFileResponse): FileGroupKey {
   return "config";
 }
 
+// Turn a group of raw file paths into meaningful, human-readable items, so the
+// Home columns answer "what is this" instead of listing `main.tf` six times.
+type GroupItem = { primary: string; secondary?: string };
+
+function prettyWorkflowName(path: string): string {
+  const base = (path.split("/").pop() ?? path).replace(/\.(ya?ml)$/i, "");
+  return base
+    .split(/[-_]/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
+}
+
+const CONFIG_PURPOSE: Array<[RegExp, string]> = [
+  [/(^|\/)\.pre-commit-config\.ya?ml$/, "Pre-commit hooks"],
+  [/\.tflint\.hcl$/, "Terraform lint"],
+  [/(^|\/)\.gitignore$/, "Git ignore rules"],
+  [/(^|\/)\.gitmodules$/, "Git submodules"],
+  [/(^|\/)\.editorconfig$/, "Editor config"],
+  [/(^|\/)agents?\.md$/i, "Agent instructions"],
+  [/(^|\/)\.env/, "Environment"],
+  [/(^|\/)package\.json$/, "Node manifest"],
+  [/pyproject\.toml$|requirements.*\.txt$|setup\.(py|cfg)$|pipfile/i, "Python deps"],
+  [/dockerfile|docker-compose/i, "Container"],
+  [/\.ya?ml$/, "YAML config"],
+  [/\.json$/, "JSON config"],
+  [/\.toml$/, "TOML config"],
+];
+
+function configPurpose(path: string): string {
+  const lower = path.toLowerCase();
+  for (const [re, label] of CONFIG_PURPOSE) if (re.test(lower)) return label;
+  return "Config";
+}
+
+function groupItems(groupKey: FileGroupKey, files: ProjectFileResponse[]): GroupItem[] {
+  if (groupKey === "infra") {
+    // Distinct "modules" (the folder each file lives in) — `acm`, `cloudfront`…
+    const byDir = new Map<string, number>();
+    for (const f of files) {
+      const parts = f.path.split("/");
+      const dir = parts.length > 1 ? parts[parts.length - 2] : parts[0];
+      byDir.set(dir, (byDir.get(dir) ?? 0) + 1);
+    }
+    return [...byDir.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([dir, n]) => ({ primary: dir, secondary: `${n} file${n === 1 ? "" : "s"}` }));
+  }
+  if (groupKey === "ci") {
+    return [...files]
+      .slice(0, 6)
+      .map((f) => ({ primary: prettyWorkflowName(f.path), secondary: f.path.split("/").pop() }));
+  }
+  if (groupKey === "config") {
+    return [...files]
+      .sort(byImportance)
+      .slice(0, 6)
+      .map((f) => ({ primary: f.path.split("/").pop() ?? f.path, secondary: configPurpose(f.path) }));
+  }
+  // code / tests / docs: basename + faded parent folder, easier to scan than a path.
+  return [...files]
+    .sort(byImportance)
+    .slice(0, 6)
+    .map((f) => {
+      const parts = f.path.split("/");
+      return { primary: parts.pop() ?? f.path, secondary: parts.length ? parts.join("/") : undefined };
+    });
+}
+
 // Surface likely entry points first (main/index/app/cli/server…), then shallower
 // paths, so the short preview list shows the files that matter most.
 function keyFileRank(path: string): number {
@@ -182,6 +251,30 @@ function MetaIcon({ children }: { children: ReactNode }) {
 }
 
 const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
+
+// A plain-language one-liner so the activity panel reads like a sentence, not a
+// wall of numbers. Computed only from data we already have.
+function gitLeadSentence(git: GitInsightsResponse): string {
+  const last7 = git.commits_last_7_days ?? 0;
+  const pace = last7 > 20 ? "very active" : last7 > 3 ? "active" : last7 > 0 ? "ticking along" : "quiet lately";
+  const age = git.first_commit_at ? humanAge(git.first_commit_at) : null;
+  const parts: string[] = [];
+  parts.push(
+    `A ${pace} project — ${git.total_commits.toLocaleString()} commits` +
+      (age ? ` over ${age}` : "") +
+      ` by ${git.contributors_count} ${git.contributors_count === 1 ? "person" : "people"}` +
+      (last7 > 0 ? `, ${last7} this week.` : "."),
+  );
+  if (git.branch_strategy && git.branch_strategy.inferred_strategy !== "Unknown") {
+    parts.push(`Ships via ${git.branch_strategy.inferred_strategy}.`);
+  }
+  const top = git.hotspots[0];
+  if (top) {
+    const name = top.path.split("/").pop() ?? top.path;
+    parts.push(`Most-changed file lately: ${name}.`);
+  }
+  return parts.join(" ");
+}
 
 function GitActivityCharts({ git }: { git: GitInsightsResponse }) {
   const weeks = git.activity_weeks;
@@ -301,6 +394,8 @@ function GitActivityCard({ git }: { git: GitInsightsResponse }) {
           </p>
         </div>
       ) : null}
+
+      <p className="pu-git-lead">{gitLeadSentence(git)}</p>
 
       <div className="pu-git-stats">
         {stats.map((stat) => (
@@ -574,9 +669,11 @@ export function ProjectUnderstanding({
 
   const techNames = Array.from(new Set(skills.map((skill) => skill.name)));
   const summaryLine =
-    techNames.length > 0
-      ? `Built with ${techNames.slice(0, 5).join(", ")}${techNames.length > 5 ? ", and more" : ""}.`
-      : "No specific technologies detected — answers come from your project files.";
+    scan === null
+      ? "Reading your project…"
+      : techNames.length > 0
+        ? `Built with ${techNames.slice(0, 5).join(", ")}${techNames.length > 5 ? ", and more" : ""}.`
+        : "No specific technologies detected — answers come from your project files.";
 
   const gitAvailable = files.some((file) => file.path.toLowerCase().includes(".git"));
 
@@ -794,9 +891,14 @@ export function ProjectUnderstanding({
                     <span>{GROUP_META[groupKey].label}</span>
                     <small>{groupFiles.length}</small>
                   </div>
-                  <ul className="pu-file-list">
-                    {[...groupFiles].sort(byImportance).slice(0, 6).map((file) => (
-                      <li key={file.path} title={file.path}>{file.path}</li>
+                  <ul className="pu-file-list pu-file-list-rich">
+                    {groupItems(groupKey, groupFiles).map((item, i) => (
+                      <li key={`${item.primary}-${i}`} title={item.secondary}>
+                        <span className="pu-file-primary">{item.primary}</span>
+                        {item.secondary ? (
+                          <span className="pu-file-secondary">{item.secondary}</span>
+                        ) : null}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -816,15 +918,39 @@ export function ProjectUnderstanding({
         <div className="pu-sources-grid">
           <div className="pu-source is-active">
             <MetaIcon>{GROUP_META.docs.icon}</MetaIcon>
-            <div><strong>Local files</strong><small>{scan ? `Active · ${scan.scanned_files.toLocaleString()} files` : "Active"}</small></div>
+            <div>
+              <strong>Local files</strong>
+              <small>
+                {scan
+                  ? `${scan.scanned_files.toLocaleString()} scanned${
+                      scan.skipped_files ? ` · ${scan.skipped_files.toLocaleString()} skipped` : ""
+                    }${scan.total_size_bytes ? ` · ${formatBytes(scan.total_size_bytes)}` : ""}`
+                  : "Active"}
+              </small>
+              <small className="pu-source-note">Searchable · respects .gitignore</small>
+            </div>
           </div>
           {git || gitAvailable ? (
             <div className={`pu-source${git ? " is-active" : ""}`}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="9" r="3" /><path d="M18 12a9 9 0 0 1-9 9M6 9v6" /></svg>
-              <div><strong>Git history</strong><small>{git?.last_commit?.committed_at ? `Active · ${relativeTime(git.last_commit.committed_at)}` : "Available"}</small></div>
+              <div>
+                <strong>Git history</strong>
+                {git ? (
+                  <small>
+                    {git.total_commits.toLocaleString()} commits · {git.contributors_count} contributors
+                    {git.branch ? ` · ${git.branch}` : ""}
+                  </small>
+                ) : (
+                  <small>Available</small>
+                )}
+                {git?.last_commit?.committed_at ? (
+                  <small className="pu-source-note">Last commit {relativeTime(git.last_commit.committed_at)}</small>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </div>
+        <p className="pu-sources-trust">Everything stays on your computer — nothing is uploaded.</p>
       </div>
     </section>
   );
