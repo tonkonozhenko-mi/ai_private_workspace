@@ -34,7 +34,7 @@ const ROLE_OPTIONS: { value: string; label: string }[] = [
 ];
 
 const SECTION_LABELS: Record<string, string> = {
-  summary: "Summary",
+  summary: "Overview",
   infrastructure: "Infrastructure",
   deployment: "Deployment",
   environments: "Environments",
@@ -44,7 +44,7 @@ const SECTION_LABELS: Record<string, string> = {
   cloud: "Cloud",
   references: "References",
   map: "Map",
-  investigate: "Investigate",
+  investigate: "Ask the agent",
 };
 
 const MAP_TAB = "map";
@@ -353,6 +353,35 @@ function SummarySection({
   onGenerateOverview: () => void;
 }) {
   const { summary, important_files, questions } = view;
+  const envNames = view.environments.environments.map((e) => e.name);
+  const pipelineNames = view.deployment.pipelines.map((p) => p.name);
+  const infraNames = view.infrastructure.components.map((c) => c.name);
+
+  // Each headline number gets a plain-language sub so it means something at a
+  // glance — names of the actual environments, pipelines and tools we found.
+  const metrics: Array<{ value: number; label: string; sub?: string }> = [
+    {
+      value: summary.counts.services,
+      label: summary.counts.services === 1 ? "service" : "services",
+      sub: "apps, modules & images",
+    },
+    {
+      value: summary.counts.environments,
+      label: summary.counts.environments === 1 ? "environment" : "environments",
+      sub: joinNames(envNames),
+    },
+    {
+      value: summary.counts.pipelines,
+      label: summary.counts.pipelines === 1 ? "pipeline" : "pipelines",
+      sub: joinNames(pipelineNames) || "CI/CD",
+    },
+    {
+      value: summary.counts.infrastructure,
+      label: summary.counts.infrastructure === 1 ? "infra tool" : "infra tools",
+      sub: joinNames(infraNames),
+    },
+  ];
+
   return (
     <div className="pi-summary">
       <p className="pi-summary-desc">{summary.description}</p>
@@ -367,11 +396,16 @@ function SummarySection({
         </div>
       ) : null}
 
-      <div className="pi-counts">
-        <Count label="Services" value={summary.counts.services} />
-        <Count label="Environments" value={summary.counts.environments} />
-        <Count label="Pipelines" value={summary.counts.pipelines} />
-        <Count label="Infra tools" value={summary.counts.infrastructure} />
+      <div className="pi-metrics">
+        {metrics.map((m) => (
+          <div className="pi-metric" key={m.label}>
+            <strong>{m.value}</strong>
+            <span className="pi-metric-label">{m.label}</span>
+            {m.sub ? (
+              <span className="pi-metric-sub" title={m.sub}>{m.sub}</span>
+            ) : null}
+          </div>
+        ))}
       </div>
 
       <div className="pi-overview">
@@ -397,6 +431,7 @@ function SummarySection({
       {important_files.files.length > 0 ? (
         <div className="pi-subblock">
           <p className="pi-eyebrow">Where to start reading</p>
+          <p className="pi-hint">The files that explain the most about how this project fits together.</p>
           <ul className="pi-file-list">
             {important_files.files.map((f) => (
               <li key={f.path}>
@@ -411,6 +446,7 @@ function SummarySection({
       {questions.questions.length > 0 ? (
         <div className="pi-subblock">
           <p className="pi-eyebrow">Questions for the team</p>
+          <p className="pi-hint">Things the files can't answer on their own — worth confirming with a person.</p>
           <ul className="pi-question-list">
             {questions.questions.map((q) => (
               <li key={q.question}>
@@ -425,6 +461,13 @@ function SummarySection({
   );
 }
 
+// Joins a few names for a metric sub-line: "dev, staging, prod" or "a, b +3".
+function joinNames(names: string[], max = 3): string {
+  if (names.length === 0) return "";
+  const shown = names.slice(0, max).join(", ");
+  return names.length > max ? `${shown} +${names.length - max}` : shown;
+}
+
 function InfrastructureSection({ view }: { view: ProjectIntelligenceView }) {
   const { components, images } = view.infrastructure;
   if (components.length === 0 && images.length === 0) {
@@ -432,6 +475,7 @@ function InfrastructureSection({ view }: { view: ProjectIntelligenceView }) {
   }
   return (
     <div className="pi-entity-groups">
+      <p className="pi-hint">What provisions and packages this project — each item links back to the file it came from.</p>
       {components.length > 0 ? (
         <EntityList title="Infrastructure tools" entities={components} />
       ) : null}
@@ -467,6 +511,7 @@ function FlowRail({ flow }: { flow: ProjectDeploymentFlow }) {
   return (
     <div className="pi-flow">
       <p className="pi-eyebrow">How code reaches an environment</p>
+      <p className="pi-hint">Each stage is counted from what was found in the project — follow it left to right.</p>
       <div className="pi-flow-rail">
         {flow.stages.map((stage, i) => (
           <div key={stage.key} className="pi-flow-stage-wrap">
@@ -804,14 +849,22 @@ function AskPanel({ workspaceId, role }: { workspaceId: string; role: string | n
 function RisksSection({ view }: { view: ProjectIntelligenceView }) {
   const { findings } = view.risks;
   if (findings.length === 0) {
-    return <EmptyNote text="No risks were flagged by the deterministic analyzers." />;
+    return <EmptyNote text="Nothing looked risky to the deterministic analyzers — no findings to show." />;
   }
+  const high = findings.filter((f) => f.severity === "high").length;
+  const medium = findings.filter((f) => f.severity === "medium").length;
+  const parts = [`${findings.length} thing${findings.length === 1 ? "" : "s"} worth a look`];
+  if (high > 0) parts.push(`${high} high`);
+  if (medium > 0) parts.push(`${medium} medium`);
   return (
-    <ul className="pi-findings">
-      {findings.map((f) => (
-        <FindingItem key={f.id} finding={f} />
-      ))}
-    </ul>
+    <div className="pi-risks">
+      <p className="pi-hint">{parts.join(" · ")}. Each finding shows its evidence — open “Show sources” to see where it came from.</p>
+      <ul className="pi-findings">
+        {findings.map((f) => (
+          <FindingItem key={f.id} finding={f} />
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -954,15 +1007,6 @@ function ReferencesSection({ references }: { references: ProjectReferences }) {
           </ul>
         </div>
       ))}
-    </div>
-  );
-}
-
-function Count({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="pi-count">
-      <span className="pi-count-value">{value}</span>
-      <span className="pi-count-label">{label}</span>
     </div>
   );
 }
