@@ -2097,6 +2097,34 @@ export interface ProjectIntelligenceAnswer {
   role: string;
 }
 
+export interface ProjectWatchHighlight {
+  kind: string;
+  text: string;
+  severity?: string;
+  entity_type?: string;
+  source_file?: string | null;
+}
+
+export interface ProjectWatchDigest {
+  baseline: boolean;
+  has_changes: boolean;
+  checked_at: string;
+  previous_checked_at: string | null;
+  summary: string;
+  highlights: ProjectWatchHighlight[];
+  counts: {
+    entities_added: number;
+    entities_removed: number;
+    findings_added: number;
+    findings_resolved: number;
+  };
+}
+
+export interface ProjectWatchResponse {
+  has_digest: boolean;
+  digest?: ProjectWatchDigest;
+}
+
 export interface ProjectIntelligenceBuildResponse {
   built: boolean;
   snapshot: ProjectIntelligenceSnapshot;

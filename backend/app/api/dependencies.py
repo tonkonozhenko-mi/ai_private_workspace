@@ -14,10 +14,17 @@ from app.adapters.memory.in_memory_agent_workflow_repository import InMemoryAgen
 from app.adapters.memory.in_memory_command_repository import InMemoryCommandRepository
 from app.adapters.memory.in_memory_conversation_repository import InMemoryConversationRepository
 from app.adapters.memory.in_memory_project_graph_repository import InMemoryProjectGraphRepository
+from app.adapters.memory.in_memory_project_watch_repository import (
+    InMemoryProjectWatchRepository,
+)
 from app.adapters.project_graph.sqlite_project_graph_repository import (
     SQLiteProjectGraphRepository,
 )
+from app.adapters.project_graph.sqlite_project_watch_repository import (
+    SQLiteProjectWatchRepository,
+)
 from app.core.ports.project_graph_repository import ProjectGraphRepositoryPort
+from app.core.ports.project_watch_repository import ProjectWatchRepositoryPort
 from app.adapters.memory.in_memory_index_status_repository import (
     InMemoryIndexStatusRepository,
 )
@@ -296,6 +303,18 @@ def build_project_graph_repository() -> ProjectGraphRepositoryPort:
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
 
+def build_project_watch_repository() -> ProjectWatchRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryProjectWatchRepository()
+    if repository_type == "sqlite":
+        return SQLiteProjectWatchRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
 def build_model_experiment_repository() -> ModelExperimentRepositoryPort:
     settings = get_settings()
     repository_type = settings.workspace_repository.lower()
@@ -559,6 +578,7 @@ skill_profile_repository = build_skill_profile_repository()
 timeline_repository = build_timeline_repository()
 conversation_repository = build_conversation_repository()
 project_graph_repository = build_project_graph_repository()
+project_watch_repository = build_project_watch_repository()
 model_experiment_repository = build_model_experiment_repository()
 model_experiment_rating_repository = build_model_experiment_rating_repository()
 workspace_model_selection_repository = build_workspace_model_selection_repository()

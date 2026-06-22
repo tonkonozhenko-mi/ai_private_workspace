@@ -7,7 +7,22 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-## [0.1.105] - 2026-06-19
+## [0.1.106] - 2026-06-19
+
+### Added
+
+- **Project Watcher (first agent).** A new card on the workspace Home answers
+  "what changed since I last looked?" On demand it re-scans the project, rebuilds
+  the Project Intelligence graph, and **diffs it against the previous snapshot** —
+  reporting new environments, newly detected technologies, new/resolved risks,
+  new cloud services, services and pipelines, plus counts for the noisier kinds
+  (modules, dependencies, images, references). The first run records a baseline;
+  later runs show a concise, ordered digest with severity-tagged risks. Entirely
+  deterministic (the facts come from comparing two graphs, no LLM), read-only with
+  respect to the project, and the digest is persisted so it survives restarts.
+  This is the foundation for scheduled, hands-off drift detection.
+
+
 
 This release introduces **Project Intelligence** — a deterministic, evidence-backed
 map of an unfamiliar project built entirely from its own files (no code leaves the

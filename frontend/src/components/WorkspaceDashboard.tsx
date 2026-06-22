@@ -16,6 +16,7 @@ import { ModelsSummaryCard } from "./ModelsSummaryCard";
 import { WorkspaceGettingReady } from "./WorkspaceGettingReady";
 import { ProjectIntelligence } from "./ProjectIntelligence";
 import { ProjectUnderstanding } from "./ProjectUnderstanding";
+import { ProjectWatch } from "./ProjectWatch";
 import { StatusBadge } from "./StatusBadge";
 import type { StatusTone } from "./statusTone";
 import {
@@ -124,6 +125,7 @@ export function WorkspaceDashboard({
             onRefreshWorkspaceState={onRefreshWorkspaceState}
           />
           <ProjectIntelligence dashboard={dashboard} />
+          <ProjectWatch dashboard={dashboard} />
         </>
       ) : (
         <WorkspaceGettingReady

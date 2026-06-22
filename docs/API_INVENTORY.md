@@ -164,6 +164,8 @@ models, run benchmarks, or change active runtime configuration.
 | `GET /workspaces/{workspace_id}/intelligence` | Latest project graph projected through the role lens. | No | No | Local DB read | Project Intelligence |
 | `GET /workspaces/{workspace_id}/intelligence/overview-text` | Optional LLM overview written only from the graph facts. | No | No | Local model | Project Intelligence |
 | `POST /workspaces/{workspace_id}/intelligence/ask` | Answer a free-text question using only the graph facts. | No | No | Local model | Project Intelligence |
+| `POST /workspaces/{workspace_id}/intelligence/watch` | Re-scan, rebuild the graph, and report what changed since the last snapshot. | No | No | Local filesystem read + DB | Project Intelligence |
+| `GET /workspaces/{workspace_id}/intelligence/watch` | The most recent watcher digest. | No | No | Local DB read | Project Intelligence |
 
 ## Command Approval
 
