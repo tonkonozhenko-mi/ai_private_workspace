@@ -39,6 +39,8 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
   // just confirm each add transiently, so the card stays clean.
   const [showList, setShowList] = useState(false);
   const [justAdded, setJustAdded] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const confirmTimer = useRef<number | null>(null);
 
@@ -89,6 +91,27 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
   const remove = useCallback(
     async (id: string) => {
       await deleteProjectMemory(workspaceId, id).catch(() => {});
+      load();
+    },
+    [workspaceId, load],
+  );
+
+  // Edit = save a fresh item then drop the old one (keeps kind + pinned). No
+  // dedicated update endpoint needed, and it stays atomic enough for a note.
+  const saveEdit = useCallback(
+    async (item: ProjectMemoryItem, nextText: string) => {
+      const trimmed = nextText.trim();
+      if (!trimmed || trimmed === item.text) {
+        setEditingId(null);
+        return;
+      }
+      try {
+        await addProjectMemory(workspaceId, trimmed, item.kind, item.pinned);
+        await deleteProjectMemory(workspaceId, item.id);
+      } catch {
+        /* best-effort */
+      }
+      setEditingId(null);
       load();
     },
     [workspaceId, load],
@@ -183,20 +206,56 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
               {visible.map((item) => (
                 <li key={item.id} className="pm-item">
                   <span className="pm-kind">{KIND_LABEL[item.kind] ?? item.kind}</span>
-                  <span className="pm-text">{item.text}</span>
-                  <div className="pm-actions">
-                    <button
-                      type="button"
-                      className={`pm-pin${item.pinned ? " pm-pin-on" : ""}`}
-                      title={item.pinned ? "Unpin" : "Pin"}
-                      onClick={() => togglePin(item)}
-                    >
-                      {item.pinned ? "★" : "☆"}
-                    </button>
-                    <button type="button" className="pm-del" title="Delete" onClick={() => remove(item.id)}>
-                      ✕
-                    </button>
-                  </div>
+                  {editingId === item.id ? (
+                    <>
+                      <input
+                        className="pm-edit-input"
+                        value={editText}
+                        autoFocus
+                        onChange={(e) => setEditText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveEdit(item, editText);
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
+                      />
+                      <div className="pm-actions">
+                        <button type="button" className="pm-save" title="Save" onClick={() => saveEdit(item, editText)}>
+                          Save
+                        </button>
+                        <button type="button" className="pm-del" title="Cancel" onClick={() => setEditingId(null)}>
+                          ✕
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span className="pm-text">{item.text}</span>
+                      <div className="pm-actions">
+                        <button
+                          type="button"
+                          className="pm-edit"
+                          title="Edit"
+                          onClick={() => {
+                            setEditingId(item.id);
+                            setEditText(item.text);
+                          }}
+                        >
+                          ✎
+                        </button>
+                        <button
+                          type="button"
+                          className={`pm-pin${item.pinned ? " pm-pin-on" : ""}`}
+                          title={item.pinned ? "Unpin" : "Pin"}
+                          onClick={() => togglePin(item)}
+                        >
+                          {item.pinned ? "★" : "☆"}
+                        </button>
+                        <button type="button" className="pm-del" title="Delete" onClick={() => remove(item.id)}>
+                          ✕
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

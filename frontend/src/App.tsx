@@ -25,6 +25,7 @@ import {
   setApiBaseUrl,
   listProjectGroups,
   createProjectGroup,
+  addProjectGroupMember,
 } from "./api/client";
 import type {
   ProjectGroupSummary,
@@ -208,6 +209,9 @@ function App() {
   const [archivedWorkspaces, setArchivedWorkspaces] = useState<WorkspaceOverviewItem[]>([]);
   const [totalWorkspaces, setTotalWorkspaces] = useState(0);
   const [groups, setGroups] = useState<ProjectGroupSummary[]>([]);
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [dropTargetGroupId, setDropTargetGroupId] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
     null,
@@ -476,17 +480,80 @@ function App() {
     setDetail(null);
   }, []);
 
-  const handleCreateGroup = useCallback(async () => {
-    const name = window.prompt("Name this group of repositories:");
-    if (!name || !name.trim()) return;
-    try {
-      const group = await createProjectGroup(name.trim(), []);
-      await loadGroups();
-      handleSelectGroup(group.id);
-    } catch {
-      // Surface nothing destructive; creation failures are non-fatal here.
-    }
-  }, [loadGroups, handleSelectGroup]);
+  // Native window.prompt is disabled inside the Tauri webview (it returns null),
+  // so group creation must use an in-app input rather than a browser prompt.
+  const handleCreateGroup = useCallback(
+    async (name: string) => {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      try {
+        const group = await createProjectGroup(trimmed, []);
+        setNewGroupName("");
+        setCreatingGroup(false);
+        await loadGroups();
+        handleSelectGroup(group.id);
+      } catch {
+        // Surface nothing destructive; creation failures are non-fatal here.
+      }
+    },
+    [loadGroups, handleSelectGroup],
+  );
+
+  const handleAddWorkspaceToGroup = useCallback(
+    async (workspace: WorkspaceOverviewItem, groupId: string) => {
+      try {
+        await addProjectGroupMember(groupId, workspace.workspace_id);
+        await loadGroups();
+        handleSelectGroup(groupId);
+      } catch {
+        // non-fatal
+      }
+    },
+    [loadGroups, handleSelectGroup],
+  );
+
+  const handleCreateGroupWith = useCallback(
+    async (workspace: WorkspaceOverviewItem) => {
+      try {
+        const group = await createProjectGroup(`${workspace.name} group`, [workspace.workspace_id]);
+        await loadGroups();
+        handleSelectGroup(group.id);
+      } catch {
+        // non-fatal
+      }
+    },
+    [loadGroups, handleSelectGroup],
+  );
+
+  // Drag one project onto another → make a group containing both.
+  const handleDropWorkspaceOnWorkspace = useCallback(
+    async (sourceWorkspaceId: string, targetWorkspaceId: string) => {
+      const target = workspaces.find((w) => w.workspace_id === targetWorkspaceId);
+      const name = target ? `${target.name} group` : "New group";
+      try {
+        const group = await createProjectGroup(name, [targetWorkspaceId, sourceWorkspaceId]);
+        await loadGroups();
+        handleSelectGroup(group.id);
+      } catch {
+        // non-fatal
+      }
+    },
+    [workspaces, loadGroups, handleSelectGroup],
+  );
+
+  // Drag a project onto an existing group chip → add it there.
+  const handleDropWorkspaceOnGroup = useCallback(
+    async (groupId: string, workspaceId: string) => {
+      try {
+        await addProjectGroupMember(groupId, workspaceId);
+        await loadGroups();
+        handleSelectGroup(groupId);
+      } catch {
+        // non-fatal
+      }
+    },
+    [loadGroups, handleSelectGroup],
+  );
 
 
   const handleArchiveWorkspace = useCallback(async (workspace: WorkspaceOverviewItem) => {
@@ -959,6 +1026,10 @@ function App() {
               deletingWorkspaceId={deletingWorkspaceId}
               clearingIndexWorkspaceId={clearingIndexWorkspaceId}
               keepingWorkspaceId={keepingWorkspaceId}
+              groups={groups}
+              onAddToGroup={(workspace, groupId) => void handleAddWorkspaceToGroup(workspace, groupId)}
+              onCreateGroupWith={(workspace) => void handleCreateGroupWith(workspace)}
+              onDropWorkspaceOnWorkspace={(sourceId, targetId) => void handleDropWorkspaceOnWorkspace(sourceId, targetId)}
               onToggleArchived={() => setShowArchivedWorkspaces((current) => !current)}
               onSelect={(workspaceId) => {
                 setShowCreateWorkspace(false);
@@ -983,13 +1054,43 @@ function App() {
               className="icon-button"
               data-tip="New group"
               aria-label="New group"
-              onClick={() => void handleCreateGroup()}
+              onClick={() => {
+                setCreatingGroup((v) => !v);
+                setNewGroupName("");
+              }}
             >
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M12 5v14M5 12h14" />
               </svg>
             </button>
           </div>
+          {creatingGroup ? (
+            <div className="sidebar-group-create">
+              <input
+                className="sidebar-group-input"
+                type="text"
+                value={newGroupName}
+                autoFocus
+                placeholder="Group name…"
+                onChange={(e) => setNewGroupName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleCreateGroup(newGroupName);
+                  if (e.key === "Escape") {
+                    setCreatingGroup(false);
+                    setNewGroupName("");
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="sidebar-group-create-btn"
+                disabled={newGroupName.trim().length === 0}
+                onClick={() => void handleCreateGroup(newGroupName)}
+              >
+                Create
+              </button>
+            </div>
+          ) : null}
           {groups.length === 0 ? (
             <p className="sidebar-groups-empty">Combine repositories into one project.</p>
           ) : (
@@ -998,8 +1099,22 @@ function App() {
                 <li key={group.id}>
                   <button
                     type="button"
-                    className={`sidebar-group${selectedGroupId === group.id ? " is-active" : ""}`}
+                    className={`sidebar-group${selectedGroupId === group.id ? " is-active" : ""}${dropTargetGroupId === group.id ? " is-drop-target" : ""}`}
                     onClick={() => handleSelectGroup(group.id)}
+                    onDragOver={(e) => {
+                      if (!e.dataTransfer.types.includes("application/x-aiworkspace-id")) return;
+                      e.preventDefault();
+                      setDropTargetGroupId(group.id);
+                    }}
+                    onDragLeave={() => setDropTargetGroupId((id) => (id === group.id ? null : id))}
+                    onDrop={(e) => {
+                      setDropTargetGroupId(null);
+                      const workspaceId = e.dataTransfer.getData("application/x-aiworkspace-id");
+                      if (workspaceId) {
+                        e.preventDefault();
+                        void handleDropWorkspaceOnGroup(group.id, workspaceId);
+                      }
+                    }}
                   >
                     <span className="sidebar-group-name">{group.name}</span>
                     <span className="sidebar-group-count">{group.member_count}</span>

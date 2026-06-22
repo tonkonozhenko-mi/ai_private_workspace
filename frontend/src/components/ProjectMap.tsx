@@ -61,6 +61,42 @@ function truncate(text: string, max = 22): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
+function BlastColumn({
+  title,
+  hint,
+  ids,
+  nameOf,
+  limit = 12,
+}: {
+  title: string;
+  hint: string;
+  ids: string[];
+  nameOf: (id: string) => string;
+  limit?: number;
+}) {
+  const names = ids.map(nameOf).sort((a, b) => a.localeCompare(b));
+  const visible = names.slice(0, limit);
+  const extra = names.length - visible.length;
+  return (
+    <div className="pi-map-blast-col">
+      <p className="pi-map-blast-col-title">
+        {title} <span className="pi-map-blast-col-count">{names.length}</span>
+      </p>
+      <p className="pi-map-blast-col-hint">{hint}</p>
+      {names.length === 0 ? (
+        <p className="pi-muted pi-map-blast-empty">None.</p>
+      ) : (
+        <ul className="pi-map-blast-list">
+          {visible.map((name, i) => (
+            <li key={`${name}-${i}`}>{name}</li>
+          ))}
+          {extra > 0 ? <li className="pi-map-blast-more">+{extra} more</li> : null}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function ProjectMap({ graph }: { graph: ProjectGraphPayload }) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -136,6 +172,38 @@ export function ProjectMap({ graph }: { graph: ProjectGraphPayload }) {
     return set;
   }, [hovered, edges]);
 
+  // Blast radius: follow edges transitively from the selected node in both
+  // directions. Downstream (following edges) is what this node *affects*;
+  // upstream (against edges) is what it *depends on*. The union is the full set
+  // of things touched if this node changes.
+  const blast = useMemo(() => {
+    if (!selected) return null;
+    const out = new Map<string, string[]>();
+    const inc = new Map<string, string[]>();
+    for (const e of edges) {
+      (out.get(e.source) ?? out.set(e.source, []).get(e.source)!).push(e.target);
+      (inc.get(e.target) ?? inc.set(e.target, []).get(e.target)!).push(e.source);
+    }
+    const reach = (start: string, adj: Map<string, string[]>): Set<string> => {
+      const seen = new Set<string>();
+      const queue = [start];
+      while (queue.length) {
+        const cur = queue.shift()!;
+        for (const next of adj.get(cur) ?? []) {
+          if (!seen.has(next)) {
+            seen.add(next);
+            queue.push(next);
+          }
+        }
+      }
+      return seen;
+    };
+    const downstream = reach(selected, out);
+    const upstream = reach(selected, inc);
+    const all = new Set<string>([selected, ...downstream, ...upstream]);
+    return { downstream, upstream, all };
+  }, [selected, edges]);
+
   if (shown.length === 0) {
     return (
       <p className="pi-muted pi-empty-note">
@@ -145,9 +213,6 @@ export function ProjectMap({ graph }: { graph: ProjectGraphPayload }) {
   }
 
   const selectedNode = selected ? placed.get(selected)?.node ?? null : null;
-  const selectedEdges = selected
-    ? edges.filter((e) => e.source === selected || e.target === selected)
-    : [];
 
   function edgePath(e: ProjectGraphEdge): string {
     const s = placed.get(e.source);
@@ -162,13 +227,17 @@ export function ProjectMap({ graph }: { graph: ProjectGraphPayload }) {
   }
 
   function nodeOpacity(id: string): number {
-    if (!neighbors) return 1;
-    return neighbors.has(id) ? 1 : 0.25;
+    if (blast) return blast.all.has(id) ? 1 : 0.12;
+    if (neighbors) return neighbors.has(id) ? 1 : 0.25;
+    return 1;
   }
 
   function edgeActive(e: ProjectGraphEdge): boolean {
+    if (blast) return blast.all.has(e.source) && blast.all.has(e.target);
     return !hovered || e.source === hovered || e.target === hovered;
   }
+
+  const nodeName = (id: string) => placed.get(id)?.node.name ?? id;
 
   return (
     <div className="pi-map">
@@ -258,6 +327,9 @@ export function ProjectMap({ graph }: { graph: ProjectGraphPayload }) {
             />
             <span className="pi-map-detail-name">{selectedNode.name}</span>
             <span className="pi-map-detail-type">{TYPE_LABEL[selectedNode.type]}</span>
+            <button type="button" className="pi-map-detail-close" onClick={() => setSelected(null)} aria-label="Clear selection">
+              ✕
+            </button>
           </div>
           <p className="pi-map-detail-meta">
             Detected by {selectedNode.analyzer}
@@ -269,26 +341,36 @@ export function ProjectMap({ graph }: { graph: ProjectGraphPayload }) {
               </>
             ) : null}
           </p>
-          {selectedEdges.length > 0 ? (
-            <ul className="pi-map-detail-edges">
-              {selectedEdges.map((e) => {
-                const other = e.source === selected ? e.target : e.source;
-                const dir = e.source === selected ? "→" : "←";
-                return (
-                  <li key={e.id}>
-                    {dir} {e.type.replace(/_/g, " ")}: {placed.get(other)?.node.name ?? other}
-                  </li>
-                );
-              })}
-            </ul>
+
+          {blast && blast.all.size > 1 ? (
+            <p className="pi-map-blast-summary">
+              Touches <strong>{blast.all.size - 1}</strong> other{" "}
+              {blast.all.size - 1 === 1 ? "node" : "nodes"} — {blast.upstream.size} upstream,{" "}
+              {blast.downstream.size} downstream. Highlighted on the map.
+            </p>
           ) : (
-            <p className="pi-muted">No connections recorded for this node.</p>
+            <p className="pi-muted">Nothing else connects to this node.</p>
           )}
+
+          <div className="pi-map-blast-cols">
+            <BlastColumn
+              title="Depends on (upstream)"
+              hint="What this needs / flows from"
+              ids={blast ? [...blast.upstream] : []}
+              nameOf={nodeName}
+            />
+            <BlastColumn
+              title="Affects (downstream)"
+              hint="What changes here ripple into"
+              ids={blast ? [...blast.downstream] : []}
+              nameOf={nodeName}
+            />
+          </div>
         </div>
       ) : (
         <p className="pi-map-hint">
           Click a colour to show or hide that layer · hover a node to trace its connections ·
-          click it for details.
+          click a node to see its blast radius — everything it depends on and everything it affects.
         </p>
       )}
     </div>

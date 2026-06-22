@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import type { WorkspaceOverviewItem } from "../api/types";
+import type { ProjectGroupSummary, WorkspaceOverviewItem } from "../api/types";
 import { EmptyState } from "./EmptyState";
 import { StatusBadge } from "./StatusBadge";
 
@@ -14,6 +14,7 @@ interface WorkspaceListProps {
   deletingWorkspaceId?: string | null;
   clearingIndexWorkspaceId?: string | null;
   keepingWorkspaceId?: string | null;
+  groups?: ProjectGroupSummary[];
   onToggleArchived: () => void;
   onSelect: (workspaceId: string) => void;
   onArchive: (workspace: WorkspaceOverviewItem) => void;
@@ -21,6 +22,9 @@ interface WorkspaceListProps {
   onDelete: (workspace: WorkspaceOverviewItem) => void;
   onClearIndex: (workspace: WorkspaceOverviewItem) => void;
   onKeep: (workspace: WorkspaceOverviewItem) => void;
+  onAddToGroup?: (workspace: WorkspaceOverviewItem, groupId: string) => void;
+  onCreateGroupWith?: (workspace: WorkspaceOverviewItem) => void;
+  onDropWorkspaceOnWorkspace?: (sourceWorkspaceId: string, targetWorkspaceId: string) => void;
 }
 
 export function WorkspaceList({
@@ -33,6 +37,7 @@ export function WorkspaceList({
   deletingWorkspaceId,
   clearingIndexWorkspaceId,
   keepingWorkspaceId,
+  groups,
   onToggleArchived,
   onSelect,
   onArchive,
@@ -40,6 +45,9 @@ export function WorkspaceList({
   onDelete,
   onClearIndex,
   onKeep,
+  onAddToGroup,
+  onCreateGroupWith,
+  onDropWorkspaceOnWorkspace,
 }: WorkspaceListProps) {
   if (workspaces.length === 0 && archivedWorkspaces.length === 0) {
     return (
@@ -68,11 +76,15 @@ export function WorkspaceList({
             deletingWorkspaceId={deletingWorkspaceId}
             clearingIndexWorkspaceId={clearingIndexWorkspaceId}
             keepingWorkspaceId={keepingWorkspaceId}
+            groups={groups}
             onSelect={onSelect}
             onArchive={onArchive}
             onDelete={onDelete}
             onClearIndex={onClearIndex}
             onKeep={onKeep}
+            onAddToGroup={onAddToGroup}
+            onCreateGroupWith={onCreateGroupWith}
+            onDropWorkspaceOnWorkspace={onDropWorkspaceOnWorkspace}
           />
         )}
       </div>
@@ -126,11 +138,15 @@ function ActiveWorkspaces({
   deletingWorkspaceId,
   clearingIndexWorkspaceId,
   keepingWorkspaceId,
+  groups,
   onSelect,
   onArchive,
   onDelete,
   onClearIndex,
   onKeep,
+  onAddToGroup,
+  onCreateGroupWith,
+  onDropWorkspaceOnWorkspace,
 }: {
   workspaces: WorkspaceOverviewItem[];
   selectedWorkspaceId: string | null;
@@ -138,11 +154,15 @@ function ActiveWorkspaces({
   deletingWorkspaceId?: string | null;
   clearingIndexWorkspaceId?: string | null;
   keepingWorkspaceId?: string | null;
+  groups?: ProjectGroupSummary[];
   onSelect: (workspaceId: string) => void;
   onArchive: (workspace: WorkspaceOverviewItem) => void;
   onDelete: (workspace: WorkspaceOverviewItem) => void;
   onClearIndex: (workspace: WorkspaceOverviewItem) => void;
   onKeep: (workspace: WorkspaceOverviewItem) => void;
+  onAddToGroup?: (workspace: WorkspaceOverviewItem, groupId: string) => void;
+  onCreateGroupWith?: (workspace: WorkspaceOverviewItem) => void;
+  onDropWorkspaceOnWorkspace?: (sourceWorkspaceId: string, targetWorkspaceId: string) => void;
 }) {
   const [showAll, setShowAll] = useState(false);
   const selected =
@@ -163,11 +183,15 @@ function ActiveWorkspaces({
           deletingBusy={deletingWorkspaceId === selected.workspace_id}
           clearingBusy={clearingIndexWorkspaceId === selected.workspace_id}
           keepingBusy={keepingWorkspaceId === selected.workspace_id}
+          groups={groups}
           onSelect={() => onSelect(selected.workspace_id)}
           onArchive={() => onArchive(selected)}
           onDelete={() => onDelete(selected)}
           onClearIndex={() => onClearIndex(selected)}
           onKeep={() => onKeep(selected)}
+          onAddToGroup={onAddToGroup}
+          onCreateGroupWith={onCreateGroupWith}
+          onDropWorkspaceOnWorkspace={onDropWorkspaceOnWorkspace}
         />
       ) : null}
       {visibleOthers.length > 0 ? (
@@ -177,6 +201,7 @@ function ActiveWorkspaces({
               key={workspace.workspace_id}
               workspace={workspace}
               onSelect={() => onSelect(workspace.workspace_id)}
+              onDropWorkspace={onDropWorkspaceOnWorkspace}
             />
           ))}
         </div>
@@ -194,21 +219,49 @@ function ActiveWorkspaces({
   );
 }
 
+const DND_MIME = "application/x-aiworkspace-id";
+
 function WorkspaceCompactRow({
   workspace,
   onSelect,
+  onDropWorkspace,
 }: {
   workspace: WorkspaceOverviewItem;
   onSelect: () => void;
+  onDropWorkspace?: (sourceWorkspaceId: string, targetWorkspaceId: string) => void;
 }) {
   const ready = workspace.readiness_status === "ready";
   const isTemporary = workspace.persistence === "temporary";
+  const [dropActive, setDropActive] = useState(false);
   return (
     <button
-      className="workspace-compact-row"
+      className={`workspace-compact-row${dropActive ? " is-drop-target" : ""}`}
       type="button"
       onClick={onSelect}
-      title={workspace.project_path}
+      title="Drag onto another project to group them"
+      draggable={Boolean(onDropWorkspace)}
+      onDragStart={(e) => {
+        e.dataTransfer.setData(DND_MIME, workspace.workspace_id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragOver={(e) => {
+        if (!onDropWorkspace) return;
+        const src = e.dataTransfer.types.includes(DND_MIME);
+        if (src) {
+          e.preventDefault();
+          setDropActive(true);
+        }
+      }}
+      onDragLeave={() => setDropActive(false)}
+      onDrop={(e) => {
+        setDropActive(false);
+        if (!onDropWorkspace) return;
+        const sourceId = e.dataTransfer.getData(DND_MIME);
+        if (sourceId && sourceId !== workspace.workspace_id) {
+          e.preventDefault();
+          onDropWorkspace(sourceId, workspace.workspace_id);
+        }
+      }}
     >
       <span
         className={`workspace-dot${ready ? " is-ready" : ""}`}
@@ -230,6 +283,7 @@ function WorkspaceCompactRow({
 type CardMode =
   | { kind: "idle" }
   | { kind: "menu" }
+  | { kind: "group" }
   | { kind: "confirm"; action: "archive" | "delete" | "clear" };
 
 interface WorkspaceCardProps {
@@ -241,12 +295,16 @@ interface WorkspaceCardProps {
   deletingBusy?: boolean;
   clearingBusy?: boolean;
   keepingBusy?: boolean;
+  groups?: ProjectGroupSummary[];
   onSelect: () => void;
   onArchive?: () => void;
   onRestore?: () => void;
   onDelete?: () => void;
   onClearIndex?: () => void;
   onKeep?: () => void;
+  onAddToGroup?: (workspace: WorkspaceOverviewItem, groupId: string) => void;
+  onCreateGroupWith?: (workspace: WorkspaceOverviewItem) => void;
+  onDropWorkspaceOnWorkspace?: (sourceWorkspaceId: string, targetWorkspaceId: string) => void;
 }
 
 function WorkspaceCard({
@@ -258,24 +316,52 @@ function WorkspaceCard({
   deletingBusy = false,
   clearingBusy = false,
   keepingBusy = false,
+  groups,
   onSelect,
   onArchive,
   onRestore,
   onDelete,
   onClearIndex,
   onKeep,
+  onAddToGroup,
+  onCreateGroupWith,
+  onDropWorkspaceOnWorkspace,
 }: WorkspaceCardProps) {
   const [mode, setMode] = useState<CardMode>({ kind: "idle" });
+  const [dropActive, setDropActive] = useState(false);
 
   const busy = archivingBusy || restoringBusy || deletingBusy || clearingBusy || keepingBusy;
   const canClearIndex = workspace.index_status === "indexed";
   const isTemporary = workspace.persistence === "temporary";
+  const canGroup = Boolean(onAddToGroup || onCreateGroupWith);
+  const draggable = Boolean(onDropWorkspaceOnWorkspace) && !archived;
 
   const reset = () => setMode({ kind: "idle" });
 
   return (
     <div
-      className={`workspace-list-card${selected ? " is-selected" : ""}${archived ? " is-archived" : ""}${isTemporary ? " is-temporary" : ""}`}
+      className={`workspace-list-card${selected ? " is-selected" : ""}${archived ? " is-archived" : ""}${isTemporary ? " is-temporary" : ""}${dropActive ? " is-drop-target" : ""}`}
+      draggable={draggable}
+      onDragStart={(e) => {
+        if (!draggable) return;
+        e.dataTransfer.setData(DND_MIME, workspace.workspace_id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragOver={(e) => {
+        if (!onDropWorkspaceOnWorkspace || !e.dataTransfer.types.includes(DND_MIME)) return;
+        e.preventDefault();
+        setDropActive(true);
+      }}
+      onDragLeave={() => setDropActive(false)}
+      onDrop={(e) => {
+        setDropActive(false);
+        if (!onDropWorkspaceOnWorkspace) return;
+        const sourceId = e.dataTransfer.getData(DND_MIME);
+        if (sourceId && sourceId !== workspace.workspace_id) {
+          e.preventDefault();
+          onDropWorkspaceOnWorkspace(sourceId, workspace.workspace_id);
+        }
+      }}
     >
       <button
         className="workspace-list-item"
@@ -367,56 +453,64 @@ function WorkspaceCard({
                 {deletingBusy ? "Deleting..." : "Delete"}
               </button>
             </>
+          ) : mode.kind === "group" ? (
+            <GroupPicker
+              groups={groups ?? []}
+              busy={busy}
+              onPick={(groupId) => {
+                onAddToGroup?.(workspace, groupId);
+                reset();
+              }}
+              onCreate={() => {
+                onCreateGroupWith?.(workspace);
+                reset();
+              }}
+              onCancel={() => setMode({ kind: "menu" })}
+            />
           ) : mode.kind === "menu" ? (
-            <>
+            <div className="workspace-icon-actions" role="group" aria-label={`${workspace.name} actions`}>
               {isTemporary && onKeep ? (
-                <button
-                  className="workspace-card-action is-keep"
-                  type="button"
+                <IconAction
+                  label={keepingBusy ? "Keeping…" : "Keep forever"}
                   disabled={busy}
                   onClick={() => {
                     onKeep();
                     reset();
                   }}
-                >
-                  {keepingBusy ? "Keeping..." : "Keep forever"}
-                </button>
+                  icon={ICON.keep}
+                />
+              ) : null}
+              {canGroup ? (
+                <IconAction
+                  label="Add to group"
+                  disabled={busy}
+                  onClick={() => setMode({ kind: "group" })}
+                  icon={ICON.group}
+                />
               ) : null}
               {canClearIndex ? (
-                <button
-                  className="workspace-card-action"
-                  type="button"
+                <IconAction
+                  label="Clear index"
                   disabled={busy}
                   onClick={() => setMode({ kind: "confirm", action: "clear" })}
-                >
-                  Clear index
-                </button>
+                  icon={ICON.clear}
+                />
               ) : null}
-              <button
-                className="workspace-card-action"
-                type="button"
+              <IconAction
+                label="Archive"
                 disabled={busy}
                 onClick={() => setMode({ kind: "confirm", action: "archive" })}
-              >
-                Archive
-              </button>
-              <button
-                className="workspace-card-action is-danger"
-                type="button"
+                icon={ICON.archive}
+              />
+              <IconAction
+                label="Delete"
+                danger
                 disabled={busy}
                 onClick={() => setMode({ kind: "confirm", action: "delete" })}
-              >
-                Delete
-              </button>
-              <button
-                className="workspace-card-action"
-                type="button"
-                disabled={busy}
-                onClick={reset}
-              >
-                Cancel
-              </button>
-            </>
+                icon={ICON.trash}
+              />
+              <IconAction label="Close" disabled={busy} onClick={reset} icon={ICON.close} />
+            </div>
           ) : (
             <button
               className="workspace-card-action workspace-card-manage"
@@ -430,6 +524,88 @@ function WorkspaceCard({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+const ICON = {
+  group: "M4 7h6l2 2h8v9H4V7Z",
+  clear: "M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13",
+  archive: "M3 5h18v4H3V5Zm2 4v11h14V9M9 13h6",
+  trash: "M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v6M14 11v6",
+  keep: "M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5L12 3Z",
+  close: "M6 6l12 12M18 6 6 18",
+  plus: "M12 5v14M5 12h14",
+} as const;
+
+function IconAction({
+  label,
+  icon,
+  onClick,
+  disabled,
+  danger,
+}: {
+  label: string;
+  icon: string;
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className={`workspace-icon-action${danger ? " is-danger" : ""}`}
+      disabled={disabled}
+      data-tip={label}
+      aria-label={label}
+      onClick={onClick}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d={icon} />
+      </svg>
+    </button>
+  );
+}
+
+function GroupPicker({
+  groups,
+  busy,
+  onPick,
+  onCreate,
+  onCancel,
+}: {
+  groups: ProjectGroupSummary[];
+  busy: boolean;
+  onPick: (groupId: string) => void;
+  onCreate: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="workspace-group-picker">
+      {groups.length === 0 ? (
+        <button type="button" className="workspace-card-action is-primary" disabled={busy} onClick={onCreate}>
+          Create a group with this
+        </button>
+      ) : (
+        <>
+          <span className="workspace-group-picker-label">Add to…</span>
+          {groups.map((group) => (
+            <button
+              key={group.id}
+              type="button"
+              className="workspace-card-action"
+              disabled={busy}
+              onClick={() => onPick(group.id)}
+            >
+              {group.name}
+            </button>
+          ))}
+          <button type="button" className="workspace-card-action is-primary" disabled={busy} onClick={onCreate}>
+            New group…
+          </button>
+        </>
+      )}
+      <IconAction label="Back" icon={ICON.close} disabled={busy} onClick={onCancel} />
     </div>
   );
 }

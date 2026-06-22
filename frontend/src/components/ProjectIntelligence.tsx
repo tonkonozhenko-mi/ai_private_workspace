@@ -1,17 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
-  askProjectIntelligence,
   buildProjectIntelligence,
   getProjectIntelligence,
   getProjectIntelligenceOverviewText,
   getWorkspaceLatestScan,
-  investigateProject,
-  addProjectMemory,
 } from "../api/client";
-import { AnswerFeedback } from "./AnswerFeedback";
 import type {
-  InvestigationResponse,
   ProjectCi,
   ProjectCloud,
   ProjectDeploymentFlow,
@@ -46,13 +41,11 @@ const SECTION_LABELS: Record<string, string> = {
   cloud: "Cloud",
   references: "References",
   map: "Map",
-  investigate: "Ask the map",
 };
 
 const MAP_TAB = "map";
 const CLOUD_TAB = "cloud";
 const REFERENCES_TAB = "references";
-const INVESTIGATE_TAB = "investigate";
 
 const REFERENCE_KIND_LABELS: Record<string, string> = {
   url: "URLs",
@@ -198,7 +191,6 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
     if (hasCloud) extra.push(CLOUD_TAB);
     if (hasReferences) extra.push(REFERENCES_TAB);
     if (hasMap) extra.push(MAP_TAB);
-    extra.push(INVESTIGATE_TAB);
     return [...sectionTabs, ...extra];
   }, [view, hasMap, hasCloud, hasReferences]);
 
@@ -327,9 +319,6 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
               <ReferencesSection references={references} />
             ) : null}
             {activeTab === MAP_TAB && graph ? <ProjectMap graph={graph} /> : null}
-            {activeTab === INVESTIGATE_TAB ? (
-              <ProjectQa workspaceId={workspaceId} role={role} />
-            ) : null}
           </div>
         </>
       ) : null}
@@ -664,189 +653,6 @@ function EnvironmentsSection({
           })}
         </div>
       )}
-    </div>
-  );
-}
-
-const TOOL_LABELS: Record<string, string> = {
-  search_code: "Searched code",
-  read_file: "Read file",
-  graph_query: "Queried the map",
-  list_files: "Listed files",
-  git_history: "Checked git history",
-  "(format)": "Retried",
-};
-
-// One place to ask about the project, with two depths: a quick answer from the
-// map facts, or a read-only agent that investigates step by step. This replaces
-// the old split between a quick "Ask" box and a separate "Investigate" panel.
-function ProjectQa({
-  workspaceId,
-  role,
-}: {
-  workspaceId: string;
-  role: string | null;
-}) {
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<string | null>(null);
-  const [result, setResult] = useState<InvestigationResponse | null>(null);
-  const [loading, setLoading] = useState<null | "ask" | "investigate">(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const empty = question.trim().length === 0;
-
-  async function runAsk() {
-    const trimmed = question.trim();
-    if (!trimmed || loading) return;
-    setLoading("ask");
-    setError(null);
-    setAnswer(null);
-    setResult(null);
-    try {
-      const res = await askProjectIntelligence(workspaceId, trimmed, role ?? undefined);
-      setAnswer(res.answer);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "The local model could not answer.");
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  async function runInvestigate() {
-    const trimmed = question.trim();
-    if (!trimmed || loading) return;
-    setLoading("investigate");
-    setError(null);
-    setAnswer(null);
-    setResult(null);
-    try {
-      const res = await investigateProject(workspaceId, trimmed, role ?? undefined);
-      setResult(res);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "The investigation could not run.");
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  return (
-    <div className="pi-qa">
-      <p className="pi-hint">
-        Ask for a quick answer from the project map, or send a read-only agent to
-        investigate — it searches code, reads files and shows its steps. Nothing is changed.
-      </p>
-      <div className="pi-ask-row">
-        <input
-          className="pi-ask-input"
-          type="text"
-          value={question}
-          placeholder="e.g. How does a request reach the database?"
-          onChange={(e) => setQuestion(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") runAsk();
-          }}
-          disabled={loading !== null}
-        />
-        <button
-          type="button"
-          className="pi-button"
-          onClick={runAsk}
-          disabled={loading !== null || empty}
-        >
-          {loading === "ask" ? "Asking…" : "Ask"}
-        </button>
-        <button
-          type="button"
-          className="pi-button pi-button-primary"
-          onClick={runInvestigate}
-          disabled={loading !== null || empty}
-        >
-          {loading === "investigate" ? "Investigating…" : "Investigate"}
-        </button>
-      </div>
-
-      {loading === "investigate" ? (
-        <p className="pi-muted">Working through the project step by step…</p>
-      ) : null}
-      {error ? <p className="pi-muted">{error}</p> : null}
-
-      {answer ? (
-        <div className="pi-qa-answer">
-          <p className="pi-eyebrow">Answer</p>
-          <p className="pi-ask-answer">{answer}</p>
-          <p className="pi-ask-note">A quick answer from the analyzed project files.</p>
-          <AnswerFeedback
-            question={question}
-            answer={answer}
-            onSave={(text, k) => addProjectMemory(workspaceId, text, k)}
-          />
-        </div>
-      ) : null}
-
-      {result ? (
-        <div className="pi-inv-result">
-          <div className="pi-inv-answer">
-            <p className="pi-eyebrow">Answer</p>
-            <p className="pi-inv-answer-text">{result.answer}</p>
-            {result.stopped_reason === "budget_exhausted" ? (
-              <p className="pi-inv-note">
-                Reached the step limit — this is the best answer from what was gathered.
-              </p>
-            ) : null}
-            {result.context_used &&
-            (result.context_used.memory > 0 || result.context_used.facts > 0) ? (
-              <p className="pi-inv-note">
-                Used {result.context_used.memory} memory note(s) and{" "}
-                {result.context_used.facts} map fact(s) as background.
-              </p>
-            ) : null}
-            <AnswerFeedback
-              question={question}
-              answer={result.answer}
-              onSave={(text, k) => addProjectMemory(workspaceId, text, k)}
-            />
-          </div>
-
-          {result.steps.length > 0 ? (
-            <details className="pi-inv-trace">
-              <summary>
-                How it figured this out · {result.steps.length} step(s)
-              </summary>
-              <ol className="pi-inv-steps">
-                {result.steps.map((step, i) => (
-                  <li key={i} className="pi-inv-step">
-                    <div className="pi-inv-step-head">
-                      <span className="pi-inv-tool">
-                        {TOOL_LABELS[step.tool] ?? step.tool}
-                      </span>
-                      {step.tool_input ? (
-                        <code className="pi-inv-input">{step.tool_input}</code>
-                      ) : null}
-                    </div>
-                    {step.thought ? (
-                      <p className="pi-inv-thought">{step.thought}</p>
-                    ) : null}
-                    <pre className="pi-inv-obs">{step.observation}</pre>
-                  </li>
-                ))}
-              </ol>
-            </details>
-          ) : null}
-
-          {result.sources.length > 0 ? (
-            <div className="pi-inv-sources">
-              <p className="pi-eyebrow">Sources consulted</p>
-              <div className="pi-chips">
-                {result.sources.map((s) => (
-                  <span key={s} className="pi-chip">
-                    <code>{s}</code>
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
     </div>
   );
 }
