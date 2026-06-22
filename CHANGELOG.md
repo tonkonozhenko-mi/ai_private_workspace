@@ -71,6 +71,22 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
   Center, `aws_mskconnect_*` → MSK Connect, `aws_service_discovery_*` → Service
   Discovery, `aws_wafv2_*`/`aws_sesv2_*` collapse into WAF/SES) instead of
   title-casing a raw token into "Ssoadmin", "Wafv2", "Service".
+- **"No remote state" is no longer reported when Terragrunt manages the backend.**
+  Terragrunt keeps `remote_state` in `terragrunt.hcl`, so a Terraform stack with no
+  `backend` block in `.tf` is expected — the map now marks Terraform's state as
+  managed (shown as "remote state · Terragrunt") and drops the false finding.
+- **Infrastructure tools no longer pin a meaningless representative file** (an
+  aggregate over hundreds of files had no single useful source).
+- **Environments show their root directory** (e.g. `accounts/dev/`) instead of an
+  arbitrary deep file.
+- **References hide the noise.** Provider/AWS documentation links
+  (`registry.terraform.io`, `docs.aws.amazon.com`, …) and unresolved templates
+  (`${var.region}`, `:TBD:`) are filtered out, so References shows real external
+  dependencies — cross-account ARNs, external APIs, S3 buckets, module sources.
+- **The Map is no longer a hairball.** The legend is now an interactive filter —
+  click any layer (Environment, Pipeline, Cloud service, …) to show or hide it,
+  each with a node count — and the noisiest layer, Jobs, is hidden by default.
+  Hover still traces a node's connections and clicking opens its details.
 
 ### Added
 

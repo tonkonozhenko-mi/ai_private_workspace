@@ -38,6 +38,8 @@ _S3_RE = re.compile(r"s3://[a-z0-9.\-/_]+", re.IGNORECASE)
 _SOURCE_RE = re.compile(r'source\s*=\s*"([^"]+)"')
 
 # Boilerplate domains that are noise rather than real project dependencies.
+# These are mostly documentation links pasted into comments by code generators
+# (provider docs), not things the project actually depends on.
 _NOISE_HOSTS = (
     "www.w3.org",
     "schema.org",
@@ -47,6 +49,14 @@ _NOISE_HOSTS = (
     "localhost",
     "127.0.0.1",
     "schemas.",
+    "registry.terraform.io",
+    "registry.opentofu.org",
+    "docs.aws.amazon.com",
+    "docs.microsoft.com",
+    "learn.microsoft.com",
+    "cloud.google.com/docs",
+    "developer.hashicorp.com",
+    "terraform.io/docs",
 )
 
 
@@ -56,6 +66,12 @@ def _clean_url(url: str) -> str:
 
 def _is_noise(url: str) -> bool:
     return any(host in url for host in _NOISE_HOSTS)
+
+
+def _is_template(value: str) -> bool:
+    """Unresolved templates / placeholders are not real references."""
+    lowered = value.lower()
+    return "${" in value or ":tbd:" in lowered or lowered.endswith(":tbd") or "<" in value
 
 
 def _looks_like_module_source(value: str) -> bool:
@@ -118,14 +134,17 @@ class AnalyzeReferencesUseCase:
             )
             for raw in _URL_RE.findall(content):
                 url = _clean_url(raw)
-                if not _is_noise(url):
+                if not _is_noise(url) and not _is_template(url):
                     record("url", url, project_file.path)
             for arn in _ARN_RE.findall(content):
-                record("aws_arn", arn.rstrip(".,;:)\"'`"), project_file.path)
+                cleaned = arn.rstrip(".,;:)\"'`")
+                if not _is_template(cleaned):
+                    record("aws_arn", cleaned, project_file.path)
             for bucket in _S3_RE.findall(content):
-                record("s3_bucket", bucket, project_file.path)
+                if not _is_template(bucket):
+                    record("s3_bucket", bucket, project_file.path)
             for source in _SOURCE_RE.findall(content):
-                if _looks_like_module_source(source):
+                if _looks_like_module_source(source) and not _is_template(source):
                     record("module_source", source, project_file.path)
 
         # Rank within each kind and cap, so the list stays meaningful.

@@ -64,11 +64,37 @@ function truncate(text: string, max = 22): string {
 export function ProjectMap({ graph }: { graph: ProjectGraphPayload }) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  // Jobs are the biggest source of clutter (many same-named nodes), so the map
+  // opens with that layer hidden; the legend toggles any layer on or off.
+  const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(
+    () => new Set(["pipeline_job"]),
+  );
+
+  // Every node type present in the graph (for the legend), with counts — shown
+  // even when hidden so a layer can be toggled back on.
+  const typeCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const n of graph.nodes) {
+      if (COLUMN_ORDER.includes(n.type)) counts.set(n.type, (counts.get(n.type) ?? 0) + 1);
+    }
+    return counts;
+  }, [graph.nodes]);
 
   const shown = useMemo(
-    () => graph.nodes.filter((n) => COLUMN_ORDER.includes(n.type)),
-    [graph.nodes],
+    () =>
+      graph.nodes.filter(
+        (n) => COLUMN_ORDER.includes(n.type) && !hiddenTypes.has(n.type),
+      ),
+    [graph.nodes, hiddenTypes],
   );
+
+  const toggleType = (type: string) =>
+    setHiddenTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
   const shownIds = useMemo(() => new Set(shown.map((n) => n.id)), [shown]);
   const edges = useMemo(
     () => graph.edges.filter((e) => shownIds.has(e.source) && shownIds.has(e.target)),
@@ -147,12 +173,23 @@ export function ProjectMap({ graph }: { graph: ProjectGraphPayload }) {
   return (
     <div className="pi-map">
       <div className="pi-map-legend">
-        {COLUMN_ORDER.filter((t) => shown.some((n) => n.type === t)).map((t) => (
-          <span key={t} className="pi-map-legend-item">
-            <span className="pi-map-swatch" style={{ background: TYPE_COLOR[t] }} />
-            {TYPE_LABEL[t]}
-          </span>
-        ))}
+        {COLUMN_ORDER.filter((t) => typeCounts.has(t)).map((t) => {
+          const hidden = hiddenTypes.has(t);
+          return (
+            <button
+              key={t}
+              type="button"
+              className={`pi-map-legend-item${hidden ? " is-hidden" : ""}`}
+              onClick={() => toggleType(t)}
+              aria-pressed={!hidden}
+              title={hidden ? `Show ${TYPE_LABEL[t]}` : `Hide ${TYPE_LABEL[t]}`}
+            >
+              <span className="pi-map-swatch" style={{ background: TYPE_COLOR[t] }} />
+              {TYPE_LABEL[t]}
+              <span className="pi-map-legend-count">{typeCounts.get(t)}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="pi-map-canvas">
@@ -249,7 +286,10 @@ export function ProjectMap({ graph }: { graph: ProjectGraphPayload }) {
           )}
         </div>
       ) : (
-        <p className="pi-map-hint">Hover to trace connections · click a node for details.</p>
+        <p className="pi-map-hint">
+          Click a colour to show or hide that layer · hover a node to trace its connections ·
+          click it for details.
+        </p>
       )}
     </div>
   );
