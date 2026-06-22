@@ -4761,3 +4761,7 @@ a.getting-ready-cta:hover {
 
 /* --- "answer used project memory" indicator --- */
 .answer-memory-note { font-size: 11.5px; color: var(--c-text-3); margin: 8px 0 0; }
+
+/* --- Watch: show-all link --- */
+.pw-link { background: none; border: none; color: var(--c-accent); font-size: 12px; cursor: pointer; padding: 2px 0 0; align-self: flex-start; }
+.pw-link:hover { text-decoration: underline; }

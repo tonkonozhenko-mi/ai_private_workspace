@@ -31,6 +31,7 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
   const [hasDigest, setHasDigest] = useState<boolean | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -96,19 +97,28 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
         <>
           <p className="pw-summary">{digest.summary}</p>
           {digest.highlights.length > 0 ? (
-            <ul className="pw-highlights">
-              {digest.highlights.map((h, i) => (
-                <li key={i} className="pw-highlight">
-                  <span className={`pw-dot ${HIGHLIGHT_DOT[h.kind] ?? "pw-dot-new"}`} />
-                  <span className="pw-highlight-text">
-                    {h.severity && h.kind === "risk_added" ? (
-                      <span className={`pw-sev pw-sev-${h.severity}`}>{h.severity}</span>
-                    ) : null}
-                    {h.text}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="pw-highlights">
+                {(showAll ? digest.highlights : digest.highlights.slice(0, 8)).map((h, i) => (
+                  <li key={i} className="pw-highlight">
+                    <span className={`pw-dot ${HIGHLIGHT_DOT[h.kind] ?? "pw-dot-new"}`} />
+                    <span className="pw-highlight-text">
+                      {h.severity && h.kind === "risk_added" ? (
+                        <span className={`pw-sev pw-sev-${h.severity}`}>{h.severity}</span>
+                      ) : null}
+                      {h.text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {digest.highlights.length > 8 ? (
+                <button type="button" className="pw-link" onClick={() => setShowAll((v) => !v)}>
+                  {showAll
+                    ? "Show less"
+                    : `Show all ${digest.highlights.length} changes`}
+                </button>
+              ) : null}
+            </>
           ) : digest.baseline ? null : (
             <p className="pw-muted">Nothing new to report.</p>
           )}
