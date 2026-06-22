@@ -176,6 +176,40 @@ def test_agent_uses_git_history_tool():
     assert "db/config.tf" in result.sources
 
 
+def test_agent_uses_memory_and_records_answer():
+    from app.adapters.memory.in_memory_project_memory_repository import (
+        InMemoryProjectMemoryRepository,
+    )
+    from app.core.domain.project_memory import MemoryKind
+
+    mem = InMemoryProjectMemoryRepository()
+    uc = InvestigateProjectUseCase(
+        workspace_repository=_WSRepo(),
+        llm_provider_factory=_Factory(
+            _ScriptedProvider(
+                [
+                    "ACTION: recall_memory: database",
+                    "FINAL: The project uses PostgreSQL.",
+                ]
+            )
+        ),
+        embedding_provider=_Embed(),
+        vector_store=_Vector(),
+        file_system=_FS(),
+        project_graph_repository=_GraphRepo(),
+        project_scan_repository=_ScanRepo(),
+        git_history=_GitHistory(),
+        memory_repository=mem,
+        context_provider=lambda ws, q: "Project handbook: a data service.",
+    )
+    result = uc.execute(InvestigateProjectInput(workspace_id="w1", question="Which database?"))
+    assert result.answer
+    assert result.steps[0].tool == "recall_memory"
+    # The answered Q&A is now durable memory.
+    qa = [i for i in mem.list("w1") if i.kind == MemoryKind.QA]
+    assert qa and "PostgreSQL" in qa[0].text
+
+
 def test_agent_invalid_replies_break_gracefully():
     uc = _use_case(["nonsense", "still nonsense", "more nonsense", "FINAL: x"])
     result = uc.execute(InvestigateProjectInput(workspace_id="w1", question="q", max_steps=8))

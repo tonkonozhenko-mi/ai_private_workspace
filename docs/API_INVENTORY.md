@@ -167,6 +167,12 @@ models, run benchmarks, or change active runtime configuration.
 | `POST /workspaces/{workspace_id}/intelligence/watch` | Re-scan, rebuild the graph, and report what changed since the last snapshot. | No | No | Local filesystem read + DB | Project Intelligence |
 | `GET /workspaces/{workspace_id}/intelligence/watch` | The most recent watcher digest. | No | No | Local DB read | Project Intelligence |
 | `POST /workspaces/{workspace_id}/intelligence/investigate` | Read-only multi-step agent: answers a question via read-only tools, returns the step trace + sources. | No | No | Local model + read-only tools | Project Intelligence |
+| `GET /workspaces/{workspace_id}/memory` | List durable project-memory items. | No | No | Local DB read | Project Intelligence |
+| `POST /workspaces/{workspace_id}/memory` | Record a note / decision / correction. | No | No | Local DB write | Project Intelligence |
+| `DELETE /workspaces/{workspace_id}/memory/{item_id}` | Delete a memory item. | No | No | Local DB write | Project Intelligence |
+| `POST /workspaces/{workspace_id}/memory/{item_id}/pin` | Pin or unpin a memory item. | No | No | Local DB write | Project Intelligence |
+| `POST /workspaces/{workspace_id}/handbook` | (Re)generate the deterministic project handbook from the latest map. | No | No | Local DB | Project Intelligence |
+| `GET /workspaces/{workspace_id}/handbook` | The stored project handbook text. | No | No | Local DB read | Project Intelligence |
 
 ## Command Approval
 

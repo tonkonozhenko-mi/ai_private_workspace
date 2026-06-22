@@ -2168,6 +2168,25 @@ export interface InvestigationResponse {
   stopped_reason: string;
 }
 
+export interface ProjectMemoryItem {
+  id: string;
+  kind: string;
+  text: string;
+  source: string;
+  created_at: string;
+  pinned: boolean;
+}
+
+export interface ProjectMemoryList {
+  items: ProjectMemoryItem[];
+}
+
+export interface ProjectHandbookResponse {
+  has_handbook: boolean;
+  handbook?: string;
+  created_at?: string;
+}
+
 export interface ProjectIntelligenceBuildResponse {
   built: boolean;
   snapshot: ProjectIntelligenceSnapshot;

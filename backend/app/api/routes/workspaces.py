@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
+    project_context_composer,
     build_active_model_configuration,
     build_reranker,
     command_repository,
@@ -1842,6 +1843,7 @@ def ask_workspace_question(
         timeline_repository=timeline_repository,
         reranker=build_reranker(),
         conversation_repository=conversation_repository,
+        project_context_provider=project_context_composer,
     )
 
     try:
@@ -1928,6 +1930,7 @@ def ask_workspace_question_with_selected_llm(
         timeline_repository=timeline_repository,
         reranker=build_reranker(),
         conversation_repository=conversation_repository,
+        project_context_provider=project_context_composer,
     )
     use_case = AskWorkspaceQuestionWithSelectedLLMUseCase(
         workspace_repository=workspace_repository,
@@ -2151,6 +2154,7 @@ def ask_workspace_question_with_selected_llm_stream(
         timeline_repository=timeline_repository,
         reranker=build_reranker(),
         conversation_repository=conversation_repository,
+        project_context_provider=project_context_composer,
     )
     use_case = AskWorkspaceQuestionWithSelectedLLMUseCase(
         workspace_repository=workspace_repository,

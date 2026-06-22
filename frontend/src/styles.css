@@ -4729,3 +4729,32 @@ a.getting-ready-cta:hover {
 .pu-git-merge-stats { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12.5px; color: var(--c-text); }
 .pu-git-merge-targets { font-size: 12px; color: var(--c-text-2); margin: 0; }
 .pu-git-merge-note { font-size: 11px; color: var(--c-text-3); margin: 0; }
+
+/* --- Project memory card --- */
+.pm-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: 18px 20px; margin-top: 16px; display: flex; flex-direction: column; gap: 14px; }
+.pm-eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-text-3); margin: 0; }
+.pm-title { font-size: 16px; font-weight: 600; color: var(--c-text); margin: 2px 0 0; }
+.pm-subtitle { font-size: 12.5px; color: var(--c-text-2); margin: 3px 0 0; max-width: 60ch; line-height: 1.5; }
+.pm-error { color: #f0a3a3; font-size: 12.5px; margin: 0; }
+.pm-muted { color: var(--c-text-2); font-size: 12px; margin: 0; line-height: 1.5; }
+.pm-add { display: flex; gap: 8px; flex-wrap: wrap; }
+.pm-add select { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-sm); color: var(--c-text); padding: 8px 10px; font-size: 12.5px; }
+.pm-add input { flex: 1; min-width: 200px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-sm); color: var(--c-text); padding: 8px 12px; font-size: 13px; }
+.pm-add input:focus { outline: none; border-color: var(--c-accent-border); }
+.pm-add button { background: var(--c-accent); border: 1px solid var(--c-accent-border); border-radius: var(--r-sm); color: var(--c-accent-ink); padding: 8px 14px; font-size: 12.5px; cursor: pointer; }
+.pm-add button:disabled { opacity: 0.55; cursor: default; }
+.pm-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.pm-item { display: flex; align-items: center; gap: 10px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 8px 12px; }
+.pm-kind { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--c-text-3); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 2px 7px; flex: none; }
+.pm-text { flex: 1; font-size: 12.5px; color: var(--c-text); line-height: 1.45; white-space: pre-wrap; }
+.pm-actions { display: flex; gap: 4px; flex: none; }
+.pm-pin, .pm-del { background: none; border: none; color: var(--c-text-3); cursor: pointer; font-size: 13px; padding: 2px 4px; }
+.pm-pin-on { color: var(--c-accent); }
+.pm-pin:hover, .pm-del:hover { color: var(--c-text); }
+.pm-handbook { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--c-border); padding-top: 12px; }
+.pm-handbook-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.pm-handbook-actions { display: flex; gap: 12px; }
+.pm-link { background: none; border: none; color: var(--c-accent); font-size: 12px; cursor: pointer; padding: 0; }
+.pm-link:hover:not(:disabled) { text-decoration: underline; }
+.pm-link:disabled { opacity: 0.55; cursor: default; }
+.pm-handbook-text { font-size: 11.5px; color: var(--c-text); background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 10px 12px; margin: 4px 0 0; white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; line-height: 1.5; }

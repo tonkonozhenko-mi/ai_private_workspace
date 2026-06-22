@@ -15,6 +15,7 @@ import { activateWorkspaceRuntime } from "../api/client";
 import { ModelsSummaryCard } from "./ModelsSummaryCard";
 import { WorkspaceGettingReady } from "./WorkspaceGettingReady";
 import { ProjectIntelligence } from "./ProjectIntelligence";
+import { ProjectMemory } from "./ProjectMemory";
 import { ProjectUnderstanding } from "./ProjectUnderstanding";
 import { ProjectWatch } from "./ProjectWatch";
 import { StatusBadge } from "./StatusBadge";
@@ -126,6 +127,7 @@ export function WorkspaceDashboard({
           />
           <ProjectIntelligence dashboard={dashboard} />
           <ProjectWatch dashboard={dashboard} />
+          <ProjectMemory dashboard={dashboard} />
         </>
       ) : (
         <WorkspaceGettingReady

@@ -13,7 +13,9 @@ from app.api.dependencies import (
     file_system,
     git_history,
     llm_provider_factory,
+    project_context_composer,
     project_graph_repository,
+    project_memory_repository,
     project_scan_repository,
     project_watch_repository,
     vector_store,
@@ -48,6 +50,20 @@ from app.core.use_cases.investigate_project import (
     InvestigateProjectInput,
     InvestigateProjectUseCase,
     InvestigateProjectWorkspaceNotFoundError,
+)
+from app.core.domain.project_memory import MemoryKind
+from app.core.use_cases.build_project_handbook import (
+    BuildHandbookGraphRequiredError,
+    BuildHandbookInput,
+    BuildProjectHandbookUseCase,
+)
+from app.core.use_cases.manage_project_memory import (
+    AddMemoryInput,
+    AddMemoryUseCase,
+    AddMemoryValidationError,
+    DeleteMemoryUseCase,
+    ListMemoryUseCase,
+    SetMemoryPinnedUseCase,
 )
 from app.core.use_cases.run_project_watch import (
     RunProjectWatchError,
@@ -194,6 +210,87 @@ def get_project_watch(workspace_id: str) -> dict:
     return {"has_digest": True, "digest": digest}
 
 
+def _memory_dict(item) -> dict:
+    return {
+        "id": item.id,
+        "kind": item.kind,
+        "text": item.text,
+        "source": item.source,
+        "created_at": item.created_at,
+        "pinned": item.pinned,
+    }
+
+
+@router.get("/{workspace_id}/memory")
+def list_project_memory(workspace_id: str) -> dict:
+    """All durable project-memory items (newest first)."""
+    items = ListMemoryUseCase(project_memory_repository).execute(workspace_id)
+    return {"items": [_memory_dict(i) for i in items]}
+
+
+class AddMemoryRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+    kind: str = MemoryKind.NOTE
+    pinned: bool = False
+
+
+@router.post("/{workspace_id}/memory")
+def add_project_memory(workspace_id: str, request: AddMemoryRequest) -> dict:
+    """Record a note / decision / correction the team wants remembered."""
+    try:
+        item = AddMemoryUseCase(project_memory_repository).execute(
+            AddMemoryInput(
+                workspace_id=workspace_id,
+                text=request.text,
+                kind=request.kind,
+                pinned=request.pinned,
+            )
+        )
+    except AddMemoryValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return _memory_dict(item)
+
+
+@router.delete("/{workspace_id}/memory/{item_id}")
+def delete_project_memory(workspace_id: str, item_id: str) -> dict:
+    DeleteMemoryUseCase(project_memory_repository).execute(workspace_id, item_id)
+    return {"deleted": True}
+
+
+class PinMemoryRequest(BaseModel):
+    pinned: bool
+
+
+@router.post("/{workspace_id}/memory/{item_id}/pin")
+def pin_project_memory(workspace_id: str, item_id: str, request: PinMemoryRequest) -> dict:
+    SetMemoryPinnedUseCase(project_memory_repository).execute(
+        workspace_id, item_id, request.pinned
+    )
+    return {"pinned": request.pinned}
+
+
+@router.post("/{workspace_id}/handbook")
+def build_project_handbook(workspace_id: str) -> dict:
+    """(Re)generate the deterministic project handbook from the latest map."""
+    try:
+        text = BuildProjectHandbookUseCase(
+            project_graph_repository, project_memory_repository
+        ).execute(BuildHandbookInput(workspace_id=workspace_id))
+    except BuildHandbookGraphRequiredError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return {"handbook": text}
+
+
+@router.get("/{workspace_id}/handbook")
+def get_project_handbook(workspace_id: str) -> dict:
+    """The stored handbook text, or ``has_handbook: false`` if none yet."""
+    items = ListMemoryUseCase(project_memory_repository).execute(workspace_id)
+    handbook = next((i for i in items if i.kind == MemoryKind.HANDBOOK), None)
+    if handbook is None:
+        return {"has_handbook": False}
+    return {"has_handbook": True, "handbook": handbook.text, "created_at": handbook.created_at}
+
+
 class InvestigateRequest(BaseModel):
     question: str = Field(min_length=1, max_length=500)
     role: str | None = None
@@ -213,6 +310,8 @@ def investigate_project(workspace_id: str, request: InvestigateRequest) -> dict:
         project_graph_repository=project_graph_repository,
         project_scan_repository=project_scan_repository,
         git_history=git_history,
+        memory_repository=project_memory_repository,
+        context_provider=project_context_composer,
     )
     try:
         result = use_case.execute(

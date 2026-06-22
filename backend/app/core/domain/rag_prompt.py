@@ -38,6 +38,7 @@ def build_workspace_question_prompt(
     skill_instructions: list[SkillPromptInstruction] | None = None,
     attached_section: str = "",
     assistant_identity: str | None = None,
+    project_memory_section: str = "",
 ) -> str:
     context_sections = [
         (
@@ -76,6 +77,7 @@ def build_workspace_question_prompt(
         "question was about the project.\n\n"
         f"Question:\n{question}\n\n"
         f"{attached_section}"
+        f"{(project_memory_section + chr(10) + chr(10)) if project_memory_section else ''}"
         f"Context chunks:\n{context}\n\n"
         f"Available source paths: {source_paths}\n\n"
         f"{skill_section}"
