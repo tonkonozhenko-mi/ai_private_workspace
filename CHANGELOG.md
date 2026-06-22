@@ -7,7 +7,20 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-## [0.1.107] - 2026-06-19
+## [0.1.108] - 2026-06-19
+
+### Added
+
+- **Investigator gains a `git_history` tool.** The read-only agent can now answer
+  ownership and recency questions — "who should I ask about this module?", "when
+  did this file last change and why?" — by reading a file's top authors and recent
+  commits (read-only `git log` / author counts, repo-level when no path is given).
+- **README: "Project intelligence and agents" section.** Documents the project
+  map, the deterministic Watcher and the read-only Investigator — including the
+  agent's tool list, how the ReAct loop works, and the trust guarantees
+  (read-only, local, evidence-backed, transparent, bounded).
+
+
 
 ### Added
 

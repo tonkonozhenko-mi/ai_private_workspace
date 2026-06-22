@@ -104,6 +104,24 @@ class _ScanRepo:
         return SimpleNamespace(files=[SimpleNamespace(path="db/config.tf")])
 
 
+class _GitHistory:
+    def read_insights(self, project_path):
+        return None
+
+    def file_activity(self, project_path, relative_path=None):
+        return SimpleNamespace(
+            path=relative_path,
+            total_commits=12,
+            top_authors=[SimpleNamespace(name="Alice", commits=9)],
+            recent_commits=[
+                SimpleNamespace(
+                    short_hash="abc123", subject="tune db pool",
+                    author="Alice", committed_at="2026-06-01T10:00:00+00:00",
+                )
+            ],
+        )
+
+
 def _use_case(replies):
     return InvestigateProjectUseCase(
         workspace_repository=_WSRepo(),
@@ -113,6 +131,7 @@ def _use_case(replies):
         file_system=_FS(),
         project_graph_repository=_GraphRepo(),
         project_scan_repository=_ScanRepo(),
+        git_history=_GitHistory(),
     )
 
 
@@ -140,6 +159,21 @@ def test_agent_loop_budget_exhausted_forces_final():
     assert result.stopped_reason == "budget_exhausted"
     assert result.used_steps == 3
     assert result.answer
+
+
+def test_agent_uses_git_history_tool():
+    uc = _use_case(
+        [
+            "ACTION: git_history: db/config.tf",
+            "FINAL: Alice owns db/config.tf (db/config.tf).",
+        ]
+    )
+    result = uc.execute(
+        InvestigateProjectInput(workspace_id="w1", question="Who owns the db config?")
+    )
+    assert result.steps[0].tool == "git_history"
+    assert "Alice (9)" in result.steps[0].observation
+    assert "db/config.tf" in result.sources
 
 
 def test_agent_invalid_replies_break_gracefully():
