@@ -1,19 +1,34 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
+  addGroupMemory,
   addProjectGroupMember,
   askProjectGroupStream,
+  buildGroupHandbook,
+  deleteGroupMemory,
   deleteProjectGroup,
+  getGroupHandbook,
   getProjectGroup,
   getProjectGroupOverview,
+  listGroupMemory,
+  pinGroupMemory,
   removeProjectGroupMember,
   updateProjectGroup,
 } from "../api/client";
 import type {
   GroupAskResponse,
+  GroupMemoryItem,
   GroupOverviewResponse,
   ProjectGroupDetail,
 } from "../api/types";
+
+const MEMORY_KIND_LABEL: Record<string, string> = {
+  note: "Note",
+  decision: "Decision",
+  correction: "Correction",
+  fact: "Fact",
+  qa: "Earlier Q&A",
+};
 
 type GroupTab = "home" | "ask" | "intelligence";
 
@@ -177,7 +192,7 @@ export function GroupView({ groupId, groupName, allWorkspaces, onChanged, onDele
       />
 
       <div className="grp-body">
-        {activeTab === "home" ? <GroupHome overview={overview} /> : null}
+        {activeTab === "home" ? <GroupHome overview={overview} groupId={groupId} /> : null}
         {activeTab === "ask" ? <GroupAsk groupId={groupId} /> : null}
         {activeTab === "intelligence" ? <GroupIntelligence overview={overview} /> : null}
       </div>
@@ -252,7 +267,7 @@ function Metric({ value, label, sub }: { value: string | number; label: string; 
   );
 }
 
-function GroupHome({ overview }: { overview: GroupOverviewResponse | null }) {
+function GroupHome({ overview, groupId }: { overview: GroupOverviewResponse | null; groupId: string }) {
   if (!overview) return <p className="grp-muted">Loading…</p>;
   if (overview.member_count === 0) {
     return <p className="grp-muted">No repositories in this group yet. Add one above.</p>;
@@ -288,7 +303,123 @@ function GroupHome({ overview }: { overview: GroupOverviewResponse | null }) {
           ))}
         </ul>
       </section>
+
+      <GroupMemory groupId={groupId} />
     </div>
+  );
+}
+
+function GroupMemory({ groupId }: { groupId: string }) {
+  const [items, setItems] = useState<GroupMemoryItem[]>([]);
+  const [draft, setDraft] = useState("");
+  const [handbook, setHandbook] = useState<string | null>(null);
+  const [showHandbook, setShowHandbook] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const [mem, hb] = await Promise.all([listGroupMemory(groupId), getGroupHandbook(groupId)]);
+      setItems(mem.items);
+      setHandbook(hb.has_handbook ? (hb.handbook ?? null) : null);
+    } catch {
+      // optional
+    }
+  }, [groupId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const visible = items.filter((i) => i.kind !== "handbook");
+
+  const add = async () => {
+    const text = draft.trim();
+    if (!text || busy) return;
+    setBusy(true);
+    try {
+      await addGroupMemory(groupId, text);
+      setDraft("");
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async (id: string) => {
+    await deleteGroupMemory(groupId, id);
+    await load();
+  };
+  const togglePin = async (item: GroupMemoryItem) => {
+    await pinGroupMemory(groupId, item.id, !item.pinned);
+    await load();
+  };
+  const regenerate = async () => {
+    setBusy(true);
+    try {
+      const res = await buildGroupHandbook(groupId);
+      setHandbook(res.handbook);
+      setShowHandbook(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="grp-section">
+      <p className="grp-shead">Notes &amp; handbook</p>
+      <p className="grp-hint">
+        What you tell the group here is remembered and fed into every group answer — so the AI
+        gets better at this project over time.
+      </p>
+      <div className="grp-ask-row">
+        <input
+          className="grp-ask-input"
+          type="text"
+          value={draft}
+          placeholder="e.g. prod is called 'prd' in this org; billing lives in the api repo"
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") add();
+          }}
+          disabled={busy}
+        />
+        <button type="button" className="grp-button" onClick={add} disabled={busy || draft.trim().length === 0}>
+          Remember
+        </button>
+      </div>
+
+      {visible.length > 0 ? (
+        <ul className="grp-memory-list">
+          {visible.map((item) => (
+            <li key={item.id} className="grp-memory-item">
+              <span className={`grp-memory-kind${item.pinned ? " is-pinned" : ""}`}>
+                {MEMORY_KIND_LABEL[item.kind] ?? item.kind}
+              </span>
+              <span className="grp-memory-text">{item.text}</span>
+              <button type="button" className="grp-memory-act" title={item.pinned ? "Unpin" : "Pin"} onClick={() => togglePin(item)}>
+                {item.pinned ? "★" : "☆"}
+              </button>
+              <button type="button" className="grp-memory-act" title="Delete" onClick={() => remove(item.id)}>
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="grp-muted">No notes yet.</p>
+      )}
+
+      <div className="grp-handbook-row">
+        <button type="button" className="grp-button" onClick={regenerate} disabled={busy}>
+          {handbook ? "Regenerate handbook" : "Generate handbook"}
+        </button>
+        {handbook ? (
+          <button type="button" className="grp-link" onClick={() => setShowHandbook((v) => !v)}>
+            {showHandbook ? "Hide handbook" : "View handbook"}
+          </button>
+        ) : null}
+      </div>
+      {handbook && showHandbook ? <pre className="grp-handbook">{handbook}</pre> : null}
+    </section>
   );
 }
 

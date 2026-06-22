@@ -20,12 +20,14 @@ from app.api.dependencies import (
     project_context_composer,
     project_graph_repository,
     project_group_repository,
+    project_memory_repository,
     vector_store,
     workspace_repository,
 )
 from app.core.domain.group_overview import GroupOverview
 from app.core.domain.group_qa import GroupQuestionAnswer
 from app.core.domain.project_group import ProjectGroup
+from app.core.domain.project_memory import MemoryKind
 from app.core.use_cases.ask_group_question import (
     AskGroupQuestionInput,
     AskGroupQuestionNotFoundError,
@@ -34,9 +36,21 @@ from app.core.use_cases.ask_group_question import (
     GroupAskStreamDelta,
     GroupAskStreamFinal,
 )
+from app.core.use_cases.build_group_handbook import (
+    BuildGroupHandbookNotFoundError,
+    BuildGroupHandbookUseCase,
+)
 from app.core.use_cases.build_group_overview import (
     BuildGroupOverviewNotFoundError,
     BuildGroupOverviewUseCase,
+)
+from app.core.use_cases.manage_project_memory import (
+    AddMemoryInput,
+    AddMemoryUseCase,
+    AddMemoryValidationError,
+    DeleteMemoryUseCase,
+    ListMemoryUseCase,
+    SetMemoryPinnedUseCase,
 )
 from app.core.use_cases.manage_project_groups import (
     ManageProjectGroupsUseCase,
@@ -245,6 +259,94 @@ def group_overview(group_id: str) -> GroupOverviewResponse:
         return _overview_response(use_case.execute(group_id))
     except BuildGroupOverviewNotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+
+
+# --- Group-level memory + handbook ---
+
+
+def _memory_dict(item) -> dict:
+    return {
+        "id": item.id,
+        "kind": item.kind,
+        "text": item.text,
+        "source": item.source,
+        "created_at": item.created_at,
+        "pinned": item.pinned,
+    }
+
+
+class AddGroupMemoryRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+    kind: str = MemoryKind.NOTE
+    pinned: bool = False
+
+
+class PinGroupMemoryRequest(BaseModel):
+    pinned: bool
+
+
+@router.get("/{group_id}/memory")
+def list_group_memory(group_id: str) -> dict:
+    """All durable notes for the group (newest first)."""
+    items = ListMemoryUseCase(project_memory_repository).execute(group_id)
+    return {"items": [_memory_dict(i) for i in items]}
+
+
+@router.post("/{group_id}/memory")
+def add_group_memory(group_id: str, request: AddGroupMemoryRequest) -> dict:
+    try:
+        item = AddMemoryUseCase(project_memory_repository).execute(
+            AddMemoryInput(
+                workspace_id=group_id,
+                text=request.text,
+                kind=request.kind,
+                pinned=request.pinned,
+            )
+        )
+    except AddMemoryValidationError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    return _memory_dict(item)
+
+
+@router.delete("/{group_id}/memory/{item_id}")
+def delete_group_memory(group_id: str, item_id: str) -> dict:
+    DeleteMemoryUseCase(project_memory_repository).execute(group_id, item_id)
+    return {"deleted": True}
+
+
+@router.post("/{group_id}/memory/{item_id}/pin")
+def pin_group_memory(group_id: str, item_id: str, request: PinGroupMemoryRequest) -> dict:
+    SetMemoryPinnedUseCase(project_memory_repository).execute(group_id, item_id, request.pinned)
+    return {"pinned": request.pinned}
+
+
+@router.post("/{group_id}/handbook")
+def build_group_handbook_endpoint(group_id: str) -> dict:
+    """(Re)generate the deterministic group handbook from the aggregated overview."""
+    use_case = BuildGroupHandbookUseCase(
+        BuildGroupOverviewUseCase(
+            group_repository=project_group_repository,
+            workspace_repository=workspace_repository,
+            project_graph_repository=project_graph_repository,
+            git_history=git_history,
+            index_status_repository=index_status_repository,
+        ),
+        project_memory_repository,
+    )
+    try:
+        text = use_case.execute(group_id)
+    except BuildGroupHandbookNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    return {"handbook": text}
+
+
+@router.get("/{group_id}/handbook")
+def get_group_handbook(group_id: str) -> dict:
+    items = ListMemoryUseCase(project_memory_repository).execute(group_id)
+    handbook = next((i for i in items if i.kind == MemoryKind.HANDBOOK), None)
+    if handbook is None:
+        return {"has_handbook": False}
+    return {"has_handbook": True, "handbook": handbook.text, "created_at": handbook.created_at}
 
 
 # --- Ask across the group ---

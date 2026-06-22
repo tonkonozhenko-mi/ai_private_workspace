@@ -393,3 +393,9 @@ never created or deleted by these endpoints.
 - `GET /workspace-groups/{group_id}/overview` — aggregated Home + Intelligence view (per-repo facts + group rollups).
 - `POST /workspace-groups/{group_id}/ask` — ask one question across all member repositories, with repo-attributed sources.
 - `POST /workspace-groups/{group_id}/ask/stream` — same as ask, streamed token by token over SSE.
+- `GET /workspace-groups/{group_id}/memory` — group-level notes/decisions/corrections.
+- `POST /workspace-groups/{group_id}/memory` — add a group note.
+- `DELETE /workspace-groups/{group_id}/memory/{item_id}` — remove a group note.
+- `POST /workspace-groups/{group_id}/memory/{item_id}/pin` — pin/unpin a group note.
+- `POST /workspace-groups/{group_id}/handbook` — (re)generate the deterministic group handbook from the overview.
+- `GET /workspace-groups/{group_id}/handbook` — the stored group handbook text.

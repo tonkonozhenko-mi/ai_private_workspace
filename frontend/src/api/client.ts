@@ -1793,3 +1793,59 @@ export async function askProjectGroupStream(
   if (!finalAnswer) throw new Error("The streaming response ended without a final answer.");
   return finalAnswer;
 }
+
+// --- Group memory + handbook ---
+
+import type { GroupHandbookResponse, GroupMemoryItem, GroupMemoryListResponse } from "./types";
+
+export async function listGroupMemory(
+  groupId: string,
+  init: RequestInit = {},
+): Promise<GroupMemoryListResponse> {
+  return getJson<GroupMemoryListResponse>(`/workspace-groups/${groupId}/memory`, init);
+}
+
+export async function addGroupMemory(
+  groupId: string,
+  text: string,
+  kind = "note",
+): Promise<GroupMemoryItem> {
+  return requestJson<GroupMemoryItem>(`/workspace-groups/${groupId}/memory`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ text, kind }),
+  });
+}
+
+export async function deleteGroupMemory(groupId: string, itemId: string): Promise<void> {
+  await requestJson(`/workspace-groups/${groupId}/memory/${itemId}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+}
+
+export async function pinGroupMemory(
+  groupId: string,
+  itemId: string,
+  pinned: boolean,
+): Promise<void> {
+  await requestJson(`/workspace-groups/${groupId}/memory/${itemId}/pin`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ pinned }),
+  });
+}
+
+export async function buildGroupHandbook(groupId: string): Promise<{ handbook: string }> {
+  return requestJson<{ handbook: string }>(`/workspace-groups/${groupId}/handbook`, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
+}
+
+export async function getGroupHandbook(
+  groupId: string,
+  init: RequestInit = {},
+): Promise<GroupHandbookResponse> {
+  return getJson<GroupHandbookResponse>(`/workspace-groups/${groupId}/handbook`, init);
+}

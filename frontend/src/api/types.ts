@@ -2290,3 +2290,22 @@ export interface GroupAskResponse {
   facts_used: number;
   diagnostic_code: string | null;
 }
+
+export interface GroupMemoryItem {
+  id: string;
+  kind: string;
+  text: string;
+  source: string;
+  created_at: string;
+  pinned: boolean;
+}
+
+export interface GroupMemoryListResponse {
+  items: GroupMemoryItem[];
+}
+
+export interface GroupHandbookResponse {
+  has_handbook: boolean;
+  handbook?: string;
+  created_at?: string;
+}
