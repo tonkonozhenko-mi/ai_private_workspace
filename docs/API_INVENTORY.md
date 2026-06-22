@@ -399,3 +399,12 @@ never created or deleted by these endpoints.
 - `POST /workspace-groups/{group_id}/memory/{item_id}/pin` — pin/unpin a group note.
 - `POST /workspace-groups/{group_id}/handbook` — (re)generate the deterministic group handbook from the overview.
 - `GET /workspace-groups/{group_id}/handbook` — the stored group handbook text.
+
+## Answer ratings & nudges
+
+The user's 👍/👎 are logged locally; from the recent history the app derives at
+most two honest nudges (try a bigger model / rebuild the search context). No model
+is retrained.
+
+- `POST /workspaces/{workspace_id}/answer-ratings` — record a thumbs up/down with its model + context-chunk count.
+- `GET /workspaces/{workspace_id}/answer-ratings/nudges` — deterministic nudges derived from recent ratings.

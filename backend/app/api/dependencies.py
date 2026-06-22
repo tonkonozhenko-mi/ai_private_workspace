@@ -31,6 +31,13 @@ from app.adapters.memory.sqlite_project_group_repository import (
     SQLiteProjectGroupRepository,
 )
 from app.core.ports.project_group_repository import ProjectGroupRepositoryPort
+from app.adapters.memory.in_memory_answer_rating_repository import (
+    InMemoryAnswerRatingRepository,
+)
+from app.adapters.memory.sqlite_answer_rating_repository import (
+    SQLiteAnswerRatingRepository,
+)
+from app.core.ports.answer_rating_repository import AnswerRatingRepositoryPort
 from app.core.use_cases.compose_project_context import ComposeProjectContextUseCase
 from app.adapters.project_graph.sqlite_project_graph_repository import (
     SQLiteProjectGraphRepository,
@@ -354,6 +361,18 @@ def build_project_group_repository() -> ProjectGroupRepositoryPort:
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
 
+def build_answer_rating_repository() -> AnswerRatingRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryAnswerRatingRepository()
+    if repository_type == "sqlite":
+        return SQLiteAnswerRatingRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
 def build_model_experiment_repository() -> ModelExperimentRepositoryPort:
     settings = get_settings()
     repository_type = settings.workspace_repository.lower()
@@ -620,6 +639,7 @@ project_graph_repository = build_project_graph_repository()
 project_watch_repository = build_project_watch_repository()
 project_memory_repository = build_project_memory_repository()
 project_group_repository = build_project_group_repository()
+answer_rating_repository = build_answer_rating_repository()
 # Shared project-context provider injected into Ask + the Investigator.
 project_context_composer = ComposeProjectContextUseCase(
     project_memory_repository, project_graph_repository

@@ -1157,6 +1157,8 @@ function App() {
                   defaultReasoning={preferences.defaultReasoning}
                   defaultStreaming={preferences.defaultStreaming}
                   onAsked={() => refreshAfterAsk(detail.dashboard.workspace_id)}
+                  onOpenModels={() => setActiveTab("models")}
+                  onOpenOverview={() => setActiveTab("overview")}
                 />
               </div>
               {activeTab === "models" ? (

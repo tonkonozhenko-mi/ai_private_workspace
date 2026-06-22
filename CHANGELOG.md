@@ -17,6 +17,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
   a thumbs-up saves the Q&A — both are fed back into future prompts by the app, so
   answers get better over time. The copy is honest that this doesn't retrain the
   local model — the app just remembers and re-injects what you confirmed.
+- **Ratings turn into nudges.** The thumbs are logged locally (with the model and
+  how much context each answer had), and from the recent history the Ask tab
+  surfaces at most two calm, dismissible suggestions: "answers are getting
+  thumbs-down a lot — try a larger model" (opens Models) and "low-rated answers
+  had little project context — rebuild the search context" (opens Home). Pure,
+  deterministic heuristics over a local log; nothing is uploaded or used to train.
 - **Project groups — treat several repositories as one project.** A group owns an
   ordered list of member workspaces; each repo stays a normal, independently
   scannable workspace underneath, and the group aggregates over them:
