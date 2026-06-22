@@ -60,6 +60,11 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
   branching merge into one "How they ship" block; hotspots become "Where the work
   is going"; and the 12-week chart gains a plain trend caption (picking up /
   steady / slowing down).
+- **Intelligence tab speaks plain language.** The Overview's four bare counters
+  become metric cards that name what they count (the actual environments,
+  pipelines and infra tools found); every section gets a one-line description of
+  what it's showing; Risks opens with a "N things worth a look · X high" summary;
+  and tabs are friendlier ("Overview", "Ask the agent").
 
 ### Fixed
 
