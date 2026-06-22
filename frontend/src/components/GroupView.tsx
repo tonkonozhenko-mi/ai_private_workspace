@@ -21,6 +21,7 @@ import type {
   GroupOverviewResponse,
   ProjectGroupDetail,
 } from "../api/types";
+import { AnswerFeedback } from "./AnswerFeedback";
 
 const MEMORY_KIND_LABEL: Record<string, string> = {
   note: "Note",
@@ -579,6 +580,13 @@ function GroupAsk({ groupId }: { groupId: string }) {
                 ))}
               </ul>
             </div>
+          ) : null}
+          {result ? (
+            <AnswerFeedback
+              question={question}
+              answer={result.answer}
+              onSave={(text, k) => addGroupMemory(groupId, text, k)}
+            />
           ) : null}
         </div>
       ) : null}

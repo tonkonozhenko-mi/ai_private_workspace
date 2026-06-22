@@ -7,7 +7,9 @@ import {
   getProjectIntelligenceOverviewText,
   getWorkspaceLatestScan,
   investigateProject,
+  addProjectMemory,
 } from "../api/client";
+import { AnswerFeedback } from "./AnswerFeedback";
 import type {
   InvestigationResponse,
   ProjectCi,
@@ -773,6 +775,11 @@ function ProjectQa({
           <p className="pi-eyebrow">Answer</p>
           <p className="pi-ask-answer">{answer}</p>
           <p className="pi-ask-note">A quick answer from the analyzed project files.</p>
+          <AnswerFeedback
+            question={question}
+            answer={answer}
+            onSave={(text, k) => addProjectMemory(workspaceId, text, k)}
+          />
         </div>
       ) : null}
 
@@ -793,6 +800,11 @@ function ProjectQa({
                 {result.context_used.facts} map fact(s) as background.
               </p>
             ) : null}
+            <AnswerFeedback
+              question={question}
+              answer={result.answer}
+              onSave={(text, k) => addProjectMemory(workspaceId, text, k)}
+            />
           </div>
 
           {result.steps.length > 0 ? (

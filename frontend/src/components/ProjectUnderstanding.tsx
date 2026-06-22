@@ -169,9 +169,14 @@ const CONFIG_PURPOSE: Array<[RegExp, string]> = [
   [/(^|\/)package\.json$/, "Node manifest"],
   [/pyproject\.toml$|requirements.*\.txt$|setup\.(py|cfg)$|pipfile/i, "Python deps"],
   [/dockerfile|docker-compose/i, "Container"],
+  [/eslint\.config\.(c|m)?[jt]s$/, "ESLint config"],
+  [/prettier|\.prettierrc/, "Prettier config"],
+  [/\.config\.(c|m)?[jt]s$/, "Build config"],
   [/\.ya?ml$/, "YAML config"],
   [/\.json$/, "JSON config"],
   [/\.toml$/, "TOML config"],
+  [/\.(c|m)?js$/, "JS module"],
+  [/\.(c|m)?ts$/, "TS module"],
 ];
 
 function configPurpose(path: string): string {
@@ -307,14 +312,19 @@ function GitMomentum({ git }: { git: GitInsightsResponse }) {
   const weeks = git.activity_weeks;
   const maxWeek = weeks.reduce((m, w) => Math.max(m, w.commits), 0);
   if (maxWeek === 0) return null;
-  const n = weeks.length;
   const avg = (xs: typeof weeks) =>
     xs.length ? xs.reduce((s, w) => s + w.commits, 0) / xs.length : 0;
-  const recent = avg(weeks.slice(Math.max(0, n - 3)));
-  const prior = avg(weeks.slice(Math.max(0, n - 6), Math.max(0, n - 3)));
+  // The last bucket is the current, still-incomplete week — it's always low
+  // mid-week and would fake a "slowing down". Compare only completed weeks.
+  const complete = weeks.slice(0, -1);
+  const m = complete.length;
   let trend = "holding steady";
-  if (recent > prior * 1.25 || (prior === 0 && recent > 0)) trend = "picking up";
-  else if (prior > 0 && recent < prior * 0.75) trend = "slowing down";
+  if (m >= 4) {
+    const recent = avg(complete.slice(Math.max(0, m - 3)));
+    const prior = avg(complete.slice(Math.max(0, m - 6), Math.max(0, m - 3)));
+    if (recent > prior * 1.25 || (prior === 0 && recent > 0)) trend = "picking up";
+    else if (prior > 0 && recent < prior * 0.75) trend = "slowing down";
+  }
   return (
     <GaSection title="Momentum" hint={`Commits per week · ${trend}`}>
       <div className="pu-git-bars pu-ga-bars">
@@ -469,7 +479,14 @@ function GitActivityCard({ git }: { git: GitInsightsResponse }) {
       <summary className="pu-card-head pu-collapse-summary">
         <MetaIcon><><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="9" r="3" /><path d="M18 12a9 9 0 0 1-9 9M6 9v6" /></></MetaIcon>
         <span>Project activity</span>
-        {git.branch ? <small className="pu-git-branch">{git.branch}</small> : null}
+        {(() => {
+          // The project's main line, not whichever feature branch happens to be
+          // checked out — that long ticket branch dominates and misleads.
+          const branch = git.branch_strategy?.default_branch || git.branch;
+          return branch ? (
+            <small className="pu-git-branch" title={branch}>{branch}</small>
+          ) : null;
+        })()}
         <span className="pu-collapse-teaser">
           {git.total_commits.toLocaleString()} commits · {git.contributors_count} contributors
         </span>
@@ -941,7 +958,9 @@ export function ProjectUnderstanding({
                 {git ? (
                   <small>
                     {git.total_commits.toLocaleString()} commits · {git.contributors_count} contributors
-                    {git.branch ? ` · ${git.branch}` : ""}
+                    {git.branch_strategy?.default_branch || git.branch
+                      ? ` · ${git.branch_strategy?.default_branch || git.branch}`
+                      : ""}
                   </small>
                 ) : (
                   <small>Available</small>
