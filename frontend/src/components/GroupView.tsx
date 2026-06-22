@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 
 import {
   addProjectGroupMember,
-  askProjectGroup,
+  askProjectGroupStream,
+  deleteProjectGroup,
   getProjectGroup,
   getProjectGroupOverview,
   removeProjectGroupMember,
+  updateProjectGroup,
 } from "../api/client";
 import type {
   GroupAskResponse,
@@ -26,13 +28,17 @@ interface GroupViewProps {
   groupName: string;
   allWorkspaces: { id: string; name: string }[];
   onChanged: () => void;
+  onDeleted?: () => void;
 }
 
-export function GroupView({ groupId, groupName, allWorkspaces, onChanged }: GroupViewProps) {
+export function GroupView({ groupId, groupName, allWorkspaces, onChanged, onDeleted }: GroupViewProps) {
   const [detail, setDetail] = useState<ProjectGroupDetail | null>(null);
   const [overview, setOverview] = useState<GroupOverviewResponse | null>(null);
   const [activeTab, setActiveTab] = useState<GroupTab>("home");
   const [error, setError] = useState<string | null>(null);
+  const [busyMember, setBusyMember] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [draftName, setDraftName] = useState(groupName);
 
   const load = useCallback(async () => {
     setError(null);
@@ -58,14 +64,49 @@ export function GroupView({ groupId, groupName, allWorkspaces, onChanged }: Grou
   const addable = allWorkspaces.filter((w) => !memberIds.has(w.id));
 
   const handleAdd = async (workspaceId: string) => {
-    await addProjectGroupMember(groupId, workspaceId);
-    await load();
-    onChanged();
+    setBusyMember(workspaceId);
+    try {
+      await addProjectGroupMember(groupId, workspaceId);
+      await load();
+      onChanged();
+    } finally {
+      setBusyMember(null);
+    }
   };
   const handleRemove = async (workspaceId: string) => {
-    await removeProjectGroupMember(groupId, workspaceId);
-    await load();
-    onChanged();
+    setBusyMember(workspaceId);
+    try {
+      await removeProjectGroupMember(groupId, workspaceId);
+      await load();
+      onChanged();
+    } finally {
+      setBusyMember(null);
+    }
+  };
+
+  const saveRename = async () => {
+    const name = draftName.trim();
+    setRenaming(false);
+    if (!name || name === groupName) return;
+    try {
+      await updateProjectGroup(groupId, { name });
+      onChanged();
+    } catch {
+      // keep the old name on failure
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete the group "${groupName}"? The repositories themselves are not deleted.`)) {
+      return;
+    }
+    try {
+      await deleteProjectGroup(groupId);
+      onChanged();
+      onDeleted?.();
+    } catch {
+      // ignore
+    }
   };
 
   return (
@@ -73,12 +114,41 @@ export function GroupView({ groupId, groupName, allWorkspaces, onChanged }: Grou
       <header className="grp-head">
         <div>
           <p className="grp-eyebrow">Project group</p>
-          <h1 className="grp-title">{groupName}</h1>
+          {renaming ? (
+            <input
+              className="grp-title-input"
+              value={draftName}
+              autoFocus
+              onChange={(e) => setDraftName(e.target.value)}
+              onBlur={saveRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveRename();
+                if (e.key === "Escape") {
+                  setDraftName(groupName);
+                  setRenaming(false);
+                }
+              }}
+            />
+          ) : (
+            <h1
+              className="grp-title"
+              title="Click to rename"
+              onClick={() => {
+                setDraftName(groupName);
+                setRenaming(true);
+              }}
+            >
+              {groupName}
+            </h1>
+          )}
           <p className="grp-subtitle">
             {detail ? `${detail.member_count} ${detail.member_count === 1 ? "repository" : "repositories"}` : "…"}
             {" "}· treated as one project for Home, Ask and Intelligence
           </p>
         </div>
+        <button type="button" className="grp-delete" onClick={handleDelete}>
+          Delete group
+        </button>
       </header>
 
       {error ? <p className="grp-error">{error}</p> : null}
@@ -101,6 +171,7 @@ export function GroupView({ groupId, groupName, allWorkspaces, onChanged }: Grou
       <MemberBar
         detail={detail}
         addable={addable}
+        busyMember={busyMember}
         onAdd={handleAdd}
         onRemove={handleRemove}
       />
@@ -117,11 +188,13 @@ export function GroupView({ groupId, groupName, allWorkspaces, onChanged }: Grou
 function MemberBar({
   detail,
   addable,
+  busyMember,
   onAdd,
   onRemove,
 }: {
   detail: ProjectGroupDetail | null;
   addable: { id: string; name: string }[];
+  busyMember: string | null;
   onAdd: (id: string) => void;
   onRemove: (id: string) => void;
 }) {
@@ -129,17 +202,30 @@ function MemberBar({
   return (
     <div className="grp-members">
       {detail.members.map((m) => (
-        <span key={m.workspace_id} className="grp-member-chip" title={m.project_path}>
+        <span
+          key={m.workspace_id}
+          className={`grp-member-chip${busyMember === m.workspace_id ? " is-busy" : ""}`}
+          title={m.project_path}
+        >
           {m.name}
-          <button type="button" aria-label={`Remove ${m.name}`} onClick={() => onRemove(m.workspace_id)}>
+          <button
+            type="button"
+            aria-label={`Remove ${m.name}`}
+            disabled={busyMember !== null}
+            onClick={() => onRemove(m.workspace_id)}
+          >
             ×
           </button>
         </span>
       ))}
+      {detail.members.length === 0 ? (
+        <span className="grp-members-empty">No repositories yet — add some →</span>
+      ) : null}
       {addable.length > 0 ? (
         <select
           className="grp-add-select"
           value=""
+          disabled={busyMember !== null}
           onChange={(e) => {
             if (e.target.value) onAdd(e.target.value);
           }}
@@ -267,7 +353,9 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
 function GroupAsk({ groupId }: { groupId: string }) {
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<GroupAskResponse | null>(null);
+  const [streamed, setStreamed] = useState("");
   const [loading, setLoading] = useState(false);
+  const [think, setThink] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function submit() {
@@ -276,8 +364,13 @@ function GroupAsk({ groupId }: { groupId: string }) {
     setLoading(true);
     setError(null);
     setResult(null);
+    setStreamed("");
     try {
-      setResult(await askProjectGroup(groupId, trimmed));
+      const final = await askProjectGroupStream(groupId, trimmed, {
+        think,
+        onToken: (text) => setStreamed((prev) => prev + text),
+      });
+      setResult(final);
     } catch (err) {
       setError(err instanceof Error ? err.message : "The group could not answer.");
     } finally {
@@ -285,11 +378,17 @@ function GroupAsk({ groupId }: { groupId: string }) {
     }
   }
 
+  const answerText = result?.answer ?? streamed;
+  const memoryNote =
+    result && (result.memory_used > 0 || result.facts_used > 0)
+      ? `Used ${result.memory_used} memory note(s) and ${result.facts_used} map fact(s) from across the group.`
+      : null;
+
   return (
     <div className="grp-ask">
       <p className="grp-hint">
-        Ask once and the answer is drawn from every repository in the group. Each source is
-        labelled with the repo it came from. Nothing leaves this computer.
+        Ask once and the answer is drawn from every repository in the group, streamed as it's
+        written. Each source is labelled with the repo it came from. Nothing leaves this computer.
       </p>
       <div className="grp-ask-row">
         <input
@@ -312,13 +411,21 @@ function GroupAsk({ groupId }: { groupId: string }) {
           {loading ? "Asking…" : "Ask the group"}
         </button>
       </div>
+      <label className="grp-reasoning">
+        <input type="checkbox" checked={think} onChange={(e) => setThink(e.target.checked)} disabled={loading} />
+        Reasoning — let the model think step by step before answering
+      </label>
 
       {error ? <p className="grp-muted">{error}</p> : null}
 
-      {result ? (
+      {answerText || loading ? (
         <div className="grp-answer">
-          <p className="grp-ask-answer">{result.answer}</p>
-          {result.contributions.length > 0 ? (
+          <p className="grp-ask-answer">
+            {answerText}
+            {loading && !result ? <span className="grp-caret" /> : null}
+          </p>
+          {memoryNote ? <p className="grp-memory-note">{memoryNote}</p> : null}
+          {result && result.contributions.length > 0 ? (
             <p className="grp-contrib">
               {result.contributions
                 .map((c) =>
@@ -329,7 +436,7 @@ function GroupAsk({ groupId }: { groupId: string }) {
                 .join(" · ")}
             </p>
           ) : null}
-          {result.sources.length > 0 ? (
+          {result && result.sources.length > 0 ? (
             <div className="grp-sources">
               <p className="grp-shead">Sources</p>
               <ul>

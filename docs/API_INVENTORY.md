@@ -392,3 +392,4 @@ never created or deleted by these endpoints.
 - `DELETE /workspace-groups/{group_id}/members/{workspace_id}` — remove a member.
 - `GET /workspace-groups/{group_id}/overview` — aggregated Home + Intelligence view (per-repo facts + group rollups).
 - `POST /workspace-groups/{group_id}/ask` — ask one question across all member repositories, with repo-attributed sources.
+- `POST /workspace-groups/{group_id}/ask/stream` — same as ask, streamed token by token over SSE.

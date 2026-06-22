@@ -7,12 +7,16 @@ Strategy (deterministic retrieval, one LLM call):
   3. Merge the tagged candidates by score and keep the global top-K.
   4. Answer from that merged context with sources attributed to their repo.
 
-Each member stays a normal workspace underneath — this use case only fans out
-retrieval and stitches the results together.
+Like the single-repo Ask, the answer can be grounded with project context
+(handbook + memory + graph facts) composed across the members, can stream token
+by token, and honours the reasoning/temperature controls. Each member stays a
+normal workspace underneath — this use case only fans out retrieval and stitches
+the results together.
 """
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field, replace
 
 from app.core.domain.group_qa import (
@@ -24,6 +28,7 @@ from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.rag_prompt import build_workspace_question_prompt
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
+from app.core.ports.llm_provider import LLMProviderPort
 from app.core.ports.llm_provider_factory import (
     LLMProviderFactoryError,
     LLMProviderFactoryPort,
@@ -40,6 +45,11 @@ NO_CONTEXT_ANSWER = (
     "Nothing relevant was found across this group's repositories. Build the search "
     "context for its members (scan, then build) so their files can be searched."
 )
+_LLM_UNAVAILABLE_ANSWER = (
+    "The selected local model could not answer right now. Check that the local "
+    "model engine is running and a model is installed."
+)
+_CONTEXT_CHAR_BUDGET = 2000
 
 
 class AskGroupQuestionNotFoundError(ValueError):
@@ -58,6 +68,25 @@ class AskGroupQuestionInput:
     per_repo_cap: int = 3
     llm_provider_override: str | None = None
     llm_model_override: str | None = None
+    temperature: float | None = None
+    think: bool | None = None
+
+
+@dataclass(frozen=True)
+class GroupAskStreamDelta:
+    """A chunk of answer text produced while streaming."""
+
+    text: str
+
+
+@dataclass(frozen=True)
+class GroupAskStreamFinal:
+    """The completed answer, emitted once after all deltas."""
+
+    answer: GroupQuestionAnswer
+
+
+GroupAskStreamEvent = GroupAskStreamDelta | GroupAskStreamFinal
 
 
 @dataclass
@@ -75,6 +104,18 @@ class _Member:
     chunks_used: int = field(default=0)
 
 
+@dataclass
+class _Prepared:
+    """Everything needed to generate, once retrieval + prompt are ready."""
+
+    llm_provider: LLMProviderPort
+    prompt: str
+    selected: list[_Tagged]
+    members: list[_Member]
+    memory_used: int
+    facts_used: int
+
+
 class AskGroupQuestionUseCase:
     def __init__(
         self,
@@ -84,6 +125,7 @@ class AskGroupQuestionUseCase:
         vector_store: VectorStorePort,
         llm_provider_factory: LLMProviderFactoryPort,
         index_status_repository: IndexStatusRepositoryPort | None = None,
+        project_context_provider=None,
     ) -> None:
         self.group_repository = group_repository
         self.workspace_repository = workspace_repository
@@ -91,8 +133,58 @@ class AskGroupQuestionUseCase:
         self.vector_store = vector_store
         self.llm_provider_factory = llm_provider_factory
         self.index_status_repository = index_status_repository
+        # Optional shared project-context provider (handbook + memory + graph
+        # facts) with compose_with_stats(workspace_id, query). None = no context.
+        self.project_context_provider = project_context_provider
+
+    # --- Public API ---
 
     def execute(self, request: AskGroupQuestionInput) -> GroupQuestionAnswer:
+        prepared = self._prepare(request)
+        if isinstance(prepared, GroupQuestionAnswer):
+            return prepared
+        try:
+            answer = prepared.llm_provider.generate(
+                prepared.prompt, None, request.temperature, request.think, None
+            )
+        except RuntimeError as exc:
+            return self._runtime_error_answer(request, prepared, exc)
+        return self._final_answer(request, prepared, answer)
+
+    def execute_stream(
+        self, request: AskGroupQuestionInput
+    ) -> Iterator[GroupAskStreamEvent]:
+        prepared = self._prepare(request)
+        if isinstance(prepared, GroupQuestionAnswer):
+            yield GroupAskStreamFinal(prepared)
+            return
+
+        chunks: list[str] = []
+        stream = getattr(prepared.llm_provider, "generate_stream", None)
+        try:
+            if callable(stream):
+                for delta in stream(
+                    prepared.prompt, None, request.temperature, request.think, None
+                ):
+                    if not delta:
+                        continue
+                    chunks.append(delta)
+                    yield GroupAskStreamDelta(delta)
+            else:
+                answer = prepared.llm_provider.generate(
+                    prepared.prompt, None, request.temperature, request.think, None
+                )
+                chunks.append(answer)
+                yield GroupAskStreamDelta(answer)
+        except RuntimeError as exc:
+            yield GroupAskStreamFinal(self._runtime_error_answer(request, prepared, exc))
+            return
+
+        yield GroupAskStreamFinal(self._final_answer(request, prepared, "".join(chunks)))
+
+    # --- Internal ---
+
+    def _prepare(self, request: AskGroupQuestionInput) -> _Prepared | GroupQuestionAnswer:
         if not request.question.strip():
             raise AskGroupQuestionValidationError("A question is required.")
         group = self.group_repository.get(request.group_id)
@@ -110,7 +202,6 @@ class AskGroupQuestionUseCase:
 
         llm_provider = self._create_llm_provider(request)
         pool = self._gather_candidates(request, members)
-
         if not pool:
             return GroupQuestionAnswer(
                 group_id=group.id,
@@ -128,8 +219,7 @@ class AskGroupQuestionUseCase:
                 1 for t in selected if t.workspace_id == member.workspace_id
             )
 
-        # Prefix each source path with its repo so the model cites "repo/path"
-        # and the returned sources stay auditable per repository.
+        memory_section, memory_used, facts_used = self._project_context(members, request.question)
         labelled = [
             replace(t.result, source_path=f"{t.workspace_name}/{t.result.source_path}")
             for t in selected
@@ -138,24 +228,20 @@ class AskGroupQuestionUseCase:
             question=request.question,
             context_results=labelled,
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+            project_memory_section=memory_section,
         )
-        try:
-            answer = llm_provider.generate(prompt, None, None, None, None)
-        except RuntimeError as exc:
-            return GroupQuestionAnswer(
-                group_id=group.id,
-                question=request.question,
-                answer=(
-                    "The selected local model could not answer right now. Check that "
-                    "the local model engine is running and a model is installed."
-                ),
-                contributions=self._contributions(members),
-                llm_provider=llm_provider.provider_name,
-                llm_model=llm_provider.model_name,
-                diagnostic_code="selected_llm_runtime_unavailable",
-                diagnostic_message=str(exc),
-            )
+        return _Prepared(
+            llm_provider=llm_provider,
+            prompt=prompt,
+            selected=selected,
+            members=members,
+            memory_used=memory_used,
+            facts_used=facts_used,
+        )
 
+    def _final_answer(
+        self, request: AskGroupQuestionInput, prepared: _Prepared, answer: str
+    ) -> GroupQuestionAnswer:
         sources = [
             GroupAnswerSource(
                 workspace_id=t.workspace_id,
@@ -165,18 +251,60 @@ class AskGroupQuestionUseCase:
                 score=t.result.score,
                 preview=t.result.content[:200],
             )
-            for t in selected
+            for t in prepared.selected
         ]
         return GroupQuestionAnswer(
-            group_id=group.id,
+            group_id=request.group_id,
             question=request.question,
             answer=answer,
             sources=sources,
-            contributions=self._contributions(members),
-            used_context_chunks=len(selected),
-            llm_provider=llm_provider.provider_name,
-            llm_model=llm_provider.model_name,
+            contributions=self._contributions(prepared.members),
+            used_context_chunks=len(prepared.selected),
+            llm_provider=prepared.llm_provider.provider_name,
+            llm_model=prepared.llm_provider.model_name,
+            memory_used=prepared.memory_used,
+            facts_used=prepared.facts_used,
         )
+
+    def _runtime_error_answer(
+        self, request: AskGroupQuestionInput, prepared: _Prepared, exc: Exception
+    ) -> GroupQuestionAnswer:
+        return GroupQuestionAnswer(
+            group_id=request.group_id,
+            question=request.question,
+            answer=_LLM_UNAVAILABLE_ANSWER,
+            contributions=self._contributions(prepared.members),
+            llm_provider=prepared.llm_provider.provider_name,
+            llm_model=prepared.llm_provider.model_name,
+            diagnostic_code="selected_llm_runtime_unavailable",
+            diagnostic_message=str(exc),
+        )
+
+    def _project_context(
+        self, members: list[_Member], query: str
+    ) -> tuple[str, int, int]:
+        """Compose project context (handbook + memory + facts) across members.
+
+        Best-effort: any provider error yields no context so answering never
+        depends on it. Sections are tagged with the repo and capped overall.
+        """
+        provider = self.project_context_provider
+        if provider is None or not hasattr(provider, "compose_with_stats"):
+            return "", 0, 0
+        sections: list[str] = []
+        memory_used = 0
+        facts_used = 0
+        for member in members:
+            try:
+                text, stats = provider.compose_with_stats(member.workspace_id, query)
+            except Exception:  # noqa: BLE001 - context is optional, never fatal
+                continue
+            if text and text.strip():
+                sections.append(f"# {member.name}\n{text.strip()}")
+                memory_used += getattr(stats, "memory_items", 0)
+                facts_used += getattr(stats, "graph_facts", 0)
+        combined = "\n\n".join(sections)[:_CONTEXT_CHAR_BUDGET]
+        return combined, memory_used, facts_used
 
     def _resolve_members(self, workspace_ids: tuple[str, ...]) -> list[_Member]:
         members: list[_Member] = []
@@ -184,8 +312,13 @@ class AskGroupQuestionUseCase:
             workspace = self.workspace_repository.get(workspace_id)
             if workspace is None:
                 continue
-            indexed = self._is_indexed(workspace_id)
-            members.append(_Member(workspace_id=workspace_id, name=workspace.name, indexed=indexed))
+            members.append(
+                _Member(
+                    workspace_id=workspace_id,
+                    name=workspace.name,
+                    indexed=self._is_indexed(workspace_id),
+                )
+            )
         return members
 
     def _is_indexed(self, workspace_id: str) -> bool:
@@ -234,7 +367,7 @@ class AskGroupQuestionUseCase:
             for m in members
         ]
 
-    def _create_llm_provider(self, request: AskGroupQuestionInput):
+    def _create_llm_provider(self, request: AskGroupQuestionInput) -> LLMProviderPort:
         try:
             return self.llm_provider_factory.create(
                 provider=request.llm_provider_override,

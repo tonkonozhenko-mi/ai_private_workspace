@@ -25,6 +25,13 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
   - Sidebar "Groups" section to create a group and switch into its view; add or
     remove member repositories inline. Member workspaces are only referenced —
     never created or deleted by group actions. Everything stays on this computer.
+  - **Group Ask is at parity with single-repo Ask:** answers stream token by token
+    over SSE, can be grounded with project context (handbook + memory + map facts)
+    composed across the members — with a "used N memory + M facts" note — and honour
+    a reasoning (think) toggle.
+  - **Group UX:** rename a group inline, delete a group (repositories untouched),
+    member add/remove shows a busy state, and a live typing caret while the answer
+    streams.
 
 ### Changed
 
