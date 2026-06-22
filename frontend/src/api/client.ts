@@ -1849,3 +1849,34 @@ export async function getGroupHandbook(
 ): Promise<GroupHandbookResponse> {
   return getJson<GroupHandbookResponse>(`/workspace-groups/${groupId}/handbook`, init);
 }
+
+// --- Answer ratings & nudges ---
+
+import type { AnswerRatingNudgesResponse } from "./types";
+
+export async function recordAnswerRating(
+  workspaceId: string,
+  rating: { verdict: "up" | "down"; llm_model?: string; context_chunks?: number },
+): Promise<void> {
+  await requestJson(`/workspaces/${workspaceId}/answer-ratings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({
+      verdict: rating.verdict,
+      llm_model: rating.llm_model ?? "",
+      context_chunks: rating.context_chunks ?? 0,
+    }),
+  }).catch(() => {
+    // Best-effort: a failed rating must never disrupt the answer flow.
+  });
+}
+
+export async function getAnswerRatingNudges(
+  workspaceId: string,
+  init: RequestInit = {},
+): Promise<AnswerRatingNudgesResponse> {
+  return getJson<AnswerRatingNudgesResponse>(
+    `/workspaces/${workspaceId}/answer-ratings/nudges`,
+    init,
+  );
+}

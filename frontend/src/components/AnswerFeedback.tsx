@@ -10,10 +10,13 @@ export function AnswerFeedback({
   question,
   answer,
   onSave,
+  onRate,
 }: {
   question: string;
   answer: string;
   onSave: (text: string, kind: MemoryKind) => Promise<unknown>;
+  // Optional best-effort rating log (model + context), used only to derive nudges.
+  onRate?: (verdict: "up" | "down") => void;
 }) {
   const [mode, setMode] = useState<"idle" | "correcting" | "liked" | "corrected">("idle");
   const [correction, setCorrection] = useState("");
@@ -22,6 +25,7 @@ export function AnswerFeedback({
 
   async function like() {
     if (saving) return;
+    onRate?.("up");
     setSaving(true);
     setError(null);
     try {
@@ -68,7 +72,17 @@ export function AnswerFeedback({
           <button type="button" className="af-btn" onClick={like} disabled={saving} title="Helpful — remember this answer" aria-label="Helpful">
             <Thumb />
           </button>
-          <button type="button" className="af-btn" onClick={() => setMode("correcting")} disabled={saving} title="Not right — add a correction" aria-label="Not right">
+          <button
+            type="button"
+            className="af-btn"
+            onClick={() => {
+              onRate?.("down");
+              setMode("correcting");
+            }}
+            disabled={saving}
+            title="Not right — add a correction"
+            aria-label="Not right"
+          >
             <Thumb down />
           </button>
           <span className="af-hint">

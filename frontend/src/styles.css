@@ -4987,3 +4987,14 @@ a.getting-ready-cta:hover {
 .af-cancel { background: none; border: 1px solid var(--c-border); color: var(--c-text-2); border-radius: 7px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
 .af-done { font-size: 11.5px; color: var(--c-text-2); margin: 10px 0 0; }
 .af-error { font-size: 11px; color: #f0a3a3; margin: 4px 0 0; }
+
+/* Rating-derived nudges in the Ask tab */
+.nudges { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.nudge { display: flex; align-items: flex-start; gap: 12px; background: var(--c-surface-2); border: 1px solid color-mix(in srgb, var(--c-accent) 30%, var(--c-border)); border-radius: 11px; padding: 11px 13px; }
+.nudge-body { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.nudge-title { font-size: 12.5px; font-weight: 600; color: var(--c-text); }
+.nudge-detail { font-size: 11.5px; color: var(--c-text-2); line-height: 1.5; }
+.nudge-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.nudge-action { background: var(--c-accent); border: 1px solid var(--c-accent); color: #fff; border-radius: 7px; padding: 5px 11px; font-size: 11.5px; cursor: pointer; white-space: nowrap; }
+.nudge-dismiss { background: none; border: none; color: var(--c-text-3); cursor: pointer; font-size: 13px; line-height: 1; padding: 2px 4px; }
+.nudge-dismiss:hover { color: var(--c-text); }

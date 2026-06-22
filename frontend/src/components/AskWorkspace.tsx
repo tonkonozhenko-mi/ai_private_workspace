@@ -60,8 +60,11 @@ import {
   updateWorkspaceConversationTitle,
   writeWorkspaceFile,
   addProjectMemory,
+  recordAnswerRating,
+  getAnswerRatingNudges,
 } from "../api/client";
 import { AnswerFeedback } from "./AnswerFeedback";
+import { AnswerNudges } from "./AnswerNudges";
 import { CopyButton } from "./CopyButton";
 import type {
   RagSource,
@@ -91,6 +94,8 @@ interface AskWorkspaceProps {
   defaultReasoning?: boolean;
   defaultStreaming?: boolean;
   onAsked?: () => void | Promise<void>;
+  onOpenModels?: () => void;
+  onOpenOverview?: () => void;
 }
 
 interface AskHistoryItem {
@@ -212,6 +217,8 @@ export function AskWorkspace({
   defaultReasoning = false,
   defaultStreaming = true,
   onAsked,
+  onOpenModels,
+  onOpenOverview,
 }: AskWorkspaceProps) {
   const [question, setQuestion] = useState("");
   // Developer details are off by default and can be toggled right here on the
@@ -782,6 +789,11 @@ export function AskWorkspace({
       </aside>
 
       <section className="ask-chat-column">
+        <AnswerNudges
+          workspaceId={workspaceId}
+          onOpenModels={onOpenModels}
+          onOpenOverview={onOpenOverview}
+        />
         <ConversationPanel
           history={history}
           loading={loading}
@@ -2058,6 +2070,13 @@ function AnswerResult({
             question={answer.question}
             answer={answer.answer}
             onSave={(text, k) => addProjectMemory(answer.workspace_id, text, k)}
+            onRate={(verdict) =>
+              void recordAnswerRating(answer.workspace_id, {
+                verdict,
+                llm_model: `${answer.llm_provider}/${answer.llm_model ?? "default"}`,
+                context_chunks: answer.used_context_chunks,
+              })
+            }
           />
         ) : null}
       </div>

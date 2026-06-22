@@ -2309,3 +2309,16 @@ export interface GroupHandbookResponse {
   handbook?: string;
   created_at?: string;
 }
+
+// --- Answer ratings & nudges ---
+
+export interface AnswerRatingNudge {
+  kind: "model" | "retrieval" | string;
+  title: string;
+  detail: string;
+  action: "open_models" | "rebuild_context" | string;
+}
+
+export interface AnswerRatingNudgesResponse {
+  nudges: AnswerRatingNudge[];
+}
