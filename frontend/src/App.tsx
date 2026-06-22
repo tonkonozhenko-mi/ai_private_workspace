@@ -1046,6 +1046,7 @@ function App() {
             groupName={groups.find((g) => g.id === selectedGroupId)?.name ?? "Group"}
             allWorkspaces={workspaces.map((w) => ({ id: w.workspace_id, name: w.name }))}
             onChanged={() => void loadGroups()}
+            onDeleted={() => setSelectedGroupId(null)}
           />
         ) : detailLoading ? (
           <LoadingState

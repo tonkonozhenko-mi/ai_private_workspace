@@ -156,6 +156,79 @@ def test_merges_and_tags_sources_by_repo():
     assert by_id["w1"] == 2 and by_id["w2"] == 1
 
 
+class _StreamProvider:
+    provider_name = "fake"
+    model_name = "fake-llm"
+
+    def generate(self, prompt, images=None, temperature=None, think=None, history=None):
+        return "FULL"
+
+    def generate_stream(self, prompt, images=None, temperature=None, think=None, history=None):
+        yield "AN"
+        yield "SWER"
+
+
+class _StreamFactory:
+    def create(self, provider=None, model=None):
+        return _StreamProvider()
+
+
+class _Stats:
+    def __init__(self, memory_items, graph_facts):
+        self.memory_items = memory_items
+        self.graph_facts = graph_facts
+
+
+class _ContextProvider:
+    """compose_with_stats per workspace, like the real composer."""
+
+    def __init__(self, by_workspace):
+        self._by = by_workspace  # {wid: (text, memory, facts)}
+
+    def compose_with_stats(self, workspace_id, query):
+        text, mem, facts = self._by.get(workspace_id, ("", 0, 0))
+        return text, _Stats(mem, facts)
+
+
+def test_execute_stream_yields_tokens_then_final():
+    group_repo = InMemoryProjectGroupRepository()
+    group_repo.add(ProjectGroup(id="g1", name="P", workspace_ids=("w1",), created_at="2026-06-01"))
+    uc = AskGroupQuestionUseCase(
+        group_repository=group_repo,
+        workspace_repository=_WorkspaceRepo([_Workspace("w1", "api")]),
+        embedding_provider=_Embedding(),
+        vector_store=_VectorStore({"w1": [("a.py", 0.9)]}),
+        llm_provider_factory=_StreamFactory(),
+        index_status_repository=_StatusRepo(["w1"]),
+    )
+    events = list(uc.execute_stream(AskGroupQuestionInput(group_id="g1", question="q")))
+    tokens = [e.text for e in events if hasattr(e, "text")]
+    finals = [e.answer for e in events if hasattr(e, "answer")]
+    assert tokens == ["AN", "SWER"]
+    assert len(finals) == 1 and finals[0].answer == "ANSWER"
+    assert finals[0].used_context_chunks == 1
+
+
+def test_context_provider_counts_are_summed_across_repos():
+    group_repo = InMemoryProjectGroupRepository()
+    group_repo.add(ProjectGroup(id="g1", name="P", workspace_ids=("w1", "w2"), created_at="2026-06-01"))
+    uc = AskGroupQuestionUseCase(
+        group_repository=group_repo,
+        workspace_repository=_WorkspaceRepo([_Workspace("w1", "api"), _Workspace("w2", "web")]),
+        embedding_provider=_Embedding(),
+        vector_store=_VectorStore({"w1": [("a", 0.9)], "w2": [("b", 0.8)]}),
+        llm_provider_factory=_LLMFactory(),
+        index_status_repository=_StatusRepo(["w1", "w2"]),
+        project_context_provider=_ContextProvider({
+            "w1": ("prod is called prd", 2, 1),
+            "w2": ("uses postgres", 1, 3),
+        }),
+    )
+    res = uc.execute(AskGroupQuestionInput(group_id="g1", question="db?"))
+    assert res.memory_used == 3  # 2 + 1
+    assert res.facts_used == 4   # 1 + 3
+
+
 def test_per_repo_cap_limits_one_repo():
     uc, _ = _build(
         group_members=["w1", "w2"],

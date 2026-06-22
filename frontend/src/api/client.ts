@@ -1724,3 +1724,72 @@ export async function askProjectGroup(
     body: JSON.stringify({ question }),
   });
 }
+
+export async function askProjectGroupStream(
+  groupId: string,
+  question: string,
+  options: {
+    think?: boolean | null;
+    temperature?: number | null;
+    signal?: AbortSignal;
+    onToken?: (text: string) => void;
+  } = {},
+): Promise<GroupAskResponse> {
+  const response = await fetch(`${apiBaseUrl}/workspace-groups/${groupId}/ask/stream`, {
+    method: "POST",
+    headers: { Accept: "text/event-stream", "Content-Type": "application/json" },
+    body: JSON.stringify({
+      question,
+      think: options.think ?? null,
+      temperature: options.temperature ?? null,
+    }),
+    signal: options.signal,
+  });
+  await assertOk(response);
+  if (!response.body) {
+    throw new Error("Streaming is not supported in this environment.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalAnswer: GroupAskResponse | null = null;
+  let errorDetail: string | null = null;
+
+  const handleEvent = (rawEvent: string): void => {
+    let eventName = "message";
+    const dataLines: string[] = [];
+    for (const line of rawEvent.split("\n")) {
+      if (line.startsWith("event:")) eventName = line.slice(6).trim();
+      else if (line.startsWith("data:")) dataLines.push(line.slice(5).replace(/^ /, ""));
+    }
+    const data = dataLines.join("\n");
+    if (!data) return;
+    if (eventName === "token") {
+      const parsed = JSON.parse(data) as { text?: string };
+      if (parsed.text) options.onToken?.(parsed.text);
+    } else if (eventName === "final") {
+      finalAnswer = JSON.parse(data) as GroupAskResponse;
+    } else if (eventName === "error") {
+      const parsed = JSON.parse(data) as { detail?: string };
+      errorDetail = parsed.detail ?? "Streaming failed.";
+    }
+  };
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let sep = buffer.indexOf("\n\n");
+    while (sep !== -1) {
+      handleEvent(buffer.slice(0, sep));
+      buffer = buffer.slice(sep + 2);
+      sep = buffer.indexOf("\n\n");
+    }
+  }
+  if (buffer.trim()) handleEvent(buffer);
+
+  if (errorDetail) throw new Error(errorDetail);
+  if (!finalAnswer) throw new Error("The streaming response ended without a final answer.");
+  return finalAnswer;
+}

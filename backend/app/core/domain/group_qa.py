@@ -36,5 +36,7 @@ class GroupQuestionAnswer:
     used_context_chunks: int = 0
     llm_provider: str = ""
     llm_model: str | None = None
+    memory_used: int = 0
+    facts_used: int = 0
     diagnostic_code: str | None = None
     diagnostic_message: str | None = None

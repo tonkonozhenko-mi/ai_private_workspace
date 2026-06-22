@@ -2286,5 +2286,7 @@ export interface GroupAskResponse {
   used_context_chunks: number;
   llm_provider: string;
   llm_model: string | null;
+  memory_used: number;
+  facts_used: number;
   diagnostic_code: string | null;
 }

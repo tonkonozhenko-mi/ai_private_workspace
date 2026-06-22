@@ -6,7 +6,10 @@ aggregates each member's facts and git into a single group view. Member
 workspaces are only referenced — never created or deleted by these endpoints.
 """
 
+import json
+
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
@@ -14,6 +17,7 @@ from app.api.dependencies import (
     git_history,
     index_status_repository,
     llm_provider_factory,
+    project_context_composer,
     project_graph_repository,
     project_group_repository,
     vector_store,
@@ -27,6 +31,8 @@ from app.core.use_cases.ask_group_question import (
     AskGroupQuestionNotFoundError,
     AskGroupQuestionUseCase,
     AskGroupQuestionValidationError,
+    GroupAskStreamDelta,
+    GroupAskStreamFinal,
 )
 from app.core.use_cases.build_group_overview import (
     BuildGroupOverviewNotFoundError,
@@ -250,6 +256,8 @@ class GroupAskRequest(BaseModel):
     per_repo_cap: int = 3
     llm_provider: str | None = None
     llm_model: str | None = None
+    temperature: float | None = None
+    think: bool | None = None
 
 
 class GroupAskSource(BaseModel):
@@ -277,6 +285,8 @@ class GroupAskResponse(BaseModel):
     used_context_chunks: int
     llm_provider: str
     llm_model: str | None
+    memory_used: int
+    facts_used: int
     diagnostic_code: str | None
 
 
@@ -290,33 +300,71 @@ def _ask_response(answer: GroupQuestionAnswer) -> GroupAskResponse:
         used_context_chunks=answer.used_context_chunks,
         llm_provider=answer.llm_provider,
         llm_model=answer.llm_model,
+        memory_used=answer.memory_used,
+        facts_used=answer.facts_used,
         diagnostic_code=answer.diagnostic_code,
     )
 
 
-@router.post("/{group_id}/ask", response_model=GroupAskResponse)
-def ask_group(group_id: str, request: GroupAskRequest) -> GroupAskResponse:
-    use_case = AskGroupQuestionUseCase(
+def _build_ask_use_case() -> AskGroupQuestionUseCase:
+    return AskGroupQuestionUseCase(
         group_repository=project_group_repository,
         workspace_repository=workspace_repository,
         embedding_provider=embedding_provider,
         vector_store=vector_store,
         llm_provider_factory=llm_provider_factory,
         index_status_repository=index_status_repository,
+        project_context_provider=project_context_composer,
     )
+
+
+def _ask_input(group_id: str, request: GroupAskRequest) -> AskGroupQuestionInput:
+    return AskGroupQuestionInput(
+        group_id=group_id,
+        question=request.question,
+        limit=request.limit,
+        per_repo_cap=request.per_repo_cap,
+        llm_provider_override=request.llm_provider,
+        llm_model_override=request.llm_model,
+        temperature=request.temperature,
+        think=request.think,
+    )
+
+
+def _sse(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@router.post("/{group_id}/ask", response_model=GroupAskResponse)
+def ask_group(group_id: str, request: GroupAskRequest) -> GroupAskResponse:
     try:
-        answer = use_case.execute(
-            AskGroupQuestionInput(
-                group_id=group_id,
-                question=request.question,
-                limit=request.limit,
-                per_repo_cap=request.per_repo_cap,
-                llm_provider_override=request.llm_provider,
-                llm_model_override=request.llm_model,
-            )
-        )
+        answer = _build_ask_use_case().execute(_ask_input(group_id, request))
     except AskGroupQuestionNotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
     except AskGroupQuestionValidationError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
     return _ask_response(answer)
+
+
+@router.post("/{group_id}/ask/stream")
+def ask_group_stream(group_id: str, request: GroupAskRequest) -> StreamingResponse:
+    use_case = _build_ask_use_case()
+    ask_input = _ask_input(group_id, request)
+
+    def event_stream():
+        try:
+            for event in use_case.execute_stream(ask_input):
+                if isinstance(event, GroupAskStreamDelta):
+                    yield _sse("token", {"text": event.text})
+                elif isinstance(event, GroupAskStreamFinal):
+                    yield _sse("final", _ask_response(event.answer).model_dump(mode="json"))
+        except (AskGroupQuestionNotFoundError, AskGroupQuestionValidationError) as exc:
+            yield _sse("error", {"detail": str(exc)})
+        except Exception as exc:  # noqa: BLE001 - surface any failure to the client
+            yield _sse("error", {"detail": str(exc)})
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
