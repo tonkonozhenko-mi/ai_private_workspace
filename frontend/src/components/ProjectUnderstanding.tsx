@@ -275,82 +275,194 @@ function gitLeadSentence(git: GitInsightsResponse): string {
   return parts.join(" ");
 }
 
-function GitActivityCharts({ git }: { git: GitInsightsResponse }) {
-  const weeks = git.activity_weeks;
-  const maxWeek = weeks.reduce((m, w) => Math.max(m, w.commits), 0);
-  if (maxWeek === 0) return null;
+// Two-letter monogram for a contributor avatar.
+function gaInitials(name: string): string {
+  const parts = name.trim().split(/[\s@._-]+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
+// Stable hue per name so each avatar is its own colour but consistent across renders.
+function gaHue(name: string): number {
+  let h = 0;
+  for (let i = 0; i < name.length; i += 1) h = (h * 31 + name.charCodeAt(i)) % 360;
+  return h;
+}
+
+function GaSection({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   return (
-    <div className="pu-git-activity-charts">
-      {maxWeek > 0 ? (
-        <div className="pu-git-chart">
-          <div className="pu-eyebrow">Commits · last 12 weeks</div>
-          <div className="pu-git-bars">
-            {weeks.map((w) => (
-              <span
-                key={w.period_start}
-                className="pu-git-bar"
-                title={`Week of ${w.period_start}: ${w.commits} commit(s)`}
-              >
-                <span
-                  style={{ height: `${maxWeek ? Math.round((w.commits / maxWeek) * 100) : 0}%` }}
-                />
-              </span>
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </div>
+    <section className="pu-ga-section">
+      <div className="pu-ga-head">
+        <span className="pu-eyebrow">{title}</span>
+        {hint ? <span className="pu-ga-hint">{hint}</span> : null}
+      </div>
+      {children}
+    </section>
   );
 }
 
-function GitContributors({ git }: { git: GitInsightsResponse }) {
-  const maxCommits = git.top_contributors.reduce((m, c) => Math.max(m, c.commits), 0) || 1;
+// 12-week commit volume with a plain-language trend caption instead of a bare chart.
+function GitMomentum({ git }: { git: GitInsightsResponse }) {
+  const weeks = git.activity_weeks;
+  const maxWeek = weeks.reduce((m, w) => Math.max(m, w.commits), 0);
+  if (maxWeek === 0) return null;
+  const n = weeks.length;
+  const avg = (xs: typeof weeks) =>
+    xs.length ? xs.reduce((s, w) => s + w.commits, 0) / xs.length : 0;
+  const recent = avg(weeks.slice(Math.max(0, n - 3)));
+  const prior = avg(weeks.slice(Math.max(0, n - 6), Math.max(0, n - 3)));
+  let trend = "holding steady";
+  if (recent > prior * 1.25 || (prior === 0 && recent > 0)) trend = "picking up";
+  else if (prior > 0 && recent < prior * 0.75) trend = "slowing down";
   return (
-    <div className="pu-git-contributors">
-      <div className="pu-eyebrow">Who commits</div>
-      <ul>
+    <GaSection title="Momentum" hint={`Commits per week · ${trend}`}>
+      <div className="pu-git-bars pu-ga-bars">
+        {weeks.map((w) => (
+          <span
+            key={w.period_start}
+            className="pu-git-bar"
+            title={`Week of ${w.period_start}: ${w.commits} commit(s)`}
+          >
+            <span style={{ height: `${Math.round((w.commits / maxWeek) * 100)}%` }} />
+          </span>
+        ))}
+      </div>
+      <p className="pu-ga-caption">
+        Last 12 weeks · busiest week saw {maxWeek.toLocaleString()} commits.
+      </p>
+    </GaSection>
+  );
+}
+
+function GitPeople({ git }: { git: GitInsightsResponse }) {
+  const maxShare = git.top_contributors.reduce((m, c) => Math.max(m, c.share), 0) || 1;
+  return (
+    <GaSection title="Who knows this code" hint="Most commits — likely the right people to ask">
+      <ul className="pu-people">
         {git.top_contributors.map((c) => {
           const active = c.commits_last_90_days > 0;
+          const hue = gaHue(c.name);
           return (
-            <li key={c.name}>
-              <span className="pu-git-contrib-name" title={c.name}>
-                {c.name}
+            <li key={c.name} className="pu-person">
+              <span
+                className="pu-avatar"
+                style={{ background: `hsl(${hue} 58% 92%)`, color: `hsl(${hue} 42% 32%)` }}
+              >
+                {gaInitials(c.name)}
               </span>
-              <span className="pu-git-contrib-bar">
-                <span style={{ width: `${Math.round((c.commits / maxCommits) * 100)}%` }} />
+              <span className="pu-person-main">
+                <span className="pu-person-top">
+                  <span className="pu-person-name" title={c.name}>{c.name}</span>
+                  <span className="pu-person-share">{Math.round(c.share * 100)}%</span>
+                </span>
+                <span className="pu-person-bar">
+                  <span style={{ width: `${Math.round((c.share / maxShare) * 100)}%` }} />
+                </span>
               </span>
-              <span className="pu-git-contrib-meta">
-                {Math.round(c.share * 100)}%
-                {active ? (
-                  <span className="pu-git-contrib-active">active</span>
-                ) : c.last_active ? (
-                  <span className="pu-git-contrib-idle">
-                    last {relativeTime(c.last_active)}
-                  </span>
-                ) : null}
+              <span className={`pu-person-status${active ? " is-active" : ""}`}>
+                <span className="pu-person-dot" />
+                {active ? "active" : c.last_active ? `seen ${relativeTime(c.last_active)}` : "—"}
               </span>
             </li>
           );
         })}
       </ul>
-    </div>
+    </GaSection>
+  );
+}
+
+function GitShip({ git }: { git: GitInsightsResponse }) {
+  const bs = git.branch_strategy;
+  const ma = git.merge_activity;
+  const hasStrategy = !!bs && bs.total_branches > 0 && bs.inferred_strategy !== "Unknown";
+  const prs = ma ? ma.pull_requests_detected + ma.merge_requests_detected : 0;
+  const mergeShare = Math.round(git.merge_commit_share * 100);
+  if (!hasStrategy && prs === 0 && mergeShare === 0) return null;
+
+  const facts: string[] = [];
+  if (prs > 0) facts.push(`${prs.toLocaleString()} pull request${prs === 1 ? "" : "s"} merged`);
+  if (mergeShare > 0) facts.push(`${mergeShare}% of commits arrived through merges`);
+  if (bs && bs.total_branches > 0)
+    facts.push(`${bs.total_branches} branch${bs.total_branches === 1 ? "" : "es"} seen`);
+
+  return (
+    <GaSection title="How they ship" hint="Inferred from branch names and merge history">
+      {hasStrategy ? <span className="pu-ship-name">{bs!.inferred_strategy}</span> : null}
+      {bs && bs.rationale ? <p className="pu-ga-caption">{bs.rationale}</p> : null}
+      {facts.length > 0 ? <p className="pu-ship-facts">{facts.join(" · ")}</p> : null}
+      {bs && bs.prefixes.length > 0 ? (
+        <div className="pu-chips">
+          {bs.prefixes.map((p) => (
+            <span key={p} className="pu-chip">{p}/</span>
+          ))}
+        </div>
+      ) : null}
+    </GaSection>
+  );
+}
+
+function GitHotspots({ git }: { git: GitInsightsResponse }) {
+  const maxHotspot = git.hotspots.reduce((m, h) => Math.max(m, h.changes), 0) || 1;
+  if (git.hotspots.length === 0) return null;
+  return (
+    <GaSection
+      title="Where the work is going"
+      hint="Files touched most in the last 90 days — where complexity tends to build up"
+    >
+      <ul className="pu-hotspots">
+        {git.hotspots.map((h) => {
+          const name = h.path.split("/").pop() ?? h.path;
+          const dir = h.path.length > name.length ? h.path.slice(0, h.path.length - name.length) : "";
+          return (
+            <li key={h.path} className="pu-hotspot" title={h.path}>
+              <span className="pu-hotspot-label">
+                <span className="pu-hotspot-name">{name}</span>
+                {dir ? <span className="pu-hotspot-dir">{dir}</span> : null}
+              </span>
+              <span className="pu-hotspot-bar">
+                <span style={{ width: `${Math.round((h.changes / maxHotspot) * 100)}%` }} />
+              </span>
+              <span className="pu-hotspot-count">{h.changes}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </GaSection>
   );
 }
 
 function GitActivityCard({ git }: { git: GitInsightsResponse }) {
-  const maxHotspot = git.hotspots.reduce((max, h) => Math.max(max, h.changes), 0) || 1;
-  const stats: Array<{ label: string; value: string }> = [
-    { label: "Commits", value: git.total_commits.toLocaleString() },
-    { label: "Last 7 days", value: git.commits_last_7_days.toLocaleString() },
-    { label: "Last 30 days", value: git.commits_last_30_days.toLocaleString() },
-    { label: "Contributors", value: git.contributors_count.toLocaleString() },
-    { label: "Active now", value: `${git.active_contributors_90d} / 90d` },
+  // Three "at a glance" metrics that answer: how alive is it, how big is the
+  // team right now, and how does work land. Everything else has its own section.
+  const heroes: Array<{ value: string; label: string; sub?: string }> = [
+    {
+      value: git.commits_last_7_days.toLocaleString(),
+      label: "commits this week",
+      sub: `${git.commits_last_30_days.toLocaleString()} in the last 30 days`,
+    },
+    {
+      value: git.active_contributors_90d.toLocaleString(),
+      label: git.active_contributors_90d === 1 ? "active contributor" : "active contributors",
+      sub: `of ${git.contributors_count.toLocaleString()} all-time · last 90 days`,
+    },
   ];
   if (git.merge_commit_share > 0) {
-    stats.push({ label: "PR-merged", value: `${Math.round(git.merge_commit_share * 100)}%` });
+    heroes.push({
+      value: `${Math.round(git.merge_commit_share * 100)}%`,
+      label: "shipped via merges",
+      sub:
+        git.branch_strategy && git.branch_strategy.inferred_strategy !== "Unknown"
+          ? git.branch_strategy.inferred_strategy
+          : "of all commits",
+    });
+  } else if (git.first_commit_at) {
+    heroes.push({
+      value: humanAge(git.first_commit_at),
+      label: "in development",
+      sub: `${git.total_commits.toLocaleString()} commits total`,
+    });
   }
-  if (git.first_commit_at) stats.push({ label: "Active for", value: humanAge(git.first_commit_at) });
 
   return (
     <details className="pu-card pu-git-activity pu-collapse">
@@ -363,39 +475,27 @@ function GitActivityCard({ git }: { git: GitInsightsResponse }) {
         </span>
       </summary>
 
-      {git.last_commit ? (
-        <div className="pu-git-last">
-          <p className="pu-git-last-subject" title={git.last_commit.subject}>{git.last_commit.subject}</p>
-          <p className="pu-git-last-meta">
-            {git.last_commit.author}
-            {git.last_commit.committed_at ? ` · ${relativeTime(git.last_commit.committed_at)}` : ""}
-            {git.last_commit.short_hash ? <> · <code>{git.last_commit.short_hash}</code></> : null}
-          </p>
-        </div>
-      ) : null}
-
       <p className="pu-git-lead">{gitLeadSentence(git)}</p>
 
-      <div className="pu-git-stats">
-        {stats.map((stat) => (
-          <div className="pu-git-stat" key={stat.label}>
-            <strong>{stat.value}</strong>
-            <span>{stat.label}</span>
+      <div className="pu-ga-hero">
+        {heroes.map((h) => (
+          <div className="pu-ga-metric" key={h.label}>
+            <strong>{h.value}</strong>
+            <span className="pu-ga-metric-label">{h.label}</span>
+            {h.sub ? <span className="pu-ga-metric-sub">{h.sub}</span> : null}
           </div>
         ))}
       </div>
 
-      <GitActivityCharts git={git} />
-
-      {git.top_contributors.length > 0 ? (
-        <GitContributors git={git} />
-      ) : null}
+      <GitMomentum git={git} />
+      {git.top_contributors.length > 0 ? <GitPeople git={git} /> : null}
+      <GitShip git={git} />
+      <GitHotspots git={git} />
 
       {git.recent_commits.length > 0 ? (
-        <div className="pu-git-feed">
-          <div className="pu-eyebrow">Recent commits</div>
-          <ul>
-            {git.recent_commits.map((commit) => (
+        <GaSection title="Latest commits">
+          <ul className="pu-git-feed-list">
+            {git.recent_commits.slice(0, 6).map((commit) => (
               <li key={commit.short_hash} title={commit.subject}>
                 <span className="pu-git-feed-subject">{commit.subject}</span>
                 <span className="pu-git-feed-meta">
@@ -405,83 +505,7 @@ function GitActivityCard({ git }: { git: GitInsightsResponse }) {
               </li>
             ))}
           </ul>
-        </div>
-      ) : null}
-
-      {git.merge_activity &&
-      (git.merge_activity.merge_commits > 0 ||
-        git.merge_activity.pull_requests_detected > 0) ? (
-        <div className="pu-git-merges">
-          <div className="pu-eyebrow">Merges &amp; PRs · from history</div>
-          <div className="pu-git-merge-stats">
-            {git.merge_activity.pull_requests_detected > 0 ? (
-              <span>{git.merge_activity.pull_requests_detected} PR(s)</span>
-            ) : null}
-            {git.merge_activity.merge_requests_detected > 0 ? (
-              <span>{git.merge_activity.merge_requests_detected} MR(s)</span>
-            ) : null}
-            <span>{git.merge_activity.merge_commits} merge commit(s)</span>
-          </div>
-          {Object.keys(git.merge_activity.source_branch_types).length > 0 ? (
-            <div className="pu-chips">
-              {Object.entries(git.merge_activity.source_branch_types).map(([type, count]) => (
-                <span key={type} className="pu-chip">
-                  {type}/ · {count}
-                </span>
-              ))}
-            </div>
-          ) : null}
-          {Object.keys(git.merge_activity.target_branches).length > 0 ? (
-            <p className="pu-git-merge-targets">
-              Into:{" "}
-              {Object.entries(git.merge_activity.target_branches)
-                .map(([b, c]) => `${b} (${c})`)
-                .join(", ")}
-            </p>
-          ) : null}
-          <p className="pu-git-merge-note">
-            Approximate — squash/rebase merges are only partly visible.
-          </p>
-        </div>
-      ) : null}
-
-      {git.hotspots.length > 0 ? (
-        <div className="pu-git-hotspots">
-          <div className="pu-eyebrow">Most active files · last 90 days</div>
-          <ul>
-            {git.hotspots.map((hotspot) => (
-              <li key={hotspot.path} title={hotspot.path}>
-                <span className="pu-git-hotspot-bar"><span style={{ width: `${Math.round((hotspot.changes / maxHotspot) * 100)}%` }} /></span>
-                <span className="pu-git-hotspot-path">{hotspot.path}</span>
-                <span className="pu-git-hotspot-count">{hotspot.changes}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {git.branch_strategy && git.branch_strategy.total_branches > 0 ? (
-        <div className="pu-git-branching">
-          <div className="pu-eyebrow">Branching · inferred from branch names</div>
-          <div className="pu-git-branch-head">
-            <span className="pu-git-branch-strategy">
-              {git.branch_strategy.inferred_strategy}
-            </span>
-            <span className="pu-git-branch-count">
-              {git.branch_strategy.total_branches} branch(es)
-            </span>
-          </div>
-          <p className="pu-git-branch-rationale">{git.branch_strategy.rationale}</p>
-          {git.branch_strategy.prefixes.length > 0 ? (
-            <div className="pu-chips">
-              {git.branch_strategy.prefixes.map((p) => (
-                <span key={p} className="pu-chip">
-                  {p}/
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
+        </GaSection>
       ) : null}
     </details>
   );
