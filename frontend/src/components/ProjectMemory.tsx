@@ -35,7 +35,12 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
   const [handbookOpen, setHandbookOpen] = useState(false);
   const [handbookBusy, setHandbookBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The list is management, not the main job — keep it collapsed by default and
+  // just confirm each add transiently, so the card stays clean.
+  const [showList, setShowList] = useState(false);
+  const [justAdded, setJustAdded] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const confirmTimer = useRef<number | null>(null);
 
   const load = useCallback(() => {
     abortRef.current?.abort();
@@ -55,7 +60,10 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
 
   useEffect(() => {
     load();
-    return () => abortRef.current?.abort();
+    return () => {
+      abortRef.current?.abort();
+      if (confirmTimer.current) window.clearTimeout(confirmTimer.current);
+    };
   }, [load]);
 
   const add = useCallback(async () => {
@@ -66,6 +74,10 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
     try {
       await addProjectMemory(workspaceId, trimmed, kind);
       setText("");
+      // Transient confirmation that fades — no need to expand the whole list.
+      setJustAdded(trimmed);
+      if (confirmTimer.current) window.clearTimeout(confirmTimer.current);
+      confirmTimer.current = window.setTimeout(() => setJustAdded(null), 6000);
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save.");
@@ -145,37 +157,52 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
         </button>
       </div>
 
-      <p className="pm-kinds-hint">
-        Use <strong>Correction</strong> when the model gets something wrong (e.g. "prod is called
-        prd here"); <strong>Note</strong> for anything else worth remembering. ★ pin the ones that
-        should always be considered.
-      </p>
+      {justAdded ? (
+        <p className="pm-just-added" key={justAdded}>
+          <span className="pm-just-added-tick">✓</span> Remembered: <span>{justAdded}</span>
+        </p>
+      ) : (
+        <p className="pm-kinds-hint">
+          Use <strong>Correction</strong> when the model gets something wrong (e.g. "prod is called
+          prd here"); <strong>Note</strong> for anything else worth remembering.
+        </p>
+      )}
 
       {visible.length > 0 ? (
-        <ul className="pm-list">
-          {visible.map((item) => (
-            <li key={item.id} className="pm-item">
-              <span className="pm-kind">{KIND_LABEL[item.kind] ?? item.kind}</span>
-              <span className="pm-text">{item.text}</span>
-              <div className="pm-actions">
-                <button
-                  type="button"
-                  className={`pm-pin${item.pinned ? " pm-pin-on" : ""}`}
-                  title={item.pinned ? "Unpin" : "Pin"}
-                  onClick={() => togglePin(item)}
-                >
-                  {item.pinned ? "★" : "☆"}
-                </button>
-                <button type="button" className="pm-del" title="Delete" onClick={() => remove(item.id)}>
-                  ✕
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="pm-muted">Nothing recorded yet. Add a note or correction above.</p>
-      )}
+        <div className="pm-entries">
+          <button
+            type="button"
+            className="pm-entries-toggle"
+            onClick={() => setShowList((v) => !v)}
+            aria-expanded={showList}
+          >
+            {showList ? "Hide entries" : `Show my entries (${visible.length})`}
+          </button>
+          {showList ? (
+            <ul className="pm-list">
+              {visible.map((item) => (
+                <li key={item.id} className="pm-item">
+                  <span className="pm-kind">{KIND_LABEL[item.kind] ?? item.kind}</span>
+                  <span className="pm-text">{item.text}</span>
+                  <div className="pm-actions">
+                    <button
+                      type="button"
+                      className={`pm-pin${item.pinned ? " pm-pin-on" : ""}`}
+                      title={item.pinned ? "Unpin" : "Pin"}
+                      onClick={() => togglePin(item)}
+                    >
+                      {item.pinned ? "★" : "☆"}
+                    </button>
+                    <button type="button" className="pm-del" title="Delete" onClick={() => remove(item.id)}>
+                      ✕
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="pm-handbook">
         <div className="pm-handbook-head">

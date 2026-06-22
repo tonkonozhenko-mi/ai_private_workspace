@@ -59,7 +59,9 @@ import {
   saveConversationAnswerNote,
   updateWorkspaceConversationTitle,
   writeWorkspaceFile,
+  addProjectMemory,
 } from "../api/client";
+import { AnswerFeedback } from "./AnswerFeedback";
 import { CopyButton } from "./CopyButton";
 import type {
   RagSource,
@@ -2048,6 +2050,14 @@ function AnswerResult({
             sources={answer.sources}
             attachedFileNames={attachedFileNames}
             suppressReindexGuidance={reindexReason !== null}
+          />
+        ) : null}
+
+        {answer.answer.trim().length > 0 && !answer.diagnostic_code ? (
+          <AnswerFeedback
+            question={answer.question}
+            answer={answer.answer}
+            onSave={(text, k) => addProjectMemory(answer.workspace_id, text, k)}
           />
         ) : null}
       </div>

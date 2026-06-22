@@ -11,6 +11,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Added
 
+- **Rate an answer to teach the project (not the model).** Every answer in Ask,
+  "Ask the map"/Investigate and group Ask now has a quiet 👍/👎. A thumbs-down
+  opens a small "what's the correct answer?" field and saves it as a Correction;
+  a thumbs-up saves the Q&A — both are fed back into future prompts by the app, so
+  answers get better over time. The copy is honest that this doesn't retrain the
+  local model — the app just remembers and re-injects what you confirmed.
 - **Project groups — treat several repositories as one project.** A group owns an
   ordered list of member workspaces; each repo stays a normal, independently
   scannable workspace underneath, and the group aggregates over them:
@@ -55,6 +61,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 - **Project memory no longer piles up duplicate Q&A.** Re-asking the Investigator
   the same question now replaces its previous auto-captured answer instead of
   adding a new copy each time (pinned Q&A are kept).
+- **Project memory card is calmer.** The list of remembered items (including the
+  auto-captured Q&A) is collapsed by default behind "Show my entries (N)"; adding a
+  note shows a brief "Remembered: …" confirmation that fades, instead of dumping the
+  whole list inline. Editing/deleting still lives one click away in the expanded list.
 - **Project memory is simpler:** only two types to choose from — Note and
   Correction (Correction overrides a wrong assumption) — since the type only
   changes the label the model sees, not how memory is matched. Existing
@@ -87,6 +97,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
   click any layer (Environment, Pipeline, Cloud service, …) to show or hide it,
   each with a node count — and the noisiest layer, Jobs, is hidden by default.
   Hover still traces a node's connections and clicking opens its details.
+- **Home's Project activity is more honest.** It shows the project's default
+  branch (e.g. `main`) instead of whatever long feature branch happens to be
+  checked out; the Momentum trend ignores the current, still-incomplete week so it
+  no longer falsely reads "slowing down" mid-week; and JS/TS files in the Config
+  card get real labels ("JS module", "ESLint config", …) instead of a bare
+  "Config".
 
 ### Added
 
