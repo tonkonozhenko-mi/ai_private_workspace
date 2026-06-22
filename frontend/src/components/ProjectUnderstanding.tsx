@@ -281,12 +281,15 @@ function GitActivityCard({ git }: { git: GitInsightsResponse }) {
   if (git.first_commit_at) stats.push({ label: "Active for", value: humanAge(git.first_commit_at) });
 
   return (
-    <div className="pu-card pu-git-activity">
-      <div className="pu-card-head">
+    <details className="pu-card pu-git-activity pu-collapse">
+      <summary className="pu-card-head pu-collapse-summary">
         <MetaIcon><><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="9" r="3" /><path d="M18 12a9 9 0 0 1-9 9M6 9v6" /></></MetaIcon>
         <span>Project activity</span>
         {git.branch ? <small className="pu-git-branch">{git.branch}</small> : null}
-      </div>
+        <span className="pu-collapse-teaser">
+          {git.total_commits.toLocaleString()} commits · {git.contributors_count} contributors
+        </span>
+      </summary>
 
       {git.last_commit ? (
         <div className="pu-git-last">
@@ -406,7 +409,7 @@ function GitActivityCard({ git }: { git: GitInsightsResponse }) {
           ) : null}
         </div>
       ) : null}
-    </div>
+    </details>
   );
 }
 
@@ -636,24 +639,23 @@ export function ProjectUnderstanding({
         <span className="pu-summary-foot">{lens.focus} · From your local scan.</span>
       </div>
 
-      <div className="pu-card pu-analysis">
-        <div className="pu-analysis-head">
-          <div className="pu-card-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l1.9 4.9L19 9l-4.1 1.1L12 15l-1.9-4.9L6 9l4.1-1.1zM5 16l.9 2.1L8 19l-2.1.9L5 22l-.9-2.1L2 19l2.1-.9zM19 14l.7 1.8L21 16.5l-1.3.7L19 19l-.7-1.8L17 16.5l1.3-.7z" /></svg>
-            <span>Deep project analysis</span>
-          </div>
-          {understanding && !generating ? (
-            <button
-              className={`pu-analysis-reanalyze${understanding.is_stale ? " is-prominent" : ""}`}
-              type="button"
-              disabled={generating || !selectedModel}
-              onClick={() => void handleAnalyze()}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v5h-5" /></svg>
-              {understanding.is_stale ? "Re-analyze with new model" : "Re-analyze"}
-            </button>
-          ) : null}
-        </div>
+      <details className="pu-card pu-analysis pu-collapse">
+        <summary className="pu-card-head pu-collapse-summary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l1.9 4.9L19 9l-4.1 1.1L12 15l-1.9-4.9L6 9l4.1-1.1zM5 16l.9 2.1L8 19l-2.1.9L5 22l-.9-2.1L2 19l2.1-.9zM19 14l.7 1.8L21 16.5l-1.3.7L19 19l-.7-1.8L17 16.5l1.3-.7z" /></svg>
+          <span>AI deep analysis</span>
+          <span className="pu-collapse-teaser">optional · the Intelligence tab covers most of this</span>
+        </summary>
+        {understanding && !generating ? (
+          <button
+            className={`pu-analysis-reanalyze${understanding.is_stale ? " is-prominent" : ""}`}
+            type="button"
+            disabled={generating || !selectedModel}
+            onClick={() => void handleAnalyze()}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v5h-5" /></svg>
+            {understanding.is_stale ? "Re-analyze with new model" : "Re-analyze"}
+          </button>
+        ) : null}
 
         {generating ? (
           <p className="pu-analysis-loading">Analyzing your project with {selectedModel ?? "your local model"}… this runs locally and can take up to a minute.</p>
@@ -697,7 +699,7 @@ export function ProjectUnderstanding({
           </>
         )}
         {genError ? <p className="pu-analysis-error">{genError}</p> : null}
-      </div>
+      </details>
 
       {understanding && understanding.architecture ? (
         <div className="pu-card">

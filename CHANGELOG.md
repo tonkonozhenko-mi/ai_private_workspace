@@ -50,6 +50,9 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
   Ask · Models · Settings), instead of a block stacked on an already-long Home.
   Home becomes a calmer overview (project summary, watcher, git activity, memory,
   sources) and the full map/agents live on their own screen.
+- **Home's heaviest cards collapse by default.** The full git-activity panel and
+  the optional AI deep-analysis card are now expandable sections (a one-line
+  summary with a teaser), so the overview is scannable instead of a long scroll.
 
 ### Fixed
 

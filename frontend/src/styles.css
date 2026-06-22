@@ -4765,3 +4765,13 @@ a.getting-ready-cta:hover {
 /* --- Watch: show-all link --- */
 .pw-link { background: none; border: none; color: var(--c-accent); font-size: 12px; cursor: pointer; padding: 2px 0 0; align-self: flex-start; }
 .pw-link:hover { text-decoration: underline; }
+
+/* --- Collapsible Home cards (git activity, deep analysis) --- */
+.pu-collapse > summary { cursor: pointer; list-style: none; }
+.pu-collapse > summary::-webkit-details-marker { display: none; }
+.pu-collapse-summary { display: flex; align-items: center; gap: 8px; }
+.pu-collapse-summary::after { content: "›"; margin-left: auto; color: var(--c-text-3); font-size: 16px; transition: transform 0.15s ease; }
+.pu-collapse[open] > .pu-collapse-summary::after { transform: rotate(90deg); }
+.pu-collapse-teaser { font-size: 11.5px; color: var(--c-text-3); font-weight: 400; }
+.pu-collapse-summary .pu-collapse-teaser { margin-left: 0; }
+.pu-collapse[open] > .pu-collapse-summary { margin-bottom: 10px; }
