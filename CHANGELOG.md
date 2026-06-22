@@ -47,8 +47,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
   guarding a green shield-lock inside a house outline — the postal bird as the
   channel between you and the local AI, with the home + lock signalling "private,
   on your machine". Replaced the OS app icons (`src-tauri/icons/*`) and the in-app
-  mark (`public/app-icon.png`); full light/dark size sets (16–1024 + `.ico`/`.icns`)
-  live under `assets/brand/ai_private_workspace_pigeon_icons/`.
+  mark (`public/app-icon.png`); light/dark source sets live under
+  `assets/brand/app-icons/` with `.ico`/`.icns` in `assets/brand/tauri-icons/`.
 
 ### Added
 
