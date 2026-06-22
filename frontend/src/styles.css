@@ -4925,3 +4925,15 @@ a.getting-ready-cta:hover {
 .grp-memory-note { font-size: 11px; color: var(--c-text-3); margin: 0; }
 .grp-caret { display: inline-block; width: 7px; height: 14px; margin-left: 2px; background: var(--c-accent); border-radius: 1px; vertical-align: text-bottom; animation: grp-blink 1s step-end infinite; }
 @keyframes grp-blink { 50% { opacity: 0; } }
+
+/* group notes & handbook */
+.grp-memory-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.grp-memory-item { display: flex; align-items: center; gap: 9px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: 9px; padding: 7px 10px; }
+.grp-memory-kind { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--c-text-3); background: var(--c-surface-3); border-radius: var(--r-pill); padding: 2px 8px; flex-shrink: 0; }
+.grp-memory-kind.is-pinned { color: var(--c-accent); }
+.grp-memory-text { flex: 1; font-size: 12.5px; color: var(--c-text); line-height: 1.45; }
+.grp-memory-act { background: none; border: none; color: var(--c-text-3); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 3px; }
+.grp-memory-act:hover { color: var(--c-text); }
+.grp-handbook-row { display: flex; align-items: center; gap: 12px; }
+.grp-link { background: none; border: none; color: var(--c-accent); cursor: pointer; font-size: 12px; padding: 0; }
+.grp-handbook { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: 9px; padding: 12px 14px; font-size: 12px; line-height: 1.55; color: var(--c-text-2); white-space: pre-wrap; max-height: 320px; overflow: auto; margin: 0; font-family: var(--font-mono, ui-monospace, monospace); }

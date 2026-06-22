@@ -219,7 +219,9 @@ class AskGroupQuestionUseCase:
                 1 for t in selected if t.workspace_id == member.workspace_id
             )
 
-        memory_section, memory_used, facts_used = self._project_context(members, request.question)
+        memory_section, memory_used, facts_used = self._project_context(
+            group.id, members, request.question
+        )
         labelled = [
             replace(t.result, source_path=f"{t.workspace_name}/{t.result.source_path}")
             for t in selected
@@ -281,12 +283,13 @@ class AskGroupQuestionUseCase:
         )
 
     def _project_context(
-        self, members: list[_Member], query: str
+        self, group_id: str, members: list[_Member], query: str
     ) -> tuple[str, int, int]:
-        """Compose project context (handbook + memory + facts) across members.
+        """Compose project context (handbook + memory + facts) for the group.
 
-        Best-effort: any provider error yields no context so answering never
-        depends on it. Sections are tagged with the repo and capped overall.
+        Pulls the group's own notes and handbook (keyed by the group id) first,
+        then each member's context. Best-effort: any provider error yields no
+        context so answering never depends on it. Capped overall.
         """
         provider = self.project_context_provider
         if provider is None or not hasattr(provider, "compose_with_stats"):
@@ -294,13 +297,14 @@ class AskGroupQuestionUseCase:
         sections: list[str] = []
         memory_used = 0
         facts_used = 0
-        for member in members:
+        # The group's own memory + handbook come first, labelled as the group.
+        for label, scope_id in [("Group", group_id), *[(m.name, m.workspace_id) for m in members]]:
             try:
-                text, stats = provider.compose_with_stats(member.workspace_id, query)
+                text, stats = provider.compose_with_stats(scope_id, query)
             except Exception:  # noqa: BLE001 - context is optional, never fatal
                 continue
             if text and text.strip():
-                sections.append(f"# {member.name}\n{text.strip()}")
+                sections.append(f"# {label}\n{text.strip()}")
                 memory_used += getattr(stats, "memory_items", 0)
                 facts_used += getattr(stats, "graph_facts", 0)
         combined = "\n\n".join(sections)[:_CONTEXT_CHAR_BUDGET]

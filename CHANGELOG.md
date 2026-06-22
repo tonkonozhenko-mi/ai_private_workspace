@@ -32,12 +32,23 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
   - **Group UX:** rename a group inline, delete a group (repositories untouched),
     member add/remove shows a busy state, and a live typing caret while the answer
     streams.
+  - **Group-level memory + handbook:** notes/decisions/corrections recorded on the
+    group itself (separate from each repo's own memory) and a deterministic group
+    handbook generated from the overview. Both are fed into group answers — group
+    context is composed first, then each member's — so the AI improves at the whole
+    project over time. New "Notes & handbook" card on the group's Home.
 
 ### Changed
 
 - **Intelligence tab: merges and the quick Ask box are clearer** (carried from the
   Home/Intelligence readability pass) — and the same evidence-backed, repo-attributed
   approach now extends across a whole group.
+- **New app icon and in-app logo: a friendly messenger pigeon.** A chubby pigeon
+  guarding a green shield-lock inside a house outline — the postal bird as the
+  channel between you and the local AI, with the home + lock signalling "private,
+  on your machine". Replaced the OS app icons (`src-tauri/icons/*`) and the in-app
+  mark (`public/app-icon.png`); full light/dark size sets (16–1024 + `.ico`/`.icns`)
+  live under `assets/brand/ai_private_workspace_pigeon_icons/`.
 
 ### Added
 
