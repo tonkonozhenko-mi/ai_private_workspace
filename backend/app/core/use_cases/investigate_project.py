@@ -22,6 +22,14 @@ from app.core.domain.role_lens import role_lens_for
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.file_system import FileSystemPort
 from app.core.ports.git_history import GitHistoryPort
+from app.core.ports.project_memory_repository import ProjectMemoryRepositoryPort
+from app.core.domain.project_memory import (
+    MemoryItem,
+    MemoryKind,
+    MemorySource,
+    format_memory_context,
+    select_relevant_memory,
+)
 from app.core.ports.llm_provider_factory import LLMProviderFactoryError, LLMProviderFactoryPort
 from app.core.ports.project_graph_repository import ProjectGraphRepositoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
@@ -69,6 +77,8 @@ class InvestigateProjectUseCase:
         project_graph_repository: ProjectGraphRepositoryPort,
         project_scan_repository: ProjectScanRepositoryPort,
         git_history: GitHistoryPort,
+        memory_repository: ProjectMemoryRepositoryPort | None = None,
+        context_provider=None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.llm_provider_factory = llm_provider_factory
@@ -78,6 +88,11 @@ class InvestigateProjectUseCase:
         self.project_graph_repository = project_graph_repository
         self.project_scan_repository = project_scan_repository
         self.git_history = git_history
+        # Optional project-memory layer: when present the agent gets durable
+        # project context, a recall_memory tool, and stores its answers.
+        self.memory_repository = memory_repository
+        # context_provider(workspace_id, query) -> str (shared compose_project_context)
+        self.context_provider = context_provider
 
     def execute(self, request: InvestigateProjectInput) -> InvestigationResult:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -93,6 +108,14 @@ class InvestigateProjectUseCase:
         allowed = set(tools.keys())
         role_label = role_lens_for(request.role or "developer").label
 
+        # Durable project context (handbook + memory + graph facts), once.
+        context_block = ""
+        if self.context_provider is not None:
+            try:
+                context_block = self.context_provider(request.workspace_id, request.question) or ""
+            except Exception:  # noqa: BLE001 - context is best-effort
+                context_block = ""
+
         steps: list[AgentStep] = []
         sources: list[str] = []
         invalid_streak = 0
@@ -106,6 +129,12 @@ class InvestigateProjectUseCase:
             prompt = build_investigator_prompt(
                 request.question, tool_specs, steps, role_label
             )
+            if context_block:
+                prompt = (
+                    "Background knowledge about this project (may help; still verify "
+                    "with tools):\n"
+                    f"{context_block}\n\n" + prompt
+                )
             try:
                 text = provider.generate(prompt, temperature=0.0)
             except (RuntimeError, ValueError) as exc:
@@ -114,6 +143,7 @@ class InvestigateProjectUseCase:
             decision = parse_agent_step(text, allowed)
 
             if decision.kind == "final":
+                self._remember_answer(request.workspace_id, request.question, decision.answer)
                 return InvestigationResult(
                     answer=decision.answer,
                     steps=steps,
@@ -157,6 +187,28 @@ class InvestigateProjectUseCase:
             used_steps=len(steps),
             stopped_reason="budget_exhausted",
         )
+
+    def _remember_answer(self, workspace_id: str, question: str, answer: str) -> None:
+        """Store the answered Q&A as durable memory, so future questions benefit."""
+        if self.memory_repository is None or not answer.strip():
+            return
+        import uuid
+        from datetime import datetime, timezone
+
+        try:
+            self.memory_repository.add(
+                MemoryItem(
+                    id=str(uuid.uuid4()),
+                    workspace_id=workspace_id,
+                    kind=MemoryKind.QA,
+                    text=f"Q: {question.strip()}\nA: {answer.strip()}",
+                    source=MemorySource.AGENT,
+                    created_at=datetime.now(timezone.utc).isoformat(),
+                    pinned=False,
+                )
+            )
+        except Exception:  # noqa: BLE001 - capturing memory must never break a run
+            pass
 
     def _forced_final(self, provider, question, tool_specs, steps, role_label) -> str:
         prompt = (
@@ -305,6 +357,14 @@ class InvestigateProjectUseCase:
                 lines.append(f"{scenario['label']}: {names}")
             return "\n".join(lines), []
 
+        def recall_memory(query: str) -> tuple[str, list[str]]:
+            if self.memory_repository is None:
+                return "No project memory is available.", []
+            items = self.memory_repository.list(workspace_id)
+            relevant = select_relevant_memory(items, query or "", limit=6)
+            block = format_memory_context(relevant)
+            return (block or "No relevant memory recorded for that.", [])
+
         tools = {
             "search_code": search_code,
             "read_file": read_file,
@@ -313,6 +373,8 @@ class InvestigateProjectUseCase:
             "git_history": git_history,
             "ci_triggers": ci_triggers,
         }
+        if self.memory_repository is not None:
+            tools["recall_memory"] = recall_memory
         specs = [
             ToolSpec("search_code", "search_code: <query>", "semantic search over the indexed code/docs"),
             ToolSpec("read_file", "read_file: <relative/path>", "read a project file's contents"),
@@ -333,4 +395,12 @@ class InvestigateProjectUseCase:
                 "what CI workflows run on push / pull request / tag / schedule",
             ),
         ]
+        if self.memory_repository is not None:
+            specs.append(
+                ToolSpec(
+                    "recall_memory",
+                    "recall_memory: <topic>",
+                    "recall notes, decisions and corrections the team recorded",
+                )
+            )
         return tools, specs

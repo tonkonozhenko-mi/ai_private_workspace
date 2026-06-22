@@ -7,7 +7,24 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-## [0.1.109] - 2026-06-19
+## [0.1.110] - 2026-06-19
+
+### Added
+
+- **Project memory — the app learns about your project over time.** A new local,
+  private knowledge layer that improves answers without touching model weights:
+  - **Memory items.** Record notes, decisions, corrections ("production is called
+    `prd` here") and facts. They are stored locally, are always editable, and can
+    be pinned. The Investigator also auto-captures its answered questions.
+  - **Project handbook.** A deterministic, human-readable summary of the project
+    (assembled from the evidence graph) that doubles as durable model context.
+  - **Shared context layer.** A single `compose_project_context` combines the
+    handbook, the most relevant memory, and matching graph facts — and is injected
+    into **both** the Ask tab and the Investigator (which also gains a
+    `recall_memory` tool), so every answer benefits. Entirely local and
+    deterministic in what it selects; backward-compatible (off when no memory).
+
+
 
 ### Added
 

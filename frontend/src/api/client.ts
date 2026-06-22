@@ -81,7 +81,10 @@ import type {
   LocalModelDownloadJob,
   LocalModelDownloadJobList,
   InvestigationResponse,
+  ProjectHandbookResponse,
   ProjectIntelligenceAnswer,
+  ProjectMemoryItem,
+  ProjectMemoryList,
   ProjectIntelligenceBuildResponse,
   ProjectIntelligenceOverviewText,
   ProjectIntelligenceResponse,
@@ -584,6 +587,67 @@ export function investigateProject(
       body: JSON.stringify({ question, role: role ?? null }),
     },
   );
+}
+
+export function listProjectMemory(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ProjectMemoryList> {
+  return requestJson<ProjectMemoryList>(`/workspaces/${workspaceId}/memory`, {
+    signal: options.signal,
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+}
+
+export function addProjectMemory(
+  workspaceId: string,
+  text: string,
+  kind = "note",
+  pinned = false,
+): Promise<ProjectMemoryItem> {
+  return requestJson<ProjectMemoryItem>(`/workspaces/${workspaceId}/memory`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ text, kind, pinned }),
+  });
+}
+
+export function deleteProjectMemory(workspaceId: string, itemId: string): Promise<void> {
+  return requestWithoutBody(`/workspaces/${workspaceId}/memory/${itemId}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+}
+
+export function pinProjectMemory(
+  workspaceId: string,
+  itemId: string,
+  pinned: boolean,
+): Promise<void> {
+  return requestWithoutBody(`/workspaces/${workspaceId}/memory/${itemId}/pin`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ pinned }),
+  });
+}
+
+export function buildProjectHandbook(workspaceId: string): Promise<{ handbook: string }> {
+  return requestJson<{ handbook: string }>(`/workspaces/${workspaceId}/handbook`, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
+}
+
+export function getProjectHandbook(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ProjectHandbookResponse> {
+  return requestJson<ProjectHandbookResponse>(`/workspaces/${workspaceId}/handbook`, {
+    signal: options.signal,
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
 }
 
 export function getProjectWatch(

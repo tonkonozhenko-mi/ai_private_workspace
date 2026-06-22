@@ -17,6 +17,14 @@ from app.adapters.memory.in_memory_project_graph_repository import InMemoryProje
 from app.adapters.memory.in_memory_project_watch_repository import (
     InMemoryProjectWatchRepository,
 )
+from app.adapters.memory.in_memory_project_memory_repository import (
+    InMemoryProjectMemoryRepository,
+)
+from app.adapters.memory.sqlite_project_memory_repository import (
+    SQLiteProjectMemoryRepository,
+)
+from app.core.ports.project_memory_repository import ProjectMemoryRepositoryPort
+from app.core.use_cases.compose_project_context import ComposeProjectContextUseCase
 from app.adapters.project_graph.sqlite_project_graph_repository import (
     SQLiteProjectGraphRepository,
 )
@@ -315,6 +323,18 @@ def build_project_watch_repository() -> ProjectWatchRepositoryPort:
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
 
+def build_project_memory_repository() -> ProjectMemoryRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryProjectMemoryRepository()
+    if repository_type == "sqlite":
+        return SQLiteProjectMemoryRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
 def build_model_experiment_repository() -> ModelExperimentRepositoryPort:
     settings = get_settings()
     repository_type = settings.workspace_repository.lower()
@@ -579,6 +599,11 @@ timeline_repository = build_timeline_repository()
 conversation_repository = build_conversation_repository()
 project_graph_repository = build_project_graph_repository()
 project_watch_repository = build_project_watch_repository()
+project_memory_repository = build_project_memory_repository()
+# Shared project-context provider injected into Ask + the Investigator.
+project_context_composer = ComposeProjectContextUseCase(
+    project_memory_repository, project_graph_repository
+)
 model_experiment_repository = build_model_experiment_repository()
 model_experiment_rating_repository = build_model_experiment_rating_repository()
 workspace_model_selection_repository = build_workspace_model_selection_repository()

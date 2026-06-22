@@ -157,6 +157,7 @@ class AskWorkspaceQuestionUseCase:
         rerank_candidates: int = 30,
         conversation_repository: ConversationRepositoryPort | None = None,
         max_history_turns: int = 6,
+        project_context_provider=None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.embedding_provider = embedding_provider
@@ -173,6 +174,17 @@ class AskWorkspaceQuestionUseCase:
         # means Ask behaves exactly as before — plain hybrid retrieval.
         self.reranker: RerankerPort | None = reranker
         self.rerank_candidates = rerank_candidates
+        # Optional shared project-context provider (handbook + memory + graph
+        # facts): (workspace_id, query) -> str. None = unchanged behaviour.
+        self.project_context_provider = project_context_provider
+
+    def _project_memory_section(self, workspace_id: str, query: str) -> str:
+        if self.project_context_provider is None:
+            return ""
+        try:
+            return self.project_context_provider(workspace_id, query) or ""
+        except Exception:  # noqa: BLE001 - context is best-effort, never fatal
+            return ""
 
     def _conversation_history(
         self, request: AskWorkspaceQuestionInput
@@ -279,6 +291,9 @@ class AskWorkspaceQuestionUseCase:
                 request.question, request.attached_documents
             ),
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+            project_memory_section=self._project_memory_section(
+                request.workspace_id, request.question
+            ),
         )
         try:
             answer, usage = self._generate_answer_with_usage(
@@ -449,6 +464,9 @@ class AskWorkspaceQuestionUseCase:
                 request.question, request.attached_documents
             ),
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+            project_memory_section=self._project_memory_section(
+                request.workspace_id, request.question
+            ),
         )
         answer_text, usage, failed = yield from self._stream_generation(
             llm_provider, prompt, request
@@ -604,6 +622,9 @@ class AskWorkspaceQuestionUseCase:
                 request.question, request.attached_documents
             ),
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+            project_memory_section=self._project_memory_section(
+                request.workspace_id, request.question
+            ),
         )
         try:
             answer, usage = self._generate_answer_with_usage(
