@@ -2199,3 +2199,92 @@ export interface ProjectIntelligenceOverviewText {
   overview: string;
   role: string;
 }
+
+// --- Project groups (treat several repos as one project) ---
+
+export interface ProjectGroupSummary {
+  id: string;
+  name: string;
+  created_at: string;
+  member_count: number;
+  workspace_ids: string[];
+}
+
+export interface GroupMemberRef {
+  workspace_id: string;
+  name: string;
+  project_path: string;
+}
+
+export interface ProjectGroupDetail extends ProjectGroupSummary {
+  members: GroupMemberRef[];
+}
+
+export interface ProjectGroupListResponse {
+  groups: ProjectGroupSummary[];
+}
+
+export interface GroupMemberRisk {
+  workspace_id: string;
+  workspace_name: string;
+  severity: string;
+  title: string;
+}
+
+export interface GroupMemberOverview {
+  workspace_id: string;
+  name: string;
+  project_path: string;
+  built: boolean;
+  indexed: boolean;
+  description: string;
+  technology_chips: string[];
+  counts: Record<string, number>;
+  environments: string[];
+  risk_counts: Record<string, number>;
+  is_repo: boolean;
+  branch: string | null;
+  total_commits: number;
+  contributors_count: number;
+  commits_last_7_days: number;
+  last_commit_subject: string | null;
+}
+
+export interface GroupOverviewResponse {
+  group_id: string;
+  name: string;
+  member_count: number;
+  totals: Record<string, number>;
+  environments: string[];
+  technologies: string[];
+  risks: GroupMemberRisk[];
+  members: GroupMemberOverview[];
+}
+
+export interface GroupAskSource {
+  workspace_id: string;
+  workspace_name: string;
+  chunk_id: string;
+  source_path: string;
+  score: number;
+  preview: string;
+}
+
+export interface GroupAskContribution {
+  workspace_id: string;
+  workspace_name: string;
+  indexed: boolean;
+  chunks_used: number;
+}
+
+export interface GroupAskResponse {
+  group_id: string;
+  question: string;
+  answer: string;
+  sources: GroupAskSource[];
+  contributions: GroupAskContribution[];
+  used_context_chunks: number;
+  llm_provider: string;
+  llm_model: string | null;
+  diagnostic_code: string | null;
+}

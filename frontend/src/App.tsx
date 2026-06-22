@@ -23,8 +23,11 @@ import {
   getWorkspaceSkillProfile,
   getWorkspaceUIActions,
   setApiBaseUrl,
+  listProjectGroups,
+  createProjectGroup,
 } from "./api/client";
 import type {
+  ProjectGroupSummary,
   WorkspaceDetailBundle,
   WorkspaceModelsDetailBundle,
   WorkspaceOverviewItem,
@@ -37,6 +40,7 @@ import { ActiveDownloads } from "./components/ActiveDownloads";
 import { CreateWorkspacePanel } from "./components/CreateWorkspacePanel";
 import { ModelsDetail } from "./components/ModelsDetail";
 import { ProjectIntelligence } from "./components/ProjectIntelligence";
+import { GroupView } from "./components/GroupView";
 import { RenderCrashBoundary } from "./components/RenderCrashBoundary";
 import { ModelsSummaryCard } from "./components/ModelsSummaryCard";
 import { ReportsPanel } from "./components/ReportsPanel";
@@ -203,6 +207,8 @@ function App() {
   const [workspaces, setWorkspaces] = useState<WorkspaceOverviewItem[]>([]);
   const [archivedWorkspaces, setArchivedWorkspaces] = useState<WorkspaceOverviewItem[]>([]);
   const [totalWorkspaces, setTotalWorkspaces] = useState(0);
+  const [groups, setGroups] = useState<ProjectGroupSummary[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
     null,
   );
@@ -441,10 +447,46 @@ function App() {
 
   const handleWorkspaceCreated = useCallback(async (workspaceId: string) => {
     setShowCreateWorkspace(false);
+    setSelectedGroupId(null);
     await loadWorkspaces();
     await loadWorkspaceDetail(workspaceId);
     setActiveTab("overview");
   }, [loadWorkspaceDetail, loadWorkspaces]);
+
+  // --- Project groups (several repos treated as one project) ---
+  const loadGroups = useCallback(async () => {
+    try {
+      const res = await listProjectGroups();
+      setGroups(res.groups);
+    } catch {
+      // Groups are optional; a backend without them shouldn't break the app.
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadGroups();
+  }, [loadGroups]);
+
+  const handleSelectGroup = useCallback((groupId: string) => {
+    setShowCreateWorkspace(false);
+    setResumeMessage(null);
+    setSelectedGroupId(groupId);
+    setSelectedWorkspaceId(null);
+    selectedWorkspaceIdRef.current = null;
+    setDetail(null);
+  }, []);
+
+  const handleCreateGroup = useCallback(async () => {
+    const name = window.prompt("Name this group of repositories:");
+    if (!name || !name.trim()) return;
+    try {
+      const group = await createProjectGroup(name.trim(), []);
+      await loadGroups();
+      handleSelectGroup(group.id);
+    } catch {
+      // Surface nothing destructive; creation failures are non-fatal here.
+    }
+  }, [loadGroups, handleSelectGroup]);
 
 
   const handleArchiveWorkspace = useCallback(async (workspace: WorkspaceOverviewItem) => {
@@ -921,6 +963,7 @@ function App() {
               onSelect={(workspaceId) => {
                 setShowCreateWorkspace(false);
                 setResumeMessage(null);
+                setSelectedGroupId(null);
                 void loadWorkspaceDetail(workspaceId);
               }}
               onArchive={(workspace) => void handleArchiveWorkspace(workspace)}
@@ -931,6 +974,41 @@ function App() {
             />
           </>
         )}
+
+        <div className="sidebar-groups">
+          <div className="sidebar-groups-head">
+            <span className="sidebar-groups-title">Groups</span>
+            <button
+              type="button"
+              className="icon-button"
+              data-tip="New group"
+              aria-label="New group"
+              onClick={() => void handleCreateGroup()}
+            >
+              <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+          </div>
+          {groups.length === 0 ? (
+            <p className="sidebar-groups-empty">Combine repositories into one project.</p>
+          ) : (
+            <ul className="sidebar-groups-list">
+              {groups.map((group) => (
+                <li key={group.id}>
+                  <button
+                    type="button"
+                    className={`sidebar-group${selectedGroupId === group.id ? " is-active" : ""}`}
+                    onClick={() => handleSelectGroup(group.id)}
+                  >
+                    <span className="sidebar-group-name">{group.name}</span>
+                    <span className="sidebar-group-count">{group.member_count}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         <ActiveDownloads />
 
@@ -960,6 +1038,14 @@ function App() {
           <CreateWorkspacePanel
             onCreated={(workspace) => void handleWorkspaceCreated(workspace.id)}
             onCancel={() => setShowCreateWorkspace(false)}
+          />
+        ) : selectedGroupId ? (
+          <GroupView
+            key={selectedGroupId}
+            groupId={selectedGroupId}
+            groupName={groups.find((g) => g.id === selectedGroupId)?.name ?? "Group"}
+            allWorkspaces={workspaces.map((w) => ({ id: w.workspace_id, name: w.name }))}
+            onChanged={() => void loadGroups()}
           />
         ) : detailLoading ? (
           <LoadingState
