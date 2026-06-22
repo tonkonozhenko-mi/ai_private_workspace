@@ -27,6 +27,7 @@ from app.core.domain.project_memory import (
     MemoryItem,
     MemoryKind,
     MemorySource,
+    prior_qa_ids_for,
     format_memory_context,
     select_relevant_memory,
 )
@@ -205,13 +206,20 @@ class InvestigateProjectUseCase:
         )
 
     def _remember_answer(self, workspace_id: str, question: str, answer: str) -> None:
-        """Store the answered Q&A as durable memory, so future questions benefit."""
+        """Store the answered Q&A as durable memory, so future questions benefit.
+
+        Re-asking the same question replaces its previous auto-answer instead of
+        accumulating duplicates; pinned Q&A are left untouched.
+        """
         if self.memory_repository is None or not answer.strip():
             return
         import uuid
         from datetime import datetime, timezone
 
         try:
+            existing = self.memory_repository.list(workspace_id)
+            for stale_id in prior_qa_ids_for(existing, question):
+                self.memory_repository.delete(workspace_id, stale_id)
             self.memory_repository.add(
                 MemoryItem(
                     id=str(uuid.uuid4()),

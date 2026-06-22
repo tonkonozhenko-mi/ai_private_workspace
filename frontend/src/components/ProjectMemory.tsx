@@ -10,18 +10,18 @@ import {
 } from "../api/client";
 import type { ProjectMemoryItem, WorkspaceDashboard } from "../api/types";
 
+// Only two types are worth offering: a plain note, or a correction that overrides
+// a wrong assumption. (Older "decision"/"fact" items still render via KIND_LABEL.)
 const KINDS: { value: string; label: string }[] = [
   { value: "note", label: "Note" },
-  { value: "decision", label: "Decision" },
   { value: "correction", label: "Correction" },
-  { value: "fact", label: "Fact" },
 ];
 
 const KIND_LABEL: Record<string, string> = {
   note: "Note",
-  decision: "Decision",
+  decision: "Note",
   correction: "Correction",
-  fact: "Fact",
+  fact: "Note",
   qa: "Q&A",
 };
 
@@ -114,7 +114,7 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
           <p className="pm-eyebrow">Project memory</p>
           <h2 className="pm-title">What the app remembers</h2>
           <p className="pm-subtitle">
-            Notes, decisions and corrections recorded here are fed into Ask and the
+            Notes and corrections recorded here are fed into Ask and the
             Investigator — so answers improve over time. Stored locally, always editable.
           </p>
         </div>
@@ -145,6 +145,12 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
         </button>
       </div>
 
+      <p className="pm-kinds-hint">
+        Use <strong>Correction</strong> when the model gets something wrong (e.g. "prod is called
+        prd here"); <strong>Note</strong> for anything else worth remembering. ★ pin the ones that
+        should always be considered.
+      </p>
+
       {visible.length > 0 ? (
         <ul className="pm-list">
           {visible.map((item) => (
@@ -168,7 +174,7 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
           ))}
         </ul>
       ) : (
-        <p className="pm-muted">Nothing recorded yet. Add a note, correction, or decision above.</p>
+        <p className="pm-muted">Nothing recorded yet. Add a note or correction above.</p>
       )}
 
       <div className="pm-handbook">

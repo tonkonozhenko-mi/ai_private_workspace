@@ -77,6 +77,24 @@ def select_relevant_memory(
     return relevant[:limit]
 
 
+def prior_qa_ids_for(items: list[MemoryItem], question: str) -> list[str]:
+    """Ids of earlier auto-captured Q&A items for the same question.
+
+    Used so re-asking a question replaces its previous auto-answer instead of
+    piling up duplicates. Pinned Q&A are kept (the user deliberately saved them).
+    """
+    norm = " ".join(question.lower().split())
+    out: list[str] = []
+    for item in items:
+        if item.kind != MemoryKind.QA or item.pinned:
+            continue
+        first_line = item.text.split("\n", 1)[0]
+        recorded_q = first_line[2:].strip() if first_line[:2].lower() == "q:" else ""
+        if " ".join(recorded_q.lower().split()) == norm:
+            out.append(item.id)
+    return out
+
+
 _KIND_LABELS = {
     MemoryKind.NOTE: "Note",
     MemoryKind.DECISION: "Decision",

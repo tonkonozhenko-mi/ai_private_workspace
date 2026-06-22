@@ -50,6 +50,28 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
   mark (`public/app-icon.png`); light/dark source sets live under
   `assets/brand/app-icons/` with `.ico`/`.icns` in `assets/brand/tauri-icons/`.
 
+### Fixed
+
+- **Project memory no longer piles up duplicate Q&A.** Re-asking the Investigator
+  the same question now replaces its previous auto-captured answer instead of
+  adding a new copy each time (pinned Q&A are kept).
+- **Project memory is simpler:** only two types to choose from — Note and
+  Correction (Correction overrides a wrong assumption) — since the type only
+  changes the label the model sees, not how memory is matched. Existing
+  decision/fact items still display. An in-app hint explains it, and that pinning
+  is what forces an item to always be considered.
+- **Intelligence sub-tabs are polished to match the rest.** Cloud services show a
+  relative-footprint bar and a "most used" summary per provider; Environments
+  become a clean list with a production highlight, an evidence bar and a truncated
+  source path (no more redundant chips + raw table); References truncate long
+  ARNs/URLs to one line with a count pill and a per-group "Show all"; Deployment's
+  CI and Pipelines blocks gained headers and one-line descriptions.
+- **Cloud services now read as real AWS names.** The catalog maps the common AWS
+  resource prefixes to human service names (e.g. `aws_ssoadmin_*` → IAM Identity
+  Center, `aws_mskconnect_*` → MSK Connect, `aws_service_discovery_*` → Service
+  Discovery, `aws_wafv2_*`/`aws_sesv2_*` collapse into WAF/SES) instead of
+  title-casing a raw token into "Ssoadmin", "Wafv2", "Service".
+
 ### Added
 
 - **Project memory — the app learns about your project over time.** A new local,
