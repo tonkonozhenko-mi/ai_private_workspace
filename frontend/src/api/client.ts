@@ -1637,3 +1637,90 @@ export function runLocalModelInstallDraft(commandId: string): Promise<LocalModel
     },
   });
 }
+
+// --- Project groups ---
+
+import type {
+  GroupAskResponse,
+  GroupOverviewResponse,
+  ProjectGroupDetail,
+  ProjectGroupListResponse,
+} from "./types";
+
+export async function listProjectGroups(
+  init: RequestInit = {},
+): Promise<ProjectGroupListResponse> {
+  return getJson<ProjectGroupListResponse>("/workspace-groups", init);
+}
+
+export async function createProjectGroup(
+  name: string,
+  workspaceIds: string[] = [],
+): Promise<ProjectGroupDetail> {
+  return requestJson<ProjectGroupDetail>("/workspace-groups", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ name, workspace_ids: workspaceIds }),
+  });
+}
+
+export async function getProjectGroup(
+  groupId: string,
+  init: RequestInit = {},
+): Promise<ProjectGroupDetail> {
+  return getJson<ProjectGroupDetail>(`/workspace-groups/${groupId}`, init);
+}
+
+export async function updateProjectGroup(
+  groupId: string,
+  changes: { name?: string; workspace_ids?: string[] },
+): Promise<ProjectGroupDetail> {
+  return requestJson<ProjectGroupDetail>(`/workspace-groups/${groupId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(changes),
+  });
+}
+
+export async function deleteProjectGroup(groupId: string): Promise<void> {
+  return requestWithoutBody(`/workspace-groups/${groupId}`, { method: "DELETE" });
+}
+
+export async function addProjectGroupMember(
+  groupId: string,
+  workspaceId: string,
+): Promise<ProjectGroupDetail> {
+  return requestJson<ProjectGroupDetail>(`/workspace-groups/${groupId}/members`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ workspace_id: workspaceId }),
+  });
+}
+
+export async function removeProjectGroupMember(
+  groupId: string,
+  workspaceId: string,
+): Promise<ProjectGroupDetail> {
+  return requestJson<ProjectGroupDetail>(
+    `/workspace-groups/${groupId}/members/${workspaceId}`,
+    { method: "DELETE", headers: { Accept: "application/json" } },
+  );
+}
+
+export async function getProjectGroupOverview(
+  groupId: string,
+  init: RequestInit = {},
+): Promise<GroupOverviewResponse> {
+  return getJson<GroupOverviewResponse>(`/workspace-groups/${groupId}/overview`, init);
+}
+
+export async function askProjectGroup(
+  groupId: string,
+  question: string,
+): Promise<GroupAskResponse> {
+  return requestJson<GroupAskResponse>(`/workspace-groups/${groupId}/ask`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ question }),
+  });
+}

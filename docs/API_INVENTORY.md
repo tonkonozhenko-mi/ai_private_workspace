@@ -377,3 +377,18 @@ Cancel semantics are intentionally conservative: queued jobs can become `cancell
 ## Task 261 note
 
 `/runtime/packaged-app-frontend-bootstrap` now also verifies the packaged Tauri global invoke bridge (`withGlobalTauri`) and the npm install-script allowlist policy for `esbuild` and `fsevents`.
+
+## Project groups
+
+Treat several repositories as one project. Member workspaces are only referenced —
+never created or deleted by these endpoints.
+
+- `GET /workspace-groups` — list groups.
+- `POST /workspace-groups` — create a group.
+- `GET /workspace-groups/{group_id}` — group detail with member references.
+- `PATCH /workspace-groups/{group_id}` — rename and/or set members.
+- `DELETE /workspace-groups/{group_id}` — delete a group (members untouched).
+- `POST /workspace-groups/{group_id}/members` — add a member workspace.
+- `DELETE /workspace-groups/{group_id}/members/{workspace_id}` — remove a member.
+- `GET /workspace-groups/{group_id}/overview` — aggregated Home + Intelligence view (per-repo facts + group rollups).
+- `POST /workspace-groups/{group_id}/ask` — ask one question across all member repositories, with repo-attributed sources.

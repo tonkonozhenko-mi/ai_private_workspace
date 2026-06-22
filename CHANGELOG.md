@@ -7,7 +7,30 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-## [0.1.110] - 2026-06-19
+## [0.1.111] - 2026-06-22
+
+### Added
+
+- **Project groups — treat several repositories as one project.** A group owns an
+  ordered list of member workspaces; each repo stays a normal, independently
+  scannable workspace underneath, and the group aggregates over them:
+  - **Ask the group** — one question fans out to every member's search index, the
+    candidates are merged by score with a per-repo cap so a large repo can't crowd
+    out the others, and the answer's sources are each labelled with the repo they
+    came from.
+  - **Group Home** — rolled-up totals (repositories, services, environments,
+    commits this week) plus a per-repo card with its own git activity.
+  - **Group Intelligence** — environments and technologies unioned across repos,
+    and risks listed with the repository that raised them.
+  - Sidebar "Groups" section to create a group and switch into its view; add or
+    remove member repositories inline. Member workspaces are only referenced —
+    never created or deleted by group actions. Everything stays on this computer.
+
+### Changed
+
+- **Intelligence tab: merges and the quick Ask box are clearer** (carried from the
+  Home/Intelligence readability pass) — and the same evidence-backed, repo-attributed
+  approach now extends across a whole group.
 
 ### Added
 
