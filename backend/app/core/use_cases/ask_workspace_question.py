@@ -179,12 +179,21 @@ class AskWorkspaceQuestionUseCase:
         self.project_context_provider = project_context_provider
 
     def _project_memory_section(self, workspace_id: str, query: str) -> str:
-        if self.project_context_provider is None:
-            return ""
+        section, _, _ = self._project_context(workspace_id, query)
+        return section
+
+    def _project_context(self, workspace_id: str, query: str) -> tuple[str, int, int]:
+        """Return (context_text, memory_items_used, graph_facts_used)."""
+        provider = self.project_context_provider
+        if provider is None:
+            return "", 0, 0
         try:
-            return self.project_context_provider(workspace_id, query) or ""
+            if hasattr(provider, "compose_with_stats"):
+                text, stats = provider.compose_with_stats(workspace_id, query)
+                return text or "", stats.memory_items, stats.graph_facts
+            return provider(workspace_id, query) or "", 0, 0
         except Exception:  # noqa: BLE001 - context is best-effort, never fatal
-            return ""
+            return "", 0, 0
 
     def _conversation_history(
         self, request: AskWorkspaceQuestionInput
@@ -283,6 +292,9 @@ class AskWorkspaceQuestionUseCase:
                 request,
             )
 
+        memory_section, memory_used, facts_used = self._project_context(
+            request.workspace_id, request.question
+        )
         prompt = build_workspace_question_prompt(
             question=request.question,
             context_results=context_results,
@@ -291,9 +303,7 @@ class AskWorkspaceQuestionUseCase:
                 request.question, request.attached_documents
             ),
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
-            project_memory_section=self._project_memory_section(
-                request.workspace_id, request.question
-            ),
+            project_memory_section=memory_section,
         )
         try:
             answer, usage = self._generate_answer_with_usage(
@@ -338,6 +348,8 @@ class AskWorkspaceQuestionUseCase:
                 used_context_chunks=len(context_results),
                 llm_provider=llm_provider.provider_name,
                 llm_model=llm_provider.model_name,
+                project_memory_used=memory_used,
+                project_facts_used=facts_used,
                 diagnostic_code=None,
                 diagnostic_message=None,
                 quality_warnings=quality_warnings,
@@ -456,6 +468,9 @@ class AskWorkspaceQuestionUseCase:
             )
             return
 
+        memory_section, memory_used, facts_used = self._project_context(
+            request.workspace_id, request.question
+        )
         prompt = build_workspace_question_prompt(
             question=request.question,
             context_results=context_results,
@@ -464,9 +479,7 @@ class AskWorkspaceQuestionUseCase:
                 request.question, request.attached_documents
             ),
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
-            project_memory_section=self._project_memory_section(
-                request.workspace_id, request.question
-            ),
+            project_memory_section=memory_section,
         )
         answer_text, usage, failed = yield from self._stream_generation(
             llm_provider, prompt, request
@@ -510,6 +523,8 @@ class AskWorkspaceQuestionUseCase:
                     used_context_chunks=len(context_results),
                     llm_provider=llm_provider.provider_name,
                     llm_model=llm_provider.model_name,
+                    project_memory_used=memory_used,
+                    project_facts_used=facts_used,
                     diagnostic_code=None,
                     diagnostic_message=None,
                     quality_warnings=quality_warnings,

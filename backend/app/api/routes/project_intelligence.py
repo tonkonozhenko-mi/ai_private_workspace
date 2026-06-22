@@ -342,6 +342,10 @@ def investigate_project(workspace_id: str, request: InvestigateRequest) -> dict:
         "sources": result.sources,
         "used_steps": result.used_steps,
         "stopped_reason": result.stopped_reason,
+        "context_used": {
+            "memory": result.memory_used,
+            "facts": result.facts_used,
+        },
     }
 
 

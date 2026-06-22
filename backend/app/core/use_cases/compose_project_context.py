@@ -38,6 +38,15 @@ class ComposeProjectContextInput:
     query: str
 
 
+@dataclass(frozen=True)
+class ProjectContextStats:
+    """How much durable context an answer actually drew on."""
+
+    memory_items: int = 0
+    graph_facts: int = 0
+    handbook: bool = False
+
+
 class ComposeProjectContextUseCase:
     def __init__(
         self,
@@ -48,10 +57,17 @@ class ComposeProjectContextUseCase:
         self.project_graph_repository = project_graph_repository
 
     def compose(self, workspace_id: str, query: str) -> str:
+        text, _ = self.compose_with_stats(workspace_id, query)
+        return text
+
+    def compose_with_stats(
+        self, workspace_id: str, query: str
+    ) -> tuple[str, "ProjectContextStats"]:
         blocks: list[str] = []
 
         items = self.memory_repository.list(workspace_id)
         handbook = next((i for i in items if i.kind == MemoryKind.HANDBOOK), None)
+        has_handbook = handbook is not None
         if handbook:
             text = handbook.text.strip()
             if len(text) > _HANDBOOK_MAX:
@@ -63,28 +79,33 @@ class ComposeProjectContextUseCase:
         if memory_block:
             blocks.append(memory_block)
 
-        graph_block = self._graph_facts(workspace_id, query)
+        graph_block, graph_count = self._graph_facts(workspace_id, query)
         if graph_block:
             blocks.append(graph_block)
 
+        stats = ProjectContextStats(
+            memory_items=len(relevant) if memory_block else 0,
+            graph_facts=graph_count,
+            handbook=has_handbook,
+        )
         if not blocks:
-            return ""
+            return "", stats
         combined = "\n\n".join(blocks)
         if len(combined) > _TOTAL_MAX:
             combined = combined[:_TOTAL_MAX] + " …"
-        return combined
+        return combined, stats
 
     # Convenience for callbacks that take (workspace_id, query) -> str.
     def __call__(self, workspace_id: str, query: str) -> str:
         return self.compose(workspace_id, query)
 
-    def _graph_facts(self, workspace_id: str, query: str) -> str:
+    def _graph_facts(self, workspace_id: str, query: str) -> tuple[str, int]:
         graph = self.project_graph_repository.get_latest_graph(workspace_id)
         if graph is None:
-            return ""
+            return "", 0
         q = _tokens(query)
         if not q:
-            return ""
+            return "", 0
         matched_entities = [
             e
             for e in graph.entities
@@ -101,11 +122,11 @@ class ComposeProjectContextUseCase:
         ][:8]
         matched_findings = [f for f in graph.findings if _tokens(f.title) & q][:4]
         if not matched_entities and not matched_findings:
-            return ""
+            return "", 0
         lines = ["Relevant facts from the project map:"]
         for e in matched_entities:
             src = f" ({e.source_file})" if e.source_file else ""
             lines.append(f"- {e.name} [{e.type}]{src}")
         for f in matched_findings:
             lines.append(f"- risk: {f.title} [{f.severity}]")
-        return "\n".join(lines)
+        return "\n".join(lines), len(matched_entities) + len(matched_findings)

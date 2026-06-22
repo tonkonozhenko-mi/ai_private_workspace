@@ -2035,6 +2035,13 @@ function AnswerResult({
           </div>
         ) : null}
 
+        {(answer.project_memory_used ?? 0) > 0 || (answer.project_facts_used ?? 0) > 0 ? (
+          <p className="answer-memory-note">
+            Used {answer.project_memory_used ?? 0} memory note(s) and{" "}
+            {answer.project_facts_used ?? 0} map fact(s) from this project.
+          </p>
+        ) : null}
+
         {answer.sources.length > 0 || attachedFileNames.length > 0 ? (
           <Sources
             workspaceId={answer.workspace_id}

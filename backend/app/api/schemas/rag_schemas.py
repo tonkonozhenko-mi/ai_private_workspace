@@ -81,6 +81,8 @@ class WorkspaceQuestionAnswerResponse(BaseModel):
     answer: str
     sources: list[RagSourceResponse]
     used_context_chunks: int
+    project_memory_used: int = 0
+    project_facts_used: int = 0
     llm_provider: str
     llm_model: str | None
     diagnostic_code: str | None
@@ -149,6 +151,8 @@ def to_workspace_question_answer_response(
         answer=result.answer,
         sources=[to_rag_source_response(source) for source in result.sources],
         used_context_chunks=result.used_context_chunks,
+        project_memory_used=result.project_memory_used,
+        project_facts_used=result.project_facts_used,
         llm_provider=result.llm_provider,
         llm_model=result.llm_model,
         diagnostic_code=result.diagnostic_code,
