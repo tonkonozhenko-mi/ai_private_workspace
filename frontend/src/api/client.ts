@@ -84,6 +84,8 @@ import type {
   ProjectIntelligenceBuildResponse,
   ProjectIntelligenceOverviewText,
   ProjectIntelligenceResponse,
+  ProjectWatchDigest,
+  ProjectWatchResponse,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -564,6 +566,28 @@ export function askProjectIntelligence(
       body: JSON.stringify({ question, role: role ?? null }),
     },
   );
+}
+
+export function getProjectWatch(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ProjectWatchResponse> {
+  return requestJson<ProjectWatchResponse>(`/workspaces/${workspaceId}/intelligence/watch`, {
+    signal: options.signal,
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+}
+
+export function runProjectWatch(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ProjectWatchDigest> {
+  return requestJson<ProjectWatchDigest>(`/workspaces/${workspaceId}/intelligence/watch`, {
+    signal: options.signal,
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
 }
 
 export function generateProjectUnderstanding(

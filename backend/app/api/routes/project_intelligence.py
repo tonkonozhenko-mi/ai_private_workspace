@@ -13,6 +13,7 @@ from app.api.dependencies import (
     llm_provider_factory,
     project_graph_repository,
     project_scan_repository,
+    project_watch_repository,
     workspace_repository,
 )
 from app.core.domain.project_graph import ProjectSnapshotMeta
@@ -37,6 +38,16 @@ from app.core.use_cases.build_project_graph import (
     BuildProjectGraphScanRequiredError,
     BuildProjectGraphUseCase,
     BuildProjectGraphWorkspaceNotFoundError,
+)
+from app.core.use_cases.run_project_watch import (
+    RunProjectWatchError,
+    RunProjectWatchInput,
+    RunProjectWatchUseCase,
+)
+from app.core.use_cases.scan_workspace_project import (
+    ScanWorkspaceProjectInput,
+    ScanWorkspaceProjectUseCase,
+    WorkspaceNotFoundError as ScanWorkspaceNotFoundError,
 )
 
 router = APIRouter(prefix="/workspaces", tags=["intelligence"])
@@ -129,6 +140,47 @@ def get_project_intelligence_overview_text(workspace_id: str, role: str | None =
             detail=f"The local model could not generate an overview: {exc}",
         ) from exc
     return {"overview": text, "role": resolved_role}
+
+
+def _watch_rebuild(workspace_id: str) -> ProjectSnapshotMeta:
+    """Re-scan the project from disk, then rebuild the graph — so the watcher
+    compares against the current files, not a stale scan."""
+    ScanWorkspaceProjectUseCase(
+        workspace_repository, file_system, project_scan_repository
+    ).execute(ScanWorkspaceProjectInput(workspace_id=workspace_id))
+    return BuildProjectGraphUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+        file_system=file_system,
+        project_graph_repository=project_graph_repository,
+    ).execute(BuildProjectGraphInput(workspace_id=workspace_id))
+
+
+@router.post("/{workspace_id}/intelligence/watch")
+def run_project_watch(workspace_id: str) -> dict:
+    """Run a watcher check: re-scan, rebuild the graph, and report what changed
+    since the previous snapshot. Persists the digest for later viewing."""
+    use_case = RunProjectWatchUseCase(
+        project_graph_repository=project_graph_repository,
+        watch_repository=project_watch_repository,
+        build_graph=_watch_rebuild,
+    )
+    try:
+        digest = use_case.execute(RunProjectWatchInput(workspace_id=workspace_id))
+    except (BuildProjectGraphWorkspaceNotFoundError, ScanWorkspaceNotFoundError) as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except (BuildProjectGraphScanRequiredError, RunProjectWatchError) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return digest
+
+
+@router.get("/{workspace_id}/intelligence/watch")
+def get_project_watch(workspace_id: str) -> dict:
+    """The most recent watcher digest, or ``has_digest: false`` if none yet."""
+    digest = project_watch_repository.get_latest_digest(workspace_id)
+    if digest is None:
+        return {"has_digest": False}
+    return {"has_digest": True, "digest": digest}
 
 
 class AskProjectIntelligenceRequest(BaseModel):

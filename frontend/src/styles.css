@@ -4670,3 +4670,30 @@ a.getting-ready-cta:hover {
 .pu-git-feed li { display: flex; flex-direction: column; gap: 1px; }
 .pu-git-feed-subject { font-size: 12.5px; color: var(--c-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pu-git-feed-meta { font-size: 11px; color: var(--c-text-3); }
+
+/* --- Project Watcher card --- */
+.pw-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: 18px 20px; margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.pw-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.pw-head-text { display: flex; flex-direction: column; gap: 3px; }
+.pw-eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-text-3); margin: 0; }
+.pw-title { font-size: 16px; font-weight: 600; color: var(--c-text); margin: 0; }
+.pw-subtitle { font-size: 12.5px; color: var(--c-text-2); margin: 0; max-width: 52ch; line-height: 1.5; }
+.pw-button { background: var(--c-surface-2); border: 1px solid var(--c-border-strong); border-radius: var(--r-sm); color: var(--c-text); padding: 7px 14px; font-size: 12.5px; cursor: pointer; transition: background 0.15s ease; }
+.pw-button:hover:not(:disabled) { background: var(--c-surface-3); }
+.pw-button:disabled { opacity: 0.55; cursor: default; }
+.pw-error { color: #f0a3a3; font-size: 12.5px; margin: 0; }
+.pw-muted { color: var(--c-text-2); font-size: 12.5px; margin: 0; }
+.pw-summary { font-size: 13.5px; color: var(--c-text); line-height: 1.55; margin: 0; }
+.pw-highlights { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.pw-highlight { display: flex; align-items: flex-start; gap: 9px; font-size: 12.5px; color: var(--c-text); line-height: 1.45; }
+.pw-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex: none; }
+.pw-dot-risk { background: #e0a85a; }
+.pw-dot-resolved { background: var(--c-accent); }
+.pw-dot-new { background: #5eb0ef; }
+.pw-dot-removed { background: #9aa6a1; }
+.pw-highlight-text { display: inline-flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.pw-sev { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-radius: var(--r-sm); padding: 1px 6px; }
+.pw-sev-high { background: rgba(224, 90, 90, 0.16); color: #f0a3a3; }
+.pw-sev-medium { background: rgba(224, 168, 90, 0.16); color: #f0c79a; }
+.pw-sev-low { background: rgba(120, 160, 200, 0.16); color: #a9c6e6; }
+.pw-sev-info { background: var(--c-surface-3); color: var(--c-text-2); }
