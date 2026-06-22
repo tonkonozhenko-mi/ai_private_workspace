@@ -4782,4 +4782,54 @@ a.getting-ready-cta:hover {
 .pu-file-secondary { font-size: 10.5px; color: var(--c-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pu-source-note { display: block; font-size: 10.5px; color: var(--c-text-3); margin-top: 1px; }
 .pu-sources-trust { font-size: 11px; color: var(--c-text-3); margin: 10px 0 0; }
-.pu-git-lead { font-size: 13px; color: var(--c-text); line-height: 1.6; margin: 0 0 12px; }
+.pu-git-lead { font-size: 13px; color: var(--c-text); line-height: 1.6; margin: 0 0 14px; }
+
+/* --- Project activity, redesigned: a readable briefing, section by section --- */
+.pu-ga-section { margin-top: 18px; display: flex; flex-direction: column; gap: 9px; }
+.pu-ga-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.pu-ga-hint { font-size: 11.5px; color: var(--c-text-3); line-height: 1.4; }
+.pu-ga-caption { font-size: 11.5px; color: var(--c-text-3); line-height: 1.5; margin: 0; }
+
+/* At a glance — three hero numbers */
+.pu-ga-hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.pu-ga-metric { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: 11px; padding: 13px 14px; display: flex; flex-direction: column; gap: 3px; }
+.pu-ga-metric strong { font-size: 24px; font-weight: 650; color: var(--c-text); line-height: 1.05; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.pu-ga-metric-label { font-size: 12.5px; color: var(--c-text); font-weight: 550; }
+.pu-ga-metric-sub { font-size: 11px; color: var(--c-text-3); line-height: 1.4; }
+
+/* Momentum bars */
+.pu-ga-bars { height: 54px; gap: 4px; }
+.pu-ga-bars .pu-git-bar > span { border-radius: 3px 3px 0 0; opacity: 1; background: linear-gradient(180deg, var(--c-accent), color-mix(in srgb, var(--c-accent) 62%, transparent)); }
+
+/* Who knows this code — avatars + share bars */
+.pu-people { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
+.pu-person { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 11px; }
+.pu-avatar { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 650; letter-spacing: 0.01em; flex-shrink: 0; }
+.pu-person-main { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.pu-person-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.pu-person-name { font-size: 12.5px; color: var(--c-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pu-person-share { font-size: 11.5px; color: var(--c-text-2); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.pu-person-bar { height: 5px; background: var(--c-surface-3); border-radius: var(--r-pill); overflow: hidden; }
+.pu-person-bar > span { display: block; height: 100%; background: var(--c-accent); border-radius: var(--r-pill); }
+.pu-person-status { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--c-text-3); white-space: nowrap; }
+.pu-person-status.is-active { color: var(--c-accent); font-weight: 600; }
+.pu-person-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-text-3); flex-shrink: 0; }
+.pu-person-status.is-active .pu-person-dot { background: var(--c-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 18%, transparent); }
+
+/* How they ship */
+.pu-ship-name { font-size: 15px; font-weight: 650; color: var(--c-text); }
+.pu-ship-facts { font-size: 12.5px; color: var(--c-text-2); line-height: 1.5; margin: 0; }
+
+/* Where the work is going — hotspots */
+.pu-hotspots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.pu-hotspot { display: grid; grid-template-columns: minmax(0, 1.3fr) 1fr auto; align-items: center; gap: 12px; }
+.pu-hotspot-label { display: flex; flex-direction: column; min-width: 0; }
+.pu-hotspot-name { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12.5px; color: var(--c-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pu-hotspot-dir { font-size: 10.5px; color: var(--c-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pu-hotspot-bar { height: 5px; border-radius: var(--r-pill); background: var(--c-surface-3); overflow: hidden; }
+.pu-hotspot-bar > span { display: block; height: 100%; background: var(--c-accent); border-radius: var(--r-pill); }
+.pu-hotspot-count { font-size: 11.5px; color: var(--c-text-3); font-variant-numeric: tabular-nums; }
+
+/* Latest commits */
+.pu-git-feed-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pu-git-feed-list li { display: flex; flex-direction: column; gap: 1px; }

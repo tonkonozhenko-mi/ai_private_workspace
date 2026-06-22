@@ -53,6 +53,13 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 - **Home's heaviest cards collapse by default.** The full git-activity panel and
   the optional AI deep-analysis card are now expandable sections (a one-line
   summary with a teaser), so the overview is scannable instead of a long scroll.
+- **Project activity reads like a briefing, not a dashboard.** Seven cryptic stat
+  boxes become three "at a glance" numbers (commits this week, active
+  contributors, how work ships); contributors get a "Who knows this code" section
+  with initials avatars, clean share bars and an active/last-seen dot; merges and
+  branching merge into one "How they ship" block; hotspots become "Where the work
+  is going"; and the 12-week chart gains a plain trend caption (picking up /
+  steady / slowing down).
 
 ### Fixed
 
