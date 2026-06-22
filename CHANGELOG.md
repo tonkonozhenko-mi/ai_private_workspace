@@ -7,7 +7,23 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-## [0.1.106] - 2026-06-19
+## [0.1.107] - 2026-06-19
+
+### Added
+
+- **Investigator (read-only agent).** A new "Investigate" tab in Project
+  Intelligence answers harder, multi-step questions ("How does a request reach
+  the database?") by running a bounded agent loop over **read-only tools** — it
+  searches the indexed code, reads files, queries the project map and lists
+  files, one step at a time, until it can answer. The reply shows a **transparent
+  trace** (every tool call, its input and what it returned) and the **sources it
+  consulted**, collected deterministically so the answer is always backed by real
+  evidence. Built for local models with a strict, self-parsed ReAct protocol
+  (validation, retry and a graceful "out of steps" fallback rather than guessing).
+  Read-only by construction: no tool writes files or runs commands; everything is
+  local. This is the flagship companion to the deterministic Project Watcher.
+
+
 
 ### Added
 

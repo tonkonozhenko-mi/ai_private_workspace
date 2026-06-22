@@ -6,8 +6,10 @@ import {
   getProjectIntelligence,
   getProjectIntelligenceOverviewText,
   getWorkspaceLatestScan,
+  investigateProject,
 } from "../api/client";
 import type {
+  InvestigationResponse,
   ProjectCloud,
   ProjectDeploymentFlow,
   ProjectEnvironmentComparison,
@@ -41,11 +43,13 @@ const SECTION_LABELS: Record<string, string> = {
   cloud: "Cloud",
   references: "References",
   map: "Map",
+  investigate: "Investigate",
 };
 
 const MAP_TAB = "map";
 const CLOUD_TAB = "cloud";
 const REFERENCES_TAB = "references";
+const INVESTIGATE_TAB = "investigate";
 
 const REFERENCE_KIND_LABELS: Record<string, string> = {
   url: "URLs",
@@ -190,6 +194,7 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
     if (hasCloud) extra.push(CLOUD_TAB);
     if (hasReferences) extra.push(REFERENCES_TAB);
     if (hasMap) extra.push(MAP_TAB);
+    extra.push(INVESTIGATE_TAB);
     return [...sectionTabs, ...extra];
   }, [view, hasMap, hasCloud, hasReferences]);
 
@@ -318,6 +323,9 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
               <ReferencesSection references={references} />
             ) : null}
             {activeTab === MAP_TAB && graph ? <ProjectMap graph={graph} /> : null}
+            {activeTab === INVESTIGATE_TAB ? (
+              <InvestigatePanel workspaceId={workspaceId} role={role} />
+            ) : null}
           </div>
 
           <AskPanel workspaceId={workspaceId} role={role} />
@@ -566,6 +574,131 @@ function EnvironmentsSection({
               ))}
             </tbody>
           </table>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+const TOOL_LABELS: Record<string, string> = {
+  search_code: "Searched code",
+  read_file: "Read file",
+  graph_query: "Queried the map",
+  list_files: "Listed files",
+  "(format)": "Retried",
+};
+
+function InvestigatePanel({
+  workspaceId,
+  role,
+}: {
+  workspaceId: string;
+  role: string | null;
+}) {
+  const [question, setQuestion] = useState("");
+  const [result, setResult] = useState<InvestigationResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    const trimmed = question.trim();
+    if (!trimmed || loading) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await investigateProject(workspaceId, trimmed, role ?? undefined);
+      setResult(res);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The investigation could not run.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="pi-investigate">
+      <p className="pi-muted">
+        A read-only agent answers harder questions by searching code, reading files and
+        querying the map — step by step, with sources. Nothing is changed.
+      </p>
+      <div className="pi-ask-row">
+        <input
+          className="pi-ask-input"
+          type="text"
+          value={question}
+          placeholder="e.g. How does a request reach the database?"
+          onChange={(e) => setQuestion(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit();
+          }}
+          disabled={loading}
+        />
+        <button
+          type="button"
+          className="pi-button pi-button-primary"
+          onClick={submit}
+          disabled={loading || question.trim().length === 0}
+        >
+          {loading ? "Investigating…" : "Investigate"}
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="pi-muted">Working through the project step by step…</p>
+      ) : null}
+      {error ? <p className="pi-muted">{error}</p> : null}
+
+      {result ? (
+        <div className="pi-inv-result">
+          <div className="pi-inv-answer">
+            <p className="pi-eyebrow">Answer</p>
+            <p className="pi-inv-answer-text">{result.answer}</p>
+            {result.stopped_reason === "budget_exhausted" ? (
+              <p className="pi-inv-note">
+                Reached the step limit — this is the best answer from what was gathered.
+              </p>
+            ) : null}
+          </div>
+
+          {result.steps.length > 0 ? (
+            <details className="pi-inv-trace">
+              <summary>
+                How it figured this out · {result.steps.length} step(s)
+              </summary>
+              <ol className="pi-inv-steps">
+                {result.steps.map((step, i) => (
+                  <li key={i} className="pi-inv-step">
+                    <div className="pi-inv-step-head">
+                      <span className="pi-inv-tool">
+                        {TOOL_LABELS[step.tool] ?? step.tool}
+                      </span>
+                      {step.tool_input ? (
+                        <code className="pi-inv-input">{step.tool_input}</code>
+                      ) : null}
+                    </div>
+                    {step.thought ? (
+                      <p className="pi-inv-thought">{step.thought}</p>
+                    ) : null}
+                    <pre className="pi-inv-obs">{step.observation}</pre>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          ) : null}
+
+          {result.sources.length > 0 ? (
+            <div className="pi-inv-sources">
+              <p className="pi-eyebrow">Sources consulted</p>
+              <div className="pi-chips">
+                {result.sources.map((s) => (
+                  <span key={s} className="pi-chip">
+                    <code>{s}</code>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

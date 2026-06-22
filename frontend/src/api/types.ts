@@ -2125,6 +2125,21 @@ export interface ProjectWatchResponse {
   digest?: ProjectWatchDigest;
 }
 
+export interface InvestigationStep {
+  thought: string;
+  tool: string;
+  tool_input: string;
+  observation: string;
+}
+
+export interface InvestigationResponse {
+  answer: string;
+  steps: InvestigationStep[];
+  sources: string[];
+  used_steps: number;
+  stopped_reason: string;
+}
+
 export interface ProjectIntelligenceBuildResponse {
   built: boolean;
   snapshot: ProjectIntelligenceSnapshot;

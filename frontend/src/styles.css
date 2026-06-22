@@ -4697,3 +4697,21 @@ a.getting-ready-cta:hover {
 .pw-sev-medium { background: rgba(224, 168, 90, 0.16); color: #f0c79a; }
 .pw-sev-low { background: rgba(120, 160, 200, 0.16); color: #a9c6e6; }
 .pw-sev-info { background: var(--c-surface-3); color: var(--c-text-2); }
+
+/* --- Project Intelligence: Investigate (agent) tab --- */
+.pi-investigate { display: flex; flex-direction: column; gap: 12px; }
+.pi-inv-result { display: flex; flex-direction: column; gap: 14px; }
+.pi-inv-answer { display: flex; flex-direction: column; gap: 5px; }
+.pi-inv-answer-text { font-size: 14px; color: var(--c-text); line-height: 1.6; margin: 0; }
+.pi-inv-note { font-size: 11.5px; color: var(--c-text-3); margin: 0; }
+.pi-inv-trace { border: 1px solid var(--c-border); border-radius: var(--r-sm); background: var(--c-surface-2); padding: 4px 12px; }
+.pi-inv-trace summary { cursor: pointer; font-size: 12px; color: var(--c-text-2); padding: 6px 0; }
+.pi-inv-steps { list-style: none; counter-reset: inv; margin: 6px 0 8px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.pi-inv-step { position: relative; padding-left: 22px; }
+.pi-inv-step::before { counter-increment: inv; content: counter(inv); position: absolute; left: 0; top: 1px; width: 16px; height: 16px; border-radius: 50%; background: var(--c-surface-3); color: var(--c-text-2); font-size: 9.5px; display: flex; align-items: center; justify-content: center; }
+.pi-inv-step-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pi-inv-tool { font-size: 12px; font-weight: 600; color: var(--c-text); }
+.pi-inv-input { font-size: 11px; color: var(--c-text-2); background: var(--c-surface-3); border-radius: var(--r-sm); padding: 1px 6px; }
+.pi-inv-thought { font-size: 11.5px; color: var(--c-text-3); margin: 3px 0 0; font-style: italic; }
+.pi-inv-obs { font-size: 11px; color: var(--c-text-2); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 7px 9px; margin: 4px 0 0; white-space: pre-wrap; word-break: break-word; max-height: 160px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.pi-inv-sources { display: flex; flex-direction: column; gap: 6px; }
