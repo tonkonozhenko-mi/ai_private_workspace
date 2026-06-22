@@ -7,7 +7,30 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-## [0.1.108] - 2026-06-19
+## [0.1.109] - 2026-06-19
+
+### Added
+
+- **CI "what runs when" explainer.** The Deployment tab now explains, in plain
+  language, which workflows run for each event — push to a feature branch, push or
+  merge to the default branch, opening a pull request, pushing a tag / release, on
+  a schedule, or manually — derived deterministically from GitHub Actions triggers
+  (`on:` with branch/tag filters). The Investigator gains a matching `ci_triggers`
+  tool so it can answer "what runs when I push to my branch?" with the same facts.
+- **Merge & PR activity (from history).** The Git activity card now surfaces
+  approximate pull/merge-request activity inferred from merge-commit messages and
+  `(#N)` / `!N` references: how many PRs/MRs landed, the source-branch types
+  (`feature/`, `hotfix/`, …) and which branches they merged into. Clearly labelled
+  as approximate, since squash- and rebase-merged PRs are only partly visible.
+
+### Docs
+
+- **README: what the Investigator can reason about.** The agents section now lists
+  the agent's knowledge areas and example questions it answers well, and makes the
+  design intent explicit: one capable read-only agent with a small toolbox, not a
+  separate agent per tool.
+
+
 
 ### Added
 

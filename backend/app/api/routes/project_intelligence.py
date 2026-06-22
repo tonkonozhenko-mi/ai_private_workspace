@@ -29,6 +29,7 @@ from app.core.domain.project_intelligence_prompt import (
     build_project_intelligence_overview_prompt,
 )
 from app.core.domain.project_intelligence_view import (
+    present_ci,
     present_cloud,
     present_project_graph,
     present_project_intelligence,
@@ -123,6 +124,7 @@ def get_project_intelligence(workspace_id: str, role: str | None = None) -> dict
         "environment_comparison": compare_environments(graph),
         "cloud": present_cloud(graph),
         "references": present_references(graph),
+        "ci": present_ci(graph),
     }
 
 

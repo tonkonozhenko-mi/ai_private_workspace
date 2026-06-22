@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
@@ -184,6 +185,64 @@ def infer_branch_strategy(
 
 
 @dataclass(frozen=True)
+class GitMergeActivity:
+    """Approximate pull/merge-request activity, inferred from merge-commit
+    messages and ``(#N)`` / ``!N`` references. Honest by nature: squash- and
+    rebase-merged PRs are only partially visible, so this is a lower bound."""
+
+    merge_commits: int
+    pull_requests_detected: int  # distinct #N (GitHub-style)
+    merge_requests_detected: int  # distinct !N (GitLab-style)
+    source_branch_types: dict[str, int] = field(default_factory=dict)
+    target_branches: dict[str, int] = field(default_factory=dict)
+
+
+_MERGE_PR_RE = re.compile(r"Merge pull request #(\d+) from [^/\s]+/(\S+)")
+_MERGE_BRANCH_RE = re.compile(r"Merge branch '([^']+)'(?:\s+into '([^']+)')?")
+_PR_REF_RE = re.compile(r"#(\d+)")
+_MR_REF_RE = re.compile(r"!(\d+)")
+_BRANCH_PREFIXES = {"feature", "feat", "bugfix", "fix", "hotfix", "release", "chore"}
+
+
+def _branch_type(branch: str) -> str:
+    head = branch.split("/", 1)[0].lower() if "/" in branch else ""
+    return head if head in _BRANCH_PREFIXES else "other"
+
+
+def summarize_merges(
+    merge_subjects: list[str], all_subjects: list[str]
+) -> GitMergeActivity:
+    """Pure aggregation of merge/PR signals from commit subjects."""
+    source_types: dict[str, int] = {}
+    targets: dict[str, int] = {}
+
+    for subject in merge_subjects:
+        pr = _MERGE_PR_RE.search(subject)
+        if pr:
+            source = pr.group(2)
+            source_types[_branch_type(source)] = source_types.get(_branch_type(source), 0) + 1
+            continue
+        mb = _MERGE_BRANCH_RE.search(subject)
+        if mb:
+            source = mb.group(1)
+            target = mb.group(2)
+            source_types[_branch_type(source)] = source_types.get(_branch_type(source), 0) + 1
+            if target:
+                targets[target] = targets.get(target, 0) + 1
+
+    prs = {m for s in all_subjects for m in _PR_REF_RE.findall(s)}
+    mrs = {m for s in all_subjects for m in _MR_REF_RE.findall(s)}
+
+    return GitMergeActivity(
+        merge_commits=len(merge_subjects),
+        pull_requests_detected=len(prs),
+        merge_requests_detected=len(mrs),
+        source_branch_types=dict(sorted(source_types.items(), key=lambda kv: -kv[1])),
+        target_branches=dict(sorted(targets.items(), key=lambda kv: -kv[1])),
+    )
+
+
+@dataclass(frozen=True)
 class GitInsights:
     """A small, read-only snapshot of a project's git history.
 
@@ -209,6 +268,7 @@ class GitInsights:
     recent_commits: list[GitCommit] = field(default_factory=list)
     activity_weeks: list[GitActivityBucket] = field(default_factory=list)
     activity_by_weekday: list[int] = field(default_factory=list)  # length 7, Mon..Sun
+    merge_activity: GitMergeActivity | None = None
 
     @staticmethod
     def not_a_repo() -> "GitInsights":

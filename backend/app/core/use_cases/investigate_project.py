@@ -290,12 +290,28 @@ class InvestigateProjectUseCase:
                 lines.append(f"- {commit.short_hash} {commit.subject} — {commit.author} ({when})")
             return "\n".join(lines), ([activity.path] if activity.path else [])
 
+        def ci_triggers(_: str) -> tuple[str, list[str]]:
+            from app.core.domain.project_intelligence_view import present_ci
+
+            graph = self.project_graph_repository.get_latest_graph(workspace_id)
+            if graph is None:
+                return "No project map has been built yet (use Build first).", []
+            ci = present_ci(graph)
+            if not ci.get("has_data"):
+                return "No CI/CD trigger information detected (GitHub Actions only).", []
+            lines = []
+            for scenario in ci["scenarios"]:
+                names = ", ".join(w["name"] for w in scenario["workflows"])
+                lines.append(f"{scenario['label']}: {names}")
+            return "\n".join(lines), []
+
         tools = {
             "search_code": search_code,
             "read_file": read_file,
             "graph_query": graph_query,
             "list_files": list_files,
             "git_history": git_history,
+            "ci_triggers": ci_triggers,
         }
         specs = [
             ToolSpec("search_code", "search_code: <query>", "semantic search over the indexed code/docs"),
@@ -310,6 +326,11 @@ class InvestigateProjectUseCase:
                 "git_history",
                 "git_history: <relative/path or empty>",
                 "who changed a file and its recent commits (empty = whole repo)",
+            ),
+            ToolSpec(
+                "ci_triggers",
+                "ci_triggers: (no input)",
+                "what CI workflows run on push / pull request / tag / schedule",
             ),
         ]
         return tools, specs

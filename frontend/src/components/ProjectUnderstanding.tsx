@@ -312,6 +312,43 @@ function GitActivityCard({ git }: { git: GitInsightsResponse }) {
         </div>
       ) : null}
 
+      {git.merge_activity &&
+      (git.merge_activity.merge_commits > 0 ||
+        git.merge_activity.pull_requests_detected > 0) ? (
+        <div className="pu-git-merges">
+          <div className="pu-eyebrow">Merges &amp; PRs · from history</div>
+          <div className="pu-git-merge-stats">
+            {git.merge_activity.pull_requests_detected > 0 ? (
+              <span>{git.merge_activity.pull_requests_detected} PR(s)</span>
+            ) : null}
+            {git.merge_activity.merge_requests_detected > 0 ? (
+              <span>{git.merge_activity.merge_requests_detected} MR(s)</span>
+            ) : null}
+            <span>{git.merge_activity.merge_commits} merge commit(s)</span>
+          </div>
+          {Object.keys(git.merge_activity.source_branch_types).length > 0 ? (
+            <div className="pu-chips">
+              {Object.entries(git.merge_activity.source_branch_types).map(([type, count]) => (
+                <span key={type} className="pu-chip">
+                  {type}/ · {count}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {Object.keys(git.merge_activity.target_branches).length > 0 ? (
+            <p className="pu-git-merge-targets">
+              Into:{" "}
+              {Object.entries(git.merge_activity.target_branches)
+                .map(([b, c]) => `${b} (${c})`)
+                .join(", ")}
+            </p>
+          ) : null}
+          <p className="pu-git-merge-note">
+            Approximate — squash/rebase merges are only partly visible.
+          </p>
+        </div>
+      ) : null}
+
       {git.hotspots.length > 0 ? (
         <div className="pu-git-hotspots">
           <div className="pu-eyebrow">Most active files · last 90 days</div>

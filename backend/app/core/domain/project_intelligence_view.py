@@ -10,6 +10,7 @@ from app.core.domain.project_graph import (
     EntityType,
     ProjectFinding,
     ProjectGraph,
+    RelationType,
 )
 from app.core.domain.role_lens import RoleLens, Section
 
@@ -119,6 +120,103 @@ def present_project_graph(graph: ProjectGraph) -> dict:
             for r in graph.relations
         ],
     }
+
+
+def _ci_branch_fires(branches: list[str], ignore: list[str], samples: list[str]) -> bool:
+    """Would a push to any of ``samples`` trigger, given branch filters?"""
+    import fnmatch
+
+    def matches(patterns: list[str], name: str) -> bool:
+        return any(fnmatch.fnmatch(name, p) for p in patterns)
+
+    for name in samples:
+        included = (not branches) or matches(branches, name)
+        ignored = matches(ignore, name) if ignore else False
+        if included and not ignored:
+            return True
+    return False
+
+
+_CI_DEFAULT_BRANCHES = ["main", "master"]
+_CI_FEATURE_SAMPLES = ["feature/example", "topic-branch", "fix/bug-123"]
+
+
+def present_ci(graph: ProjectGraph) -> dict:
+    """Plain-language "what runs when" derived from GitHub Actions triggers stored
+    on the pipeline entities. Deterministic; honest that job-level ``rules`` may
+    further gate execution."""
+    import json
+
+    pipelines = [
+        e
+        for e in graph.entities_of_type(EntityType.PIPELINE)
+        if e.metadata.get("triggers_json")
+    ]
+    if not pipelines:
+        return {"has_data": False, "scenarios": []}
+
+    # pipeline id -> [job names]
+    jobs_by_pipeline: dict[str, list[str]] = {}
+    job_names = {j.id: j.name for j in graph.entities_of_type(EntityType.PIPELINE_JOB)}
+    for r in graph.relations_of_type(RelationType.INCLUDES):
+        if r.target_entity_id in job_names:
+            jobs_by_pipeline.setdefault(r.source_entity_id, []).append(
+                job_names[r.target_entity_id]
+            )
+
+    scenarios = {
+        "push_feature": {"key": "push_feature", "label": "Push to a feature branch", "workflows": []},
+        "push_default": {"key": "push_default", "label": "Push or merge to the default branch", "workflows": []},
+        "pull_request": {"key": "pull_request", "label": "Open or update a pull request", "workflows": []},
+        "tag": {"key": "tag", "label": "Push a tag or publish a release", "workflows": []},
+        "schedule": {"key": "schedule", "label": "On a schedule", "workflows": []},
+        "manual": {"key": "manual", "label": "Run manually", "workflows": []},
+    }
+
+    for pipeline in pipelines:
+        try:
+            rules = json.loads(pipeline.metadata.get("triggers_json", "[]"))
+        except (ValueError, TypeError):
+            rules = []
+        hits: set[str] = set()
+        cron_notes: list[str] = []
+        for rule in rules:
+            event = rule.get("event", "")
+            branches = rule.get("branches") or []
+            ignore = rule.get("branches_ignore") or []
+            tags = rule.get("tags") or []
+            cron = rule.get("cron") or []
+            if event == "push":
+                if tags and not branches:
+                    hits.add("tag")
+                else:
+                    if _ci_branch_fires(branches, ignore, _CI_FEATURE_SAMPLES):
+                        hits.add("push_feature")
+                    if _ci_branch_fires(branches, ignore, _CI_DEFAULT_BRANCHES):
+                        hits.add("push_default")
+                    if tags:
+                        hits.add("tag")
+            elif event in ("pull_request", "pull_request_target"):
+                hits.add("pull_request")
+            elif event == "release":
+                hits.add("tag")
+            elif event == "schedule":
+                hits.add("schedule")
+                cron_notes.extend(cron)
+            elif event == "workflow_dispatch":
+                hits.add("manual")
+        entry = {
+            "name": pipeline.name,
+            "jobs": sorted(jobs_by_pipeline.get(pipeline.id, [])),
+            "source_file": pipeline.source_file,
+        }
+        if cron_notes:
+            entry["cron"] = cron_notes
+        for key in hits:
+            scenarios[key]["workflows"].append(dict(entry))
+
+    ordered = [s for s in scenarios.values() if s["workflows"]]
+    return {"has_data": bool(ordered), "scenarios": ordered}
 
 
 def present_cloud(graph: ProjectGraph) -> dict:

@@ -73,6 +73,16 @@ class GitLabCIAnalysisResult:
 
 
 @dataclass(frozen=True)
+class GitHubActionsTrigger:
+    event: str  # push | pull_request | workflow_dispatch | schedule | release | ...
+    branches: list[str] = field(default_factory=list)
+    branches_ignore: list[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
+    paths: list[str] = field(default_factory=list)
+    cron: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class GitHubActionsWorkflow:
     path: str
     name: str | None
@@ -83,6 +93,7 @@ class GitHubActionsWorkflow:
     uses_permissions: bool
     has_secrets_reference: bool
     job_names: list[str] = field(default_factory=list)
+    trigger_rules: list[GitHubActionsTrigger] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

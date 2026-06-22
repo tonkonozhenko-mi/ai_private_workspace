@@ -28,6 +28,14 @@ class GitActivityBucketResponse(BaseModel):
     commits: int
 
 
+class GitMergeActivityResponse(BaseModel):
+    merge_commits: int = 0
+    pull_requests_detected: int = 0
+    merge_requests_detected: int = 0
+    source_branch_types: dict[str, int] = {}
+    target_branches: dict[str, int] = {}
+
+
 class GitBranchStrategyResponse(BaseModel):
     default_branch: str | None = None
     total_branches: int = 0
@@ -55,6 +63,7 @@ class GitInsightsResponse(BaseModel):
     recent_commits: list[GitCommitResponse] = []
     activity_weeks: list[GitActivityBucketResponse] = []
     activity_by_weekday: list[int] = []
+    merge_activity: GitMergeActivityResponse | None = None
 
 
 def to_git_insights_response(insights: GitInsights) -> GitInsightsResponse:
@@ -106,6 +115,17 @@ def to_git_insights_response(insights: GitInsights) -> GitInsightsResponse:
             for b in insights.activity_weeks
         ],
         activity_by_weekday=list(insights.activity_by_weekday),
+        merge_activity=(
+            GitMergeActivityResponse(
+                merge_commits=insights.merge_activity.merge_commits,
+                pull_requests_detected=insights.merge_activity.pull_requests_detected,
+                merge_requests_detected=insights.merge_activity.merge_requests_detected,
+                source_branch_types=dict(insights.merge_activity.source_branch_types),
+                target_branches=dict(insights.merge_activity.target_branches),
+            )
+            if insights.merge_activity is not None
+            else None
+        ),
         branch_strategy=(
             GitBranchStrategyResponse(
                 default_branch=insights.branch_strategy.default_branch,
