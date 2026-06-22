@@ -59,7 +59,13 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 - **Project Watcher no longer prints a wall of changes** — the digest caps at the
   top changes with a "Show all N changes" toggle.
 - **Deep analysis no longer dumps raw JSON** — when a local model wraps its answer
-  in a ```json block, the human summary is salvaged instead of shown verbatim.
+  in a ```json block (even a truncated one), the human summary is salvaged instead
+  of shown verbatim.
+- **Home is more legible** — file columns now show meaning (module names, pipeline
+  names, config purpose) instead of raw paths; the project summary no longer
+  contradicts the detected stack while loading; Sources shows search coverage and a
+  local-only trust line; Project activity opens with a plain-language sentence; and
+  the confusing weekday chart was removed.
 
 ### Docs
 
