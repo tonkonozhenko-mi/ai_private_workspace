@@ -379,6 +379,7 @@ export function ModelsDetail({
                 : "ollama"
             }
             onApplySelection={applyGuidedSelection}
+            onSelectionUpdated={onSelectionUpdated}
           />
           {/* Reranker ("sharper search") is a llama.cpp-only precision pass —
               only offer it when this project runs on the built-in engine. */}
@@ -2427,6 +2428,7 @@ function GuidedModelSetupPanel({
   developerMode = false,
   backend = "ollama",
   onApplySelection,
+  onSelectionUpdated,
 }: {
   workspaceId: string;
   developerMode?: boolean;
@@ -2436,6 +2438,7 @@ function GuidedModelSetupPanel({
     provider: string,
     model: string,
   ) => Promise<void> | void;
+  onSelectionUpdated?: () => Promise<void> | void;
 }) {
   const [guide, setGuide] = useState<GuidedModelSetupGuide | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -2459,7 +2462,10 @@ function GuidedModelSetupPanel({
           This workspace uses the built-in llama.cpp engine. Manage its local
           models below — nothing is installed through Ollama.
         </p>
-        <LlamaCppModelsPanel workspaceId={workspaceId} />
+        <LlamaCppModelsPanel
+          workspaceId={workspaceId}
+          onSelectionUpdated={onSelectionUpdated}
+        />
       </section>
     );
   }

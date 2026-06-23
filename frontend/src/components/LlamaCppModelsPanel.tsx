@@ -29,10 +29,14 @@ function formatGb(bytes: number): string {
 export function LlamaCppModelsPanel({
   workspaceId,
   onReady,
+  onSelectionUpdated,
   mode = "manage",
 }: {
   workspaceId?: string;
   onReady?: () => void;
+  // Called after the active answer/search model changes, so a parent "current
+  // setup" view can reload and stop showing the previous model.
+  onSelectionUpdated?: () => Promise<void> | void;
   // "setup" = first-run: just the recommended answer model + embedder, download
   // and go (like Ollama). "manage" = Models tab: full list with per-model
   // download and live answer-model switching.
@@ -278,6 +282,7 @@ export function LlamaCppModelsPanel({
       setRuntime(status);
       await applyWorkspaceSelection(model.id);
       await refreshCatalog();
+      await onSelectionUpdated?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not switch the answer model.");
     } finally {
@@ -304,6 +309,7 @@ export function LlamaCppModelsPanel({
         }).catch(() => {});
       }
       await refreshCatalog();
+      await onSelectionUpdated?.();
       setNotice(`${model.name} is now your search model. Rebuild the project's search context to use it.`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not switch the search model.");
