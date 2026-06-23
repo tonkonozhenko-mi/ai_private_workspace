@@ -907,6 +907,54 @@ if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Ou
     }
 }
 
+/// Bring the main window back to the foreground (used by the tray "Show" item and
+/// a tray click). Safe no-op if the window is already visible.
+fn show_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    use tauri::Manager;
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+}
+
+/// Create the system tray icon and its menu. On macOS the icon is a monochrome
+/// *template* image, which the OS recolors to match the light/dark menu bar
+/// automatically; other platforms use the regular app icon.
+fn install_system_tray(app: &tauri::App) -> tauri::Result<()> {
+    use tauri::menu::{Menu, MenuItem};
+    use tauri::tray::TrayIconBuilder;
+
+    let show_item =
+        MenuItem::with_id(app, "tray_show", "Show AI Private Workspace", true, None::<&str>)?;
+    let quit_item = MenuItem::with_id(app, "tray_quit", "Quit", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+
+    #[cfg(target_os = "macos")]
+    let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-template.png"))?;
+    #[cfg(not(target_os = "macos"))]
+    let icon = app
+        .default_window_icon()
+        .cloned()
+        .expect("bundled default window icon is always present");
+
+    let builder = TrayIconBuilder::new()
+        .icon(icon)
+        .tooltip("AI Private Workspace")
+        .menu(&menu)
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "tray_show" => show_main_window(app),
+            "tray_quit" => app.exit(0),
+            _ => {}
+        });
+
+    #[cfg(target_os = "macos")]
+    let builder = builder.icon_as_template(true);
+
+    builder.build(app)?;
+    Ok(())
+}
+
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -949,6 +997,14 @@ pub fn run() {
                     }
                 }
             });
+
+            // System tray (macOS menu bar / Windows notification area). On macOS the
+            // icon is a monochrome "template" image, so the OS renders it to match the
+            // light/dark menu bar automatically. Other platforms use the app icon.
+            if let Err(error) = install_system_tray(app) {
+                append_supervisor_log(&format!("System tray could not be created: {}", error));
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
