@@ -21,11 +21,11 @@ def test_reload_with_disabled_user_catalog_keeps_builtins(monkeypatch) -> None:
 
     assert response.status_code == 200
     result = response.json()
-    assert result["models_count"] == 6
+    assert result["models_count"] == 8
     assert result["user_models_count"] == 0
     assert result["warnings_count"] == 0
     assert result["warnings"] == []
-    assert len(client.get("/models/catalog").json()) == 6
+    assert len(client.get("/models/catalog").json()) == 8
 
 
 def test_reload_after_editing_file_adds_user_model(tmp_path, monkeypatch) -> None:
@@ -37,7 +37,7 @@ def test_reload_after_editing_file_adds_user_model(tmp_path, monkeypatch) -> Non
 
     assert response.status_code == 200
     result = response.json()
-    assert result["models_count"] == 7
+    assert result["models_count"] == 9
     assert result["user_models_count"] == 1
     assert result["warnings_count"] == 0
     assert "ollama-codellama" in {model["id"] for model in client.get("/models/catalog").json()}
@@ -56,7 +56,7 @@ def test_reload_invalid_json_replaces_previous_user_models_with_warning(
 
     assert response.status_code == 200
     result = response.json()
-    assert result["models_count"] == 6
+    assert result["models_count"] == 8
     assert result["user_models_count"] == 0
     assert result["warnings_count"] == 1
     assert result["warnings"][0]["code"] == "user_catalog_invalid_json"

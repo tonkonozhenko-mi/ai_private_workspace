@@ -22,7 +22,7 @@ def test_no_user_catalog_path_keeps_static_catalog() -> None:
     assert Settings().USER_MODEL_CATALOG_PATH == ""
     assert loaded.models == []
     assert loaded.warnings == []
-    assert len(registry.list_models()) == 6
+    assert len(registry.list_models()) == 8
 
 
 def test_valid_user_model_appears_in_catalog(tmp_path, monkeypatch) -> None:
@@ -89,7 +89,7 @@ def test_malformed_json_does_not_crash_catalog_details(tmp_path, monkeypatch) ->
 
     assert response.status_code == 200
     details = response.json()
-    assert len(details["models"]) == 6
+    assert len(details["models"]) == 8
     assert details["warnings"][0]["code"] == "user_catalog_invalid_json"
 
 

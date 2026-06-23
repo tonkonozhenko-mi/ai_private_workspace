@@ -22,6 +22,8 @@ def test_list_catalog_returns_llm_and_embedding_models() -> None:
         "ollama-mistral",
         "fake-llm",
         "ollama-nomic-embed-text",
+        "ollama-bge-m3",
+        "ollama-qwen3-embedding-0_6b",
         "fake-embedding",
     } == {model["id"] for model in models}
 
