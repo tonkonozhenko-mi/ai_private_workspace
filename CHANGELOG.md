@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.120] - 2026-06-23
+
+### Changed
+
+- **"What changed since last time" now shows a counts row** (added / removed entities, new / resolved risks) above the highlights, so the volume of change since your last check reads at a glance.
+
 ## [0.1.119] - 2026-06-23
 
 ### Added

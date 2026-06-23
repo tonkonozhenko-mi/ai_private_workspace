@@ -96,6 +96,22 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
       {digest ? (
         <>
           <p className="pw-summary">{digest.summary}</p>
+          {digest.has_changes ? (
+            <div className="pw-counts">
+              {digest.counts.entities_added > 0 ? (
+                <span className="pw-count pw-count-add">+{digest.counts.entities_added} added</span>
+              ) : null}
+              {digest.counts.entities_removed > 0 ? (
+                <span className="pw-count pw-count-remove">−{digest.counts.entities_removed} removed</span>
+              ) : null}
+              {digest.counts.findings_added > 0 ? (
+                <span className="pw-count pw-count-risk">+{digest.counts.findings_added} new risk{digest.counts.findings_added === 1 ? "" : "s"}</span>
+              ) : null}
+              {digest.counts.findings_resolved > 0 ? (
+                <span className="pw-count pw-count-resolved">−{digest.counts.findings_resolved} resolved</span>
+              ) : null}
+            </div>
+          ) : null}
           {digest.highlights.length > 0 ? (
             <>
               <ul className="pw-highlights">
