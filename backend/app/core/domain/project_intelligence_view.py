@@ -12,6 +12,7 @@ from app.core.domain.project_graph import (
     ProjectGraph,
     RelationType,
 )
+from app.core.domain.risk_explanation import explain_finding
 from app.core.domain.role_lens import RoleLens, Section
 
 _SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2, "info": 3}
@@ -37,6 +38,9 @@ def _ordered_findings(findings: list[ProjectFinding], lens: RoleLens) -> list[di
             "confidence": f.confidence,
             "recommendation": f.recommendation,
             "analyzer": f.analyzer,
+            # Calm, review-oriented framing (why it may matter, what to check
+            # manually, plain-language confidence) — derived deterministically.
+            "explained": explain_finding(f).as_dict(),
         }
         for f in sorted(findings, key=sort_key)
     ]

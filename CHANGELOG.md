@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.135] - 2026-06-23
+
+### Added
+
+- **Human-readable risk explanations.** Every finding in the Risks tab (and the Security lens) now reads as a lead for a human, not a verdict: what was found, **why it may matter**, where (a clickable file that opens the inspector), how confident we are in plain language, and **what to check yourself** — plus the recommendation reframed as "an idea to consider, review, don't auto-apply". The framing is derived deterministically from each finding's category, severity, and confidence (no LLM, no hardcoded technology names), so it stays honest. New `app.core.domain.risk_explanation` module with pure tests.
+
 ## [0.1.134] - 2026-06-23
 
 ### Documentation
