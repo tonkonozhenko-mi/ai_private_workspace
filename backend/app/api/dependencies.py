@@ -785,6 +785,18 @@ def restore_active_backend() -> None:
                     filename=saved_llm.get("filename"),
                 )
             )
+        # Restore the previously chosen search/embedding model too.
+        saved_embedding = runtime_state_store.get_llamacpp_embedding()
+        if saved_embedding:
+            from app.core.use_cases.download_gguf_model import GgufModelRef
+
+            llama_runtime_manager.set_embed_ref(
+                GgufModelRef(
+                    model_id=saved_embedding.get("model_id"),
+                    repo_id=saved_embedding.get("repo_id"),
+                    filename=saved_embedding.get("filename"),
+                )
+            )
         status = llama_runtime_manager.start()
         if status.get("running") and hasattr(embedding_provider, "set_delegate"):
             embedding_provider.set_delegate(build_embedding_for_backend("llamacpp"))

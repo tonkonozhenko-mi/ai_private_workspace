@@ -141,6 +141,7 @@ class LlamaRuntimeManager:
         self._embed: LlamaServerProcessManager | None = None
         self._rerank: LlamaServerProcessManager | None = None
         self._llm_model: GgufModel | None = None
+        self._embed_model: GgufModel | None = None
         self._lock = threading.Lock()
 
     def _running(self) -> bool:
@@ -155,6 +156,10 @@ class LlamaRuntimeManager:
         """The chosen answer model, or the recommended default if none/invalid."""
         return self._llm_model or default_gguf_llm()
 
+    def _resolve_embed_model(self) -> GgufModel:
+        """The chosen search model, or the recommended default if none/invalid."""
+        return self._embed_model or default_gguf_embedding()
+
     def set_llm_ref(self, ref: GgufModelRef | None) -> None:
         """Remember which answer model to run (catalog id or custom repo/file).
 
@@ -168,9 +173,23 @@ class LlamaRuntimeManager:
         except GgufModelNotResolvedError:
             pass
 
+    def set_embed_ref(self, ref: GgufModelRef | None) -> None:
+        """Remember which search/embedding model to run. Like ``set_llm_ref``:
+        does not (re)start anything, and ignores invalid refs."""
+        if ref is None:
+            return
+        try:
+            self._embed_model = resolve_gguf_model(ref)
+        except GgufModelNotResolvedError:
+            pass
+
     @property
     def active_llm_model_id(self) -> str:
         return self._resolve_llm_model().id
+
+    @property
+    def active_embed_model_id(self) -> str:
+        return self._resolve_embed_model().id
 
     def _rerank_running(self) -> bool:
         return self._rerank is not None and self._rerank.is_running()
@@ -182,7 +201,7 @@ class LlamaRuntimeManager:
     def status(self) -> dict:
         binary = resolve_llama_server_binary_path()
         llm_model = self._resolve_llm_model()
-        embed_model = default_gguf_embedding()
+        embed_model = self._resolve_embed_model()
         rerank_model = default_gguf_reranker()
         running = self._running()
         rerank_running = self._rerank_running()
@@ -193,6 +212,7 @@ class LlamaRuntimeManager:
             and self._dl.is_installed(embed_model),
             "running": running,
             "active_llm_model": llm_model.id,
+            "active_embedding_model": embed_model.id,
             "llm_url": f"http://{self._host}:{self._llm_port}" if running else None,
             "embed_url": f"http://{self._host}:{self._embed_port}" if running else None,
             # Reranker is an optional "sharper search" precision pass (llama.cpp).
@@ -240,7 +260,7 @@ class LlamaRuntimeManager:
                 "Run scripts/fetch_llama_server.sh or use a packaged release."
             )
         llm_model = self._resolve_llm_model()
-        embed_model = default_gguf_embedding()
+        embed_model = self._resolve_embed_model()
         if not self._dl.is_installed(llm_model):
             raise LlamaRuntimeError("The answer model has not been downloaded yet.")
         if not self._dl.is_installed(embed_model):
@@ -287,6 +307,33 @@ class LlamaRuntimeManager:
             self._llm.start(self._dl.destination_path(model), self._llm_port)
         return self.status()
 
+    def switch_embedding(self, ref: GgufModelRef) -> dict:
+        """Restart only the search/embedding engine on a different (already
+        downloaded) model. The answer model keeps running untouched. The caller is
+        responsible for rebuilding the index, since a different embedder produces a
+        different vector space."""
+        try:
+            model = resolve_gguf_model(ref)
+        except GgufModelNotResolvedError as exc:
+            raise LlamaRuntimeError(str(exc)) from exc
+        if model.model_type != "embedding":
+            raise LlamaRuntimeError("That model is not a search/embedding model.")
+        if not self._dl.is_installed(model):
+            raise LlamaRuntimeError("That search model has not been downloaded yet.")
+        binary = resolve_llama_server_binary_path()
+        if binary is None:
+            raise LlamaRuntimeError("The llama.cpp engine is not bundled in this build.")
+
+        with self._lock:
+            self._embed_model = model
+            if self._embed is not None:
+                self._embed.stop()
+            self._embed = LlamaServerProcessManager(binary, host=self._host)
+            self._embed.start(
+                self._dl.destination_path(model), self._embed_port, embedding=True
+            )
+        return self.status()
+
     def memory(self) -> list[dict]:
         """Resident memory of the running llama-server processes (answer + search).
 
@@ -296,7 +343,7 @@ class LlamaRuntimeManager:
         entries: list[dict] = []
         labels = (
             self._resolve_llm_model().id,
-            default_gguf_embedding().id,
+            self._resolve_embed_model().id,
             default_gguf_reranker().id,
         )
         for label, mgr in zip(labels, (self._llm, self._embed, self._rerank)):

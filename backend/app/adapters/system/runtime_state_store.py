@@ -58,6 +58,30 @@ class RuntimeStateStore:
         if ref:
             self._update("llamacpp_llm", ref)
 
+    def get_llamacpp_embedding(self) -> dict | None:
+        """Return the saved search-model ref: {model_id} or {repo_id, filename}."""
+        try:
+            data = json.loads(self._path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+        ref = data.get("llamacpp_embedding") if isinstance(data, dict) else None
+        return ref if isinstance(ref, dict) and ref else None
+
+    def set_llamacpp_embedding(
+        self,
+        model_id: str | None = None,
+        repo_id: str | None = None,
+        filename: str | None = None,
+    ) -> None:
+        ref: dict[str, str] = {}
+        if model_id:
+            ref["model_id"] = model_id.strip()
+        if repo_id and filename:
+            ref["repo_id"] = repo_id.strip()
+            ref["filename"] = filename.strip()
+        if ref:
+            self._update("llamacpp_embedding", ref)
+
     def get_rerank_enabled(self) -> bool:
         """Whether the optional "sharper search" reranker should run."""
         try:
