@@ -18,6 +18,7 @@ from app.core.domain.git_insights import (
     GitFileActivity,
     GitFileHotspot,
     GitInsights,
+    compute_couplings,
     infer_branch_strategy,
     summarize_activity,
     summarize_merges,
@@ -27,9 +28,15 @@ _UNIT = "\x1f"  # ASCII unit separator — safe field delimiter for git --pretty
 
 
 class LocalGitHistory:
-    def __init__(self, timeout_seconds: int = 8, hotspot_window_days: int = 90) -> None:
+    def __init__(
+        self,
+        timeout_seconds: int = 8,
+        hotspot_window_days: int = 90,
+        coupling_window_days: int = 180,
+    ) -> None:
         self.timeout_seconds = timeout_seconds
         self.hotspot_window_days = hotspot_window_days
+        self.coupling_window_days = coupling_window_days
 
     def read_insights(self, project_path: str) -> GitInsights:
         root = Path(project_path).expanduser()
@@ -77,6 +84,7 @@ class LocalGitHistory:
             activity_weeks=summary.weeks,
             activity_by_weekday=summary.by_weekday,
             merge_activity=self._merge_activity(root),
+            file_couplings=self._file_couplings(root),
         )
 
     def file_activity(
@@ -344,6 +352,39 @@ class LocalGitHistory:
             GitFileHotspot(path=path, changes=changes)
             for path, changes in counter.most_common(limit)
         ]
+
+    def _file_couplings(self, root: Path):
+        """Per-commit file lists over the coupling window → temporal coupling.
+
+        A unit-separator sentinel marks each commit boundary so file lists are
+        grouped per commit regardless of filenames.
+        """
+        raw = self._run(
+            root,
+            [
+                "log",
+                f"--since={self.coupling_window_days} days ago",
+                "--no-merges",
+                "--name-only",
+                f"--pretty=format:{_UNIT}C",
+            ],
+        )
+        if not raw:
+            return []
+        commits: list[list[str]] = []
+        current: list[str] | None = None
+        for line in raw.splitlines():
+            if line.startswith(_UNIT + "C"):
+                if current is not None:
+                    commits.append(current)
+                current = []
+            elif line.strip():
+                if current is None:
+                    current = []
+                current.append(line.strip())
+        if current is not None:
+            commits.append(current)
+        return compute_couplings(commits)
 
     # -- subprocess plumbing ------------------------------------------------
 

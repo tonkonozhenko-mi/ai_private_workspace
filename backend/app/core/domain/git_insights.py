@@ -85,6 +85,60 @@ class GitFileHotspot:
 
 
 @dataclass(frozen=True)
+class GitFileCoupling:
+    """Two files that tend to change in the same commits (temporal coupling).
+
+    High coupling between files in *different* modules is a tell of a hidden
+    dependency the static import graph misses — change one and you almost always
+    have to change the other.
+    """
+
+    file_a: str
+    file_b: str
+    together: int  # commits where both files changed
+    share: float  # together / min(changes_a, changes_b), 0..1
+
+
+def compute_couplings(
+    commit_files: list[list[str]],
+    *,
+    min_together: int = 3,
+    max_files_per_commit: int = 30,
+    limit: int = 8,
+) -> list[GitFileCoupling]:
+    """Find file pairs that change together, from a list of per-commit file lists.
+
+    Pure and deterministic. Commits touching a huge number of files (sweeping
+    renames, formatting, vendored drops) are skipped — they couple everything to
+    everything and only add noise. ``share`` is the conditional rate: of the
+    times the rarer of the two files changed, how often the other changed too.
+    """
+    from itertools import combinations
+
+    pair_counts: dict[tuple[str, str], int] = {}
+    file_counts: dict[str, int] = {}
+    for files in commit_files:
+        unique = sorted({f for f in files if f})
+        if len(unique) < 2 or len(unique) > max_files_per_commit:
+            continue
+        for f in unique:
+            file_counts[f] = file_counts.get(f, 0) + 1
+        for a, b in combinations(unique, 2):
+            pair_counts[(a, b)] = pair_counts.get((a, b), 0) + 1
+
+    results: list[GitFileCoupling] = []
+    for (a, b), together in pair_counts.items():
+        if together < min_together:
+            continue
+        denom = min(file_counts.get(a, 0), file_counts.get(b, 0)) or 1
+        results.append(
+            GitFileCoupling(file_a=a, file_b=b, together=together, share=round(together / denom, 3))
+        )
+    results.sort(key=lambda c: (-c.share, -c.together, c.file_a, c.file_b))
+    return results[:limit]
+
+
+@dataclass(frozen=True)
 class GitFileActivity:
     """Ownership + recent-change activity for a file (or the whole repo when
     ``path`` is None). Read-only, from git history."""
@@ -269,6 +323,7 @@ class GitInsights:
     activity_weeks: list[GitActivityBucket] = field(default_factory=list)
     activity_by_weekday: list[int] = field(default_factory=list)  # length 7, Mon..Sun
     merge_activity: GitMergeActivity | None = None
+    file_couplings: list[GitFileCoupling] = field(default_factory=list)
 
     @staticmethod
     def not_a_repo() -> "GitInsights":

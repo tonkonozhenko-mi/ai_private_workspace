@@ -174,6 +174,13 @@ export interface GitFileHotspotResponse {
   changes: number;
 }
 
+export interface GitFileCouplingResponse {
+  file_a: string;
+  file_b: string;
+  together: number;
+  share: number;
+}
+
 export interface GitActivityBucketResponse {
   period_start: string;
   commits: number;
@@ -215,6 +222,7 @@ export interface GitInsightsResponse {
   activity_weeks: GitActivityBucketResponse[];
   activity_by_weekday: number[];
   merge_activity: GitMergeActivityResponse | null;
+  file_couplings: GitFileCouplingResponse[];
 }
 
 export interface IndexedDocumentSummaryResponse {

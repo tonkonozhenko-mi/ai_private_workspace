@@ -4863,6 +4863,16 @@ a.getting-ready-cta:hover {
 .pu-ship-facts { font-size: 12.5px; color: var(--c-text-2); line-height: 1.5; margin: 0; }
 .pu-ship-branch { font-size: 11.5px; background: var(--c-surface-3); border-radius: 5px; padding: 1px 6px; color: var(--c-text-2); }
 
+/* Role lens caption + change coupling */
+.pu-ga-lens { font-size: 11.5px; color: var(--c-text-3); margin: 0 0 4px; font-style: italic; }
+.pu-couples { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.pu-couple { display: flex; align-items: center; gap: 10px; }
+.pu-couple-pair { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; flex-wrap: wrap; }
+.pu-couple-file { font-size: 12px; color: var(--c-text); background: var(--c-surface-3); border-radius: 6px; padding: 2px 8px; font-family: var(--font-mono, monospace); }
+.pu-couple-link { color: var(--c-text-3); font-size: 12px; }
+.pu-couple-flag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: color-mix(in srgb, var(--c-accent) 80%, var(--c-text)); border: 1px solid color-mix(in srgb, var(--c-accent) 40%, transparent); border-radius: 999px; padding: 1px 7px; }
+.pu-couple-share { font-size: 12px; color: var(--c-text-2); font-variant-numeric: tabular-nums; }
+
 /* Where the work is going — hotspots */
 .pu-hotspots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
 .pu-hotspot { display: grid; grid-template-columns: minmax(0, 1.3fr) 1fr auto; align-items: center; gap: 12px; }

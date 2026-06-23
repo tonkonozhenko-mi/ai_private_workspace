@@ -23,6 +23,13 @@ class GitFileHotspotResponse(BaseModel):
     changes: int
 
 
+class GitFileCouplingResponse(BaseModel):
+    file_a: str
+    file_b: str
+    together: int
+    share: float = 0.0
+
+
 class GitActivityBucketResponse(BaseModel):
     period_start: str
     commits: int
@@ -64,6 +71,7 @@ class GitInsightsResponse(BaseModel):
     activity_weeks: list[GitActivityBucketResponse] = []
     activity_by_weekday: list[int] = []
     merge_activity: GitMergeActivityResponse | None = None
+    file_couplings: list[GitFileCouplingResponse] = []
 
 
 def to_git_insights_response(insights: GitInsights) -> GitInsightsResponse:
@@ -115,6 +123,12 @@ def to_git_insights_response(insights: GitInsights) -> GitInsightsResponse:
             for b in insights.activity_weeks
         ],
         activity_by_weekday=list(insights.activity_by_weekday),
+        file_couplings=[
+            GitFileCouplingResponse(
+                file_a=c.file_a, file_b=c.file_b, together=c.together, share=c.share
+            )
+            for c in insights.file_couplings
+        ],
         merge_activity=(
             GitMergeActivityResponse(
                 merge_commits=insights.merge_activity.merge_commits,

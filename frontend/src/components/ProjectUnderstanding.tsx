@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import {
@@ -460,7 +460,84 @@ function GitHotspots({ git }: { git: GitInsightsResponse }) {
   );
 }
 
-function GitActivityCard({ git }: { git: GitInsightsResponse }) {
+// Temporal coupling: files that keep changing in the same commits. High pairs
+// that live in different folders reveal hidden dependencies the import graph misses.
+function GitCoupling({ git }: { git: GitInsightsResponse }) {
+  const couples = git.file_couplings ?? [];
+  if (couples.length === 0) return null;
+  const base = (p: string) => p.split("/").pop() ?? p;
+  const dir = (p: string) => {
+    const parts = p.split("/");
+    return parts.length > 1 ? parts.slice(0, -1).join("/") + "/" : "";
+  };
+  return (
+    <GaSection
+      title="Changes together"
+      hint="Files that keep changing in the same commits — often a hidden dependency"
+    >
+      <ul className="pu-couples">
+        {couples.map((c) => {
+          const crossDir = dir(c.file_a) !== dir(c.file_b);
+          return (
+            <li key={`${c.file_a}|${c.file_b}`} className="pu-couple" title={`${c.file_a}  ↔  ${c.file_b}`}>
+              <span className="pu-couple-pair">
+                <span className="pu-couple-file">{base(c.file_a)}</span>
+                <span className="pu-couple-link">↔</span>
+                <span className="pu-couple-file">{base(c.file_b)}</span>
+                {crossDir ? <span className="pu-couple-flag" title="The two files live in different folders">cross-module</span> : null}
+              </span>
+              <span className="pu-couple-share">{Math.round(c.share * 100)}%</span>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="pu-ga-caption">
+        Share = how often the pair changes together when either one changes. Cross-module pairs are
+        the ones worth a second look.
+      </p>
+    </GaSection>
+  );
+}
+
+function RecentCommits({ git }: { git: GitInsightsResponse }) {
+  if (git.recent_commits.length === 0) return null;
+  return (
+    <GaSection title="Latest commits">
+      <ul className="pu-git-feed-list">
+        {git.recent_commits.slice(0, 6).map((commit) => (
+          <li key={commit.short_hash} title={commit.subject}>
+            <span className="pu-git-feed-subject">{commit.subject}</span>
+            <span className="pu-git-feed-meta">
+              {commit.author}
+              {commit.committed_at ? ` · ${relativeTime(commit.committed_at)}` : ""}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </GaSection>
+  );
+}
+
+// Same git facts, ordered and framed for the role chosen at project creation.
+// DevOps cares how it ships and what's entangled; a developer wants where to work
+// and who to ask; a tester wants the risk surface; an analyst/manager wants pace
+// and team. Purely a presentation choice over the same deterministic data.
+type GitSectionId = "momentum" | "people" | "ship" | "hotspots" | "coupling" | "recent";
+
+const GIT_LAYOUT_BY_ROLE: Record<string, { order: GitSectionId[]; lens: string }> = {
+  developer: { order: ["hotspots", "coupling", "people", "recent", "momentum"], lens: "where to work and who to ask" },
+  devops: { order: ["ship", "coupling", "hotspots", "momentum", "people"], lens: "how it ships and what's entangled" },
+  tester: { order: ["hotspots", "coupling", "recent", "momentum", "people"], lens: "where change concentrates — your risk map" },
+  business_analyst: { order: ["momentum", "people", "ship", "recent"], lens: "delivery pace and the team behind it" },
+  manager_summary: { order: ["momentum", "people", "ship", "recent"], lens: "delivery pace and the team behind it" },
+};
+
+const DEFAULT_GIT_LAYOUT: { order: GitSectionId[]; lens: string } = {
+  order: ["momentum", "people", "ship", "hotspots", "coupling", "recent"],
+  lens: "",
+};
+
+function GitActivityCard({ git, role }: { git: GitInsightsResponse; role: string }) {
   // Three "at a glance" metrics that answer: how alive is it, how big is the
   // team right now, and how does work land. Everything else has its own section.
   const heroes: Array<{ value: string; label: string; sub?: string }> = [
@@ -522,26 +599,27 @@ function GitActivityCard({ git }: { git: GitInsightsResponse }) {
         ))}
       </div>
 
-      <GitMomentum git={git} />
-      {git.top_contributors.length > 0 ? <GitPeople git={git} /> : null}
-      <GitShip git={git} />
-      <GitHotspots git={git} />
-
-      {git.recent_commits.length > 0 ? (
-        <GaSection title="Latest commits">
-          <ul className="pu-git-feed-list">
-            {git.recent_commits.slice(0, 6).map((commit) => (
-              <li key={commit.short_hash} title={commit.subject}>
-                <span className="pu-git-feed-subject">{commit.subject}</span>
-                <span className="pu-git-feed-meta">
-                  {commit.author}
-                  {commit.committed_at ? ` · ${relativeTime(commit.committed_at)}` : ""}
-                </span>
-              </li>
+      {(() => {
+        const layout = GIT_LAYOUT_BY_ROLE[role] ?? DEFAULT_GIT_LAYOUT;
+        const sections: Record<GitSectionId, ReactNode> = {
+          momentum: <GitMomentum git={git} />,
+          people: git.top_contributors.length > 0 ? <GitPeople git={git} /> : null,
+          ship: <GitShip git={git} />,
+          hotspots: <GitHotspots git={git} />,
+          coupling: <GitCoupling git={git} />,
+          recent: <RecentCommits git={git} />,
+        };
+        return (
+          <>
+            {layout.lens ? (
+              <p className="pu-ga-lens">Arranged for your role — {layout.lens}.</p>
+            ) : null}
+            {layout.order.map((id) => (
+              <Fragment key={id}>{sections[id]}</Fragment>
             ))}
-          </ul>
-        </GaSection>
-      ) : null}
+          </>
+        );
+      })()}
     </details>
   );
 }
@@ -942,7 +1020,7 @@ export function ProjectUnderstanding({
         </>
       )}
 
-      {git ? <GitActivityCard git={git} /> : null}
+      {git ? <GitActivityCard git={git} role={dashboard.assistant_mode} /> : null}
 
       <div className="pu-card pu-sources">
         <div className="pu-sources-head">
