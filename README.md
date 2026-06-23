@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/app-icons/light/icon-256x256.png" alt="AI Private Workspace" width="132" height="132">
+  <img src="assets/brand/logos/pigeon-mark.png" alt="AI Private Workspace" width="200">
 </p>
 
 # AI Private Workspace
