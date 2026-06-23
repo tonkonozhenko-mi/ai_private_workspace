@@ -76,5 +76,12 @@ class ManageProjectGroupsUseCase:
         group = self.get(group_id)
         return self.repository.update(set_members(group, workspace_ids))
 
+    def prune_workspace(self, workspace_id: str) -> None:
+        """Remove a (now deleted) workspace from every group that referenced it,
+        so group member counts never include workspaces that no longer exist."""
+        for group in self.repository.list():
+            if workspace_id in group.workspace_ids:
+                self.repository.update(remove_member(group, workspace_id))
+
     def delete(self, group_id: str) -> None:
         self.repository.delete(group_id)

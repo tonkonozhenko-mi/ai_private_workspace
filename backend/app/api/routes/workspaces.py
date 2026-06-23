@@ -22,6 +22,7 @@ from app.api.dependencies import (
     model_catalog_registry,
     model_experiment_rating_repository,
     model_experiment_repository,
+    project_group_repository,
     project_scan_repository,
     project_understanding_repository,
     readiness_configuration,
@@ -306,6 +307,7 @@ from app.core.use_cases.delete_workspace import (
     DeleteWorkspaceNotFoundError,
     DeleteWorkspaceUseCase,
 )
+from app.core.use_cases.manage_project_groups import ManageProjectGroupsUseCase
 from app.core.use_cases.explain_workspace_model_recommendation import (
     ExplainWorkspaceModelRecommendationInput,
     ExplainWorkspaceModelRecommendationUseCase,
@@ -828,6 +830,9 @@ def delete_workspace(workspace_id: str) -> None:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
+    # A group only references workspaces, so a deleted one must be removed from
+    # any group it belonged to — otherwise it lingers as a phantom member.
+    ManageProjectGroupsUseCase(project_group_repository).prune_workspace(workspace_id)
     return None
 
 

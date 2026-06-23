@@ -104,13 +104,21 @@ class GroupListResponse(BaseModel):
     groups: list[GroupSummary]
 
 
+def _live_workspace_ids(group: ProjectGroup) -> list[str]:
+    """Member ids whose workspace still exists. A group only references
+    workspaces, so a deleted workspace can leave a stale id behind — filtering
+    here keeps the count and list honest (and self-heals old data)."""
+    return [wid for wid in group.workspace_ids if workspace_repository.get(wid) is not None]
+
+
 def _summary(group: ProjectGroup) -> GroupSummary:
+    live_ids = _live_workspace_ids(group)
     return GroupSummary(
         id=group.id,
         name=group.name,
         created_at=group.created_at,
-        member_count=group.member_count,
-        workspace_ids=list(group.workspace_ids),
+        member_count=len(live_ids),
+        workspace_ids=live_ids,
     )
 
 
