@@ -404,34 +404,6 @@ function SummarySection({
   onInspectFile?: (path: string) => void;
 }) {
   const { summary, important_files, questions } = view;
-  const envNames = view.environments.environments.map((e) => e.name);
-  const pipelineNames = view.deployment.pipelines.map((p) => p.name);
-  const infraNames = view.infrastructure.components.map((c) => c.name);
-
-  // Each headline number gets a plain-language sub so it means something at a
-  // glance — names of the actual environments, pipelines and tools we found.
-  const metrics: Array<{ value: number; label: string; sub?: string }> = [
-    {
-      value: summary.counts.services,
-      label: summary.counts.services === 1 ? "service" : "services",
-      sub: "apps, modules & images",
-    },
-    {
-      value: summary.counts.environments,
-      label: summary.counts.environments === 1 ? "environment" : "environments",
-      sub: joinNames(envNames),
-    },
-    {
-      value: summary.counts.pipelines,
-      label: summary.counts.pipelines === 1 ? "pipeline" : "pipelines",
-      sub: joinNames(pipelineNames) || "CI/CD",
-    },
-    {
-      value: summary.counts.infrastructure,
-      label: summary.counts.infrastructure === 1 ? "infra tool" : "infra tools",
-      sub: joinNames(infraNames),
-    },
-  ];
 
   return (
     <div className="pi-summary">
@@ -446,18 +418,6 @@ function SummarySection({
           ))}
         </div>
       ) : null}
-
-      <div className="pi-metrics">
-        {metrics.map((m) => (
-          <div className="pi-metric" key={m.label}>
-            <strong>{m.value}</strong>
-            <span className="pi-metric-label">{m.label}</span>
-            {m.sub ? (
-              <span className="pi-metric-sub" title={m.sub}>{m.sub}</span>
-            ) : null}
-          </div>
-        ))}
-      </div>
 
       <div className="pi-overview">
         {overview ? (
@@ -519,12 +479,6 @@ function SummarySection({
 }
 
 // Joins a few names for a metric sub-line: "dev, staging, prod" or "a, b +3".
-function joinNames(names: string[], max = 3): string {
-  if (names.length === 0) return "";
-  const shown = names.slice(0, max).join(", ");
-  return names.length > max ? `${shown} +${names.length - max}` : shown;
-}
-
 function InfrastructureSection({ view }: { view: ProjectIntelligenceView }) {
   const { components, images } = view.infrastructure;
   if (components.length === 0 && images.length === 0) {
@@ -885,9 +839,6 @@ function SecuritySection({
                     {f.explained?.attention ?? f.severity}
                   </span>
                   <span className="pi-sec-finding-title">{f.title}</span>
-                  {f.explained?.review_status ? (
-                    <span className="pi-finding-review">{f.explained.review_status}</span>
-                  ) : null}
                   {f.source_file ? <code className="pi-sec-src">{f.source_file}</code> : null}
                 </div>
                 {f.explained?.why_it_may_matter ? (
@@ -1019,7 +970,6 @@ function FindingItem({
           {ex?.attention ?? finding.severity}
         </span>
         <span className="pi-finding-title">{finding.title}</span>
-        {ex?.review_status ? <span className="pi-finding-review">{ex.review_status}</span> : null}
       </div>
 
       <p className="pi-finding-explain">{ex?.what || finding.explanation}</p>
