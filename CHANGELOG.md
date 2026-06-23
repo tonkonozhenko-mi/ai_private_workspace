@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.124] - 2026-06-23
+
+### Changed
+
+- **The project handbook is labelled clearly.** It now explains that, once generated, it's automatically fed into every Ask and Investigate as background to keep answers grounded — it's working memory, not a document to read — with an "In use" badge when one exists. Same clarification for the group handbook.
+
 ## [0.1.123] - 2026-06-23
 
 ### Changed
