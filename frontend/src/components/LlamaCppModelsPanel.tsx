@@ -5,6 +5,7 @@ import {
   deleteGgufModel,
   getGgufCatalog,
   getGgufDownload,
+  listGgufDownloads,
   getLlamaRuntimeStatus,
   resolveGgufModel,
   setActiveBackend,
@@ -104,6 +105,33 @@ export function LlamaCppModelsPanel({
     },
     [refreshCatalog],
   );
+
+  // A download runs in the background on the server, so when this panel is
+  // remounted (e.g. after toggling the engine and coming back) we re-attach to
+  // any job still in flight instead of losing the progress bar.
+  useEffect(() => {
+    let cancelled = false;
+    listGgufDownloads()
+      .then((all) => {
+        if (cancelled) return;
+        const live = all.filter(
+          (job) => job.status === "running" || job.status === "queued",
+        );
+        if (live.length === 0) return;
+        setJobs((current) => {
+          const next = { ...current };
+          for (const job of live) next[job.model_id] = job;
+          return next;
+        });
+        for (const job of live) poll(job.model_id, job.id);
+      })
+      .catch(() => {
+        /* no active downloads to resume, or endpoint unavailable */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [poll]);
 
   const isInstalled = useCallback(
     (model: GgufCatalogItem) =>
