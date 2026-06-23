@@ -148,9 +148,14 @@ class BuildGroupOverviewUseCase:
                 "commits_last_7_days": 0,
                 "last_commit_subject": None,
             }
+        # Prefer the project's main line (default branch) over whatever feature
+        # branch happens to be checked out — matches the single-project view.
+        default_branch = (
+            insights.branch_strategy.default_branch if insights.branch_strategy else None
+        )
         return {
             "is_repo": insights.is_repo,
-            "branch": insights.branch,
+            "branch": default_branch or insights.branch,
             "total_commits": insights.total_commits,
             "contributors_count": insights.contributors_count,
             "commits_last_7_days": insights.commits_last_7_days,
