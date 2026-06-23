@@ -181,6 +181,13 @@ export interface GitFileCouplingResponse {
   share: number;
 }
 
+export interface GitFileActivityResponse {
+  path: string | null;
+  total_commits: number;
+  top_authors: GitContributorResponse[];
+  recent_commits: GitCommitResponse[];
+}
+
 export interface GitActivityBucketResponse {
   period_start: string;
   commits: number;

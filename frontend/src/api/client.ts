@@ -88,6 +88,7 @@ import type {
   ProjectIntelligenceBuildResponse,
   ProjectIntelligenceOverviewText,
   ProjectIntelligenceResponse,
+  GitFileActivityResponse,
   ProjectWatchDigest,
   ProjectWatchResponse,
 } from "./types";
@@ -648,6 +649,17 @@ export function getProjectHandbook(
     method: "GET",
     headers: { Accept: "application/json" },
   });
+}
+
+export function getWorkspaceFileActivity(
+  workspaceId: string,
+  path: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<GitFileActivityResponse> {
+  return requestJson<GitFileActivityResponse>(
+    `/workspaces/${workspaceId}/file-activity?path=${encodeURIComponent(path)}`,
+    { signal: options.signal, method: "GET", headers: { Accept: "application/json" } },
+  );
 }
 
 export function getProjectWatch(
