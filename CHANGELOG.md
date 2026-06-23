@@ -7,6 +7,13 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.134] - 2026-06-23
+
+### Documentation
+
+- **Reframed the README around private, read-only project intelligence.** The "Project intelligence and agents" section is now "Project intelligence and read-only analysis"; the Watcher and Investigator are described as read-only analysis tools (deterministic change tracking and evidence-backed investigation) rather than "agents", with the read-only-by-construction guarantee stated up front. No product behaviour changed.
+- **Removed MCP from the public README.** The MCP-tools registry is no longer surfaced in the product-flow, safety, and roadmap copy until its direction is decided. The capability stays in the codebase; only the user-facing documentation was trimmed.
+
 ## [0.1.133] - 2026-06-23
 
 ### Documentation
