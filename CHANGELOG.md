@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.131] - 2026-06-23
+
+### Changed
+
+- **Pigeon avatar in Ask.** Your message avatar is now the app's pigeon brand mark instead of the placeholder cat.
+- **Sources toggle matches the "Answer style" link.** The per-answer "N sources from your project" row now expands via a small down-caret (⌄ that rotates) instead of a "Show" label — quieter and consistent with the rest of Ask.
 ## [0.1.130] - 2026-06-23
 
 ### Fixed

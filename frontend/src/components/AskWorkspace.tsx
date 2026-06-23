@@ -1919,7 +1919,7 @@ function ConversationTurn({
             </button>
           </div>
         </div>
-        <img className="ask-avatar-img" src="/avatar-user-cat-512.png" alt="You" width={32} height={32} />
+        <img className="ask-avatar-img" src="/avatar-user-pigeon-512.png" alt="You" width={32} height={32} />
       </div>
 
       <AnswerResult answer={item.response} createdAt={item.createdAt} attachedFileNames={item.attachedFileNames} onSaveAnswerNote={onSaveAnswerNote} />
@@ -2325,14 +2325,11 @@ function Sources({
             <span className="answer-context-bar-text">
               {sources.length} source{sources.length === 1 ? "" : "s"} from your project
             </span>
-            <span className="answer-context-bar-action">
-              {showSources ? "Hide" : "Show"}
-              <span
-                className={`answer-context-caret${showSources ? " is-open" : ""}`}
-                aria-hidden="true"
-              >
-                ›
-              </span>
+            <span
+              className={`answer-context-caret${showSources ? " is-open" : ""}`}
+              aria-hidden="true"
+            >
+              ⌄
             </span>
           </button>
 
