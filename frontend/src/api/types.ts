@@ -1727,6 +1727,19 @@ export interface ProjectCi {
   scenarios: ProjectCiScenario[];
 }
 
+export interface UserProfileFact {
+  id: string;
+  category: string;
+  text: string;
+  created_at: string;
+  pinned: boolean;
+}
+
+export interface UserProfileResponse {
+  facts: UserProfileFact[];
+  categories: string[];
+}
+
 export interface RoleBriefFact {
   label: string;
   count: number;

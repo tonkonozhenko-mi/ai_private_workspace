@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 
+import { UserProfileSettings } from "./UserProfileSettings";
 import type { WorkbenchPreferences } from "../App";
 import {
   deleteWorkspace,
@@ -514,6 +515,8 @@ export function SettingsPanel({
           </div>
         )}
       </section>
+
+      <UserProfileSettings />
 
       <section className="panel settings-clean-card settings-danger-card">
         <div className="panel-heading compact-heading">

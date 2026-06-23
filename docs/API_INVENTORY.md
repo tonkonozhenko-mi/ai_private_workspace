@@ -175,6 +175,17 @@ models, run benchmarks, or change active runtime configuration.
 | `POST /workspaces/{workspace_id}/handbook` | (Re)generate the deterministic project handbook from the latest map. | No | No | Local DB | Project Intelligence |
 | `GET /workspaces/{workspace_id}/handbook` | The stored project handbook text. | No | No | Local DB read | Project Intelligence |
 
+## User Profile
+
+Cross-project facts about the person using the app, applied to every answer. Global (one profile per install), local-only, fully user-editable.
+
+| Endpoint | Purpose | Network | Writes Files | Side Effects | Surface |
+| --- | --- | --- | --- | --- | --- |
+| `GET /user-profile` | List the user's profile facts + available categories. | No | No | Local DB read | Settings |
+| `POST /user-profile` | Add a profile fact (role / preference / style / context / fact). | No | No | Local DB write | Settings |
+| `DELETE /user-profile/{item_id}` | Delete a profile fact. | No | No | Local DB write | Settings |
+| `POST /user-profile/{item_id}/pin` | Pin or unpin a profile fact. | No | No | Local DB write | Settings |
+
 ## Command Approval
 
 | Endpoint | Purpose | Writes | Executes commands | Runtime | Main UI surface |

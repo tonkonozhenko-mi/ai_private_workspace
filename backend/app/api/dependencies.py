@@ -23,6 +23,13 @@ from app.adapters.memory.in_memory_project_memory_repository import (
 from app.adapters.memory.sqlite_project_memory_repository import (
     SQLiteProjectMemoryRepository,
 )
+from app.adapters.memory.in_memory_user_profile_repository import (
+    InMemoryUserProfileRepository,
+)
+from app.adapters.memory.sqlite_user_profile_repository import (
+    SQLiteUserProfileRepository,
+)
+from app.core.ports.user_profile_repository import UserProfileRepositoryPort
 from app.core.ports.project_memory_repository import ProjectMemoryRepositoryPort
 from app.adapters.memory.in_memory_project_group_repository import (
     InMemoryProjectGroupRepository,
@@ -349,6 +356,18 @@ def build_project_memory_repository() -> ProjectMemoryRepositoryPort:
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
 
+def build_user_profile_repository() -> UserProfileRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryUserProfileRepository()
+    if repository_type == "sqlite":
+        return SQLiteUserProfileRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
 def build_project_group_repository() -> ProjectGroupRepositoryPort:
     settings = get_settings()
     repository_type = settings.workspace_repository.lower()
@@ -638,11 +657,15 @@ conversation_repository = build_conversation_repository()
 project_graph_repository = build_project_graph_repository()
 project_watch_repository = build_project_watch_repository()
 project_memory_repository = build_project_memory_repository()
+user_profile_repository = build_user_profile_repository()
 project_group_repository = build_project_group_repository()
 answer_rating_repository = build_answer_rating_repository()
-# Shared project-context provider injected into Ask + the Investigator.
+# Shared project-context provider injected into Ask + the Investigator. It also
+# applies the user's cross-project profile (about the person, not the project).
 project_context_composer = ComposeProjectContextUseCase(
-    project_memory_repository, project_graph_repository
+    project_memory_repository,
+    project_graph_repository,
+    user_profile_repository,
 )
 model_experiment_repository = build_model_experiment_repository()
 model_experiment_rating_repository = build_model_experiment_rating_repository()
