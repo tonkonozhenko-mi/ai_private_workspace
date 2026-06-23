@@ -20,7 +20,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 const PLACEHOLDER_BY_CATEGORY: Record<string, string> = {
   role: "e.g. I'm a DevOps engineer",
   preference: "e.g. Keep answers concise; show commands",
-  style: "e.g. Answer in Russian",
+  style: "e.g. Answer in Ukrainian",
   context: "e.g. We call production 'prd'",
   fact: "e.g. I mostly work with Terragrunt",
 };
