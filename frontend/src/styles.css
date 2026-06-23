@@ -4524,6 +4524,21 @@ a.getting-ready-cta:hover {
 .pi-chip { font-size: 12px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 4px 10px; color: var(--c-text); display: inline-flex; align-items: center; gap: 6px; }
 .pi-chip-env em { font-style: normal; font-size: 10.5px; color: var(--c-text-3); }
 .pi-hint { font-size: 11.5px; color: var(--c-text-3); line-height: 1.45; margin: 0; }
+.pi-security { display: flex; flex-direction: column; gap: 16px; }
+.pi-sec-block { display: flex; flex-direction: column; gap: 8px; }
+.pi-sec-scanners { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pi-sec-scanner { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--c-text); }
+.pi-sec-dot { width: 7px; height: 7px; border-radius: 50%; background: #8fd19a; flex-shrink: 0; }
+.pi-sec-scanner-name { flex-shrink: 0; }
+.pi-sec-src { font-size: 11px; color: var(--c-text-3); font-family: var(--font-mono, monospace); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pi-sec-findings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.pi-sec-finding-head { display: flex; align-items: center; gap: 9px; }
+.pi-sec-finding-title { font-size: 12.5px; color: var(--c-text); }
+.pi-sec-rec { font-size: 11.5px; color: var(--c-text-2); margin: 3px 0 0; padding-left: 4px; line-height: 1.5; }
+.pi-sev { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; border-radius: 4px; padding: 1px 6px; flex-shrink: 0; }
+.pi-sev-high { background: rgba(224, 90, 90, 0.16); color: #f0a3a3; }
+.pi-sev-medium { background: rgba(224, 168, 90, 0.16); color: #f0c79a; }
+.pi-sev-low { background: var(--c-surface-3); color: var(--c-text-3); }
 .pi-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .pi-metric { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: 11px; padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .pi-metric strong { font-size: 22px; font-weight: 650; color: var(--c-text); line-height: 1.05; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
