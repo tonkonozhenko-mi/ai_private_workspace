@@ -43,11 +43,21 @@ interface GroupViewProps {
   groupId: string;
   groupName: string;
   allWorkspaces: { id: string; name: string }[];
+  autoRename?: boolean;
   onChanged: () => void;
   onDeleted?: () => void;
+  onAutoRenameHandled?: () => void;
 }
 
-export function GroupView({ groupId, groupName, allWorkspaces, onChanged, onDeleted }: GroupViewProps) {
+export function GroupView({
+  groupId,
+  groupName,
+  allWorkspaces,
+  autoRename = false,
+  onChanged,
+  onDeleted,
+  onAutoRenameHandled,
+}: GroupViewProps) {
   const [detail, setDetail] = useState<ProjectGroupDetail | null>(null);
   const [overview, setOverview] = useState<GroupOverviewResponse | null>(null);
   const [activeTab, setActiveTab] = useState<GroupTab>("home");
@@ -56,6 +66,17 @@ export function GroupView({ groupId, groupName, allWorkspaces, onChanged, onDele
   const [renaming, setRenaming] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [draftName, setDraftName] = useState(groupName);
+
+  // A freshly created group lands in rename mode so it can be named immediately.
+  useEffect(() => {
+    if (autoRename) {
+      setDraftName(groupName);
+      setRenaming(true);
+      onAutoRenameHandled?.();
+    }
+    // Only react to the initial autoRename signal for this group.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRename, groupId]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -155,6 +176,7 @@ export function GroupView({ groupId, groupName, allWorkspaces, onChanged, onDele
               }}
             >
               {groupName}
+              <span className="grp-title-edit" aria-hidden="true">✎</span>
             </h1>
           )}
           <p className="grp-subtitle">

@@ -7,7 +7,11 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-## [0.1.114] - 2026-06-23
+## [0.1.115] - 2026-06-23
+
+### Changed
+
+- **Drag-to-group is smarter.** A group created by dropping one project on another now opens straight in rename mode so you can name it immediately (and the group title shows a hover ✎ to rename any time). Dropping the same two projects again no longer makes a duplicate — if a group already contains both, it just opens that group. Dropping a project onto a group it's already in is a no-op too.
 
 ### Added
 
