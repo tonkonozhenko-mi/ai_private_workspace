@@ -199,6 +199,21 @@ technologies split into common / shared / unique, and risks grouped by pattern
 with a per-repo breakdown. Create a group by dragging one project onto another;
 member repositories stay independent workspaces underneath.
 
+### Memory — about the project, and about you
+
+The app learns over time, in two local, fully-editable layers. **Project memory**
+keeps durable notes, decisions and corrections about a project ("prod is called
+'prd' here"), fed back into every answer for that workspace. **Your profile**
+(Settings → About you) holds stable facts about *you* — your role, the language
+to answer in, how concise you like answers, your team's conventions — applied to
+**every** project, in Ask and the Investigator, so you don't re-explain yourself.
+
+Both are honest about how they work: selection for a prompt is pinned + keyword +
+recency, never an LLM guess, and everything is visible, editable and deletable.
+The profile can also **suggest** facts from a conversation, but **review-first** —
+the local model proposes candidates and nothing is saved until you keep it.
+Nothing about you ever leaves the machine.
+
 ### The Watcher — deterministic change tracking
 
 The Watcher answers **"what changed since I last looked?"** On demand it

@@ -1740,6 +1740,15 @@ export interface UserProfileResponse {
   categories: string[];
 }
 
+export interface ProfileFactCandidate {
+  category: string;
+  text: string;
+}
+
+export interface SuggestProfileResponse {
+  candidates: ProfileFactCandidate[];
+}
+
 export interface RoleBriefFact {
   label: string;
   count: number;

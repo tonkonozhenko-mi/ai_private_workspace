@@ -5,8 +5,9 @@ import {
   deleteUserProfileFact,
   getUserProfile,
   pinUserProfileFact,
+  suggestUserProfileFacts,
 } from "../api/client";
-import type { UserProfileFact } from "../api/types";
+import type { ProfileFactCandidate, UserProfileFact } from "../api/types";
 
 const CATEGORY_LABELS: Record<string, string> = {
   role: "Role",
@@ -33,6 +34,12 @@ export function UserProfileSettings() {
   const [text, setText] = useState("");
   const [category, setCategory] = useState("fact");
   const [saving, setSaving] = useState(false);
+
+  // Review-first suggestions: the model proposes facts; you approve each one.
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestText, setSuggestText] = useState("");
+  const [suggesting, setSuggesting] = useState(false);
+  const [candidates, setCandidates] = useState<ProfileFactCandidate[] | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -78,6 +85,31 @@ export function UserProfileSettings() {
     setFacts((current) => current.map((f) => (f.id === fact.id ? updated : f)));
   };
 
+  const findSuggestions = async () => {
+    const trimmed = suggestText.trim();
+    if (!trimmed) return;
+    setSuggesting(true);
+    setError(null);
+    try {
+      const result = await suggestUserProfileFacts(trimmed);
+      setCandidates(result.candidates);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The local model couldn't suggest facts.");
+    } finally {
+      setSuggesting(false);
+    }
+  };
+
+  const acceptCandidate = async (candidate: ProfileFactCandidate) => {
+    await addUserProfileFact(candidate.text, candidate.category);
+    setCandidates((current) => current?.filter((c) => c !== candidate) ?? null);
+    await load();
+  };
+
+  const dismissCandidate = (candidate: ProfileFactCandidate) => {
+    setCandidates((current) => current?.filter((c) => c !== candidate) ?? null);
+  };
+
   return (
     <section className="panel settings-clean-card up-card">
       <header className="settings-clean-card-head">
@@ -114,6 +146,75 @@ export function UserProfileSettings() {
           </button>
         </div>
       </form>
+
+      <div className="up-suggest">
+        <button
+          type="button"
+          className="up-suggest-toggle"
+          onClick={() => setSuggestOpen((v) => !v)}
+        >
+          {suggestOpen ? "▾" : "▸"} Suggest facts from a conversation
+        </button>
+        {suggestOpen ? (
+          <div className="up-suggest-body">
+            <p className="up-muted">
+              Paste a recent chat (or a sentence about yourself). The local model proposes facts —
+              nothing is saved until you keep it.
+            </p>
+            <textarea
+              className="up-suggest-input"
+              rows={4}
+              value={suggestText}
+              onChange={(e) => setSuggestText(e.target.value)}
+              placeholder="Paste a conversation here…"
+              maxLength={20000}
+            />
+            <button
+              type="button"
+              className="up-add-btn"
+              onClick={() => void findSuggestions()}
+              disabled={suggesting || !suggestText.trim()}
+            >
+              {suggesting ? "Reading…" : "Find facts"}
+            </button>
+
+            {candidates !== null ? (
+              candidates.length === 0 ? (
+                <p className="up-muted">No new facts found — nothing durable to remember here.</p>
+              ) : (
+                <ul className="up-list up-candidates">
+                  {candidates.map((candidate, i) => (
+                    <li key={`${candidate.text}-${i}`} className="up-item up-candidate">
+                      <span className="up-cat">
+                        {CATEGORY_LABELS[candidate.category] ?? candidate.category}
+                      </span>
+                      <span className="up-text">{candidate.text}</span>
+                      <div className="up-actions">
+                        <button
+                          type="button"
+                          className="up-keep"
+                          onClick={() => void acceptCandidate(candidate)}
+                        >
+                          Keep
+                        </button>
+                        <button
+                          type="button"
+                          className="up-icon up-icon-danger"
+                          title="Dismiss"
+                          aria-label="Dismiss"
+                          onClick={() => dismissCandidate(candidate)}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )
+            ) : null}
+          </div>
+        ) : null}
+      </div>
 
       {loading ? (
         <p className="up-muted">Loading…</p>
