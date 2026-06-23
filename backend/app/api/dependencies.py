@@ -522,9 +522,18 @@ def build_embedding_for_backend(backend: str) -> EmbeddingProviderPort:
             LlamaServerEmbeddingProvider,
         )
 
+        # Report the model the engine is actually serving (the saved/switched
+        # search model), not the static env default — otherwise the readiness
+        # check sees a false "runtime does not match" after switching the built-in
+        # embedder and on every relaunch.
+        model = settings.ollama_embedding_model
+        try:
+            model = llama_runtime_manager.active_embed_model_id or model
+        except Exception:  # noqa: BLE001 - manager not ready yet → fall back to default
+            pass
         return LlamaServerEmbeddingProvider(
             base_url=f"http://{settings.LLAMA_SERVER_HOST}:{settings.LLAMA_SERVER_EMBED_PORT}",
-            model=settings.ollama_embedding_model,
+            model=model,
             timeout_seconds=settings.ollama_timeout_seconds,
         )
     from app.adapters.embeddings.ollama_embedding_provider import OllamaEmbeddingProvider
