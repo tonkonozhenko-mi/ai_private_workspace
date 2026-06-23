@@ -626,6 +626,32 @@ def switch_llama_runtime_embedding(
         repo_id=request.repo_id,
         filename=request.filename,
     )
+    # Re-point the LIVE embedding provider at the new model. Restarting the embed
+    # server (above) makes it serve the new GGUF, but the readiness check reports
+    # the *provider's* model name — so without rebuilding the delegate it would
+    # keep saying the old model and raise a false "runtime does not match" review.
+    try:
+        from app.adapters.embeddings.llama_server_embedding_provider import (
+            LlamaServerEmbeddingProvider,
+        )
+        from app.api.dependencies import embedding_provider
+        from app.config.settings import get_settings
+
+        if hasattr(embedding_provider, "set_delegate"):
+            settings_ = get_settings()
+            embedding_provider.set_delegate(
+                LlamaServerEmbeddingProvider(
+                    base_url=(
+                        f"http://{settings_.LLAMA_SERVER_HOST}:"
+                        f"{settings_.LLAMA_SERVER_EMBED_PORT}"
+                    ),
+                    model=llama_runtime_manager.active_embed_model_id,
+                    timeout_seconds=settings_.ollama_timeout_seconds,
+                )
+            )
+            result = llama_runtime_manager.status()
+    except Exception:  # noqa: BLE001 - never let provider re-pointing break the switch
+        pass
     return LlamaRuntimeStatusResponse(**result)
 
 
