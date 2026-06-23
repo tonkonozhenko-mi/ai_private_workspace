@@ -120,6 +120,36 @@ class GetSelectedEmbeddingIndexingPlanUseCase:
                 notes=[READ_ONLY_NOTE, VECTOR_SPACE_NOTE],
             )
 
+        indexed_with = (
+            saved_index_status.embedding_model if saved_index_status is not None else None
+        )
+        if indexed_with and indexed_with.strip().lower() != active_model.strip().lower():
+            return SelectedEmbeddingIndexingPlan(
+                workspace_id=request.workspace_id,
+                selected_provider=selected.provider,
+                selected_model=selected.model,
+                active_provider=active_provider,
+                active_model=active_model,
+                index_status=index_status,
+                can_index_now=True,
+                can_search_now=False,
+                requires_backend_restart=False,
+                requires_reindex=True,
+                requires_new_vector_collection=True,
+                plan_status="needs_index",
+                recommended_actions=[
+                    "Rebuild the search context with the current search model.",
+                ],
+                warnings=[
+                    (
+                        f"The search context was built with '{indexed_with}', but "
+                        f"'{active_model}' is the search model now. Rebuild it so search "
+                        "uses the new model."
+                    )
+                ],
+                notes=[READ_ONLY_NOTE, VECTOR_SPACE_NOTE],
+            )
+
         return SelectedEmbeddingIndexingPlan(
             workspace_id=request.workspace_id,
             selected_provider=selected.provider,
