@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.128] - 2026-06-23
+
+### Changed
+
+- **Visual consistency pass (one look across the app).** Unified the small primitives that had drifted apart: section labels ("eyebrows") and neutral chips now share one quiet treatment everywhere, cards share one padding rhythm, and the accent / success green is driven from a single token (so it's one hue, not three). Primary buttons share one ink colour.
+- **A calmer, clearer Ask front door.** The empty Ask view now invites a question in plain language with concrete starters ("How does deployment work?", "What are the main risks here?", "Where should I start reading?") instead of describing internals.
 ## [0.1.127] - 2026-06-23
 
 ### Changed
