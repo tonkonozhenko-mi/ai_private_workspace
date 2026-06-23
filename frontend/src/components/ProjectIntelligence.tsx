@@ -13,6 +13,7 @@ import type {
   ProjectEnvironmentComparison,
   ProjectGraphEntity,
   ProjectGraphFinding,
+  ProjectGraphNode,
   ProjectGraphPayload,
   ProjectIntelligenceResponse,
   ProjectIntelligenceView,
@@ -41,11 +42,18 @@ const SECTION_LABELS: Record<string, string> = {
   cloud: "Cloud",
   references: "References",
   map: "Map",
+  security: "Security",
 };
 
 const MAP_TAB = "map";
 const CLOUD_TAB = "cloud";
 const REFERENCES_TAB = "references";
+const SECURITY_TAB = "security";
+
+// Security-relevant concepts, detected generically by token — no project- or
+// vendor-specific hardcoding beyond well-known scanner names that work anywhere.
+const SCANNER_RE = /scan|security|audit|trivy|checkov|gitleaks|secret|sonar|snyk|semgrep|bandit|tfsec|dependabot|codeql|vuln/i;
+const SECURITY_FINDING_RE = /secret|credential|password|permission|public|expos|encrypt|unencrypted|iam|access|policy|ssl|tls|cors|privileg|remote[_ ]state|0\.0\.0\.0|firewall|port|auth/i;
 
 const REFERENCE_KIND_LABELS: Record<string, string> = {
   url: "URLs",
@@ -184,15 +192,33 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
   const hasCloud = Boolean(cloud && cloud.total_services > 0);
   const hasReferences = Boolean(references && references.total > 0);
 
+  const security = useMemo(() => {
+    const scanners = graph
+      ? Array.from(
+          new Map(
+            graph.nodes
+              .filter((n) => (n.type === "pipeline_job" || n.type === "pipeline") && SCANNER_RE.test(n.name))
+              .map((n) => [n.name, n]),
+          ).values(),
+        )
+      : [];
+    const findings = (view?.risks?.findings ?? []).filter(
+      (f) => SECURITY_FINDING_RE.test(`${f.title} ${f.explanation} ${f.id} ${f.category}`),
+    );
+    return { scanners, findings };
+  }, [graph, view]);
+  const hasSecurity = security.scanners.length > 0 || security.findings.length > 0;
+
   const tabs = useMemo(() => {
     if (!view) return [];
     const sectionTabs = view.section_order.filter((s) => TAB_SECTIONS.has(s));
     const extra: string[] = [];
     if (hasCloud) extra.push(CLOUD_TAB);
     if (hasReferences) extra.push(REFERENCES_TAB);
+    if (hasSecurity) extra.push(SECURITY_TAB);
     if (hasMap) extra.push(MAP_TAB);
     return [...sectionTabs, ...extra];
-  }, [view, hasMap, hasCloud, hasReferences]);
+  }, [view, hasMap, hasCloud, hasReferences, hasSecurity]);
 
   useEffect(() => {
     // Keep the active tab valid when the lens reorders sections.
@@ -317,6 +343,9 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
             {activeTab === CLOUD_TAB && cloud ? <CloudSection cloud={cloud} /> : null}
             {activeTab === REFERENCES_TAB && references ? (
               <ReferencesSection references={references} />
+            ) : null}
+            {activeTab === SECURITY_TAB ? (
+              <SecuritySection scanners={security.scanners} findings={security.findings} />
             ) : null}
             {activeTab === MAP_TAB && graph ? <ProjectMap graph={graph} /> : null}
           </div>
@@ -653,6 +682,70 @@ function EnvironmentsSection({
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// A read-only security posture lens: which security checks already run in CI,
+// and which deterministic findings are security-relevant. It reads what gates
+// exist and where the gaps are — it does not run any scanner itself.
+function SecuritySection({
+  scanners,
+  findings,
+}: {
+  scanners: ProjectGraphNode[];
+  findings: ProjectGraphFinding[];
+}) {
+  const high = findings.filter((f) => f.severity === "high").length;
+  const summary =
+    scanners.length > 0
+      ? `${scanners.length} security check${scanners.length === 1 ? "" : "s"} run in CI.`
+      : "No automated security checks were detected in CI.";
+  const findingLine =
+    findings.length > 0
+      ? ` ${findings.length} security-relevant finding${findings.length === 1 ? "" : "s"}${high ? ` (${high} high)` : ""} to review.`
+      : " Nothing security-relevant flagged by the deterministic analyzers.";
+
+  return (
+    <div className="pi-security">
+      <p className="pi-hint">{summary}{findingLine}</p>
+
+      <div className="pi-sec-block">
+        <p className="pi-eyebrow">Security checks in CI</p>
+        {scanners.length > 0 ? (
+          <ul className="pi-sec-scanners">
+            {scanners.map((s) => (
+              <li key={s.id} className="pi-sec-scanner" title={s.source_file ?? undefined}>
+                <span className="pi-sec-dot" />
+                <span className="pi-sec-scanner-name">{s.name}</span>
+                {s.source_file ? <code className="pi-sec-src">{s.source_file}</code> : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="pi-muted">
+            No scan/audit steps found in the pipelines. Consider adding secret, dependency and IaC scanning.
+          </p>
+        )}
+      </div>
+
+      {findings.length > 0 ? (
+        <div className="pi-sec-block">
+          <p className="pi-eyebrow">Security-relevant findings</p>
+          <ul className="pi-sec-findings">
+            {findings.map((f) => (
+              <li key={f.id} className="pi-sec-finding">
+                <div className="pi-sec-finding-head">
+                  <span className={`pi-sev pi-sev-${f.severity}`}>{f.severity}</span>
+                  <span className="pi-sec-finding-title">{f.title}</span>
+                  {f.source_file ? <code className="pi-sec-src">{f.source_file}</code> : null}
+                </div>
+                {f.recommendation ? <p className="pi-sec-rec">{f.recommendation}</p> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.122] - 2026-06-23
+
+### Added
+
+- **Security posture lens.** A new "Security" tab in Project Intelligence (shown when there's something to say) reads what security gates already exist and where the gaps are: which scan/audit steps run in CI (secret, dependency, IaC scanning, etc., detected from the pipeline graph) and which deterministic findings are security-relevant (permissions, secrets, public exposure, encryption, IAM/access, remote state) with their recommendation and source file. Read-only — it reports on scanners, it never runs one.
+
 ## [0.1.121] - 2026-06-23
 
 ### Added
