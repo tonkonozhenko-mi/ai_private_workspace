@@ -918,40 +918,61 @@ fn show_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     }
 }
 
-/// Create the system tray icon and its menu. On macOS the icon is a monochrome
-/// *template* image, which the OS recolors to match the light/dark menu bar
-/// automatically; other platforms use the regular app icon.
+/// The brand pigeon icon matching a light or dark system appearance.
+fn tray_icon_for_theme(theme: tauri::Theme) -> tauri::Result<tauri::image::Image<'static>> {
+    let bytes: &'static [u8] = match theme {
+        tauri::Theme::Dark => include_bytes!("../icons/tray-dark.png"),
+        _ => include_bytes!("../icons/tray-light.png"),
+    };
+    tauri::image::Image::from_bytes(bytes)
+}
+
+/// Best-effort read of the current system appearance (defaults to light).
+fn current_theme(app: &tauri::App) -> tauri::Theme {
+    use tauri::Manager;
+    app.get_webview_window("main")
+        .and_then(|window| window.theme().ok())
+        .unwrap_or(tauri::Theme::Light)
+}
+
+/// Create the system tray icon and its menu, and keep the icon matching the
+/// light/dark system theme while the app runs. The light and dark brand icons
+/// come from the shipped pigeon icon set.
 fn install_system_tray(app: &tauri::App) -> tauri::Result<()> {
     use tauri::menu::{Menu, MenuItem};
     use tauri::tray::TrayIconBuilder;
+    use tauri::Manager;
 
     let show_item =
         MenuItem::with_id(app, "tray_show", "Show AI Private Workspace", true, None::<&str>)?;
     let quit_item = MenuItem::with_id(app, "tray_quit", "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
 
-    #[cfg(target_os = "macos")]
-    let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-template.png"))?;
-    #[cfg(not(target_os = "macos"))]
-    let icon = app
-        .default_window_icon()
-        .cloned()
-        .expect("bundled default window icon is always present");
-
-    let builder = TrayIconBuilder::new()
-        .icon(icon)
+    TrayIconBuilder::with_id("main-tray")
+        .icon(tray_icon_for_theme(current_theme(app))?)
         .tooltip("AI Private Workspace")
         .menu(&menu)
         .on_menu_event(|app, event| match event.id().as_ref() {
             "tray_show" => show_main_window(app),
             "tray_quit" => app.exit(0),
             _ => {}
+        })
+        .build(app)?;
+
+    // Swap the tray icon when the system switches between light and dark.
+    if let Some(window) = app.get_webview_window("main") {
+        let handle = app.handle().clone();
+        window.on_window_event(move |event| {
+            if let tauri::WindowEvent::ThemeChanged(theme) = event {
+                if let Some(tray) = handle.tray_by_id("main-tray") {
+                    if let Ok(icon) = tray_icon_for_theme(*theme) {
+                        let _ = tray.set_icon(Some(icon));
+                    }
+                }
+            }
         });
+    }
 
-    #[cfg(target_os = "macos")]
-    let builder = builder.icon_as_template(true);
-
-    builder.build(app)?;
     Ok(())
 }
 
