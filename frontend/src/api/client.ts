@@ -435,6 +435,10 @@ export function getGgufDownload(jobId: string): Promise<GgufDownloadJob> {
   return getJson<GgufDownloadJob>(`/models/gguf-downloads/${jobId}`);
 }
 
+export function listGgufDownloads(): Promise<GgufDownloadJob[]> {
+  return getJson<GgufDownloadJob[]>(`/models/gguf-downloads`);
+}
+
 export function cancelGgufDownload(jobId: string): Promise<GgufDownloadJob> {
   return requestJson<GgufDownloadJob>(`/models/gguf-downloads/${jobId}/cancel`, {
     method: "POST",

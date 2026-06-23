@@ -451,6 +451,13 @@ def start_gguf_download(request: StartGgufDownloadRequest) -> GgufDownloadJobRes
     return _to_gguf_job_response(job)
 
 
+@router.get("/gguf-downloads", response_model=list[GgufDownloadJobResponse])
+def list_gguf_downloads() -> list[GgufDownloadJobResponse]:
+    """All known GGUF download jobs (newest first). Lets the UI re-attach to a
+    download still running in the background after the panel was remounted."""
+    return [_to_gguf_job_response(job) for job in gguf_download_job_runner.list_jobs()]
+
+
 @router.get("/gguf-downloads/{job_id}", response_model=GgufDownloadJobResponse)
 def get_gguf_download(job_id: str) -> GgufDownloadJobResponse:
     job = gguf_download_job_runner.get(job_id)
