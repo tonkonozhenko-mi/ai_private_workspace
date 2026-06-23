@@ -534,15 +534,6 @@ function ModelCatalogPanel({
       provider: "ollama",
     },
     {
-      name: "mxbai Embed Large",
-      model: "mxbai-embed-large",
-      fit: "Higher quality · heavier",
-      memory: "Heavier than Nomic",
-      use: "A larger English embedder — better retrieval on big docs when quality matters more than speed.",
-      tip: "Sits between Nomic and BGE-M3/Qwen3; English-focused.",
-      provider: "ollama",
-    },
-    {
       name: "BGE-M3",
       model: "bge-m3",
       fit: "Multilingual · hybrid",
