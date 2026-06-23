@@ -23,6 +23,10 @@ your computer.
 macOS (Apple Silicon / Intel) and Windows x64 installers are on the
 [releases page](https://github.com/tonkonozhenko-mi/ai_private_workspace/releases/latest).
 
+> This README and [CHANGELOG](CHANGELOG.md) track the `main` branch, which is
+> usually ahead of the latest tagged release. For a stable build, download from
+> the releases page; to try the newest work, build from source.
+
 <p align="center">
   <img src="docs/assets/screenshots/01-ask.png" alt="Ask a question about your project and get an answer grounded in local sources" width="820">
 </p>
@@ -383,6 +387,11 @@ Every release also publishes **SHA256 checksums** (`SHA256SUMS.txt`), an **SPDX
 SBOM** (`sbom.spdx.json`) of the bundled dependencies, and an **automated-test
 report** (`TEST-REPORT.md`) of what actually ran — so you can verify what you
 download.
+
+The backend is covered by a deterministic test suite (600+ tests over the domain,
+use cases, and API), run on every push and pull request. Each CI run renders a
+pass/fail summary on its page and attaches the JUnit results, so the test state is
+visible at a glance rather than buried in logs.
 
 See:
 
