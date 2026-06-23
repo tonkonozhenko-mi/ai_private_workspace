@@ -2645,6 +2645,10 @@ a.getting-ready-cta:visited { color: var(--c-accent-ink); }
   padding: var(--s-3) 0;
   background: var(--c-bg);
   border-bottom: 1px solid var(--c-border);
+  /* Paint an opaque bar in the strip directly above the sticky bar so scrolled
+     content (the workspace title + path header) can't peek through it. Purely
+     visual — no layout shift. */
+  box-shadow: 0 -24px 0 var(--c-bg);
 }
 
 /* reset legacy borders/background on the nav containers */
