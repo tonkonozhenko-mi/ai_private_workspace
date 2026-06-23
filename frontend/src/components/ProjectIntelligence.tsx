@@ -234,6 +234,21 @@ export function ProjectIntelligence({ dashboard, onInspectFile, onAskQuestion }:
     if (tabs.length > 0 && !tabs.includes(activeTab)) setActiveTab(tabs[0]);
   }, [tabs, activeTab]);
 
+  // When the role changes, land on the tab that role cares about most — the
+  // first section its lens prioritises (after the overview). Switching role then
+  // visibly takes you somewhere relevant, not just reshuffles the tab row. Only
+  // fires on an actual role change, so it never fights the user's own clicks.
+  const lastRoleRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!data?.built || !view) return;
+    const currentRole = data.role ?? null;
+    if (lastRoleRef.current === currentRole) return;
+    lastRoleRef.current = currentRole;
+    const ordered = view.section_order.filter((s) => tabs.includes(s));
+    const landing = ordered.find((s) => s !== "summary") ?? tabs[0];
+    if (landing) setActiveTab(landing);
+  }, [data?.role, data?.built, view, tabs]);
+
   return (
     <section className="pi-card">
       <header className="pi-head">
@@ -930,6 +945,7 @@ function RisksSection({
   if (findings.length === 0) {
     return <EmptyNote text="Nothing looked risky to the deterministic analyzers — no findings to show." />;
   }
+  const highlighted = new Set(view.risks.highlighted_categories);
   const high = findings.filter((f) => f.severity === "high").length;
   const medium = findings.filter((f) => f.severity === "medium").length;
   const parts = [`${findings.length} thing${findings.length === 1 ? "" : "s"} to review`];
@@ -939,11 +955,17 @@ function RisksSection({
     <div className="pi-risks">
       <p className="pi-hint">
         {parts.join(" · ")}. These are leads for a human, not verdicts — each one says why it may
-        matter and what to check yourself.
+        matter and what to check yourself. The ones most relevant to your role are marked and
+        listed first.
       </p>
       <ul className="pi-findings">
         {findings.map((f) => (
-          <FindingItem key={f.id} finding={f} onInspectFile={onInspectFile} />
+          <FindingItem
+            key={f.id}
+            finding={f}
+            roleRelevant={highlighted.has(f.category)}
+            onInspectFile={onInspectFile}
+          />
         ))}
       </ul>
     </div>
@@ -954,9 +976,11 @@ function RisksSection({
 
 function FindingItem({
   finding,
+  roleRelevant = false,
   onInspectFile,
 }: {
   finding: ProjectGraphFinding;
+  roleRelevant?: boolean;
   onInspectFile?: (path: string) => void;
 }) {
   const [showEvidence, setShowEvidence] = useState(false);
@@ -964,12 +988,13 @@ function FindingItem({
   const ex = finding.explained;
   const where = ex?.where ?? finding.source_file;
   return (
-    <li className="pi-finding">
+    <li className={`pi-finding${roleRelevant ? " is-role-relevant" : ""}`}>
       <div className="pi-finding-head">
         <span className={`pi-severity pi-severity-${finding.severity}`}>
           {ex?.attention ?? finding.severity}
         </span>
         <span className="pi-finding-title">{finding.title}</span>
+        {roleRelevant ? <span className="pi-finding-roletag">For your role</span> : null}
       </div>
 
       <p className="pi-finding-explain">{ex?.what || finding.explanation}</p>
