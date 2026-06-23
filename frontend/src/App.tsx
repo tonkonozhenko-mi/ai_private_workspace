@@ -922,6 +922,16 @@ function App() {
       detail.modelsSummary.can_ask_with_selected_llm
     : true;
 
+  // The immersive setup takeover is for a *brand-new* workspace that has not been
+  // scanned and indexed yet. Once a project has been indexed at least once, things
+  // like switching the search model (which needs a one-off reindex) must NOT yank
+  // the user back into the full-screen flow — they stay in the app and use the
+  // in-tab "rebuild context" prompt instead.
+  const needsInitialSetup = detail
+    ? !detail.dashboard.summary.has_scan ||
+      detail.dashboard.summary.index_status.status !== "indexed"
+    : false;
+
   // When the immersive setup finishes, land the user straight on Ask — the
   // first useful thing to do with a ready workspace.
   const takeoverWasActiveRef = useRef(false);
@@ -974,7 +984,7 @@ function App() {
     detail &&
     !detailLoading &&
     !detailError &&
-    !setupComplete &&
+    needsInitialSetup &&
     !setupTakeoverDismissed &&
     !exitPrompt
   ) {
