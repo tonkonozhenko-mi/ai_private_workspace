@@ -7,6 +7,13 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.136] - 2026-06-23
+
+### Added
+
+- **Role-shaped answers in Ask.** The same question now produces an answer framed for your role — "Explain this project" leads with deployment and environments for DevOps, architecture and entry points for a Developer, the main flows to test for QA, an executive summary for a Manager, and what the system does for users for a Business analyst.
+- **Role brief + suggested questions (backend).** A deterministic, role-focused brief — the facts that matter to your role, the top risks for it, and a handful of questions worth asking — derived from the project graph. Suggested questions only offer what the project's own evidence can actually answer (no cloud question without cloud services, etc.), ordered by what is central to the role. Wired into the intelligence endpoint; the adaptive dashboard renders it next. No LLM, no hardcoded technologies. New `app.core.domain.role_brief` module with pure tests.
+
 ## [0.1.135] - 2026-06-23
 
 ### Added

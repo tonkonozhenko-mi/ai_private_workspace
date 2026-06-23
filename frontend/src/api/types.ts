@@ -2137,11 +2137,27 @@ export interface ProjectCi {
   scenarios: ProjectCiScenario[];
 }
 
+export interface RoleBriefFact {
+  label: string;
+  count: number;
+  examples: string[];
+}
+
+export interface RoleBrief {
+  role: string;
+  label: string;
+  focus: string;
+  facts: RoleBriefFact[];
+  top_risks: string[];
+  suggested_questions: string[];
+}
+
 export interface ProjectIntelligenceResponse {
   built: boolean;
   role?: string;
   snapshot?: ProjectIntelligenceSnapshot;
   view?: ProjectIntelligenceView;
+  brief?: RoleBrief;
   graph?: ProjectGraphPayload;
   flow?: ProjectDeploymentFlow;
   environment_comparison?: ProjectEnvironmentComparison;

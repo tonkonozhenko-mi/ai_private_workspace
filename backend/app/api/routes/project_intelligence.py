@@ -37,6 +37,7 @@ from app.core.domain.project_intelligence_view import (
     present_project_intelligence,
     present_references,
 )
+from app.core.domain.role_brief import build_role_brief
 from app.core.domain.role_lens import role_lens_for
 from app.core.ports.llm_provider_factory import LLMProviderFactoryError
 from app.core.use_cases.build_project_graph import (
@@ -129,12 +130,14 @@ def get_project_intelligence(workspace_id: str, role: str | None = None) -> dict
     if graph is None or meta is None:
         return {"built": False}
     resolved_role = _resolve_role(workspace_id, role)
-    view = present_project_intelligence(graph, role_lens_for(resolved_role))
+    lens = role_lens_for(resolved_role)
+    view = present_project_intelligence(graph, lens)
     return {
         "built": True,
         "role": resolved_role,
         "snapshot": _meta_dict(meta),
         "view": view,
+        "brief": build_role_brief(graph, lens).as_dict(),
         "graph": present_project_graph(graph),
         "flow": derive_deployment_flow(graph),
         "environment_comparison": compare_environments(graph),
