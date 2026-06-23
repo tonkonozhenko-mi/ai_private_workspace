@@ -92,9 +92,10 @@ function statusNote(entity: ProjectGraphEntity): string | null {
 
 interface ProjectIntelligenceProps {
   dashboard: WorkspaceDashboard;
+  onInspectFile?: (path: string) => void;
 }
 
-export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
+export function ProjectIntelligence({ dashboard, onInspectFile }: ProjectIntelligenceProps) {
   const workspaceId = dashboard.workspace_id;
 
   const [data, setData] = useState<ProjectIntelligenceResponse | null>(null);
@@ -307,6 +308,18 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
               : ""}
           </p>
 
+          {(graph?.nodes.length ?? 0) < 4 ? (
+            <div className="pi-empty-project">
+              <strong>Not much to map here yet.</strong>
+              <p className="pi-hint">
+                The analyzers found little infrastructure or code to connect — that's normal for a
+                small, docs-only, or single-purpose repo, and isn't an error. The map (and the
+                difference between role profiles) fills in as the project grows. The <em>Ask</em>{" "}
+                tab still answers from this project's files.
+              </p>
+            </div>
+          ) : null}
+
           <nav className="pi-tabs" role="tablist">
             {tabs.map((tab) => (
               <button
@@ -330,6 +343,7 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
                 overviewLoading={overviewLoading}
                 overviewError={overviewError}
                 onGenerateOverview={handleOverview}
+                onInspectFile={onInspectFile}
               />
             ) : null}
             {activeTab === "infrastructure" ? <InfrastructureSection view={view} /> : null}
@@ -363,12 +377,14 @@ function SummarySection({
   overviewLoading,
   overviewError,
   onGenerateOverview,
+  onInspectFile,
 }: {
   view: ProjectIntelligenceView;
   overview: string | null;
   overviewLoading: boolean;
   overviewError: string | null;
   onGenerateOverview: () => void;
+  onInspectFile?: (path: string) => void;
 }) {
   const { summary, important_files, questions } = view;
   const envNames = view.environments.environments.map((e) => e.name);
@@ -453,7 +469,13 @@ function SummarySection({
           <ul className="pi-file-list">
             {important_files.files.map((f) => (
               <li key={f.path}>
-                <code>{f.path}</code>
+                {onInspectFile ? (
+                  <button type="button" className="pi-file-link" title={`Inspect ${f.path}`} onClick={() => onInspectFile(f.path)}>
+                    {f.path}
+                  </button>
+                ) : (
+                  <code>{f.path}</code>
+                )}
                 {f.reason ? <span className="pi-file-reason">{f.reason}</span> : null}
               </li>
             ))}

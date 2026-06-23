@@ -1367,7 +1367,7 @@ function App() {
                 />
               ) : null}
               {activeTab === "intelligence" ? (
-                <ProjectIntelligence dashboard={detail.dashboard} />
+                <ProjectIntelligence dashboard={detail.dashboard} onInspectFile={(p) => setInspectFilePath(p)} />
               ) : null}
               <div hidden={activeTab !== "ask"}>
                 <AskWorkspace
