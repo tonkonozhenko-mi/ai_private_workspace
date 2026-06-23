@@ -68,8 +68,12 @@ export function SettingsPanel({
   const [skillMessage, setSkillMessage] = useState("Ask uses this workspace guidance when preparing answers.");
   const [savingSkills, setSavingSkills] = useState(false);
   // Skills editor: one selector drives which skill is shown/edited.
-  // Value is a preset id, a custom-skill id, or "__new__" to create one.
-  const [selectedSkillKey, setSelectedSkillKey] = useState<string>(SKILL_PRESETS[0].id);
+  // Value is a preset id, a custom-skill id, or "__new__" to create one. Opens
+  // on the workspace's active skill (its role) so Settings matches Intelligence.
+  const [selectedSkillKey, setSelectedSkillKey] = useState<string>(
+    SKILL_PRESETS.find((preset) => preferences.skillPreferences[preset.id]?.enabled)?.id ??
+      SKILL_PRESETS[0].id,
+  );
   const [newSkillName, setNewSkillName] = useState("");
   const [newSkillInstructions, setNewSkillInstructions] = useState("");
   const [confirmingReset, setConfirmingReset] = useState<null | "settings" | "workspaces">(null);
