@@ -96,6 +96,8 @@ The app also follows your system light/dark preference:
 - **Understands your project.** Point it at a folder; a local scan recognizes what's there — Terraform, Terragrunt, Kubernetes, Helm, Docker, Python, GitLab CI, docs, and more.
 - **Searches only when you ask.** The local index is built on an explicit action and respects your `.gitignore`, so virtualenvs, build output, caches, and `.env` secrets never enter it.
 - **Answers from your files.** Responses are grounded in retrieved sources with citations — not guesses — and your conversations, history, model choices, and reports stay on your computer.
+- **Groups several repositories into one project.** Real systems span more than one repo. A group lets Ask, Home, and Intelligence work across a whole portfolio at once — environments compared in a repo×environment matrix, technologies split into shared-vs-unique, and risks grouped by pattern — while each repo stays an independent workspace underneath.
+- **Built to navigate.** A **Cmd/Ctrl-K command palette** jumps to any repository, group, section, or file. Click a file anywhere and a **file inspector** opens its owner, what it changes together with, what it connects to in the map, and the risks touching it.
 - **Runs on two local engines.** Built-in **llama.cpp** (nothing to install) or **Ollama**, switchable per project, with the answer and search models managed separately. See [Local engines](#local-engines).
 - **Writes nothing without consent.** Ask can turn an answer into a file draft, written only after you confirm the path and exact content. Agent and MCP work is planning and approval only — no tool ever runs on its own.
 
@@ -121,6 +123,42 @@ prioritises the same facts for who's looking — it never changes them. Inferred
 facts (for example, an environment guessed from a directory name) are always
 labelled as inferred. The only LLM-written pieces — a plain-language overview and
 the "ask the graph" answer — are constrained strictly to the graph's facts.
+
+### Project activity & change coupling — read from git
+
+A read-only pass over the repository's **own git history** (no model) becomes a
+readable briefing: how active the project is, who knows which parts of the code
+(the right people to ask), how it ships (branch strategy, long-lived branches,
+merge flow), and the files where work concentrates. It also surfaces **change
+coupling** — pairs of files that keep changing together in the same commits;
+cross-module pairs are flagged as a likely hidden dependency the import graph
+misses. Like the map, the card re-frames itself for the role you chose.
+
+### File inspector
+
+Open any file — from search, the "where to start" lists, or the hotspots — for a
+read-only lens on it: its owner and recent changes (from git), what it changes
+together with, what it connects to in the project map (its blast radius — what it
+depends on and what it affects), and which risks touch it. All composed from data
+the app already computed.
+
+### Security lens
+
+A read-only **Security** view reports what security gates already exist and where
+the gaps are: which scan/audit steps run in CI (secret, dependency, and IaC
+scanning) and which deterministic findings are security-relevant — permissions,
+secrets, public exposure, encryption, IAM/access — each with a recommendation and
+the file it came from. It reports on scanners; it never runs one.
+
+### Project groups — several repositories as one project
+
+A **group** treats a set of repositories as a single project. Ask once and the
+answer is drawn from every member (each source labelled with the repo it came
+from); a portfolio Home rolls up each repo's activity; and group Intelligence
+**compares rather than merges** — environments in a repo×environment matrix,
+technologies split into common / shared / unique, and risks grouped by pattern
+with a per-repo breakdown. Create a group by dragging one project onto another;
+member repositories stay independent workspaces underneath.
 
 ### The Watcher — a deterministic agent
 

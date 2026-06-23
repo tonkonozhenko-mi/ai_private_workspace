@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.126] - 2026-06-23
+
+### Documentation
+
+- **README refreshed** to cover the capabilities added recently: multi-repo project groups (portfolio Ask/Home/Intelligence), the Cmd/Ctrl-K command palette, the file inspector, the read-from-git project activity card with change coupling, and the security lens.
+
 ## [0.1.125] - 2026-06-23
 
 ### Changed
