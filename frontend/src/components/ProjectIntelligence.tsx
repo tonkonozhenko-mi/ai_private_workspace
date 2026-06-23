@@ -353,7 +353,7 @@ export function ProjectIntelligence({ dashboard, onInspectFile }: ProjectIntelli
             {activeTab === "environments" ? (
               <EnvironmentsSection view={view} comparison={comparison} />
             ) : null}
-            {activeTab === "risks" ? <RisksSection view={view} /> : null}
+            {activeTab === "risks" ? <RisksSection view={view} onInspectFile={onInspectFile} /> : null}
             {activeTab === CLOUD_TAB && cloud ? <CloudSection cloud={cloud} /> : null}
             {activeTab === REFERENCES_TAB && references ? (
               <ReferencesSection references={references} />
@@ -758,11 +758,21 @@ function SecuritySection({
             {findings.map((f) => (
               <li key={f.id} className="pi-sec-finding">
                 <div className="pi-sec-finding-head">
-                  <span className={`pi-sev pi-sev-${f.severity}`}>{f.severity}</span>
+                  <span className={`pi-sev pi-sev-${f.severity}`}>
+                    {f.explained?.attention ?? f.severity}
+                  </span>
                   <span className="pi-sec-finding-title">{f.title}</span>
+                  {f.explained?.review_status ? (
+                    <span className="pi-finding-review">{f.explained.review_status}</span>
+                  ) : null}
                   {f.source_file ? <code className="pi-sec-src">{f.source_file}</code> : null}
                 </div>
-                {f.recommendation ? <p className="pi-sec-rec">{f.recommendation}</p> : null}
+                {f.explained?.why_it_may_matter ? (
+                  <p className="pi-sec-why">{f.explained.why_it_may_matter}</p>
+                ) : null}
+                {f.explained?.suggested_idea ?? f.recommendation ? (
+                  <p className="pi-sec-rec">{f.explained?.suggested_idea ?? f.recommendation}</p>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -772,22 +782,31 @@ function SecuritySection({
   );
 }
 
-function RisksSection({ view }: { view: ProjectIntelligenceView }) {
+function RisksSection({
+  view,
+  onInspectFile,
+}: {
+  view: ProjectIntelligenceView;
+  onInspectFile?: (path: string) => void;
+}) {
   const { findings } = view.risks;
   if (findings.length === 0) {
     return <EmptyNote text="Nothing looked risky to the deterministic analyzers — no findings to show." />;
   }
   const high = findings.filter((f) => f.severity === "high").length;
   const medium = findings.filter((f) => f.severity === "medium").length;
-  const parts = [`${findings.length} thing${findings.length === 1 ? "" : "s"} worth a look`];
-  if (high > 0) parts.push(`${high} high`);
-  if (medium > 0) parts.push(`${medium} medium`);
+  const parts = [`${findings.length} thing${findings.length === 1 ? "" : "s"} to review`];
+  if (high > 0) parts.push(`${high} worth a close look`);
+  if (medium > 0) parts.push(`${medium} worth reviewing`);
   return (
     <div className="pi-risks">
-      <p className="pi-hint">{parts.join(" · ")}. Each finding shows its evidence — open “Show sources” to see where it came from.</p>
+      <p className="pi-hint">
+        {parts.join(" · ")}. These are leads for a human, not verdicts — each one says why it may
+        matter and what to check yourself.
+      </p>
       <ul className="pi-findings">
         {findings.map((f) => (
-          <FindingItem key={f.id} finding={f} />
+          <FindingItem key={f.id} finding={f} onInspectFile={onInspectFile} />
         ))}
       </ul>
     </div>
@@ -796,19 +815,83 @@ function RisksSection({ view }: { view: ProjectIntelligenceView }) {
 
 // --- Small pieces ---
 
-function FindingItem({ finding }: { finding: ProjectGraphFinding }) {
+function FindingItem({
+  finding,
+  onInspectFile,
+}: {
+  finding: ProjectGraphFinding;
+  onInspectFile?: (path: string) => void;
+}) {
   const [showEvidence, setShowEvidence] = useState(false);
   const hasEvidence = finding.evidence.length > 0 || Boolean(finding.source_file);
+  const ex = finding.explained;
+  const where = ex?.where ?? finding.source_file;
   return (
     <li className="pi-finding">
       <div className="pi-finding-head">
-        <span className={`pi-severity pi-severity-${finding.severity}`}>{finding.severity}</span>
+        <span className={`pi-severity pi-severity-${finding.severity}`}>
+          {ex?.attention ?? finding.severity}
+        </span>
         <span className="pi-finding-title">{finding.title}</span>
+        {ex?.review_status ? <span className="pi-finding-review">{ex.review_status}</span> : null}
       </div>
-      <p className="pi-finding-explain">{finding.explanation}</p>
-      {finding.recommendation ? (
-        <p className="pi-finding-reco">{finding.recommendation}</p>
-      ) : null}
+
+      <p className="pi-finding-explain">{ex?.what || finding.explanation}</p>
+
+      {ex ? (
+        <>
+          <p className="pi-finding-why">
+            <span className="pi-finding-label">Why it may matter</span>
+            {ex.why_it_may_matter}
+          </p>
+
+          <div className="pi-finding-meta">
+            {where ? (
+              <span className="pi-finding-where">
+                <span className="pi-finding-label">Where</span>
+                {onInspectFile ? (
+                  <button
+                    type="button"
+                    className="pi-file-link"
+                    title={`Inspect ${where}`}
+                    onClick={() => onInspectFile(where)}
+                  >
+                    {where}
+                  </button>
+                ) : (
+                  <code className="pi-source">{where}</code>
+                )}
+              </span>
+            ) : null}
+            <span className="pi-finding-confidence">
+              <span className="pi-finding-label">Confidence</span>
+              {ex.confidence_label}
+            </span>
+          </div>
+
+          {ex.check_manually.length > 0 ? (
+            <div className="pi-finding-check">
+              <span className="pi-finding-label">What to check yourself</span>
+              <ul className="pi-finding-checklist">
+                {ex.check_manually.map((q, i) => (
+                  <li key={i}>{q}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {ex.suggested_idea ? (
+            <p className="pi-finding-reco">
+              <span className="pi-finding-label">Idea to consider</span>
+              {ex.suggested_idea}
+              <span className="pi-finding-reco-note"> — review, don’t auto-apply.</span>
+            </p>
+          ) : null}
+        </>
+      ) : (
+        finding.recommendation && <p className="pi-finding-reco">{finding.recommendation}</p>
+      )}
+
       {hasEvidence ? (
         <>
           <button

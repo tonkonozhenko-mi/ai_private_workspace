@@ -1977,6 +1977,17 @@ export interface ProjectGraphPipeline extends ProjectGraphEntity {
   jobs: ProjectGraphEntity[];
 }
 
+export interface RiskExplanation {
+  what: string;
+  why_it_may_matter: string;
+  where: string | null;
+  confidence_label: string;
+  attention: string;
+  review_status: string;
+  check_manually: string[];
+  suggested_idea: string | null;
+}
+
 export interface ProjectGraphFinding {
   id: string;
   category: string;
@@ -1988,6 +1999,8 @@ export interface ProjectGraphFinding {
   confidence: string;
   recommendation: string | null;
   analyzer: string;
+  // Calm, review-oriented framing derived deterministically on the backend.
+  explained?: RiskExplanation;
 }
 
 export interface ProjectIntelligenceQuestion {
