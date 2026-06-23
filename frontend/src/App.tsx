@@ -71,6 +71,7 @@ import {
   ANSWER_CREATIVITY_TEMPERATURE,
   DEFAULT_PREFERENCES,
   usePreferences,
+  useResolvedTheme,
   type WorkbenchPreferences,
 } from "./preferences";
 import { useWorkspaceJobs } from "./hooks/useWorkspaceJobs";
@@ -173,16 +174,18 @@ async function waitForBackendApi(baseUrl: string, attempts = 20): Promise<boolea
 function FirstRunWelcome({
   productName,
   onOpen,
+  logoSrc,
 }: {
   productName: string;
   onOpen: () => void;
+  logoSrc: string;
 }) {
   return (
     <div className="first-run">
       <div className="first-run-inner">
         <img
           className="first-run-mark"
-          src="/app-icon.png"
+          src={logoSrc}
           alt={productName}
           width={84}
           height={84}
@@ -283,6 +286,10 @@ function App() {
   const [showArchivedWorkspaces, setShowArchivedWorkspaces] = useState(false);
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const { preferences, setPreferences } = usePreferences();
+  // Pick the logo that matches the appearance actually on screen (dark logo on
+  // dark theme, light logo on light theme; follows the OS when theme = system).
+  const brandLogoSrc =
+    useResolvedTheme(preferences.theme) === "dark" ? "/app-icon-dark.png" : "/app-icon.png";
   const { activityJobs, activityJobsLoading, activityJobsError, loadActivityJobs } =
     useWorkspaceJobs({ activeTab, selectedWorkspaceId, selectedWorkspaceIdRef });
   const [workspaceSkillProfile, setWorkspaceSkillProfile] = useState<WorkspaceSkillProfile | null>(null);
@@ -938,6 +945,7 @@ function App() {
       <FirstRunWelcome
         productName={preferences.productName}
         onOpen={() => setShowCreateWorkspace(true)}
+        logoSrc={brandLogoSrc}
       />
     );
   }
@@ -977,7 +985,7 @@ function App() {
         <UpdateNotice />
         <div className="setup-takeover-bar">
           <div className="setup-takeover-brand">
-            <img src="/app-icon.png" alt={preferences.productName} width={28} height={28} />
+            <img src={brandLogoSrc} alt={preferences.productName} width={28} height={28} />
             <span>{detail.dashboard.workspace_name}</span>
           </div>
           <button
@@ -1084,7 +1092,7 @@ function App() {
         <header className="brand">
           <img
             className="brand-mark-image"
-            src="/app-icon.png"
+            src={brandLogoSrc}
             alt={preferences.productName}
             width={44}
             height={44}
