@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/brand/app-icons/light/icon-256x256.png" alt="AI Private Workspace" width="132" height="132">
+</p>
+
 # AI Private Workspace
 
 [![Latest release](https://img.shields.io/github/v/release/tonkonozhenko-mi/ai_private_workspace?label=latest&sort=semver&color=2ea44f)](https://github.com/tonkonozhenko-mi/ai_private_workspace/releases/latest)
