@@ -7,6 +7,11 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.133] - 2026-06-23
+
+### Documentation
+
+- **Updated the install and welcome screenshots** to the new pigeon logo.
 ## [0.1.132] - 2026-06-23
 
 ### Documentation
