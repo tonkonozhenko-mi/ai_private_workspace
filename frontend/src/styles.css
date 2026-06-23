@@ -4978,6 +4978,8 @@ a.getting-ready-cta:hover {
 /* group view: rename, delete, member busy, streaming Ask polish */
 .grp-title-input { font-size: 22px; font-weight: 650; color: var(--c-text); background: var(--c-surface-2); border: 1px solid var(--c-accent); border-radius: 8px; padding: 2px 8px; margin: 4px 0 2px; letter-spacing: -0.01em; }
 .grp-title { cursor: text; }
+.grp-title-edit { font-size: 14px; color: var(--c-text-3); margin-left: 10px; opacity: 0; transition: opacity 0.15s; vertical-align: middle; }
+.grp-title:hover .grp-title-edit { opacity: 1; }
 .grp-delete { background: none; border: 1px solid var(--c-border); border-radius: 8px; color: var(--c-text-3); font-size: 12px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
 .grp-delete:hover { color: #f0a3a3; border-color: rgba(224, 90, 90, 0.4); }
 .grp-delete-confirm { display: inline-flex; align-items: center; gap: 8px; }

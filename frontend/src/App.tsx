@@ -212,6 +212,8 @@ function App() {
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [dropTargetGroupId, setDropTargetGroupId] = useState<string | null>(null);
+  // A freshly created group opens in rename mode so it can be named right away.
+  const [autoRenameGroupId, setAutoRenameGroupId] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
     null,
@@ -501,6 +503,12 @@ function App() {
 
   const handleAddWorkspaceToGroup = useCallback(
     async (workspace: WorkspaceOverviewItem, groupId: string) => {
+      const group = groups.find((g) => g.id === groupId);
+      // Already a member — just open the group instead of a redundant call.
+      if (group && group.workspace_ids.includes(workspace.workspace_id)) {
+        handleSelectGroup(groupId);
+        return;
+      }
       try {
         await addProjectGroupMember(groupId, workspace.workspace_id);
         await loadGroups();
@@ -509,7 +517,7 @@ function App() {
         // non-fatal
       }
     },
-    [loadGroups, handleSelectGroup],
+    [groups, loadGroups, handleSelectGroup],
   );
 
   const handleCreateGroupWith = useCallback(
@@ -517,6 +525,7 @@ function App() {
       try {
         const group = await createProjectGroup(`${workspace.name} group`, [workspace.workspace_id]);
         await loadGroups();
+        setAutoRenameGroupId(group.id);
         handleSelectGroup(group.id);
       } catch {
         // non-fatal
@@ -525,25 +534,41 @@ function App() {
     [loadGroups, handleSelectGroup],
   );
 
-  // Drag one project onto another → make a group containing both.
+  // Drag one project onto another → make a group containing both. If a group
+  // already contains *both* projects, don't create a duplicate — just open it.
   const handleDropWorkspaceOnWorkspace = useCallback(
     async (sourceWorkspaceId: string, targetWorkspaceId: string) => {
+      const existing = groups.find(
+        (g) =>
+          g.workspace_ids.includes(sourceWorkspaceId) &&
+          g.workspace_ids.includes(targetWorkspaceId),
+      );
+      if (existing) {
+        handleSelectGroup(existing.id);
+        return;
+      }
       const target = workspaces.find((w) => w.workspace_id === targetWorkspaceId);
       const name = target ? `${target.name} group` : "New group";
       try {
         const group = await createProjectGroup(name, [targetWorkspaceId, sourceWorkspaceId]);
         await loadGroups();
+        setAutoRenameGroupId(group.id);
         handleSelectGroup(group.id);
       } catch {
         // non-fatal
       }
     },
-    [workspaces, loadGroups, handleSelectGroup],
+    [groups, workspaces, loadGroups, handleSelectGroup],
   );
 
-  // Drag a project onto an existing group chip → add it there.
+  // Drag a project onto an existing group chip → add it there (skip if already in).
   const handleDropWorkspaceOnGroup = useCallback(
     async (groupId: string, workspaceId: string) => {
+      const group = groups.find((g) => g.id === groupId);
+      if (group && group.workspace_ids.includes(workspaceId)) {
+        handleSelectGroup(groupId);
+        return;
+      }
       try {
         await addProjectGroupMember(groupId, workspaceId);
         await loadGroups();
@@ -1160,8 +1185,10 @@ function App() {
             groupId={selectedGroupId}
             groupName={groups.find((g) => g.id === selectedGroupId)?.name ?? "Group"}
             allWorkspaces={workspaces.map((w) => ({ id: w.workspace_id, name: w.name }))}
+            autoRename={autoRenameGroupId === selectedGroupId}
             onChanged={() => void loadGroups()}
             onDeleted={() => setSelectedGroupId(null)}
+            onAutoRenameHandled={() => setAutoRenameGroupId(null)}
           />
         ) : detailLoading ? (
           <LoadingState
