@@ -22,6 +22,7 @@ import type {
   ProjectGroupDetail,
 } from "../api/types";
 import { AnswerFeedback } from "./AnswerFeedback";
+import { MarkdownAnswer } from "./AskWorkspace";
 
 const MEMORY_KIND_LABEL: Record<string, string> = {
   note: "Note",
@@ -745,7 +746,7 @@ function GroupAsk({ groupId }: { groupId: string }) {
         <div className="grp-answer">
           <p className="grp-answer-eyebrow">Answer · across {result ? result.contributions.length : "all"} repos</p>
           <div className="grp-answer-body">
-            {answerText}
+            <MarkdownAnswer content={answerText} />
             {loading && !result ? <span className="grp-caret" /> : null}
           </div>
 
