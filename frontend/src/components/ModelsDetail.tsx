@@ -41,7 +41,6 @@ import {
   updateAgentWorkflowStepEvidence,
   updateWorkspaceMCPConfig,
   updateWorkspaceModelSelection,
-  updateWorkspaceSkillProfile,
 } from "../api/client";
 import type {
   AgentCapability,
@@ -85,13 +84,7 @@ import { EmptyState } from "./EmptyState";
 import { LlamaCppModelsPanel } from "./LlamaCppModelsPanel";
 import { RerankerSetting } from "./RerankerSetting";
 import { StatusBadge } from "./StatusBadge";
-import {
-  SKILL_PROFILE_TEMPLATES,
-  applySkillProfileTemplate,
-  normalizeSkillPreferences,
-  toSkillProfileRequest,
-  type SkillProfileTemplateId,
-} from "./skillLibrary";
+import { type SkillProfileTemplateId } from "./skillLibrary";
 
 type AnswerCreativity = "precise" | "balanced" | "creative";
 
@@ -350,7 +343,7 @@ export function ModelsDetail({
       <nav className="models-section-nav" aria-label="Model settings sections">
         {(([
           ["catalog", "Choose & install"],
-          ["skills", "Skills"],
+          ["skills", "Tuning"],
           ["compare", "Compare"],
         ] as Array<[ModelsSection, string]>).filter(
           ([id]) => developerMode || id === "catalog",
@@ -431,11 +424,6 @@ export function ModelsDetail({
               ))}
             </div>
           </section>
-          <ModelSkillPresetPanel
-            workspaceId={workspaceId}
-            dashboard={dashboard}
-            onSelectionUpdated={onSelectionUpdated}
-          />
         </>
       ) : null}
 
@@ -566,12 +554,9 @@ function ModelCatalogPanel({
         provider: item.provider,
         model: item.model,
         model_type: "llm",
-        selected_reason: `Selected from local model catalog. Suggested skill: ${item.skill}.`,
+        selected_reason: "Selected from local model catalog.",
       });
-      const preset = readModelSkillPreset(item.model) ?? item.skill;
-      const nextSkillPreferences = applySkillProfileTemplate(preset, undefined);
-      await updateWorkspaceSkillProfile(workspaceId, toSkillProfileRequest(nextSkillPreferences));
-      setCatalogMessage(`${item.name} selected. Applied ${friendlySkillTemplateName(preset)} guidance for this workspace.`);
+      setCatalogMessage(`${item.name} selected for answers.`);
       await onSelectionUpdated();
     } catch (error) {
       setCatalogError(errorMessage(error));
@@ -725,116 +710,6 @@ function WorkspacePermissionsPanel({ workspaceId }: { workspaceId: string }) {
       </div>
     </section>
   );
-}
-
-function ModelSkillPresetPanel({
-  workspaceId,
-  dashboard,
-  onSelectionUpdated,
-}: {
-  workspaceId: string;
-  dashboard: WorkspaceModelsDashboard;
-  onSelectionUpdated: () => Promise<void> | void;
-}) {
-  const currentModel = dashboard.selected_llm_model ?? dashboard.usage_plan.active_llm_model;
-  const [selectedTemplate, setSelectedTemplate] = useState<SkillProfileTemplateId>(
-    readModelSkillPreset(currentModel) ?? inferSkillTemplateForModel(currentModel),
-  );
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const template = SKILL_PROFILE_TEMPLATES.find((item) => item.id === selectedTemplate) ?? SKILL_PROFILE_TEMPLATES[0];
-
-  async function savePreset() {
-    setSaving(true);
-    setMessage(null);
-    setError(null);
-    try {
-      writeModelSkillPreset(currentModel, selectedTemplate);
-      const skillPreferences = applySkillProfileTemplate(selectedTemplate, undefined);
-      await updateWorkspaceSkillProfile(workspaceId, toSkillProfileRequest(skillPreferences));
-      setMessage(`${friendlySkillTemplateName(selectedTemplate)} saved for ${currentModel}. Ask will use this guidance in this workspace.`);
-      await onSelectionUpdated();
-    } catch (saveError) {
-      setError(errorMessage(saveError));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <section className="panel model-skill-preset-panel">
-      <div className="panel-heading compact-heading">
-        <div>
-          <p className="eyebrow">Skills</p>
-          <h2>Pair each model with the work it should do.</h2>
-          <p className="panel-helper">Example: Qwen for Developer, Llama for Documentation, Mistral for DevOps. Presets are remembered per model on this Mac.</p>
-        </div>
-        <StatusBadge label="Per model" />
-      </div>
-      <div className="model-skill-preset-body">
-        <label>
-          <span>Current answer model</span>
-          <strong>{dashboard.selected_llm_provider ?? dashboard.usage_plan.active_llm_provider}/{currentModel}</strong>
-        </label>
-        <label>
-          <span>Skill preset</span>
-          <select value={selectedTemplate} onChange={(event) => setSelectedTemplate(event.target.value as SkillProfileTemplateId)}>
-            {SKILL_PROFILE_TEMPLATES.map((item) => (
-              <option key={item.id} value={item.id}>{item.name}</option>
-            ))}
-          </select>
-        </label>
-        <article>
-          <strong>{template.name}</strong>
-          <p>{template.purpose}</p>
-        </article>
-        <button className="primary-button" type="button" disabled={saving} onClick={() => void savePreset()}>
-          {saving ? "Saving…" : "Save skill for this model"}
-        </button>
-      </div>
-      {message ? <p className="model-selection-message">{message}</p> : null}
-      {error ? <p className="model-selection-error">{error}</p> : null}
-    </section>
-  );
-}
-
-const MODEL_SKILL_PRESET_STORAGE_KEY = "ai-private-workspace.model-skill-presets.v1";
-
-function readModelSkillPreset(model: string | null | undefined): SkillProfileTemplateId | null {
-  if (!model) return null;
-  try {
-    const raw = window.localStorage.getItem(MODEL_SKILL_PRESET_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) as Record<string, SkillProfileTemplateId> : {};
-    return parsed[model] ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function writeModelSkillPreset(model: string | null | undefined, preset: SkillProfileTemplateId): void {
-  if (!model) return;
-  try {
-    const raw = window.localStorage.getItem(MODEL_SKILL_PRESET_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) as Record<string, SkillProfileTemplateId> : {};
-    parsed[model] = preset;
-    window.localStorage.setItem(MODEL_SKILL_PRESET_STORAGE_KEY, JSON.stringify(parsed));
-  } catch {
-    // Local presets are convenience state only.
-  }
-}
-
-function inferSkillTemplateForModel(model: string | null | undefined): SkillProfileTemplateId {
-  const normalized = (model ?? "").toLowerCase();
-  if (normalized.includes("coder") || normalized.includes("qwen")) return "developer_review";
-  if (normalized.includes("llama")) return "business_analyst_review";
-  if (normalized.includes("mistral")) return "devops_review";
-  if (normalized.includes("gemma")) return "manager_review";
-  return "devops_review";
-}
-
-function friendlySkillTemplateName(id: SkillProfileTemplateId): string {
-  return SKILL_PROFILE_TEMPLATES.find((item) => item.id === id)?.name ?? formatLabel(id);
 }
 
 function DesktopPackagingRealityPanel() {
