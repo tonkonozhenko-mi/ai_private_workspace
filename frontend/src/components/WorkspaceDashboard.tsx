@@ -40,6 +40,7 @@ interface WorkspaceDashboardProps {
   onCancelWorkspaceJob: (jobId: string) => Promise<WorkspaceJob>;
   onRefreshWorkspaceState: () => Promise<void>;
   onOpenSettings: () => void;
+  onInspectFile?: (path: string) => void;
   skillPreferences: SkillPreferences;
   fileIndexingPreferences: FileIndexingPreferences;
 }
@@ -59,6 +60,7 @@ export function WorkspaceDashboard({
   onCancelWorkspaceJob,
   onRefreshWorkspaceState,
   onOpenSettings,
+  onInspectFile,
   skillPreferences,
   fileIndexingPreferences,
 }: WorkspaceDashboardProps) {
@@ -123,6 +125,7 @@ export function WorkspaceDashboard({
             onStartScanJob={onStartScanJob}
             onStartIndexJob={onStartIndexJob}
             onRefreshWorkspaceState={onRefreshWorkspaceState}
+            onInspectFile={onInspectFile}
           />
           <ProjectWatch dashboard={dashboard} />
           <ProjectMemory dashboard={dashboard} />

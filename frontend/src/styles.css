@@ -4935,6 +4935,11 @@ a.getting-ready-cta:hover {
 .pw-count-risk { color: #f0c79a; border-color: rgba(224, 168, 90, 0.4); }
 .pw-count-resolved { color: #8fd19a; border-color: rgba(143, 209, 154, 0.4); }
 
+.pu-file-link { background: none; border: none; padding: 0; font: inherit; color: var(--c-accent); cursor: pointer; text-align: left; font-family: var(--font-mono, monospace); font-size: 12.5px; }
+.pu-file-link:hover { text-decoration: underline; }
+.pu-hotspot.is-clickable .pu-hotspot-label { cursor: pointer; }
+.pu-hotspot.is-clickable .pu-hotspot-label:hover .pu-hotspot-name { color: var(--c-accent); }
+
 /* File inspector (right drawer) */
 .fi-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); display: flex; justify-content: flex-end; z-index: 1000; }
 .fi { width: min(460px, 94vw); height: 100%; background: var(--c-surface-1, var(--c-bg)); border-left: 1px solid var(--c-border); box-shadow: -16px 0 50px rgba(0, 0, 0, 0.45); overflow-y: auto; display: flex; flex-direction: column; }

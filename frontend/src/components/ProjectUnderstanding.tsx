@@ -430,21 +430,27 @@ function GitShip({ git }: { git: GitInsightsResponse }) {
   );
 }
 
-function GitHotspots({ git }: { git: GitInsightsResponse }) {
+function GitHotspots({ git, onInspectFile }: { git: GitInsightsResponse; onInspectFile?: (path: string) => void }) {
   const maxHotspot = git.hotspots.reduce((m, h) => Math.max(m, h.changes), 0) || 1;
   if (git.hotspots.length === 0) return null;
   return (
     <GaSection
       title="Where the work is going"
-      hint="Files touched most in the last 90 days — where complexity tends to build up"
+      hint="Files touched most in the last 90 days — click one to inspect it"
     >
       <ul className="pu-hotspots">
         {git.hotspots.map((h) => {
           const name = h.path.split("/").pop() ?? h.path;
           const dir = h.path.length > name.length ? h.path.slice(0, h.path.length - name.length) : "";
           return (
-            <li key={h.path} className="pu-hotspot" title={h.path}>
-              <span className="pu-hotspot-label">
+            <li key={h.path} className={`pu-hotspot${onInspectFile ? " is-clickable" : ""}`} title={onInspectFile ? `Inspect ${h.path}` : h.path}>
+              <span
+                className="pu-hotspot-label"
+                role={onInspectFile ? "button" : undefined}
+                tabIndex={onInspectFile ? 0 : undefined}
+                onClick={onInspectFile ? () => onInspectFile(h.path) : undefined}
+                onKeyDown={onInspectFile ? (e) => { if (e.key === "Enter") onInspectFile(h.path); } : undefined}
+              >
                 <span className="pu-hotspot-name">{name}</span>
                 {dir ? <span className="pu-hotspot-dir">{dir}</span> : null}
               </span>
@@ -537,7 +543,7 @@ const DEFAULT_GIT_LAYOUT: { order: GitSectionId[]; lens: string } = {
   lens: "",
 };
 
-function GitActivityCard({ git, role }: { git: GitInsightsResponse; role: string }) {
+function GitActivityCard({ git, role, onInspectFile }: { git: GitInsightsResponse; role: string; onInspectFile?: (path: string) => void }) {
   // Three "at a glance" metrics that answer: how alive is it, how big is the
   // team right now, and how does work land. Everything else has its own section.
   const heroes: Array<{ value: string; label: string; sub?: string }> = [
@@ -605,7 +611,7 @@ function GitActivityCard({ git, role }: { git: GitInsightsResponse; role: string
           momentum: <GitMomentum git={git} />,
           people: git.top_contributors.length > 0 ? <GitPeople git={git} /> : null,
           ship: <GitShip git={git} />,
-          hotspots: <GitHotspots git={git} />,
+          hotspots: <GitHotspots git={git} onInspectFile={onInspectFile} />,
           coupling: <GitCoupling git={git} />,
           recent: <RecentCommits git={git} />,
         };
@@ -632,6 +638,7 @@ export function ProjectUnderstanding({
   onStartScanJob,
   onStartIndexJob,
   onRefreshWorkspaceState,
+  onInspectFile,
 }: {
   dashboard: WorkspaceDashboard;
   projectPath: string;
@@ -640,6 +647,7 @@ export function ProjectUnderstanding({
   onStartScanJob: () => Promise<unknown> | void;
   onStartIndexJob: () => Promise<unknown> | void;
   onRefreshWorkspaceState: () => Promise<void> | void;
+  onInspectFile?: (path: string) => void;
 }) {
   const [scan, setScan] = useState<ProjectScanResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -929,7 +937,13 @@ export function ProjectUnderstanding({
           <ol className="pu-start-list">
             {understanding.start_here.map((point) => (
               <li key={point.file}>
-                <code title={point.file}>{point.file}</code>
+                {onInspectFile ? (
+                  <button type="button" className="pu-file-link" title={`Inspect ${point.file}`} onClick={() => onInspectFile(point.file)}>
+                    {point.file}
+                  </button>
+                ) : (
+                  <code title={point.file}>{point.file}</code>
+                )}
                 {point.reason ? <span>{point.reason}</span> : null}
               </li>
             ))}
@@ -1020,7 +1034,7 @@ export function ProjectUnderstanding({
         </>
       )}
 
-      {git ? <GitActivityCard git={git} role={dashboard.assistant_mode} /> : null}
+      {git ? <GitActivityCard git={git} role={dashboard.assistant_mode} onInspectFile={onInspectFile} /> : null}
 
       <div className="pu-card pu-sources">
         <div className="pu-sources-head">
