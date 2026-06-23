@@ -5,6 +5,7 @@ import {
   getProjectIntelligence,
   getProjectIntelligenceOverviewText,
   getWorkspaceLatestScan,
+  updateWorkspaceAssistantMode,
 } from "../api/client";
 import type {
   ProjectCi,
@@ -22,15 +23,16 @@ import type {
   WorkspaceDashboard,
 } from "../api/types";
 import { ProjectMap } from "./ProjectMap";
+import { SKILL_PRESETS } from "./skillLibrary";
 
 // Roles offered in the lens selector. The backend falls back to the developer
-// lens for any other assistant_mode, so this list stays small and canonical.
-const ROLE_OPTIONS: { value: string; label: string }[] = [
-  { value: "developer", label: "Developer" },
-  { value: "devops", label: "DevOps" },
-  { value: "tester", label: "Tester / QA" },
-  { value: "business_analyst", label: "Business analyst" },
-];
+// One canonical role list, shared with Settings skills and the create form, so
+// the same five names appear everywhere. The backend lens folds any legacy
+// assistant_mode onto the nearest of these.
+const ROLE_OPTIONS: { value: string; label: string }[] = SKILL_PRESETS.map((preset) => ({
+  value: preset.id,
+  label: preset.name,
+}));
 
 const SECTION_LABELS: Record<string, string> = {
   summary: "Overview",
@@ -97,16 +99,26 @@ interface ProjectIntelligenceProps {
   dashboard: WorkspaceDashboard;
   onInspectFile?: (path: string) => void;
   onAskQuestion?: (question: string) => void;
+  // Called after the role is saved to the workspace, so the rest of the app
+  // (Ask especially) can pick up the new role.
+  onRolePersisted?: (mode: string) => void;
 }
 
-export function ProjectIntelligence({ dashboard, onInspectFile, onAskQuestion }: ProjectIntelligenceProps) {
+export function ProjectIntelligence({
+  dashboard,
+  onInspectFile,
+  onAskQuestion,
+  onRolePersisted,
+}: ProjectIntelligenceProps) {
   const workspaceId = dashboard.workspace_id;
 
   const [data, setData] = useState<ProjectIntelligenceResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [role, setRole] = useState<string | null>(null); // null = workspace default
+  // The role is the workspace's saved assistant_mode — one setting, shared with
+  // Ask. Changing it here persists it for the whole workspace.
+  const [role, setRole] = useState<string>(dashboard.assistant_mode);
   const [activeTab, setActiveTab] = useState<string>("summary");
   const [stale, setStale] = useState(false);
 
@@ -153,6 +165,24 @@ export function ProjectIntelligence({ dashboard, onInspectFile, onAskQuestion }:
     load(role);
     return () => abortRef.current?.abort();
   }, [load, role]);
+
+  // Keep in sync if the role is changed elsewhere (e.g. Settings).
+  useEffect(() => {
+    setRole(dashboard.assistant_mode);
+  }, [dashboard.assistant_mode]);
+
+  // Change the workspace's role: re-frame the map immediately (the load effect
+  // reacts to `role`), persist it to the workspace, and tell the app so Ask
+  // follows. Persisting failing shouldn't block the local re-frame.
+  const changeRole = useCallback(
+    (mode: string) => {
+      setRole(mode);
+      void updateWorkspaceAssistantMode(workspaceId, mode)
+        .then(() => onRolePersisted?.(mode))
+        .catch(() => {});
+    },
+    [workspaceId, onRolePersisted],
+  );
 
   const handleBuild = useCallback(async () => {
     setBuilding(true);
@@ -260,19 +290,13 @@ export function ProjectIntelligence({ dashboard, onInspectFile, onAskQuestion }:
           </p>
         </div>
         <div className="pi-head-controls">
-          <label className="pi-role" title="Re-orders and reframes the map for this role. Applies instantly — no rebuild needed.">
-            <span>Viewed as</span>
+          <label className="pi-role" title="The workspace role. Re-frames the map and Ask, and is saved for this project. Applies instantly — no rebuild needed.">
+            <span>Role</span>
             <select
-              value={role ?? "__default__"}
-              onChange={(e) =>
-                setRole(e.target.value === "__default__" ? null : e.target.value)
-              }
+              value={role}
+              onChange={(e) => changeRole(e.target.value)}
               disabled={building || loading}
             >
-              <option value="__default__">
-                Workspace default
-                {view ? ` (${view.role_label})` : ""}
-              </option>
               {ROLE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}

@@ -145,16 +145,45 @@ _BUSINESS_ANALYST = RoleLens(
     ],
 )
 
-# Registered lenses keyed by assistant_mode. Modes without a dedicated lens map
-# to the nearest sensible one, mirroring assistant_mode_lens_hint's fallbacks.
+_MANAGER = RoleLens(
+    role="manager",
+    label="Manager",
+    priority_entity_types=[
+        EntityType.ENVIRONMENT,
+        EntityType.SERVICE,
+        EntityType.PIPELINE,
+    ],
+    highlighted_finding_categories=[
+        FindingCategory.SECURITY,
+        FindingCategory.RELIABILITY,
+        FindingCategory.DEPLOYMENT,
+    ],
+    section_order=[
+        Section.SUMMARY,
+        Section.RISKS,
+        Section.ENVIRONMENTS,
+        Section.DEPLOYMENT,
+        Section.IMPORTANT_FILES,
+        Section.INFRASTRUCTURE,
+        Section.QUESTIONS,
+    ],
+)
+
+# The five canonical roles, plus legacy assistant_modes folded onto the nearest
+# one so older workspaces keep resolving. Documentation reads like a developer
+# view; incident support like a DevOps view; the old "manager_summary" is the
+# Manager role.
 ROLE_LENSES: dict[str, RoleLens] = {
     "developer": _DEVELOPER,
     "devops": _DEVOPS,
     "tester": _TESTER,
     "business_analyst": _BUSINESS_ANALYST,
+    "manager": _MANAGER,
+    # Legacy / folded modes.
     "documentation": _DEVELOPER,
     "support_incident": _DEVOPS,
-    "manager_summary": _BUSINESS_ANALYST,
+    "incident_support": _DEVOPS,
+    "manager_summary": _MANAGER,
 }
 
 

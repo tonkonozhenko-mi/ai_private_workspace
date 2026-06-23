@@ -1390,6 +1390,7 @@ function App() {
                   dashboard={detail.dashboard}
                   onInspectFile={(p) => setInspectFilePath(p)}
                   onAskQuestion={openAskWithQuestion}
+                  onRolePersisted={() => loadWorkspaceDetail(detail.dashboard.workspace_id)}
                 />
               ) : null}
               <div hidden={activeTab !== "ask"}>

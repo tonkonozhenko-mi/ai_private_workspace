@@ -281,6 +281,20 @@ export function updateWorkspaceSkillProfile(
 }
 
 
+export function updateWorkspaceAssistantMode(
+  workspaceId: string,
+  assistantMode: string,
+): Promise<{ id: string; assistant_mode: string }> {
+  return requestJson<{ id: string; assistant_mode: string }>(`/workspaces/${workspaceId}`, {
+    method: "PATCH",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ assistant_mode: assistantMode }),
+  });
+}
+
 export function getWorkspaceIndexingRules(
   workspaceId: string,
 ): Promise<WorkspaceIndexingRules> {

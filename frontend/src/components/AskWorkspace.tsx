@@ -177,10 +177,25 @@ const EXAMPLE_QUESTIONS_BY_MODE: Record<string, string[]> = {
     "Where are logs and error handling defined?",
     "What are the rollback or recovery steps?",
   ],
+  manager: [
+    "Give a short summary of this project for a stakeholder.",
+    "What are the main risks in this codebase?",
+    "What does this project do, in plain terms?",
+  ],
   manager_summary: [
     "Give a short summary of this project for a stakeholder.",
     "What are the main risks in this codebase?",
     "What does this project do, in plain terms?",
+  ],
+  tester: [
+    "Which critical flows should I test?",
+    "Where is test coverage thin?",
+    "What should I re-test after a change here?",
+  ],
+  business_analyst: [
+    "What does this system do for its users?",
+    "What are the main entities and flows?",
+    "Which integrations and rules matter here?",
   ],
 };
 

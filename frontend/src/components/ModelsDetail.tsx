@@ -814,10 +814,10 @@ function writeModelSkillPreset(model: string | null | undefined, preset: SkillPr
 
 function inferSkillTemplateForModel(model: string | null | undefined): SkillProfileTemplateId {
   const normalized = (model ?? "").toLowerCase();
-  if (normalized.includes("coder") || normalized.includes("qwen")) return "code_review";
-  if (normalized.includes("llama")) return "documentation_review";
+  if (normalized.includes("coder") || normalized.includes("qwen")) return "developer_review";
+  if (normalized.includes("llama")) return "business_analyst_review";
   if (normalized.includes("mistral")) return "devops_review";
-  if (normalized.includes("gemma")) return "manager_summary";
+  if (normalized.includes("gemma")) return "manager_review";
   return "devops_review";
 }
 
