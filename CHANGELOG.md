@@ -7,7 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-## [0.1.115] - 2026-06-23
+## [0.1.116] - 2026-06-23
+
+### Changed
+
+- **Group Intelligence now compares repos instead of merging them into one pile.** A group is treated as a portfolio: environments are shown as a repo×environment matrix (who deploys where), technologies are split into common-to-all / shared-by-some / unique-to-each-repo, and risks are grouped by finding type with a per-repo breakdown (so you fix the pattern, not 20 identical rows). A repo filter at the top keeps the repository a first-class dimension — isolate one repo or compare any subset. Scales cleanly from 2 to many repos.
+- **Group Ask is less primitive.** The answer sits in a proper card with a per-repo contribution bar (how many chunks each repo gave), and sources are grouped under per-repository headings instead of a flat list.
 
 ### Changed
 
