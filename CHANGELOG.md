@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.127] - 2026-06-23
+
+### Changed
+
+- **Home reads as a brief, not a wall.** It now opens with one plain-language lead line ("Built with X, Y, Z. N commits by M people, K this week.") and a single clear next step — "Ask anything about it →". Secondary cards (How to run, TODOs, Files by area, Sources) are collapsed by default and expand on intent, so the page leads with one thing instead of a dozen stacked panels.
+
 ## [0.1.126] - 2026-06-23
 
 ### Documentation
