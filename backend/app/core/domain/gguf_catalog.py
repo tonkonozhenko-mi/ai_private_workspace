@@ -80,6 +80,18 @@ GGUF_CATALOG: tuple[GgufModel, ...] = (
         ollama_tag="nomic-embed-text",
     ),
     GgufModel(
+        id="bge-m3",
+        name="BGE-M3 (multilingual, hybrid)",
+        model_type="embedding",
+        repo_id="gpustack/bge-m3-GGUF",
+        filename="bge-m3-Q4_K_M.gguf",
+        quantization="Q4_K_M",
+        size_bytes=438_000_000,
+        recommended=False,
+        min_ram_gb=8,
+        ollama_tag="bge-m3",
+    ),
+    GgufModel(
         id="bge-reranker-v2-m3",
         name="BGE Reranker v2 m3",
         model_type="reranker",

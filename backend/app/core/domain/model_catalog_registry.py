@@ -237,6 +237,54 @@ DEFAULT_LOCAL_MODELS = [
         ],
     ),
     LocalModelDefinition(
+        id="ollama-bge-m3",
+        provider="ollama",
+        model_name="bge-m3",
+        model_type="embedding",
+        display_name="BGE-M3 (multilingual, hybrid)",
+        description=(
+            "Stronger multilingual embedder that natively supports dense and sparse "
+            "retrieval — a good fit for the hybrid search. Heavier than Nomic."
+        ),
+        capabilities=["workspace_indexing", "context_search", "rag_retrieval"],
+        recommended_for_profiles=ALL_ASSISTANT_PROFILES,
+        recommended_laptop_profiles=[],
+        estimated_size="1.2 GB",
+        context_window=None,
+        embedding_dimension=1024,
+        quality_tier="excellent",
+        speed_tier="balanced",
+        local_only=True,
+        notes=[
+            "Switching the embedder rebuilds the index (a different vector space).",
+            "Embedding dimension is a catalog assumption; verify against the runtime.",
+        ],
+    ),
+    LocalModelDefinition(
+        id="ollama-qwen3-embedding-0_6b",
+        provider="ollama",
+        model_name="qwen3-embedding:0.6b",
+        model_type="embedding",
+        display_name="Qwen3 Embedding 0.6B",
+        description=(
+            "Top-tier accuracy from the Qwen3 embedding family, in a laptop-sized "
+            "0.6B model. Best retrieval quality of the local options here."
+        ),
+        capabilities=["workspace_indexing", "context_search", "rag_retrieval"],
+        recommended_for_profiles=ALL_ASSISTANT_PROFILES,
+        recommended_laptop_profiles=[],
+        estimated_size="0.6 GB",
+        context_window=None,
+        embedding_dimension=1024,
+        quality_tier="excellent",
+        speed_tier="balanced",
+        local_only=True,
+        notes=[
+            "Switching the embedder rebuilds the index (a different vector space).",
+            "Embedding dimension is a catalog assumption; verify against the runtime.",
+        ],
+    ),
+    LocalModelDefinition(
         id="fake-embedding",
         provider="fake",
         model_name="fake-embedding",

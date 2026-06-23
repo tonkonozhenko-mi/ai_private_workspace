@@ -540,6 +540,22 @@ function ModelCatalogPanel({
       use: "Use for larger docs/projects when retrieval quality matters more than speed.",
       provider: "ollama",
     },
+    {
+      name: "BGE-M3",
+      model: "bge-m3",
+      fit: "Multilingual · hybrid-friendly",
+      memory: "~1.2 GB",
+      use: "Strong multilingual embedder that natively supports dense + sparse retrieval — a good match for hybrid search.",
+      provider: "ollama",
+    },
+    {
+      name: "Qwen3 Embedding 0.6B",
+      model: "qwen3-embedding:0.6b",
+      fit: "Top retrieval quality",
+      memory: "~0.6 GB",
+      use: "Best accuracy of the local options, in a laptop-sized model. Changing the embedder rebuilds the index.",
+      provider: "ollama",
+    },
   ];
   const [catalogMessage, setCatalogMessage] = useState<string | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
