@@ -18,6 +18,7 @@ import type {
   ProjectIntelligenceResponse,
   ProjectIntelligenceView,
   ProjectReferences,
+  RoleBrief,
   WorkspaceDashboard,
 } from "../api/types";
 import { ProjectMap } from "./ProjectMap";
@@ -93,9 +94,10 @@ function statusNote(entity: ProjectGraphEntity): string | null {
 interface ProjectIntelligenceProps {
   dashboard: WorkspaceDashboard;
   onInspectFile?: (path: string) => void;
+  onAskQuestion?: (question: string) => void;
 }
 
-export function ProjectIntelligence({ dashboard, onInspectFile }: ProjectIntelligenceProps) {
+export function ProjectIntelligence({ dashboard, onInspectFile, onAskQuestion }: ProjectIntelligenceProps) {
   const workspaceId = dashboard.workspace_id;
 
   const [data, setData] = useState<ProjectIntelligenceResponse | null>(null);
@@ -189,6 +191,7 @@ export function ProjectIntelligence({ dashboard, onInspectFile }: ProjectIntelli
   const cloud: ProjectCloud | undefined = data?.built ? data.cloud : undefined;
   const references: ProjectReferences | undefined = data?.built ? data.references : undefined;
   const ci: ProjectCi | undefined = data?.built ? data.ci : undefined;
+  const brief = data?.built ? data.brief : undefined;
   const hasMap = Boolean(graph && graph.nodes.length > 0);
   const hasCloud = Boolean(cloud && cloud.total_services > 0);
   const hasReferences = Boolean(references && references.total > 0);
@@ -307,6 +310,8 @@ export function ProjectIntelligence({ dashboard, onInspectFile }: ProjectIntelli
               ? ` · not detected: ${view.analyzers_skipped.join(", ")}`
               : ""}
           </p>
+
+          {brief ? <RoleDashboardBrief brief={brief} onAskQuestion={onAskQuestion} /> : null}
 
           {(graph?.nodes.length ?? 0) < 4 ? (
             <div className="pi-empty-project">
@@ -779,6 +784,69 @@ function SecuritySection({
         </div>
       ) : null}
     </div>
+  );
+}
+
+// The adaptive role dashboard header: one band that re-frames the same facts for
+// whoever is looking. The role label, the facts it leads with, the risks that
+// matter to it, and questions worth asking — all decided on the backend from the
+// project's own evidence, never hardcoded here.
+function RoleDashboardBrief({
+  brief,
+  onAskQuestion,
+}: {
+  brief: RoleBrief;
+  onAskQuestion?: (question: string) => void;
+}) {
+  const hasFacts = brief.facts.length > 0;
+  return (
+    <section className="pi-brief" aria-label={`${brief.label} dashboard`}>
+      <div className="pi-brief-head">
+        <span className="pi-brief-eyebrow">{brief.label} dashboard</span>
+      </div>
+      <p className="pi-brief-focus">{brief.focus}</p>
+
+      {hasFacts ? (
+        <div className="pi-brief-facts">
+          {brief.facts.map((fact) => (
+            <span
+              key={fact.label}
+              className="pi-brief-fact"
+              title={fact.examples.length > 0 ? fact.examples.join(", ") : undefined}
+            >
+              <span className="pi-brief-fact-count">{fact.count}</span>
+              <span className="pi-brief-fact-label">{fact.label}</span>
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {brief.top_risks.length > 0 ? (
+        <p className="pi-brief-risks">
+          <span className="pi-finding-label">Worth your attention</span>
+          {brief.top_risks.join(" · ")}
+        </p>
+      ) : null}
+
+      {brief.suggested_questions.length > 0 && onAskQuestion ? (
+        <div className="pi-brief-questions">
+          <span className="pi-finding-label">Questions worth asking</span>
+          <div className="pi-brief-qchips">
+            {brief.suggested_questions.map((q) => (
+              <button
+                key={q}
+                type="button"
+                className="pi-brief-qchip"
+                onClick={() => onAskQuestion(q)}
+                title="Open this in Ask"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
   );
 }
 

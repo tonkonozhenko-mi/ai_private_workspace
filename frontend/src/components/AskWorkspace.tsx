@@ -96,6 +96,9 @@ interface AskWorkspaceProps {
   onAsked?: () => void | Promise<void>;
   onOpenModels?: () => void;
   onOpenOverview?: () => void;
+  // A question pushed in from elsewhere (e.g. a dashboard suggested-question
+  // chip). The ``nonce`` changes on each push so the same text can be re-sent.
+  seedQuestion?: { text: string; nonce: number } | null;
 }
 
 interface AskHistoryItem {
@@ -219,6 +222,7 @@ export function AskWorkspace({
   onAsked,
   onOpenModels,
   onOpenOverview,
+  seedQuestion = null,
 }: AskWorkspaceProps) {
   const [question, setQuestion] = useState("");
   // Developer details are off by default and can be toggled right here on the
@@ -270,6 +274,22 @@ export function AskWorkspace({
     return () => observer.disconnect();
   }, []);
   const askAbortControllerRef = useRef<AbortController | null>(null);
+
+  // A suggested question pushed in from a dashboard chip: drop it into the
+  // composer (don't auto-send — the user stays in control) and reveal it.
+  useEffect(() => {
+    if (!seedQuestion || !seedQuestion.text.trim()) {
+      return;
+    }
+    setQuestion(seedQuestion.text);
+    const node = composerRef.current;
+    if (node) {
+      node.scrollIntoView({ behavior: "smooth", block: "center" });
+      const field = node.querySelector<HTMLTextAreaElement>("#workspace-question");
+      field?.focus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedQuestion?.nonce]);
 
   async function handleImageFiles(files: FileList | File[] | null) {
     if (!files || files.length === 0) {

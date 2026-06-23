@@ -220,6 +220,12 @@ function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteFiles, setPaletteFiles] = useState<string[]>([]);
   const [inspectFilePath, setInspectFilePath] = useState<string | null>(null);
+  // A question pushed into Ask from a dashboard suggested-question chip.
+  const [askSeed, setAskSeed] = useState<{ text: string; nonce: number } | null>(null);
+  const openAskWithQuestion = (text: string) => {
+    setAskSeed({ text, nonce: Date.now() });
+    setActiveTab("ask");
+  };
 
   // Cmd/Ctrl-K opens the command palette from anywhere.
   useEffect(() => {
@@ -1380,7 +1386,11 @@ function App() {
                 />
               ) : null}
               {activeTab === "intelligence" ? (
-                <ProjectIntelligence dashboard={detail.dashboard} onInspectFile={(p) => setInspectFilePath(p)} />
+                <ProjectIntelligence
+                  dashboard={detail.dashboard}
+                  onInspectFile={(p) => setInspectFilePath(p)}
+                  onAskQuestion={openAskWithQuestion}
+                />
               ) : null}
               <div hidden={activeTab !== "ask"}>
                 <AskWorkspace
@@ -1399,6 +1409,7 @@ function App() {
                   onAsked={() => refreshAfterAsk(detail.dashboard.workspace_id)}
                   onOpenModels={() => setActiveTab("models")}
                   onOpenOverview={() => setActiveTab("overview")}
+                  seedQuestion={askSeed}
                 />
               </div>
               {activeTab === "models" ? (

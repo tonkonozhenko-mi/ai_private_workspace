@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.137] - 2026-06-23
+
+### Added
+
+- **Adaptive role dashboard.** Project Intelligence now opens with a role-framed brief band — "DevOps dashboard", "Developer dashboard", and so on — that leads with the facts that matter to your role (counts of environments, pipelines, modules… whatever the project actually has), the risks worth your attention, and a row of **suggested questions** you can click to open straight in Ask. It is one adaptive view, not six bespoke screens: the same facts, re-composed for whoever is looking, all decided on the backend from the project's own evidence. Switching role re-frames it instantly.
+
 ## [0.1.136] - 2026-06-23
 
 ### Added
