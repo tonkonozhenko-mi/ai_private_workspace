@@ -4863,15 +4863,6 @@ a.getting-ready-cta:hover {
 .pu-ship-facts { font-size: 12.5px; color: var(--c-text-2); line-height: 1.5; margin: 0; }
 .pu-ship-branch { font-size: 11.5px; background: var(--c-surface-3); border-radius: 5px; padding: 1px 6px; color: var(--c-text-2); }
 
-/* When the work happens — weekday rhythm */
-.pu-rhythm { display: flex; align-items: flex-end; gap: 6px; height: 64px; }
-.pu-rhythm-day { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; height: 100%; }
-.pu-rhythm-track { flex: 1; width: 100%; max-width: 30px; display: flex; align-items: flex-end; justify-content: center; }
-.pu-rhythm-fill { width: 100%; border-radius: 4px 4px 0 0; background: color-mix(in srgb, var(--c-accent) 38%, transparent); }
-.pu-rhythm-fill.is-weekend { background: color-mix(in srgb, var(--c-text-3) 45%, transparent); }
-.pu-rhythm-fill.is-peak { background: linear-gradient(180deg, var(--c-accent), color-mix(in srgb, var(--c-accent) 60%, transparent)); }
-.pu-rhythm-label { font-size: 10.5px; color: var(--c-text-3); }
-
 /* Where the work is going — hotspots */
 .pu-hotspots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
 .pu-hotspot { display: grid; grid-template-columns: minmax(0, 1.3fr) 1fr auto; align-items: center; gap: 12px; }

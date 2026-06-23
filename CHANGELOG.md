@@ -11,7 +11,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Changed
 
-- **Richer "Project activity" (git) card.** Added a "When the work happens" panel — a weekday rhythm of commits with a plain caption (busiest day, weekend share) — so you can tell a 9-to-5 codebase from a weekend-hustle one at a glance. "How they ship" now also names the repo's long-lived branches and the kinds of branches that actually get merged (e.g. feature/, fix/). All derived from git history already collected; no hardcoded assumptions.
+- **Richer "How they ship" in the Project activity card.** It now names the repo's long-lived branches and the kinds of branches that actually get merged (e.g. feature/, fix/), derived from git history already collected. No hardcoded assumptions.
 
 ## [0.1.112] - 2026-06-22
 

@@ -345,44 +345,6 @@ function GitMomentum({ git }: { git: GitInsightsResponse }) {
   );
 }
 
-const WEEKDAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const WEEKDAY_FULL = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
-// The team's working rhythm — commits by day of week. Answers "is this a
-// weekday 9-to-5 codebase or do people push on weekends?" at a glance.
-function GitRhythm({ git }: { git: GitInsightsResponse }) {
-  const wd = git.activity_by_weekday;
-  if (!wd || wd.length !== 7) return null;
-  const total = wd.reduce((s, n) => s + n, 0);
-  if (total === 0) return null;
-  const max = Math.max(...wd);
-  const peak = wd.indexOf(max);
-  const weekend = (wd[5] ?? 0) + (wd[6] ?? 0);
-  const weekendShare = Math.round((weekend / total) * 100);
-  const caption =
-    weekendShare >= 20
-      ? `Busiest on ${WEEKDAY_FULL[peak]} — but ${weekendShare}% of commits land on weekends.`
-      : `Busiest on ${WEEKDAY_FULL[peak]} — a steady weekday rhythm.`;
-  return (
-    <GaSection title="When the work happens" hint="Commits by day of week">
-      <div className="pu-rhythm">
-        {wd.map((n, i) => (
-          <span className="pu-rhythm-day" key={i} title={`${WEEKDAY_FULL[i]}: ${n} commit(s)`}>
-            <span className="pu-rhythm-track">
-              <span
-                className={`pu-rhythm-fill${i >= 5 ? " is-weekend" : ""}${i === peak ? " is-peak" : ""}`}
-                style={{ height: `${max ? Math.max(6, Math.round((n / max) * 100)) : 0}%` }}
-              />
-            </span>
-            <span className="pu-rhythm-label">{WEEKDAY_SHORT[i]}</span>
-          </span>
-        ))}
-      </div>
-      <p className="pu-ga-caption">{caption}</p>
-    </GaSection>
-  );
-}
-
 function GitPeople({ git }: { git: GitInsightsResponse }) {
   const maxShare = git.top_contributors.reduce((m, c) => Math.max(m, c.share), 0) || 1;
   return (
@@ -561,7 +523,6 @@ function GitActivityCard({ git }: { git: GitInsightsResponse }) {
       </div>
 
       <GitMomentum git={git} />
-      <GitRhythm git={git} />
       {git.top_contributors.length > 0 ? <GitPeople git={git} /> : null}
       <GitShip git={git} />
       <GitHotspots git={git} />
