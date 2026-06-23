@@ -7,6 +7,11 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.132] - 2026-06-23
+
+### Documentation
+
+- **Refreshed README screenshots** with the current UI (pigeon brand, new tabs): a new Ask hero, the create-workspace / engine / build-context onboarding steps, and a small "A few more screens" gallery (command palette, security lens). All screenshots are redacted — workspace/project names, local file paths, and contributor details are blurred — and the raw, unredacted captures are git-ignored so they can never be committed.
 ## [0.1.131] - 2026-06-23
 
 ### Changed

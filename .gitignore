@@ -42,3 +42,6 @@ frontend/src-tauri/target/
 frontend/frontend/
 frontend/backend/
 backend/.venv_t/
+
+# Raw, unredacted screenshot drop — never commit (may contain names/paths/tickets)
+/assets/screenshots/
