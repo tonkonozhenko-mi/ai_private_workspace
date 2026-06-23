@@ -31,7 +31,7 @@ macOS (Apple Silicon / Intel) and Windows x64 installers are on the
 - [First launch (unsigned app)](#first-launch-unsigned-app)
 - [Install and first run](#install-and-first-run)
 - [What it does](#what-it-does)
-- [Project intelligence and agents](#project-intelligence-and-agents)
+- [Project intelligence and read-only analysis](#project-intelligence-and-read-only-analysis)
 - [Local engines](#local-engines)
 - [How search works](#how-search-works)
 - [Safety model](#safety-model)
@@ -114,15 +114,16 @@ The app also follows your system light/dark preference:
 - **Groups several repositories into one project.** Real systems span more than one repo. A group lets Ask, Home, and Intelligence work across a whole portfolio at once — environments compared in a repo×environment matrix, technologies split into shared-vs-unique, and risks grouped by pattern — while each repo stays an independent workspace underneath.
 - **Built to navigate.** A **Cmd/Ctrl-K command palette** jumps to any repository, group, section, or file. Click a file anywhere and a **file inspector** opens its owner, what it changes together with, what it connects to in the map, and the risks touching it.
 - **Runs on two local engines.** Built-in **llama.cpp** (nothing to install) or **Ollama**, switchable per project, with the answer and search models managed separately. See [Local engines](#local-engines).
-- **Writes nothing without consent.** Ask can turn an answer into a file draft, written only after you confirm the path and exact content. Agent and MCP work is planning and approval only — no tool ever runs on its own.
+- **Writes nothing without consent.** Ask can turn an answer into a file draft, written only after you confirm the path and exact content. Nothing else runs on its own — the app reads and explains, it never executes commands or changes your machine.
 
-## Project intelligence and agents
+## Project intelligence and read-only analysis
 
 Beyond search, the app builds a **map of your project** and gives you two local
-agents that work over it. The guiding principle is the same throughout: every
-statement is backed by something found in your own files, the facts are produced
-deterministically wherever possible, and an agent is **read-only by default** —
-it can look, but it never writes files or runs commands.
+analysis tools that work over it. The guiding principle is the same throughout:
+every statement is backed by something found in your own files, the facts are
+produced deterministically wherever possible, and the analysis is **read-only by
+construction** — it looks and explains, but it never writes files, runs commands,
+or changes anything on your computer.
 
 ### Project Intelligence — the map
 
@@ -175,7 +176,7 @@ technologies split into common / shared / unique, and risks grouped by pattern
 with a per-repo breakdown. Create a group by dragging one project onto another;
 member repositories stay independent workspaces underneath.
 
-### The Watcher — a deterministic agent
+### The Watcher — deterministic change tracking
 
 The Watcher answers **"what changed since I last looked?"** On demand it
 re-scans the project, rebuilds the graph, and **diffs it against the previous
@@ -184,17 +185,17 @@ resolved risks, new cloud services, and more. The facts come entirely from
 comparing two graphs (no model needed); the digest is persisted so it survives
 restarts. It is the foundation for scheduled, hands-off drift detection.
 
-### The Investigator — a read-only agent
+### The Investigator — read-only, evidence-backed analysis
 
 The Investigator answers harder, multi-step questions — _"How does a request
 reach the database?"_, _"Who should I ask about this module?"_ — by running a
 small **ReAct loop**: at each step the local model picks **one read-only tool**,
 reads the result, and decides what to do next, until it can answer.
 
-There is deliberately **one** investigator, not a swarm of narrow agents. Adding a
+There is deliberately **one** investigator, not a swarm of narrow tools. Adding a
 new capability means giving it another read-only tool, which widens what it can
-reason about — the agent decides which tools to combine for a given question. Its
-toolbox is intentionally small and safe:
+reason about — the investigator decides which tools to combine for a given
+question. Its toolbox is intentionally small and safe:
 
 | Tool | What it does |
 | --- | --- |
@@ -236,9 +237,9 @@ predicting runtime behaviour it can't see in the files.
 When the answer isn't in the project's files, it says so plainly rather than
 guessing.
 
-**How the agents stay trustworthy**
+**How the analysis stays trustworthy**
 
-- **Read-only by construction** — no agent tool writes a file or runs a command.
+- **Read-only by construction** — no analysis tool writes a file or runs a command.
 - **Local and private** — everything runs on your machine; your code never leaves it.
 - **Evidence-backed** — deterministic facts first; sources attached to every answer.
 - **Transparent** — the Investigator shows exactly which tools it used and why.
@@ -299,10 +300,10 @@ The end-to-end flow at a glance:
 AI Private Workspace is designed around explicit user control:
 
 - The frontend never executes shell commands.
-- App launch never starts scans, indexing, rebuilds, MCP servers, Agent workflows, or model downloads.
+- App launch never starts scans, indexing, rebuilds, or model downloads.
 - Model download execution is disabled by default and must be enabled backend-side in trusted local runtime only.
-- Agent workflows are planning/manual tracking only.
-- Approval gates record user intent; they do not execute tools automatically.
+- The local analysis is read-only — it never executes commands or modifies files.
+- Approval gates record user intent; they do not execute anything automatically.
 - Ask never writes a generated file automatically. The user must open the review panel and explicitly create it.
 - Runtime data, local databases, caches, and build artifacts are excluded from source archives.
 
@@ -311,13 +312,12 @@ AI Private Workspace is designed around explicit user control:
 The frontend keeps the common workflows focused and progressively reveals technical detail:
 
 - **Ask** answers from workspace context and can prepare a safe, editable file draft.
-- **Models** separates Overview, Choose & install, Skills, Compare, MCP tools, and Advanced configuration.
+- **Models** separates Overview, Choose & install, Skills, Compare, and Advanced configuration.
 - **Choose & install** uses backend-provided recommendations and accepts custom
   Ollama model tags. A desktop-owned backend can safely run the exact approved
   `ollama pull <model>` job, while browser development keeps downloads disabled
   unless explicitly configured.
 - **Skills** saves workspace model presets, while **Compare** runs explicit model comparisons.
-- **MCP tools** provides an approval-first registry for creating, editing, enabling, disabling, and inspecting MCP server definitions. MCP tools are not executed automatically.
 - **Settings** shows a plain-language readiness checklist for the local backend, project scan, search context, and local AI.
 
 ## Troubleshooting
@@ -358,7 +358,7 @@ Pre-1.0 and actively developed. Each tagged release builds from CI into
 signed-per-architecture macOS DMGs (Apple Silicon + Intel) and a Windows x64
 installer, with in-app auto-update. The app is usable day to day on both local
 engines; the road to 1.0 focuses on code signing (so there's no SmartScreen /
-Gatekeeper warning), sandboxed Agent/MCP execution, and broader QA.
+Gatekeeper warning) and broader QA.
 
 Every release also publishes **SHA256 checksums** (`SHA256SUMS.txt`), an **SPDX
 SBOM** (`sbom.spdx.json`) of the bundled dependencies, and an **automated-test
