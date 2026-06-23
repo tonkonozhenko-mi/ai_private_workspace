@@ -811,18 +811,6 @@ export function AskWorkspace({
       className="ask-workspace ask-workspace-chat ask-workspace-centered"
       style={{ "--composer-height": `${composerHeight}px` } as CSSProperties}
     >
-      <aside className="ask-context-sidebar ask-context-sidebar-compact">
-        <details className="ask-guidance-disclosure">
-          <summary>Answer style and sources</summary>
-          <AssistantFocusHint
-            assistantMode={assistantMode}
-            skillPreferences={skillPreferences}
-            skillProfileSource={skillProfileSource}
-            skillProfileUpdatedAt={skillProfileUpdatedAt}
-          />
-        </details>
-      </aside>
-
       <section className="ask-chat-column">
         <AnswerNudges
           workspaceId={workspaceId}
@@ -2752,65 +2740,6 @@ function buildSkillContext(skillPreferences: SkillPreferences): SkillContextRequ
     .slice(0, 5);
 }
 
-function AssistantFocusHint({
-  assistantMode,
-  skillPreferences,
-  skillProfileSource,
-  skillProfileUpdatedAt,
-}: {
-  assistantMode: string;
-  skillPreferences: SkillPreferences;
-  skillProfileSource: string;
-  skillProfileUpdatedAt: string | null;
-}) {
-  const focus = getAskFocus(assistantMode);
-  const activePresets = getEnabledSkillPresets(skillPreferences);
-  const activeSkillLabel = activePresets.length > 0
-    ? activePresets.map((preset) => preset.shortName).join(" + ")
-    : "No extra skills";
-  const guidanceSummary = activePresets.length > 0
-    ? `${activePresets.length} saved guidance item${activePresets.length === 1 ? "" : "s"}`
-    : "No saved guidance enabled";
-  const profileLabel = skillProfileSource === "saved" ? "Workspace saved profile" : "Default workspace profile";
-
-  return (
-    <section className="panel ask-focus-hint ask-focus-hint-compact">
-      <header className="ask-focus-compact-header">
-        <div>
-          <p className="eyebrow">Assistant focus</p>
-          <h2>{focus.badge}</h2>
-        </div>
-        <span>{focus.badge}</span>
-      </header>
-
-      <p className="ask-focus-compact-summary">{focus.shortDescription}</p>
-
-      <div className="ask-focus-compact-rows">
-        <div>
-          <span>Answer style</span>
-          <strong>{focus.badge}</strong>
-        </div>
-        <div>
-          <span>Active skills</span>
-          <strong>{activeSkillLabel}</strong>
-        </div>
-        <div>
-          <span>Profile source</span>
-          <strong>{profileLabel}</strong>
-        </div>
-        <div>
-          <span>Guidance</span>
-          <strong>{guidanceSummary}</strong>
-        </div>
-      </div>
-
-      <p className="ask-focus-compact-note">
-        Saved skills guide the answer style and focus. Project claims still need retrieved sources.
-        {skillProfileUpdatedAt ? ` Last saved ${formatDateTime(skillProfileUpdatedAt)}.` : ""}
-      </p>
-    </section>
-  );
-}
 
 function getAskFocus(mode: string) {
   const focuses: Record<string, { title: string; description: string; shortDescription: string; badge: string }> = {
