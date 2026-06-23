@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 PRODUCT_NAME = "AI Private Workspace"
 # Keep in sync with frontend/src-tauri/tauri.conf.json on every release bump.
-APP_VERSION = "0.1.113"
+APP_VERSION = "0.1.114"
 # Keep the legacy hidden runtime directory for backward compatibility with
 # existing local installations. It is not a product-facing name.
 DEFAULT_APP_DATA_DIR = Path(".ai-workbench")

@@ -59,3 +59,34 @@ def test_real_repo_insights(tmp_path: Path):
     # app.py changed in both commits -> it is the top hotspot.
     assert insights.hotspots
     assert insights.hotspots[0].path == "app.py"
+
+
+# --- Change coupling (temporal) ---
+from app.core.domain.git_insights import compute_couplings as _compute_couplings
+
+
+def test_compute_couplings_finds_files_that_change_together():
+    commits = [
+        ["a.py", "b.py"],
+        ["a.py", "b.py"],
+        ["a.py", "b.py"],
+        ["a.py", "c.py"],          # a also changes alone-ish with c once
+        ["d.py"],                   # solo commit, ignored
+    ]
+    out = _compute_couplings(commits, min_together=3)
+    assert len(out) == 1
+    top = out[0]
+    assert {top.file_a, top.file_b} == {"a.py", "b.py"}
+    assert top.together == 3
+    # b changed 3 times, a changed 4 → share = 3 / min(4,3) = 1.0
+    assert top.share == 1.0
+
+
+def test_compute_couplings_skips_giant_commits_and_weak_pairs():
+    giant = [f"f{i}.py" for i in range(40)]  # sweeping commit — must be ignored
+    commits = [giant, ["x.py", "y.py"], ["x.py", "y.py"]]
+    # x,y only change together twice → below default min_together=3 → no result
+    assert _compute_couplings(commits) == []
+    # giant commit must not have coupled all 40 files
+    assert _compute_couplings(commits, min_together=2)  # x,y now qualify
+    assert all("f0.py" not in (c.file_a, c.file_b) for c in _compute_couplings(commits, min_together=2))

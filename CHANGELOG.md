@@ -7,7 +7,15 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-## [0.1.113] - 2026-06-23
+## [0.1.114] - 2026-06-23
+
+### Added
+
+- **Change coupling ("Changes together").** The Project activity card now surfaces file pairs that keep changing in the same commits, computed deterministically from git history. Pairs that live in different folders are flagged "cross-module" — a tell of a hidden dependency the import graph misses. Helps you see what really moves together before touching a file.
+
+### Changed
+
+- **The git activity card now adapts to the role chosen at project creation.** Same deterministic data, reordered and framed for the role: DevOps leads with how it ships and what's entangled; a developer with where to work and who to ask; a tester with where change concentrates (the risk surface); an analyst/manager with delivery pace and the team. No hardcoded technologies — purely a presentation lens.
 
 ### Changed
 
