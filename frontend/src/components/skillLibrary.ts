@@ -289,6 +289,26 @@ export function toSkillProfileRequest(preferences: SkillPreferences) {
   };
 }
 
+// Make one role the single active skill, so the workspace's role and the Ask
+// answer style stay the same thing. Other skills keep their saved instructions
+// but are turned off; an unknown mode leaves preferences unchanged.
+export function skillPreferencesForRole(
+  mode: string,
+  current: SkillPreferences = DEFAULT_SKILL_PREFERENCES,
+): SkillPreferences {
+  const base = normalizeSkillPreferences(current);
+  if (!SKILL_PRESETS.some((preset) => preset.id === mode)) {
+    return base;
+  }
+  return SKILL_PRESETS.reduce((preferences, preset) => {
+    preferences[preset.id] = {
+      enabled: preset.id === mode,
+      customInstructions: base[preset.id].customInstructions,
+    };
+    return preferences;
+  }, {} as SkillPreferences);
+}
+
 export function skillPreferencesFromProfile(value: unknown): SkillPreferences {
   if (!value || typeof value !== "object" || !("skills" in value)) {
     return DEFAULT_SKILL_PREFERENCES;

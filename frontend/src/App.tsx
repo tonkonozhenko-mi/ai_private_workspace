@@ -22,6 +22,7 @@ import {
   previewWorkspaceFileSelection,
   getWorkspaceIndexingRules,
   getWorkspaceSkillProfile,
+  updateWorkspaceSkillProfile,
   getWorkspaceUIActions,
   setApiBaseUrl,
   listProjectGroups,
@@ -64,7 +65,7 @@ import {
   toFileSelectionRulesRequest,
   type FileIndexingPreferences,
 } from "./components/fileIndexingPreferences";
-import { DEFAULT_CUSTOM_SKILLS, DEFAULT_SKILL_PREFERENCES, normalizeCustomSkills, normalizeSkillPreferences, skillPreferencesFromProfile, type CustomSkill, type SkillPreferences } from "./components/skillLibrary";
+import { DEFAULT_CUSTOM_SKILLS, DEFAULT_SKILL_PREFERENCES, normalizeCustomSkills, normalizeSkillPreferences, skillPreferencesFromProfile, skillPreferencesForRole, toSkillProfileRequest, type CustomSkill, type SkillPreferences } from "./components/skillLibrary";
 import UpdateNotice from "./components/UpdateNotice";
 import {
   ANSWER_CREATIVITY_TEMPERATURE,
@@ -225,6 +226,19 @@ function App() {
   const openAskWithQuestion = (text: string) => {
     setAskSeed({ text, nonce: Date.now() });
     setActiveTab("ask");
+  };
+
+  // The workspace role and the Ask answer style are one thing: when the role is
+  // changed (on Intelligence), make that role the single active skill and save
+  // it, then reload so Ask, its focus panel, and the dashboard all match.
+  const handleRolePersisted = async (workspaceId: string, mode: string) => {
+    try {
+      const nextSkills = skillPreferencesForRole(mode, preferences.skillPreferences);
+      await updateWorkspaceSkillProfile(workspaceId, toSkillProfileRequest(nextSkills));
+    } catch {
+      // Persisting the skill is best-effort; the lens already changed.
+    }
+    await loadWorkspaceDetail(workspaceId);
   };
 
   // Cmd/Ctrl-K opens the command palette from anywhere.
@@ -1390,7 +1404,9 @@ function App() {
                   dashboard={detail.dashboard}
                   onInspectFile={(p) => setInspectFilePath(p)}
                   onAskQuestion={openAskWithQuestion}
-                  onRolePersisted={() => loadWorkspaceDetail(detail.dashboard.workspace_id)}
+                  onRolePersisted={(mode) =>
+                    handleRolePersisted(detail.dashboard.workspace_id, mode)
+                  }
                 />
               ) : null}
               <div hidden={activeTab !== "ask"}>
