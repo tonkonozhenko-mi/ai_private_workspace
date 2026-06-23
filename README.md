@@ -91,6 +91,17 @@ The app also follows your system light/dark preference:
   <img src="docs/assets/screenshots/06-dark-ask.png" alt="Ask screen in dark theme" width="720">
 </p>
 
+## A few more screens
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/14-command-palette.png" alt="Command palette: jump to any repo, group, section or file" width="100%"><br><sub><b>Command palette</b> — <code>Cmd/Ctrl-K</code> to jump to any repository, group, section, or file.</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/13-security.png" alt="Security lens: scanners in CI and security-relevant findings" width="100%"><br><sub><b>Security lens</b> — which scan/audit steps run in CI, plus the security-relevant findings, each backed by a file.</sub></td>
+  </tr>
+</table>
+
+> Screenshots are taken on a demo project and any project names, file paths, and contributor details are redacted.
+
 ## What it does
 
 - **Understands your project.** Point it at a folder; a local scan recognizes what's there — Terraform, Terragrunt, Kubernetes, Helm, Docker, Python, GitLab CI, docs, and more.
