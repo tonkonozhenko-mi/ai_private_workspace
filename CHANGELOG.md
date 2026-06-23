@@ -7,6 +7,11 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.130] - 2026-06-23
+
+### Fixed
+
+- **Groups no longer show empty on launch (and no more duplicate group on drag).** The groups list was loaded at mount, which could fire before the desktop backend was reachable and fail silently — leaving the sidebar empty. It now loads once the backend is ready (right after workspaces). Drag-to-group also re-checks against a fresh group list before creating, so a stale/empty list can never produce a duplicate of an existing group.
 ## [0.1.129] - 2026-06-23
 
 ### Changed

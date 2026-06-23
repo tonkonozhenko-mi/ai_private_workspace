@@ -569,9 +569,18 @@ function App() {
 
   // Drag one project onto another → make a group containing both. If a group
   // already contains *both* projects, don't create a duplicate — just open it.
+  // The check uses a *fresh* group list (not React state, which can be empty if
+  // the initial load lost a race with backend startup) so it never duplicates.
   const handleDropWorkspaceOnWorkspace = useCallback(
     async (sourceWorkspaceId: string, targetWorkspaceId: string) => {
-      const existing = groups.find(
+      let current = groups;
+      try {
+        current = (await listProjectGroups()).groups;
+        setGroups(current);
+      } catch {
+        // fall back to whatever is in state
+      }
+      const existing = current.find(
         (g) =>
           g.workspace_ids.includes(sourceWorkspaceId) &&
           g.workspace_ids.includes(targetWorkspaceId),
@@ -857,6 +866,10 @@ function App() {
           }
         }
         await loadWorkspaces();
+        // Load groups only once the backend is reachable — the early mount-time
+        // load can fire before the desktop backend is up and fail silently,
+        // leaving the groups list empty until something else refreshes it.
+        if (!cancelled) await loadGroups();
       }
     }
 
@@ -865,7 +878,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [loadWorkspaces, preferences.apiBaseUrl]);
+  }, [loadWorkspaces, loadGroups, preferences.apiBaseUrl]);
 
   // A newly selected/created workspace should re-engage the immersive setup
   // takeover (a previous "Skip for now" must not leak across workspaces).
