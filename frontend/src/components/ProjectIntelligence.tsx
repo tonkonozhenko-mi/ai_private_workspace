@@ -44,12 +44,14 @@ const SECTION_LABELS: Record<string, string> = {
   references: "References",
   map: "Map",
   security: "Security",
+  cicd: "CI/CD flow",
 };
 
 const MAP_TAB = "map";
 const CLOUD_TAB = "cloud";
 const REFERENCES_TAB = "references";
 const SECURITY_TAB = "security";
+const CICD_TAB = "cicd";
 
 // Security-relevant concepts, detected generically by token — no project- or
 // vendor-specific hardcoding beyond well-known scanner names that work anywhere.
@@ -213,16 +215,19 @@ export function ProjectIntelligence({ dashboard, onInspectFile, onAskQuestion }:
   }, [graph, view]);
   const hasSecurity = security.scanners.length > 0 || security.findings.length > 0;
 
+  const hasCicd = Boolean(ci?.has_data);
+
   const tabs = useMemo(() => {
     if (!view) return [];
     const sectionTabs = view.section_order.filter((s) => TAB_SECTIONS.has(s));
     const extra: string[] = [];
+    if (hasCicd) extra.push(CICD_TAB);
     if (hasCloud) extra.push(CLOUD_TAB);
     if (hasReferences) extra.push(REFERENCES_TAB);
     if (hasSecurity) extra.push(SECURITY_TAB);
     if (hasMap) extra.push(MAP_TAB);
     return [...sectionTabs, ...extra];
-  }, [view, hasMap, hasCloud, hasReferences, hasSecurity]);
+  }, [view, hasMap, hasCloud, hasReferences, hasSecurity, hasCicd]);
 
   useEffect(() => {
     // Keep the active tab valid when the lens reorders sections.
@@ -359,6 +364,13 @@ export function ProjectIntelligence({ dashboard, onInspectFile, onAskQuestion }:
               <EnvironmentsSection view={view} comparison={comparison} />
             ) : null}
             {activeTab === "risks" ? <RisksSection view={view} onInspectFile={onInspectFile} /> : null}
+            {activeTab === CICD_TAB && ci ? (
+              <CicdFlowSection
+                ci={ci}
+                environments={view.environments.environments}
+                onInspectFile={onInspectFile}
+              />
+            ) : null}
             {activeTab === CLOUD_TAB && cloud ? <CloudSection cloud={cloud} /> : null}
             {activeTab === REFERENCES_TAB && references ? (
               <ReferencesSection references={references} />
@@ -610,6 +622,106 @@ function CiScenarios({ ci }: { ci: ProjectCi }) {
       <p className="pi-ci-note">
         Inferred from GitHub Actions triggers — job-level rules may gate some steps further.
       </p>
+    </div>
+  );
+}
+
+// A visual CI/CD flow: for each kind of event, the workflows it fires and the
+// jobs inside them, laid out left-to-right (trigger -> workflows -> jobs).
+// Security-scan jobs are flagged using the same generic scanner vocabulary the
+// Security lens uses. Everything is the deterministic CI data already extracted
+// from the project's own workflow files — nothing here is invented.
+function CicdFlowSection({
+  ci,
+  environments,
+  onInspectFile,
+}: {
+  ci: ProjectCi;
+  environments: ProjectGraphEntity[];
+  onInspectFile?: (path: string) => void;
+}) {
+  if (!ci.has_data || ci.scenarios.length === 0) {
+    return <EmptyNote text="No CI workflows were detected, so there is no pipeline flow to show." />;
+  }
+  return (
+    <div className="pi-cicd">
+      <p className="pi-hint">
+        How this project's pipelines flow: each trigger, the workflows it fires, and the jobs inside
+        them. Inferred from the workflow files — job-level rules may gate some steps further.
+      </p>
+
+      <div className="pi-cicd-flow">
+        {ci.scenarios.map((s) => (
+          <div key={s.key} className="pi-cicd-lane">
+            <div className="pi-cicd-trigger">
+              <span className="pi-cicd-trigger-dot" aria-hidden="true" />
+              <span className="pi-cicd-trigger-label">{s.label}</span>
+            </div>
+            <span className="pi-cicd-arrow" aria-hidden="true">→</span>
+            <div className="pi-cicd-workflows">
+              {s.workflows.map((w) => (
+                <div key={`${s.key}-${w.name}`} className="pi-cicd-workflow">
+                  <div className="pi-cicd-workflow-head">
+                    <span className="pi-cicd-workflow-name">{w.name}</span>
+                    {w.source_file ? (
+                      onInspectFile ? (
+                        <button
+                          type="button"
+                          className="pi-file-link"
+                          title={`Inspect ${w.source_file}`}
+                          onClick={() => onInspectFile(w.source_file as string)}
+                        >
+                          {w.source_file}
+                        </button>
+                      ) : (
+                        <code className="pi-source">{w.source_file}</code>
+                      )
+                    ) : null}
+                  </div>
+                  {w.cron && w.cron.length > 0 ? (
+                    <span className="pi-cicd-cron">schedule: {w.cron.join(", ")}</span>
+                  ) : null}
+                  {w.jobs.length > 0 ? (
+                    <div className="pi-cicd-jobs">
+                      {w.jobs.map((job) => {
+                        const isScan = SCANNER_RE.test(job);
+                        return (
+                          <span
+                            key={job}
+                            className={`pi-cicd-job${isScan ? " pi-cicd-job-scan" : ""}`}
+                            title={isScan ? "Looks like a security/scan step" : undefined}
+                          >
+                            {job}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <span className="pi-cicd-nojobs">no named jobs detected</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {environments.length > 0 ? (
+        <div className="pi-cicd-envs">
+          <span className="pi-finding-label">Environments this project defines</span>
+          <div className="pi-cicd-env-chips">
+            {environments.map((e) => (
+              <span key={e.id} className="pi-cicd-env">
+                {e.name}
+              </span>
+            ))}
+          </div>
+          <p className="pi-ci-note">
+            Which workflow deploys to which environment isn't always stated explicitly in the files,
+            so this lists the environments rather than wiring each one to a trigger.
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }

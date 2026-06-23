@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.138] - 2026-06-23
+
+### Added
+
+- **CI/CD flow view.** A new **CI/CD flow** tab in Project Intelligence lays the pipelines out visually: each trigger (push to a feature branch, push to the default branch, pull request, tag/release, schedule, manual) flows into the workflows it fires and the jobs inside them, with schedules and clickable workflow files. Security/scan jobs are flagged using the same generic scanner vocabulary the Security lens uses, and the environments the project defines are listed below with an honest note that the workflow-to-environment mapping isn't always explicit. Built entirely from the CI data already extracted from the project's own workflow files.
+
 ## [0.1.137] - 2026-06-23
 
 ### Added
