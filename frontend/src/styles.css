@@ -4610,6 +4610,8 @@ a.getting-ready-cta:hover {
 /* Human-readable risk framing: leads for a human, not verdicts. */
 .pi-finding-head { flex-wrap: wrap; }
 .pi-finding-review { font-size: 10.5px; font-weight: 600; color: var(--c-accent); background: var(--c-accent-soft); border-radius: var(--r-pill); padding: 2px 9px; margin-left: auto; white-space: nowrap; }
+.pi-finding-roletag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--c-accent); background: var(--c-accent-soft); border-radius: var(--r-pill); padding: 2px 9px; margin-left: auto; white-space: nowrap; }
+.pi-finding.is-role-relevant { border-left: 2px solid var(--c-accent-border); }
 .pi-finding-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--c-text-3); margin-bottom: 2px; }
 .pi-finding-why { font-size: 12px; color: var(--c-text-2); line-height: 1.5; margin: 2px 0 0; }
 .pi-finding-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-top: 1px; }
