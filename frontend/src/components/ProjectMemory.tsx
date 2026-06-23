@@ -265,7 +265,10 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
 
       <div className="pm-handbook">
         <div className="pm-handbook-head">
-          <span className="pm-eyebrow">Project handbook</span>
+          <span className="pm-eyebrow">
+            Project handbook
+            {handbook ? <span className="pm-handbook-badge">In use</span> : null}
+          </span>
           <div className="pm-handbook-actions">
             {handbook ? (
               <button type="button" className="pm-link" onClick={() => setHandbookOpen((v) => !v)}>
@@ -278,8 +281,9 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
           </div>
         </div>
         <p className="pm-muted">
-          A distilled, deterministic summary of the project (from the map) that the models
-          read as background.
+          {handbook
+            ? "Generated from the project map. It's fed into every Ask and Investigate as background, so answers stay grounded in this project — you don't have to do anything with it."
+            : "Generate a short, deterministic summary of the project from the map. Once made, it's automatically used as background in every Ask and Investigate to keep answers grounded — it's working memory, not a document to read."}
         </p>
         {handbook && handbookOpen ? <pre className="pm-handbook-text">{handbook}</pre> : null}
       </div>

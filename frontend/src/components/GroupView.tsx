@@ -444,10 +444,16 @@ function GroupMemory({ groupId }: { groupId: string }) {
         <p className="grp-muted">No notes yet.</p>
       )}
 
+      <p className="grp-hint">
+        {handbook
+          ? "Group handbook is generated from all member repos and fed into every group answer as background — nothing to do with it, it just keeps answers grounded."
+          : "Generate a group handbook — a short summary across all repos that's automatically used as background in every group answer."}
+      </p>
       <div className="grp-handbook-row">
         <button type="button" className="grp-button" onClick={regenerate} disabled={busy}>
           {handbook ? "Regenerate handbook" : "Generate handbook"}
         </button>
+        {handbook ? <span className="pm-handbook-badge">In use</span> : null}
         {handbook ? (
           <button type="button" className="grp-link" onClick={() => setShowHandbook((v) => !v)}>
             {showHandbook ? "Hide handbook" : "View handbook"}
