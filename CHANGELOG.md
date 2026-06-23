@@ -7,6 +7,13 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.139] - 2026-06-23
+
+### Changed
+
+- **Environments read as a matrix.** The Environments tab now has a labelled header row (Environment · Detected by · Evidence · Defined in), so the per-environment comparison reads as an at-a-glance table.
+- **Read-only message leads.** The README hero now states plainly that the app reads, explains, and helps you understand — it does not change your project — with the optional, consent-gated file draft kept secondary. README also documents the adaptive role dashboard, the human-readable risk framing, and the CI/CD flow view.
+
 ## [0.1.138] - 2026-06-23
 
 ### Added

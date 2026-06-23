@@ -12,10 +12,11 @@
 [![Local-first](https://img.shields.io/badge/local--first-no%20cloud-2ea44f.svg)](#safety-model)
 
 **AI Private Workspace** is a local-first desktop app (macOS and Windows) for
-thinking with your own projects. Point it at a folder and ask anything — about
-your code, infrastructure, CI/CD, or docs. Once the local model is downloaded it
-runs fully offline, grounds every answer in your real files, and asks before it
-ever writes anything. Nothing leaves your computer.
+understanding your own projects. Point it at a folder and ask anything — about
+your code, infrastructure, CI/CD, or docs. **It reads, explains, and helps you
+understand; it does not change your project.** Once the local model is downloaded
+it runs fully offline and grounds every answer in your real files. Nothing leaves
+your computer.
 
 ### ⬇️ [Download the latest release](https://github.com/tonkonozhenko-mi/ai_private_workspace/releases/latest)
 
@@ -134,11 +135,23 @@ a summary, infrastructure, deployment flow, environments, risks, a **Cloud** tab
 listing the AWS / Google Cloud / Azure services your IaC provisions, a
 **References** tab (URLs, module sources, ARNs), and an interactive **Map**.
 
-A **role lens** (Developer, DevOps, Tester, Business analyst) re-orders and
-prioritises the same facts for who's looking — it never changes them. Inferred
-facts (for example, an environment guessed from a directory name) are always
-labelled as inferred. The only LLM-written pieces — a plain-language overview and
-the "ask the graph" answer — are constrained strictly to the graph's facts.
+A **role lens** (Developer, DevOps, Tester, Business analyst) turns the same facts
+into an **adaptive dashboard** for who's looking — a role-framed brief that leads
+with the facts that matter to that role (environments, pipelines, modules…), the
+risks worth its attention, and a row of suggested questions you can click straight
+into Ask. It re-orders and re-frames; it never changes the facts. Inferred facts
+(for example, an environment guessed from a directory name) are always labelled as
+inferred. The only LLM-written pieces — a plain-language overview and the "ask the
+graph" answer — are constrained strictly to the graph's facts.
+
+### CI/CD flow
+
+A visual **CI/CD flow** lays out the pipelines as they actually fire: each trigger
+(push to a feature branch, push to the default branch, pull request, tag/release,
+schedule, manual) flows into the workflows it runs and the jobs inside them, with
+schedules and the workflow file one click from the inspector. Security/scan jobs
+are flagged, and the environments the project defines are listed alongside.
+Everything is read straight from the project's own workflow files.
 
 ### Project activity & change coupling — read from git
 
@@ -165,6 +178,12 @@ the gaps are: which scan/audit steps run in CI (secret, dependency, and IaC
 scanning) and which deterministic findings are security-relevant — permissions,
 secrets, public exposure, encryption, IAM/access — each with a recommendation and
 the file it came from. It reports on scanners; it never runs one.
+
+Every finding — here and in the **Risks** tab — reads as a lead for a human, not a
+verdict: what was found, **why it may matter**, where (one click to the inspector),
+how confident we are in plain language, and **what to check yourself**, with the
+recommendation framed as an idea to review rather than a fix to auto-apply. The
+language is deliberately "needs review", to inform rather than alarm.
 
 ### Project groups — several repositories as one project
 

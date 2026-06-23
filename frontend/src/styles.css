@@ -4771,6 +4771,8 @@ a.getting-ready-cta:hover {
 .pi-env-evidence-bar { width: 56px; height: 5px; border-radius: var(--r-pill); background: var(--c-surface-3); overflow: hidden; }
 .pi-env-evidence-bar > span { display: block; height: 100%; background: var(--c-accent); opacity: 0.7; border-radius: var(--r-pill); }
 .pi-env-source { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; color: var(--c-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pi-env-head { background: transparent; border: none; padding: 0 13px 2px; }
+.pi-env-head span { font-family: inherit; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--c-text-3, var(--c-text-2)); background: none; padding: 0; }
 .pi-env-source-empty { color: var(--c-text-3); }
 
 /* --- Git intelligence: activity charts, contributors, feed (M6) --- */
