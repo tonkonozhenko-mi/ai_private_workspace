@@ -783,7 +783,13 @@ function EnvironmentsSection({
       {comparison ? <p className="pi-env-summary">{comparison.summary}</p> : null}
 
       {rows.length > 0 ? (
-        <ul className="pi-env-list">
+        <ul className="pi-env-list pi-env-matrix">
+          <li className="pi-env-row pi-env-head" aria-hidden="true">
+            <span className="pi-env-name">Environment</span>
+            <span className="pi-env-detector">Detected by</span>
+            <span className="pi-env-evidence">Evidence</span>
+            <span className="pi-env-source">Defined in</span>
+          </li>
           {rows.map((row) => {
             const isProd = /(^|[^a-z])(prod|prd)([^a-z]|$)/i.test(row.name);
             return (
