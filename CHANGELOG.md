@@ -7,6 +7,13 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.125] - 2026-06-23
+
+### Changed
+
+- **Files in Project Intelligence's "Where to start reading" are now clickable** and open the file inspector — consistent with Home, so the inspector is reachable wherever a file path appears.
+- **Honest empty state for sparse projects.** When the analyzers find little to map (small, docs-only or single-purpose repos), Project Intelligence now says so plainly — "Not much to map here yet" with a short explanation that it's expected, not an error — instead of looking broken. Clarifies why role profiles look the same on such repos.
+
 ## [0.1.124] - 2026-06-23
 
 ### Changed
