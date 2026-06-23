@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.117] - 2026-06-23
+
+### Fixed
+
+- **Group Ask answers are now formatted.** They render markdown (bullet lists, inline `code`, **bold**, fenced code blocks with offline highlighting) using the same renderer as the single-repo Ask, instead of showing raw `*` and backticks as plain text.
+
 ## [0.1.116] - 2026-06-23
 
 ### Changed

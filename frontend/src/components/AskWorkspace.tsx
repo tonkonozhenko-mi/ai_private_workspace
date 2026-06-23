@@ -2521,7 +2521,7 @@ function HighlightedCode({ code, language }: { code: string; language?: string }
   return <code className="hljs" dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
-function MarkdownAnswer({ content }: { content: string }) {
+export function MarkdownAnswer({ content }: { content: string }) {
   const blocks = parseMarkdownBlocks(content);
 
   return (
