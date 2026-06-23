@@ -239,7 +239,11 @@ class IndexWorkspaceUseCase:
         project_file: ProjectFile,
     ) -> list[TextChunk]:
         content = self.file_system.read_text_file(project_path, project_file.path)
-        raw_chunks = chunk_document(content, file_type=project_file.detected_type)
+        raw_chunks = chunk_document(
+            content,
+            file_type=project_file.detected_type,
+            extension=project_file.extension,
+        )
 
         return [
             TextChunk(
