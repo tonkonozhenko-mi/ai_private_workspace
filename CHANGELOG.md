@@ -7,6 +7,11 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.129] - 2026-06-23
+
+### Changed
+
+- **Simpler Ask screen.** The "Answer style and sources" panel is no longer a full bordered box that looks empty when collapsed — it's now a quiet inline link with a small caret. The per-answer "N sources from your project" bar is smaller and quieter, so the answer itself leads.
 ## [0.1.128] - 2026-06-23
 
 ### Changed
