@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   addGroupMemory,
@@ -458,62 +458,219 @@ function GroupMemory({ groupId }: { groupId: string }) {
   );
 }
 
+// A group is a *portfolio*, not one merged project. So Intelligence compares
+// repos rather than dumping a flat union: which repo has which environment,
+// what tech is shared vs unique, and which risk patterns repeat where. A repo
+// filter keeps the repo dimension first-class and lets you isolate one repo.
 function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | null }) {
+  const [active, setActive] = useState<Set<string> | null>(null); // null = all repos
+
+  const members = overview?.members ?? [];
+  const shown = useMemo(
+    () => members.filter((m) => active === null || active.has(m.workspace_id)),
+    [members, active],
+  );
+
+  const envMatrix = useMemo(() => {
+    const envs = Array.from(new Set(shown.flatMap((m) => m.environments))).sort();
+    return envs.map((env) => ({
+      env,
+      repos: shown.map((m) => ({ name: m.name, has: m.environments.includes(env) })),
+    }));
+  }, [shown]);
+
+  const techGroups = useMemo(() => {
+    const techToRepos = new Map<string, string[]>();
+    for (const m of shown) {
+      for (const tech of m.technology_chips) {
+        const list = techToRepos.get(tech) ?? [];
+        if (!list.includes(m.name)) list.push(m.name);
+        techToRepos.set(tech, list);
+      }
+    }
+    const total = shown.length;
+    const common: string[] = [];
+    const partial: { tech: string; count: number }[] = [];
+    const uniqueByRepo = new Map<string, string[]>();
+    for (const [tech, repos] of techToRepos) {
+      if (total > 1 && repos.length === total) common.push(tech);
+      else if (repos.length === 1) {
+        const list = uniqueByRepo.get(repos[0]) ?? [];
+        list.push(tech);
+        uniqueByRepo.set(repos[0], list);
+      } else partial.push({ tech, count: repos.length });
+    }
+    common.sort();
+    partial.sort((a, b) => b.count - a.count || a.tech.localeCompare(b.tech));
+    return { common, partial, uniqueByRepo, total };
+  }, [shown]);
+
+  const riskGroups = useMemo(() => {
+    const shownIds = new Set(shown.map((m) => m.workspace_id));
+    const byTitle = new Map<string, { severity: string; total: number; repos: Map<string, number> }>();
+    for (const r of overview?.risks ?? []) {
+      if (!shownIds.has(r.workspace_id)) continue;
+      const entry = byTitle.get(r.title) ?? { severity: r.severity, total: 0, repos: new Map() };
+      entry.total += 1;
+      entry.repos.set(r.workspace_name, (entry.repos.get(r.workspace_name) ?? 0) + 1);
+      // Keep the most severe label seen for this title.
+      if (r.severity === "high") entry.severity = "high";
+      byTitle.set(r.title, entry);
+    }
+    return Array.from(byTitle.entries())
+      .map(([title, v]) => ({ title, ...v }))
+      .sort((a, b) => (a.severity === b.severity ? b.total - a.total : a.severity === "high" ? -1 : 1));
+  }, [overview, shown]);
+
   if (!overview) return <p className="grp-muted">Loading…</p>;
   if (overview.member_count === 0) {
     return <p className="grp-muted">No repositories in this group yet.</p>;
   }
+
+  const toggle = (id: string) =>
+    setActive((prev) => {
+      const base = prev ?? new Set(members.map((m) => m.workspace_id));
+      const next = new Set(base);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      if (next.size === 0 || next.size === members.length) return null; // empty or all → all
+      return next;
+    });
+
   return (
     <div className="grp-stack">
+      {members.length > 1 ? (
+        <div className="grp-filter">
+          <span className="grp-filter-label">Show</span>
+          {members.map((m) => {
+            const on = active === null || active.has(m.workspace_id);
+            return (
+              <button
+                key={m.workspace_id}
+                type="button"
+                className={`grp-filter-chip${on ? " is-on" : ""}`}
+                onClick={() => toggle(m.workspace_id)}
+                aria-pressed={on}
+              >
+                {m.name}
+              </button>
+            );
+          })}
+          {active !== null ? (
+            <button type="button" className="grp-link" onClick={() => setActive(null)}>
+              All repos
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       <section className="grp-section">
-        <p className="grp-shead">Environments across the group</p>
-        <p className="grp-hint">Unioned by name — the same environment may live in several repos.</p>
-        {overview.environments.length > 0 ? (
-          <div className="grp-chips">
-            {overview.environments.map((e) => (
-              <span key={e} className="grp-chip">{e}</span>
-            ))}
+        <p className="grp-shead">Environments — which repo deploys where</p>
+        <p className="grp-hint">A ✓ means that repo defines that environment.</p>
+        {envMatrix.length > 0 && shown.length > 0 ? (
+          <div className="grp-matrix-wrap">
+            <table className="grp-matrix">
+              <thead>
+                <tr>
+                  <th />
+                  {shown.map((m) => (
+                    <th key={m.workspace_id} title={m.name}>{m.name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {envMatrix.map((row) => (
+                  <tr key={row.env}>
+                    <td className="grp-matrix-row-h">
+                      {row.env}
+                      {row.env.toLowerCase().includes("prod") ? <span className="grp-prod-dot" title="production" /> : null}
+                    </td>
+                    {row.repos.map((c, i) => (
+                      <td key={i} className={c.has ? "is-yes" : "is-no"}>{c.has ? "✓" : "·"}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
-          <p className="grp-muted">No environments detected yet.</p>
+          <p className="grp-muted">No environments detected in the selected repos.</p>
         )}
       </section>
 
       <section className="grp-section">
-        <p className="grp-shead">Technologies</p>
-        {overview.technologies.length > 0 ? (
-          <div className="grp-chips">
-            {overview.technologies.map((tech) => (
-              <span key={tech} className="grp-chip">{tech}</span>
+        <p className="grp-shead">Technologies — shared vs specific</p>
+        {techGroups.common.length === 0 && techGroups.partial.length === 0 && techGroups.uniqueByRepo.size === 0 ? (
+          <p className="grp-muted">No technologies detected in the selected repos.</p>
+        ) : (
+          <div className="grp-tech-groups">
+            {techGroups.common.length > 0 ? (
+              <div className="grp-tech-group">
+                <p className="grp-tech-label">Common to all {techGroups.total} repos</p>
+                <div className="grp-chips">
+                  {techGroups.common.map((t) => <span key={t} className="grp-chip is-common">{t}</span>)}
+                </div>
+              </div>
+            ) : null}
+            {techGroups.partial.length > 0 ? (
+              <div className="grp-tech-group">
+                <p className="grp-tech-label">Shared by some</p>
+                <div className="grp-chips">
+                  {techGroups.partial.map((p) => (
+                    <span key={p.tech} className="grp-chip">{p.tech}<span className="grp-chip-count">{p.count}/{techGroups.total}</span></span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {Array.from(techGroups.uniqueByRepo.entries()).map(([repo, techs]) => (
+              <div className="grp-tech-group" key={repo}>
+                <p className="grp-tech-label">Only in {repo}</p>
+                <div className="grp-chips">
+                  {techs.sort().map((t) => <span key={t} className="grp-chip">{t}</span>)}
+                </div>
+              </div>
             ))}
           </div>
-        ) : (
-          <p className="grp-muted">No technologies detected yet.</p>
         )}
       </section>
 
       <section className="grp-section">
-        <p className="grp-shead">
-          Risks
-          {overview.totals.risks_high ? ` · ${overview.totals.risks_high} high` : ""}
-          {overview.totals.risks_medium ? ` · ${overview.totals.risks_medium} medium` : ""}
-        </p>
-        {overview.risks.length > 0 ? (
-          <ul className="grp-risks">
-            {overview.risks.map((r, i) => (
-              <li key={i} className="grp-risk">
+        <p className="grp-shead">Risk patterns — what repeats, and where</p>
+        <p className="grp-hint">Same finding across repos is grouped, so you fix the pattern, not 20 rows.</p>
+        {riskGroups.length > 0 ? (
+          <ul className="grp-riskgroups">
+            {riskGroups.map((r) => (
+              <li key={r.title} className="grp-riskgroup">
                 <span className={`grp-sev grp-sev-${r.severity}`}>{r.severity}</span>
-                <span className="grp-risk-title">{r.title}</span>
-                <span className="grp-risk-repo">{r.workspace_name}</span>
+                <span className="grp-riskgroup-title">{r.title}</span>
+                <span className="grp-riskgroup-count">{r.total}×</span>
+                <span className="grp-riskgroup-repos">
+                  {Array.from(r.repos.entries())
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([name, n]) => `${name} ×${n}`)
+                    .join(" · ")}
+                </span>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="grp-muted">Nothing risky flagged across the group.</p>
+          <p className="grp-muted">Nothing risky flagged across the selected repos.</p>
         )}
       </section>
     </div>
   );
+}
+
+type GroupSource = GroupAskResponse["sources"][number];
+
+function groupSourcesByRepo(sources: GroupSource[]): [string, GroupSource[]][] {
+  const map = new Map<string, GroupSource[]>();
+  for (const s of sources) {
+    const list = map.get(s.workspace_name) ?? [];
+    list.push(s);
+    map.set(s.workspace_name, list);
+  }
+  return Array.from(map.entries()).sort((a, b) => b[1].length - a[1].length);
 }
 
 function GroupAsk({ groupId }: { groupId: string }) {
@@ -586,33 +743,44 @@ function GroupAsk({ groupId }: { groupId: string }) {
 
       {answerText || loading ? (
         <div className="grp-answer">
-          <p className="grp-ask-answer">
+          <p className="grp-answer-eyebrow">Answer · across {result ? result.contributions.length : "all"} repos</p>
+          <div className="grp-answer-body">
             {answerText}
             {loading && !result ? <span className="grp-caret" /> : null}
-          </p>
-          {memoryNote ? <p className="grp-memory-note">{memoryNote}</p> : null}
+          </div>
+
           {result && result.contributions.length > 0 ? (
-            <p className="grp-contrib">
-              {result.contributions
-                .map((c) =>
-                  c.indexed
-                    ? `${c.workspace_name}: ${c.chunks_used} chunk(s)`
-                    : `${c.workspace_name}: not indexed`,
-                )
-                .join(" · ")}
-            </p>
+            <div className="grp-contrib-bar">
+              {result.contributions.map((c) => (
+                <span
+                  key={c.workspace_name}
+                  className={`grp-contrib-chip${c.indexed ? "" : " is-empty"}`}
+                  title={c.indexed ? `${c.chunks_used} chunk(s) used` : "not indexed"}
+                >
+                  <span className="grp-contrib-dot" />
+                  {c.workspace_name}
+                  <span className="grp-contrib-n">{c.indexed ? c.chunks_used : "—"}</span>
+                </span>
+              ))}
+            </div>
           ) : null}
+          {memoryNote ? <p className="grp-memory-note">{memoryNote}</p> : null}
+
           {result && result.sources.length > 0 ? (
             <div className="grp-sources">
-              <p className="grp-shead">Sources</p>
-              <ul>
-                {result.sources.map((s) => (
-                  <li key={s.chunk_id} title={s.preview}>
-                    <span className="grp-source-repo">{s.workspace_name}</span>
-                    <code>{s.source_path}</code>
-                  </li>
-                ))}
-              </ul>
+              <p className="grp-shead">Sources by repository</p>
+              {groupSourcesByRepo(result.sources).map(([repo, items]) => (
+                <div className="grp-source-group" key={repo}>
+                  <p className="grp-source-grouphead">{repo}<span className="grp-source-groupn">{items.length}</span></p>
+                  <ul>
+                    {items.map((s) => (
+                      <li key={s.chunk_id} title={s.preview}>
+                        <code>{s.source_path}</code>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           ) : null}
           {result ? (
