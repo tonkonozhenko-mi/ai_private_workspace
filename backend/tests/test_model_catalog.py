@@ -18,6 +18,7 @@ def test_list_catalog_returns_llm_and_embedding_models() -> None:
     assert {model["model_type"] for model in models} == {"llm", "embedding"}
     assert {
         "ollama-llama3.2",
+        "ollama-qwen3-4b",
         "ollama-qwen2.5-coder",
         "ollama-mistral",
         "fake-llm",

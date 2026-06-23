@@ -44,6 +44,18 @@ class GgufModel:
 # the usual size/quality sweet spot.
 GGUF_CATALOG: tuple[GgufModel, ...] = (
     GgufModel(
+        id="qwen3-4b",
+        name="Qwen3 4B Instruct",
+        model_type="llm",
+        repo_id="bartowski/Qwen_Qwen3-4B-GGUF",
+        filename="Qwen_Qwen3-4B-Q4_K_M.gguf",
+        quantization="Q4_K_M",
+        size_bytes=2_500_000_000,
+        recommended=True,
+        min_ram_gb=8,
+        ollama_tag="qwen3:4b",
+    ),
+    GgufModel(
         id="llama3.2",
         name="Llama 3.2 3B Instruct",
         model_type="llm",
@@ -51,7 +63,7 @@ GGUF_CATALOG: tuple[GgufModel, ...] = (
         filename="Llama-3.2-3B-Instruct-Q4_K_M.gguf",
         quantization="Q4_K_M",
         size_bytes=2_020_000_000,
-        recommended=True,
+        recommended=False,
         min_ram_gb=8,
         ollama_tag="llama3.2",
     ),
@@ -90,6 +102,18 @@ GGUF_CATALOG: tuple[GgufModel, ...] = (
         recommended=False,
         min_ram_gb=8,
         ollama_tag="bge-m3",
+    ),
+    GgufModel(
+        id="qwen3-embedding-0.6b",
+        name="Qwen3-Embedding 0.6B (most accurate)",
+        model_type="embedding",
+        repo_id="Qwen/Qwen3-Embedding-0.6B-GGUF",
+        filename="Qwen3-Embedding-0.6B-Q8_0.gguf",
+        quantization="Q8_0",
+        size_bytes=639_000_000,
+        recommended=False,
+        min_ram_gb=8,
+        ollama_tag="qwen3-embedding:0.6b",
     ),
     GgufModel(
         id="bge-reranker-v2-m3",

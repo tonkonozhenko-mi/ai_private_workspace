@@ -49,8 +49,8 @@ def build_ollama_model_recommendation_guide(
             return fallback
         return preferred
 
-    answer_model = pick("qwen2.5-coder", "llama3.2")
-    fallback_model = pick("llama3.2", answer_model)
+    answer_model = pick("qwen3:4b", "qwen2.5-coder")
+    fallback_model = pick("qwen2.5-coder", "llama3.2")
     embedding_model = pick("nomic-embed-text", "nomic-embed-text")
 
     return OllamaModelRecommendationGuide(
