@@ -7,7 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-## [0.1.117] - 2026-06-23
+## [0.1.118] - 2026-06-23
+
+### Fixed
+
+- **Group view now uses the full width** instead of hugging the left edge with a 920px cap, matching the single-project layout.
+- **Group repo cards show the default branch** (e.g. `main`) instead of whichever feature branch happens to be checked out — consistent with the single-project Project activity card.
 
 ### Fixed
 

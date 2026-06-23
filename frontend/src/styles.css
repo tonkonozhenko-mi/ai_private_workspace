@@ -4913,7 +4913,7 @@ a.getting-ready-cta:hover {
 .sidebar-group-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-group-count { flex-shrink: 0; font-size: 11px; color: var(--c-text-3); background: var(--c-surface-3); border-radius: var(--r-pill); padding: 1px 8px; font-variant-numeric: tabular-nums; }
 
-.grp { display: flex; flex-direction: column; gap: 16px; max-width: 920px; }
+.grp { display: flex; flex-direction: column; gap: 16px; }
 .grp-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .grp-eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-text-3); margin: 0; }
 .grp-title { font-size: 22px; font-weight: 650; color: var(--c-text); margin: 4px 0 2px; letter-spacing: -0.01em; }
