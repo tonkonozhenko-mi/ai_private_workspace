@@ -118,6 +118,7 @@ class IndexWorkspaceUseCase:
                 skipped_files_count=result.skipped_files_count,
                 last_indexed_at=datetime.now(UTC).isoformat(),
                 last_error=None,
+                embedding_model=getattr(self.embedding_provider, "model_name", None),
             )
         )
         if self.timeline_repository is not None:

@@ -138,14 +138,17 @@ class GetWorkspaceModelsDashboardUseCase:
 
     @staticmethod
     def _overall_status(*, selection, usage_plan, embedding_plan) -> str:
-        if usage_plan.can_use_selected_models_fully:
-            return "ready"
         if selection.selected_llm is None or selection.selected_embedding is None:
             return "needs_model_selection"
+        # A reindex need (including an index built by a now-different search model)
+        # takes priority over "ready", so the rebuild prompt appears exactly when
+        # it is needed — and not otherwise.
         if embedding_plan.plan_status == "runtime_mismatch":
             return "needs_embedding_runtime"
         if embedding_plan.plan_status == "needs_index":
             return "needs_context_index"
+        if usage_plan.can_use_selected_models_fully:
+            return "ready"
         if usage_plan.can_ask_with_selected_llm:
             return "usable_with_selected_llm"
         return "needs_attention"
