@@ -88,6 +88,23 @@ def test_suggested_questions_role_ordering():
     assert devops_qs[0] != dev_qs[0] or devops_qs != dev_qs
 
 
+def test_top_risks_are_deduplicated_by_title():
+    # Two findings sharing a title (e.g. one per workflow file) must not both
+    # appear in the top-three "worth your attention" list.
+    g = _graph()
+    dupe = ProjectFinding(
+        id="f3",
+        category=FindingCategory.GENERAL,
+        severity=Severity.MEDIUM,
+        title="Thin test coverage",  # same title as f2
+        explanation="...",
+        analyzer="python",
+    )
+    g = ProjectGraph(workspace_id="w", entities=list(g.entities), findings=[*g.findings, dupe])
+    top = build_role_brief(g, role_lens_for("tester")).as_dict()["top_risks"]
+    assert len(top) == len(set(top))  # no duplicate titles
+
+
 def test_empty_graph_still_offers_general_questions():
     g = ProjectGraph(workspace_id="w")
     qs = suggested_questions(g, role_lens_for("developer"))
