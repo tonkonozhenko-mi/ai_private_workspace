@@ -495,6 +495,16 @@ export function switchLlamaRuntimeLlm(
   });
 }
 
+export function switchLlamaRuntimeEmbedding(
+  ref: { model_id?: string; repo_id?: string; filename?: string },
+): Promise<LlamaRuntimeStatus> {
+  return requestJson<LlamaRuntimeStatus>(`/models/llama-runtime/embedding`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(ref),
+  });
+}
+
 // Auto-pick a usable GGUF filename from a Hugging Face repo (so the user only
 // needs to paste the repo id, like llama.cpp's -hf shorthand).
 export function resolveGgufModel(

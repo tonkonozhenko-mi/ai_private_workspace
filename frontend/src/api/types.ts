@@ -140,6 +140,7 @@ export interface LlamaRuntimeStatus {
   models_ready: boolean;
   running: boolean;
   active_llm_model: string | null;
+  active_embedding_model: string | null;
   llm_url: string | null;
   embed_url: string | null;
 }

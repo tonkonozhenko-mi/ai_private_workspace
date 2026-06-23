@@ -480,6 +480,7 @@ class LlamaRuntimeStatusResponse(BaseModel):
     models_ready: bool
     running: bool
     active_llm_model: str | None = None
+    active_embedding_model: str | None = None
     llm_url: str | None = None
     embed_url: str | None = None
 
@@ -596,6 +597,38 @@ def switch_llama_runtime_llm(request: SwitchLlamaLlmRequest) -> LlamaRuntimeStat
     return LlamaRuntimeStatusResponse(**result)
 
 
+@router.post("/llama-runtime/embedding", response_model=LlamaRuntimeStatusResponse)
+def switch_llama_runtime_embedding(
+    request: SwitchLlamaLlmRequest,
+) -> LlamaRuntimeStatusResponse:
+    """Switch the built-in engine's search/embedding model to another downloaded
+    GGUF. Restarts only the embedding process; the answer model keeps running.
+    The caller should rebuild the search context afterwards, since a different
+    embedder uses a different vector space."""
+    from app.adapters.system.llama_runtime_manager import LlamaRuntimeError
+    from app.adapters.system.llama_server_process_manager import LlamaServerStartError
+    from app.api.dependencies import runtime_state_store
+    from app.core.use_cases.download_gguf_model import GgufModelRef
+
+    ref = GgufModelRef(
+        model_id=request.model_id,
+        repo_id=request.repo_id,
+        filename=request.filename,
+    )
+    try:
+        result = llama_runtime_manager.switch_embedding(ref)
+    except (LlamaRuntimeError, LlamaServerStartError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
+    runtime_state_store.set_llamacpp_embedding(
+        model_id=request.model_id,
+        repo_id=request.repo_id,
+        filename=request.filename,
+    )
+    return LlamaRuntimeStatusResponse(**result)
+
+
 class DeleteGgufModelRequest(BaseModel):
     model_id: str | None = None
     repo_id: str | None = None
@@ -630,7 +663,11 @@ def delete_gguf_model(request: DeleteGgufModelRequest) -> DeleteGgufModelRespons
         ) from exc
 
     runtime = llama_runtime_manager.status()
-    if runtime.get("running") and runtime.get("active_llm_model") == model.id:
+    in_use = runtime.get("running") and model.id in {
+        runtime.get("active_llm_model"),
+        runtime.get("active_embedding_model"),
+    }
+    if in_use:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="This model is in use. Switch to another model first, then delete it.",
@@ -668,6 +705,13 @@ def activate_workspace_runtime(workspace_id: str) -> ActivateWorkspaceRuntimeRes
         try:
             if selected_llm is not None and selected_llm.provider.lower() == "llamacpp":
                 llama_runtime_manager.set_llm_ref(GgufModelRef(model_id=selected_llm.model))
+            if (
+                selected_embedding is not None
+                and selected_embedding.provider.lower() == "llamacpp"
+            ):
+                llama_runtime_manager.set_embed_ref(
+                    GgufModelRef(model_id=selected_embedding.model)
+                )
             llama_runtime_manager.start()
             if hasattr(embedding_provider, "set_delegate"):
                 embedding_provider.set_delegate(build_embedding_for_backend("llamacpp"))

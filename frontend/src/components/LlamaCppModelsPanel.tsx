@@ -12,6 +12,7 @@ import {
   startGgufDownload,
   startLlamaRuntime,
   switchLlamaRuntimeLlm,
+  switchLlamaRuntimeEmbedding,
   updateWorkspaceModelSelection,
 } from "../api/client";
 import type { GgufCatalogItem, GgufDownloadJob, LlamaRuntimeStatus } from "../api/types";
@@ -45,6 +46,7 @@ export function LlamaCppModelsPanel({
   const [runtime, setRuntime] = useState<LlamaRuntimeStatus | null>(null);
   const [starting, setStarting] = useState(false);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [customRepo, setCustomRepo] = useState("");
   const [customFile, setCustomFile] = useState("");
   const [customBusy, setCustomBusy] = useState(false);
@@ -283,6 +285,33 @@ export function LlamaCppModelsPanel({
     }
   }
 
+  // Switch the running engine to a different, already-downloaded search model.
+  // A different embedder is a different vector space, so the index must be
+  // rebuilt afterwards — we say so rather than silently breaking search.
+  async function useEmbeddingModel(model: GgufCatalogItem) {
+    setSwitchingId(model.id);
+    setError(null);
+    setNotice(null);
+    try {
+      const status = await switchLlamaRuntimeEmbedding({ model_id: model.id });
+      setRuntime(status);
+      if (workspaceId) {
+        await updateWorkspaceModelSelection(workspaceId, {
+          provider: "llamacpp",
+          model: model.id,
+          model_type: "embedding",
+          selected_reason: "Built-in llama.cpp engine",
+        }).catch(() => {});
+      }
+      await refreshCatalog();
+      setNotice(`${model.name} is now your search model. Rebuild the project's search context to use it.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not switch the search model.");
+    } finally {
+      setSwitchingId(null);
+    }
+  }
+
   // Download a custom Hugging Face GGUF by repo + filename, then run the engine
   // on it. Works end-to-end: the engine starts the downloaded file directly.
   async function addCustomModel() {
@@ -366,7 +395,10 @@ export function LlamaCppModelsPanel({
     const pct = job?.progress_percent ?? null;
     const downloading = job?.status === "running" || job?.status === "queued";
     const installed = isInstalled(model);
-    const active = model.active && kind === "llm";
+    const active =
+      kind === "llm"
+        ? Boolean(model.active)
+        : Boolean(runtime?.running) && runtime?.active_embedding_model === model.id;
     const state = active ? "done" : installed ? "done" : downloading ? "load" : "wait";
     // In the Models tab, an installed model can be expanded to show details and a
     // delete action.
@@ -413,12 +445,14 @@ export function LlamaCppModelsPanel({
         ) : active ? (
           <span className="gr-check-state gr-check-state--on">In use</span>
         ) : installed ? (
-          interactive && kind === "llm" && runtime?.running ? (
+          interactive && runtime?.running ? (
             <button
               type="button"
               className="gr-check-use"
               disabled={switchingId !== null}
-              onClick={() => void useModel(model)}
+              onClick={() =>
+                void (kind === "llm" ? useModel(model) : useEmbeddingModel(model))
+              }
             >
               {switchingId === model.id ? "Switching…" : "Use this model"}
             </button>
@@ -457,12 +491,14 @@ export function LlamaCppModelsPanel({
               </span>
             ) : (
               <>
-                {kind === "llm" ? (
+                {runtime?.running ? (
                   <button
                     type="button"
                     className="gr-check-use"
                     disabled={switchingId !== null}
-                    onClick={() => void useModel(model)}
+                    onClick={() =>
+                      void (kind === "llm" ? useModel(model) : useEmbeddingModel(model))
+                    }
                   >
                     {switchingId === model.id ? "Switching…" : "Use this model"}
                   </button>
@@ -547,6 +583,7 @@ export function LlamaCppModelsPanel({
   return (
     <div className="gr-llama">
       {error ? <p className="getting-ready-error">{error}</p> : null}
+      {notice ? <p className="gr-llama-notice">{notice}</p> : null}
 
       <p className="gr-llama-section-label">Your engine models</p>
       <p className="gr-llama-subhead">Answer models</p>
