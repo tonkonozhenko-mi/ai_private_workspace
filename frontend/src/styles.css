@@ -4920,6 +4920,40 @@ a.getting-ready-cta:hover {
 .pw-count-risk { color: #f0c79a; border-color: rgba(224, 168, 90, 0.4); }
 .pw-count-resolved { color: #8fd19a; border-color: rgba(143, 209, 154, 0.4); }
 
+/* File inspector (right drawer) */
+.fi-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); display: flex; justify-content: flex-end; z-index: 1000; }
+.fi { width: min(460px, 94vw); height: 100%; background: var(--c-surface-1, var(--c-bg)); border-left: 1px solid var(--c-border); box-shadow: -16px 0 50px rgba(0, 0, 0, 0.45); overflow-y: auto; display: flex; flex-direction: column; }
+.fi-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--c-border); }
+.fi-eyebrow { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--c-text-3); margin: 0; }
+.fi-name { font-size: 18px; margin: 4px 0 2px; color: var(--c-text); word-break: break-all; }
+.fi-dir { font-size: 11.5px; color: var(--c-text-3); margin: 0; font-family: var(--font-mono, monospace); word-break: break-all; }
+.fi-type { display: inline-block; margin-top: 6px; font-size: 11px; background: var(--c-surface-3); border-radius: var(--r-pill, 999px); padding: 2px 9px; color: var(--c-text-2); }
+.fi-close { background: none; border: none; color: var(--c-text-3); font-size: 15px; cursor: pointer; padding: 2px 6px; }
+.fi-close:hover { color: var(--c-text); }
+.fi-body { padding: 8px 20px 28px; display: flex; flex-direction: column; gap: 18px; }
+.fi-section { display: flex; flex-direction: column; gap: 7px; }
+.fi-shead { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--c-text-2); margin: 8px 0 0; }
+.fi-hint { font-size: 11.5px; color: var(--c-text-3); margin: 0; }
+.fi-line { font-size: 12.5px; color: var(--c-text); line-height: 1.55; margin: 0; }
+.fi-muted { font-size: 12.5px; color: var(--c-text-3); padding: 4px 20px; }
+.fi-tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--c-text-3); background: var(--c-surface-3); border-radius: 4px; padding: 1px 6px; margin-right: 6px; }
+.fi-chips, .fi-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.fi-list { flex-direction: column; gap: 4px; }
+.fi-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; }
+.fi-list code { font-family: var(--font-mono, monospace); color: var(--c-text); }
+.fi-share { color: var(--c-text-3); font-variant-numeric: tabular-nums; }
+.fi-chip { font-size: 11.5px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-pill, 999px); padding: 2px 9px; color: var(--c-text-2); }
+.fi-chip-n { color: var(--c-text-3); margin-left: 5px; }
+.fi-risks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.fi-risks li { font-size: 12.5px; color: var(--c-text); display: flex; align-items: center; gap: 8px; }
+.fi-sev { font-size: 9.5px; font-weight: 700; text-transform: uppercase; border-radius: 4px; padding: 1px 6px; }
+.fi-sev-high { background: rgba(224, 90, 90, 0.16); color: #f0a3a3; }
+.fi-sev-medium { background: rgba(224, 168, 90, 0.16); color: #f0c79a; }
+.fi-sev-low { background: var(--c-surface-3); color: var(--c-text-3); }
+.fi-commits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.fi-commit-subject { display: block; font-size: 12.5px; color: var(--c-text); }
+.fi-commit-meta { display: block; font-size: 11px; color: var(--c-text-3); }
+
 /* Command palette (Cmd/Ctrl-K) */
 .cmdk-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); backdrop-filter: blur(2px); display: flex; align-items: flex-start; justify-content: center; padding-top: 12vh; z-index: 1000; }
 .cmdk { width: min(640px, 92vw); max-height: 64vh; display: flex; flex-direction: column; background: var(--c-surface-1, var(--c-surface-2)); border: 1px solid var(--c-border); border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); overflow: hidden; }

@@ -11,6 +11,7 @@ import {
   getLocalAIActivationGuide,
   getModelsDashboardSummary,
   getWorkspaceDashboard,
+  getWorkspaceLatestScan,
   getWorkspaceModelsDashboard,
   getWorkspacesOverview,
   cancelWorkspaceJob,
@@ -43,6 +44,7 @@ import { ModelsDetail } from "./components/ModelsDetail";
 import { ProjectIntelligence } from "./components/ProjectIntelligence";
 import { GroupView } from "./components/GroupView";
 import { CommandPalette, type PaletteItem } from "./components/CommandPalette";
+import { FileInspector } from "./components/FileInspector";
 import { RenderCrashBoundary } from "./components/RenderCrashBoundary";
 import { ModelsSummaryCard } from "./components/ModelsSummaryCard";
 import { ReportsPanel } from "./components/ReportsPanel";
@@ -216,6 +218,8 @@ function App() {
   // A freshly created group opens in rename mode so it can be named right away.
   const [autoRenameGroupId, setAutoRenameGroupId] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteFiles, setPaletteFiles] = useState<string[]>([]);
+  const [inspectFilePath, setInspectFilePath] = useState<string | null>(null);
 
   // Cmd/Ctrl-K opens the command palette from anywhere.
   useEffect(() => {
@@ -486,6 +490,21 @@ function App() {
   useEffect(() => {
     void loadGroups();
   }, [loadGroups]);
+
+  // Load the current project's file list (for palette file search) when the
+  // palette opens. Cheap: it's the cached scan, fetched at most once per open.
+  useEffect(() => {
+    if (!paletteOpen || !selectedWorkspaceId || selectedGroupId) return;
+    const controller = new AbortController();
+    getWorkspaceLatestScan(selectedWorkspaceId, { signal: controller.signal })
+      .then((scan) => {
+        if (!controller.signal.aborted) setPaletteFiles(scan.files.map((f) => f.path));
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setPaletteFiles([]);
+      });
+    return () => controller.abort();
+  }, [paletteOpen, selectedWorkspaceId, selectedGroupId]);
 
   const handleSelectGroup = useCallback((groupId: string) => {
     setShowCreateWorkspace(false);
@@ -988,6 +1007,15 @@ function App() {
       sub: `${g.member_count} ${g.member_count === 1 ? "repo" : "repos"}`,
       run: () => handleSelectGroup(g.id),
     })),
+    ...(selectedWorkspaceId && !selectedGroupId
+      ? paletteFiles.map((p) => ({
+          id: p,
+          kind: "file" as const,
+          label: p.split("/").pop() ?? p,
+          sub: p,
+          run: () => setInspectFilePath(p),
+        }))
+      : []),
   ];
 
   return (
@@ -998,6 +1026,14 @@ function App() {
     >
       <UpdateNotice />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={paletteItems} />
+      {inspectFilePath && selectedWorkspaceId ? (
+        <FileInspector
+          workspaceId={selectedWorkspaceId}
+          path={inspectFilePath}
+          role={detail?.dashboard.assistant_mode}
+          onClose={() => setInspectFilePath(null)}
+        />
+      ) : null}
       {sidebarCollapsed ? (
         <button
           className="sidebar-reveal"

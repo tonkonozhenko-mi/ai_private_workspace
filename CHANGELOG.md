@@ -7,6 +7,13 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.121] - 2026-06-23
+
+### Added
+
+- **File inspector.** Open any file (via Cmd/Ctrl-K search) to get a read-only lens on it: who owns it (top git authors — the person to ask), what it changes together with (temporal coupling), what it connects to in the project map (its blast radius — what it depends on and what it affects), which risks touch it, and its recent commits. New read-only `GET /workspaces/{id}/file-activity` endpoint; everything else is composed from data the app already computed. No hardcoded technologies.
+- **File search in the command palette.** Once you type, the palette also searches the current project's files and opens the inspector on selection.
+
 ## [0.1.120] - 2026-06-23
 
 ### Changed

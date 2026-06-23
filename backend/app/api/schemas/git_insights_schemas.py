@@ -30,6 +30,13 @@ class GitFileCouplingResponse(BaseModel):
     share: float = 0.0
 
 
+class GitFileActivityResponse(BaseModel):
+    path: str | None = None
+    total_commits: int = 0
+    top_authors: list[GitContributorResponse] = []
+    recent_commits: list[GitCommitResponse] = []
+
+
 class GitActivityBucketResponse(BaseModel):
     period_start: str
     commits: int

@@ -75,6 +75,9 @@ from app.api.schemas.conversation_schemas import (
     to_workspace_conversation_response,
 )
 from app.api.schemas.git_insights_schemas import (
+    GitContributorResponse,
+    GitCommitResponse,
+    GitFileActivityResponse,
     GitInsightsResponse,
     to_git_insights_response,
 )
@@ -2028,6 +2031,36 @@ def get_workspace_git_insights(workspace_id: str) -> GitInsightsResponse:
             detail=str(exc),
         ) from exc
     return to_git_insights_response(insights)
+
+
+@router.get(
+    "/{workspace_id}/file-activity",
+    response_model=GitFileActivityResponse,
+)
+def get_workspace_file_activity(workspace_id: str, path: str) -> GitFileActivityResponse:
+    """Read-only git ownership + recent commits for a single file (the file inspector)."""
+    workspace = workspace_repository.get(workspace_id)
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+    activity = git_history.file_activity(workspace.project_path, path)
+    if activity is None:
+        return GitFileActivityResponse(path=path)
+    return GitFileActivityResponse(
+        path=activity.path,
+        total_commits=activity.total_commits,
+        top_authors=[
+            GitContributorResponse(name=a.name, commits=a.commits) for a in activity.top_authors
+        ],
+        recent_commits=[
+            GitCommitResponse(
+                short_hash=c.short_hash,
+                subject=c.subject,
+                author=c.author,
+                committed_at=c.committed_at,
+            )
+            for c in activity.recent_commits
+        ],
+    )
 
 
 @router.get(
