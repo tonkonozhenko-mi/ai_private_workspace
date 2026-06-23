@@ -112,9 +112,9 @@ export function LlamaCppModelsPanel({
   );
 
   const llmModels = (models ?? []).filter((m) => m.model_type === "llm");
+  const embeddingModels = (models ?? []).filter((m) => m.model_type === "embedding");
   const embedModel =
-    (models ?? []).find((m) => m.model_type === "embedding" && m.recommended) ??
-    (models ?? []).find((m) => m.model_type === "embedding");
+    embeddingModels.find((m) => m.recommended) ?? embeddingModels[0];
   const recommendedLlm =
     llmModels.find((m) => m.recommended) ?? llmModels[0];
 
@@ -458,6 +458,8 @@ export function LlamaCppModelsPanel({
 
   const installedLlm = llmModels.filter((m) => isInstalled(m));
   const addableLlm = llmModels.filter((m) => !isInstalled(m));
+  const installedEmbedding = embeddingModels.filter((m) => isInstalled(m));
+  const addableEmbedding = embeddingModels.filter((m) => !isInstalled(m));
 
   const engineCta = !requiredInstalled ? (
     <button
@@ -523,23 +525,36 @@ export function LlamaCppModelsPanel({
       <ul className="getting-ready-checklist">
         {installedLlm.map((model) => renderRow(model, "llm"))}
       </ul>
-      {embedModel ? (
+      {installedEmbedding.length > 0 ? (
         <>
-          <p className="gr-llama-subhead gr-llama-subhead--divided">Search model</p>
-          <ul className="getting-ready-checklist">{renderRow(embedModel, "embedding")}</ul>
+          <p className="gr-llama-subhead gr-llama-subhead--divided">Search models</p>
+          <ul className="getting-ready-checklist">
+            {installedEmbedding.map((model) => renderRow(model, "embedding"))}
+          </ul>
         </>
       ) : null}
       <div className="getting-ready-actions">{engineCta}</div>
 
       <p className="gr-llama-section-label">Add a model</p>
       <p className="gr-llama-note">
-        Download another answer model to switch to. Models are shared across all
-        your projects.
+        Download another answer or search model to switch to. Models are shared
+        across all your projects.
       </p>
       {addableLlm.length > 0 ? (
-        <ul className="getting-ready-checklist">
-          {addableLlm.map((model) => renderRow(model, "llm"))}
-        </ul>
+        <>
+          <p className="gr-llama-subhead">Answer models</p>
+          <ul className="getting-ready-checklist">
+            {addableLlm.map((model) => renderRow(model, "llm"))}
+          </ul>
+        </>
+      ) : null}
+      {addableEmbedding.length > 0 ? (
+        <>
+          <p className="gr-llama-subhead gr-llama-subhead--divided">Search models</p>
+          <ul className="getting-ready-checklist">
+            {addableEmbedding.map((model) => renderRow(model, "embedding"))}
+          </ul>
+        </>
       ) : null}
 
       <div className="gr-llama-custom">

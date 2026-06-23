@@ -54,17 +54,22 @@ class GetGuidedModelSetupUseCase:
                     "or draft documentation from retrieved workspace context."
                 ),
                 recommendation_summary=(
-                    "Recommended default for DevOps/code work: qwen2.5-coder when available; "
-                    "use llama3.2 for a lighter general assistant."
+                    "Recommended modern default: qwen3:4b — a compact, current model that is "
+                    "strong at code and reasoning. qwen2.5-coder is a solid code-focused "
+                    "alternative; llama3.2 is a lighter, older fallback."
                 ),
                 custom_model_hint=(
-                    "Custom Ollama names are allowed, for example qwen2.5-coder:7b or llama3.1:8b. "
-                    "The app saves the model locally and can prepare or run a narrowly validated "
-                    "Ollama download when the trusted desktop worker is enabled."
+                    "Custom Ollama names are allowed, for example qwen3:4b, qwen2.5-coder:7b or "
+                    "llama3.1:8b. The app saves the model locally and can prepare or run a narrowly "
+                    "validated Ollama download when the trusted desktop worker is enabled."
                 ),
                 options=self._rank_options(
                     llm_models,
-                    preferred_ids=["ollama-qwen2.5-coder", "ollama-llama3.2"],
+                    preferred_ids=[
+                        "ollama-qwen3-4b",
+                        "ollama-qwen2.5-coder",
+                        "ollama-llama3.2",
+                    ],
                 ),
             ),
             embedding=GuidedModelSetupSection(
