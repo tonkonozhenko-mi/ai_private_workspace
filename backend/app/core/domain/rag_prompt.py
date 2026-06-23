@@ -110,19 +110,26 @@ ASSISTANT_MODE_LENS_HINTS: dict[str, str] = {
     "devops": (
         "You are reviewing this project as a DevOps/platform engineer. Emphasize "
         "deployment, infrastructure, CI/CD pipelines, configuration, and "
-        "operational risks."
+        "operational risks. When asked to explain the project, lead with how it "
+        "is deployed, which environments exist, and how it ships."
     ),
     "developer": (
         "You are reviewing this project as a software developer. Emphasize "
-        "architecture, modules, key code paths, and tests."
+        "architecture, modules, key code paths, and tests. When asked to explain "
+        "the project, lead with how the application is structured and where its "
+        "main entry points are."
     ),
     "tester": (
         "You are reviewing this project as a QA/test engineer. Emphasize test "
-        "coverage, how tests are run, and gaps in verification."
+        "coverage, how tests are run, and gaps in verification. When asked to "
+        "explain the project, lead with the main flows to test and the riskiest "
+        "areas to regress."
     ),
     "business_analyst": (
         "You are reviewing this project as a business analyst. Emphasize, in "
-        "plain language, what the project does, its features, and who uses it."
+        "plain language, what the project does, its features, and who uses it. "
+        "When asked to explain the project, lead with what the system does for "
+        "its users and the main entities it works with."
     ),
     "documentation": (
         "You are reviewing this project as a technical writer. Emphasize what the "
@@ -134,7 +141,9 @@ ASSISTANT_MODE_LENS_HINTS: dict[str, str] = {
     ),
     "manager_summary": (
         "You are reviewing this project for an engineering manager. Emphasize a "
-        "concise, plain-language summary of readiness and notable risks."
+        "concise, plain-language summary of readiness and notable risks. When "
+        "asked to explain the project, open with a short executive summary of "
+        "what it does, its main risks, and its overall complexity."
     ),
 }
 
