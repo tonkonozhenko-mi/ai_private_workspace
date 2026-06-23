@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.119] - 2026-06-23
+
+### Added
+
+- **Command palette (Cmd/Ctrl-K).** One fast, keyboard-first entry point to jump to any repository, group, or section without reaching for the mouse. Fuzzy-filter as you type; arrows + Enter to go. (File search joins it with the file inspector.)
+
 ## [0.1.118] - 2026-06-23
 
 ### Fixed

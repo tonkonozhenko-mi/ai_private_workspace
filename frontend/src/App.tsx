@@ -42,6 +42,7 @@ import { CreateWorkspacePanel } from "./components/CreateWorkspacePanel";
 import { ModelsDetail } from "./components/ModelsDetail";
 import { ProjectIntelligence } from "./components/ProjectIntelligence";
 import { GroupView } from "./components/GroupView";
+import { CommandPalette, type PaletteItem } from "./components/CommandPalette";
 import { RenderCrashBoundary } from "./components/RenderCrashBoundary";
 import { ModelsSummaryCard } from "./components/ModelsSummaryCard";
 import { ReportsPanel } from "./components/ReportsPanel";
@@ -214,6 +215,19 @@ function App() {
   const [dropTargetGroupId, setDropTargetGroupId] = useState<string | null>(null);
   // A freshly created group opens in rename mode so it can be named right away.
   const [autoRenameGroupId, setAutoRenameGroupId] = useState<string | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  // Cmd/Ctrl-K opens the command palette from anywhere.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
     null,
@@ -943,6 +957,39 @@ function App() {
     );
   }
 
+  const selectWorkspaceFromPalette = (workspaceId: string) => {
+    setShowCreateWorkspace(false);
+    setResumeMessage(null);
+    setSelectedGroupId(null);
+    void loadWorkspaceDetail(workspaceId);
+  };
+
+  const paletteItems: PaletteItem[] = [
+    ...(selectedWorkspaceId && !selectedGroupId
+      ? workspaceTabs.map((t) => ({
+          id: t.id,
+          kind: "tab" as const,
+          label: t.label,
+          sub: "section",
+          run: () => setActiveTab(t.id),
+        }))
+      : []),
+    ...workspaces.map((w) => ({
+      id: w.workspace_id,
+      kind: "repo" as const,
+      label: w.name,
+      sub: w.project_path,
+      run: () => selectWorkspaceFromPalette(w.workspace_id),
+    })),
+    ...groups.map((g) => ({
+      id: g.id,
+      kind: "group" as const,
+      label: g.name,
+      sub: `${g.member_count} ${g.member_count === 1 ? "repo" : "repos"}`,
+      run: () => handleSelectGroup(g.id),
+    })),
+  ];
+
   return (
     <div
       className={`app-shell${preferences.demoMode === "on" ? " is-demo-mode" : ""}${
@@ -950,6 +997,7 @@ function App() {
       }`}
     >
       <UpdateNotice />
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={paletteItems} />
       {sidebarCollapsed ? (
         <button
           className="sidebar-reveal"
