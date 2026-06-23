@@ -4605,22 +4605,23 @@ a.getting-ready-cta:hover {
 
 /* Human-readable risk framing: leads for a human, not verdicts. */
 .pi-finding-head { flex-wrap: wrap; }
-.pi-finding-review { font-size: 10.5px; font-weight: 600; color: var(--c-accent); background: rgba(52, 194, 126, 0.12); border-radius: var(--r-pill); padding: 2px 9px; margin-left: auto; white-space: nowrap; }
-.pi-finding-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--c-text-3, var(--c-text-2)); margin-bottom: 2px; }
+.pi-finding-review { font-size: 10.5px; font-weight: 600; color: var(--c-accent); background: var(--c-accent-soft); border-radius: var(--r-pill); padding: 2px 9px; margin-left: auto; white-space: nowrap; }
+.pi-finding-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--c-text-3); margin-bottom: 2px; }
 .pi-finding-why { font-size: 12px; color: var(--c-text-2); line-height: 1.5; margin: 2px 0 0; }
-.pi-finding-meta { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 2px; }
-.pi-finding-where, .pi-finding-confidence { font-size: 12px; color: var(--c-text-2); }
-.pi-finding-where .pi-file-link, .pi-finding-where .pi-source { font-size: 11.5px; }
-.pi-finding-confidence { color: var(--c-text-2); }
+.pi-finding-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-top: 1px; }
+.pi-finding-meta .pi-file-link, .pi-finding-meta .pi-source { font-size: 11.5px; }
+.pi-finding-confidence { font-size: 11.5px; color: var(--c-text-3); }
+.pi-finding-confidence::before { content: "·"; margin-right: 10px; color: var(--c-text-3); }
+.pi-finding-meta > .pi-finding-confidence:first-child::before { content: none; }
 .pi-finding-check { margin-top: 4px; }
 .pi-finding-checklist { list-style: none; margin: 3px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .pi-finding-checklist li { font-size: 12px; color: var(--c-text-2); line-height: 1.45; padding-left: 16px; position: relative; }
 .pi-finding-checklist li::before { content: "?"; position: absolute; left: 2px; color: var(--c-accent); font-weight: 700; }
-.pi-finding-reco-note { color: var(--c-text-3, var(--c-text-2)); font-style: italic; }
+.pi-finding-reco-note { color: var(--c-text-3); font-style: italic; }
 .pi-sec-why { font-size: 11.5px; color: var(--c-text-2); line-height: 1.5; margin: 3px 0 0; padding-left: 4px; }
 
 /* Adaptive role dashboard header: one band, re-framed per role. */
-.pi-brief { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md, 12px); padding: 16px 18px; margin: 14px 0 6px; display: flex; flex-direction: column; gap: 10px; }
+.pi-brief { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: 16px 18px; margin: 14px 0 6px; display: flex; flex-direction: column; gap: 10px; }
 .pi-brief-head { display: flex; align-items: center; }
 .pi-brief-eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--c-accent); }
 .pi-brief-focus { font-size: 13px; color: var(--c-text); line-height: 1.5; margin: 0; }
@@ -4632,16 +4633,16 @@ a.getting-ready-cta:hover {
 .pi-brief-questions { display: flex; flex-direction: column; gap: 6px; }
 .pi-brief-qchips { display: flex; flex-wrap: wrap; gap: 7px; }
 .pi-brief-qchip { font-size: 12px; color: var(--c-text); background: var(--c-surface-3); border: 1px solid var(--c-border); border-radius: var(--r-pill); padding: 5px 12px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
-.pi-brief-qchip:hover { border-color: var(--c-accent); background: rgba(52, 194, 126, 0.08); }
+.pi-brief-qchip:hover { border-color: var(--c-accent); background: var(--c-accent-soft); }
 
 /* CI/CD flow: trigger -> workflows -> jobs, laid out as readable lanes. */
 .pi-cicd { display: flex; flex-direction: column; gap: 14px; }
 .pi-cicd-flow { display: flex; flex-direction: column; gap: 12px; }
-.pi-cicd-lane { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md, 12px); padding: 12px 14px; }
+.pi-cicd-lane { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: 12px 14px; }
 .pi-cicd-trigger { display: inline-flex; align-items: center; gap: 7px; min-width: 190px; padding-top: 4px; }
 .pi-cicd-trigger-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c-accent); flex: none; }
 .pi-cicd-trigger-label { font-size: 12.5px; font-weight: 600; color: var(--c-text); }
-.pi-cicd-arrow { color: var(--c-text-3, var(--c-text-2)); font-size: 16px; line-height: 1.6; flex: none; }
+.pi-cicd-arrow { color: var(--c-text-3); font-size: 16px; line-height: 1.6; flex: none; }
 .pi-cicd-workflows { display: flex; flex-wrap: wrap; gap: 10px; flex: 1 1 280px; }
 .pi-cicd-workflow { background: var(--c-surface-3); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 9px 11px; display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
 .pi-cicd-workflow-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
@@ -4651,8 +4652,8 @@ a.getting-ready-cta:hover {
 .pi-cicd-jobs { display: flex; flex-wrap: wrap; gap: 5px; }
 .pi-cicd-job { font-size: 11px; color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-pill); padding: 2px 9px; }
 .pi-cicd-job-scan { border-color: rgba(224, 168, 90, 0.5); color: #f0c79a; background: rgba(224, 168, 90, 0.1); }
-.pi-cicd-nojobs { font-size: 11px; color: var(--c-text-3, var(--c-text-2)); font-style: italic; }
-.pi-cicd-envs { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md, 12px); padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; }
+.pi-cicd-nojobs { font-size: 11px; color: var(--c-text-3); font-style: italic; }
+.pi-cicd-envs { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; }
 .pi-cicd-env-chips { display: flex; flex-wrap: wrap; gap: 7px; }
 .pi-cicd-env { font-size: 12px; color: var(--c-text); background: var(--c-surface-3); border: 1px solid var(--c-border); border-radius: var(--r-pill); padding: 3px 11px; }
 .pi-evidence { display: flex; flex-direction: column; gap: 4px; margin-top: 2px; }
@@ -4772,7 +4773,7 @@ a.getting-ready-cta:hover {
 .pi-env-evidence-bar > span { display: block; height: 100%; background: var(--c-accent); opacity: 0.7; border-radius: var(--r-pill); }
 .pi-env-source { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; color: var(--c-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pi-env-head { background: transparent; border: none; padding: 0 13px 2px; }
-.pi-env-head span { font-family: inherit; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--c-text-3, var(--c-text-2)); background: none; padding: 0; }
+.pi-env-head span { font-family: inherit; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--c-text-3); background: none; padding: 0; }
 .pi-env-source-empty { color: var(--c-text-3); }
 
 /* --- Git intelligence: activity charts, contributors, feed (M6) --- */

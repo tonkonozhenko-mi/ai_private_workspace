@@ -1026,33 +1026,24 @@ function FindingItem({
 
       {ex ? (
         <>
-          <p className="pi-finding-why">
-            <span className="pi-finding-label">Why it may matter</span>
-            {ex.why_it_may_matter}
-          </p>
+          <p className="pi-finding-why">{ex.why_it_may_matter}</p>
 
           <div className="pi-finding-meta">
             {where ? (
-              <span className="pi-finding-where">
-                <span className="pi-finding-label">Where</span>
-                {onInspectFile ? (
-                  <button
-                    type="button"
-                    className="pi-file-link"
-                    title={`Inspect ${where}`}
-                    onClick={() => onInspectFile(where)}
-                  >
-                    {where}
-                  </button>
-                ) : (
-                  <code className="pi-source">{where}</code>
-                )}
-              </span>
+              onInspectFile ? (
+                <button
+                  type="button"
+                  className="pi-file-link"
+                  title={`Inspect ${where}`}
+                  onClick={() => onInspectFile(where)}
+                >
+                  {where}
+                </button>
+              ) : (
+                <code className="pi-source">{where}</code>
+              )
             ) : null}
-            <span className="pi-finding-confidence">
-              <span className="pi-finding-label">Confidence</span>
-              {ex.confidence_label}
-            </span>
+            <span className="pi-finding-confidence">{ex.confidence_label}</span>
           </div>
 
           {ex.check_manually.length > 0 ? (
