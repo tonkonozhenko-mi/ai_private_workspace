@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.123] - 2026-06-23
+
+### Changed
+
+- **The file inspector is now discoverable.** Files in Home's "Where to start" and the git "Where the work is going" hotspots are clickable and open the inspector (in addition to Cmd/Ctrl-K file search). Clarified that the Project Intelligence role/profile applies instantly (a tooltip on "Viewed as") — Rebuild only re-scans the project files.
+
 ## [0.1.122] - 2026-06-23
 
 ### Added

@@ -1349,6 +1349,7 @@ function App() {
                 <WorkspaceDashboard
                   dashboard={detail.dashboard}
                   modelsSummary={detail.modelsSummary}
+                  onInspectFile={(p) => setInspectFilePath(p)}
                   onOpenAsk={() => setActiveTab("ask")}
                   onOpenModels={() => setActiveTab("models")}
                   onOpenCapabilities={() => setActiveTab("actions")}

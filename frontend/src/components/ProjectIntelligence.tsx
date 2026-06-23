@@ -236,7 +236,7 @@ export function ProjectIntelligence({ dashboard }: ProjectIntelligenceProps) {
           </p>
         </div>
         <div className="pi-head-controls">
-          <label className="pi-role">
+          <label className="pi-role" title="Re-orders and reframes the map for this role. Applies instantly — no rebuild needed.">
             <span>Viewed as</span>
             <select
               value={role ?? "__default__"}
