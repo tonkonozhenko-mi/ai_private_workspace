@@ -128,7 +128,18 @@ def build_role_brief(graph: ProjectGraph, lens: RoleLens, max_examples: int = 3)
     def risk_key(f) -> tuple[int, int]:
         return (0 if f.category in highlighted else 1, severity_rank.get(f.severity, 9))
 
-    top_risks = [f.title for f in sorted(graph.findings, key=risk_key)[:3]]
+    # De-duplicate by title — several findings can share a title (e.g. one
+    # "Matrix strategy detected" per workflow file), and the top-three should
+    # read as three distinct things to look at, not the same one twice.
+    top_risks: list[str] = []
+    seen_titles: set[str] = set()
+    for finding in sorted(graph.findings, key=risk_key):
+        if finding.title in seen_titles:
+            continue
+        seen_titles.add(finding.title)
+        top_risks.append(finding.title)
+        if len(top_risks) >= 3:
+            break
 
     return RoleBrief(
         role=lens.role,
