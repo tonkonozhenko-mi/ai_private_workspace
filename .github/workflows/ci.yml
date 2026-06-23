@@ -33,7 +33,17 @@ jobs:
       - name: Run backend tests
         run: |
           cd backend
-          pytest -q
+          pytest -q --junitxml=test-results.xml
+      - name: Publish test summary
+        if: always()
+        run: python scripts/ci_test_summary.py backend/test-results.xml >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/test-results.xml
+          if-no-files-found: ignore
 
   frontend:
     name: Frontend build
