@@ -1681,7 +1681,12 @@ details.onboarding-guide-panel[open] > summary {
 .pu-ask-button svg { width: 16px; height: 16px; }
 .pu-summary-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: 16px 18px; }
 .pu-summary-card p { margin: 6px 0 0; font-size: 15px; line-height: 1.6; color: var(--c-text); }
-.pu-summary-foot { display: block; margin-top: 8px; font-size: 12px; color: var(--c-text-3); }
+.pu-summary-foot { font-size: 12px; color: var(--c-text-3); }
+.pu-summary-card .pu-lead-line { font-size: 16px; line-height: 1.55; }
+.pu-lead-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.pu-lead-ask { background: none; border: 1px solid var(--c-accent); color: var(--c-accent); border-radius: 999px; padding: 6px 14px; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+.pu-lead-ask:hover { background: color-mix(in srgb, var(--c-accent) 12%, transparent); }
+.pu-stack-chips { margin-top: 4px; }
 .pu-loading { font-size: 13px; color: var(--c-text-3); padding: 6px 2px; }
 .pu-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: 16px 18px; }
 .pu-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }

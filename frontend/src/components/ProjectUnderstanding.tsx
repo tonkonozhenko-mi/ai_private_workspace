@@ -852,8 +852,20 @@ export function ProjectUnderstanding({
 
       <div className="pu-summary-card">
         <span className="pu-eyebrow">What this project is</span>
-        <p>{summaryLine}</p>
-        <span className="pu-summary-foot">{lens.focus} · From your local scan.</span>
+        <p className="pu-lead-line">
+          {summaryLine}
+          {git
+            ? ` ${git.total_commits.toLocaleString()} commits by ${git.contributors_count} ${
+                git.contributors_count === 1 ? "person" : "people"
+              }${git.commits_last_7_days > 0 ? `, ${git.commits_last_7_days} this week` : ""}.`
+            : ""}
+        </p>
+        <div className="pu-lead-foot">
+          <span className="pu-summary-foot">{lens.focus} · from your local scan</span>
+          <button type="button" className="pu-lead-ask" onClick={onOpenAsk}>
+            Ask anything about it →
+          </button>
+        </div>
       </div>
 
       <details className="pu-card pu-analysis pu-collapse">
@@ -952,11 +964,12 @@ export function ProjectUnderstanding({
       ) : null}
 
       {understanding && understanding.run_commands.length > 0 ? (
-        <div className="pu-card">
-          <div className="pu-card-head">
+        <details className="pu-card pu-collapse">
+          <summary className="pu-card-head pu-collapse-summary">
             <MetaIcon><><path d="M4 17l6-6-6-6M12 19h8" /></></MetaIcon>
             <span>How to run</span>
-          </div>
+            <span className="pu-collapse-teaser">{understanding.run_commands.length} command(s) found</span>
+          </summary>
           <div className="pu-run-list">
             {understanding.run_commands.map((command, index) => (
               <div className="pu-run-row" key={`${command.command}-${index}`}>
@@ -966,16 +979,16 @@ export function ProjectUnderstanding({
             ))}
           </div>
           <p className="pu-guide-foot">Commands found in your project files — review before running.</p>
-        </div>
+        </details>
       ) : null}
 
       {todos ? (
-        <div className="pu-card">
-          <div className="pu-card-head">
+        <details className="pu-card pu-collapse">
+          <summary className="pu-card-head pu-collapse-summary">
             <MetaIcon><><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></></MetaIcon>
             <span>TODOs &amp; loose ends</span>
-            <small>{todos.total}</small>
-          </div>
+            <span className="pu-collapse-teaser">{todos.total} found</span>
+          </summary>
           <ul className="pu-todo-list">
             {todos.items.slice(0, 8).map((item, index) => (
               <li key={`${item.file}-${item.line}-${index}`}>
@@ -988,21 +1001,26 @@ export function ProjectUnderstanding({
           {todos.truncated || todos.total > Math.min(8, todos.items.length) ? (
             <p className="pu-guide-foot">Showing {Math.min(8, todos.items.length)} of {todos.total} found in your files.</p>
           ) : null}
-        </div>
+        </details>
       ) : null}
 
       {loading ? (
         <p className="pu-loading">Reading your project…</p>
       ) : (
-        <>
+        <details className="pu-card pu-collapse">
+          <summary className="pu-card-head pu-collapse-summary">
+            <MetaIcon>{GROUP_META.code.icon}</MetaIcon>
+            <span>Files by area</span>
+            <span className="pu-collapse-teaser">
+              {techNames.length > 0 ? `${techNames.length} technolog${techNames.length === 1 ? "y" : "ies"} · ` : ""}
+              {files.length.toLocaleString()} files
+            </span>
+          </summary>
           {techNames.length > 0 ? (
-            <div className="pu-card">
-              <div className="pu-card-head"><MetaIcon>{GROUP_META.code.icon}</MetaIcon><span>Stack</span></div>
-              <div className="pu-chips">
-                {techNames.map((name) => (
-                  <span className="pu-chip" key={name}>{name}</span>
-                ))}
-              </div>
+            <div className="pu-chips pu-stack-chips">
+              {techNames.map((name) => (
+                <span className="pu-chip" key={name}>{name}</span>
+              ))}
             </div>
           ) : null}
 
@@ -1031,16 +1049,16 @@ export function ProjectUnderstanding({
               );
             })}
           </div>
-        </>
+        </details>
       )}
 
       {git ? <GitActivityCard git={git} role={dashboard.assistant_mode} onInspectFile={onInspectFile} /> : null}
 
-      <div className="pu-card pu-sources">
-        <div className="pu-sources-head">
+      <details className="pu-card pu-sources pu-collapse">
+        <summary className="pu-sources-head pu-collapse-summary">
           <span className="pu-eyebrow">Sources</span>
           <span className="pu-sources-note">Local-first · connect more when you have them</span>
-        </div>
+        </summary>
         <div className="pu-sources-grid">
           <div className="pu-source is-active">
             <MetaIcon>{GROUP_META.docs.icon}</MetaIcon>
@@ -1079,7 +1097,7 @@ export function ProjectUnderstanding({
           ) : null}
         </div>
         <p className="pu-sources-trust">Everything stays on your computer — nothing is uploaded.</p>
-      </div>
+      </details>
     </section>
   );
 }
