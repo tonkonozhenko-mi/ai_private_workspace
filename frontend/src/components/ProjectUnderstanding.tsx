@@ -112,6 +112,7 @@ const LENSES: Record<string, Lens> = {
   devops: { label: "DevOps", focus: "Deployment, infrastructure, and CI/CD.", groups: ["infra", "ci", "config"], risksLabel: "Operational risks" },
   tester: { label: "Tester / QA", focus: "Tests, what to verify, and how to run them.", groups: ["tests", "code", "ci"], risksLabel: "What to verify" },
   business_analyst: { label: "Business analyst", focus: "What the project does, in plain language.", groups: ["docs", "code"], risksLabel: "Gaps & limitations" },
+  manager: { label: "Manager", focus: "Summary, key areas, and where the risk sits.", groups: ["docs", "infra"], risksLabel: "Key risks" },
   manager_summary: { label: "Manager", focus: "Summary, key areas, and where the risk sits.", groups: ["docs", "infra"], risksLabel: "Key risks" },
   documentation: { label: "Documentation", focus: "Docs, structure, and onboarding.", groups: ["docs", "code"], risksLabel: "Documentation gaps" },
   support_incident: { label: "Support", focus: "Runbooks, config, and troubleshooting.", groups: ["docs", "config", "infra"], risksLabel: "Failure modes" },
@@ -535,6 +536,7 @@ const GIT_LAYOUT_BY_ROLE: Record<string, { order: GitSectionId[]; lens: string }
   devops: { order: ["ship", "coupling", "hotspots", "momentum", "people"], lens: "how it ships and what's entangled" },
   tester: { order: ["hotspots", "coupling", "recent", "momentum", "people"], lens: "where change concentrates — your risk map" },
   business_analyst: { order: ["momentum", "people", "ship", "recent"], lens: "delivery pace and the team behind it" },
+  manager: { order: ["momentum", "people", "ship", "recent"], lens: "delivery pace and the team behind it" },
   manager_summary: { order: ["momentum", "people", "ship", "recent"], lens: "delivery pace and the team behind it" },
 };
 

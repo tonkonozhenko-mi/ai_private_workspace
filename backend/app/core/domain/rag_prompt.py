@@ -139,6 +139,16 @@ ASSISTANT_MODE_LENS_HINTS: dict[str, str] = {
         "You are reviewing this project as a support/incident responder. "
         "Emphasize operational behavior, failure modes, and recent risks."
     ),
+    "incident_support": (
+        "You are reviewing this project as a support/incident responder. "
+        "Emphasize operational behavior, failure modes, and recent risks."
+    ),
+    "manager": (
+        "You are reviewing this project for an engineering manager. Emphasize a "
+        "concise, plain-language summary of readiness and notable risks. When "
+        "asked to explain the project, open with a short executive summary of "
+        "what it does, its main risks, and its overall complexity."
+    ),
     "manager_summary": (
         "You are reviewing this project for an engineering manager. Emphasize a "
         "concise, plain-language summary of readiness and notable risks. When "

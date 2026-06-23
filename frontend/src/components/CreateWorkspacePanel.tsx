@@ -10,14 +10,14 @@ interface CreateWorkspacePanelProps {
   onCancel: () => void;
 }
 
+// The five canonical roles — same set and names as Settings skills and the
+// Intelligence "Viewed as" lens.
 type AssistantMode =
-  | "devops"
   | "developer"
-  | "documentation"
-  | "support_incident"
-  | "manager_summary"
+  | "devops"
   | "tester"
-  | "business_analyst";
+  | "business_analyst"
+  | "manager";
 
 const assistantModes: Array<{
   id: AssistantMode;
@@ -25,29 +25,14 @@ const assistantModes: Array<{
   description: string;
 }> = [
   {
-    id: "devops",
-    label: "DevOps",
-    description: "Infrastructure, CI/CD, Terraform, Kubernetes, and runtime setup.",
-  },
-  {
     id: "developer",
     label: "Developer",
     description: "Application code, structure, implementation notes, and tests.",
   },
   {
-    id: "documentation",
-    label: "Documentation",
-    description: "READMEs, architecture notes, onboarding, and project summaries.",
-  },
-  {
-    id: "support_incident",
-    label: "Support",
-    description: "Incidents, troubleshooting notes, logs, and operational questions.",
-  },
-  {
-    id: "manager_summary",
-    label: "Manager summary",
-    description: "High-level summaries, risks, progress, and stakeholder notes.",
+    id: "devops",
+    label: "DevOps",
+    description: "Infrastructure, CI/CD, Terraform, Kubernetes, and runtime setup.",
   },
   {
     id: "tester",
@@ -58,6 +43,11 @@ const assistantModes: Array<{
     id: "business_analyst",
     label: "Business analyst",
     description: "Plain-language overview, features, and stakeholders — no deep code.",
+  },
+  {
+    id: "manager",
+    label: "Manager",
+    description: "Executive summary, main risks, recent changes, and ownership.",
   },
 ];
 

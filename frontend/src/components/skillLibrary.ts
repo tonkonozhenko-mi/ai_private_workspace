@@ -1,9 +1,11 @@
+// The five canonical roles, used everywhere (Settings skills, the Intelligence
+// "Viewed as" lens, and the Ask answer style). One vocabulary, one set of names.
 export type SkillPresetId =
-  | "devops"
   | "developer"
-  | "documentation"
-  | "incident_support"
-  | "manager_summary";
+  | "devops"
+  | "tester"
+  | "business_analyst"
+  | "manager";
 
 export interface SkillPresetDefinition {
   id: SkillPresetId;
@@ -24,11 +26,11 @@ export interface SkillPreference {
 export type SkillPreferences = Record<SkillPresetId, SkillPreference>;
 
 export type SkillProfileTemplateId =
+  | "developer_review"
   | "devops_review"
-  | "code_review"
-  | "documentation_review"
-  | "incident_support"
-  | "manager_summary";
+  | "tester_review"
+  | "business_analyst_review"
+  | "manager_review";
 
 export interface SkillProfileTemplateDefinition {
   id: SkillProfileTemplateId;
@@ -40,6 +42,20 @@ export interface SkillProfileTemplateDefinition {
 }
 
 export const SKILL_PRESETS: SkillPresetDefinition[] = [
+  {
+    id: "developer",
+    name: "Developer",
+    shortName: "Developer",
+    purpose: "Application code, structure, dependencies, implementation details, and tests.",
+    bestFor: "Source code navigation, service boundaries, test coverage, dependencies, and change impact.",
+    exampleQuestions: [
+      "Where is the main application entry point?",
+      "What tests cover this module?",
+      "What code areas are risky to change?",
+    ],
+    defaultInstructions: "Answer as a developer assistant. Focus on source code structure, implementation details, dependencies, tests, change impact, and practical next steps.",
+    recommendedFiles: ["src/**", "tests/**", "package.json", "pom.xml", "build.gradle", "requirements.txt"],
+  },
   {
     id: "devops",
     name: "DevOps",
@@ -55,64 +71,61 @@ export const SKILL_PRESETS: SkillPresetDefinition[] = [
     recommendedFiles: ["*.tf", "terragrunt.hcl", "Dockerfile", "helm/**", ".github/workflows/**", ".gitlab-ci.yml", "Jenkinsfile"],
   },
   {
-    id: "developer",
-    name: "Developer",
-    shortName: "Code",
-    purpose: "Application code, structure, dependencies, implementation details, and tests.",
-    bestFor: "Source code navigation, service boundaries, test coverage, dependencies, and change impact.",
+    id: "tester",
+    name: "Tester / QA",
+    shortName: "Tester",
+    purpose: "Test coverage, test types, critical flows, regression-risk areas, and edge cases.",
+    bestFor: "What is tested and how, the riskiest flows to verify, gaps in coverage, and what to re-test after a change.",
     exampleQuestions: [
-      "Where is the main application entry point?",
-      "What tests cover this module?",
-      "What code areas are risky to change?",
+      "Which critical flows should I test?",
+      "Where is test coverage thin?",
+      "What should I re-test after this change?",
     ],
-    defaultInstructions: "Answer as a developer assistant. Focus on source code structure, implementation details, dependencies, tests, change impact, and practical next steps.",
-    recommendedFiles: ["src/**", "tests/**", "package.json", "pom.xml", "build.gradle", "requirements.txt"],
+    defaultInstructions: "Answer as a QA / test engineer. Focus on test coverage and test types, the critical flows to verify, regression-risk areas, edge cases, and what to test after a change.",
+    recommendedFiles: ["tests/**", "test/**", "**/*_test.*", "**/*.spec.*", ".github/workflows/**"],
   },
   {
-    id: "documentation",
-    name: "Documentation",
-    shortName: "Docs",
-    purpose: "README files, architecture notes, onboarding material, and project summaries.",
-    bestFor: "Project overview, missing documentation, onboarding plans, architecture notes, and user-friendly summaries.",
+    id: "business_analyst",
+    name: "Business analyst",
+    shortName: "Analyst",
+    purpose: "What the system does, business processes, user flows, entities, integrations, and rules.",
+    bestFor: "Plain-language understanding of features, the main entities and flows, integrations, business rules, and open questions.",
     exampleQuestions: [
-      "What should be added to the README?",
-      "Summarize this project for onboarding.",
-      "Which architecture notes are missing?",
+      "What does this system do for its users?",
+      "What are the main entities and flows?",
+      "Which integrations and rules matter here?",
     ],
-    defaultInstructions: "Answer as a documentation assistant. Focus on clear explanations, onboarding quality, README gaps, architecture notes, and concise project summaries.",
-    recommendedFiles: ["README*", "docs/**", "architecture/**", "*.md"],
+    defaultInstructions: "Answer as a business analyst. Explain in plain language what the system does, its main entities and user flows, integrations, business rules, and the open questions worth clarifying.",
+    recommendedFiles: ["README*", "docs/**", "*.md", "src/**"],
   },
   {
-    id: "incident_support",
-    name: "Incident Support",
-    shortName: "Support",
-    purpose: "Troubleshooting, logs, symptoms, likely causes, and operational checks.",
-    bestFor: "Incident review, support runbooks, logs, alerts, symptoms, and next investigation steps.",
-    exampleQuestions: [
-      "What should I check first for this error?",
-      "Which files look relevant for troubleshooting?",
-      "What could cause this deployment failure?",
-    ],
-    defaultInstructions: "Answer as an incident support assistant. Focus on symptoms, likely causes, operational checks, logs, rollback risks, and step-by-step troubleshooting.",
-    recommendedFiles: ["logs/**", "runbooks/**", "alerts/**", "docs/**", "*.md"],
-  },
-  {
-    id: "manager_summary",
-    name: "Manager Summary",
-    shortName: "Summary",
-    purpose: "High-level summaries, risks, progress, decisions, and stakeholder-friendly wording.",
-    bestFor: "Status updates, risk summaries, decision notes, demos, and concise management communication.",
+    id: "manager",
+    name: "Manager",
+    shortName: "Manager",
+    purpose: "Executive summary, project health, main risks, recent changes, ownership, and delivery.",
+    bestFor: "Status updates, risk summaries, ownership and recent changes, decisions, and stakeholder-friendly wording.",
     exampleQuestions: [
       "Summarize the project status for stakeholders.",
       "What are the main risks?",
-      "What should I mention in a demo?",
+      "What changed recently, and who owns what?",
     ],
-    defaultInstructions: "Answer as a manager-summary assistant. Focus on concise summaries, risks, progress, decisions, business impact, and stakeholder-friendly wording.",
+    defaultInstructions: "Answer for an engineering manager. Focus on a concise executive summary, project health, the main risks, recent changes, ownership, delivery flow, and stakeholder-friendly wording.",
     recommendedFiles: ["README*", "docs/**", "reports/**", "*.md"],
   },
 ];
 
 export const SKILL_PROFILE_TEMPLATES: SkillProfileTemplateDefinition[] = [
+  {
+    id: "developer_review",
+    name: "Developer review",
+    shortName: "Developer",
+    purpose: "Review application structure, tests, dependencies, code risks, and change impact.",
+    activeSkillIds: ["developer"],
+    guidance: {
+      developer:
+        "Review this workspace as a developer assistant. Focus on source code structure, key modules, dependencies, tests, change impact, and concrete next steps. Keep project-specific claims grounded in retrieved sources.",
+    },
+  },
   {
     id: "devops_review",
     name: "DevOps review",
@@ -125,51 +138,36 @@ export const SKILL_PROFILE_TEMPLATES: SkillProfileTemplateDefinition[] = [
     },
   },
   {
-    id: "code_review",
-    name: "Code review",
-    shortName: "Code",
-    purpose: "Review application structure, tests, dependencies, code risks, and change impact.",
-    activeSkillIds: ["developer"],
+    id: "tester_review",
+    name: "Tester / QA review",
+    shortName: "Tester",
+    purpose: "Review test coverage, critical flows, regression-risk areas, and edge cases.",
+    activeSkillIds: ["tester"],
     guidance: {
-      developer:
-        "Review this workspace as a developer assistant. Focus on source code structure, key modules, dependencies, tests, change impact, and concrete next steps. Keep project-specific claims grounded in retrieved sources.",
+      tester:
+        "Review this workspace as a QA / test engineer. Focus on test coverage and types, the critical flows to verify, regression-risk areas, edge cases, and what to test after a change. Keep project-specific claims grounded in retrieved sources.",
     },
   },
   {
-    id: "documentation_review",
-    name: "Documentation review",
-    shortName: "Docs",
-    purpose: "Review README, onboarding material, architecture notes, and missing documentation.",
-    activeSkillIds: ["documentation"],
+    id: "business_analyst_review",
+    name: "Business analyst review",
+    shortName: "Analyst",
+    purpose: "Review what the system does, entities, user flows, integrations, and business rules.",
+    activeSkillIds: ["business_analyst"],
     guidance: {
-      documentation:
-        "Review this workspace as a documentation assistant. Focus on README quality, onboarding clarity, architecture explanation, missing docs, and concise summaries. Keep project-specific claims grounded in retrieved sources.",
+      business_analyst:
+        "Review this workspace as a business analyst. Explain in plain language what the system does, its main entities and user flows, integrations, business rules, and the open questions worth clarifying. Keep project-specific claims grounded in retrieved sources.",
     },
   },
   {
-    id: "incident_support",
-    name: "Incident support",
-    shortName: "Support",
-    purpose: "Review troubleshooting paths, logs, operational checks, rollback risks, and runbook gaps.",
-    activeSkillIds: ["devops", "incident_support"],
+    id: "manager_review",
+    name: "Manager review",
+    shortName: "Manager",
+    purpose: "Prepare a concise status, the main risks, recent changes, ownership, and decisions.",
+    activeSkillIds: ["manager"],
     guidance: {
-      devops:
-        "Use DevOps context to check deployment, runtime, CI/CD, configuration, and observability signals. Keep project-specific claims grounded in retrieved sources.",
-      incident_support:
-        "Review this workspace as an incident support assistant. Focus on symptoms, likely causes, safe checks, logs, rollback risks, and step-by-step troubleshooting. Keep project-specific claims grounded in retrieved sources.",
-    },
-  },
-  {
-    id: "manager_summary",
-    name: "Manager summary",
-    shortName: "Summary",
-    purpose: "Prepare concise status, risks, decisions, and stakeholder-friendly summaries.",
-    activeSkillIds: ["documentation", "manager_summary"],
-    guidance: {
-      documentation:
-        "Use documentation context to explain the workspace clearly and avoid unnecessary implementation detail. Keep project-specific claims grounded in retrieved sources.",
-      manager_summary:
-        "Review this workspace as a manager-summary assistant. Focus on concise progress, risks, decisions, business impact, and demo-ready wording. Keep project-specific claims grounded in retrieved sources.",
+      manager:
+        "Review this workspace for an engineering manager. Focus on a concise executive summary, project health, the main risks, recent changes, ownership, delivery flow, and stakeholder-friendly wording. Keep project-specific claims grounded in retrieved sources.",
     },
   },
 ];
