@@ -2820,8 +2820,8 @@ function getAskFocus(mode: string) {
 function AskEmptyState() {
   return (
     <EmptyState
-      title="Start a workspace conversation"
-      message="Ask a project question to get a local answer with retrieved sources, diagnostics, and session history."
+      title="Ask anything about this project"
+      message="Type a question below and get an answer grounded in your own files — with the sources it came from. Try “How does deployment work?”, “What are the main risks here?”, or “Where should I start reading?”"
     />
   );
 }
