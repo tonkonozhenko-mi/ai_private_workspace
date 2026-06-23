@@ -19,7 +19,7 @@ dependencies = [
 
 [[package]]
 name = "ai-private-workspace"
-version = "0.1.144"
+version = "0.1.148"
 dependencies = [
  "libc",
  "serde",
