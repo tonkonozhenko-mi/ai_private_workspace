@@ -20,8 +20,13 @@ from app.core.domain.project_memory import (
     format_memory_context,
     select_relevant_memory,
 )
+from app.core.domain.user_profile import (
+    format_user_profile_context,
+    select_for_prompt,
+)
 from app.core.ports.project_graph_repository import ProjectGraphRepositoryPort
 from app.core.ports.project_memory_repository import ProjectMemoryRepositoryPort
+from app.core.ports.user_profile_repository import UserProfileRepositoryPort
 
 _WORD_RE = re.compile(r"[a-z0-9_]+")
 _HANDBOOK_MAX = 1200
@@ -45,6 +50,7 @@ class ProjectContextStats:
     memory_items: int = 0
     graph_facts: int = 0
     handbook: bool = False
+    profile_facts: int = 0
 
 
 class ComposeProjectContextUseCase:
@@ -52,9 +58,13 @@ class ComposeProjectContextUseCase:
         self,
         memory_repository: ProjectMemoryRepositoryPort,
         project_graph_repository: ProjectGraphRepositoryPort,
+        user_profile_repository: UserProfileRepositoryPort | None = None,
     ) -> None:
         self.memory_repository = memory_repository
         self.project_graph_repository = project_graph_repository
+        # Optional so existing callers/tests keep working; when present, the
+        # user's cross-project profile is applied to every answer.
+        self.user_profile_repository = user_profile_repository
 
     def compose(self, workspace_id: str, query: str) -> str:
         text, _ = self.compose_with_stats(workspace_id, query)
@@ -64,6 +74,16 @@ class ComposeProjectContextUseCase:
         self, workspace_id: str, query: str
     ) -> tuple[str, "ProjectContextStats"]:
         blocks: list[str] = []
+
+        # The user's cross-project profile comes first — it shapes how to answer
+        # (tone, language, focus), before any project-specific knowledge.
+        profile_count = 0
+        if self.user_profile_repository is not None:
+            profile_items = select_for_prompt(self.user_profile_repository.list(), query)
+            profile_block = format_user_profile_context(profile_items)
+            if profile_block:
+                blocks.append(profile_block)
+                profile_count = len(profile_items)
 
         items = self.memory_repository.list(workspace_id)
         handbook = next((i for i in items if i.kind == MemoryKind.HANDBOOK), None)
@@ -87,6 +107,7 @@ class ComposeProjectContextUseCase:
             memory_items=len(relevant) if memory_block else 0,
             graph_facts=graph_count,
             handbook=has_handbook,
+            profile_facts=profile_count,
         )
         if not blocks:
             return "", stats

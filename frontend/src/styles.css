@@ -4641,6 +4641,27 @@ a.getting-ready-cta:hover {
 .pi-brief-qchip { font-size: 12px; color: var(--c-text); background: var(--c-surface-3); border: 1px solid var(--c-border); border-radius: var(--r-pill); padding: 5px 12px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
 .pi-brief-qchip:hover { border-color: var(--c-accent); background: var(--c-accent-soft); }
 
+/* User profile ("About you") — cross-project memory about the person. */
+.up-card .settings-clean-card-intro { font-size: 12.5px; color: var(--c-text-2); line-height: 1.55; margin: 6px 0 14px; }
+.up-error { font-size: 12px; color: #f0a3a3; margin: 0 0 10px; }
+.up-muted { font-size: 12.5px; color: var(--c-text-3); margin: 8px 0 0; }
+.up-add { margin-bottom: 12px; }
+.up-add-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.up-select { background: var(--c-surface-3); border: 1px solid var(--c-border); border-radius: var(--r-sm); color: var(--c-text); font-size: 12.5px; padding: 7px 9px; }
+.up-input { flex: 1 1 240px; background: var(--c-surface-3); border: 1px solid var(--c-border); border-radius: var(--r-sm); color: var(--c-text); font-size: 12.5px; padding: 7px 10px; }
+.up-input:focus { outline: none; border-color: var(--c-accent); }
+.up-add-btn { background: var(--c-accent); color: var(--c-accent-ink); border: none; border-radius: var(--r-sm); font-size: 12.5px; font-weight: 600; padding: 7px 16px; cursor: pointer; }
+.up-add-btn:disabled { opacity: 0.5; cursor: default; }
+.up-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.up-item { display: flex; align-items: center; gap: 10px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 8px 11px; }
+.up-item.is-pinned { border-color: var(--c-accent-border); }
+.up-cat { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--c-text-3); background: var(--c-surface-3); border-radius: var(--r-pill); padding: 2px 8px; white-space: nowrap; }
+.up-text { flex: 1; font-size: 12.5px; color: var(--c-text); line-height: 1.45; }
+.up-actions { display: flex; gap: 4px; }
+.up-icon { background: none; border: none; color: var(--c-text-3); font-size: 14px; cursor: pointer; padding: 2px 6px; border-radius: var(--r-sm); }
+.up-icon:hover { color: var(--c-accent); background: var(--c-surface-3); }
+.up-icon-danger:hover { color: #f0a3a3; }
+
 /* CI/CD flow: trigger -> workflows -> jobs, laid out as readable lanes. */
 .pi-cicd { display: flex; flex-direction: column; gap: 14px; }
 .pi-cicd-flow { display: flex; flex-direction: column; gap: 12px; }

@@ -23,6 +23,7 @@ from app.api.routes.mcp import router as mcp_router
 from app.api.routes.models import router as models_router
 from app.api.routes.onboarding import router as onboarding_router
 from app.api.routes.answer_ratings import router as answer_ratings_router
+from app.api.routes.user_profile import router as user_profile_router
 from app.api.routes.project_groups import router as project_groups_router
 from app.api.routes.project_intelligence import router as project_intelligence_router
 from app.api.routes.projects import router as projects_router
@@ -70,4 +71,5 @@ app.include_router(workspaces_router)
 app.include_router(project_intelligence_router)
 app.include_router(project_groups_router)
 app.include_router(answer_ratings_router)
+app.include_router(user_profile_router)
 app.include_router(commands_router)

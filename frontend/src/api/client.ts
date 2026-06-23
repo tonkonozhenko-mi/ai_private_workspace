@@ -217,6 +217,39 @@ export function deleteWorkspace(workspaceId: string): Promise<void> {
   });
 }
 
+// --- User profile (cross-project memory about the person) ---
+
+export function getUserProfile(): Promise<UserProfileResponse> {
+  return getJson<UserProfileResponse>(`/user-profile`);
+}
+
+export function addUserProfileFact(
+  text: string,
+  category: string,
+  pinned = false,
+): Promise<UserProfileFact> {
+  return requestJson<UserProfileFact>(`/user-profile`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ text, category, pinned }),
+  });
+}
+
+export function deleteUserProfileFact(itemId: string): Promise<void> {
+  return requestWithoutBody(`/user-profile/${itemId}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+}
+
+export function pinUserProfileFact(itemId: string, pinned: boolean): Promise<UserProfileFact> {
+  return requestJson<UserProfileFact>(`/user-profile/${itemId}/pin`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ pinned }),
+  });
+}
+
 export function clearWorkspaceIndex(
   workspaceId: string,
 ): Promise<WorkspaceStorage> {
@@ -1879,6 +1912,7 @@ export async function getGroupHandbook(
 // --- Answer ratings & nudges ---
 
 import type { AnswerRatingNudgesResponse } from "./types";
+import type { UserProfileFact, UserProfileResponse } from "./types";
 
 export async function recordAnswerRating(
   workspaceId: string,
