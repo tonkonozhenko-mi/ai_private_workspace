@@ -527,33 +527,37 @@ function ModelCatalogPanel({
     {
       name: "Nomic Embed Text",
       model: "nomic-embed-text",
-      fit: "Recommended search model",
-      memory: "Lightweight",
-      use: "Builds searchable local project context for RAG.",
+      fit: "Light & fast · solid default",
+      memory: "~0.3 GB · CPU-friendly",
+      use: "The default. Small and quick, runs on a laptop CPU, good quality for most projects.",
+      tip: "Lightest of the three. Pick it unless you need higher accuracy or non-English search.",
       provider: "ollama",
     },
     {
       name: "mxbai Embed Large",
       model: "mxbai-embed-large",
-      fit: "Higher quality search",
-      memory: "Heavier than nomic",
-      use: "Use for larger docs/projects when retrieval quality matters more than speed.",
+      fit: "Higher quality · heavier",
+      memory: "Heavier than Nomic",
+      use: "A larger English embedder — better retrieval on big docs when quality matters more than speed.",
+      tip: "Sits between Nomic and BGE-M3/Qwen3; English-focused.",
       provider: "ollama",
     },
     {
       name: "BGE-M3",
       model: "bge-m3",
-      fit: "Multilingual · hybrid-friendly",
+      fit: "Multilingual · hybrid",
       memory: "~1.2 GB",
-      use: "Strong multilingual embedder that natively supports dense + sparse retrieval — a good match for hybrid search.",
+      use: "Best for non-English or mixed-language projects; natively does dense + sparse, matching our hybrid search.",
+      tip: "Choose for multilingual projects or to get the most out of hybrid search. Heavier than Nomic.",
       provider: "ollama",
     },
     {
       name: "Qwen3 Embedding 0.6B",
       model: "qwen3-embedding:0.6b",
-      fit: "Top retrieval quality",
+      fit: "Most accurate · a bit heavier",
       memory: "~0.6 GB",
-      use: "Best accuracy of the local options, in a laptop-sized model. Changing the embedder rebuilds the index.",
+      use: "Highest retrieval accuracy of the local options, still laptop-sized.",
+      tip: "Choose for the best search accuracy. Slower indexing than Nomic; switching rebuilds the index.",
       provider: "ollama",
     },
   ];
@@ -640,7 +644,7 @@ function ModelCatalogPanel({
           <h3>Search context models</h3>
           <div className="model-catalog-list">
             {searchModels.map((item) => (
-              <article key={item.model} className="model-catalog-card">
+              <article key={item.model} className="model-catalog-card" title={item.tip}>
                 <div>
                   <strong>{item.name}</strong>
                   <code>{item.model}</code>
