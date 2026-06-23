@@ -9,12 +9,18 @@ machine, and nothing here retrains a model.
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
-from app.api.dependencies import user_profile_repository
+from app.api.dependencies import llm_provider_factory, user_profile_repository
 from app.core.domain.user_profile import CATEGORIES, UserProfileCategory
 from app.core.use_cases.manage_user_profile import (
     AddUserProfileFactInput,
     ManageUserProfileUseCase,
     UserProfileValidationError,
+)
+from app.core.use_cases.suggest_user_profile_facts import (
+    SuggestUserProfileFactsInput,
+    SuggestUserProfileFactsUnavailableError,
+    SuggestUserProfileFactsUseCase,
+    SuggestUserProfileFactsValidationError,
 )
 
 router = APIRouter(prefix="/user-profile", tags=["user-profile"])
@@ -89,3 +95,35 @@ def pin_profile_fact(item_id: str, request: PinProfileFactRequest) -> ProfileFac
     if item is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Profile fact not found")
     return _fact_dict(item)
+
+
+class SuggestRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=20000)
+    max_facts: int = 6
+
+
+class CandidateFactResponse(BaseModel):
+    category: str
+    text: str
+
+
+class SuggestResponse(BaseModel):
+    candidates: list[CandidateFactResponse]
+
+
+@router.post("/suggest", response_model=SuggestResponse)
+def suggest_profile_facts(request: SuggestRequest) -> SuggestResponse:
+    """Propose candidate facts from text using the local model. Saves nothing —
+    the UI shows them for the user to approve one by one."""
+    use_case = SuggestUserProfileFactsUseCase(llm_provider_factory, user_profile_repository)
+    try:
+        candidates = use_case.suggest(
+            SuggestUserProfileFactsInput(text=request.text, max_facts=request.max_facts)
+        )
+    except SuggestUserProfileFactsValidationError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    except SuggestUserProfileFactsUnavailableError as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
+    return SuggestResponse(
+        candidates=[CandidateFactResponse(category=c.category, text=c.text) for c in candidates]
+    )

@@ -250,6 +250,14 @@ export function pinUserProfileFact(itemId: string, pinned: boolean): Promise<Use
   });
 }
 
+export function suggestUserProfileFacts(text: string): Promise<SuggestProfileResponse> {
+  return requestJson<SuggestProfileResponse>(`/user-profile/suggest`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+}
+
 export function clearWorkspaceIndex(
   workspaceId: string,
 ): Promise<WorkspaceStorage> {
@@ -1912,7 +1920,7 @@ export async function getGroupHandbook(
 // --- Answer ratings & nudges ---
 
 import type { AnswerRatingNudgesResponse } from "./types";
-import type { UserProfileFact, UserProfileResponse } from "./types";
+import type { UserProfileFact, UserProfileResponse, SuggestProfileResponse } from "./types";
 
 export async function recordAnswerRating(
   workspaceId: string,

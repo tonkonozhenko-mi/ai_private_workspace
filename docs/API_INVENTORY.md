@@ -185,6 +185,7 @@ Cross-project facts about the person using the app, applied to every answer. Glo
 | `POST /user-profile` | Add a profile fact (role / preference / style / context / fact). | No | No | Local DB write | Settings |
 | `DELETE /user-profile/{item_id}` | Delete a profile fact. | No | No | Local DB write | Settings |
 | `POST /user-profile/{item_id}/pin` | Pin or unpin a profile fact. | No | No | Local DB write | Settings |
+| `POST /user-profile/suggest` | Propose candidate facts from text via the local model (saves nothing; review-first). | No | No | Local model | Settings |
 
 ## Command Approval
 
