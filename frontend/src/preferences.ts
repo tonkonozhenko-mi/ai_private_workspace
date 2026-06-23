@@ -222,3 +222,26 @@ export function usePreferences(): {
 
   return { preferences, setPreferences };
 }
+
+/**
+ * Resolve a theme preference to the concrete appearance actually shown:
+ * "light" | "dark". For "system" it follows the OS setting and updates live when
+ * the OS theme changes. Used to pick theme-matched assets like the app logo.
+ */
+export function useResolvedTheme(theme: ThemePreference): "light" | "dark" {
+  const query = "(prefers-color-scheme: dark)";
+  const readSystem = (): "light" | "dark" =>
+    typeof window !== "undefined" && window.matchMedia(query).matches ? "dark" : "light";
+
+  const [systemTheme, setSystemTheme] = useState<"light" | "dark">(readSystem);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const media = window.matchMedia(query);
+    const onChange = () => setSystemTheme(media.matches ? "dark" : "light");
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  return theme === "system" ? systemTheme : theme;
+}
