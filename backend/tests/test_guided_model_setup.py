@@ -15,7 +15,7 @@ def test_guided_model_setup_returns_recommended_defaults(tmp_path) -> None:
     assert guide["workspace_id"] == workspace["id"]
     assert guide["llm"]["model_type"] == "llm"
     assert guide["embedding"]["model_type"] == "embedding"
-    assert guide["llm"]["options"][0]["model"] == "qwen2.5-coder"
+    assert guide["llm"]["options"][0]["model"] == "qwen3:4b"
     assert guide["llm"]["options"][0]["recommended"] is True
     assert guide["embedding"]["options"][0]["model"] == "nomic-embed-text"
     assert "does not install" in " ".join(guide["safety_notes"])
