@@ -51,12 +51,14 @@ class UpdateWorkspaceModelSelectionUseCase:
         model_catalog_registry: ModelCatalogRegistry,
         timeline_repository: TimelineRepositoryPort | None = None,
         configuration: dict[str, str] | None = None,
+        index_status_repository=None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.selection_repository = selection_repository
         self.model_catalog_registry = model_catalog_registry
         self.timeline_repository = timeline_repository
         self.configuration = dict(configuration or {})
+        self.index_status_repository = index_status_repository
 
     def execute(
         self,
@@ -102,6 +104,9 @@ class UpdateWorkspaceModelSelectionUseCase:
         selected_llm = current.selected_llm if current is not None else None
         selected_embedding = current.selected_embedding if current is not None else None
         embedding_changed = False
+        old_embedding_model = (
+            selected_embedding.model if selected_embedding is not None else None
+        )
         if model_type == "llm":
             selected_llm = selected_model
         else:
@@ -124,6 +129,27 @@ class UpdateWorkspaceModelSelectionUseCase:
                 notes=notes,
             )
         )
+        # Changing the search model makes the existing index a different vector
+        # space. Tag an older, untagged index with the previous model so the
+        # indexing plan flags it as stale and prompts a one-time rebuild — without
+        # this, an index built before embedder tagging would look "ready" forever.
+        if model_type == "embedding" and self.index_status_repository is not None:
+            try:
+                from dataclasses import replace
+
+                index = self.index_status_repository.get(request.workspace_id)
+                if (
+                    index is not None
+                    and index.status == "indexed"
+                    and index.embedding_model is None
+                ):
+                    prior = old_embedding_model or "previous-search-model"
+                    if prior.strip().lower() != model.strip().lower():
+                        self.index_status_repository.save(
+                            replace(index, embedding_model=prior)
+                        )
+            except Exception:  # noqa: BLE001 - never let tagging break model selection
+                pass
         if self.timeline_repository is not None:
             AddTimelineEventUseCase(self.timeline_repository).execute(
                 AddTimelineEventInput(

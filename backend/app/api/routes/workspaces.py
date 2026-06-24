@@ -3121,6 +3121,7 @@ def update_workspace_model_selection(
             model_catalog_registry=model_catalog_registry,
             timeline_repository=timeline_repository,
             configuration=readiness_configuration,
+            index_status_repository=index_status_repository,
         ).execute(
             UpdateWorkspaceModelSelectionInput(
                 workspace_id=workspace_id,
