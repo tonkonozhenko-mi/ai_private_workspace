@@ -35,8 +35,7 @@ def build_query_rewrite_prompt(question: str, prior_terms: str | None = None) ->
     context_line = ""
     if prior_terms and prior_terms.strip():
         context_line = (
-            "Recent conversation (for context only, do not answer it):\n"
-            f"{prior_terms.strip()}\n\n"
+            f"Recent conversation (for context only, do not answer it):\n{prior_terms.strip()}\n\n"
         )
     return (
         "You rewrite a question into a short search query for a code/document "

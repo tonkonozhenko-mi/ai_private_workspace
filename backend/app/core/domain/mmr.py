@@ -31,9 +31,7 @@ def mmr_select(
     ``k`` candidates when embeddings are unavailable."""
     if k <= 0 or not candidates:
         return []
-    vecs: list[list[float] | None] = [
-        (c.metadata or {}).get(EMBEDDING_KEY) for c in candidates
-    ]
+    vecs: list[list[float] | None] = [(c.metadata or {}).get(EMBEDDING_KEY) for c in candidates]
     if any(v is None for v in vecs):
         return candidates[:k]
     relevance = [cosine_similarity(query_vec, v) for v in vecs]  # type: ignore[arg-type]

@@ -61,9 +61,7 @@ def evaluate_rag_answer(
             )
         )
 
-    unsupported = find_unsupported_citations(
-        answer, [source.source_path for source in sources]
-    )
+    unsupported = find_unsupported_citations(answer, [source.source_path for source in sources])
     if unsupported:
         warnings.append(
             RagQualityWarning(
