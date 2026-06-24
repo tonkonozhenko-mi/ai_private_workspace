@@ -97,6 +97,90 @@ def estimate_tokens(text: str) -> int:
     return max(1, len(text) // 4)
 
 
+# --- contextual chunk headers --------------------------------------------------
+#
+# A retrieved chunk is more useful to both the embedder and the model when it
+# carries a one-line note about *where it came from* (which file, which section).
+# This is the cheap, deterministic half of "contextual retrieval": no LLM call,
+# just provenance derived from the chunk's own structure.
+
+_MD_HEADING_TEXT_RE = re.compile(r"^#{1,6}\s+(.+?)\s*#*$")
+# Generic "this line begins a definition" keywords shared across languages. Pure
+# syntax (not project- or tool-specific), used only to label a chunk's section.
+_DEF_KEYWORDS = (
+    "def",
+    "class",
+    "function",
+    "func",
+    "fn",
+    "interface",
+    "struct",
+    "enum",
+    "trait",
+    "impl",
+    "module",
+    "resource",
+    "type",
+    "package",
+)
+_DEF_LINE_RE = re.compile(
+    r"^\s*(?:export\s+|public\s+|private\s+|protected\s+|async\s+|static\s+|final\s+|abstract\s+)*"
+    r"(?:" + "|".join(_DEF_KEYWORDS) + r")\b[\s(\"']*([A-Za-z_][\w.\-]*)"
+)
+_LABEL_MAX_CHARS = 60
+
+
+def _truncate_label(text: str) -> str:
+    label = " ".join(text.split())
+    return label[:_LABEL_MAX_CHARS].rstrip() if len(label) > _LABEL_MAX_CHARS else label
+
+
+def chunk_section_label(
+    content: str,
+    file_type: str | None = None,
+    extension: str | None = None,
+) -> str | None:
+    """A short label for where a chunk sits — a markdown heading or a
+    function/class/block name — derived deterministically from the chunk's own
+    text. Returns ``None`` when nothing structural stands out. Best-effort and
+    generic; only used to enrich the chunk header, so it never needs to be exact.
+    """
+    ext = (extension or "").lower()
+    is_markdown = file_type == "markdown" or ext in {".md", ".markdown"}
+    for raw in content.split("\n")[:20]:
+        line = raw.rstrip()
+        if not line.strip():
+            continue
+        if is_markdown:
+            heading = _MD_HEADING_TEXT_RE.match(line)
+            if heading:
+                return _truncate_label(heading.group(1))
+            continue
+        definition = _DEF_LINE_RE.match(line)
+        if definition:
+            return _truncate_label(definition.group(1))
+    return None
+
+
+def build_contextual_chunk(
+    content: str,
+    source_path: str,
+    position: int,
+    total: int,
+    file_type: str | None = None,
+    extension: str | None = None,
+) -> str:
+    """Prefix a one-line provenance header to a chunk so the embedder ranks it on
+    its origin too, and the model can ground/cite it. Deterministic, never raises.
+
+    Example header: ``[source: app/api/routes/ask.py › ask_endpoint · part 2/5]``.
+    """
+    label = chunk_section_label(content, file_type, extension)
+    where = source_path if not label else f"{source_path} › {label}"
+    suffix = f" · part {position}/{total}" if total > 1 else ""
+    return f"[source: {where}{suffix}]\n{content}"
+
+
 def chunk_text(
     text: str,
     max_chars: int = DEFAULT_CHUNK_MAX_CHARS,
