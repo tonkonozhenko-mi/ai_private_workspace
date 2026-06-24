@@ -7,7 +7,15 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-## [0.1.176] - 2026-06-24
+## [0.1.177] - 2026-06-24
+
+### Added
+
+- **Open-source compliance badges & supply-chain hardening.** Set the project up for the recognized free badges: an OpenSSF Scorecard workflow (publishes results for the live badge), CodeQL static analysis for the Python backend and the TS/JS frontend, REUSE compliance (`REUSE.toml` + `LICENSES/Apache-2.0.txt` + lint workflow) so every file has machine-readable copyright/licensing, a CodeFactor badge, and `.github/CODEOWNERS`. All GitHub Actions are now pinned to commit SHAs (kept current by Dependabot). `docs/CERTIFICATION_AND_BADGES.md` documents the one-time account steps and includes an OpenSSF Best Practices answer sheet mapped to this repo.
+
+### Changed
+
+- **Bundled llama.cpp updated to `b9777`** (from `b9675`) for the release/Windows build workflows and the `fetch_llama_server.sh` default.
 
 ### Added
 
