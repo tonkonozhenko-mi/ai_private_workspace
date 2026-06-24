@@ -30,6 +30,7 @@ class RunProjectWatchUseCase:
         project_graph_repository: ProjectGraphRepositoryPort,
         watch_repository: ProjectWatchRepositoryPort,
         build_graph: Callable[[str], ProjectSnapshotMeta],
+        git_brief_provider: "Callable[[str, str | None], object] | None" = None,
     ) -> None:
         self.project_graph_repository = project_graph_repository
         self.watch_repository = watch_repository
@@ -37,11 +38,21 @@ class RunProjectWatchUseCase:
         # and returns the new snapshot meta. Injected so the use case stays
         # independent of scan/build wiring and is easy to test.
         self.build_graph = build_graph
+        # git_brief_provider(workspace_id, since_commit) -> GitChangeBrief. Injected
+        # so the use case stays free of git/filesystem wiring. Optional: without it
+        # the digest is graph-only (back-compatible).
+        self.git_brief_provider = git_brief_provider
 
     def execute(self, request: RunProjectWatchInput) -> dict:
         workspace_id = request.workspace_id
         previous_graph = self.project_graph_repository.get_latest_graph(workspace_id)
         previous_meta = self.project_graph_repository.get_latest_snapshot_meta(workspace_id)
+        # The HEAD commit recorded at the last check is the baseline for "what
+        # changed in git since then".
+        previous_digest = self.watch_repository.get_latest_digest(workspace_id)
+        since_commit = (
+            previous_digest.get("git_head") if isinstance(previous_digest, dict) else None
+        )
 
         current_meta = self.build_graph(workspace_id)
 
@@ -49,7 +60,14 @@ class RunProjectWatchUseCase:
         if current_graph is None:
             raise RunProjectWatchError("The project graph could not be built")
 
+        git_brief = None
+        if self.git_brief_provider is not None:
+            try:
+                git_brief = self.git_brief_provider(workspace_id, since_commit)
+            except Exception:  # noqa: BLE001 - git is best-effort; never fail a check
+                git_brief = None
+
         diff = diff_graphs(previous_graph, current_graph)
-        digest = build_watch_digest(diff, previous_meta, current_meta)
+        digest = build_watch_digest(diff, previous_meta, current_meta, git_brief=git_brief)
         self.watch_repository.save_digest(workspace_id, digest)
         return digest
