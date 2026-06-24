@@ -7,11 +7,18 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Added
+
+- **Source-aware chunks.** Every indexed chunk now carries a deterministic one-line header — `[source: path › section · part N/M]` — derived from its own structure (a heading or a definition name). The header is stored and shown with the chunk so the model grounds and cites more reliably and the path is keyword-searchable, while the dense embedding is computed on the clean body so similarity is unaffected. No LLM call at index time; takes effect after a reindex.
+- **Hallucinated-citation guard.** When an answer cites a file in backticks that wasn't in the retrieved context, Ask attaches a non-blocking "verify these" note instead of silently trusting it.
+- **Optional query rewrite.** Ask can distil a question into a compact search query with the loaded model before retrieval, so pronoun- or intent-phrased questions still find the right files. Off by default (one extra call per ask); opt in via `AI_WORKSPACE_ASK_QUERY_REWRITE`. Reuses the loaded model — no new download.
+
 ### Changed
 
 - **Smarter use of the model's context window in Ask.** The grounded prompt is now token-budgeted to the model's real context window — retrieved chunks are sized to what actually fits after reserving room for project memory, conversation history and the answer, so the engine never silently truncates an overflowing prompt. The prompt is also reordered (stable instructions/context first, the question last) and llama.cpp prompt caching is enabled, so multi-turn answers start faster.
 - **Semantic project memory.** Recalled memory is re-ranked by embedding similarity (when a local embedder is available), so a question about "production" surfaces a note that says "prod is called prd" even with no shared words. Best-effort, with the deterministic keyword + pin + recency selection as the fallback.
 - **Conversation history fits the window, with rolling summarization.** Recent turns are kept by token budget (not a fixed count), and older evicted turns are folded into a short running summary — so a long chat no longer forgets its earlier context after a handful of exchanges. Best-effort; falls back to just the recent turns.
+- **More, more diverse context per answer.** With the reranker off (the default), Ask now pulls a wider candidate pool and selects a relevant-but-diverse subset with Maximal Marginal Relevance, so a fixed context budget covers more of the codebase instead of near-duplicate top hits.
 
 ## [0.2.1] - 2026-06-24
 

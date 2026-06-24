@@ -87,9 +87,8 @@ class ComposeProjectContextUseCase:
         selection can never fail an answer.
         """
         candidates = select_relevant_memory(items, query, limit=self._SEMANTIC_CANDIDATE_LIMIT)
-        if (
-            self.embedding_provider is None
-            or len(candidates) <= max(limit, self._SEMANTIC_RERANK_MIN_CANDIDATES)
+        if self.embedding_provider is None or len(candidates) <= max(
+            limit, self._SEMANTIC_RERANK_MIN_CANDIDATES
         ):
             return candidates[:limit]
         try:

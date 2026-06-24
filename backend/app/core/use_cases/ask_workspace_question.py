@@ -1,6 +1,6 @@
 import os
 from collections.abc import Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from time import perf_counter
 
@@ -17,6 +17,7 @@ from app.core.domain.conversation_budget import (
 )
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
+from app.core.domain.mmr import EMBEDDING_KEY, mmr_select
 from app.core.domain.rag import (
     RagQualityWarning,
     RagSource,
@@ -28,6 +29,11 @@ from app.core.domain.rag_prompt import (
     SkillPromptInstruction,
     build_general_chat_prompt,
     build_workspace_question_prompt,
+)
+from app.core.domain.rag_query_rewrite import (
+    build_query_rewrite_prompt,
+    merge_queries,
+    parse_rewritten_query,
 )
 from app.core.ports.conversation_repository import ConversationRepositoryPort
 from app.core.ports.embedding_provider import EmbeddingProviderPort
@@ -64,6 +70,34 @@ GENERAL_CHAT_DIAGNOSTIC_MESSAGE = (
     "No project files were relevant to this question, so it was answered as "
     "general conversation instead of from project context."
 )
+
+# How many chunks to aim for in a grounded answer (the window budget trims if
+# they don't fit), and how wide a candidate pool to draw them from for MMR.
+_ANSWER_CHUNK_TARGET = 8
+_MMR_POOL = 24
+
+# Optional LLM query rewrite before retrieval (one extra model call per ask).
+# Off by default to keep time-to-first-token low; opt in via this env var, the
+# same "available but not forced" stance as the reranker.
+QUERY_REWRITE_ENV_VAR = "AI_WORKSPACE_ASK_QUERY_REWRITE"
+
+
+def _strip_embeddings(results: list[ContextSearchResult]) -> list[ContextSearchResult]:
+    """Drop the internal per-chunk embedding the store attached for MMR, so it
+    never travels further than retrieval."""
+    cleaned: list[ContextSearchResult] = []
+    for result in results:
+        metadata = result.metadata
+        if metadata and EMBEDDING_KEY in metadata:
+            cleaned.append(
+                replace(
+                    result,
+                    metadata={k: v for k, v in metadata.items() if k != EMBEDDING_KEY},
+                )
+            )
+        else:
+            cleaned.append(result)
+    return cleaned
 
 
 def _usage_kwargs(llm_provider: LLMProviderPort) -> dict[str, object | None]:
@@ -165,6 +199,7 @@ class AskWorkspaceQuestionUseCase:
         conversation_repository: ConversationRepositoryPort | None = None,
         max_history_turns: int = 6,
         project_context_provider=None,
+        enable_query_rewrite: bool | None = None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.embedding_provider = embedding_provider
@@ -184,6 +219,16 @@ class AskWorkspaceQuestionUseCase:
         # Optional shared project-context provider (handbook + memory + graph
         # facts): (workspace_id, query) -> str. None = unchanged behaviour.
         self.project_context_provider = project_context_provider
+        # Optional LLM query rewrite before retrieval. None reads the env toggle
+        # (default off), so it can ship available-but-not-forced like the reranker.
+        if enable_query_rewrite is None:
+            enable_query_rewrite = os.environ.get(QUERY_REWRITE_ENV_VAR, "").strip().lower() in (
+                "1",
+                "true",
+                "yes",
+                "on",
+            )
+        self.enable_query_rewrite = enable_query_rewrite
 
     def _project_memory_section(self, workspace_id: str, query: str) -> str:
         section, _, _ = self._project_context(workspace_id, query)
@@ -296,8 +341,7 @@ class AskWorkspaceQuestionUseCase:
         if not summary:
             return recent
         preface = (
-            "[Summary of the earlier conversation — context only, not a new "
-            f"question]\n{summary}"
+            f"[Summary of the earlier conversation — context only, not a new question]\n{summary}"
         )
         return [("user", preface), *recent]
 
@@ -355,7 +399,7 @@ class AskWorkspaceQuestionUseCase:
                 request,
             )
 
-        context_results = self._search_context(request)
+        context_results = self._search_context(request, llm_provider)
         sources = [
             RagSource(
                 chunk_id=result.chunk_id,
@@ -488,7 +532,7 @@ class AskWorkspaceQuestionUseCase:
             )
             return
 
-        context_results = self._search_context(request)
+        context_results = self._search_context(request, llm_provider)
         sources = [
             RagSource(
                 chunk_id=result.chunk_id,
@@ -811,9 +855,38 @@ class AskWorkspaceQuestionUseCase:
         except LLMProviderFactoryError as exc:
             raise AskWorkspaceQuestionValidationError(str(exc)) from exc
 
+    def _rewrite_query(
+        self,
+        base_query: str,
+        request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort,
+    ) -> str:
+        """Best-effort LLM rewrite of the retrieval query (opt-in via env).
+
+        Asks the already-loaded answer model to distil the question into search
+        terms, then merges the result with the original wording. Any error, empty,
+        or degenerate reply falls back to ``base_query``, so retrieval is never
+        worse than the no-rewrite path.
+        """
+        if not self.enable_query_rewrite:
+            return base_query
+        prior_terms = "\n".join(
+            content
+            for role, content in self._conversation_history(request)
+            if role == "user" and content.strip()
+        )
+        prompt = build_query_rewrite_prompt(request.question, prior_terms=prior_terms or None)
+        try:
+            raw = llm_provider.generate(prompt, None, 0.0, False, None)
+        except Exception:  # noqa: BLE001 - rewrite is optional, never fail the ask
+            return base_query
+        rewritten = parse_rewritten_query(raw, request.question)
+        return merge_queries(base_query, rewritten)
+
     def _search_context(
         self,
         request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort | None = None,
     ) -> list[ContextSearchResult]:
         if request.limit <= 0 or not request.question.strip():
             return []
@@ -821,29 +894,45 @@ class AskWorkspaceQuestionUseCase:
         # Expand the follow-up with recent conversation terms so retrieval lands
         # on the files the dialogue is about ("disable it" -> "...ecs...disable it").
         retrieval_query = self._retrieval_query(request)
+        if llm_provider is not None:
+            retrieval_query = self._rewrite_query(retrieval_query, request, llm_provider)
         query_embedding = self.embedding_provider.embed_text(retrieval_query)
         rerank = self.reranker is not None and self.reranker.enabled
-        # When reranking, pull a wider candidate set so the cross-encoder has
-        # something to re-sort; otherwise fetch exactly what we need.
-        fetch_limit = max(request.limit, self.rerank_candidates) if rerank else request.limit
+
+        if rerank:
+            # Cross-encoder path: pull a wide set, re-sort, keep request.limit.
+            candidates = self.vector_store.search(
+                workspace_id=request.workspace_id,
+                query_embedding=query_embedding,
+                limit=max(request.limit, self.rerank_candidates),
+                embedding_provider=self.embedding_provider.provider_name,
+                embedding_model=self.embedding_provider.model_name,
+                embedding_dimension=len(query_embedding),
+                query_text=retrieval_query,
+            )
+            if len(candidates) <= request.limit:
+                return _strip_embeddings(candidates[: request.limit])
+            order = self.reranker.rerank(
+                retrieval_query, [result.content for result in candidates], request.limit
+            )
+            reranked = [candidates[i] for i in order if 0 <= i < len(candidates)]
+            return _strip_embeddings((reranked or candidates)[: request.limit])
+
+        # Default path (no reranker): fetch a wider pool and pick a relevant-but-
+        # diverse subset with MMR, so the budgeted context covers more of the
+        # codebase instead of near-duplicate top hits.
+        target = max(request.limit, _ANSWER_CHUNK_TARGET)
+        pool = max(target * 3, _MMR_POOL)
         candidates = self.vector_store.search(
             workspace_id=request.workspace_id,
             query_embedding=query_embedding,
-            limit=fetch_limit,
+            limit=pool,
             embedding_provider=self.embedding_provider.provider_name,
             embedding_model=self.embedding_provider.model_name,
             embedding_dimension=len(query_embedding),
             query_text=retrieval_query,
         )
-        if not rerank or len(candidates) <= request.limit:
-            return candidates[: request.limit]
-
-        order = self.reranker.rerank(
-            retrieval_query, [result.content for result in candidates], request.limit
-        )
-        reranked = [candidates[index] for index in order if 0 <= index < len(candidates)]
-        # Safety net: if the reranker returned nothing usable, keep hybrid order.
-        return (reranked or candidates)[: request.limit]
+        return _strip_embeddings(mmr_select(query_embedding, candidates, target))
 
     def _skill_profile_audit(
         self,

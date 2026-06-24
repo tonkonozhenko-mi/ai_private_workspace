@@ -2,7 +2,12 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from app.core.domain.chunking import chunk_document, estimate_tokens
+from app.core.domain.chunking import (
+    build_contextual_chunk,
+    chunk_document,
+    estimate_tokens,
+    strip_contextual_header,
+)
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import (
     IndexedDocumentSummary,
@@ -187,7 +192,11 @@ class IndexWorkspaceUseCase:
                 progress_callback(
                     chunk_index, total_chunks, f"Embedding chunks: {chunk_index}/{total_chunks}"
                 )
-            embeddings.append(self.embedding_provider.embed_text(chunk.content))
+            # Embed the clean chunk body (not the provenance header), so the dense
+            # vector reflects real content; the stored chunk keeps its header.
+            embeddings.append(
+                self.embedding_provider.embed_text(strip_contextual_header(chunk.content))
+            )
         self._checkpoint(cancellation_check)
         embedding_dimension = self._embedding_dimension(embeddings)
         if progress_callback is not None:
@@ -246,18 +255,31 @@ class IndexWorkspaceUseCase:
             extension=project_file.extension,
         )
 
-        return [
-            TextChunk(
-                id=f"{workspace_id}:{project_file.path}:{chunk_index}",
-                workspace_id=workspace_id,
+        total = len(raw_chunks)
+        chunks: list[TextChunk] = []
+        for chunk_index, chunk_content in enumerate(raw_chunks):
+            # Prepend a deterministic "where this came from" header so retrieval
+            # and citation both benefit; it is embedded and shown with the chunk.
+            contextual_content = build_contextual_chunk(
+                chunk_content,
                 source_path=project_file.path,
-                chunk_index=chunk_index,
-                content=chunk_content,
-                token_estimate=estimate_tokens(chunk_content),
-                metadata={
-                    "detected_type": project_file.detected_type,
-                    "extension": project_file.extension or "",
-                },
+                position=chunk_index + 1,
+                total=total,
+                file_type=project_file.detected_type,
+                extension=project_file.extension,
             )
-            for chunk_index, chunk_content in enumerate(raw_chunks)
-        ]
+            chunks.append(
+                TextChunk(
+                    id=f"{workspace_id}:{project_file.path}:{chunk_index}",
+                    workspace_id=workspace_id,
+                    source_path=project_file.path,
+                    chunk_index=chunk_index,
+                    content=contextual_content,
+                    token_estimate=estimate_tokens(contextual_content),
+                    metadata={
+                        "detected_type": project_file.detected_type,
+                        "extension": project_file.extension or "",
+                    },
+                )
+            )
+        return chunks
