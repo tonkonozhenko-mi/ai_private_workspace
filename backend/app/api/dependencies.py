@@ -692,6 +692,7 @@ llama_runtime_manager = LlamaRuntimeManager(
     llm_port=get_settings().LLAMA_SERVER_LLM_PORT,
     embed_port=get_settings().LLAMA_SERVER_EMBED_PORT,
     rerank_port=get_settings().LLAMA_SERVER_RERANK_PORT,
+    llm_context_size=get_settings().LLAMA_SERVER_LLM_CONTEXT_SIZE,
 )
 command_runner = build_command_runner()
 embedding_provider = SwitchableEmbeddingProvider(build_embedding_provider())

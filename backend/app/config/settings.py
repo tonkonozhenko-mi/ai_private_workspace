@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 PRODUCT_NAME = "AI Private Workspace"
 # Keep in sync with frontend/src-tauri/tauri.conf.json on every release bump.
-APP_VERSION = "0.1.170"
+APP_VERSION = "0.1.171"
 # Keep the legacy hidden runtime directory for backward compatibility with
 # existing local installations. It is not a product-facing name.
 DEFAULT_APP_DATA_DIR = Path(".ai-workbench")
@@ -137,6 +137,10 @@ class Settings(BaseModel):
     LLAMA_SERVER_LLM_PORT: int = 8080
     LLAMA_SERVER_EMBED_PORT: int = 8081
     LLAMA_SERVER_RERANK_PORT: int = 8082
+    # Context window for the answer model. 4096 is too small for project analysis
+    # and RAG prompts (they routinely exceed it); 8192 fits them with headroom at a
+    # modest KV-cache cost. Embedding/reranker servers keep their own small context.
+    LLAMA_SERVER_LLM_CONTEXT_SIZE: int = 8192
     RUNTIME_HEALTH_TIMEOUT_SECONDS: int = 3
     USER_MODEL_CATALOG_PATH: str = ""
     USER_MODEL_CATALOG_URL: str = ""

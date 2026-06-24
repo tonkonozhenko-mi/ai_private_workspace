@@ -131,12 +131,14 @@ class LlamaRuntimeManager:
         llm_port: int = 8080,
         embed_port: int = 8081,
         rerank_port: int = 8082,
+        llm_context_size: int = 8192,
     ) -> None:
         self._dl = download_use_case
         self._host = host
         self._llm_port = llm_port
         self._embed_port = embed_port
         self._rerank_port = rerank_port
+        self._llm_context_size = llm_context_size
         self._llm: LlamaServerProcessManager | None = None
         self._embed: LlamaServerProcessManager | None = None
         self._rerank: LlamaServerProcessManager | None = None
@@ -274,7 +276,9 @@ class LlamaRuntimeManager:
             # otherwise the new servers fail to bind and requests hit a stale one.
             if self._llm is None and self._embed is None and self._rerank is None:
                 _reap_orphan_llama_servers(str(binary))
-            self._llm = LlamaServerProcessManager(binary, host=self._host)
+            self._llm = LlamaServerProcessManager(
+                binary, host=self._host, context_size=self._llm_context_size
+            )
             self._llm.start(self._dl.destination_path(llm_model), self._llm_port)
             self._embed = LlamaServerProcessManager(binary, host=self._host)
             self._embed.start(
@@ -303,7 +307,9 @@ class LlamaRuntimeManager:
             self._llm_model = model
             if self._llm is not None:
                 self._llm.stop()
-            self._llm = LlamaServerProcessManager(binary, host=self._host)
+            self._llm = LlamaServerProcessManager(
+                binary, host=self._host, context_size=self._llm_context_size
+            )
             self._llm.start(self._dl.destination_path(model), self._llm_port)
         return self.status()
 
