@@ -162,6 +162,9 @@ def chunk_section_label(
     return None
 
 
+_CONTEXT_HEADER_PREFIX = "[source: "
+
+
 def build_contextual_chunk(
     content: str,
     source_path: str,
@@ -170,15 +173,31 @@ def build_contextual_chunk(
     file_type: str | None = None,
     extension: str | None = None,
 ) -> str:
-    """Prefix a one-line provenance header to a chunk so the embedder ranks it on
-    its origin too, and the model can ground/cite it. Deterministic, never raises.
+    """Prefix a one-line provenance header to a chunk so the model can ground and
+    cite it, and the path becomes keyword-searchable. Deterministic, never raises.
 
-    Example header: ``[source: app/api/routes/ask.py › ask_endpoint · part 2/5]``.
+    The header is for storage/display only — embed the *clean* chunk via
+    :func:`strip_contextual_header` so the dense vector reflects the real content,
+    not boilerplate. Example header: ``[source: api/ask.py › ask_endpoint · part 2/5]``.
     """
     label = chunk_section_label(content, file_type, extension)
     where = source_path if not label else f"{source_path} › {label}"
     suffix = f" · part {position}/{total}" if total > 1 else ""
-    return f"[source: {where}{suffix}]\n{content}"
+    return f"{_CONTEXT_HEADER_PREFIX}{where}{suffix}]\n{content}"
+
+
+def strip_contextual_header(content: str) -> str:
+    """Return the chunk body without a leading provenance header, if present.
+
+    Used at embedding time so the vector reflects the real content; the stored
+    chunk keeps its header for grounding, citation and keyword search.
+    """
+    if not content.startswith(_CONTEXT_HEADER_PREFIX):
+        return content
+    head, sep, rest = content.partition("\n")
+    if sep and head.endswith("]"):
+        return rest
+    return content
 
 
 def chunk_text(

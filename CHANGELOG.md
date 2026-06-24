@@ -9,7 +9,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Added
 
-- **Source-aware chunks.** Every indexed chunk now carries a deterministic one-line header — `[source: path › section · part N/M]` — derived from its own structure (a heading or a definition name). It's embedded with the chunk, so search ranks on origin too and the model grounds and cites more reliably. No LLM call at index time; takes effect after a reindex.
+- **Source-aware chunks.** Every indexed chunk now carries a deterministic one-line header — `[source: path › section · part N/M]` — derived from its own structure (a heading or a definition name). The header is stored and shown with the chunk so the model grounds and cites more reliably and the path is keyword-searchable, while the dense embedding is computed on the clean body so similarity is unaffected. No LLM call at index time; takes effect after a reindex.
 - **Hallucinated-citation guard.** When an answer cites a file in backticks that wasn't in the retrieved context, Ask attaches a non-blocking "verify these" note instead of silently trusting it.
 - **Optional query rewrite.** Ask can distil a question into a compact search query with the loaded model before retrieval, so pronoun- or intent-phrased questions still find the right files. Off by default (one extra call per ask); opt in via `AI_WORKSPACE_ASK_QUERY_REWRITE`. Reuses the loaded model — no new download.
 

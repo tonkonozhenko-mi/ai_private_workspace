@@ -6,6 +6,7 @@ from app.core.domain.chunking import (
     build_contextual_chunk,
     chunk_document,
     estimate_tokens,
+    strip_contextual_header,
 )
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import (
@@ -191,7 +192,11 @@ class IndexWorkspaceUseCase:
                 progress_callback(
                     chunk_index, total_chunks, f"Embedding chunks: {chunk_index}/{total_chunks}"
                 )
-            embeddings.append(self.embedding_provider.embed_text(chunk.content))
+            # Embed the clean chunk body (not the provenance header), so the dense
+            # vector reflects real content; the stored chunk keeps its header.
+            embeddings.append(
+                self.embedding_provider.embed_text(strip_contextual_header(chunk.content))
+            )
         self._checkpoint(cancellation_check)
         embedding_dimension = self._embedding_dimension(embeddings)
         if progress_callback is not None:

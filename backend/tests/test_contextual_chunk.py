@@ -1,6 +1,7 @@
 from app.core.domain.chunking import (
     build_contextual_chunk,
     chunk_section_label,
+    strip_contextual_header,
 )
 
 
@@ -47,3 +48,15 @@ def test_header_omits_part_for_single_chunk():
 def test_markdown_does_not_borrow_code_label():
     # A markdown chunk with no heading must not pick up a code-style definition.
     assert chunk_section_label("def x():\n    pass", file_type="markdown") is None
+
+
+def test_strip_header_round_trips_to_original_body():
+    body = "def f():\n    return 1\n"
+    built = build_contextual_chunk(body, source_path="x.py", position=1, total=3, file_type="python")
+    # Embedding must see exactly the original body, not the provenance header.
+    assert strip_contextual_header(built) == body
+
+
+def test_strip_header_leaves_plain_content_untouched():
+    plain = "just a normal chunk\nwith two lines"
+    assert strip_contextual_header(plain) == plain
