@@ -7,6 +7,7 @@ from fastapi import APIRouter, Body, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from app.config.settings import get_settings
 from app.api.dependencies import (
     project_context_composer,
     build_active_model_configuration,
