@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { getProjectWatch, runProjectWatch } from "../api/client";
+import { getProjectWatch, runProjectWatch, summarizeProjectWatch } from "../api/client";
 import type { ProjectWatchDigest, WorkspaceDashboard } from "../api/types";
 
 function relativeTime(iso: string): string {
@@ -32,6 +32,9 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summarizing, setSummarizing] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -52,6 +55,9 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
   const check = useCallback(async () => {
     setRunning(true);
     setError(null);
+    // A new check supersedes any earlier summary.
+    setSummary(null);
+    setSummaryError(null);
     try {
       const result = await runProjectWatch(workspaceId);
       setDigest(result);
@@ -60,6 +66,21 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
       setError(err instanceof Error ? err.message : "The check could not be completed.");
     } finally {
       setRunning(false);
+    }
+  }, [workspaceId]);
+
+  const summarize = useCallback(async () => {
+    setSummarizing(true);
+    setSummaryError(null);
+    try {
+      const result = await summarizeProjectWatch(workspaceId);
+      setSummary(result.summary);
+    } catch (err) {
+      setSummaryError(
+        err instanceof Error ? err.message : "The summary could not be generated.",
+      );
+    } finally {
+      setSummarizing(false);
     }
   }, [workspaceId]);
 
@@ -114,6 +135,25 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
                       {a.area} · {a.files}
                     </span>
                   ))}
+                </div>
+              ) : null}
+
+              {/* Optional one-tap LLM recap of the commits. */}
+              {hasGitWork ? (
+                <div className="pw-summarize">
+                  {summary ? (
+                    <p className="pw-summary-llm">{summary}</p>
+                  ) : (
+                    <button
+                      type="button"
+                      className="pw-link"
+                      onClick={summarize}
+                      disabled={summarizing}
+                    >
+                      {summarizing ? "Summarising…" : "Summarise the changes"}
+                    </button>
+                  )}
+                  {summaryError ? <p className="pw-error">{summaryError}</p> : null}
                 </div>
               ) : null}
 

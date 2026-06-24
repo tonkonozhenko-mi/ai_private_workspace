@@ -225,6 +225,59 @@ def get_project_watch(workspace_id: str) -> dict:
     return {"has_digest": True, "digest": digest}
 
 
+@router.post("/{workspace_id}/intelligence/watch/summary")
+def summarize_project_watch(workspace_id: str) -> dict:
+    """A one-tap plain-language summary of the commits in the latest digest, written
+    by the local model. Grounded only in the commit subjects already stored in the
+    digest — no extra git query — and budgeted to fit the answer window."""
+    from app.config.settings import get_settings
+    from app.core.domain.git_change_brief import (
+        GitChangeBrief,
+        build_change_summary_prompt,
+    )
+
+    digest = project_watch_repository.get_latest_digest(workspace_id)
+    if digest is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Run a check first — there is nothing to summarise yet.",
+        )
+    git_brief = digest.get("git_brief") or {}
+    subjects = [s for s in (git_brief.get("commit_subjects") or []) if s]
+    commit_count = int(git_brief.get("commit_count") or 0)
+    if commit_count <= 0 or not subjects:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No new commits to summarise since the last check.",
+        )
+
+    brief = GitChangeBrief(
+        comparable=True,
+        head=digest.get("git_head"),
+        commit_count=commit_count,
+        authors=list(git_brief.get("authors") or []),
+        commit_subjects=subjects,
+    )
+    prompt = build_change_summary_prompt(
+        brief,
+        max_context_tokens=get_settings().LLAMA_SERVER_LLM_CONTEXT_SIZE,
+    )
+    if prompt is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No new commits to summarise since the last check.",
+        )
+    try:
+        provider = llm_provider_factory.create(provider=None, model=None)
+        summary = provider.generate(prompt)
+    except (LLMProviderFactoryError, RuntimeError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"The local model could not summarise the changes: {exc}",
+        ) from exc
+    return {"summary": summary.strip(), "commit_count": commit_count}
+
+
 def _memory_dict(item) -> dict:
     return {
         "id": item.id,

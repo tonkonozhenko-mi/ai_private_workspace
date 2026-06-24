@@ -250,6 +250,9 @@ def build_watch_digest(
                     top_changed_areas(git_brief.changed_paths) if git_brief else []
                 )
             ],
+            # Raw commit subjects, kept so an optional one-tap LLM summary can be
+            # produced without re-querying git (and reflecting exactly this digest).
+            "commit_subjects": git_brief.commit_subjects if git_brief else [],
         },
         "git_head": git_brief.head if git_brief else None,
         "highlights": _highlights(diff),
