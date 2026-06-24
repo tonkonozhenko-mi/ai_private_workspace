@@ -12,8 +12,15 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          react: ["react", "react-dom"],
+        // Function form (rather than an object map) so it stays type-compatible
+        // across Vite/Rollup major bumps: split React into its own chunk.
+        manualChunks(id: string) {
+          if (
+            id.indexOf("/node_modules/react/") !== -1 ||
+            id.indexOf("/node_modules/react-dom/") !== -1
+          ) {
+            return "react";
+          }
         },
       },
     },
