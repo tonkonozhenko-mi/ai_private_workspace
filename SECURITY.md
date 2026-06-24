@@ -4,15 +4,29 @@ AI Private Workspace is designed as a local-first application. Security and priv
 
 ## Supported version
 
-The current supported source release candidate is `v0.1`.
+The current supported release line is `v0.2.x`.
 
 ## Safety boundaries
 
-- Frontend never executes shell commands.
-- Desktop launch does not automatically scan, index, rebuild, download models, start MCP servers, or run Agent workflows.
+AI Private Workspace is **read-only by default**: it reads your project, explains
+it, and helps you understand it — it does not execute commands, modify files, run
+external tools autonomously, or take actions on its own.
+
+- The frontend never executes shell commands.
+- Desktop launch does not automatically scan, index, rebuild, or download models.
+- All on-device analysis (the project map, change review, deep analysis, security review) is read-only by construction: it never writes a file or runs a command.
 - Model download execution is disabled by default and must be enabled in a trusted local backend runtime.
-- Agent/MCP execution is intentionally not available in v0.1.
+- The only write action is an explicit, consent-gated file draft in Ask — created only after you confirm the path and exact content.
 - Runtime data and local databases must not be committed or included in source release archives.
+
+## Out of scope
+
+By design, the product does **not** do any of the following:
+
+- upload your project or its contents to a remote/cloud service;
+- make automatic code changes;
+- execute shell commands on your behalf;
+- run autonomous agents or external (MCP) tools without explicit, per-action consent.
 
 ## Reporting issues
 
@@ -29,6 +43,10 @@ Include:
 - expected and actual behavior;
 - whether private project data, command execution, model downloads, or local runtime data are involved.
 
-## Out of scope for v0.1
+## Still on the road to 1.0
 
-The v0.1 release candidate is not a signed installer-grade product. Final installer signing, hardened runtime, automatic updates, and sandboxed Agent/MCP execution are part of the future v1.0 track.
+The app is not yet code-signed with a paid certificate, so first launch shows the
+standard unsigned-app warning on macOS and Windows (see the README). Installer
+signing and notarization, a hardened runtime, and broader QA are part of the v1.0
+track. Releases are already signed for auto-update and ship SHA256 checksums and
+an SPDX SBOM so you can verify what you download.
