@@ -56,3 +56,12 @@ updates:
       day: "monday"
     commit-message:
       prefix: "chore(ci)"
+
+  # Backend container base image — keeps the pinned digest fresh.
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps)"
