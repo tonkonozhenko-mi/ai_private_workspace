@@ -341,8 +341,7 @@ class AskWorkspaceQuestionUseCase:
         if not summary:
             return recent
         preface = (
-            "[Summary of the earlier conversation — context only, not a new "
-            f"question]\n{summary}"
+            f"[Summary of the earlier conversation — context only, not a new question]\n{summary}"
         )
         return [("user", preface), *recent]
 
