@@ -45,7 +45,7 @@ const SECTION_LABELS: Record<string, string> = {
   cloud: "Cloud",
   references: "References",
   map: "Map",
-  security: "Security",
+  security: "Security review",
   cicd: "CI/CD flow",
 };
 

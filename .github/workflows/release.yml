@@ -28,6 +28,8 @@ jobs:
   release:
     permissions:
       contents: write # create the GitHub Release + upload installers
+      id-token: write # keyless signing for build-provenance attestations
+      attestations: write # write the provenance attestation
     strategy:
       fail-fast: false
       matrix:
@@ -158,6 +160,17 @@ jobs:
           # Generates latest.json (the update manifest) alongside the installers.
           includeUpdaterJson: true
           args: ${{ matrix.args }}
+
+      # --- Build provenance: cryptographic, verifiable proof of where and how
+      #     each installer was built (keyless via Sigstore). Users can verify with
+      #     `gh attestation verify <file> --repo ${{ github.repository }}`. macOS
+      #     entries match the .dmg, the Windows entry matches the .exe. ---
+      - name: Attest installer build provenance
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v2
+        with:
+          subject-path: |
+            frontend/src-tauri/target/**/release/bundle/dmg/*.dmg
+            frontend/src-tauri/target/**/release/bundle/nsis/*.exe
 
   # --- After all installers are uploaded, prepend a tidy "Downloads" section to
   #     the release notes, grouped by platform (macOS Apple Silicon / Intel,

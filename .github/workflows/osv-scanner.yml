@@ -1,0 +1,24 @@
+# OSV-Scanner — scans the project's lockfiles (Python, npm, Cargo) against the
+# OSV.dev vulnerability database and uploads results to Security › Code scanning.
+# Complements Dependabot (which opens fix PRs); this gives an at-a-glance, SARIF
+# view of known-vulnerable dependencies. Read-only.
+name: OSV-Scanner
+
+on:
+  push:
+    branches: ["main"]
+  schedule:
+    - cron: '30 8 * * 1' # weekly, Monday 08:30 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    # Reusable workflow from the OSV-Scanner action, pinned by commit SHA.
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2
+    permissions:
+      # Needed to upload the SARIF results to the code-scanning dashboard.
+      security-events: write
+      contents: read
+      actions: read
