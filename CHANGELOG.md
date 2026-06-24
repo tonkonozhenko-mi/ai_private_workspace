@@ -7,6 +7,32 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-24
+
+First minor release since `0.1.99`. It turns AI Private Workspace from a local RAG
+chat into a full **read-only project-intelligence** tool — still entirely local,
+private, and grounded in your own files — and hardens the project's open-source
+security posture. Headline themes (the detailed `0.1.100`–`0.1.178` history is
+preserved below):
+
+### Added
+
+- **Project Intelligence.** A deterministic, role-neutral evidence graph with an interactive **Map**; **role lenses** (Developer / DevOps / Tester / Business analyst) and an **adaptive role dashboard**; a visual **CI/CD flow**; **Cloud** and **References** tabs; environment comparison and deployment flow; and a read-only **Security lens**. Findings everywhere read as human leads ("what was found, why it may matter, what to check"), not verdicts.
+- **Read-only agents & analysis.** The **Investigator** — a bounded ReAct loop over read-only tools (`search_code`, `read_file`, `graph_query`, `list_files`, `git_history`, `ci_triggers`) with a transparent trace and collected sources — and the deterministic **Watcher** ("what changed since I last looked?", with an optional one-tap LLM recap of the commits).
+- **Project groups.** Treat several repositories as one project: group **Ask** (repo-tagged sources), a portfolio **Home**, and group **Intelligence** that *compares rather than merges* (repo×environment matrix, shared-vs-unique tech, risks grouped by pattern).
+- **Memory & profile.** Local, fully-editable **project memory** + handbook, and a cross-project **"About you"** profile applied to every project — with **review-first** suggestion (nothing saved until you keep it).
+- **Navigation.** A **Cmd/Ctrl-K command palette** and a **file inspector** (owner, change-coupling, blast radius, the risks touching a file).
+- **Answer feedback that teaches the project** (👍/👎 → corrections fed back into prompts) and much richer **git intelligence** (activity over time, branch strategy, change coupling, merge/PR activity).
+- **Embedders & models.** BGE-M3 / Qwen3-Embedding installable on both engines; Qwen3 4B as the default answer model; conversation memory and an opt-in reranker in Ask.
+
+### Security & supply chain
+
+- **OpenSSF Best Practices: passing**, plus OpenSSF **Scorecard**, **CodeQL** SAST, **REUSE**-compliant licensing, and a **CodeFactor** grade. All GitHub Actions are pinned to commit SHAs; workflow tokens follow least privilege; the backend Docker image is pinned by digest. Releases are signed and ship **SHA256SUMS**, an **SPDX SBOM**, and an **automated-test report**. Contact routes through GitHub (no email in the repo).
+
+### Changed
+
+- The **Skills** library is now a single editor in **Settings**; the Models tab gains **Tuning**. Bundled **llama.cpp** updated to `b9777`.
+
 ## [0.1.178] - 2026-06-24
 
 ### Added
@@ -845,7 +871,8 @@ model setup, safe model-download drafts, Agent/MCP planning UX, and the macOS +
 Tauri packaging foundation. See
 [docs/V01_RELEASE_NOTES.md](docs/V01_RELEASE_NOTES.md) for the full list.
 
-[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.99...HEAD
+[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.99...v0.2.0
 [0.1.99]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.96...v0.1.99
 [0.1.96]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.95...v0.1.96
 [0.1.95]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.0...v0.1.95
