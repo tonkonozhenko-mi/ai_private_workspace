@@ -61,6 +61,22 @@ def evaluate_rag_answer(
             )
         )
 
+    unsupported = find_unsupported_citations(
+        answer, [source.source_path for source in sources]
+    )
+    if unsupported:
+        warnings.append(
+            RagQualityWarning(
+                code="answer_cited_unknown_source",
+                message=(
+                    "The answer referenced files that were not in the retrieved "
+                    "context — verify these before trusting them."
+                ),
+                severity="review",
+                evidence=unsupported,
+            )
+        )
+
     matched_absence_phrases = [phrase for phrase in ABSENCE_PHRASES if phrase in normalized_answer]
     conflicting_keywords = _find_conflicting_question_keywords(
         question=question,
@@ -83,6 +99,45 @@ def evaluate_rag_answer(
         )
 
     return warnings
+
+
+# A backtick-quoted token, the form the prompt asks the model to cite source
+# paths in (e.g. `main.tf`, `infra/prod/backend.tf`).
+_BACKTICK_TOKEN_RE = re.compile(r"`([^`\n]+)`")
+# Looks like a file reference: has a path separator or a short file extension.
+_FILE_EXT_RE = re.compile(r"\.[A-Za-z0-9]{1,6}$")
+
+
+def find_unsupported_citations(answer: str, source_paths: list[str]) -> list[str]:
+    """File-like references the answer cites that are NOT among the retrieved
+    source paths — i.e. likely hallucinated citations.
+
+    Only backtick-quoted tokens that look like files (a path separator or a file
+    extension) are considered, so prose and bare identifiers don't trip it. Both
+    the full path and its basename count as a match, so citing `backend.tf` for
+    `infra/backend.tf` is fine. Read-only: it flags, it never edits the answer.
+    """
+    if not answer or not source_paths:
+        return []
+    valid: set[str] = set()
+    for path in source_paths:
+        clean = path.strip()
+        if clean:
+            valid.add(clean)
+            valid.add(clean.split("/")[-1])
+    unsupported: list[str] = []
+    for raw in _BACKTICK_TOKEN_RE.findall(answer):
+        token = raw.strip()
+        if not token or token in valid:
+            continue
+        looks_like_file = "/" in token or bool(_FILE_EXT_RE.search(token))
+        if not looks_like_file:
+            continue
+        if token.split("/")[-1] in valid:
+            continue
+        unsupported.append(token)
+    # De-duplicate, keep order, cap.
+    return list(dict.fromkeys(unsupported))[:8]
 
 
 def _find_conflicting_question_keywords(
