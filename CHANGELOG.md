@@ -7,6 +7,14 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Added
+
+- **Build provenance & dependency scanning.** Release installers now carry a cryptographic [GitHub Artifact Attestation](https://docs.github.com/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds) (verifiable with `gh attestation verify <file> --repo …`), and a weekly **OSV-Scanner** workflow reports known-vulnerable dependencies to Security › Code scanning. Both actions are pinned by commit SHA.
+
+### Changed
+
+- **Docs:** the deep Project Intelligence / Watcher / Investigator / Memory detail moved to `docs/PROJECT_INTELLIGENCE.md`; the README keeps a short overview with a link. The Project Intelligence **Security** tab is renamed **Security review**.
+
 ## [0.2.0] - 2026-06-24
 
 First minor release since `0.1.99`. It turns AI Private Workspace from a local RAG
