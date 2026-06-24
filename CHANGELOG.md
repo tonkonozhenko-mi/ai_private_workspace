@@ -11,6 +11,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 - **Smarter use of the model's context window in Ask.** The grounded prompt is now token-budgeted to the model's real context window — retrieved chunks are sized to what actually fits after reserving room for project memory, conversation history and the answer, so the engine never silently truncates an overflowing prompt. The prompt is also reordered (stable instructions/context first, the question last) and llama.cpp prompt caching is enabled, so multi-turn answers start faster.
 - **Semantic project memory.** Recalled memory is re-ranked by embedding similarity (when a local embedder is available), so a question about "production" surfaces a note that says "prod is called prd" even with no shared words. Best-effort, with the deterministic keyword + pin + recency selection as the fallback.
+- **Conversation history fits the window, with rolling summarization.** Recent turns are kept by token budget (not a fixed count), and older evicted turns are folded into a short running summary — so a long chat no longer forgets its earlier context after a handful of exchanges. Best-effort; falls back to just the recent turns.
 
 ## [0.2.1] - 2026-06-24
 
