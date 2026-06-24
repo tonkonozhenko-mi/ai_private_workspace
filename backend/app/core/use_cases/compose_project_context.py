@@ -16,8 +16,10 @@ from dataclasses import dataclass
 
 from app.core.domain.project_graph import EntityType
 from app.core.domain.project_memory import (
+    MemoryItem,
     MemoryKind,
     format_memory_context,
+    rank_memory_by_similarity,
     select_relevant_memory,
 )
 from app.core.domain.user_profile import (
@@ -54,17 +56,51 @@ class ProjectContextStats:
 
 
 class ComposeProjectContextUseCase:
+    # Beyond this many recalled candidates, a semantic re-rank is worth its cost;
+    # at or below it, keyword recall already returns everything we'd keep.
+    _SEMANTIC_RERANK_MIN_CANDIDATES = 6
+    _SEMANTIC_CANDIDATE_LIMIT = 12
+    _SEMANTIC_EMBED_CHARS = 400
+
     def __init__(
         self,
         memory_repository: ProjectMemoryRepositoryPort,
         project_graph_repository: ProjectGraphRepositoryPort,
         user_profile_repository: UserProfileRepositoryPort | None = None,
+        embedding_provider=None,
     ) -> None:
         self.memory_repository = memory_repository
         self.project_graph_repository = project_graph_repository
         # Optional so existing callers/tests keep working; when present, the
         # user's cross-project profile is applied to every answer.
         self.user_profile_repository = user_profile_repository
+        # Optional: when present, recalled memory is re-ranked by embedding
+        # similarity (catches synonyms/paraphrases keyword overlap misses). None
+        # keeps the deterministic keyword + pin + recency behaviour unchanged.
+        self.embedding_provider = embedding_provider
+
+    def _select_memory(self, items: list[MemoryItem], query: str, limit: int) -> list[MemoryItem]:
+        """Keyword recall, then an optional semantic re-rank of the candidates.
+
+        Semantic re-rank is best-effort: skipped when there's no embedder or few
+        candidates, and it falls back to the keyword order on any error, so memory
+        selection can never fail an answer.
+        """
+        candidates = select_relevant_memory(items, query, limit=self._SEMANTIC_CANDIDATE_LIMIT)
+        if (
+            self.embedding_provider is None
+            or len(candidates) <= max(limit, self._SEMANTIC_RERANK_MIN_CANDIDATES)
+        ):
+            return candidates[:limit]
+        try:
+            query_vec = self.embedding_provider.embed_text(query)
+            item_vecs = [
+                self.embedding_provider.embed_text(item.text[: self._SEMANTIC_EMBED_CHARS])
+                for item in candidates
+            ]
+            return rank_memory_by_similarity(candidates, query_vec, item_vecs, limit=limit)
+        except Exception:  # noqa: BLE001 - memory selection must never fail the answer
+            return candidates[:limit]
 
     def compose(self, workspace_id: str, query: str) -> str:
         text, _ = self.compose_with_stats(workspace_id, query)
@@ -94,7 +130,7 @@ class ComposeProjectContextUseCase:
                 text = text[:_HANDBOOK_MAX] + " …"
             blocks.append("Project handbook (background):\n" + text)
 
-        relevant = select_relevant_memory(items, query, limit=6)
+        relevant = self._select_memory(items, query, limit=6)
         memory_block = format_memory_context(relevant)
         if memory_block:
             blocks.append(memory_block)

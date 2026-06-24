@@ -8,6 +8,7 @@ from app.core.domain.attached_documents import (
     AttachedDocument,
     build_attached_documents_section,
 )
+from app.core.domain.context_budget import chunk_char_budget, fit_context_results
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
 from app.core.domain.rag import (
@@ -195,6 +196,44 @@ class AskWorkspaceQuestionUseCase:
         except Exception:  # noqa: BLE001 - context is best-effort, never fatal
             return "", 0, 0
 
+    def _grounded_prompt(
+        self,
+        request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort,
+        context_results: list[ContextSearchResult],
+    ) -> tuple[list[ContextSearchResult], str, int, int]:
+        """Build the grounded prompt, fitting the retrieved chunks to the model's
+        real context window so memory + history + chunks + answer headroom never
+        overflow it (the engine would otherwise silently truncate).
+
+        Returns the (possibly trimmed) chunks actually used, the prompt, and the
+        memory/facts counts — so sources and ``used_context_chunks`` reflect what
+        the model really saw.
+        """
+        # Memory selection uses the same history-expanded query as retrieval, so a
+        # bare follow-up ("disable it") still matches relevant memory.
+        memory_section, memory_used, facts_used = self._project_context(
+            request.workspace_id, self._retrieval_query(request)
+        )
+        history = self._conversation_history(request)
+        budget = chunk_char_budget(
+            getattr(llm_provider, "context_window", None),
+            memory_text=memory_section,
+            history=history,
+        )
+        fitted = fit_context_results(context_results, budget)
+        prompt = build_workspace_question_prompt(
+            question=request.question,
+            context_results=fitted,
+            skill_instructions=request.skill_instructions,
+            attached_section=build_attached_documents_section(
+                request.question, request.attached_documents
+            ),
+            assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+            project_memory_section=memory_section,
+        )
+        return fitted, prompt, memory_used, facts_used
+
     def _conversation_history(self, request: AskWorkspaceQuestionInput) -> list[tuple[str, str]]:
         """Recent (role, content) turns of this conversation for prompt context.
 
@@ -290,19 +329,19 @@ class AskWorkspaceQuestionUseCase:
                 request,
             )
 
-        memory_section, memory_used, facts_used = self._project_context(
-            request.workspace_id, request.question
+        context_results, prompt, memory_used, facts_used = self._grounded_prompt(
+            request, llm_provider, context_results
         )
-        prompt = build_workspace_question_prompt(
-            question=request.question,
-            context_results=context_results,
-            skill_instructions=request.skill_instructions,
-            attached_section=build_attached_documents_section(
-                request.question, request.attached_documents
-            ),
-            assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
-            project_memory_section=memory_section,
-        )
+        # Rebuild sources from the chunks that actually fit the window.
+        sources = [
+            RagSource(
+                chunk_id=result.chunk_id,
+                source_path=result.source_path,
+                score=result.score,
+                preview=result.content[:200],
+            )
+            for result in context_results
+        ]
         try:
             answer, usage = self._generate_answer_with_usage(
                 llm_provider,
@@ -466,21 +505,21 @@ class AskWorkspaceQuestionUseCase:
             )
             return
 
-        memory_section, memory_used, facts_used = self._project_context(
-            request.workspace_id, request.question
+        context_results, prompt, memory_used, facts_used = self._grounded_prompt(
+            request, llm_provider, context_results
         )
-        prompt = build_workspace_question_prompt(
-            question=request.question,
-            context_results=context_results,
-            skill_instructions=request.skill_instructions,
-            attached_section=build_attached_documents_section(
-                request.question, request.attached_documents
-            ),
-            assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
-            project_memory_section=memory_section,
-        )
+        # Rebuild sources from the chunks that actually fit the window.
+        sources = [
+            RagSource(
+                chunk_id=result.chunk_id,
+                source_path=result.source_path,
+                score=result.score,
+                preview=result.content[:200],
+            )
+            for result in context_results
+        ]
         answer_text, usage, failed = yield from self._stream_generation(
-            llm_provider, prompt, request
+            llm_provider, prompt, request, self._conversation_history(request)
         )
         if failed:
             yield AskStreamFinal(
