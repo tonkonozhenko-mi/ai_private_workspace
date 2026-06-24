@@ -1,0 +1,97 @@
+# OSV-Scanner triage. Each ignored advisory is one we cannot fix ourselves, with
+# the reason recorded. `ignoreUntil` forces a re-review so nothing is forgotten.
+#
+# The GTK/glib crates are Linux-only (GTK3 + webkit2gtk) transitive dependencies
+# of Tauri. This project ships ONLY macOS and Windows binaries, which use
+# WKWebView / WebView2 — none of this code is built into a shipped artifact, and
+# there is no upstream fix without Tauri changing its Linux webview stack.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0413" # atk
+ignoreUntil = 2027-01-01
+reason = "Linux-only (GTK3) transitive dep of Tauri; not in the shipped macOS/Windows binaries; no upstream fix."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0416" # atk-sys
+ignoreUntil = 2027-01-01
+reason = "Linux-only (GTK3) transitive dep of Tauri; not in the shipped macOS/Windows binaries; no upstream fix."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0412" # gdk
+ignoreUntil = 2027-01-01
+reason = "Linux-only (GTK3) transitive dep of Tauri; not in the shipped macOS/Windows binaries; no upstream fix."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0418" # gdk-sys
+ignoreUntil = 2027-01-01
+reason = "Linux-only (GTK3) transitive dep of Tauri; not in the shipped macOS/Windows binaries; no upstream fix."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0411" # gdkwayland-sys
+ignoreUntil = 2027-01-01
+reason = "Linux-only (GTK3) transitive dep of Tauri; not in the shipped macOS/Windows binaries; no upstream fix."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0417" # gdkx11
+ignoreUntil = 2027-01-01
+reason = "Linux-only (GTK3) transitive dep of Tauri; not in the shipped macOS/Windows binaries; no upstream fix."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0414" # gdkx11-sys
+ignoreUntil = 2027-01-01
+reason = "Linux-only (GTK3) transitive dep of Tauri; not in the shipped macOS/Windows binaries; no upstream fix."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0415" # gtk
+ignoreUntil = 2027-01-01
+reason = "Linux-only (GTK3) transitive dep of Tauri; not in the shipped macOS/Windows binaries; no upstream fix."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0420" # gtk-sys
+ignoreUntil = 2027-01-01
+reason = "Linux-only (GTK3) transitive dep of Tauri; not in the shipped macOS/Windows binaries; no upstream fix."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0419" # gtk3-macros
+ignoreUntil = 2027-01-01
+reason = "Linux-only (GTK3) transitive dep of Tauri; not in the shipped macOS/Windows binaries; no upstream fix."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0429" # glib (GHSA-wrw7-89jp-8q8g)
+ignoreUntil = 2027-01-01
+reason = "Transitive via Tauri's GTK stack; the glib 0.20 fix arrives when Tauri bumps it. Linux-only; not in shipped macOS/Windows binaries."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0370" # proc-macro-error
+ignoreUntil = 2027-01-01
+reason = "Unmaintained build-time proc-macro helper pulled in transitively; compile-time only, not present at runtime; no fix available."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2025-0081" # unic-char-property
+ignoreUntil = 2027-01-01
+reason = "Unmaintained Unicode crate pulled in transitively; no fix available."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2025-0075" # unic-char-range
+ignoreUntil = 2027-01-01
+reason = "Unmaintained Unicode crate pulled in transitively; no fix available."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2025-0080" # unic-common
+ignoreUntil = 2027-01-01
+reason = "Unmaintained Unicode crate pulled in transitively; no fix available."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2025-0100" # unic-ucd-ident
+ignoreUntil = 2027-01-01
+reason = "Unmaintained Unicode crate pulled in transitively; no fix available."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2025-0098" # unic-ucd-version
+ignoreUntil = 2027-01-01
+reason = "Unmaintained Unicode crate pulled in transitively; no fix available."
+
+[[IgnoredVulns]]
+id = "GHSA-6w46-j5rx-g56g" # pytest
+ignoreUntil = 2027-01-01
+reason = "Test-only dependency, never shipped. The advisory concerns collecting tests from an attacker-controlled directory; not applicable to our first-party suite run in CI."

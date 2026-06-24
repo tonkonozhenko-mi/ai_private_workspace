@@ -7,3 +7,9 @@ PyYAML>=6.0,<7.0
 uvicorn[standard]>=0.29,<1.0
 pyinstaller>=6.0,<7.0
 python-dotenv>=1.0
+
+# Security floors for transitive dependencies. The locked build
+# (requirements.lock) already resolves safe versions; these also pin the loose
+# and Docker install paths so OSV resolves them safely too.
+idna>=3.15        # PYSEC-2026-215 / GHSA-65pc-fj4g-8rjx
+Pygments>=2.20.0  # PYSEC-2023-117, GHSA-5239-wwwm-4pmq
