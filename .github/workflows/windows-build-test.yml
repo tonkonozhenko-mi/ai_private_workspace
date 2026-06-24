@@ -14,7 +14,7 @@ on:
       llama_cpp_version:
         description: "llama.cpp release tag to bundle"
         required: false
-        default: "b9675"
+        default: "b9777"
 
 permissions:
   contents: read
@@ -23,10 +23,10 @@ jobs:
   windows-build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       # --- Backend: build the frozen Python runtime the app bundles ---
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.12"
       - name: Build frozen backend runtime
@@ -47,7 +47,7 @@ jobs:
         run: bash scripts/fetch_llama_server.sh x64
 
       # --- Frontend toolchain ---
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 20
       - name: Install frontend dependencies
@@ -55,10 +55,13 @@ jobs:
         working-directory: frontend
 
       # --- Rust toolchain (host target = x64 MSVC) ---
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537 # stable
+        with:
+          # Pinned by commit SHA, so name the channel explicitly.
+          toolchain: stable
 
       # --- Build the NSIS installer (no release publish) ---
-      - uses: tauri-apps/tauri-action@v0
+      - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Present for the updater artifact; harmless if the build does not sign.
@@ -72,7 +75,7 @@ jobs:
       # --- Hand the installer back as a downloadable artifact ---
       - name: Upload Windows installer
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: windows-installer
           path: |

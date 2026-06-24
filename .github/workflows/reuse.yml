@@ -1,0 +1,30 @@
+# REUSE compliance — verifies every file has machine-readable copyright and
+# licensing information (https://reuse.software). Keeps the "REUSE compliant"
+# badge honest. Runs the linter via pip so no extra third-party action is needed.
+name: REUSE compliance
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reuse-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reuse:
+    name: REUSE lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+      - name: Install REUSE tool
+        run: python -m pip install reuse
+      - name: Check REUSE compliance
+        run: reuse lint

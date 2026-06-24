@@ -40,7 +40,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           # Full history so we can diff against the previous tag for release notes.
           fetch-depth: 0
@@ -82,7 +82,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       # --- Backend: build the frozen Python runtime the app bundles ---
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.12"
       - name: Build frozen backend runtime
@@ -105,7 +105,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Pinned llama.cpp release for reproducible builds (the script also
           # pins this default). Bump deliberately to update.
-          LLAMA_CPP_VERSION: "b9675"
+          LLAMA_CPP_VERSION: "b9777"
         run: |
           if [ "${{ runner.os }}" = "Windows" ]; then
             # Windows runners are x64; the fetch script auto-detects the OS and
@@ -121,7 +121,7 @@ jobs:
           bash scripts/fetch_llama_server.sh "$ARCH"
 
       # --- Frontend toolchain ---
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 20
       - name: Install frontend dependencies
@@ -129,12 +129,15 @@ jobs:
         working-directory: frontend
 
       # --- Rust toolchain (with macOS cross targets) ---
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537 # stable
         with:
+          # Pinned by commit SHA, so the channel can't be inferred from the ref —
+          # name it explicitly.
+          toolchain: stable
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       # --- Build, sign the updater artifacts, and publish the release ---
-      - uses: tauri-apps/tauri-action@v0
+      - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Generated locally with `npm run tauri signer generate`. Store the
@@ -160,7 +163,7 @@ jobs:
     needs: release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Add a grouped Downloads section to the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -207,9 +210,9 @@ jobs:
     needs: release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Generate SPDX SBOM
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
           path: .
           format: spdx-json
@@ -228,8 +231,8 @@ jobs:
     needs: release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.12"
       - name: Run backend tests and build the report

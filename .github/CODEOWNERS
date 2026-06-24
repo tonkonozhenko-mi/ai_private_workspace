@@ -1,0 +1,4 @@
+# Code owners — automatically requested for review on matching changes.
+# The maintainer owns the whole repository by default.
+# Docs: https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+* @tonkonozhenko-mi
