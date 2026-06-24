@@ -7,6 +7,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-24
+
 ### Added
 
 - **Build provenance & dependency scanning.** Release installers now carry a cryptographic [GitHub Artifact Attestation](https://docs.github.com/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds) (verifiable with `gh attestation verify <file> --repo …`), and a weekly **OSV-Scanner** workflow reports known-vulnerable dependencies to Security › Code scanning. Both actions are pinned by commit SHA.
@@ -879,7 +881,8 @@ model setup, safe model-download drafts, Agent/MCP planning UX, and the macOS +
 Tauri packaging foundation. See
 [docs/V01_RELEASE_NOTES.md](docs/V01_RELEASE_NOTES.md) for the full list.
 
-[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.99...v0.2.0
 [0.1.99]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.96...v0.1.99
 [0.1.96]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.95...v0.1.96
