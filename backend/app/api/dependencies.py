@@ -696,6 +696,10 @@ llama_runtime_manager = LlamaRuntimeManager(
 )
 command_runner = build_command_runner()
 embedding_provider = SwitchableEmbeddingProvider(build_embedding_provider())
+# Semantic memory re-ranking uses the live (switchable) embedder, so it tracks
+# engine/model switches. Attached here because the composer is built above, before
+# the embedder exists.
+project_context_composer.embedding_provider = embedding_provider
 runtime_state_store = RuntimeStateStore(Path(get_settings().app_data_dir) / "runtime_state.json")
 llm_provider_factory = build_llm_provider_factory()
 vector_store = build_vector_store()
