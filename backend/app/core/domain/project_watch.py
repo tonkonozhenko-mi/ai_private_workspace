@@ -8,6 +8,7 @@ risks, new pipelines/services, and counts for the noisier kinds).
 """
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from app.core.domain.project_graph import (
     EntityType,
@@ -16,6 +17,11 @@ from app.core.domain.project_graph import (
     ProjectGraph,
     ProjectSnapshotMeta,
 )
+
+if TYPE_CHECKING:
+    # Imported for type annotations only; the runtime import lives in the function
+    # that constructs it, to keep the domain module import-light.
+    from app.core.domain.git_change_brief import GitChangeBrief
 
 _SEVERITY_RANK = {"high": 0, "medium": 1, "low": 2, "info": 3}
 
@@ -115,9 +121,7 @@ def _highlights(diff: GraphDiff) -> list[dict]:
         )
 
     # New risks first, ordered by severity.
-    for finding in sorted(
-        diff.added_findings, key=lambda f: _SEVERITY_RANK.get(f.severity, 99)
-    ):
+    for finding in sorted(diff.added_findings, key=lambda f: _SEVERITY_RANK.get(f.severity, 99)):
         highlights.append(
             {
                 "kind": "risk_added",
@@ -141,9 +145,7 @@ def _highlights(diff: GraphDiff) -> list[dict]:
 
     # Resolved risks.
     for finding in diff.resolved_findings:
-        highlights.append(
-            {"kind": "risk_resolved", "text": f"Resolved: {finding.title}"}
-        )
+        highlights.append({"kind": "risk_resolved", "text": f"Resolved: {finding.title}"})
 
     # Removed high-signal entities.
     for entity_type in _LISTED_TYPES:
@@ -179,9 +181,7 @@ def _highlights(diff: GraphDiff) -> list[dict]:
     # risks) and tuck the analyzer bookkeeping (counts, "detected X", structural
     # adds/removes) under a collapsed "structural details" section.
     for highlight in highlights:
-        highlight["category"] = _highlight_category(
-            highlight["kind"], highlight.get("severity")
-        )
+        highlight["category"] = _highlight_category(highlight["kind"], highlight.get("severity"))
     return highlights
 
 
@@ -246,9 +246,7 @@ def build_watch_digest(
             "authors": git_brief.authors if git_brief else [],
             "areas": [
                 {"area": area, "files": files}
-                for area, files in (
-                    top_changed_areas(git_brief.changed_paths) if git_brief else []
-                )
+                for area, files in (top_changed_areas(git_brief.changed_paths) if git_brief else [])
             ],
             # Raw commit subjects, kept so an optional one-tap LLM summary can be
             # produced without re-querying git (and reflecting exactly this digest).

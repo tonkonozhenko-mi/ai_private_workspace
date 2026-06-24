@@ -10,6 +10,7 @@ import subprocess
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from app.core.domain.git_insights import (
     GitActivitySummary,
@@ -23,6 +24,11 @@ from app.core.domain.git_insights import (
     summarize_activity,
     summarize_merges,
 )
+
+if TYPE_CHECKING:
+    # Annotation-only; the runtime import lives inside change_brief() where the
+    # value is actually constructed.
+    from app.core.domain.git_change_brief import GitChangeBrief
 
 _UNIT = "\x1f"  # ASCII unit separator — safe field delimiter for git --pretty.
 
@@ -51,15 +57,11 @@ class LocalGitHistory:
         window = self._activity_window(root)
         summary = summarize_activity(window, datetime.now(timezone.utc))
 
-        commits_90 = self._count(
-            root, ["rev-list", "--count", "--since=90 days ago", "HEAD"]
-        )
+        commits_90 = self._count(root, ["rev-list", "--count", "--since=90 days ago", "HEAD"])
         commits_90_no_merges = self._count(
             root, ["rev-list", "--count", "--since=90 days ago", "--no-merges", "HEAD"]
         )
-        merge_share = (
-            (commits_90 - commits_90_no_merges) / commits_90 if commits_90 > 0 else 0.0
-        )
+        merge_share = (commits_90 - commits_90_no_merges) / commits_90 if commits_90 > 0 else 0.0
 
         return GitInsights(
             is_repo=True,
@@ -87,9 +89,7 @@ class LocalGitHistory:
             file_couplings=self._file_couplings(root),
         )
 
-    def change_brief(
-        self, project_path: str, since_commit: str | None
-    ) -> "GitChangeBrief":
+    def change_brief(self, project_path: str, since_commit: str | None) -> "GitChangeBrief":
         """What landed in the repo since ``since_commit`` (the HEAD at the last
         watch check): commit count, authors, and changed files. Read-only.
 
@@ -115,7 +115,9 @@ class LocalGitHistory:
             # First check: record the baseline, nothing to compare yet.
             return GitChangeBrief(comparable=False, head=head, commit_count=0)
 
-        verified = self._run(root, ["rev-parse", "--verify", "--quiet", f"{since_commit}^{{commit}}"])
+        verified = self._run(
+            root, ["rev-parse", "--verify", "--quiet", f"{since_commit}^{{commit}}"]
+        )
         if not verified:
             # Baseline commit no longer in history (rebase/force-push) — can't diff.
             return GitChangeBrief(comparable=False, head=head, commit_count=0)
@@ -134,12 +136,8 @@ class LocalGitHistory:
         changed = [line.strip() for line in changed_raw.splitlines() if line.strip()][:500]
         # Commit subjects (newest first), no merges — raw material for the
         # optional LLM "in short" summary. Capped so the log stays bounded.
-        subjects_raw = self._run(
-            root, ["log", "--no-merges", "--format=%s", rng]
-        ) or ""
-        subjects = [
-            line.strip() for line in subjects_raw.splitlines() if line.strip()
-        ][:200]
+        subjects_raw = self._run(root, ["log", "--no-merges", "--format=%s", rng]) or ""
+        subjects = [line.strip() for line in subjects_raw.splitlines() if line.strip()][:200]
         return GitChangeBrief(
             comparable=True,
             head=head,
@@ -164,9 +162,7 @@ class LocalGitHistory:
         total = self._count(root, ["rev-list", "--count", "HEAD", *pathspec])
 
         # Top authors of this path (or the repo), counted from the log.
-        authors_raw = self._run(
-            root, ["log", "--no-merges", "--pretty=format:%an", *pathspec]
-        )
+        authors_raw = self._run(root, ["log", "--no-merges", "--pretty=format:%an", *pathspec])
         counter: Counter[str] = Counter()
         if authors_raw:
             for line in authors_raw.splitlines():
@@ -174,8 +170,7 @@ class LocalGitHistory:
                 if name:
                     counter[name] += 1
         top_authors = [
-            GitContributor(name=name, commits=count)
-            for name, count in counter.most_common(5)
+            GitContributor(name=name, commits=count) for name, count in counter.most_common(5)
         ]
 
         # Recent commits touching this path (or the repo).
@@ -365,9 +360,7 @@ class LocalGitHistory:
 
     def _recent_commits(self, root: Path, limit: int = 10) -> list[GitCommit]:
         pretty = _UNIT.join(["%h", "%s", "%an", "%cI"])
-        value = self._run(
-            root, ["log", f"-{limit}", "--no-merges", f"--pretty=format:{pretty}"]
-        )
+        value = self._run(root, ["log", f"-{limit}", "--no-merges", f"--pretty=format:{pretty}"])
         if not value:
             return []
         commits: list[GitCommit] = []
