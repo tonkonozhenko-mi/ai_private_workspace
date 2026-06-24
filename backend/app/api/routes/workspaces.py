@@ -2138,6 +2138,7 @@ def generate_workspace_understanding(
         index_status_repository=index_status_repository,
         selection_repository=workspace_model_selection_repository,
         understanding_repository=project_understanding_repository,
+        max_context_tokens=get_settings().LLAMA_SERVER_LLM_CONTEXT_SIZE,
     )
     try:
         understanding = use_case.execute(
