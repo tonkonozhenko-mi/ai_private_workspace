@@ -146,6 +146,10 @@ class LlamaServerLLMProvider:
             "messages": self._build_messages(prompt, images, history),
             "stream": stream,
             "stop": _STOP_TOKENS,
+            # Reuse the KV cache for the shared prompt prefix across turns of a
+            # conversation (system + context + requirements are kept stable and the
+            # volatile question is last), so multi-turn answers start faster.
+            "cache_prompt": True,
         }
         if stream:
             # Ask for a trailing usage chunk so streamed answers also report real

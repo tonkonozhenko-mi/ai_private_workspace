@@ -62,20 +62,23 @@ def build_workspace_question_prompt(
         else ""
     )
 
+    # Ordering note: the large, stable blocks (instructions, memory, context,
+    # requirements) come first and the volatile question comes LAST. Keeping the
+    # prefix stable across turns lets llama.cpp reuse the KV cache, and putting the
+    # question at the end is the conventional, well-followed RAG layout.
     return (
         "You are a helpful local AI assistant for the user's project. Default to "
-        "answering the question from the project files below and citing the exact "
-        "source_path.\n\n"
+        "answering the user's question (shown at the very end) from the project "
+        "files below and citing the exact source_path.\n\n"
         "The files below were retrieved as "
         "possibly-relevant context for the question, but you must decide for "
         "yourself whether they actually apply.\n\n"
-        "Decide first: is this question about the user's project? If it is, answer "
+        "Decide first: is the question about the user's project? If it is, answer "
         "from the files below and cite the exact source_path. If instead it is about "
         "you (the assistant/model), a general question, or otherwise not answerable "
         "from these files, ignore the files and answer directly and briefly — do not "
         "describe the project, do not cite source paths, and do not pretend the "
         "question was about the project.\n\n"
-        f"Question:\n{question}\n\n"
         f"{attached_section}"
         f"{(project_memory_section + chr(10) + chr(10)) if project_memory_section else ''}"
         f"Context chunks:\n{context}\n\n"
@@ -102,7 +105,8 @@ def build_workspace_question_prompt(
         "safe proposed change: target path, exact file content or patch, and a "
         "short approval note saying the app must ask before applying changes.\n"
         "- Do not invent facts."
-        f"{identity_clause}"
+        f"{identity_clause}\n\n"
+        f"Now answer this question:\n{question}"
     )
 
 
