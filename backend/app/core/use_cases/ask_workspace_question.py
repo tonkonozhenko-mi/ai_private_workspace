@@ -24,6 +24,11 @@ from app.core.domain.rag_prompt import (
     build_general_chat_prompt,
     build_workspace_question_prompt,
 )
+from app.core.domain.rag_query_rewrite import (
+    build_query_rewrite_prompt,
+    merge_queries,
+    parse_rewritten_query,
+)
 from app.core.ports.conversation_repository import ConversationRepositoryPort
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
@@ -64,6 +69,11 @@ GENERAL_CHAT_DIAGNOSTIC_MESSAGE = (
 # they don't fit), and how wide a candidate pool to draw them from for MMR.
 _ANSWER_CHUNK_TARGET = 8
 _MMR_POOL = 24
+
+# Optional LLM query rewrite before retrieval (one extra model call per ask).
+# Off by default to keep time-to-first-token low; opt in via this env var, the
+# same "available but not forced" stance as the reranker.
+QUERY_REWRITE_ENV_VAR = "AI_WORKSPACE_ASK_QUERY_REWRITE"
 
 
 def _strip_embeddings(results: list[ContextSearchResult]) -> list[ContextSearchResult]:
@@ -183,6 +193,7 @@ class AskWorkspaceQuestionUseCase:
         conversation_repository: ConversationRepositoryPort | None = None,
         max_history_turns: int = 6,
         project_context_provider=None,
+        enable_query_rewrite: bool | None = None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.embedding_provider = embedding_provider
@@ -202,6 +213,16 @@ class AskWorkspaceQuestionUseCase:
         # Optional shared project-context provider (handbook + memory + graph
         # facts): (workspace_id, query) -> str. None = unchanged behaviour.
         self.project_context_provider = project_context_provider
+        # Optional LLM query rewrite before retrieval. None reads the env toggle
+        # (default off), so it can ship available-but-not-forced like the reranker.
+        if enable_query_rewrite is None:
+            enable_query_rewrite = os.environ.get(QUERY_REWRITE_ENV_VAR, "").strip().lower() in (
+                "1",
+                "true",
+                "yes",
+                "on",
+            )
+        self.enable_query_rewrite = enable_query_rewrite
 
     def _project_memory_section(self, workspace_id: str, query: str) -> str:
         section, _, _ = self._project_context(workspace_id, query)
@@ -321,7 +342,7 @@ class AskWorkspaceQuestionUseCase:
                 request,
             )
 
-        context_results = self._search_context(request)
+        context_results = self._search_context(request, llm_provider)
         sources = [
             RagSource(
                 chunk_id=result.chunk_id,
@@ -453,7 +474,7 @@ class AskWorkspaceQuestionUseCase:
             )
             return
 
-        context_results = self._search_context(request)
+        context_results = self._search_context(request, llm_provider)
         sources = [
             RagSource(
                 chunk_id=result.chunk_id,
@@ -775,9 +796,38 @@ class AskWorkspaceQuestionUseCase:
         except LLMProviderFactoryError as exc:
             raise AskWorkspaceQuestionValidationError(str(exc)) from exc
 
+    def _rewrite_query(
+        self,
+        base_query: str,
+        request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort,
+    ) -> str:
+        """Best-effort LLM rewrite of the retrieval query (opt-in via env).
+
+        Asks the already-loaded answer model to distil the question into search
+        terms, then merges the result with the original wording. Any error, empty,
+        or degenerate reply falls back to ``base_query``, so retrieval is never
+        worse than the no-rewrite path.
+        """
+        if not self.enable_query_rewrite:
+            return base_query
+        prior_terms = "\n".join(
+            content
+            for role, content in self._conversation_history(request)
+            if role == "user" and content.strip()
+        )
+        prompt = build_query_rewrite_prompt(request.question, prior_terms=prior_terms or None)
+        try:
+            raw = llm_provider.generate(prompt, None, 0.0, False, None)
+        except Exception:  # noqa: BLE001 - rewrite is optional, never fail the ask
+            return base_query
+        rewritten = parse_rewritten_query(raw, request.question)
+        return merge_queries(base_query, rewritten)
+
     def _search_context(
         self,
         request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort | None = None,
     ) -> list[ContextSearchResult]:
         if request.limit <= 0 or not request.question.strip():
             return []
@@ -785,6 +835,8 @@ class AskWorkspaceQuestionUseCase:
         # Expand the follow-up with recent conversation terms so retrieval lands
         # on the files the dialogue is about ("disable it" -> "...ecs...disable it").
         retrieval_query = self._retrieval_query(request)
+        if llm_provider is not None:
+            retrieval_query = self._rewrite_query(retrieval_query, request, llm_provider)
         query_embedding = self.embedding_provider.embed_text(retrieval_query)
         rerank = self.reranker is not None and self.reranker.enabled
 
