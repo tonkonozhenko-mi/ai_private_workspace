@@ -52,7 +52,9 @@ def test_markdown_does_not_borrow_code_label():
 
 def test_strip_header_round_trips_to_original_body():
     body = "def f():\n    return 1\n"
-    built = build_contextual_chunk(body, source_path="x.py", position=1, total=3, file_type="python")
+    built = build_contextual_chunk(
+        body, source_path="x.py", position=1, total=3, file_type="python"
+    )
     # Embedding must see exactly the original body, not the provenance header.
     assert strip_contextual_header(built) == body
 
