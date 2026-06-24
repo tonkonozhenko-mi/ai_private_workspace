@@ -1,6 +1,6 @@
 # Pinned by digest for reproducible builds (Scorecard Pinned-Dependencies).
 # The tag is kept in the comment; Dependabot's docker ecosystem updates the digest.
-FROM python:3.11-slim@sha256:cdbd05fb6f457ca275ff51ce00d93d865ca0b6a25f5ffb08262d94f6835771e5
+FROM python:3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97
 
 WORKDIR /app
 
