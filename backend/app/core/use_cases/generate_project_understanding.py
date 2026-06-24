@@ -1,7 +1,7 @@
 import hashlib
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 
 from app.core.domain.indexing import ContextSearchResult
@@ -100,6 +100,14 @@ MAX_RISKS = 8
 MAX_START_HERE = 4
 MAX_RUN_COMMANDS = 5
 
+# Fit the prompt to the model's context window instead of a fixed size, so a
+# large project simply includes fewer sources rather than overflowing the window
+# (which made llama.cpp return HTTP 400 "request exceeds the available context").
+CHARS_PER_TOKEN = 4
+RESPONSE_RESERVE_TOKENS = 1024  # leave room for the model's JSON answer
+PROMPT_OVERHEAD_TOKENS = 1536  # instructions, role framing, queries, formatting
+MIN_CONTENT_CHARS = 2000
+
 
 @dataclass(frozen=True)
 class GenerateProjectUnderstandingInput:
@@ -124,6 +132,7 @@ class GenerateProjectUnderstandingUseCase:
         index_status_repository: IndexStatusRepositoryPort,
         selection_repository: WorkspaceModelSelectionRepositoryPort,
         understanding_repository: ProjectUnderstandingRepositoryPort,
+        max_context_tokens: int = 8192,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.embedding_provider = embedding_provider
@@ -132,6 +141,17 @@ class GenerateProjectUnderstandingUseCase:
         self.index_status_repository = index_status_repository
         self.selection_repository = selection_repository
         self.understanding_repository = understanding_repository
+        self.max_context_tokens = max_context_tokens
+
+    def _content_char_budget(self) -> int:
+        """Characters of retrieved context that fit in the model's window, after
+        reserving room for the instructions and the model's answer. Capped by the
+        static MAX_TOTAL_CHARS so a huge window does not bloat the prompt."""
+        usable_tokens = (
+            self.max_context_tokens - RESPONSE_RESERVE_TOKENS - PROMPT_OVERHEAD_TOKENS
+        )
+        dynamic = max(MIN_CONTENT_CHARS, usable_tokens * CHARS_PER_TOKEN)
+        return min(MAX_TOTAL_CHARS, dynamic)
 
     def execute(
         self,
@@ -211,6 +231,7 @@ class GenerateProjectUnderstandingUseCase:
     ) -> list[ContextSearchResult]:
         collected: dict[str, ContextSearchResult] = {}
         total_chars = 0
+        char_budget = self._content_char_budget()
         for query in retrieval_queries_for_mode(assistant_mode):
             query_embedding = self.embedding_provider.embed_text(query)
             results = self.vector_store.search(
@@ -227,8 +248,16 @@ class GenerateProjectUnderstandingUseCase:
                     continue
                 if len(collected) >= MAX_CHUNKS:
                     break
-                if total_chars + len(result.content) > MAX_TOTAL_CHARS:
-                    continue
+                remaining = char_budget - total_chars
+                if remaining <= 0:
+                    break
+                if len(result.content) > remaining:
+                    # Don't drop a whole file just because it's a bit over budget;
+                    # truncate it to what fits so the prompt stays within the window.
+                    if not collected:
+                        result = replace(result, content=result.content[:remaining])
+                    else:
+                        continue
                 collected[result.source_path] = result
                 total_chars += len(result.content)
             if len(collected) >= MAX_CHUNKS:
