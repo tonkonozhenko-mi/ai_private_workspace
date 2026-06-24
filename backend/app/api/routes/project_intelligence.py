@@ -186,14 +186,26 @@ def _watch_rebuild(workspace_id: str) -> ProjectSnapshotMeta:
     ).execute(BuildProjectGraphInput(workspace_id=workspace_id))
 
 
+def _watch_git_brief(workspace_id: str, since_commit: str | None):
+    """A read-only git brief for the workspace's project folder: what landed
+    since the commit recorded at the last check."""
+    from app.core.domain.git_change_brief import GitChangeBrief
+
+    workspace = workspace_repository.get(workspace_id)
+    if workspace is None:
+        return GitChangeBrief(comparable=False, head=None, commit_count=0)
+    return git_history.change_brief(workspace.project_path, since_commit)
+
+
 @router.post("/{workspace_id}/intelligence/watch")
 def run_project_watch(workspace_id: str) -> dict:
     """Run a watcher check: re-scan, rebuild the graph, and report what changed
-    since the previous snapshot. Persists the digest for later viewing."""
+    since the previous snapshot (graph + a human git brief). Persists the digest."""
     use_case = RunProjectWatchUseCase(
         project_graph_repository=project_graph_repository,
         watch_repository=project_watch_repository,
         build_graph=_watch_rebuild,
+        git_brief_provider=_watch_git_brief,
     )
     try:
         digest = use_case.execute(RunProjectWatchInput(workspace_id=workspace_id))

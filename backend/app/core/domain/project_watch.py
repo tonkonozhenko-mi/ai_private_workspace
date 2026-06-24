@@ -175,20 +175,41 @@ def _highlights(diff: GraphDiff) -> list[dict]:
                 }
             )
 
+    # Tag each line so the UI can lead with what a person cares about (real
+    # risks) and tuck the analyzer bookkeeping (counts, "detected X", structural
+    # adds/removes) under a collapsed "structural details" section.
+    for highlight in highlights:
+        highlight["category"] = _highlight_category(
+            highlight["kind"], highlight.get("severity")
+        )
     return highlights
+
+
+def _highlight_category(kind: str, severity: str | None) -> str:
+    if kind == "risk_added":
+        # "info" findings are really just "we detected X" — not a real risk.
+        return "structural" if (severity or "").lower() == "info" else "risk"
+    if kind == "risk_resolved":
+        return "risk"
+    return "structural"
 
 
 def build_watch_digest(
     diff: GraphDiff,
     previous_meta: ProjectSnapshotMeta | None,
     current_meta: ProjectSnapshotMeta,
+    git_brief: "GitChangeBrief | None" = None,
 ) -> dict:
+    from app.core.domain.git_change_brief import format_git_brief, top_changed_areas
+
     counts = {
         "entities_added": len(diff.added_entities),
         "entities_removed": len(diff.removed_entities),
         "findings_added": len(diff.added_findings),
         "findings_resolved": len(diff.resolved_findings),
     }
+
+    git_lines = format_git_brief(git_brief) if git_brief is not None else []
 
     if diff.is_baseline:
         summary = (
@@ -209,12 +230,28 @@ def build_watch_digest(
             parts.append(f"{counts['entities_removed']} removed")
         summary = "Since the last check: " + ", ".join(parts) + "."
 
+    # Lead with the human, git-grounded headline when we have one.
+    if git_lines:
+        summary = git_lines[0]
+
     return {
         "baseline": diff.is_baseline,
-        "has_changes": diff.has_changes,
+        "has_changes": diff.has_changes or bool(git_brief and git_brief.commit_count),
         "checked_at": current_meta.created_at,
         "previous_checked_at": previous_meta.created_at if previous_meta else None,
         "summary": summary,
+        "git_brief": {
+            "lines": git_lines,
+            "commit_count": git_brief.commit_count if git_brief else 0,
+            "authors": git_brief.authors if git_brief else [],
+            "areas": [
+                {"area": area, "files": files}
+                for area, files in (
+                    top_changed_areas(git_brief.changed_paths) if git_brief else []
+                )
+            ],
+        },
+        "git_head": git_brief.head if git_brief else None,
         "highlights": _highlights(diff),
         "counts": counts,
     }

@@ -4854,6 +4854,9 @@ a.getting-ready-cta:hover {
 .pw-error { color: #f0a3a3; font-size: 12.5px; margin: 0; }
 .pw-muted { color: var(--c-text-2); font-size: 12.5px; margin: 0; }
 .pw-summary { font-size: 13.5px; color: var(--c-text); line-height: 1.55; margin: 0; }
+.pw-git-line { font-size: 12.5px; color: var(--c-text-2); line-height: 1.5; margin: 6px 0 0; }
+.pw-highlights-muted { opacity: 0.85; }
+.pw-highlights-muted .pw-highlight-text { color: var(--c-text-2); }
 .pw-highlights { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
 .pw-highlight { display: flex; align-items: flex-start; gap: 9px; font-size: 12.5px; color: var(--c-text); line-height: 1.45; }
 .pw-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex: none; }

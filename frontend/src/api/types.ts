@@ -1790,6 +1790,14 @@ export interface ProjectWatchHighlight {
   severity?: string;
   entity_type?: string;
   source_file?: string | null;
+  category?: "risk" | "structural" | string;
+}
+
+export interface ProjectWatchGitBrief {
+  lines: string[];
+  commit_count: number;
+  authors: string[];
+  areas: { area: string; files: number }[];
 }
 
 export interface ProjectWatchDigest {
@@ -1798,6 +1806,8 @@ export interface ProjectWatchDigest {
   checked_at: string;
   previous_checked_at: string | null;
   summary: string;
+  git_brief?: ProjectWatchGitBrief;
+  git_head?: string | null;
   highlights: ProjectWatchHighlight[];
   counts: {
     entities_added: number;

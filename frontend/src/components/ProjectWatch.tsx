@@ -94,51 +94,73 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
       ) : null}
 
       {digest ? (
-        <>
-          <p className="pw-summary">{digest.summary}</p>
-          {digest.has_changes ? (
-            <div className="pw-counts">
-              {digest.counts.entities_added > 0 ? (
-                <span className="pw-count pw-count-add">+{digest.counts.entities_added} added</span>
-              ) : null}
-              {digest.counts.entities_removed > 0 ? (
-                <span className="pw-count pw-count-remove">−{digest.counts.entities_removed} removed</span>
-              ) : null}
-              {digest.counts.findings_added > 0 ? (
-                <span className="pw-count pw-count-risk">+{digest.counts.findings_added} new risk{digest.counts.findings_added === 1 ? "" : "s"}</span>
-              ) : null}
-              {digest.counts.findings_resolved > 0 ? (
-                <span className="pw-count pw-count-resolved">−{digest.counts.findings_resolved} resolved</span>
-              ) : null}
-            </div>
-          ) : null}
-          {digest.highlights.length > 0 ? (
+        (() => {
+          const git = digest.git_brief;
+          const riskHighlights = digest.highlights.filter((h) => h.category === "risk");
+          const structural = digest.highlights.filter((h) => h.category !== "risk");
+          const hasGitWork = !!git && git.commit_count > 0;
+          return (
             <>
-              <ul className="pw-highlights">
-                {(showAll ? digest.highlights : digest.highlights.slice(0, 8)).map((h, i) => (
-                  <li key={i} className="pw-highlight">
-                    <span className={`pw-dot ${HIGHLIGHT_DOT[h.kind] ?? "pw-dot-new"}`} />
-                    <span className="pw-highlight-text">
-                      {h.severity && h.kind === "risk_added" ? (
-                        <span className={`pw-sev pw-sev-${h.severity}`}>{h.severity}</span>
-                      ) : null}
-                      {h.text}
+              <p className="pw-summary">{digest.summary}</p>
+
+              {/* Git brief: what the team actually did since last time. */}
+              {git && git.lines.length > 1 ? (
+                <p className="pw-git-line">{git.lines[1]}</p>
+              ) : null}
+              {git && git.authors.length > 0 && hasGitWork ? (
+                <div className="pw-counts">
+                  {git.areas.slice(0, 4).map((a) => (
+                    <span key={a.area} className="pw-count pw-count-add">
+                      {a.area} · {a.files}
                     </span>
-                  </li>
-                ))}
-              </ul>
-              {digest.highlights.length > 8 ? (
-                <button type="button" className="pw-link" onClick={() => setShowAll((v) => !v)}>
-                  {showAll
-                    ? "Show less"
-                    : `Show all ${digest.highlights.length} changes`}
-                </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {/* Risks first — the part a person cares about. */}
+              {riskHighlights.length > 0 ? (
+                <ul className="pw-highlights">
+                  {riskHighlights.map((h, i) => (
+                    <li key={i} className="pw-highlight">
+                      <span className={`pw-dot ${HIGHLIGHT_DOT[h.kind] ?? "pw-dot-new"}`} />
+                      <span className="pw-highlight-text">
+                        {h.severity && h.kind === "risk_added" ? (
+                          <span className={`pw-sev pw-sev-${h.severity}`}>{h.severity}</span>
+                        ) : null}
+                        {h.text}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+
+              {/* Analyzer bookkeeping, tucked away. */}
+              {structural.length > 0 ? (
+                <>
+                  <button type="button" className="pw-link" onClick={() => setShowAll((v) => !v)}>
+                    {showAll
+                      ? "Hide structural details"
+                      : `Structural details (${structural.length})`}
+                  </button>
+                  {showAll ? (
+                    <ul className="pw-highlights pw-highlights-muted">
+                      {structural.map((h, i) => (
+                        <li key={i} className="pw-highlight">
+                          <span className={`pw-dot ${HIGHLIGHT_DOT[h.kind] ?? "pw-dot-new"}`} />
+                          <span className="pw-highlight-text">{h.text}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </>
+              ) : null}
+
+              {!hasGitWork && riskHighlights.length === 0 && !digest.baseline ? (
+                <p className="pw-muted">Nothing new to report.</p>
               ) : null}
             </>
-          ) : digest.baseline ? null : (
-            <p className="pw-muted">Nothing new to report.</p>
-          )}
-        </>
+          );
+        })()
       ) : null}
     </section>
   );

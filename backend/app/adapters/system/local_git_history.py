@@ -87,6 +87,59 @@ class LocalGitHistory:
             file_couplings=self._file_couplings(root),
         )
 
+    def change_brief(
+        self, project_path: str, since_commit: str | None
+    ) -> "GitChangeBrief":
+        """What landed in the repo since ``since_commit`` (the HEAD at the last
+        watch check): commit count, authors, and changed files. Read-only.
+
+        ``comparable`` is False when this is not a git repo, or when there is no
+        usable baseline (first check, or the old commit is gone after a rebase/
+        force-push) — the caller then shows no git brief rather than a wrong one.
+        """
+        from app.core.domain.git_change_brief import GitChangeBrief
+
+        root = Path(project_path).expanduser()
+        none = GitChangeBrief(comparable=False, head=None, commit_count=0)
+        if not root.exists() or not root.is_dir():
+            return none
+        inside = self._run(root, ["rev-parse", "--is-inside-work-tree"])
+        if inside is None or inside.strip() != "true":
+            return none
+
+        head = self._run(root, ["rev-parse", "HEAD"])
+        head = head.strip() if head else None
+        if head is None:
+            return none
+        if not since_commit:
+            # First check: record the baseline, nothing to compare yet.
+            return GitChangeBrief(comparable=False, head=head, commit_count=0)
+
+        verified = self._run(root, ["rev-parse", "--verify", "--quiet", f"{since_commit}^{{commit}}"])
+        if not verified:
+            # Baseline commit no longer in history (rebase/force-push) — can't diff.
+            return GitChangeBrief(comparable=False, head=head, commit_count=0)
+        if since_commit.strip() == head:
+            return GitChangeBrief(comparable=True, head=head, commit_count=0)
+
+        rng = f"{since_commit}..HEAD"
+        count = self._count(root, ["rev-list", "--count", rng])
+        authors_raw = self._run(root, ["log", "--format=%an", rng]) or ""
+        authors: list[str] = []
+        for name in authors_raw.splitlines():
+            name = name.strip()
+            if name and name not in authors:
+                authors.append(name)
+        changed_raw = self._run(root, ["diff", "--name-only", since_commit, "HEAD"]) or ""
+        changed = [line.strip() for line in changed_raw.splitlines() if line.strip()][:500]
+        return GitChangeBrief(
+            comparable=True,
+            head=head,
+            commit_count=count,
+            authors=authors,
+            changed_paths=changed,
+        )
+
     def file_activity(
         self, project_path: str, relative_path: str | None = None
     ) -> GitFileActivity | None:
