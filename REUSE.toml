@@ -8,5 +8,5 @@ version = 1
 [[annotations]]
 path = "**"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 Maks Tonkonozhenko <tonkonozhenko.mi@gmail.com>"
+SPDX-FileCopyrightText = "2026 Maks Tonkonozhenko (https://github.com/tonkonozhenko-mi)"
 SPDX-License-Identifier = "Apache-2.0"

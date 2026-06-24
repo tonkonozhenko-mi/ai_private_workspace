@@ -16,7 +16,10 @@ The current supported source release candidate is `v0.1`.
 
 ## Reporting issues
 
-Please open a private security report or contact the maintainers before publicly disclosing vulnerabilities.
+Please report vulnerabilities through GitHub before publicly disclosing them, using either:
+
+- **Private vulnerability reporting** — the repository's **Security › Report a vulnerability** tab (preferred; the report stays private), or
+- a regular **GitHub issue** for non-sensitive reports.
 
 Include:
 
