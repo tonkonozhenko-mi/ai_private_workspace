@@ -181,6 +181,11 @@ class SQLiteVectorStore:
         results: list[ContextSearchResult] = []
         for chunk_id in chosen:
             score, row = cosine_by_id[chunk_id]
+            metadata = self._loads_metadata(row["metadata_json"])
+            # Carry the chunk's embedding so downstream MMR diversification can
+            # reuse it without re-embedding. Internal only — never serialized to
+            # the client (the API exposes RagSource, not this metadata).
+            metadata["_embedding"] = self._loads_embedding(row["embedding_json"])
             results.append(
                 ContextSearchResult(
                     chunk_id=row["chunk_id"],
@@ -189,7 +194,7 @@ class SQLiteVectorStore:
                     # UI's relevance bar stays meaningful.
                     score=score,
                     content=row["content"],
-                    metadata=self._loads_metadata(row["metadata_json"]),
+                    metadata=metadata,
                 )
             )
         return results

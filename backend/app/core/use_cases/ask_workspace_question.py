@@ -1,6 +1,6 @@
 import os
 from collections.abc import Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from time import perf_counter
 
@@ -11,6 +11,7 @@ from app.core.domain.attached_documents import (
 from app.core.domain.context_budget import chunk_char_budget, fit_context_results
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
+from app.core.domain.mmr import EMBEDDING_KEY, mmr_select
 from app.core.domain.rag import (
     RagQualityWarning,
     RagSource,
@@ -58,6 +59,29 @@ GENERAL_CHAT_DIAGNOSTIC_MESSAGE = (
     "No project files were relevant to this question, so it was answered as "
     "general conversation instead of from project context."
 )
+
+# How many chunks to aim for in a grounded answer (the window budget trims if
+# they don't fit), and how wide a candidate pool to draw them from for MMR.
+_ANSWER_CHUNK_TARGET = 8
+_MMR_POOL = 24
+
+
+def _strip_embeddings(results: list[ContextSearchResult]) -> list[ContextSearchResult]:
+    """Drop the internal per-chunk embedding the store attached for MMR, so it
+    never travels further than retrieval."""
+    cleaned: list[ContextSearchResult] = []
+    for result in results:
+        metadata = result.metadata
+        if metadata and EMBEDDING_KEY in metadata:
+            cleaned.append(
+                replace(
+                    result,
+                    metadata={k: v for k, v in metadata.items() if k != EMBEDDING_KEY},
+                )
+            )
+        else:
+            cleaned.append(result)
+    return cleaned
 
 
 def _usage_kwargs(llm_provider: LLMProviderPort) -> dict[str, object | None]:
@@ -763,27 +787,41 @@ class AskWorkspaceQuestionUseCase:
         retrieval_query = self._retrieval_query(request)
         query_embedding = self.embedding_provider.embed_text(retrieval_query)
         rerank = self.reranker is not None and self.reranker.enabled
-        # When reranking, pull a wider candidate set so the cross-encoder has
-        # something to re-sort; otherwise fetch exactly what we need.
-        fetch_limit = max(request.limit, self.rerank_candidates) if rerank else request.limit
+
+        if rerank:
+            # Cross-encoder path: pull a wide set, re-sort, keep request.limit.
+            candidates = self.vector_store.search(
+                workspace_id=request.workspace_id,
+                query_embedding=query_embedding,
+                limit=max(request.limit, self.rerank_candidates),
+                embedding_provider=self.embedding_provider.provider_name,
+                embedding_model=self.embedding_provider.model_name,
+                embedding_dimension=len(query_embedding),
+                query_text=retrieval_query,
+            )
+            if len(candidates) <= request.limit:
+                return _strip_embeddings(candidates[: request.limit])
+            order = self.reranker.rerank(
+                retrieval_query, [result.content for result in candidates], request.limit
+            )
+            reranked = [candidates[i] for i in order if 0 <= i < len(candidates)]
+            return _strip_embeddings((reranked or candidates)[: request.limit])
+
+        # Default path (no reranker): fetch a wider pool and pick a relevant-but-
+        # diverse subset with MMR, so the budgeted context covers more of the
+        # codebase instead of near-duplicate top hits.
+        target = max(request.limit, _ANSWER_CHUNK_TARGET)
+        pool = max(target * 3, _MMR_POOL)
         candidates = self.vector_store.search(
             workspace_id=request.workspace_id,
             query_embedding=query_embedding,
-            limit=fetch_limit,
+            limit=pool,
             embedding_provider=self.embedding_provider.provider_name,
             embedding_model=self.embedding_provider.model_name,
             embedding_dimension=len(query_embedding),
             query_text=retrieval_query,
         )
-        if not rerank or len(candidates) <= request.limit:
-            return candidates[: request.limit]
-
-        order = self.reranker.rerank(
-            retrieval_query, [result.content for result in candidates], request.limit
-        )
-        reranked = [candidates[index] for index in order if 0 <= index < len(candidates)]
-        # Safety net: if the reranker returned nothing usable, keep hybrid order.
-        return (reranked or candidates)[: request.limit]
+        return _strip_embeddings(mmr_select(query_embedding, candidates, target))
 
     def _skill_profile_audit(
         self,
