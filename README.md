@@ -359,12 +359,12 @@ AI Private Workspace is designed around explicit user control:
 The frontend keeps the common workflows focused and progressively reveals technical detail:
 
 - **Ask** answers from workspace context and can prepare a safe, editable file draft.
-- **Models** separates Overview, Choose & install, Skills, Compare, and Advanced configuration.
+- **Models** separates Overview, Choose & install, Compare, and Tuning.
 - **Choose & install** uses backend-provided recommendations and accepts custom
   Ollama model tags. A desktop-owned backend can safely run the exact approved
   `ollama pull <model>` job, while browser development keeps downloads disabled
   unless explicitly configured.
-- **Skills** saves workspace model presets, while **Compare** runs explicit model comparisons.
+- **Tuning** holds per-model answer settings, while **Compare** runs explicit model comparisons. The single editable **Skills** library lives in **Settings** (one place to edit or create skills, picked per question in Ask).
 - **Settings** shows a plain-language readiness checklist for the local backend, project scan, search context, and local AI.
 
 ## Troubleshooting
