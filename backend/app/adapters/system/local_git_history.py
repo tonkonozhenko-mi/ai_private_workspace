@@ -132,12 +132,21 @@ class LocalGitHistory:
                 authors.append(name)
         changed_raw = self._run(root, ["diff", "--name-only", since_commit, "HEAD"]) or ""
         changed = [line.strip() for line in changed_raw.splitlines() if line.strip()][:500]
+        # Commit subjects (newest first), no merges — raw material for the
+        # optional LLM "in short" summary. Capped so the log stays bounded.
+        subjects_raw = self._run(
+            root, ["log", "--no-merges", "--format=%s", rng]
+        ) or ""
+        subjects = [
+            line.strip() for line in subjects_raw.splitlines() if line.strip()
+        ][:200]
         return GitChangeBrief(
             comparable=True,
             head=head,
             commit_count=count,
             authors=authors,
             changed_paths=changed,
+            commit_subjects=subjects,
         )
 
     def file_activity(

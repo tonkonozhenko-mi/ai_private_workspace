@@ -1,5 +1,6 @@
 from app.core.domain.git_change_brief import (
     GitChangeBrief,
+    build_change_summary_prompt,
     format_git_brief,
     top_changed_areas,
 )
@@ -56,3 +57,48 @@ def test_format_many_authors_summarised():
 def test_singular_commit():
     brief = GitChangeBrief(comparable=True, head="abc", commit_count=1, authors=["A"])
     assert format_git_brief(brief)[0] == "1 commit by A since your last check."
+
+
+def test_summary_prompt_none_without_baseline_or_commits():
+    assert build_change_summary_prompt(GitChangeBrief(False, "abc", 0)) is None
+    # Comparable but no subjects → nothing to summarise.
+    assert (
+        build_change_summary_prompt(
+            GitChangeBrief(True, "abc", 3, authors=["A"], commit_subjects=[])
+        )
+        is None
+    )
+
+
+def test_summary_prompt_includes_subjects_and_authors():
+    brief = GitChangeBrief(
+        comparable=True,
+        head="abc",
+        commit_count=2,
+        authors=["Anya", "Oleg"],
+        changed_paths=["auth/a.py"],
+        commit_subjects=["feat: add login", "fix: token refresh"],
+    )
+    prompt = build_change_summary_prompt(brief)
+    assert prompt is not None
+    assert "2 commits by Anya and Oleg" in prompt
+    assert "feat: add login" in prompt
+    assert "fix: token refresh" in prompt
+    assert prompt.rstrip().endswith("Summary:")
+
+
+def test_summary_prompt_trims_to_window():
+    subjects = [f"commit number {i} doing a fair amount of work" for i in range(5000)]
+    brief = GitChangeBrief(
+        comparable=True,
+        head="abc",
+        commit_count=len(subjects),
+        authors=["A"],
+        commit_subjects=subjects,
+    )
+    # Tiny window forces aggressive trimming but still yields a usable prompt.
+    prompt = build_change_summary_prompt(brief, max_context_tokens=1024)
+    assert prompt is not None
+    assert "more commits not shown" in prompt
+    # The prompt must stay far below the raw material it was built from.
+    assert len(prompt) < sum(len(s) for s in subjects)

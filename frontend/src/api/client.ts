@@ -91,6 +91,7 @@ import type {
   GitFileActivityResponse,
   ProjectWatchDigest,
   ProjectWatchResponse,
+  ProjectWatchSummary,
 } from "./types";
 
 export const DEFAULT_API_BASE_URL =
@@ -751,6 +752,20 @@ export function runProjectWatch(
     method: "POST",
     headers: { Accept: "application/json" },
   });
+}
+
+export function summarizeProjectWatch(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ProjectWatchSummary> {
+  return requestJson<ProjectWatchSummary>(
+    `/workspaces/${workspaceId}/intelligence/watch/summary`,
+    {
+      signal: options.signal,
+      method: "POST",
+      headers: { Accept: "application/json" },
+    },
+  );
 }
 
 export function generateProjectUnderstanding(

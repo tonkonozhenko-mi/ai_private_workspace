@@ -1798,6 +1798,12 @@ export interface ProjectWatchGitBrief {
   commit_count: number;
   authors: string[];
   areas: { area: string; files: number }[];
+  commit_subjects?: string[];
+}
+
+export interface ProjectWatchSummary {
+  summary: string;
+  commit_count: number;
 }
 
 export interface ProjectWatchDigest {

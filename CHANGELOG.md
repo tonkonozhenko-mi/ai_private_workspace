@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.176] - 2026-06-24
+
+### Added
+
+- **One-tap recap of what the team did.** The "What changed since last time" card now has a *Summarise the changes* action: the local model reads the commit messages from the latest check and writes 2-3 plain-language sentences about what the work accomplished. It is grounded only in the commit subjects already in the digest (no extra git query, nothing invented), and the prompt is trimmed to fit the answer window so even a busy day with hundreds of commits never overflows. Read-only and entirely on-device.
+
 ## [0.1.139] - 2026-06-23
 
 ### Changed
