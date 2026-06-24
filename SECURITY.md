@@ -18,8 +18,8 @@ The current supported source release candidate is `v0.1`.
 
 Please report vulnerabilities through GitHub before publicly disclosing them, using either:
 
-- **Private vulnerability reporting** — the repository's **Security › Report a vulnerability** tab (preferred; the report stays private), or
-- a regular **GitHub issue** for non-sensitive reports.
+- **Private vulnerability reporting** — [open a private report](https://github.com/tonkonozhenko-mi/ai_private_workspace/security/advisories/new) (preferred; the report stays private), or
+- a regular [GitHub issue](https://github.com/tonkonozhenko-mi/ai_private_workspace/issues/new) for non-sensitive reports.
 
 Include:
 

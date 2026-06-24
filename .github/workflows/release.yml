@@ -14,8 +14,10 @@ on:
     tags:
       - "v*" # e.g. v0.2.0
 
+# Least privilege at the top level; only the jobs that touch the GitHub Release
+# widen to contents: write (Scorecard Token-Permissions rewards this).
 permissions:
-  contents: write # needed to create the GitHub Release
+  contents: read
 
 # One release run per tag; never cancel a publish midway.
 concurrency:
@@ -24,6 +26,8 @@ concurrency:
 
 jobs:
   release:
+    permissions:
+      contents: write # create the GitHub Release + upload installers
     strategy:
       fail-fast: false
       matrix:
@@ -162,6 +166,8 @@ jobs:
   download-links:
     needs: release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # edit release notes + upload checksums
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Add a grouped Downloads section to the release
@@ -209,6 +215,8 @@ jobs:
   sbom:
     needs: release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # attach the SBOM to the release
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Generate SPDX SBOM
@@ -230,6 +238,8 @@ jobs:
   test-report:
     needs: release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # attach the test report to the release
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
