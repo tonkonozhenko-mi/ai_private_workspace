@@ -46,6 +46,16 @@ _TYPE_LABEL = {
 }
 
 
+def _pluralize(label: str, count: int) -> str:
+    """English plural that handles 'y' → 'ies' (dependency → dependencies), so
+    counts never read like '2 new dependencys'."""
+    if count == 1:
+        return label
+    if label.endswith("y") and label[-2:-1].lower() not in "aeiou":
+        return f"{label[:-1]}ies"
+    return f"{label}s"
+
+
 @dataclass(frozen=True)
 class GraphDiff:
     is_baseline: bool
@@ -161,7 +171,7 @@ def _highlights(diff: GraphDiff) -> list[dict]:
                 {
                     "kind": "count_added",
                     "entity_type": entity_type,
-                    "text": f"{added} new {label}{'s' if added != 1 else ''}",
+                    "text": f"{added} new {_pluralize(label, added)}",
                 }
             )
 
