@@ -60,9 +60,7 @@ def format_git_brief(brief: GitChangeBrief) -> list[str]:
     if brief.commit_count <= 0:
         return ["No new commits since your last check."]
 
-    commits = (
-        f"{brief.commit_count} commit{'s' if brief.commit_count != 1 else ''}"
-    )
+    commits = f"{brief.commit_count} commit{'s' if brief.commit_count != 1 else ''}"
     lines = [f"{commits} by {_join_authors(brief.authors)} since your last check."]
 
     areas = top_changed_areas(brief.changed_paths)
@@ -138,10 +136,4 @@ def build_change_summary_prompt(
         )
         area_line = f"\nMost-changed areas: {rendered}."
 
-    return (
-        "\n".join(header_lines)
-        + "\n"
-        + body
-        + area_line
-        + "\n\nSummary:"
-    )
+    return "\n".join(header_lines) + "\n" + body + area_line + "\n\nSummary:"

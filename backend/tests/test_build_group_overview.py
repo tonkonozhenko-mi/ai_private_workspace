@@ -61,32 +61,62 @@ def _graph(wid, services=0, envs=(), pipelines=(), infra=(), findings=()):
 
 def _finding(sev, title):
     return ProjectFinding(
-        id=f"{sev}:{title}", category="c", severity=sev, title=title,
-        explanation="e", analyzer="a",
+        id=f"{sev}:{title}",
+        category="c",
+        severity=sev,
+        title=title,
+        explanation="e",
+        analyzer="a",
     )
 
 
 def _build():
     group_repo = InMemoryProjectGroupRepository()
-    group_repo.add(ProjectGroup(id="g1", name="Platform", workspace_ids=("w1", "w2"), created_at="2026-06-01"))
+    group_repo.add(
+        ProjectGroup(id="g1", name="Platform", workspace_ids=("w1", "w2"), created_at="2026-06-01")
+    )
     graphs = {
-        "w1": _graph("w1", services=2, envs=("dev", "prod"), pipelines=("build",),
-                     infra=("Terraform",), findings=(_finding("high", "No remote state"),)),
-        "w2": _graph("w2", services=1, envs=("prod", "staging"), infra=("Helm",),
-                     findings=(_finding("medium", "Public bucket"),)),
+        "w1": _graph(
+            "w1",
+            services=2,
+            envs=("dev", "prod"),
+            pipelines=("build",),
+            infra=("Terraform",),
+            findings=(_finding("high", "No remote state"),),
+        ),
+        "w2": _graph(
+            "w2",
+            services=1,
+            envs=("prod", "staging"),
+            infra=("Helm",),
+            findings=(_finding("medium", "Public bucket"),),
+        ),
     }
     git = {
-        "/p/w1": GitInsights(is_repo=True, branch="main", total_commits=100,
-                             contributors_count=4, commits_last_7_days=10,
-                             last_commit=GitCommit(short_hash="abc", subject="fix", author="a", committed_at="")),
-        "/p/w2": GitInsights(is_repo=True, branch="main", total_commits=50,
-                             contributors_count=2, commits_last_7_days=5),
+        "/p/w1": GitInsights(
+            is_repo=True,
+            branch="main",
+            total_commits=100,
+            contributors_count=4,
+            commits_last_7_days=10,
+            last_commit=GitCommit(short_hash="abc", subject="fix", author="a", committed_at=""),
+        ),
+        "/p/w2": GitInsights(
+            is_repo=True,
+            branch="main",
+            total_commits=50,
+            contributors_count=2,
+            commits_last_7_days=5,
+        ),
     }
     uc = BuildGroupOverviewUseCase(
         group_repository=group_repo,
-        workspace_repository=_WorkspaceRepo([
-            _Workspace("w1", "api", "/p/w1"), _Workspace("w2", "web", "/p/w2"),
-        ]),
+        workspace_repository=_WorkspaceRepo(
+            [
+                _Workspace("w1", "api", "/p/w1"),
+                _Workspace("w2", "web", "/p/w2"),
+            ]
+        ),
         project_graph_repository=_GraphRepo(graphs),
         git_history=_GitHistory(git),
     )

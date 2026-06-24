@@ -28,12 +28,20 @@ def _overview() -> GroupOverview:
         risks=[GroupMemberRisk("w1", "api", "high", "No remote state")],
         members=[
             GroupMemberOverview(
-                workspace_id="w1", name="api", project_path="/p/w1", built=True,
-                indexed=True, description="3 service(s); 2 env(s): dev, prod",
+                workspace_id="w1",
+                name="api",
+                project_path="/p/w1",
+                built=True,
+                indexed=True,
+                description="3 service(s); 2 env(s): dev, prod",
             ),
             GroupMemberOverview(
-                workspace_id="w2", name="web", project_path="/p/w2", built=False,
-                indexed=False, description="Not analyzed yet.",
+                workspace_id="w2",
+                name="web",
+                project_path="/p/w2",
+                built=False,
+                indexed=False,
+                description="Not analyzed yet.",
             ),
         ],
     )

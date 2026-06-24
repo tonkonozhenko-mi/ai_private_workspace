@@ -34,6 +34,7 @@ _ENTITY_LABEL: dict[str, str] = {
     EntityType.REFERENCE: "References",
 }
 
+
 # Each candidate question is gated by an entity type that must exist for the
 # question to be answerable. Generic — phrased around the *kind* of thing, never
 # a specific tool. ``topic`` ties the question to a graph type so it can be
@@ -45,15 +46,27 @@ class _QuestionCandidate:
 
 
 _QUESTION_CANDIDATES: list[_QuestionCandidate] = [
-    _QuestionCandidate("How is this project deployed, and to which environments?", EntityType.PIPELINE),
-    _QuestionCandidate("What runs in CI on a push, a pull request, and a tag?", EntityType.PIPELINE),
+    _QuestionCandidate(
+        "How is this project deployed, and to which environments?", EntityType.PIPELINE
+    ),
+    _QuestionCandidate(
+        "What runs in CI on a push, a pull request, and a tag?", EntityType.PIPELINE
+    ),
     _QuestionCandidate("How do the environments differ from each other?", EntityType.ENVIRONMENT),
-    _QuestionCandidate("What infrastructure does this project provision?", EntityType.INFRA_COMPONENT),
+    _QuestionCandidate(
+        "What infrastructure does this project provision?", EntityType.INFRA_COMPONENT
+    ),
     _QuestionCandidate("Which cloud services does this project use?", EntityType.CLOUD_SERVICE),
     _QuestionCandidate("How is the application structured into modules?", EntityType.MODULE),
-    _QuestionCandidate("What are the main services, and how do they fit together?", EntityType.SERVICE),
-    _QuestionCandidate("Which third-party dependencies does this project rely on?", EntityType.DEPENDENCY),
-    _QuestionCandidate("Where is configuration kept, and what shapes runtime behaviour?", EntityType.CONFIG_FILE),
+    _QuestionCandidate(
+        "What are the main services, and how do they fit together?", EntityType.SERVICE
+    ),
+    _QuestionCandidate(
+        "Which third-party dependencies does this project rely on?", EntityType.DEPENDENCY
+    ),
+    _QuestionCandidate(
+        "Where is configuration kept, and what shapes runtime behaviour?", EntityType.CONFIG_FILE
+    ),
     # These two are always worth offering — every project can answer them.
     _QuestionCandidate("Where should I start reading to understand this repo?", None),
     _QuestionCandidate("What are the biggest risks flagged here, and what should I check?", None),

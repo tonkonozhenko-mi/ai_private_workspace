@@ -92,7 +92,7 @@ def _split_action(body: str) -> tuple[str, str]:
     if not name_match:
         return "", ""
     tool = name_match.group(1)
-    rest = body[name_match.end():].strip()
+    rest = body[name_match.end() :].strip()
     if rest.startswith("(") and rest.endswith(")"):
         rest = rest[1:-1].strip()
     elif rest.startswith(":"):

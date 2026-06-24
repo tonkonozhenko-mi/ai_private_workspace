@@ -9,51 +9,14 @@ from app.adapters.embeddings.switchable_embedding_provider import (
 )
 from app.adapters.filesystem.local_file_system import LocalFileSystem
 from app.adapters.llm.fake_llm_provider import FakeLLMProvider
+from app.adapters.llm.llama_server_reranker import LlamaServerReranker
 from app.adapters.llm.llm_provider_factory import LLMProviderFactory
 from app.adapters.memory.in_memory_agent_workflow_repository import InMemoryAgentWorkflowRepository
-from app.adapters.memory.in_memory_command_repository import InMemoryCommandRepository
-from app.adapters.memory.in_memory_conversation_repository import InMemoryConversationRepository
-from app.adapters.memory.in_memory_project_graph_repository import InMemoryProjectGraphRepository
-from app.adapters.memory.in_memory_project_watch_repository import (
-    InMemoryProjectWatchRepository,
-)
-from app.adapters.memory.in_memory_project_memory_repository import (
-    InMemoryProjectMemoryRepository,
-)
-from app.adapters.memory.sqlite_project_memory_repository import (
-    SQLiteProjectMemoryRepository,
-)
-from app.adapters.memory.in_memory_user_profile_repository import (
-    InMemoryUserProfileRepository,
-)
-from app.adapters.memory.sqlite_user_profile_repository import (
-    SQLiteUserProfileRepository,
-)
-from app.core.ports.user_profile_repository import UserProfileRepositoryPort
-from app.core.ports.project_memory_repository import ProjectMemoryRepositoryPort
-from app.adapters.memory.in_memory_project_group_repository import (
-    InMemoryProjectGroupRepository,
-)
-from app.adapters.memory.sqlite_project_group_repository import (
-    SQLiteProjectGroupRepository,
-)
-from app.core.ports.project_group_repository import ProjectGroupRepositoryPort
 from app.adapters.memory.in_memory_answer_rating_repository import (
     InMemoryAnswerRatingRepository,
 )
-from app.adapters.memory.sqlite_answer_rating_repository import (
-    SQLiteAnswerRatingRepository,
-)
-from app.core.ports.answer_rating_repository import AnswerRatingRepositoryPort
-from app.core.use_cases.compose_project_context import ComposeProjectContextUseCase
-from app.adapters.project_graph.sqlite_project_graph_repository import (
-    SQLiteProjectGraphRepository,
-)
-from app.adapters.project_graph.sqlite_project_watch_repository import (
-    SQLiteProjectWatchRepository,
-)
-from app.core.ports.project_graph_repository import ProjectGraphRepositoryPort
-from app.core.ports.project_watch_repository import ProjectWatchRepositoryPort
+from app.adapters.memory.in_memory_command_repository import InMemoryCommandRepository
+from app.adapters.memory.in_memory_conversation_repository import InMemoryConversationRepository
 from app.adapters.memory.in_memory_index_status_repository import (
     InMemoryIndexStatusRepository,
 )
@@ -70,15 +33,28 @@ from app.adapters.memory.in_memory_model_experiment_rating_repository import (
 from app.adapters.memory.in_memory_model_experiment_repository import (
     InMemoryModelExperimentRepository,
 )
+from app.adapters.memory.in_memory_project_graph_repository import InMemoryProjectGraphRepository
+from app.adapters.memory.in_memory_project_group_repository import (
+    InMemoryProjectGroupRepository,
+)
+from app.adapters.memory.in_memory_project_memory_repository import (
+    InMemoryProjectMemoryRepository,
+)
 from app.adapters.memory.in_memory_project_scan_repository import (
     InMemoryProjectScanRepository,
 )
 from app.adapters.memory.in_memory_project_understanding_repository import (
     InMemoryProjectUnderstandingRepository,
 )
+from app.adapters.memory.in_memory_project_watch_repository import (
+    InMemoryProjectWatchRepository,
+)
 from app.adapters.memory.in_memory_report_repository import InMemoryReportRepository
 from app.adapters.memory.in_memory_skill_profile_repository import InMemorySkillProfileRepository
 from app.adapters.memory.in_memory_timeline_repository import InMemoryTimelineRepository
+from app.adapters.memory.in_memory_user_profile_repository import (
+    InMemoryUserProfileRepository,
+)
 from app.adapters.memory.in_memory_workspace_model_selection_repository import (
     InMemoryWorkspaceModelSelectionRepository,
 )
@@ -87,6 +63,9 @@ from app.adapters.memory.in_memory_workspace_storage_gateway import (
     InMemoryWorkspaceStorageGateway,
 )
 from app.adapters.memory.sqlite_agent_workflow_repository import SQLiteAgentWorkflowRepository
+from app.adapters.memory.sqlite_answer_rating_repository import (
+    SQLiteAnswerRatingRepository,
+)
 from app.adapters.memory.sqlite_command_repository import SQLiteCommandRepository
 from app.adapters.memory.sqlite_conversation_repository import SQLiteConversationRepository
 from app.adapters.memory.sqlite_index_status_repository import SQLiteIndexStatusRepository
@@ -101,6 +80,12 @@ from app.adapters.memory.sqlite_model_experiment_rating_repository import (
 from app.adapters.memory.sqlite_model_experiment_repository import (
     SQLiteModelExperimentRepository,
 )
+from app.adapters.memory.sqlite_project_group_repository import (
+    SQLiteProjectGroupRepository,
+)
+from app.adapters.memory.sqlite_project_memory_repository import (
+    SQLiteProjectMemoryRepository,
+)
 from app.adapters.memory.sqlite_project_scan_repository import SQLiteProjectScanRepository
 from app.adapters.memory.sqlite_project_understanding_repository import (
     SQLiteProjectUnderstandingRepository,
@@ -108,6 +93,9 @@ from app.adapters.memory.sqlite_project_understanding_repository import (
 from app.adapters.memory.sqlite_report_repository import SQLiteReportRepository
 from app.adapters.memory.sqlite_skill_profile_repository import SQLiteSkillProfileRepository
 from app.adapters.memory.sqlite_timeline_repository import SQLiteTimelineRepository
+from app.adapters.memory.sqlite_user_profile_repository import (
+    SQLiteUserProfileRepository,
+)
 from app.adapters.memory.sqlite_workspace_model_selection_repository import (
     SQLiteWorkspaceModelSelectionRepository,
 )
@@ -116,6 +104,12 @@ from app.adapters.memory.sqlite_workspace_storage_gateway import (
     SQLiteWorkspaceStorageGateway,
 )
 from app.adapters.model_catalog.user_model_catalog_loader import UserModelCatalogLoader
+from app.adapters.project_graph.sqlite_project_graph_repository import (
+    SQLiteProjectGraphRepository,
+)
+from app.adapters.project_graph.sqlite_project_watch_repository import (
+    SQLiteProjectWatchRepository,
+)
 from app.adapters.runtime_health.command_runner_health_checker import (
     CommandRunnerHealthChecker,
 )
@@ -127,7 +121,6 @@ from app.adapters.runtime_health.qdrant_runtime_health_checker import (
 )
 from app.adapters.system.gguf_download_job_runner import GgufDownloadJobRunner
 from app.adapters.system.huggingface_gguf_downloader import HuggingFaceGgufDownloader
-from app.adapters.llm.llama_server_reranker import LlamaServerReranker
 from app.adapters.system.llama_runtime_manager import LlamaRuntimeManager
 from app.adapters.system.local_git_history import LocalGitHistory
 from app.adapters.system.runtime_state_store import RuntimeStateStore
@@ -136,6 +129,7 @@ from app.adapters.vector_store.sqlite_vector_store import SQLiteVectorStore
 from app.config.settings import get_settings
 from app.core.domain.model_catalog_registry import ModelCatalogRegistry
 from app.core.ports.agent_workflow_repository import AgentWorkflowRepositoryPort
+from app.core.ports.answer_rating_repository import AnswerRatingRepositoryPort
 from app.core.ports.command_repository import CommandRepositoryPort
 from app.core.ports.command_runner import CommandRunnerPort
 from app.core.ports.conversation_repository import ConversationRepositoryPort
@@ -152,20 +146,26 @@ from app.core.ports.model_experiment_rating_repository import (
     ModelExperimentRatingRepositoryPort,
 )
 from app.core.ports.model_experiment_repository import ModelExperimentRepositoryPort
+from app.core.ports.project_graph_repository import ProjectGraphRepositoryPort
+from app.core.ports.project_group_repository import ProjectGroupRepositoryPort
+from app.core.ports.project_memory_repository import ProjectMemoryRepositoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.project_understanding_repository import (
     ProjectUnderstandingRepositoryPort,
 )
+from app.core.ports.project_watch_repository import ProjectWatchRepositoryPort
 from app.core.ports.report_repository import ReportRepositoryPort
 from app.core.ports.runtime_health_checker import RuntimeHealthCheckerPort
 from app.core.ports.skill_profile_repository import SkillProfileRepositoryPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
+from app.core.ports.user_profile_repository import UserProfileRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_model_selection_repository import (
     WorkspaceModelSelectionRepositoryPort,
 )
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.ports.workspace_storage_gateway import WorkspaceStorageGatewayPort
+from app.core.use_cases.compose_project_context import ComposeProjectContextUseCase
 from app.core.use_cases.download_gguf_model import DownloadGgufModelUseCase
 
 
@@ -696,9 +696,7 @@ llama_runtime_manager = LlamaRuntimeManager(
 )
 command_runner = build_command_runner()
 embedding_provider = SwitchableEmbeddingProvider(build_embedding_provider())
-runtime_state_store = RuntimeStateStore(
-    Path(get_settings().app_data_dir) / "runtime_state.json"
-)
+runtime_state_store = RuntimeStateStore(Path(get_settings().app_data_dir) / "runtime_state.json")
 llm_provider_factory = build_llm_provider_factory()
 vector_store = build_vector_store()
 readiness_configuration = build_readiness_configuration()

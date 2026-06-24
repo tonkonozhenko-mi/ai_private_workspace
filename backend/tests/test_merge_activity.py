@@ -1,4 +1,5 @@
 """Merge & PR activity inference from commit subjects."""
+
 from app.core.domain.git_insights import summarize_merges
 
 

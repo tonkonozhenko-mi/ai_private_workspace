@@ -100,19 +100,36 @@ def test_usecase_delete():
 
 
 # --- Q&A dedup helper (Project Memory) ---
-from app.core.domain.project_memory import MemoryItem as _MI, MemoryKind as _MK, prior_qa_ids_for
+from app.core.domain.project_memory import MemoryItem as _MI
+from app.core.domain.project_memory import MemoryKind as _MK
+from app.core.domain.project_memory import prior_qa_ids_for
 
 
 def _qa(i, q, a, pinned=False):
-    return _MI(id=i, workspace_id="w", kind=_MK.QA, text=f"Q: {q}\nA: {a}", source="agent", created_at="2026-06-01", pinned=pinned)
+    return _MI(
+        id=i,
+        workspace_id="w",
+        kind=_MK.QA,
+        text=f"Q: {q}\nA: {a}",
+        source="agent",
+        created_at="2026-06-01",
+        pinned=pinned,
+    )
 
 
 def test_prior_qa_ids_matches_same_question_only():
     items = [
         _qa("1", "Who is the lead devops?", "Old answer"),
-        _qa("2", "who is the LEAD devops?", "Newer answer"),   # same q, different case/space
-        _qa("3", "Where is prod deployed?", "Somewhere"),       # different q
-        _MI(id="4", workspace_id="w", kind=_MK.NOTE, text="prod is prd", source="user", created_at="2026-06-01"),
+        _qa("2", "who is the LEAD devops?", "Newer answer"),  # same q, different case/space
+        _qa("3", "Where is prod deployed?", "Somewhere"),  # different q
+        _MI(
+            id="4",
+            workspace_id="w",
+            kind=_MK.NOTE,
+            text="prod is prd",
+            source="user",
+            created_at="2026-06-01",
+        ),
     ]
     ids = prior_qa_ids_for(items, "  who is the lead devops? ")
     assert set(ids) == {"1", "2"}

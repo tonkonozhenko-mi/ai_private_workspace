@@ -89,7 +89,9 @@ class _LLMFactory:
 
 def _build(group_members, vector_rows, indexed_ids, workspaces):
     group_repo = InMemoryProjectGroupRepository()
-    group = ProjectGroup(id="g1", name="Platform", workspace_ids=tuple(group_members), created_at="2026-06-01")
+    group = ProjectGroup(
+        id="g1", name="Platform", workspace_ids=tuple(group_members), created_at="2026-06-01"
+    )
     group_repo.add(group)
     factory = _LLMFactory()
     uc = AskGroupQuestionUseCase(
@@ -211,7 +213,9 @@ def test_execute_stream_yields_tokens_then_final():
 
 def test_context_provider_counts_are_summed_across_repos():
     group_repo = InMemoryProjectGroupRepository()
-    group_repo.add(ProjectGroup(id="g1", name="P", workspace_ids=("w1", "w2"), created_at="2026-06-01"))
+    group_repo.add(
+        ProjectGroup(id="g1", name="P", workspace_ids=("w1", "w2"), created_at="2026-06-01")
+    )
     uc = AskGroupQuestionUseCase(
         group_repository=group_repo,
         workspace_repository=_WorkspaceRepo([_Workspace("w1", "api"), _Workspace("w2", "web")]),
@@ -219,14 +223,16 @@ def test_context_provider_counts_are_summed_across_repos():
         vector_store=_VectorStore({"w1": [("a", 0.9)], "w2": [("b", 0.8)]}),
         llm_provider_factory=_LLMFactory(),
         index_status_repository=_StatusRepo(["w1", "w2"]),
-        project_context_provider=_ContextProvider({
-            "w1": ("prod is called prd", 2, 1),
-            "w2": ("uses postgres", 1, 3),
-        }),
+        project_context_provider=_ContextProvider(
+            {
+                "w1": ("prod is called prd", 2, 1),
+                "w2": ("uses postgres", 1, 3),
+            }
+        ),
     )
     res = uc.execute(AskGroupQuestionInput(group_id="g1", question="db?"))
     assert res.memory_used == 3  # 2 + 1
-    assert res.facts_used == 4   # 1 + 3
+    assert res.facts_used == 4  # 1 + 3
 
 
 def test_per_repo_cap_limits_one_repo():

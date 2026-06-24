@@ -152,9 +152,7 @@ def present_ci(graph: ProjectGraph) -> dict:
     import json
 
     pipelines = [
-        e
-        for e in graph.entities_of_type(EntityType.PIPELINE)
-        if e.metadata.get("triggers_json")
+        e for e in graph.entities_of_type(EntityType.PIPELINE) if e.metadata.get("triggers_json")
     ]
     if not pipelines:
         return {"has_data": False, "scenarios": []}
@@ -169,9 +167,21 @@ def present_ci(graph: ProjectGraph) -> dict:
             )
 
     scenarios = {
-        "push_feature": {"key": "push_feature", "label": "Push to a feature branch", "workflows": []},
-        "push_default": {"key": "push_default", "label": "Push or merge to the default branch", "workflows": []},
-        "pull_request": {"key": "pull_request", "label": "Open or update a pull request", "workflows": []},
+        "push_feature": {
+            "key": "push_feature",
+            "label": "Push to a feature branch",
+            "workflows": [],
+        },
+        "push_default": {
+            "key": "push_default",
+            "label": "Push or merge to the default branch",
+            "workflows": [],
+        },
+        "pull_request": {
+            "key": "pull_request",
+            "label": "Open or update a pull request",
+            "workflows": [],
+        },
         "tag": {"key": "tag", "label": "Push a tag or publish a release", "workflows": []},
         "schedule": {"key": "schedule", "label": "On a schedule", "workflows": []},
         "manual": {"key": "manual", "label": "Run manually", "workflows": []},
@@ -308,7 +318,10 @@ def present_project_intelligence(graph: ProjectGraph, lens: RoleLens) -> dict:
     if pipelines:
         parts.append(f"{len(pipelines)} CI/CD pipeline(s)")
     if environments:
-        parts.append(f"{len(environments)} environment(s): " + ", ".join(sorted(e.name for e in environments)))
+        parts.append(
+            f"{len(environments)} environment(s): "
+            + ", ".join(sorted(e.name for e in environments))
+        )
     description = (
         "Detected " + "; ".join(parts) + "." if parts else "No supported technologies detected yet."
     )

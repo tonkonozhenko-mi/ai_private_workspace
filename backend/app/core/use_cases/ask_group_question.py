@@ -38,8 +38,7 @@ from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 
 NO_MEMBERS_ANSWER = (
-    "This group has no repositories yet. Add one or more projects to the group, "
-    "then ask again."
+    "This group has no repositories yet. Add one or more projects to the group, then ask again."
 )
 NO_CONTEXT_ANSWER = (
     "Nothing relevant was found across this group's repositories. Build the search "
@@ -151,9 +150,7 @@ class AskGroupQuestionUseCase:
             return self._runtime_error_answer(request, prepared, exc)
         return self._final_answer(request, prepared, answer)
 
-    def execute_stream(
-        self, request: AskGroupQuestionInput
-    ) -> Iterator[GroupAskStreamEvent]:
+    def execute_stream(self, request: AskGroupQuestionInput) -> Iterator[GroupAskStreamEvent]:
         prepared = self._prepare(request)
         if isinstance(prepared, GroupQuestionAnswer):
             yield GroupAskStreamFinal(prepared)
@@ -215,9 +212,7 @@ class AskGroupQuestionUseCase:
 
         selected = sorted(pool, key=lambda t: t.result.score, reverse=True)[: request.limit]
         for member in members:
-            member.chunks_used = sum(
-                1 for t in selected if t.workspace_id == member.workspace_id
-            )
+            member.chunks_used = sum(1 for t in selected if t.workspace_id == member.workspace_id)
 
         memory_section, memory_used, facts_used = self._project_context(
             group.id, members, request.question

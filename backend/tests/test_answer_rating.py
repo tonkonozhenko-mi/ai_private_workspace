@@ -14,8 +14,12 @@ from app.core.use_cases.manage_answer_ratings import (
 
 def _r(i, verdict, model="ollama/small", chunks=5):
     return AnswerRating(
-        id=str(i), workspace_id="w", verdict=verdict, llm_model=model,
-        context_chunks=chunks, created_at=f"2026-06-{i:02d}",
+        id=str(i),
+        workspace_id="w",
+        verdict=verdict,
+        llm_model=model,
+        context_chunks=chunks,
+        created_at=f"2026-06-{i:02d}",
     )
 
 
@@ -68,8 +72,14 @@ def test_record_and_get_nudges_end_to_end():
     repo = InMemoryAnswerRatingRepository()
     rec = RecordAnswerRatingUseCase(repo)
     for _ in range(5):
-        rec.execute(RecordAnswerRatingInput(workspace_id="w", verdict="down", llm_model="m", context_chunks=0))
-    rec.execute(RecordAnswerRatingInput(workspace_id="w", verdict="up", llm_model="m", context_chunks=3))
+        rec.execute(
+            RecordAnswerRatingInput(
+                workspace_id="w", verdict="down", llm_model="m", context_chunks=0
+            )
+        )
+    rec.execute(
+        RecordAnswerRatingInput(workspace_id="w", verdict="up", llm_model="m", context_chunks=3)
+    )
     nudges = GetRatingNudgesUseCase(repo).execute("w")
     assert {n.kind for n in nudges} >= {"model", "retrieval"}
     # other workspace is unaffected

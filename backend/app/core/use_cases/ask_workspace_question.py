@@ -195,9 +195,7 @@ class AskWorkspaceQuestionUseCase:
         except Exception:  # noqa: BLE001 - context is best-effort, never fatal
             return "", 0, 0
 
-    def _conversation_history(
-        self, request: AskWorkspaceQuestionInput
-    ) -> list[tuple[str, str]]:
+    def _conversation_history(self, request: AskWorkspaceQuestionInput) -> list[tuple[str, str]]:
         """Recent (role, content) turns of this conversation for prompt context.
 
         Best-effort: missing repo/conversation, or any error, yields no history so
@@ -728,9 +726,7 @@ class AskWorkspaceQuestionUseCase:
         rerank = self.reranker is not None and self.reranker.enabled
         # When reranking, pull a wider candidate set so the cross-encoder has
         # something to re-sort; otherwise fetch exactly what we need.
-        fetch_limit = (
-            max(request.limit, self.rerank_candidates) if rerank else request.limit
-        )
+        fetch_limit = max(request.limit, self.rerank_candidates) if rerank else request.limit
         candidates = self.vector_store.search(
             workspace_id=request.workspace_id,
             query_embedding=query_embedding,

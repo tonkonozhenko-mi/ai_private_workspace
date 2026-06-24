@@ -17,7 +17,9 @@ from app.core.use_cases.manage_user_profile import (
 )
 
 
-def _item(text: str, *, pinned: bool = False, created_at: str = "2026-01-01", cat: str = "fact") -> UserProfileItem:
+def _item(
+    text: str, *, pinned: bool = False, created_at: str = "2026-01-01", cat: str = "fact"
+) -> UserProfileItem:
     return UserProfileItem(id=text, category=cat, text=text, created_at=created_at, pinned=pinned)
 
 
@@ -52,7 +54,9 @@ def test_is_duplicate_ignores_case_and_whitespace():
 def test_use_case_add_list_delete_pin():
     uc = ManageUserProfileUseCase(InMemoryUserProfileRepository())
     a = uc.add(AddUserProfileFactInput(text="DevOps engineer", category=UserProfileCategory.ROLE))
-    uc.add(AddUserProfileFactInput(text="Answer concisely", category=UserProfileCategory.PREFERENCE))
+    uc.add(
+        AddUserProfileFactInput(text="Answer concisely", category=UserProfileCategory.PREFERENCE)
+    )
     assert len(uc.list()) == 2
 
     uc.set_pinned(a.id, True)

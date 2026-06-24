@@ -169,4 +169,3 @@ def get_first_launch_readiness() -> FirstLaunchReadinessResponse:
         ],
         safety_note="This post-launch checklist is read-only. It never installs models, starts scans, rebuilds indexes, executes MCP tools, or runs shell commands from the frontend. Startup instructions live outside the UI in docs/START_HERE.md until the real desktop package exists.",
     )
-

@@ -127,9 +127,7 @@ def _env_root(evidence: list[str], env: str) -> str | None:
     return shallowest
 
 
-def _environments_from_labels(
-    labels: list[tuple[str, str]], analyzer: str
-) -> list[ProjectEntity]:
+def _environments_from_labels(labels: list[tuple[str, str]], analyzer: str) -> list[ProjectEntity]:
     """Infer environments from named labels (e.g. Kubernetes namespaces or
     ``values-<env>.yaml`` filenames). Each label is tokenised on non-alphanumeric
     separators and matched against the canonical environment tokens. Like the
@@ -259,9 +257,7 @@ def _cloud_entities(
             continue
         provider, service = mapped
         key = (provider, service)
-        bucket = grouped.setdefault(
-            key, {"count": 0, "source": ref.source_file, "types": set()}
-        )
+        bucket = grouped.setdefault(key, {"count": 0, "source": ref.source_file, "types": set()})
         bucket["count"] += 1
         bucket["types"].add(ref.resource_type)
 
@@ -503,9 +499,7 @@ def from_kubernetes(
             )
 
     # Namespaces whose names carry an environment token are inferred environments.
-    entities.extend(
-        _environments_from_labels([(ns, ns) for ns in result.namespaces], "kubernetes")
-    )
+    entities.extend(_environments_from_labels([(ns, ns) for ns in result.namespaces], "kubernetes"))
     findings = _findings(result.findings, "kubernetes", FindingCategory.RELIABILITY)
     return entities, relations, findings
 
@@ -570,9 +564,7 @@ def from_python(
     if not has_app:
         return [], [], _findings(result.findings, "python", FindingCategory.GENERAL)
 
-    app_name = (
-        f"{result.frameworks[0]} application" if result.frameworks else "Python application"
-    )
+    app_name = f"{result.frameworks[0]} application" if result.frameworks else "Python application"
     application = ProjectEntity(
         id=_entity_id(EntityType.APPLICATION, app_name),
         type=EntityType.APPLICATION,
@@ -683,7 +675,13 @@ _IMPORTANT_FILE_RULES: list[tuple[re.Pattern[str], int, str]] = [
     (re.compile(r"(^|/)(main|backend|providers?|versions)\.tf$"), 80, "Terraform root"),
     (re.compile(r"(^|/)dockerfile$", re.IGNORECASE), 80, "Container build"),
     (re.compile(r"(^|/)docker-compose\.ya?ml$"), 75, "Compose services"),
-    (re.compile(r"(^|/)(package\.json|pyproject\.toml|requirements\.txt|go\.mod|cargo\.toml|pom\.xml)$"), 70, "Dependency manifest"),
+    (
+        re.compile(
+            r"(^|/)(package\.json|pyproject\.toml|requirements\.txt|go\.mod|cargo\.toml|pom\.xml)$"
+        ),
+        70,
+        "Dependency manifest",
+    ),
     (re.compile(r"(^|/)readme(\.md|\.rst|\.txt)?$", re.IGNORECASE), 60, "Project README"),
     (re.compile(r"(^|/)(variables|outputs)\.tf$"), 55, "Terraform interface"),
 ]

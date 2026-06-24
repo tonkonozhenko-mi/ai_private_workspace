@@ -210,8 +210,7 @@ class LlamaRuntimeManager:
         return {
             "binary_available": binary is not None,
             "binary_path": str(binary) if binary is not None else None,
-            "models_ready": self._dl.is_installed(llm_model)
-            and self._dl.is_installed(embed_model),
+            "models_ready": self._dl.is_installed(llm_model) and self._dl.is_installed(embed_model),
             "running": running,
             "active_llm_model": llm_model.id,
             "active_embedding_model": embed_model.id,
@@ -335,9 +334,7 @@ class LlamaRuntimeManager:
             if self._embed is not None:
                 self._embed.stop()
             self._embed = LlamaServerProcessManager(binary, host=self._host)
-            self._embed.start(
-                self._dl.destination_path(model), self._embed_port, embedding=True
-            )
+            self._embed.start(self._dl.destination_path(model), self._embed_port, embedding=True)
         return self.status()
 
     def memory(self) -> list[dict]:

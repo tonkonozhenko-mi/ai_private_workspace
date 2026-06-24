@@ -7,6 +7,21 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.1.178] - 2026-06-24
+
+### Added
+
+- **OpenSSF Best Practices: passing.** Earned the OpenSSF Best Practices *passing* badge (project 13357) and added it to the README alongside the other compliance badges. README badges are grouped into two centered rows (release/status and quality/compliance) with REUSE and CodeFactor using their native badges.
+
+### Changed
+
+- **Tighter Scorecard posture.** `release.yml` now uses top-level `contents: read` with `contents: write` only on the jobs that touch the GitHub Release (Token-Permissions). `SECURITY.md` links to GitHub private vulnerability reporting and issues (Security-Policy). The backend Docker base image is `python:3.14-slim` pinned by digest, tracked by a new Dependabot `docker` ecosystem (Pinned-Dependencies).
+- **Privacy.** Contact routes through GitHub (no email in `REUSE.toml` or `SECURITY.md`); copyright is dated 2026.
+
+### Fixed
+
+- **Builds green after dependency bumps.** Vite `manualChunks` switched to the function form (type-compatible after the Vite/Rollup major bump); resolved two `ruff` F821 errors by declaring the `GitChangeBrief` forward-reference annotations under `TYPE_CHECKING`.
+
 ## [0.1.177] - 2026-06-24
 
 ### Added

@@ -11,7 +11,7 @@ No model is retrained. This is a pure read over a local log — same inputs alwa
 give the same nudges.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 class RatingVerdict:

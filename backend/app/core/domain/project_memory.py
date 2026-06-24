@@ -67,11 +67,7 @@ def select_relevant_memory(
     ranked = sorted(candidates, key=score, reverse=True)
     # Keep items that are pinned or actually overlap the query; if nothing
     # overlaps and nothing is pinned, fall back to the most recent few.
-    relevant = [
-        i
-        for i in ranked
-        if i.pinned or (_tokens(i.text) & query_tokens)
-    ]
+    relevant = [i for i in ranked if i.pinned or (_tokens(i.text) & query_tokens)]
     if not relevant:
         relevant = ranked[:limit]
     return relevant[:limit]

@@ -37,6 +37,7 @@ from app.core.domain.project_intelligence_view import (
     present_project_intelligence,
     present_references,
 )
+from app.core.domain.project_memory import MemoryKind
 from app.core.domain.role_brief import build_role_brief
 from app.core.domain.role_lens import role_lens_for
 from app.core.ports.llm_provider_factory import LLMProviderFactoryError
@@ -46,17 +47,16 @@ from app.core.use_cases.build_project_graph import (
     BuildProjectGraphUseCase,
     BuildProjectGraphWorkspaceNotFoundError,
 )
+from app.core.use_cases.build_project_handbook import (
+    BuildHandbookGraphRequiredError,
+    BuildHandbookInput,
+    BuildProjectHandbookUseCase,
+)
 from app.core.use_cases.investigate_project import (
     InvestigateProjectError,
     InvestigateProjectInput,
     InvestigateProjectUseCase,
     InvestigateProjectWorkspaceNotFoundError,
-)
-from app.core.domain.project_memory import MemoryKind
-from app.core.use_cases.build_project_handbook import (
-    BuildHandbookGraphRequiredError,
-    BuildHandbookInput,
-    BuildProjectHandbookUseCase,
 )
 from app.core.use_cases.manage_project_memory import (
     AddMemoryInput,
@@ -74,6 +74,8 @@ from app.core.use_cases.run_project_watch import (
 from app.core.use_cases.scan_workspace_project import (
     ScanWorkspaceProjectInput,
     ScanWorkspaceProjectUseCase,
+)
+from app.core.use_cases.scan_workspace_project import (
     WorkspaceNotFoundError as ScanWorkspaceNotFoundError,
 )
 
@@ -175,9 +177,9 @@ def get_project_intelligence_overview_text(workspace_id: str, role: str | None =
 def _watch_rebuild(workspace_id: str) -> ProjectSnapshotMeta:
     """Re-scan the project from disk, then rebuild the graph — so the watcher
     compares against the current files, not a stale scan."""
-    ScanWorkspaceProjectUseCase(
-        workspace_repository, file_system, project_scan_repository
-    ).execute(ScanWorkspaceProjectInput(workspace_id=workspace_id))
+    ScanWorkspaceProjectUseCase(workspace_repository, file_system, project_scan_repository).execute(
+        ScanWorkspaceProjectInput(workspace_id=workspace_id)
+    )
     return BuildProjectGraphUseCase(
         workspace_repository=workspace_repository,
         project_scan_repository=project_scan_repository,
@@ -331,9 +333,7 @@ class PinMemoryRequest(BaseModel):
 
 @router.post("/{workspace_id}/memory/{item_id}/pin")
 def pin_project_memory(workspace_id: str, item_id: str, request: PinMemoryRequest) -> dict:
-    SetMemoryPinnedUseCase(project_memory_repository).execute(
-        workspace_id, item_id, request.pinned
-    )
+    SetMemoryPinnedUseCase(project_memory_repository).execute(workspace_id, item_id, request.pinned)
     return {"pinned": request.pinned}
 
 

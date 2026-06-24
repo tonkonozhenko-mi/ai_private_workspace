@@ -104,9 +104,7 @@ class UpdateWorkspaceModelSelectionUseCase:
         selected_llm = current.selected_llm if current is not None else None
         selected_embedding = current.selected_embedding if current is not None else None
         embedding_changed = False
-        old_embedding_model = (
-            selected_embedding.model if selected_embedding is not None else None
-        )
+        old_embedding_model = selected_embedding.model if selected_embedding is not None else None
         if model_type == "llm":
             selected_llm = selected_model
         else:
@@ -145,9 +143,7 @@ class UpdateWorkspaceModelSelectionUseCase:
                 ):
                     prior = old_embedding_model or "previous-search-model"
                     if prior.strip().lower() != model.strip().lower():
-                        self.index_status_repository.save(
-                            replace(index, embedding_model=prior)
-                        )
+                        self.index_status_repository.save(replace(index, embedding_model=prior))
             except Exception:  # noqa: BLE001 - never let tagging break model selection
                 pass
         if self.timeline_repository is not None:

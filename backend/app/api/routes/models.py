@@ -245,9 +245,7 @@ def list_gguf_catalog(model_type: str | None = None) -> list[GgufCatalogItemResp
                 installed=_gguf_download_use_case.is_installed(model),
                 # "active" only when the engine is actually running this model, so
                 # the UI never shows "In use" for a stopped engine.
-                active=engine_running
-                and model.model_type == "llm"
-                and model.id == active_llm,
+                active=engine_running and model.model_type == "llm" and model.id == active_llm,
             )
         )
 
@@ -291,11 +289,7 @@ def _custom_gguf_items(
                 continue
             filename = path.name
             lower = f"{repo_id}/{filename}".lower()
-            kind = (
-                "embedding"
-                if any(hint in lower for hint in _EMBEDDING_NAME_HINTS)
-                else "llm"
-            )
+            kind = "embedding" if any(hint in lower for hint in _EMBEDDING_NAME_HINTS) else "llm"
             model_id = f"{repo_id}/{filename}"
             quant_match = re.search(r"(IQ\d\w*|Q\d[_A-Z0-9]*|f16|bf16)", filename)
             results.append(
@@ -308,13 +302,9 @@ def _custom_gguf_items(
                     quantization=quant_match.group(0) if quant_match else "custom",
                     size_bytes=size,
                     recommended=False,
-                    download_url=(
-                        f"https://huggingface.co/{repo_id}/resolve/main/{filename}"
-                    ),
+                    download_url=(f"https://huggingface.co/{repo_id}/resolve/main/{filename}"),
                     installed=True,
-                    active=engine_running
-                    and kind == "llm"
-                    and model_id == active_llm,
+                    active=engine_running and kind == "llm" and model_id == active_llm,
                     custom=True,
                 )
             )
@@ -409,9 +399,7 @@ def resolve_gguf(request: ResolveGgufRequest) -> ResolveGgufResponse:
     files = [
         f
         for f in files
-        if "vocab" not in f.lower()
-        and "mmproj" not in f.lower()
-        and "-of-" not in f.lower()
+        if "vocab" not in f.lower() and "mmproj" not in f.lower() and "-of-" not in f.lower()
     ]
     if not files:
         raise HTTPException(
@@ -445,9 +433,7 @@ def start_gguf_download(request: StartGgufDownloadRequest) -> GgufDownloadJobRes
             )
         )
     except GgufModelNotResolvedError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return _to_gguf_job_response(job)
 
 
@@ -498,9 +484,7 @@ def llama_runtime_start() -> LlamaRuntimeStatusResponse:
     try:
         return LlamaRuntimeStatusResponse(**llama_runtime_manager.start())
     except (LlamaRuntimeError, LlamaServerStartError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
 @router.post("/llama-runtime/stop", response_model=LlamaRuntimeStatusResponse)
@@ -586,9 +570,7 @@ def switch_llama_runtime_llm(request: SwitchLlamaLlmRequest) -> LlamaRuntimeStat
     try:
         result = llama_runtime_manager.switch_llm(ref)
     except (LlamaRuntimeError, LlamaServerStartError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     runtime_state_store.set_llamacpp_llm(
         model_id=request.model_id,
         repo_id=request.repo_id,
@@ -618,9 +600,7 @@ def switch_llama_runtime_embedding(
     try:
         result = llama_runtime_manager.switch_embedding(ref)
     except (LlamaRuntimeError, LlamaServerStartError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     runtime_state_store.set_llamacpp_embedding(
         model_id=request.model_id,
         repo_id=request.repo_id,
@@ -642,8 +622,7 @@ def switch_llama_runtime_embedding(
             embedding_provider.set_delegate(
                 LlamaServerEmbeddingProvider(
                     base_url=(
-                        f"http://{settings_.LLAMA_SERVER_HOST}:"
-                        f"{settings_.LLAMA_SERVER_EMBED_PORT}"
+                        f"http://{settings_.LLAMA_SERVER_HOST}:{settings_.LLAMA_SERVER_EMBED_PORT}"
                     ),
                     model=llama_runtime_manager.active_embed_model_id,
                     timeout_seconds=settings_.ollama_timeout_seconds,
@@ -684,9 +663,7 @@ def delete_gguf_model(request: DeleteGgufModelRequest) -> DeleteGgufModelRespons
             )
         )
     except GgufModelNotResolvedError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     runtime = llama_runtime_manager.status()
     in_use = runtime.get("running") and model.id in {
@@ -720,24 +697,16 @@ def activate_workspace_runtime(workspace_id: str) -> ActivateWorkspaceRuntimeRes
     selection = workspace_model_selection_repository.get(workspace_id)
     selected_llm = selection.selected_llm if selection is not None else None
     selected_embedding = selection.selected_embedding if selection is not None else None
-    wants_llamacpp = (
-        selected_llm is not None and selected_llm.provider.lower() == "llamacpp"
-    ) or (
-        selected_embedding is not None
-        and selected_embedding.provider.lower() == "llamacpp"
+    wants_llamacpp = (selected_llm is not None and selected_llm.provider.lower() == "llamacpp") or (
+        selected_embedding is not None and selected_embedding.provider.lower() == "llamacpp"
     )
 
     if wants_llamacpp:
         try:
             if selected_llm is not None and selected_llm.provider.lower() == "llamacpp":
                 llama_runtime_manager.set_llm_ref(GgufModelRef(model_id=selected_llm.model))
-            if (
-                selected_embedding is not None
-                and selected_embedding.provider.lower() == "llamacpp"
-            ):
-                llama_runtime_manager.set_embed_ref(
-                    GgufModelRef(model_id=selected_embedding.model)
-                )
+            if selected_embedding is not None and selected_embedding.provider.lower() == "llamacpp":
+                llama_runtime_manager.set_embed_ref(GgufModelRef(model_id=selected_embedding.model))
             llama_runtime_manager.start()
             if hasattr(embedding_provider, "set_delegate"):
                 embedding_provider.set_delegate(build_embedding_for_backend("llamacpp"))

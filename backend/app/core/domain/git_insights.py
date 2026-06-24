@@ -182,9 +182,7 @@ _KNOWN_PREFIXES = {
 }
 
 
-def infer_branch_strategy(
-    branches: list[str], default_branch: str | None
-) -> GitBranchStrategy:
+def infer_branch_strategy(branches: list[str], default_branch: str | None) -> GitBranchStrategy:
     """Infer a branching model from branch names. Pure and deterministic."""
     names = sorted({b.strip() for b in branches if b.strip()})
     lower = {n.lower() for n in names}
@@ -263,9 +261,7 @@ def _branch_type(branch: str) -> str:
     return head if head in _BRANCH_PREFIXES else "other"
 
 
-def summarize_merges(
-    merge_subjects: list[str], all_subjects: list[str]
-) -> GitMergeActivity:
+def summarize_merges(merge_subjects: list[str], all_subjects: list[str]) -> GitMergeActivity:
     """Pure aggregation of merge/PR signals from commit subjects."""
     source_types: dict[str, int] = {}
     targets: dict[str, int] = {}

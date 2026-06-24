@@ -178,9 +178,7 @@ class AnalyzePythonUseCase:
         )
         notable = self._notable_dependencies(workspace.project_path, dependency_files)
         frameworks |= {
-            label
-            for label in notable
-            if label in {"FastAPI", "Flask", "Django", "Celery"}
+            label for label in notable if label in {"FastAPI", "Flask", "Django", "Celery"}
         }
 
         findings: list[AnalysisFinding] = []
@@ -255,9 +253,7 @@ class AnalyzePythonUseCase:
         raw: set[str] = set()
         for path in dependency_files:
             base = posixpath.basename(path)
-            content = self.file_system.read_text_file(
-                root_path=project_path, relative_path=path
-            )
+            content = self.file_system.read_text_file(root_path=project_path, relative_path=path)
             if base.endswith(".txt"):
                 for line in content.splitlines():
                     stripped = line.strip()

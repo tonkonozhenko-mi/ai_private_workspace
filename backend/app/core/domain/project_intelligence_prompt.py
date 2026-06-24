@@ -46,7 +46,7 @@ def build_ask_graph_prompt(view: dict, role_label: str, question: str) -> str:
         "Strict rules:\n"
         "- Answer using ONLY the facts above. Do not use outside knowledge or "
         "assumptions about how similar projects usually work.\n"
-        '- If the facts do not contain the answer, say plainly: "That isn\'t '
+        "- If the facts do not contain the answer, say plainly: \"That isn't "
         'visible in the analyzed files." — optionally noting what would need to be '
         "checked.\n"
         "- Be concise: 1-4 plain sentences, no markdown, no bullet lists.\n"

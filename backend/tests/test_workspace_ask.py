@@ -62,8 +62,7 @@ def test_ask_with_index_metadata_but_empty_active_store_answers_with_warning(
     warning_codes = [w["code"] for w in result["quality_warnings"]]
     assert "answered_without_project_context" in warning_codes
     rebuild_hint = next(
-        w for w in result["quality_warnings"]
-        if w["code"] == "answered_without_project_context"
+        w for w in result["quality_warnings"] if w["code"] == "answered_without_project_context"
     )
     assert "rebuild" in rebuild_hint["message"].lower()
 

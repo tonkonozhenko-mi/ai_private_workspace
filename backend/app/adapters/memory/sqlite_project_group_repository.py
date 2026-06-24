@@ -67,9 +67,7 @@ class SQLiteProjectGroupRepository:
 
     def get(self, group_id: str) -> ProjectGroup | None:
         with self._connect() as connection:
-            cursor = connection.execute(
-                "SELECT * FROM project_groups WHERE id = ?", (group_id,)
-            )
+            cursor = connection.execute("SELECT * FROM project_groups WHERE id = ?", (group_id,))
             row = cursor.fetchone()
             return self._row_to_group(row) if row else None
 
@@ -91,7 +89,5 @@ class SQLiteProjectGroupRepository:
 
     def delete(self, group_id: str) -> None:
         with self._connect() as connection:
-            connection.execute(
-                "DELETE FROM project_groups WHERE id = ?", (group_id,)
-            )
+            connection.execute("DELETE FROM project_groups WHERE id = ?", (group_id,))
             connection.commit()

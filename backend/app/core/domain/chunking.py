@@ -60,10 +60,35 @@ _BRACE_TYPES = {
 # Extensions that indicate a brace-structured language when the scanner could not
 # classify the file (it reports "unknown" for these source types).
 _BRACE_EXTENSIONS = {
-    ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx",
-    ".go", ".java", ".rs", ".c", ".h", ".cpp", ".hpp", ".cc", ".cxx",
-    ".cs", ".kt", ".kts", ".scala", ".swift", ".php", ".m", ".mm",
-    ".tf", ".hcl", ".json", ".proto", ".dart", ".groovy",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".ts",
+    ".tsx",
+    ".go",
+    ".java",
+    ".rs",
+    ".c",
+    ".h",
+    ".cpp",
+    ".hpp",
+    ".cc",
+    ".cxx",
+    ".cs",
+    ".kt",
+    ".kts",
+    ".scala",
+    ".swift",
+    ".php",
+    ".m",
+    ".mm",
+    ".tf",
+    ".hcl",
+    ".json",
+    ".proto",
+    ".dart",
+    ".groovy",
 }
 
 
@@ -214,11 +239,7 @@ def _split_markdown(content: str) -> list[str]:
     for line in lines:
         if _FENCE_RE.match(line):
             in_fence = not in_fence
-        if (
-            not in_fence
-            and _HEADING_RE.match(line)
-            and any(item.strip() for item in current)
-        ):
+        if not in_fence and _HEADING_RE.match(line) and any(item.strip() for item in current):
             sections.append("\n".join(current))
             current = [line]
         else:

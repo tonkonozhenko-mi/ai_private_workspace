@@ -9,7 +9,7 @@ from app.core.domain.chunking import (
     chunk_text,
 )
 
-PYTHON = '''\
+PYTHON = """\
 import os
 
 
@@ -26,7 +26,7 @@ def second(x):
 class Widget:
     def method(self):
         return os.getcwd()
-'''
+"""
 
 
 def test_python_ast_splits_on_top_level_defs():
@@ -103,7 +103,7 @@ def test_no_content_is_dropped():
 
 
 def test_unknown_extension_routes_to_brace_split():
-    go = "package main\n\nfunc main() {\n\tprintln(\"hi\")\n}\n"
+    go = 'package main\n\nfunc main() {\n\tprintln("hi")\n}\n'
     chunks = chunk_document(go, file_type="unknown", extension=".go", max_chars=500)
     assert any("func main" in c and "println" in c for c in chunks)
 

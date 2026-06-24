@@ -56,9 +56,12 @@ def _workflow(name, rules):
 
 def _graph_with(workflows):
     result = GitHubActionsAnalysisResult(
-        workspace_id="w1", project_path="/p",
-        workflow_files_count=len(workflows), workflows=workflows,
-        total_jobs_count=len(workflows), findings=[],
+        workspace_id="w1",
+        project_path="/p",
+        workflow_files_count=len(workflows),
+        workflows=workflows,
+        total_jobs_count=len(workflows),
+        findings=[],
     )
     return build_project_graph("w1", github_actions=result)
 

@@ -65,8 +65,7 @@ class LlamaServerEmbeddingProvider:
                         candidate.raise_for_status()
                     except httpx.HTTPError as exc:
                         raise LlamaServerEmbeddingProviderError(
-                            f"Unable to reach llama-server embedding API at "
-                            f"{self.base_url}: {exc}"
+                            f"Unable to reach llama-server embedding API at {self.base_url}: {exc}"
                         ) from exc
                     response = candidate
                     break
@@ -89,9 +88,7 @@ class LlamaServerEmbeddingProvider:
             ) from exc
 
         if not isinstance(embedding, list) or not embedding:
-            raise LlamaServerEmbeddingProviderError(
-                "llama-server returned an empty embedding"
-            )
+            raise LlamaServerEmbeddingProviderError("llama-server returned an empty embedding")
 
         try:
             vector = [float(value) for value in embedding]

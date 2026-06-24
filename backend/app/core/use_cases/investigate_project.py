@@ -18,21 +18,21 @@ from app.core.domain.investigator import (
     build_investigator_prompt,
     parse_agent_step,
 )
-from app.core.domain.role_lens import role_lens_for
-from app.core.ports.embedding_provider import EmbeddingProviderPort
-from app.core.ports.file_system import FileSystemPort
-from app.core.ports.git_history import GitHistoryPort
-from app.core.ports.project_memory_repository import ProjectMemoryRepositoryPort
 from app.core.domain.project_memory import (
     MemoryItem,
     MemoryKind,
     MemorySource,
-    prior_qa_ids_for,
     format_memory_context,
+    prior_qa_ids_for,
     select_relevant_memory,
 )
+from app.core.domain.role_lens import role_lens_for
+from app.core.ports.embedding_provider import EmbeddingProviderPort
+from app.core.ports.file_system import FileSystemPort
+from app.core.ports.git_history import GitHistoryPort
 from app.core.ports.llm_provider_factory import LLMProviderFactoryError, LLMProviderFactoryPort
 from app.core.ports.project_graph_repository import ProjectGraphRepositoryPort
+from app.core.ports.project_memory_repository import ProjectMemoryRepositoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -139,9 +139,7 @@ class InvestigateProjectUseCase:
                     sources.append(s)
 
         for _ in range(max(1, request.max_steps)):
-            prompt = build_investigator_prompt(
-                request.question, tool_specs, steps, role_label
-            )
+            prompt = build_investigator_prompt(request.question, tool_specs, steps, role_label)
             if context_block:
                 prompt = (
                     "Background knowledge about this project (may help; still verify "
@@ -303,9 +301,7 @@ class InvestigateProjectUseCase:
                     counts[e.type] = counts.get(e.type, 0) + 1
                 summary = ", ".join(f"{k}: {v}" for k, v in sorted(counts.items()))
                 return f"Graph contains — {summary or 'nothing'}.", []
-            matched = [
-                e for e in graph.entities if q in e.name.lower() or q in e.type.lower()
-            ][:8]
+            matched = [e for e in graph.entities if q in e.name.lower() or q in e.type.lower()][:8]
             if not matched:
                 return f"No graph entities match '{query}'.", []
             lines = []
@@ -313,7 +309,7 @@ class InvestigateProjectUseCase:
             ids = {e.id for e in matched}
             for e in matched:
                 rels = [
-                    f"{r.relation_type}->{r.target_entity_id.split(':',1)[-1]}"
+                    f"{r.relation_type}->{r.target_entity_id.split(':', 1)[-1]}"
                     for r in graph.relations
                     if r.source_entity_id == e.id
                 ][:5]
@@ -353,9 +349,7 @@ class InvestigateProjectUseCase:
                 return f"git_history failed: {exc}", []
             if activity is None:
                 return "Not a git repository (or git is unavailable).", []
-            lines = [
-                f"{activity.path or 'Repository'}: {activity.total_commits} commit(s)"
-            ]
+            lines = [f"{activity.path or 'Repository'}: {activity.total_commits} commit(s)"]
             if activity.top_authors:
                 lines.append(
                     "Top authors: "
@@ -400,14 +394,18 @@ class InvestigateProjectUseCase:
         if self.memory_repository is not None:
             tools["recall_memory"] = recall_memory
         specs = [
-            ToolSpec("search_code", "search_code: <query>", "semantic search over the indexed code/docs"),
+            ToolSpec(
+                "search_code", "search_code: <query>", "semantic search over the indexed code/docs"
+            ),
             ToolSpec("read_file", "read_file: <relative/path>", "read a project file's contents"),
             ToolSpec(
                 "graph_query",
                 "graph_query: <name|type|all>",
                 "look up entities/relations in the project map",
             ),
-            ToolSpec("list_files", "list_files: <substring>", "list project files matching a substring"),
+            ToolSpec(
+                "list_files", "list_files: <substring>", "list project files matching a substring"
+            ),
             ToolSpec(
                 "git_history",
                 "git_history: <relative/path or empty>",

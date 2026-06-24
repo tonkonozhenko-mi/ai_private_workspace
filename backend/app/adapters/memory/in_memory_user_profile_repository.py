@@ -20,9 +20,7 @@ class InMemoryUserProfileRepository:
         self._items = [i for i in self._items if i.id != item_id]
 
     def set_pinned(self, item_id: str, pinned: bool) -> None:
-        self._items = [
-            replace(i, pinned=pinned) if i.id == item_id else i for i in self._items
-        ]
+        self._items = [replace(i, pinned=pinned) if i.id == item_id else i for i in self._items]
 
     def clear(self) -> None:
         self._items = []

@@ -7,9 +7,7 @@ from fastapi import APIRouter, Body, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.config.settings import get_settings
 from app.api.dependencies import (
-    project_context_composer,
     build_active_model_configuration,
     build_reranker,
     command_repository,
@@ -23,6 +21,7 @@ from app.api.dependencies import (
     model_catalog_registry,
     model_experiment_rating_repository,
     model_experiment_repository,
+    project_context_composer,
     project_group_repository,
     project_scan_repository,
     project_understanding_repository,
@@ -38,6 +37,7 @@ from app.api.dependencies import (
     workspace_repository,
     workspace_storage_gateway,
 )
+from app.config.settings import get_settings
 
 logger = logging.getLogger("uvicorn.error.ai_private_workspace.workspace_api")
 from app.api.project_scan_schemas import (
@@ -77,8 +77,8 @@ from app.api.schemas.conversation_schemas import (
     to_workspace_conversation_response,
 )
 from app.api.schemas.git_insights_schemas import (
-    GitContributorResponse,
     GitCommitResponse,
+    GitContributorResponse,
     GitFileActivityResponse,
     GitInsightsResponse,
     to_git_insights_response,
@@ -308,7 +308,6 @@ from app.core.use_cases.delete_workspace import (
     DeleteWorkspaceNotFoundError,
     DeleteWorkspaceUseCase,
 )
-from app.core.use_cases.manage_project_groups import ManageProjectGroupsUseCase
 from app.core.use_cases.explain_workspace_model_recommendation import (
     ExplainWorkspaceModelRecommendationInput,
     ExplainWorkspaceModelRecommendationUseCase,
@@ -468,6 +467,7 @@ from app.core.use_cases.list_workspace_timeline import (
 )
 from app.core.use_cases.list_workspaces import ListWorkspacesUseCase
 from app.core.use_cases.list_workspaces_overview import ListWorkspacesOverviewUseCase
+from app.core.use_cases.manage_project_groups import ManageProjectGroupsUseCase
 from app.core.use_cases.manage_saved_workspace_reports import (
     DeleteSavedWorkspaceReportInput,
     DeleteSavedWorkspaceReportUseCase,

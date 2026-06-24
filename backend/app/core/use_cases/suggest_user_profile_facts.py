@@ -33,7 +33,9 @@ class SuggestUserProfileFactsInput:
 
 
 class SuggestUserProfileFactsUseCase:
-    def __init__(self, llm_provider_factory, user_profile_repository: UserProfileRepositoryPort) -> None:
+    def __init__(
+        self, llm_provider_factory, user_profile_repository: UserProfileRepositoryPort
+    ) -> None:
         self.llm_provider_factory = llm_provider_factory
         self.user_profile_repository = user_profile_repository
 

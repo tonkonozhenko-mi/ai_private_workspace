@@ -86,18 +86,26 @@ class AnalyzeHelmUseCase:
             templates = [
                 p
                 for p in owned
-                if "/templates/" in p and posixpath.splitext(p)[1].lower() in {".yaml", ".yml", ".tpl"}
+                if "/templates/" in p
+                and posixpath.splitext(p)[1].lower() in {".yaml", ".yml", ".tpl"}
             ]
             value_files = sorted(
                 p for p in owned if _VALUES_RE.search(posixpath.basename(p)) or _VALUES_RE.search(p)
             )
             chart = HelmChart(
-                name=parsed.get("name") if isinstance(parsed.get("name"), str) else posixpath.basename(chart_dir) or "(chart)",
+                name=parsed.get("name")
+                if isinstance(parsed.get("name"), str)
+                else posixpath.basename(chart_dir) or "(chart)",
                 version=parsed.get("version") if isinstance(parsed.get("version"), str) else None,
-                app_version=parsed.get("appVersion") if isinstance(parsed.get("appVersion"), str) else None,
+                app_version=parsed.get("appVersion")
+                if isinstance(parsed.get("appVersion"), str)
+                else None,
                 chart_path=chart_dir,
                 chart_file=chart_file,
-                has_values=any(posixpath.basename(p).lower() in {"values.yaml", "values.yml"} for p in value_files),
+                has_values=any(
+                    posixpath.basename(p).lower() in {"values.yaml", "values.yml"}
+                    for p in value_files
+                ),
                 templates_count=len(templates),
                 value_files=value_files,
                 dependencies=self._parse_dependencies(parsed),

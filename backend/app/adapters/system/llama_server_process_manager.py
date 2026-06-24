@@ -160,8 +160,7 @@ class LlamaServerProcessManager:
             if not self.is_running():
                 detail = self._log_tail()
                 raise LlamaServerStartError(
-                    "llama-server exited during startup"
-                    + (f": {detail}" if detail else "")
+                    "llama-server exited during startup" + (f": {detail}" if detail else "")
                 )
             try:
                 response = httpx.get(url, timeout=2)

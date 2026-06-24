@@ -66,9 +66,7 @@ def derive_deployment_flow(graph: ProjectGraph) -> dict:
             "label": "Build artifacts",
             "count": len(images),
             "detail": (
-                f"{len(images)} container image(s)"
-                if images
-                else "No container images detected"
+                f"{len(images)} container image(s)" if images else "No container images detected"
             ),
         },
         {
@@ -111,9 +109,7 @@ def derive_deployment_flow(graph: ProjectGraph) -> dict:
     # Images that runtime services use but no CI job appears to build.
     deployed_not_built = deployed - built
     if deployed_not_built and jobs:
-        names = sorted(
-            e.name for e in images if e.id in deployed_not_built
-        )
+        names = sorted(e.name for e in images if e.id in deployed_not_built)
         gaps.append(
             {
                 "title": "Deployed image not built in CI",
@@ -138,9 +134,7 @@ def derive_deployment_flow(graph: ProjectGraph) -> dict:
 
 def compare_environments(graph: ProjectGraph) -> dict:
     """Side-by-side of the inferred environments and the evidence behind each."""
-    environments = sorted(
-        graph.entities_of_type(EntityType.ENVIRONMENT), key=lambda e: e.name
-    )
+    environments = sorted(graph.entities_of_type(EntityType.ENVIRONMENT), key=lambda e: e.name)
     rows = [
         {
             "name": e.name,

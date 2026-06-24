@@ -25,14 +25,20 @@ def _entity(eid, etype, name):
 
 def _finding(fid, title, severity="medium"):
     return ProjectFinding(
-        id=fid, category="reliability", severity=severity, title=title,
-        explanation="...", analyzer="x",
+        id=fid,
+        category="reliability",
+        severity=severity,
+        title=title,
+        explanation="...",
+        analyzer="x",
     )
 
 
 def _graph(entities, findings, analyzers=("terraform",)):
     return ProjectGraph(
-        workspace_id="w1", entities=entities, findings=findings,
+        workspace_id="w1",
+        entities=entities,
+        findings=findings,
         analyzers_run=list(analyzers),
     )
 

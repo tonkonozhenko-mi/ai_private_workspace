@@ -30,8 +30,12 @@ class InMemoryProjectMemoryRepository:
         for idx, item in enumerate(items):
             if item.id == item_id:
                 items[idx] = MemoryItem(
-                    id=item.id, workspace_id=item.workspace_id, kind=item.kind,
-                    text=item.text, source=item.source, created_at=item.created_at,
+                    id=item.id,
+                    workspace_id=item.workspace_id,
+                    kind=item.kind,
+                    text=item.text,
+                    source=item.source,
+                    created_at=item.created_at,
                     pinned=pinned,
                 )
 

@@ -57,7 +57,9 @@ def _scan():
     return SimpleNamespace(
         files=[
             SimpleNamespace(path="accounts/prd/us-east-1/api/main.tf", detected_type="terraform"),
-            SimpleNamespace(path="accounts/prd/us-east-1/api/backend.tf", detected_type="terraform"),
+            SimpleNamespace(
+                path="accounts/prd/us-east-1/api/backend.tf", detected_type="terraform"
+            ),
             SimpleNamespace(path=".github/workflows/deploy.yaml", detected_type="github_actions"),
             SimpleNamespace(path="README.md", detected_type="markdown"),
         ]
@@ -98,7 +100,9 @@ def test_terraform_analyzer_extracts_providers_and_resources():
 
 
 def test_prd_environment_token_now_inferred():
-    envs = {e.name for e in environments_from_paths(["accounts/prd/us-east-1/api/main.tf"], "terraform")}
+    envs = {
+        e.name for e in environments_from_paths(["accounts/prd/us-east-1/api/main.tf"], "terraform")
+    }
     assert "prod" in envs
 
 

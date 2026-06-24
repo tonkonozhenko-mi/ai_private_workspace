@@ -79,7 +79,11 @@ class LlamaServerLLMProvider:
                     settings = data.get("default_generation_settings")
                     if candidate is None and isinstance(settings, dict):
                         candidate = settings.get("n_ctx")
-                    if isinstance(candidate, int) and not isinstance(candidate, bool) and candidate > 0:
+                    if (
+                        isinstance(candidate, int)
+                        and not isinstance(candidate, bool)
+                        and candidate > 0
+                    ):
                         n_ctx = candidate
         except (httpx.HTTPError, ValueError):
             pass

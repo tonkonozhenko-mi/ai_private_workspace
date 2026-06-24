@@ -44,6 +44,11 @@ from app.core.use_cases.build_group_overview import (
     BuildGroupOverviewNotFoundError,
     BuildGroupOverviewUseCase,
 )
+from app.core.use_cases.manage_project_groups import (
+    ManageProjectGroupsUseCase,
+    ProjectGroupNotFoundError,
+    ProjectGroupValidationError,
+)
 from app.core.use_cases.manage_project_memory import (
     AddMemoryInput,
     AddMemoryUseCase,
@@ -51,11 +56,6 @@ from app.core.use_cases.manage_project_memory import (
     DeleteMemoryUseCase,
     ListMemoryUseCase,
     SetMemoryPinnedUseCase,
-)
-from app.core.use_cases.manage_project_groups import (
-    ManageProjectGroupsUseCase,
-    ProjectGroupNotFoundError,
-    ProjectGroupValidationError,
 )
 
 router = APIRouter(prefix="/workspace-groups", tags=["workspace-groups"])

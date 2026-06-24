@@ -70,8 +70,8 @@ def test_compute_couplings_finds_files_that_change_together():
         ["a.py", "b.py"],
         ["a.py", "b.py"],
         ["a.py", "b.py"],
-        ["a.py", "c.py"],          # a also changes alone-ish with c once
-        ["d.py"],                   # solo commit, ignored
+        ["a.py", "c.py"],  # a also changes alone-ish with c once
+        ["d.py"],  # solo commit, ignored
     ]
     out = _compute_couplings(commits, min_together=3)
     assert len(out) == 1
@@ -89,4 +89,6 @@ def test_compute_couplings_skips_giant_commits_and_weak_pairs():
     assert _compute_couplings(commits) == []
     # giant commit must not have coupled all 40 files
     assert _compute_couplings(commits, min_together=2)  # x,y now qualify
-    assert all("f0.py" not in (c.file_a, c.file_b) for c in _compute_couplings(commits, min_together=2))
+    assert all(
+        "f0.py" not in (c.file_a, c.file_b) for c in _compute_couplings(commits, min_together=2)
+    )

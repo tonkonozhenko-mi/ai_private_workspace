@@ -149,7 +149,9 @@ class AnalyzeKubernetesUseCase:
         if kind == "CronJob":
             job = spec.get("jobTemplate") if isinstance(spec.get("jobTemplate"), dict) else {}
             job_spec = job.get("spec") if isinstance(job.get("spec"), dict) else {}
-            template = job_spec.get("template") if isinstance(job_spec.get("template"), dict) else {}
+            template = (
+                job_spec.get("template") if isinstance(job_spec.get("template"), dict) else {}
+            )
             return template.get("spec") if isinstance(template.get("spec"), dict) else {}
         template = spec.get("template") if isinstance(spec.get("template"), dict) else {}
         return template.get("spec") if isinstance(template.get("spec"), dict) else {}
@@ -169,7 +171,9 @@ class AnalyzeKubernetesUseCase:
 
         pod_spec = cls._pod_template_spec(kind, doc)
         containers = pod_spec.get("containers")
-        container_list = [c for c in containers if isinstance(c, dict)] if isinstance(containers, list) else []
+        container_list = (
+            [c for c in containers if isinstance(c, dict)] if isinstance(containers, list) else []
+        )
 
         images = [c["image"] for c in container_list if isinstance(c.get("image"), str)]
         has_limits = any(
@@ -209,7 +213,9 @@ class AnalyzeKubernetesUseCase:
         ref = f"{workload.kind} '{workload.name}'"
 
         untagged = [
-            img for img in workload.images if ":" not in img.rsplit("/", 1)[-1] or img.endswith(":latest")
+            img
+            for img in workload.images
+            if ":" not in img.rsplit("/", 1)[-1] or img.endswith(":latest")
         ]
         if untagged:
             findings.append(
@@ -226,7 +232,10 @@ class AnalyzeKubernetesUseCase:
                 )
             )
 
-        if workload.kind in {"Deployment", "StatefulSet", "DaemonSet", "Pod"} and not workload.has_resource_limits:
+        if (
+            workload.kind in {"Deployment", "StatefulSet", "DaemonSet", "Pod"}
+            and not workload.has_resource_limits
+        ):
             findings.append(
                 AnalysisFinding(
                     id=f"kubernetes_no_resource_limits:{workload.source_file}:{workload.name}",

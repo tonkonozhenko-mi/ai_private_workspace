@@ -147,9 +147,7 @@ class GenerateProjectUnderstandingUseCase:
         """Characters of retrieved context that fit in the model's window, after
         reserving room for the instructions and the model's answer. Capped by the
         static MAX_TOTAL_CHARS so a huge window does not bloat the prompt."""
-        usable_tokens = (
-            self.max_context_tokens - RESPONSE_RESERVE_TOKENS - PROMPT_OVERHEAD_TOKENS
-        )
+        usable_tokens = self.max_context_tokens - RESPONSE_RESERVE_TOKENS - PROMPT_OVERHEAD_TOKENS
         dynamic = max(MIN_CONTENT_CHARS, usable_tokens * CHARS_PER_TOKEN)
         return min(MAX_TOTAL_CHARS, dynamic)
 

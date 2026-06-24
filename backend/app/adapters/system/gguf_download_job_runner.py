@@ -60,9 +60,7 @@ class GgufDownloadJobRunner:
             self._store(done)
             return done
 
-        thread = threading.Thread(
-            target=self._run, args=(job_id, ref, cancel_event), daemon=True
-        )
+        thread = threading.Thread(target=self._run, args=(job_id, ref, cancel_event), daemon=True)
         thread.start()
         return job
 

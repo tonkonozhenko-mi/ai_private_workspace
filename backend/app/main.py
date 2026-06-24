@@ -15,6 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.agent_workflows import router as agent_workflows_router
+from app.api.routes.answer_ratings import router as answer_ratings_router
 from app.api.routes.assistant_profiles import router as assistant_profiles_router
 from app.api.routes.commands import router as commands_router
 from app.api.routes.health import router as health_router
@@ -22,12 +23,11 @@ from app.api.routes.local_data_safety import router as local_data_safety_router
 from app.api.routes.mcp import router as mcp_router
 from app.api.routes.models import router as models_router
 from app.api.routes.onboarding import router as onboarding_router
-from app.api.routes.answer_ratings import router as answer_ratings_router
-from app.api.routes.user_profile import router as user_profile_router
 from app.api.routes.project_groups import router as project_groups_router
 from app.api.routes.project_intelligence import router as project_intelligence_router
 from app.api.routes.projects import router as projects_router
 from app.api.routes.runtime_health import router as runtime_health_router
+from app.api.routes.user_profile import router as user_profile_router
 from app.api.routes.workspaces import router as workspaces_router
 from app.config.settings import get_settings
 

@@ -57,8 +57,15 @@ class SQLiteProjectMemoryRepository:
                 INSERT INTO project_memory (id, workspace_id, kind, text, source, created_at, pinned)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (item.id, item.workspace_id, item.kind, item.text, item.source,
-                 item.created_at, 1 if item.pinned else 0),
+                (
+                    item.id,
+                    item.workspace_id,
+                    item.kind,
+                    item.text,
+                    item.source,
+                    item.created_at,
+                    1 if item.pinned else 0,
+                ),
             )
             connection.commit()
         return item
@@ -98,7 +105,5 @@ class SQLiteProjectMemoryRepository:
 
     def clear(self, workspace_id: str) -> None:
         with self._connect() as connection:
-            connection.execute(
-                "DELETE FROM project_memory WHERE workspace_id = ?", (workspace_id,)
-            )
+            connection.execute("DELETE FROM project_memory WHERE workspace_id = ?", (workspace_id,))
             connection.commit()

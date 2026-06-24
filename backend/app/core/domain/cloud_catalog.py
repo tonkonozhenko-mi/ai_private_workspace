@@ -156,5 +156,7 @@ def cloud_for_resource(resource_type: str) -> tuple[str, str] | None:
     token = parts[1]
     service = _SERVICE_NAMES.get((prefix, token))
     if service is None:
-        service = token.replace("-", " ").upper() if len(token) <= 3 else token.replace("-", " ").title()
+        service = (
+            token.replace("-", " ").upper() if len(token) <= 3 else token.replace("-", " ").title()
+        )
     return provider, service

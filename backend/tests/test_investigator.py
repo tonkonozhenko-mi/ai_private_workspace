@@ -82,9 +82,11 @@ class _Vector:
     def search(self, **kw):
         return [
             SimpleNamespace(
-                chunk_id="c1", source_path="db/config.tf",
+                chunk_id="c1",
+                source_path="db/config.tf",
                 content="resource aws_db_instance main { engine = postgres }",
-                score=0.9, metadata={},
+                score=0.9,
+                metadata={},
             )
         ]
 
@@ -115,8 +117,10 @@ class _GitHistory:
             top_authors=[SimpleNamespace(name="Alice", commits=9)],
             recent_commits=[
                 SimpleNamespace(
-                    short_hash="abc123", subject="tune db pool",
-                    author="Alice", committed_at="2026-06-01T10:00:00+00:00",
+                    short_hash="abc123",
+                    subject="tune db pool",
+                    author="Alice",
+                    committed_at="2026-06-01T10:00:00+00:00",
                 )
             ],
         )
@@ -153,9 +157,7 @@ def test_agent_loop_searches_then_answers_with_sources():
 def test_agent_loop_budget_exhausted_forces_final():
     # Always asks to search, never finalises → budget runs out → forced final.
     uc = _use_case(["ACTION: search_code: x"] * 10 + ["From the files, it's Postgres."])
-    result = uc.execute(
-        InvestigateProjectInput(workspace_id="w1", question="db?", max_steps=3)
-    )
+    result = uc.execute(InvestigateProjectInput(workspace_id="w1", question="db?", max_steps=3))
     assert result.stopped_reason == "budget_exhausted"
     assert result.used_steps == 3
     assert result.answer
