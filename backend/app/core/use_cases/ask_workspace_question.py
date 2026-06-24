@@ -9,6 +9,12 @@ from app.core.domain.attached_documents import (
     build_attached_documents_section,
 )
 from app.core.domain.context_budget import chunk_char_budget, fit_context_results
+from app.core.domain.conversation_budget import (
+    SUMMARY_TRIGGER_MIN_OLDER_TURNS,
+    build_summary_prompt,
+    history_token_budget,
+    split_history_by_budget,
+)
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
 from app.core.domain.rag import (
@@ -201,10 +207,14 @@ class AskWorkspaceQuestionUseCase:
         request: AskWorkspaceQuestionInput,
         llm_provider: LLMProviderPort,
         context_results: list[ContextSearchResult],
+        history: list[tuple[str, str]],
     ) -> tuple[list[ContextSearchResult], str, int, int]:
         """Build the grounded prompt, fitting the retrieved chunks to the model's
         real context window so memory + history + chunks + answer headroom never
         overflow it (the engine would otherwise silently truncate).
+
+        ``history`` is the prompt history (recent turns + any summary) already
+        computed by the caller, so it is budgeted for and not recomputed.
 
         Returns the (possibly trimmed) chunks actually used, the prompt, and the
         memory/facts counts — so sources and ``used_context_chunks`` reflect what
@@ -215,7 +225,6 @@ class AskWorkspaceQuestionUseCase:
         memory_section, memory_used, facts_used = self._project_context(
             request.workspace_id, self._retrieval_query(request)
         )
-        history = self._conversation_history(request)
         budget = chunk_char_budget(
             getattr(llm_provider, "context_window", None),
             memory_text=memory_section,
@@ -234,8 +243,8 @@ class AskWorkspaceQuestionUseCase:
         )
         return fitted, prompt, memory_used, facts_used
 
-    def _conversation_history(self, request: AskWorkspaceQuestionInput) -> list[tuple[str, str]]:
-        """Recent (role, content) turns of this conversation for prompt context.
+    def _all_turns(self, request: AskWorkspaceQuestionInput) -> list[tuple[str, str]]:
+        """Every (role, content) user/assistant turn of this conversation.
 
         Best-effort: missing repo/conversation, or any error, yields no history so
         answering never depends on it.
@@ -250,12 +259,61 @@ class AskWorkspaceQuestionUseCase:
             return []
         if conversation is None:
             return []
-        turns = [
+        return [
             (message.role, message.content)
             for message in conversation.messages
             if message.role in ("user", "assistant") and message.content.strip()
         ]
-        return turns[-self.max_history_turns :]
+
+    def _conversation_history(self, request: AskWorkspaceQuestionInput) -> list[tuple[str, str]]:
+        """Recent turns that fit a token budget (used to steer retrieval). Token-
+        budgeted rather than a fixed turn count, so long turns don't overflow and
+        short ones don't waste room."""
+        turns = self._all_turns(request)
+        _older, recent = split_history_by_budget(turns, history_token_budget(None))
+        return recent
+
+    def _history_for_prompt(
+        self,
+        request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort,
+    ) -> list[tuple[str, str]]:
+        """The history actually sent to the model: recent turns that fit the
+        window's history budget, with the older evicted turns folded into one
+        short summary so the thread isn't lost after a few exchanges.
+
+        Summarization is best-effort and only runs when enough older turns were
+        evicted; any failure falls back to just the recent turns.
+        """
+        turns = self._all_turns(request)
+        if not turns:
+            return []
+        budget = history_token_budget(getattr(llm_provider, "context_window", None))
+        older, recent = split_history_by_budget(turns, budget)
+        if len(older) < SUMMARY_TRIGGER_MIN_OLDER_TURNS:
+            return recent
+        summary = self._summarize_history(older, llm_provider)
+        if not summary:
+            return recent
+        preface = (
+            "[Summary of the earlier conversation — context only, not a new "
+            f"question]\n{summary}"
+        )
+        return [("user", preface), *recent]
+
+    def _summarize_history(
+        self,
+        older_turns: list[tuple[str, str]],
+        llm_provider: LLMProviderPort,
+    ) -> str:
+        """Compress the evicted older turns into a few sentences via the local
+        model. Best-effort: returns "" on any failure so history degrades to just
+        the recent turns (the previous behaviour)."""
+        try:
+            text = llm_provider.generate(build_summary_prompt(older_turns), None, 0.0, False, None)
+        except Exception:  # noqa: BLE001 - summary is optional, never fail the ask
+            return ""
+        return " ".join((text or "").split())[:800]
 
     def _retrieval_query(self, request: AskWorkspaceQuestionInput) -> str:
         """The text used for RAG retrieval, expanded with recent context.
@@ -329,8 +387,9 @@ class AskWorkspaceQuestionUseCase:
                 request,
             )
 
+        prompt_history = self._history_for_prompt(request, llm_provider)
         context_results, prompt, memory_used, facts_used = self._grounded_prompt(
-            request, llm_provider, context_results
+            request, llm_provider, context_results, prompt_history
         )
         # Rebuild sources from the chunks that actually fit the window.
         sources = [
@@ -349,7 +408,7 @@ class AskWorkspaceQuestionUseCase:
                 request.images,
                 request.temperature,
                 request.think,
-                self._conversation_history(request),
+                prompt_history,
             )
         except RuntimeError as exc:
             return self._record_question_event(
@@ -505,8 +564,9 @@ class AskWorkspaceQuestionUseCase:
             )
             return
 
+        prompt_history = self._history_for_prompt(request, llm_provider)
         context_results, prompt, memory_used, facts_used = self._grounded_prompt(
-            request, llm_provider, context_results
+            request, llm_provider, context_results, prompt_history
         )
         # Rebuild sources from the chunks that actually fit the window.
         sources = [
@@ -519,7 +579,7 @@ class AskWorkspaceQuestionUseCase:
             for result in context_results
         ]
         answer_text, usage, failed = yield from self._stream_generation(
-            llm_provider, prompt, request, self._conversation_history(request)
+            llm_provider, prompt, request, prompt_history
         )
         if failed:
             yield AskStreamFinal(
