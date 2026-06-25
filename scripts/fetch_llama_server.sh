@@ -6,7 +6,7 @@
 #
 # Usage: scripts/fetch_llama_server.sh <arm64|x64>
 # The OS is auto-detected: macOS, Windows (run under Git Bash on the runner), or
-# Linux. Optional env: LLAMA_CPP_VERSION (release tag, e.g. b9777; "latest"
+# Linux. Optional env: LLAMA_CPP_VERSION (release tag, e.g. b9789; "latest"
 # tracks newest). GITHUB_TOKEN is used when present to avoid API rate limits.
 set -euo pipefail
 
@@ -31,7 +31,7 @@ esac
 REPO="ggml-org/llama.cpp"
 # Pinned for reproducible builds. Bump deliberately to update; override with the
 # LLAMA_CPP_VERSION env var, or set it to "latest" to track the newest release.
-VERSION="${LLAMA_CPP_VERSION:-b9777}"
+VERSION="${LLAMA_CPP_VERSION:-b9789}"
 DEST="build/desktop/llama-runtime/${ARCH}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT

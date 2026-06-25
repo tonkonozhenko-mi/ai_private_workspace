@@ -14,7 +14,7 @@ on:
       llama_cpp_version:
         description: "llama.cpp release tag to bundle"
         required: false
-        default: "b9777"
+        default: "b9789"
 
 permissions:
   contents: read

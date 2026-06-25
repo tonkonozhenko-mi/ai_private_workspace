@@ -7,6 +7,11 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **New app icon.** Redesigned the macOS/Windows app icon as a proper rounded-tile icon: a deep-forest gradient background with the pigeon-and-shield mark filling the tile and the home outline glowing as a frame — far more legible at dock/taskbar sizes than the previous white-background version. Regenerated the full set (`.png`, `.ico`, `.icns`). The brand mark also gets brighter, livelier eyes.
+- **Bundled llama.cpp updated to `b9789`** (from `b9777`) for `scripts/fetch_llama_server.sh` and the release / Windows build workflows.
+
 ## [0.2.2] - 2026-06-25
 
 A focused **Ask quality** release: the same local, private RAG, but the answers

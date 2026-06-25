@@ -111,7 +111,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Pinned llama.cpp release for reproducible builds (the script also
           # pins this default). Bump deliberately to update.
-          LLAMA_CPP_VERSION: "b9777"
+          LLAMA_CPP_VERSION: "b9789"
         run: |
           if [ "${{ runner.os }}" = "Windows" ]; then
             # Windows runners are x64; the fetch script auto-detects the OS and
