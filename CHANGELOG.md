@@ -7,6 +7,14 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-06-25
+
+A focused **Ask quality** release: the same local, private RAG, but the answers
+are better grounded and the model's context window is used more deliberately. All
+improvements are deterministic or best-effort, require **no new model downloads**,
+and keep the default fast-start experience (the reranker stays off). The new
+source-aware chunks take effect after a reindex (scan, then build).
+
 ### Added
 
 - **Source-aware chunks.** Every indexed chunk now carries a deterministic one-line header — `[source: path › section · part N/M]` — derived from its own structure (a heading or a definition name). The header is stored and shown with the chunk so the model grounds and cites more reliably and the path is keyword-searchable, while the dense embedding is computed on the clean body so similarity is unaffected. No LLM call at index time; takes effect after a reindex.
