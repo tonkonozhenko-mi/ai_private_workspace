@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Added
+
+- **Faster, more reliable bundled llama.cpp engine.** The answer server now starts with **Flash Attention** (quicker generation, smaller KV cache) and a **KV-slot save path** so a warm prompt prefix can persist to disk. Both are best-effort: if a particular build rejects a flag, the server automatically retries on the known-good baseline, so startup can never break. New env knobs: `AI_WORKSPACE_LLAMA_FLASH_ATTN` (default on) and `AI_WORKSPACE_LLAMA_PARALLEL` (default `1`; raise for concurrent request slots, at the cost of per-request context). GPU offload was deliberately left out to stay safe on the CPU-only Windows/Linux builds.
+- **Structured (JSON-Schema) output** for the llama.cpp provider. Generation can be constrained to a JSON Schema so the model cannot emit invalid JSON (`core.domain.structured_output`) — the foundation for more reliable agents and structured features. (Ollama accepts the option but ignores it for now.)
+- **Exact token budgeting.** When the engine exposes a tokenizer (llama.cpp `/tokenize`), the Ask context-window budget now uses real token counts instead of the ~4-chars-per-token estimate, and falls back to the estimate otherwise.
+
 ### Changed
 
 - **New app icon.** Redesigned the macOS/Windows app icon as a proper rounded-tile icon: a deep-forest gradient background with the pigeon-and-shield mark filling the tile and the home outline glowing as a frame — far more legible at dock/taskbar sizes than the previous white-background version. Regenerated the full set (`.png`, `.ico`, `.icns`). The brand mark also gets brighter, livelier eyes.

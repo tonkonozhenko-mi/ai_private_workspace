@@ -16,6 +16,7 @@ Everything here is pure and deterministic (token counts are estimated at a rough
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import replace
 
 from app.core.domain.indexing import ContextSearchResult
@@ -48,14 +49,21 @@ def chunk_char_budget(
     response_reserve_tokens: int = RESPONSE_RESERVE_TOKENS,
     scaffold_tokens: int = PROMPT_SCAFFOLD_TOKENS,
     min_chunk_chars: int = MIN_CHUNK_CHARS,
+    token_counter: Callable[[str], int] | None = None,
 ) -> int:
     """How many characters of retrieved-chunk content fit, given everything else
-    that shares the window (scaffold, memory, history) and the answer headroom."""
+    that shares the window (scaffold, memory, history) and the answer headroom.
+
+    ``token_counter`` optionally supplies an *exact* token count for a string
+    (e.g. the engine's tokenizer); when ``None`` we fall back to the rough
+    4-chars-per-token estimate. Either way the result stays a character budget.
+    """
+    count = token_counter or estimate_tokens
     window = context_window if (context_window and context_window > 0) else _DEFAULT_CONTEXT_WINDOW
     used_tokens = response_reserve_tokens + scaffold_tokens
-    used_tokens += estimate_tokens(memory_text)
+    used_tokens += count(memory_text)
     for _role, content in history or []:
-        used_tokens += estimate_tokens(content)
+        used_tokens += count(content)
     remaining_tokens = window - used_tokens
     return max(min_chunk_chars, remaining_tokens * CHARS_PER_TOKEN)
 

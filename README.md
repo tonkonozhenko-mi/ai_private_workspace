@@ -171,6 +171,15 @@ indicator work identically. The answer model and the search (embedding) model ar
 managed separately, so you can mix a strong answer model with a small, fast
 embedder.
 
+The **bundled llama.cpp** path also unlocks engine features Ollama doesn't expose
+to us: it starts with **Flash Attention** (faster generation, smaller KV cache),
+keeps a **warm prompt-prefix cache on disk**, can constrain answers to a
+**JSON Schema** (guaranteed-parseable output for agents), and reports **exact
+token counts** so the context-window budget is precise rather than estimated.
+These are best-effort and degrade gracefully — startup falls back to safe
+defaults if a build doesn't support a flag. Tunables: `AI_WORKSPACE_LLAMA_FLASH_ATTN`
+(default on) and `AI_WORKSPACE_LLAMA_PARALLEL` (default `1`).
+
 ## How search works
 
 Answers are grounded in your project through a **hybrid retrieval** pipeline —

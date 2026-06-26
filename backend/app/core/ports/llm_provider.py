@@ -17,6 +17,7 @@ class LLMProviderPort(Protocol):
         temperature: float | None = None,
         think: bool | None = None,
         history: list[tuple[str, str]] | None = None,
+        response_format: dict | None = None,
     ) -> str:
         """Generate a response from a language model.
 
@@ -26,7 +27,10 @@ class LLMProviderPort(Protocol):
         on thinking-capable models. ``history`` is the prior conversation as
         ``(role, content)`` turns ("user"/"assistant"); chat-native providers send
         it as real preceding messages so follow-ups keep context the way ChatGPT or
-        Claude do. Providers that don't support a capability ignore it.
+        Claude do. ``response_format`` optionally constrains the output to a JSON
+        Schema/object (see ``core.domain.structured_output``); the bundled
+        llama.cpp honours it, other providers may ignore it. Providers that don't
+        support a capability ignore it.
         """
 
     # Streaming is optional: providers that support it expose ``generate_stream``

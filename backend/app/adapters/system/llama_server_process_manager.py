@@ -60,6 +60,7 @@ class LlamaServerProcessManager:
         port: int,
         embedding: bool = False,
         reranking: bool = False,
+        _with_perf: bool = True,
     ) -> str:
         """Start llama-server for ``model_path`` on ``port``; return the base URL."""
         if not self.binary_path.is_file():
@@ -82,6 +83,7 @@ class LlamaServerProcessManager:
             "-c",
             str(self.context_size),
         ]
+        perf: list[str] = []
         if reranking or embedding:
             # Embedding/reranking process the whole input in one pass with pooling,
             # so the entire input must fit in a single *physical* batch. The
@@ -103,6 +105,9 @@ class LlamaServerProcessManager:
             # Apply the model's own chat template from GGUF metadata, so turns end
             # cleanly and special tokens (<|eot_id|>, …) are not emitted as text.
             args.append("--jinja")
+            # Optional performance flags for the answer server (LLM path only).
+            perf = self._perf_args(model) if _with_perf else []
+            args += perf
 
         # The prebuilt llama.cpp binary ships its dylibs alongside it. Point the
         # dynamic loader at that folder so the libraries resolve regardless of
@@ -143,8 +148,52 @@ class LlamaServerProcessManager:
             log_handle.close()
 
         self._port = port
-        self._wait_until_healthy()
+        try:
+            self._wait_until_healthy()
+        except LlamaServerStartError:
+            # A specific llama.cpp build may reject an optional performance flag
+            # (for example -fa). Never let that block startup: retry once with the
+            # known-good baseline args only.
+            if _with_perf and perf:
+                self.stop()
+                return self.start(model_path, port, embedding, reranking, _with_perf=False)
+            raise
         return f"http://{self.host}:{port}"
+
+    def _perf_args(self, model: Path) -> list[str]:
+        """Optional performance flags for the answer (LLM) server. Best-effort:
+        ``start`` retries without them if a build rejects one, so they can never
+        block startup. They are never applied to the embedding/reranking servers.
+        """
+        extra: list[str] = []
+        # Flash attention: faster, with a smaller KV cache. On by default; a build
+        # that doesn't support it triggers the baseline retry. Opt out with
+        # AI_WORKSPACE_LLAMA_FLASH_ATTN=0.
+        if os.environ.get("AI_WORKSPACE_LLAMA_FLASH_ATTN", "1").strip().lower() not in (
+            "0",
+            "false",
+            "no",
+            "off",
+        ):
+            extra.append("-fa")
+        # Concurrent request slots. Off by default (1): with >1 slot llama-server
+        # splits the context window between slots, shrinking the window each RAG
+        # answer gets. Raise only if you knowingly want parallelism over context.
+        try:
+            parallel = int(os.environ.get("AI_WORKSPACE_LLAMA_PARALLEL", "1"))
+        except ValueError:
+            parallel = 1
+        if parallel > 1:
+            extra += ["--parallel", str(parallel)]
+        # Enable the /slots save|restore API so a warm KV prefix can persist to
+        # disk (next to the model files, which are writable).
+        try:
+            slot_dir = Path(model).resolve().parent / ".llama-kv-slots"
+            slot_dir.mkdir(parents=True, exist_ok=True)
+            extra += ["--slot-save-path", str(slot_dir)]
+        except OSError:
+            pass
+        return extra
 
     def _log_tail(self, max_chars: int = 600) -> str:
         try:

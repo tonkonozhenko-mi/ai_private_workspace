@@ -274,6 +274,9 @@ class AskWorkspaceQuestionUseCase:
             getattr(llm_provider, "context_window", None),
             memory_text=memory_section,
             history=history,
+            # Use the engine's exact tokenizer when the provider exposes it
+            # (llama.cpp /tokenize); otherwise fall back to the ~4-chars estimate.
+            token_counter=getattr(llm_provider, "count_tokens", None),
         )
         fitted = fit_context_results(context_results, budget)
         prompt = build_workspace_question_prompt(
