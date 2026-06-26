@@ -180,9 +180,7 @@ def parse_structured_step(text: str, allowed_tools: set[str]) -> AgentDecision:
             error=f"Unknown tool '{tool}'. Allowed: {', '.join(sorted(allowed_tools))}.",
             raw=raw,
         )
-    return AgentDecision(
-        kind="action", thought=thought, tool=tool, tool_input=tool_input, raw=raw
-    )
+    return AgentDecision(kind="action", thought=thought, tool=tool, tool_input=tool_input, raw=raw)
 
 
 def render_transcript(steps: list[AgentStep]) -> str:

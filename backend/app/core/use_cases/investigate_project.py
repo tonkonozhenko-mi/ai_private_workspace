@@ -163,9 +163,7 @@ class InvestigateProjectUseCase:
                     f"{context_block}\n\n" + prompt
                 )
             try:
-                text = provider.generate(
-                    prompt, temperature=0.0, response_format=step_format
-                )
+                text = provider.generate(prompt, temperature=0.0, response_format=step_format)
             except (RuntimeError, ValueError) as exc:
                 raise InvestigateProjectError(str(exc)) from exc
 
