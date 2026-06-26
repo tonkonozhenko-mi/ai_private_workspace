@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { getProjectWatchHistory } from "../api/client";
 import type { ProjectWatchHistoryEntry } from "../api/types";
+import { AreaChip } from "./AreaChip";
 
 const HIGHLIGHT_DOT: Record<string, string> = {
   risk_added: "pw-dot-risk",
@@ -118,9 +119,7 @@ export function ProjectWatchHistory({ workspaceId }: { workspaceId: string }) {
                 {areas.length > 0 ? (
                   <div className="pwh-chips">
                     {areas.slice(0, 5).map((a) => (
-                      <span key={a.area} className="pwh-chip pwh-chip-add">
-                        {a.area} · {a.files}
-                      </span>
+                      <AreaChip key={a.area} area={a} className="pwh-chip pwh-chip-add" />
                     ))}
                   </div>
                 ) : null}

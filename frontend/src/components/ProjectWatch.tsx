@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getProjectWatch, runProjectWatch, summarizeProjectWatch } from "../api/client";
 import type { ProjectWatchDigest, WorkspaceDashboard } from "../api/types";
+import { AreaChip } from "./AreaChip";
 import { ProjectWatchHistory } from "./ProjectWatchHistory";
 
 function relativeTime(iso: string): string {
@@ -139,9 +140,7 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
               {git && git.authors.length > 0 && hasGitWork ? (
                 <div className="pw-counts">
                   {git.areas.slice(0, 4).map((a) => (
-                    <span key={a.area} className="pw-count pw-count-add">
-                      {a.area} · {a.files}
-                    </span>
+                    <AreaChip key={a.area} area={a} className="pw-count pw-count-add" />
                   ))}
                 </div>
               ) : null}

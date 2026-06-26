@@ -40,6 +40,26 @@ def top_changed_areas(changed_paths: list[str], limit: int = 4) -> list[tuple[st
     return ordered[:limit]
 
 
+def changed_files_by_area(
+    changed_paths: list[str], limit: int = 6, files_per_area: int = 12
+) -> list[dict]:
+    """Group changed files by their top-level folder, keeping the file paths so the
+    UI can reveal *which* files changed (e.g. on hovering an area chip), not just a
+    count. Most-changed area first; paths within an area are capped and sorted."""
+    groups: dict[str, list[str]] = {}
+    for path in changed_paths:
+        clean = path.strip().strip("/")
+        if not clean:
+            continue
+        area = clean.split("/", 1)[0] if "/" in clean else "(root)"
+        groups.setdefault(area, []).append(clean)
+    ordered = sorted(groups.items(), key=lambda item: (-len(item[1]), item[0]))
+    return [
+        {"area": area, "files": len(paths), "paths": sorted(paths)[:files_per_area]}
+        for area, paths in ordered[:limit]
+    ]
+
+
 def _join_authors(authors: list[str], limit: int = 3) -> str:
     names = [a for a in authors if a]
     if not names:

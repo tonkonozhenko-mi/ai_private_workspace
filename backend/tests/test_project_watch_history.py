@@ -12,6 +12,7 @@ from app.core.domain.project_graph import (
     ProjectFinding,
     ProjectGraph,
 )
+from app.core.domain.git_change_brief import changed_files_by_area
 from app.core.domain.project_watch import build_watch_history_entry
 from app.core.use_cases.run_project_watch import (
     RunProjectWatchInput,
@@ -19,6 +20,23 @@ from app.core.use_cases.run_project_watch import (
 )
 
 # -- domain entry builder ---------------------------------------------------
+
+
+def test_changed_files_by_area_groups_with_paths():
+    areas = changed_files_by_area(
+        [
+            "applications/a/main.tf",
+            "applications/b/main.tf",
+            "accounts/x/vars.tf",
+            "README.md",
+        ]
+    )
+    # Most-changed area first; each area carries its actual file paths.
+    assert areas[0]["area"] == "applications"
+    assert areas[0]["files"] == 2
+    assert areas[0]["paths"] == ["applications/a/main.tf", "applications/b/main.tf"]
+    root = next(a for a in areas if a["area"] == "(root)")
+    assert root["paths"] == ["README.md"]
 
 
 def test_history_entry_skips_baseline_and_unchanged():

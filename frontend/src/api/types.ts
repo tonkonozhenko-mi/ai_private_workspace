@@ -1793,11 +1793,17 @@ export interface ProjectWatchHighlight {
   category?: "risk" | "structural" | string;
 }
 
+export interface ProjectWatchArea {
+  area: string;
+  files: number;
+  paths?: string[];
+}
+
 export interface ProjectWatchGitBrief {
   lines: string[];
   commit_count: number;
   authors: string[];
-  areas: { area: string; files: number }[];
+  areas: ProjectWatchArea[];
   commit_subjects?: string[];
 }
 
@@ -1846,7 +1852,7 @@ export interface ProjectWatchHistoryEntry {
   commit_subjects: string[];
   authors: string[];
   git_lines: string[];
-  areas: { area: string; files: number }[];
+  areas: ProjectWatchArea[];
 }
 
 export interface ProjectWatchHistoryResponse {

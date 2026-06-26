@@ -200,7 +200,7 @@ def build_watch_digest(
     current_meta: ProjectSnapshotMeta,
     git_brief: "GitChangeBrief | None" = None,
 ) -> dict:
-    from app.core.domain.git_change_brief import format_git_brief, top_changed_areas
+    from app.core.domain.git_change_brief import changed_files_by_area, format_git_brief
 
     counts = {
         "entities_added": len(diff.added_entities),
@@ -244,10 +244,9 @@ def build_watch_digest(
             "lines": git_lines,
             "commit_count": git_brief.commit_count if git_brief else 0,
             "authors": git_brief.authors if git_brief else [],
-            "areas": [
-                {"area": area, "files": files}
-                for area, files in (top_changed_areas(git_brief.changed_paths) if git_brief else [])
-            ],
+            # Area → file count *and* the actual paths, so the UI can reveal which
+            # files changed (e.g. on hovering an area chip).
+            "areas": (changed_files_by_area(git_brief.changed_paths) if git_brief else []),
             # Raw commit subjects, kept so an optional one-tap LLM summary can be
             # produced without re-querying git (and reflecting exactly this digest).
             "commit_subjects": git_brief.commit_subjects if git_brief else [],
