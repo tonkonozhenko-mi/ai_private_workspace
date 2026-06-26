@@ -6,13 +6,13 @@ from app.adapters.memory.in_memory_project_graph_repository import (
 from app.adapters.memory.in_memory_project_watch_repository import (
     InMemoryProjectWatchRepository,
 )
+from app.core.domain.git_change_brief import changed_files_by_area
 from app.core.domain.project_graph import (
     EntityType,
     ProjectEntity,
     ProjectFinding,
     ProjectGraph,
 )
-from app.core.domain.git_change_brief import changed_files_by_area
 from app.core.domain.project_watch import build_watch_history_entry
 from app.core.use_cases.run_project_watch import (
     RunProjectWatchInput,
