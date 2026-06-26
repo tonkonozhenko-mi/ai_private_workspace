@@ -2,6 +2,8 @@ from pydantic import BaseModel
 
 from app.core.domain.indexing import (
     ContextSearchResult,
+    IncrementalIndexResult,
+    IndexChangePreview,
     IndexedDocumentSummary,
     WorkspaceIndexResult,
 )
@@ -18,6 +20,27 @@ class WorkspaceIndexResponse(BaseModel):
     chunks_count: int
     skipped_files_count: int
     documents: list[IndexedDocumentSummaryResponse]
+
+
+class WorkspaceIncrementalIndexResponse(BaseModel):
+    workspace_id: str
+    reindexed_files: int
+    removed_files: int
+    unchanged_files: int
+    chunks_indexed: int
+    indexed_files_count: int
+    chunks_count: int
+    documents: list[IndexedDocumentSummaryResponse]
+
+
+class WorkspaceIndexChangePreviewResponse(BaseModel):
+    workspace_id: str
+    has_index: bool
+    changed_files: int
+    new_files: int
+    removed_files: int
+    unchanged_files: int
+    pending: int
 
 
 class ContextSearchResultResponse(BaseModel):
@@ -46,6 +69,35 @@ def to_workspace_index_response(
         chunks_count=result.chunks_count,
         skipped_files_count=result.skipped_files_count,
         documents=[to_indexed_document_summary_response(document) for document in result.documents],
+    )
+
+
+def to_workspace_incremental_index_response(
+    result: IncrementalIndexResult,
+) -> WorkspaceIncrementalIndexResponse:
+    return WorkspaceIncrementalIndexResponse(
+        workspace_id=result.workspace_id,
+        reindexed_files=result.reindexed_files,
+        removed_files=result.removed_files,
+        unchanged_files=result.unchanged_files,
+        chunks_indexed=result.chunks_indexed,
+        indexed_files_count=result.indexed_files_count,
+        chunks_count=result.chunks_count,
+        documents=[to_indexed_document_summary_response(document) for document in result.documents],
+    )
+
+
+def to_workspace_index_change_preview_response(
+    result: IndexChangePreview,
+) -> WorkspaceIndexChangePreviewResponse:
+    return WorkspaceIndexChangePreviewResponse(
+        workspace_id=result.workspace_id,
+        has_index=result.has_index,
+        changed_files=result.changed_files,
+        new_files=result.new_files,
+        removed_files=result.removed_files,
+        unchanged_files=result.unchanged_files,
+        pending=result.pending,
     )
 
 

@@ -28,11 +28,43 @@ from app.core.domain.user_profile import (
 )
 from app.core.ports.project_graph_repository import ProjectGraphRepositoryPort
 from app.core.ports.project_memory_repository import ProjectMemoryRepositoryPort
+from app.core.ports.project_watch_repository import ProjectWatchRepositoryPort
 from app.core.ports.user_profile_repository import UserProfileRepositoryPort
 
 _WORD_RE = re.compile(r"[a-z0-9_]+")
 _HANDBOOK_MAX = 1200
 _TOTAL_MAX = 3500
+_CHANGES_MAX = 700
+
+# Words that signal the question is about recent change ("what changed today?",
+# "що змінилось", "что нового со вчера"). When any appears, the dated change
+# journal is added to the context so plain Ask can answer it. Kept multilingual
+# (en/uk/ru) because the product is used in those languages.
+_CHANGE_INTENT = (
+    "chang",
+    "what's new",
+    "whats new",
+    "recent",
+    "latest",
+    "today",
+    "yesterday",
+    "since",
+    "updat",
+    "modif",
+    "diff",
+    "new in",
+    "змін",
+    "сьогодн",
+    "вчора",
+    "останн",
+    "новог",
+    "онов",
+    "недавн",
+    "измен",
+    "сегодн",
+    "вчера",
+    "нового",
+)
 
 
 def _tokens(text: str) -> set[str]:
@@ -53,6 +85,7 @@ class ProjectContextStats:
     graph_facts: int = 0
     handbook: bool = False
     profile_facts: int = 0
+    recent_changes: int = 0
 
 
 class ComposeProjectContextUseCase:
@@ -68,12 +101,17 @@ class ComposeProjectContextUseCase:
         project_graph_repository: ProjectGraphRepositoryPort,
         user_profile_repository: UserProfileRepositoryPort | None = None,
         embedding_provider=None,
+        watch_repository: ProjectWatchRepositoryPort | None = None,
     ) -> None:
         self.memory_repository = memory_repository
         self.project_graph_repository = project_graph_repository
         # Optional so existing callers/tests keep working; when present, the
         # user's cross-project profile is applied to every answer.
         self.user_profile_repository = user_profile_repository
+        # Optional: the dated change journal (git-based). When the question is
+        # about recent changes, a compact recap is added so plain Ask can answer
+        # "what changed today / since yesterday".
+        self.watch_repository = watch_repository
         # Optional: when present, recalled memory is re-ranked by embedding
         # similarity (catches synonyms/paraphrases keyword overlap misses). None
         # keeps the deterministic keyword + pin + recency behaviour unchanged.
@@ -138,11 +176,16 @@ class ComposeProjectContextUseCase:
         if graph_block:
             blocks.append(graph_block)
 
+        changes_block, changes_count = self._recent_changes(workspace_id, query)
+        if changes_block:
+            blocks.append(changes_block)
+
         stats = ProjectContextStats(
             memory_items=len(relevant) if memory_block else 0,
             graph_facts=graph_count,
             handbook=has_handbook,
             profile_facts=profile_count,
+            recent_changes=changes_count,
         )
         if not blocks:
             return "", stats
@@ -154,6 +197,40 @@ class ComposeProjectContextUseCase:
     # Convenience for callbacks that take (workspace_id, query) -> str.
     def __call__(self, workspace_id: str, query: str) -> str:
         return self.compose(workspace_id, query)
+
+    def _recent_changes(self, workspace_id: str, query: str) -> tuple[str, int]:
+        """A compact recap of the dated change journal, added only when the
+        question is about recent changes. Lets plain Ask answer "what changed
+        today / since yesterday" from the same git journal shown in History."""
+        if self.watch_repository is None:
+            return "", 0
+        lowered = (query or "").lower()
+        if not any(token in lowered for token in _CHANGE_INTENT):
+            return "", 0
+        try:
+            entries = self.watch_repository.list_history(workspace_id, limit=5)
+        except Exception:  # noqa: BLE001 - context is best-effort
+            return "", 0
+        if not entries:
+            return "", 0
+
+        lines = ["Recent project changes (dated change journal):"]
+        used = 0
+        for entry in entries:
+            when = str(entry.get("checked_at") or entry.get("created_at") or "")[:10]
+            recap = str(entry.get("llm_summary") or entry.get("summary") or "").strip()
+            subjects = [s for s in (entry.get("commit_subjects") or []) if s][:4]
+            line = f"- {when}: {recap}" if when else f"- {recap}"
+            if subjects:
+                line += " | commits: " + "; ".join(subjects)
+            lines.append(line)
+            used += 1
+            if sum(len(item) for item in lines) > _CHANGES_MAX:
+                break
+        block = "\n".join(lines)
+        if len(block) > _CHANGES_MAX:
+            block = block[:_CHANGES_MAX] + " …"
+        return block, used
 
     def _graph_facts(self, workspace_id: str, query: str) -> tuple[str, int]:
         graph = self.project_graph_repository.get_latest_graph(workspace_id)

@@ -10,13 +10,17 @@ from app.core.domain.chunking import (
 )
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import (
+    IncrementalIndexResult,
+    IndexChangePreview,
     IndexedDocumentSummary,
     TextChunk,
     WorkspaceIndexResult,
+    content_hash,
 )
 from app.core.domain.project_scan import ProjectFile, ProjectScanResult
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.file_system import FileSystemPort
+from app.core.ports.index_manifest_repository import IndexManifestRepositoryPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
@@ -72,6 +76,7 @@ class IndexWorkspaceUseCase:
         vector_store: VectorStorePort,
         index_status_repository: IndexStatusRepositoryPort,
         timeline_repository: TimelineRepositoryPort | None = None,
+        manifest_repository: IndexManifestRepositoryPort | None = None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.project_scan_repository = project_scan_repository
@@ -80,6 +85,9 @@ class IndexWorkspaceUseCase:
         self.vector_store = vector_store
         self.index_status_repository = index_status_repository
         self.timeline_repository = timeline_repository
+        # Optional: records {path: hash} of what is indexed, enabling incremental
+        # re-index of only changed files. When absent, indexing stays full.
+        self.manifest_repository = manifest_repository
 
     def execute(self, request: IndexWorkspaceInput) -> WorkspaceIndexResult:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -144,6 +152,194 @@ class IndexWorkspaceUseCase:
             )
         return result
 
+    def execute_changed_preview(self, request: IndexWorkspaceInput) -> IndexChangePreview:
+        """Count what an incremental re-index would touch — without embedding or
+        writing anything. Reads + hashes the indexable files and diffs against the
+        manifest, so the UI can show a 'N files changed' hint cheaply."""
+        workspace = self.workspace_repository.get(request.workspace_id)
+        if workspace is None:
+            raise IndexWorkspaceNotFoundError("Workspace not found")
+        latest_scan = self.project_scan_repository.get_latest_scan(request.workspace_id)
+        if latest_scan is None:
+            raise IndexWorkspaceScanRequiredError("Project scan required before indexing workspace")
+
+        manifest = (
+            self.manifest_repository.get(request.workspace_id)
+            if self.manifest_repository is not None
+            else {}
+        )
+        current = {f.path: f for f in latest_scan.files if f.detected_type in INDEXABLE_FILE_TYPES}
+        changed = new = 0
+        for path in current:
+            try:
+                content = self.file_system.read_text_file(workspace.project_path, path)
+            except Exception:  # noqa: BLE001 - a read failure shouldn't break the preview
+                content = ""
+            prior = manifest.get(path)
+            if prior is None:
+                new += 1
+            elif str(prior.get("hash")) != content_hash(content):
+                changed += 1
+        removed = len(set(manifest) - set(current))
+        unchanged = max(0, len(current) - changed - new)
+        return IndexChangePreview(
+            workspace_id=request.workspace_id,
+            has_index=bool(manifest),
+            changed_files=changed,
+            new_files=new,
+            removed_files=removed,
+            unchanged_files=unchanged,
+        )
+
+    def execute_changed(self, request: IndexWorkspaceInput) -> IncrementalIndexResult:
+        """Re-index only files whose content changed since the last index.
+
+        Reads each indexable file, hashes it, and compares against the manifest:
+        re-embeds new/changed files, drops chunks for changed/removed files, and
+        leaves unchanged files untouched. Falls back to a full index when there is
+        no manifest yet or the embedding model changed (everything must be
+        re-embedded then). Never re-indexes the whole repo unnecessarily.
+        """
+        workspace = self.workspace_repository.get(request.workspace_id)
+        if workspace is None:
+            raise IndexWorkspaceNotFoundError("Workspace not found")
+        latest_scan = self.project_scan_repository.get_latest_scan(request.workspace_id)
+        if latest_scan is None:
+            raise IndexWorkspaceScanRequiredError("Project scan required before indexing workspace")
+
+        manifest = (
+            self.manifest_repository.get(request.workspace_id)
+            if self.manifest_repository is not None
+            else {}
+        )
+        status = self.index_status_repository.get(request.workspace_id)
+        current_model = getattr(self.embedding_provider, "model_name", None)
+        model_changed = bool(
+            status and status.embedding_model and status.embedding_model != current_model
+        )
+        if not manifest or model_changed:
+            full = self.execute(request)
+            return IncrementalIndexResult(
+                workspace_id=request.workspace_id,
+                reindexed_files=full.indexed_files_count,
+                removed_files=0,
+                unchanged_files=0,
+                chunks_indexed=full.chunks_count,
+                indexed_files_count=full.indexed_files_count,
+                chunks_count=full.chunks_count,
+                documents=full.documents,
+            )
+
+        result = self._index_changed(
+            workspace_id=request.workspace_id,
+            project_path=workspace.project_path,
+            latest_scan=latest_scan,
+            manifest=manifest,
+        )
+        self.index_status_repository.save(
+            WorkspaceIndexStatus(
+                workspace_id=request.workspace_id,
+                status="indexed",
+                indexed_files_count=result.indexed_files_count,
+                chunks_count=result.chunks_count,
+                skipped_files_count=status.skipped_files_count if status else 0,
+                last_indexed_at=datetime.now(UTC).isoformat(),
+                last_error=None,
+                embedding_model=current_model,
+            )
+        )
+        if self.timeline_repository is not None and (
+            result.reindexed_files or result.removed_files
+        ):
+            AddTimelineEventUseCase(self.timeline_repository).execute(
+                AddTimelineEventInput(
+                    workspace_id=request.workspace_id,
+                    event_type="workspace_reindexed",
+                    title="Updated the AI's knowledge",
+                    summary=(
+                        f"Re-indexed {result.reindexed_files} changed file(s); "
+                        f"{result.removed_files} removed."
+                    ),
+                    metadata={
+                        "reindexed_files": str(result.reindexed_files),
+                        "removed_files": str(result.removed_files),
+                    },
+                )
+            )
+        return result
+
+    def _index_changed(
+        self,
+        workspace_id: str,
+        project_path: str,
+        latest_scan: ProjectScanResult,
+        manifest: dict[str, dict],
+    ) -> IncrementalIndexResult:
+        current_indexable = {
+            f.path: f for f in latest_scan.files if f.detected_type in INDEXABLE_FILE_TYPES
+        }
+        new_manifest: dict[str, dict] = {}
+        reindexed_docs: list[IndexedDocumentSummary] = []
+        chunks_to_embed: list[TextChunk] = []
+        unchanged = 0
+
+        for path, project_file in current_indexable.items():
+            file_chunks, file_hash = self._chunks_for_file(
+                workspace_id=workspace_id,
+                project_path=project_path,
+                project_file=project_file,
+            )
+            prior = manifest.get(path)
+            if not file_chunks:
+                # No longer chunkable — leave it out of the manifest so its old
+                # chunks (if any) get deleted below.
+                continue
+            if prior and prior.get("hash") == file_hash:
+                unchanged += 1
+                new_manifest[path] = dict(prior)
+                continue
+            reindexed_docs.append(
+                IndexedDocumentSummary(source_path=path, chunks_count=len(file_chunks))
+            )
+            chunks_to_embed.extend(file_chunks)
+            new_manifest[path] = {"hash": file_hash, "chunks": len(file_chunks)}
+
+        reindexed_paths = {doc.source_path for doc in reindexed_docs}
+        removed_or_emptied = set(manifest) - set(new_manifest)
+        to_delete = sorted(removed_or_emptied | (reindexed_paths & set(manifest)))
+        if to_delete:
+            self.vector_store.delete_chunks_by_source_path(workspace_id, to_delete)
+
+        if chunks_to_embed:
+            embeddings = [
+                self.embedding_provider.embed_text(strip_contextual_header(chunk.content))
+                for chunk in chunks_to_embed
+            ]
+            embedding_dimension = self._embedding_dimension(embeddings)
+            self.vector_store.upsert_chunks(
+                workspace_id=workspace_id,
+                chunks=chunks_to_embed,
+                embeddings=embeddings,
+                embedding_provider=self.embedding_provider.provider_name,
+                embedding_model=self.embedding_provider.model_name,
+                embedding_dimension=embedding_dimension,
+            )
+
+        if self.manifest_repository is not None:
+            self.manifest_repository.replace_all(workspace_id, new_manifest)
+
+        chunks_count = sum(int(entry.get("chunks", 0)) for entry in new_manifest.values())
+        return IncrementalIndexResult(
+            workspace_id=workspace_id,
+            reindexed_files=len(reindexed_docs),
+            removed_files=len(removed_or_emptied),
+            unchanged_files=unchanged,
+            chunks_indexed=len(chunks_to_embed),
+            indexed_files_count=len(new_manifest),
+            chunks_count=chunks_count,
+            documents=reindexed_docs,
+        )
+
     def _index_workspace(
         self,
         workspace_id: str,
@@ -154,6 +350,7 @@ class IndexWorkspaceUseCase:
     ) -> WorkspaceIndexResult:
         documents: list[IndexedDocumentSummary] = []
         chunks: list[TextChunk] = []
+        manifest: dict[str, dict] = {}
         skipped_files_count = latest_scan.skipped_files
 
         total_files = len(latest_scan.files) or 1
@@ -167,7 +364,7 @@ class IndexWorkspaceUseCase:
                 skipped_files_count += 1
                 continue
 
-            file_chunks = self._chunks_for_file(
+            file_chunks, file_hash = self._chunks_for_file(
                 workspace_id=workspace_id,
                 project_path=project_path,
                 project_file=project_file,
@@ -183,6 +380,7 @@ class IndexWorkspaceUseCase:
                 )
             )
             chunks.extend(file_chunks)
+            manifest[project_file.path] = {"hash": file_hash, "chunks": len(file_chunks)}
 
         embeddings = []
         total_chunks = len(chunks) or 1
@@ -218,6 +416,11 @@ class IndexWorkspaceUseCase:
                 embedding_dimension=embedding_dimension,
             )
 
+        # The manifest mirrors exactly what we just (re)wrote, so a later
+        # incremental re-index can diff against it by content hash.
+        if self.manifest_repository is not None:
+            self.manifest_repository.replace_all(workspace_id, manifest)
+
         return WorkspaceIndexResult(
             workspace_id=workspace_id,
             indexed_files_count=len(documents),
@@ -247,8 +450,9 @@ class IndexWorkspaceUseCase:
         workspace_id: str,
         project_path: str,
         project_file: ProjectFile,
-    ) -> list[TextChunk]:
+    ) -> tuple[list[TextChunk], str]:
         content = self.file_system.read_text_file(project_path, project_file.path)
+        file_hash = content_hash(content)
         raw_chunks = chunk_document(
             content,
             file_type=project_file.detected_type,
@@ -282,4 +486,4 @@ class IndexWorkspaceUseCase:
                     },
                 )
             )
-        return chunks
+        return chunks, file_hash

@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 
+import { UpdateIndexSection } from "./UpdateIndexSection";
 import { UserProfileSettings } from "./UserProfileSettings";
 import type { WorkbenchPreferences } from "../App";
 import {
@@ -321,6 +322,8 @@ export function SettingsPanel({
           </div>
         </article>
       </section>
+
+      <UpdateIndexSection workspaceId={dashboard.workspace_id} />
 
       {preferences.developerMode ? (
       <section className="panel settings-clean-card">

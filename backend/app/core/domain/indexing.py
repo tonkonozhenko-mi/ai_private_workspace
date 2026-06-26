@@ -1,4 +1,11 @@
+import hashlib
 from dataclasses import dataclass
+
+
+def content_hash(text: str) -> str:
+    """Stable content fingerprint for a file, used to tell whether it changed
+    since it was last indexed (incremental re-index). Independent of mtime."""
+    return hashlib.sha256((text or "").encode("utf-8")).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -25,6 +32,38 @@ class WorkspaceIndexResult:
     chunks_count: int
     skipped_files_count: int
     documents: list[IndexedDocumentSummary]
+
+
+@dataclass(frozen=True)
+class IncrementalIndexResult:
+    """Outcome of an incremental (changed-files-only) re-index."""
+
+    workspace_id: str
+    reindexed_files: int
+    removed_files: int
+    unchanged_files: int
+    chunks_indexed: int
+    indexed_files_count: int  # total in the index after the update
+    chunks_count: int  # total in the index after the update
+    documents: list[IndexedDocumentSummary]  # the files that were (re)indexed
+
+
+@dataclass(frozen=True)
+class IndexChangePreview:
+    """A cheap, embed-free count of what an incremental re-index would touch,
+    so the UI can show "N files changed since the last index" and decide whether
+    to auto-update."""
+
+    workspace_id: str
+    has_index: bool
+    changed_files: int
+    new_files: int
+    removed_files: int
+    unchanged_files: int
+
+    @property
+    def pending(self) -> int:
+        return self.changed_files + self.new_files + self.removed_files
 
 
 @dataclass(frozen=True)
