@@ -140,6 +140,7 @@ class LlamaServerLLMProvider:
         temperature: float | None,
         stream: bool,
         history: list[tuple[str, str]] | None = None,
+        response_format: dict | None = None,
     ) -> dict:
         payload: dict[str, object] = {
             "model": self.model,
@@ -151,6 +152,10 @@ class LlamaServerLLMProvider:
             # volatile question is last), so multi-turn answers start faster.
             "cache_prompt": True,
         }
+        if response_format is not None:
+            # Constrain generation to a JSON Schema / object so the model cannot
+            # emit invalid JSON — llama.cpp builds a grammar from this.
+            payload["response_format"] = response_format
         if stream:
             # Ask for a trailing usage chunk so streamed answers also report real
             # token counts (otherwise the stream carries only text deltas).
@@ -159,6 +164,28 @@ class LlamaServerLLMProvider:
             payload["temperature"] = temperature
         return payload
 
+    def count_tokens(self, text: str) -> int:
+        """Exact token count for ``text`` via llama-server's ``/tokenize``.
+
+        Falls back to a ~4-chars-per-token estimate on any error, so callers can
+        use it unconditionally for context budgeting.
+        """
+        if not text:
+            return 0
+        try:
+            response = self.client.post(
+                f"{self.base_url}/tokenize",
+                json={"content": text},
+                timeout=min(self.timeout_seconds, 10),
+            )
+            if response.status_code < 400:
+                tokens = response.json().get("tokens")
+                if isinstance(tokens, list):
+                    return len(tokens)
+        except (httpx.HTTPError, ValueError, KeyError, TypeError):
+            pass
+        return max(1, len(text) // 4)
+
     def generate(
         self,
         prompt: str,
@@ -166,13 +193,21 @@ class LlamaServerLLMProvider:
         temperature: float | None = None,
         think: bool | None = None,
         history: list[tuple[str, str]] | None = None,
+        response_format: dict | None = None,
     ) -> str:
         self.last_prompt_tokens = None
         self.last_completion_tokens = None
         try:
             response = self.client.post(
                 f"{self.base_url}/v1/chat/completions",
-                json=self._payload(prompt, images, temperature, stream=False, history=history),
+                json=self._payload(
+                    prompt,
+                    images,
+                    temperature,
+                    stream=False,
+                    history=history,
+                    response_format=response_format,
+                ),
                 timeout=self.timeout_seconds,
             )
         except httpx.HTTPError as exc:
@@ -207,6 +242,7 @@ class LlamaServerLLMProvider:
         temperature: float | None = None,
         think: bool | None = None,
         history: list[tuple[str, str]] | None = None,
+        response_format: dict | None = None,
     ) -> Iterator[str]:
         """Yield answer text deltas via the OpenAI-compatible SSE stream."""
         self.last_prompt_tokens = None
@@ -215,7 +251,14 @@ class LlamaServerLLMProvider:
             with self.client.stream(
                 "POST",
                 f"{self.base_url}/v1/chat/completions",
-                json=self._payload(prompt, images, temperature, stream=True, history=history),
+                json=self._payload(
+                    prompt,
+                    images,
+                    temperature,
+                    stream=True,
+                    history=history,
+                    response_format=response_format,
+                ),
                 timeout=self.timeout_seconds,
             ) as response:
                 if response.status_code >= 400:

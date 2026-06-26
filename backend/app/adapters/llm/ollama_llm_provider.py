@@ -84,7 +84,10 @@ class OllamaLLMProvider:
         temperature: float | None = None,
         think: bool | None = None,
         history: list[tuple[str, str]] | None = None,
+        response_format: dict | None = None,
     ) -> str:
+        # ``response_format`` (JSON-Schema constrained output) is currently a
+        # llama.cpp-only capability; accepted here for a uniform port and ignored.
         self.last_prompt_tokens = None
         self.last_completion_tokens = None
         prompt = _with_history(prompt, history)
@@ -119,6 +122,7 @@ class OllamaLLMProvider:
         temperature: float | None = None,
         think: bool | None = None,
         history: list[tuple[str, str]] | None = None,
+        response_format: dict | None = None,
     ) -> Iterator[str]:
         """Yield answer text deltas as Ollama produces them.
 
