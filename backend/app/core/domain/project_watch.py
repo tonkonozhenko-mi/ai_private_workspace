@@ -280,4 +280,9 @@ def build_watch_history_entry(digest: dict) -> dict | None:
         "commit_count": int(git_brief.get("commit_count") or 0),
         "commit_subjects": list(git_brief.get("commit_subjects") or [])[:8],
         "authors": list(git_brief.get("authors") or []),
+        # The human git lines (e.g. "13 commits by … / Most changes in …") and the
+        # changed areas with file counts, so the timeline reads as richly as the
+        # live digest card instead of just the one-line headline.
+        "git_lines": list(git_brief.get("lines") or []),
+        "areas": [dict(a) for a in (git_brief.get("areas") or [])],
     }

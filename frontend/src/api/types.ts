@@ -1845,6 +1845,8 @@ export interface ProjectWatchHistoryEntry {
   commit_count: number;
   commit_subjects: string[];
   authors: string[];
+  git_lines: string[];
+  areas: { area: string; files: number }[];
 }
 
 export interface ProjectWatchHistoryResponse {

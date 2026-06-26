@@ -39,6 +39,8 @@ def test_history_entry_captures_changed_digest():
             "commit_count": 3,
             "commit_subjects": ["fix a", "add b", "tune c"],
             "authors": ["Alice"],
+            "lines": ["3 commits by Alice", "Most changes in applications (2 files)"],
+            "areas": [{"area": "applications", "files": 2}],
         },
     }
     entry = build_watch_history_entry(digest)
@@ -48,6 +50,8 @@ def test_history_entry_captures_changed_digest():
     assert entry["commit_count"] == 3
     assert entry["commit_subjects"] == ["fix a", "add b", "tune c"]
     assert entry["git_head"] == "abc123"
+    assert entry["areas"] == [{"area": "applications", "files": 2}]
+    assert entry["git_lines"][1].startswith("Most changes")
 
 
 # -- repository -------------------------------------------------------------

@@ -3,6 +3,15 @@ import { useEffect, useRef, useState } from "react";
 import { getProjectWatchHistory } from "../api/client";
 import type { ProjectWatchHistoryEntry } from "../api/types";
 
+const HIGHLIGHT_DOT: Record<string, string> = {
+  risk_added: "pw-dot-risk",
+  risk_resolved: "pw-dot-resolved",
+  analyzer_added: "pw-dot-new",
+  entity_added: "pw-dot-new",
+  count_added: "pw-dot-new",
+  entity_removed: "pw-dot-removed",
+};
+
 function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return "";
@@ -86,6 +95,11 @@ export function ProjectWatchHistory({ workspaceId }: { workspaceId: string }) {
           const when = entry.checked_at || entry.created_at;
           const isOpen = !!expanded[entry.id];
           const subjects = entry.commit_subjects ?? [];
+          const highlights = entry.highlights ?? [];
+          const riskHighlights = highlights.filter((h) => h.category === "risk");
+          const structural = highlights.filter((h) => h.category !== "risk");
+          const areas = entry.areas ?? [];
+          const gitLines = entry.git_lines ?? [];
           return (
             <li key={entry.id} className="pwh-item">
               <span className="pwh-dot" aria-hidden="true" />
@@ -96,6 +110,20 @@ export function ProjectWatchHistory({ workspaceId }: { workspaceId: string }) {
                 </div>
 
                 <p className="pwh-summary">{entry.summary}</p>
+
+                {/* Secondary git line, e.g. "Most changes in applications (3 files)…". */}
+                {gitLines.length > 1 ? <p className="pwh-git-line">{gitLines[1]}</p> : null}
+
+                {/* Changed areas/services with file counts. */}
+                {areas.length > 0 ? (
+                  <div className="pwh-chips">
+                    {areas.slice(0, 5).map((a) => (
+                      <span key={a.area} className="pwh-chip pwh-chip-add">
+                        {a.area} · {a.files}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
 
                 {entry.llm_summary ? (
                   <p className="pw-summary-llm pwh-llm">{entry.llm_summary}</p>
@@ -109,6 +137,33 @@ export function ProjectWatchHistory({ workspaceId }: { workspaceId: string }) {
                       </span>
                     ))}
                   </div>
+                ) : null}
+
+                {/* What actually changed, by service/entity — risks first. */}
+                {riskHighlights.length > 0 ? (
+                  <ul className="pw-highlights pwh-highlights">
+                    {riskHighlights.map((h, i) => (
+                      <li key={i} className="pw-highlight">
+                        <span className={`pw-dot ${HIGHLIGHT_DOT[h.kind] ?? "pw-dot-new"}`} />
+                        <span className="pw-highlight-text">
+                          {h.severity && h.kind === "risk_added" ? (
+                            <span className={`pw-sev pw-sev-${h.severity}`}>{h.severity}</span>
+                          ) : null}
+                          {h.text}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {structural.length > 0 ? (
+                  <ul className="pw-highlights pw-highlights-muted pwh-highlights">
+                    {structural.map((h, i) => (
+                      <li key={i} className="pw-highlight">
+                        <span className={`pw-dot ${HIGHLIGHT_DOT[h.kind] ?? "pw-dot-new"}`} />
+                        <span className="pw-highlight-text">{h.text}</span>
+                      </li>
+                    ))}
+                  </ul>
                 ) : null}
 
                 {(entry.commit_count > 0 || entry.authors.length > 0) ? (
