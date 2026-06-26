@@ -35,6 +35,10 @@ class LlamaServerLLMProviderError(RuntimeError):
 
 class LlamaServerLLMProvider:
     provider_name = "llamacpp"
+    # llama-server builds a grammar from ``response_format``, so it can be made to
+    # emit only schema-valid JSON. Consumers detect this to switch on structured
+    # output (e.g. the Investigator's tool-call steps).
+    supports_structured_output = True
 
     def __init__(
         self,
