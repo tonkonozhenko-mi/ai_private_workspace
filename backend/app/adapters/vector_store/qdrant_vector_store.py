@@ -145,6 +145,41 @@ class QdrantVectorStore:
             wait=True,
         )
 
+    def delete_chunks_by_source_path(
+        self, workspace_id: str, source_paths: list[str]
+    ) -> None:
+        paths = [p for p in dict.fromkeys(source_paths) if p]
+        if not paths:
+            return
+        # The collection is per embedding (provider/model/dim); without those we
+        # can't name it precisely, so clear matching points across any collections
+        # that exist for this client. In practice one collection is active.
+        for collection_name in self._existing_collection_names():
+            self.client.delete(
+                collection_name=collection_name,
+                points_selector=models.FilterSelector(
+                    filter=models.Filter(
+                        must=[
+                            models.FieldCondition(
+                                key="workspace_id",
+                                match=models.MatchValue(value=workspace_id),
+                            ),
+                            models.FieldCondition(
+                                key="source_path",
+                                match=models.MatchAny(any=paths),
+                            ),
+                        ]
+                    ),
+                ),
+                wait=True,
+            )
+
+    def _existing_collection_names(self) -> list[str]:
+        try:
+            return [c.name for c in self.client.get_collections().collections]
+        except Exception:  # noqa: BLE001 - best-effort listing
+            return []
+
     def _ensure_collection(self, collection_name: str, vector_size: int) -> None:
         if self.client.collection_exists(collection_name):
             self._validate_collection_dimension(collection_name, vector_size)

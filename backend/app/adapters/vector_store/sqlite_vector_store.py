@@ -319,6 +319,35 @@ class SQLiteVectorStore:
                     (workspace_id,),
                 )
 
+    def delete_chunks_by_source_path(
+        self, workspace_id: str, source_paths: list[str]
+    ) -> None:
+        paths = [p for p in dict.fromkeys(source_paths) if p]
+        if not paths:
+            return
+        placeholders = ",".join("?" for _ in paths)
+        with self._connect() as connection:
+            if self._fts_enabled:
+                # The FTS mirror is keyed by chunk_id, so resolve the affected ids
+                # first, then delete from both tables.
+                rows = connection.execute(
+                    f"SELECT chunk_id FROM workspace_vector_chunks "
+                    f"WHERE workspace_id = ? AND source_path IN ({placeholders})",
+                    (workspace_id, *paths),
+                ).fetchall()
+                chunk_ids = [row["chunk_id"] for row in rows]
+                for chunk_id in chunk_ids:
+                    connection.execute(
+                        "DELETE FROM workspace_vector_chunks_fts "
+                        "WHERE workspace_id = ? AND chunk_id = ?",
+                        (workspace_id, chunk_id),
+                    )
+            connection.execute(
+                f"DELETE FROM workspace_vector_chunks "
+                f"WHERE workspace_id = ? AND source_path IN ({placeholders})",
+                (workspace_id, *paths),
+            )
+
     def _initialize_schema(self) -> None:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as connection:
