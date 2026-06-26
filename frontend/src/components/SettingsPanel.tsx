@@ -1,12 +1,12 @@
 import { useMemo, useState, type FormEvent } from "react";
 
+import { UpdateIndexSection } from "./UpdateIndexSection";
 import { UserProfileSettings } from "./UserProfileSettings";
 import type { WorkbenchPreferences } from "../App";
 import {
   deleteWorkspace,
   getWorkspacesOverview,
   previewWorkspaceFileSelection,
-  reindexChangedWorkspace,
   updateWorkspaceIndexingRules,
   updateWorkspaceSkillProfile,
 } from "../api/client";
@@ -61,28 +61,6 @@ export function SettingsPanel({
     excludePatterns: preferences.fileIndexingPreferences.excludePatterns,
   }));
   const [fileRulesMessage, setFileRulesMessage] = useState("Saved file rules are used by Scan and Build context.");
-  const [reindexBusy, setReindexBusy] = useState(false);
-  const [reindexMessage, setReindexMessage] = useState<string | null>(null);
-
-  const updateChangedIndex = async () => {
-    setReindexBusy(true);
-    setReindexMessage(null);
-    try {
-      const result = await reindexChangedWorkspace(dashboard.workspace_id);
-      if (result.reindexed_files === 0 && result.removed_files === 0) {
-        setReindexMessage("The AI is already up to date — nothing changed since the last index.");
-      } else {
-        const parts: string[] = [];
-        if (result.reindexed_files) parts.push(`${result.reindexed_files} file(s) re-indexed`);
-        if (result.removed_files) parts.push(`${result.removed_files} removed`);
-        setReindexMessage(`Updated the AI's knowledge: ${parts.join(", ")}.`);
-      }
-    } catch {
-      setReindexMessage("Could not update the index right now.");
-    } finally {
-      setReindexBusy(false);
-    }
-  };
   const [savingFileRules, setSavingFileRules] = useState(false);
   const [fileRulesPreview, setFileRulesPreview] = useState<FileSelectionPreview | null>(null);
   const [previewingFileRules, setPreviewingFileRules] = useState(false);
@@ -345,30 +323,7 @@ export function SettingsPanel({
         </article>
       </section>
 
-      <section className="panel settings-clean-card">
-        <div className="panel-heading compact-heading">
-          <div>
-            <p className="eyebrow">Search index</p>
-            <h3>Keep the AI up to date</h3>
-            <p className="panel-helper">
-              Re-embeds only the files that changed since the last index, so the model sees the
-              latest code without re-indexing the whole project. Then just ask in Ask — e.g.
-              “what changed today?”
-            </p>
-          </div>
-        </div>
-        <div className="settings-clean-actions">
-          <button
-            className="primary-button"
-            type="button"
-            disabled={reindexBusy}
-            onClick={() => void updateChangedIndex()}
-          >
-            {reindexBusy ? "Updating…" : "Update index (changed files)"}
-          </button>
-        </div>
-        {reindexMessage ? <p className="settings-message">{reindexMessage}</p> : null}
-      </section>
+      <UpdateIndexSection workspaceId={dashboard.workspace_id} />
 
       {preferences.developerMode ? (
       <section className="panel settings-clean-card">
