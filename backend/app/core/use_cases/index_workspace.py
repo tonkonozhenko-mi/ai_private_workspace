@@ -168,11 +168,7 @@ class IndexWorkspaceUseCase:
             if self.manifest_repository is not None
             else {}
         )
-        current = {
-            f.path: f
-            for f in latest_scan.files
-            if f.detected_type in INDEXABLE_FILE_TYPES
-        }
+        current = {f.path: f for f in latest_scan.files if f.detected_type in INDEXABLE_FILE_TYPES}
         changed = new = 0
         for path in current:
             try:
