@@ -7,6 +7,17 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-06-26
+
+A **change-aware** release. The app now keeps track of what changed in your
+project and keeps the local model's knowledge fresh — without re-indexing the
+whole repository. A dated **change history** (git-based, cheap), an **incremental
+re-index** of only the files whose content changed, and an Ask that can answer
+"what changed today / since yesterday" from that journal. The bundled llama.cpp
+engine is also faster and more reliable, and the read-only Investigator agent
+uses schema-constrained output where the engine supports it. Everything stays
+local, and no new model downloads are required.
+
 ### Added
 
 - **Faster, more reliable bundled llama.cpp engine.** The answer server now starts with **Flash Attention** (quicker generation, smaller KV cache) and a **KV-slot save path** so a warm prompt prefix can persist to disk. Both are best-effort: if a particular build rejects a flag, the server automatically retries on the known-good baseline, so startup can never break. New env knobs: `AI_WORKSPACE_LLAMA_FLASH_ATTN` (default on) and `AI_WORKSPACE_LLAMA_PARALLEL` (default `1`; raise for concurrent request slots, at the cost of per-request context). GPU offload was deliberately left out to stay safe on the CPU-only Windows/Linux builds.

@@ -144,7 +144,8 @@ changes anything on your computer.
 - **Project activity & file inspector** — a read-only briefing from git history (activity, ownership, branch strategy, change coupling) and a per-file lens (owner, what it changes together with, its blast radius, the risks touching it).
 - **Project groups** — treat several repositories as one project: group **Ask**, a portfolio **Home**, and group **Intelligence** that *compares rather than merges*.
 - **Memory & profile** — local, fully-editable project memory + handbook and a cross-project **"About you"** profile, with **review-first** capture.
-- **The Watcher** — deterministic *"what changed since I last looked?"*, with an optional one-tap LLM recap of the commits.
+- **The Watcher & change history** — deterministic *"what changed since I last looked?"*, kept as a dated, date-grouped **History** journal you can revisit (filled cheaply from git), with an optional one-tap LLM recap of the commits.
+- **Stays current** — when files change, refresh the model's knowledge with an **incremental re-index** that re-embeds only the files whose content changed (by hash, not the whole repo). Then just ask *"what changed today?"* in **Ask** — it pulls the dated change journal into the answer.
 - **The Investigator** — a bounded **ReAct** loop over read-only tools that answers multi-step questions with a transparent trace and the sources it consulted.
 
 Every finding reads as a lead for a human, not a verdict: what was found, **why it
