@@ -90,6 +90,7 @@ import type {
   ProjectIntelligenceResponse,
   GitFileActivityResponse,
   ProjectWatchDigest,
+  ProjectWatchHistoryResponse,
   ProjectWatchResponse,
   ProjectWatchSummary,
 } from "./types";
@@ -763,6 +764,20 @@ export function summarizeProjectWatch(
     {
       signal: options.signal,
       method: "POST",
+      headers: { Accept: "application/json" },
+    },
+  );
+}
+
+export function getProjectWatchHistory(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ProjectWatchHistoryResponse> {
+  return requestJson<ProjectWatchHistoryResponse>(
+    `/workspaces/${workspaceId}/intelligence/watch/history`,
+    {
+      signal: options.signal,
+      method: "GET",
       headers: { Accept: "application/json" },
     },
   );

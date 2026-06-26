@@ -256,3 +256,28 @@ def build_watch_digest(
         "highlights": _highlights(diff),
         "counts": counts,
     }
+
+
+def build_watch_history_entry(digest: dict) -> dict | None:
+    """A compact, timestamped record for the change-history log, or ``None``.
+
+    Baseline and "no changes" checks are intentionally *not* logged — the history
+    is a timeline of moments when the project actually changed. Returns a small
+    snapshot (deterministic summary, counts, highlights and the commit subjects)
+    so the history tab reads without re-running anything; ``llm_summary`` is left
+    empty until a one-tap summary is generated for it.
+    """
+    if not isinstance(digest, dict) or not digest.get("has_changes"):
+        return None
+    git_brief = digest.get("git_brief") or {}
+    return {
+        "checked_at": digest.get("checked_at"),
+        "summary": digest.get("summary", ""),
+        "llm_summary": None,
+        "git_head": digest.get("git_head"),
+        "counts": dict(digest.get("counts") or {}),
+        "highlights": list(digest.get("highlights") or []),
+        "commit_count": int(git_brief.get("commit_count") or 0),
+        "commit_subjects": list(git_brief.get("commit_subjects") or [])[:8],
+        "authors": list(git_brief.get("authors") or []),
+    }

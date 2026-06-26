@@ -277,7 +277,22 @@ def summarize_project_watch(workspace_id: str) -> dict:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"The local model could not summarise the changes: {exc}",
         ) from exc
-    return {"summary": summary.strip(), "commit_count": commit_count}
+    clean = summary.strip()
+    # Persist the one-tap summary onto the latest history entry so it survives in
+    # the timeline instead of disappearing when the view is left.
+    try:
+        project_watch_repository.set_latest_history_summary(workspace_id, clean)
+    except Exception:  # noqa: BLE001 - history is best-effort
+        pass
+    return {"summary": clean, "commit_count": commit_count}
+
+
+@router.get("/{workspace_id}/intelligence/watch/history")
+def get_project_watch_history(workspace_id: str) -> dict:
+    """The change-history timeline: every check that found changes, newest first,
+    with its commit subjects and any saved one-tap summary."""
+    entries = project_watch_repository.list_history(workspace_id, limit=50)
+    return {"entries": entries}
 
 
 def _memory_dict(item) -> dict:

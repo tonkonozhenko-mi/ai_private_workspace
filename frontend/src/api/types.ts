@@ -1828,6 +1828,29 @@ export interface ProjectWatchResponse {
   digest?: ProjectWatchDigest;
 }
 
+export interface ProjectWatchHistoryEntry {
+  id: string;
+  created_at: string;
+  checked_at: string | null;
+  summary: string;
+  llm_summary: string | null;
+  git_head: string | null;
+  counts: {
+    entities_added?: number;
+    entities_removed?: number;
+    findings_added?: number;
+    findings_resolved?: number;
+  };
+  highlights: ProjectWatchHighlight[];
+  commit_count: number;
+  commit_subjects: string[];
+  authors: string[];
+}
+
+export interface ProjectWatchHistoryResponse {
+  entries: ProjectWatchHistoryEntry[];
+}
+
 export interface InvestigationStep {
   thought: string;
   tool: string;
