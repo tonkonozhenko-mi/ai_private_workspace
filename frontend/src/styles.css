@@ -4921,9 +4921,8 @@ a.getting-ready-cta:hover {
 .pwh-meta { font-size: 12px; color: var(--c-text-2); margin: 2px 0 0; }
 .pwh-commits { list-style: none; margin: 6px 0 0; padding: 8px 12px; display: flex; flex-direction: column; gap: 5px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: 8px; }
 .pwh-commit { font-size: 12px; color: var(--c-text-2); line-height: 1.45; }
-/* The "View change history" disclosure on the Project Watch card. */
-.pw-history { display: flex; flex-direction: column; gap: 12px; margin-top: 2px; }
-.pw-history-body { border-top: 1px solid var(--c-border); padding-top: 14px; }
+/* Pointer from the Home card to the single home of the full journal. */
+.pw-history-hint { margin-top: 2px; font-size: 12px; color: var(--c-text-3); }
 
 /* Area chip with a hover/focus tooltip revealing the changed file paths. */
 .area-chip { position: relative; cursor: default; }
