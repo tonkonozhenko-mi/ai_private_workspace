@@ -145,7 +145,9 @@ def test_unchanged_project_reindexes_nothing():
     scan = _ScanRepo(files)
     fs = _FS({"a.md": "alpha", "b.md": "beta"})
     vector = InMemoryVectorStore()
-    uc = _use_case(scan, fs, vector, InMemoryIndexStatusRepository(), InMemoryIndexManifestRepository())
+    uc = _use_case(
+        scan, fs, vector, InMemoryIndexStatusRepository(), InMemoryIndexManifestRepository()
+    )
     uc.execute(IndexWorkspaceInput(workspace_id="w1"))
     result = uc.execute_changed(IndexWorkspaceInput(workspace_id="w1"))
     assert result.reindexed_files == 0

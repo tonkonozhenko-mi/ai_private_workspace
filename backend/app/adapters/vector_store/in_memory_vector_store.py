@@ -75,16 +75,12 @@ class InMemoryVectorStore:
     ) -> None:
         self._chunks.pop(workspace_id, None)
 
-    def delete_chunks_by_source_path(
-        self, workspace_id: str, source_paths: list[str]
-    ) -> None:
+    def delete_chunks_by_source_path(self, workspace_id: str, source_paths: list[str]) -> None:
         targets = set(source_paths)
         if not targets or workspace_id not in self._chunks:
             return
         self._chunks[workspace_id] = [
-            stored
-            for stored in self._chunks[workspace_id]
-            if stored[0].source_path not in targets
+            stored for stored in self._chunks[workspace_id] if stored[0].source_path not in targets
         ]
 
     @staticmethod

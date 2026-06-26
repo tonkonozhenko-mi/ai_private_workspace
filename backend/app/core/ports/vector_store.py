@@ -41,9 +41,7 @@ class VectorStorePort(Protocol):
     ) -> None:
         """Remove all stored chunks for a workspace."""
 
-    def delete_chunks_by_source_path(
-        self, workspace_id: str, source_paths: list[str]
-    ) -> None:
+    def delete_chunks_by_source_path(self, workspace_id: str, source_paths: list[str]) -> None:
         """Remove all chunks whose source file is in ``source_paths``.
 
         Used by incremental re-indexing to drop the old chunks of changed or

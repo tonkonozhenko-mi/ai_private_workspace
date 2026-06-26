@@ -3,11 +3,11 @@
 from app.adapters.memory.in_memory_project_graph_repository import (
     InMemoryProjectGraphRepository,
 )
-from app.adapters.memory.in_memory_project_watch_repository import (
-    InMemoryProjectWatchRepository,
-)
 from app.adapters.memory.in_memory_project_memory_repository import (
     InMemoryProjectMemoryRepository,
+)
+from app.adapters.memory.in_memory_project_watch_repository import (
+    InMemoryProjectWatchRepository,
 )
 from app.core.use_cases.compose_project_context import ComposeProjectContextUseCase
 

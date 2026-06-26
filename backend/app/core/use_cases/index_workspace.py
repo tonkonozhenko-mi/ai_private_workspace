@@ -208,7 +208,9 @@ class IndexWorkspaceUseCase:
                 embedding_model=current_model,
             )
         )
-        if self.timeline_repository is not None and (result.reindexed_files or result.removed_files):
+        if self.timeline_repository is not None and (
+            result.reindexed_files or result.removed_files
+        ):
             AddTimelineEventUseCase(self.timeline_repository).execute(
                 AddTimelineEventInput(
                     workspace_id=request.workspace_id,

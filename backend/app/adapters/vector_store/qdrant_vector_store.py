@@ -145,9 +145,7 @@ class QdrantVectorStore:
             wait=True,
         )
 
-    def delete_chunks_by_source_path(
-        self, workspace_id: str, source_paths: list[str]
-    ) -> None:
+    def delete_chunks_by_source_path(self, workspace_id: str, source_paths: list[str]) -> None:
         paths = [p for p in dict.fromkeys(source_paths) if p]
         if not paths:
             return

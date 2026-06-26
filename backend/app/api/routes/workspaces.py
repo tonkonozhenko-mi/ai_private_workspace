@@ -1285,9 +1285,7 @@ def index_workspace(workspace_id: str) -> WorkspaceIndexResponse:
     return to_workspace_index_response(result)
 
 
-@router.post(
-    "/{workspace_id}/index/changed", response_model=WorkspaceIncrementalIndexResponse
-)
+@router.post("/{workspace_id}/index/changed", response_model=WorkspaceIncrementalIndexResponse)
 def reindex_changed_workspace(workspace_id: str) -> WorkspaceIncrementalIndexResponse:
     """Re-index only files whose content changed since the last index — cheap:
     re-embeds just the changed/new files (and drops chunks for changed/removed),
