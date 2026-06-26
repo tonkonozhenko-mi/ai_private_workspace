@@ -20,7 +20,6 @@ from app.core.domain.investigator import (
     parse_agent_step,
     parse_structured_step,
 )
-from app.core.domain.structured_output import json_schema_response_format
 from app.core.domain.project_memory import (
     MemoryItem,
     MemoryKind,
@@ -30,6 +29,7 @@ from app.core.domain.project_memory import (
     select_relevant_memory,
 )
 from app.core.domain.role_lens import role_lens_for
+from app.core.domain.structured_output import json_schema_response_format
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.file_system import FileSystemPort
 from app.core.ports.git_history import GitHistoryPort
