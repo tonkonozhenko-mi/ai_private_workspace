@@ -696,6 +696,7 @@ project_context_composer = ComposeProjectContextUseCase(
     project_memory_repository,
     project_graph_repository,
     user_profile_repository,
+    watch_repository=project_watch_repository,
 )
 model_experiment_repository = build_model_experiment_repository()
 model_experiment_rating_repository = build_model_experiment_rating_repository()
