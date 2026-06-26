@@ -1793,11 +1793,17 @@ export interface ProjectWatchHighlight {
   category?: "risk" | "structural" | string;
 }
 
+export interface ProjectWatchArea {
+  area: string;
+  files: number;
+  paths?: string[];
+}
+
 export interface ProjectWatchGitBrief {
   lines: string[];
   commit_count: number;
   authors: string[];
-  areas: { area: string; files: number }[];
+  areas: ProjectWatchArea[];
   commit_subjects?: string[];
 }
 
@@ -1826,6 +1832,31 @@ export interface ProjectWatchDigest {
 export interface ProjectWatchResponse {
   has_digest: boolean;
   digest?: ProjectWatchDigest;
+}
+
+export interface ProjectWatchHistoryEntry {
+  id: string;
+  created_at: string;
+  checked_at: string | null;
+  summary: string;
+  llm_summary: string | null;
+  git_head: string | null;
+  counts: {
+    entities_added?: number;
+    entities_removed?: number;
+    findings_added?: number;
+    findings_resolved?: number;
+  };
+  highlights: ProjectWatchHighlight[];
+  commit_count: number;
+  commit_subjects: string[];
+  authors: string[];
+  git_lines: string[];
+  areas: ProjectWatchArea[];
+}
+
+export interface ProjectWatchHistoryResponse {
+  entries: ProjectWatchHistoryEntry[];
 }
 
 export interface InvestigationStep {

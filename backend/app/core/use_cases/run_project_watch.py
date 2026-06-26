@@ -6,11 +6,16 @@ persists a digest of what changed. Read-only with respect to the project: it onl
 reads files and writes to the local snapshot/digest store.
 """
 
+import contextlib
 from collections.abc import Callable
 from dataclasses import dataclass
 
 from app.core.domain.project_graph import ProjectSnapshotMeta
-from app.core.domain.project_watch import build_watch_digest, diff_graphs
+from app.core.domain.project_watch import (
+    build_watch_digest,
+    build_watch_history_entry,
+    diff_graphs,
+)
 from app.core.ports.project_graph_repository import ProjectGraphRepositoryPort
 from app.core.ports.project_watch_repository import ProjectWatchRepositoryPort
 
@@ -70,4 +75,12 @@ class RunProjectWatchUseCase:
         diff = diff_graphs(previous_graph, current_graph)
         digest = build_watch_digest(diff, previous_meta, current_meta, git_brief=git_brief)
         self.watch_repository.save_digest(workspace_id, digest)
+
+        # Log a timeline entry whenever something actually changed, so the
+        # history tab keeps a durable record instead of the digest vanishing on
+        # the next check. Best-effort: a logging failure must not fail the check.
+        entry = build_watch_history_entry(digest)
+        if entry is not None and hasattr(self.watch_repository, "append_history"):
+            with contextlib.suppress(Exception):  # history is best-effort
+                self.watch_repository.append_history(workspace_id, entry)
         return digest

@@ -23,6 +23,7 @@ import type {
   WorkspaceDashboard,
 } from "../api/types";
 import { ProjectMap } from "./ProjectMap";
+import { ProjectWatchHistory } from "./ProjectWatchHistory";
 import { SKILL_PRESETS } from "./skillLibrary";
 
 // Roles offered in the lens selector. The backend falls back to the developer
@@ -47,6 +48,7 @@ const SECTION_LABELS: Record<string, string> = {
   map: "Map",
   security: "Security review",
   cicd: "CI/CD flow",
+  history: "History",
 };
 
 const MAP_TAB = "map";
@@ -54,6 +56,7 @@ const CLOUD_TAB = "cloud";
 const REFERENCES_TAB = "references";
 const SECURITY_TAB = "security";
 const CICD_TAB = "cicd";
+const HISTORY_TAB = "history";
 
 // Security-relevant concepts, detected generically by token — no project- or
 // vendor-specific hardcoding beyond well-known scanner names that work anywhere.
@@ -256,6 +259,8 @@ export function ProjectIntelligence({
     if (hasReferences) extra.push(REFERENCES_TAB);
     if (hasSecurity) extra.push(SECURITY_TAB);
     if (hasMap) extra.push(MAP_TAB);
+    // History is always available — it's a timeline that fills as checks run.
+    extra.push(HISTORY_TAB);
     return [...sectionTabs, ...extra];
   }, [view, hasMap, hasCloud, hasReferences, hasSecurity, hasCicd]);
 
@@ -418,6 +423,7 @@ export function ProjectIntelligence({
               <SecuritySection scanners={security.scanners} findings={security.findings} />
             ) : null}
             {activeTab === MAP_TAB && graph ? <ProjectMap graph={graph} /> : null}
+            {activeTab === HISTORY_TAB ? <ProjectWatchHistory workspaceId={workspaceId} /> : null}
           </div>
         </>
       ) : null}

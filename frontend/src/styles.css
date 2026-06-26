@@ -4877,6 +4877,71 @@ a.getting-ready-cta:hover {
 .pw-sev-low { background: rgba(120, 160, 200, 0.16); color: #a9c6e6; }
 .pw-sev-info { background: var(--c-surface-3); color: var(--c-text-2); }
 
+/* --- Project Intelligence: History (change timeline) tab --- */
+.pwh { display: flex; flex-direction: column; gap: 14px; }
+.pwh-intro { margin: 0; }
+.pwh-empty { display: flex; flex-direction: column; gap: 8px; }
+.pwh-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.pwh-item { position: relative; display: flex; gap: 14px; padding: 0 0 18px 4px; }
+/* The connecting spine of the timeline, drawn behind the dots. */
+.pwh-item::before {
+  content: ""; position: absolute; left: 7px; top: 14px; bottom: 0;
+  width: 1px; background: var(--c-border);
+}
+.pwh-item:last-child { padding-bottom: 2px; }
+.pwh-item:last-child::before { display: none; }
+.pwh-dot {
+  position: relative; z-index: 1; flex: none; width: 9px; height: 9px; margin-top: 4px;
+  border-radius: 50%; background: var(--c-accent); box-shadow: 0 0 0 3px var(--c-surface);
+}
+.pwh-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.pwh-when { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pwh-when-rel { font-size: 12.5px; font-weight: 600; color: var(--c-text); }
+.pwh-when-abs { font-size: 11.5px; color: var(--c-text-3); }
+.pwh-summary { font-size: 13.5px; color: var(--c-text); line-height: 1.5; margin: 0; }
+.pwh-git-line { font-size: 12.5px; color: var(--c-text-2); line-height: 1.5; margin: 0; }
+.pwh-highlights { margin-top: 2px; }
+.pwh-llm { margin: 2px 0 0; }
+.pwh-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.pwh-chip {
+  font-size: 11px; border-radius: var(--r-sm); padding: 2px 8px;
+  background: var(--c-surface-2); color: var(--c-text-2); border: 1px solid var(--c-border);
+}
+.pwh-chip-risk { background: rgba(224, 168, 90, 0.16); color: #f0c79a; border-color: transparent; }
+.pwh-chip-resolved { background: rgba(120, 196, 150, 0.14); color: #a7d8bb; border-color: transparent; }
+.pwh-chip-add { background: rgba(120, 160, 200, 0.16); color: #a9c6e6; border-color: transparent; }
+.pwh-chip-removed { color: var(--c-text-3); }
+.pwh-meta { font-size: 12px; color: var(--c-text-2); margin: 2px 0 0; }
+.pwh-commits { list-style: none; margin: 6px 0 0; padding: 8px 12px; display: flex; flex-direction: column; gap: 5px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: 8px; }
+.pwh-commit { font-size: 12px; color: var(--c-text-2); line-height: 1.45; }
+/* The "View change history" disclosure on the Project Watch card. */
+.pw-history { display: flex; flex-direction: column; gap: 12px; margin-top: 2px; }
+.pw-history-body { border-top: 1px solid var(--c-border); padding-top: 14px; }
+
+/* Area chip with a hover/focus tooltip revealing the changed file paths. */
+.area-chip { position: relative; cursor: default; }
+.area-chip[tabindex] { cursor: help; }
+.area-chip-tip {
+  position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 30;
+  display: flex; flex-direction: column; gap: 3px;
+  min-width: 200px; max-width: 360px; padding: 9px 11px;
+  background: var(--c-surface-3); border: 1px solid var(--c-border-strong);
+  border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  opacity: 0; visibility: hidden; transform: translateY(2px);
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s;
+  pointer-events: none; text-align: left; white-space: normal;
+}
+.area-chip:hover .area-chip-tip,
+.area-chip:focus-visible .area-chip-tip {
+  opacity: 1; visibility: visible; transform: translateY(0);
+}
+.area-chip-tip-head {
+  font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--c-text-3); margin-bottom: 2px;
+}
+.area-chip-file { font-size: 12px; color: var(--c-text); line-height: 1.4; word-break: break-all; }
+.area-chip-more { font-size: 11.5px; color: var(--c-text-3); margin-top: 2px; }
+
 /* --- Project Intelligence: Investigate (agent) tab --- */
 .pi-investigate { display: flex; flex-direction: column; gap: 12px; }
 .pi-qa { display: flex; flex-direction: column; gap: 12px; }

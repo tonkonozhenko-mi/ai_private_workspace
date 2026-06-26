@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getProjectWatch, runProjectWatch, summarizeProjectWatch } from "../api/client";
 import type { ProjectWatchDigest, WorkspaceDashboard } from "../api/types";
+import { AreaChip } from "./AreaChip";
+import { ProjectWatchHistory } from "./ProjectWatchHistory";
 
 function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
@@ -35,6 +37,9 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
   const [summary, setSummary] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  // Bumped after each check so the inline history re-fetches the new entry.
+  const [historyKey, setHistoryKey] = useState(0);
+  const [showHistory, setShowHistory] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -62,6 +67,8 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
       const result = await runProjectWatch(workspaceId);
       setDigest(result);
       setHasDigest(true);
+      // A check that found changes appends a history entry — refresh the timeline.
+      setHistoryKey((k) => k + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "The check could not be completed.");
     } finally {
@@ -75,6 +82,8 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
     try {
       const result = await summarizeProjectWatch(workspaceId);
       setSummary(result.summary);
+      // The summary is saved onto the latest history entry — refresh the timeline.
+      setHistoryKey((k) => k + 1);
     } catch (err) {
       setSummaryError(
         err instanceof Error ? err.message : "The summary could not be generated.",
@@ -131,9 +140,7 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
               {git && git.authors.length > 0 && hasGitWork ? (
                 <div className="pw-counts">
                   {git.areas.slice(0, 4).map((a) => (
-                    <span key={a.area} className="pw-count pw-count-add">
-                      {a.area} · {a.files}
-                    </span>
+                    <AreaChip key={a.area} area={a} className="pw-count pw-count-add" />
                   ))}
                 </div>
               ) : null}
@@ -202,6 +209,23 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
           );
         })()
       ) : null}
+
+      {/* Durable timeline of past checks — the digest above is just the latest. */}
+      <div className="pw-history">
+        <button
+          type="button"
+          className="pw-link"
+          onClick={() => setShowHistory((v) => !v)}
+          aria-expanded={showHistory}
+        >
+          {showHistory ? "Hide change history" : "View change history"}
+        </button>
+        {showHistory ? (
+          <div className="pw-history-body">
+            <ProjectWatchHistory key={historyKey} workspaceId={workspaceId} />
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }
