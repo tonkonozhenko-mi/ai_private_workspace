@@ -6,6 +6,7 @@ persists a digest of what changed. Read-only with respect to the project: it onl
 reads files and writes to the local snapshot/digest store.
 """
 
+import contextlib
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -80,8 +81,6 @@ class RunProjectWatchUseCase:
         # the next check. Best-effort: a logging failure must not fail the check.
         entry = build_watch_history_entry(digest)
         if entry is not None and hasattr(self.watch_repository, "append_history"):
-            try:
+            with contextlib.suppress(Exception):  # history is best-effort
                 self.watch_repository.append_history(workspace_id, entry)
-            except Exception:  # noqa: BLE001 - history is best-effort
-                pass
         return digest

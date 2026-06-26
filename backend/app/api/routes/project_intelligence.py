@@ -5,6 +5,8 @@ deterministic facts come from the persisted graph; the optional overview text is
 the only LLM-written piece, and it is constrained to those facts.
 """
 
+import contextlib
+
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
@@ -279,11 +281,9 @@ def summarize_project_watch(workspace_id: str) -> dict:
         ) from exc
     clean = summary.strip()
     # Persist the one-tap summary onto the latest history entry so it survives in
-    # the timeline instead of disappearing when the view is left.
-    try:
+    # the timeline instead of disappearing when the view is left (best-effort).
+    with contextlib.suppress(Exception):
         project_watch_repository.set_latest_history_summary(workspace_id, clean)
-    except Exception:  # noqa: BLE001 - history is best-effort
-        pass
     return {"summary": clean, "commit_count": commit_count}
 
 
