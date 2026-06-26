@@ -68,6 +68,11 @@ from app.core.use_cases.manage_project_memory import (
     ListMemoryUseCase,
     SetMemoryPinnedUseCase,
 )
+from app.core.use_cases.record_git_history import (
+    RecordGitHistoryInput,
+    RecordGitHistoryUseCase,
+    RecordGitHistoryWorkspaceNotFoundError,
+)
 from app.core.use_cases.run_project_watch import (
     RunProjectWatchError,
     RunProjectWatchInput,
@@ -217,7 +222,28 @@ def run_project_watch(workspace_id: str) -> dict:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except (BuildProjectGraphScanRequiredError, RunProjectWatchError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    # Keep the cheap git-only journal cursor in step with the full check, so the
+    # next git-only record doesn't re-list commits this check already logged.
+    head = digest.get("git_head") if isinstance(digest, dict) else None
+    if head:
+        with contextlib.suppress(Exception):
+            project_watch_repository.set_history_cursor(workspace_id, head)
     return digest
+
+
+@router.post("/{workspace_id}/intelligence/watch/history/record")
+def record_watch_history(workspace_id: str) -> dict:
+    """Record a history entry from git alone - cheap: no rescan, no graph rebuild,
+    no re-indexing. Meant to run on app open so the dated journal fills itself."""
+    use_case = RecordGitHistoryUseCase(
+        workspace_repository=workspace_repository,
+        watch_repository=project_watch_repository,
+        git_brief_provider=_watch_git_brief,
+    )
+    try:
+        return use_case.execute(RecordGitHistoryInput(workspace_id=workspace_id))
+    except RecordGitHistoryWorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
 @router.get("/{workspace_id}/intelligence/watch")

@@ -13,6 +13,7 @@ class InMemoryProjectWatchRepository:
         self._digests: dict[str, dict] = {}
         # Newest entries first, per workspace.
         self._history: dict[str, list[dict]] = {}
+        self._cursor: dict[str, str | None] = {}
 
     def save_digest(self, workspace_id: str, digest: dict) -> None:
         self._digests[workspace_id] = dict(digest)
@@ -23,6 +24,13 @@ class InMemoryProjectWatchRepository:
     def clear(self, workspace_id: str) -> None:
         self._digests.pop(workspace_id, None)
         self._history.pop(workspace_id, None)
+        self._cursor.pop(workspace_id, None)
+
+    def get_history_cursor(self, workspace_id: str) -> str | None:
+        return self._cursor.get(workspace_id)
+
+    def set_history_cursor(self, workspace_id: str, head: str | None) -> None:
+        self._cursor[workspace_id] = head
 
     def append_history(self, workspace_id: str, entry: dict) -> str:
         entry_id = str(uuid.uuid4())

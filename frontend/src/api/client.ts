@@ -783,6 +783,21 @@ export function getProjectWatchHistory(
   );
 }
 
+// Cheap, git-only history record: no rescan, no graph rebuild, no re-indexing.
+export function recordProjectWatchHistory(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ProjectWatchDigest> {
+  return requestJson<ProjectWatchDigest>(
+    `/workspaces/${workspaceId}/intelligence/watch/history/record`,
+    {
+      signal: options.signal,
+      method: "POST",
+      headers: { Accept: "application/json" },
+    },
+  );
+}
+
 export function generateProjectUnderstanding(
   workspaceId: string,
   options: { signal?: AbortSignal } = {},

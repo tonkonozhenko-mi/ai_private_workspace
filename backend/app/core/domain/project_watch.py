@@ -257,6 +257,50 @@ def build_watch_digest(
     }
 
 
+def build_git_only_digest(
+    git_brief, checked_at: str, previous_checked_at: str | None = None
+) -> dict:
+    """A digest built *only* from git - no file rescan, no graph rebuild, no
+    re-indexing. Used by the cheap change-history recorder: it answers "which
+    commits landed since last time" without touching the project graph or the RAG
+    index. Structural ``highlights``/``counts`` are empty by design (those need a
+    full check). Shape matches :func:`build_watch_digest` so the same history
+    builder and UI consume it.
+    """
+    from app.core.domain.git_change_brief import changed_files_by_area, format_git_brief
+
+    git_lines = format_git_brief(git_brief) if git_brief is not None else []
+    has_changes = bool(git_brief and git_brief.commit_count)
+    if git_lines:
+        summary = git_lines[0]
+    elif git_brief is not None and not git_brief.comparable:
+        summary = "Baseline recorded - future opens will report what changed in git."
+    else:
+        summary = "No new commits since the last check."
+    return {
+        "baseline": bool(git_brief is None or not git_brief.comparable),
+        "has_changes": has_changes,
+        "checked_at": checked_at,
+        "previous_checked_at": previous_checked_at,
+        "summary": summary,
+        "git_brief": {
+            "lines": git_lines,
+            "commit_count": git_brief.commit_count if git_brief else 0,
+            "authors": git_brief.authors if git_brief else [],
+            "areas": (changed_files_by_area(git_brief.changed_paths) if git_brief else []),
+            "commit_subjects": git_brief.commit_subjects if git_brief else [],
+        },
+        "git_head": git_brief.head if git_brief else None,
+        "highlights": [],
+        "counts": {
+            "entities_added": 0,
+            "entities_removed": 0,
+            "findings_added": 0,
+            "findings_resolved": 0,
+        },
+    }
+
+
 def build_watch_history_entry(digest: dict) -> dict | None:
     """A compact, timestamped record for the change-history log, or ``None``.
 
