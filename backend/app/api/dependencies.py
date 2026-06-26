@@ -272,6 +272,26 @@ def build_index_status_repository() -> IndexStatusRepositoryPort:
     raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
 
 
+def build_index_manifest_repository():
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        from app.adapters.memory.in_memory_index_manifest_repository import (
+            InMemoryIndexManifestRepository,
+        )
+
+        return InMemoryIndexManifestRepository()
+    if repository_type == "sqlite":
+        from app.adapters.memory.sqlite_index_manifest_repository import (
+            SQLiteIndexManifestRepository,
+        )
+
+        return SQLiteIndexManifestRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
+
+
 def build_indexing_rules_repository() -> IndexingRulesRepositoryPort:
     settings = get_settings()
     repository_type = settings.workspace_repository.lower()
@@ -659,6 +679,7 @@ mcp_repository = build_mcp_repository()
 command_repository = build_command_repository()
 local_model_download_job_repository = build_local_model_download_job_repository()
 index_status_repository = build_index_status_repository()
+index_manifest_repository = build_index_manifest_repository()
 indexing_rules_repository = build_indexing_rules_repository()
 skill_profile_repository = build_skill_profile_repository()
 timeline_repository = build_timeline_repository()

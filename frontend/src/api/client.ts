@@ -20,6 +20,7 @@ import type {
   FileSelectionRulesRequest,
   WorkspaceIndexingRules,
   WorkspaceDashboard,
+  WorkspaceIncrementalIndexResponse,
   WorkspaceIndexResponse,
   WorkspaceJob,
   WorkspaceModelsDashboard,
@@ -820,6 +821,21 @@ export function indexWorkspace(
       Accept: "application/json",
     },
   });
+}
+
+// Incremental: re-embed only files whose content changed (no whole-repo reindex).
+export function reindexChangedWorkspace(
+  workspaceId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<WorkspaceIncrementalIndexResponse> {
+  return requestJson<WorkspaceIncrementalIndexResponse>(
+    `/workspaces/${workspaceId}/index/changed`,
+    {
+      signal: options.signal,
+      method: "POST",
+      headers: { Accept: "application/json" },
+    },
+  );
 }
 
 

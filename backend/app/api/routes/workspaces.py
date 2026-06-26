@@ -15,6 +15,7 @@ from app.api.dependencies import (
     embedding_provider,
     file_system,
     git_history,
+    index_manifest_repository,
     index_status_repository,
     indexing_rules_repository,
     llm_provider_factory,
@@ -98,8 +99,10 @@ from app.api.schemas.indexing_rules_schemas import (
 )
 from app.api.schemas.indexing_schemas import (
     ContextSearchResultResponse,
+    WorkspaceIncrementalIndexResponse,
     WorkspaceIndexResponse,
     to_context_search_result_response,
+    to_workspace_incremental_index_response,
     to_workspace_index_response,
 )
 from app.api.schemas.local_ai_activation_guide_schemas import (
@@ -1250,9 +1253,8 @@ def get_workspace_scan_changes(workspace_id: str) -> ScanChangesResponse:
     return to_scan_changes_response(result)
 
 
-@router.post("/{workspace_id}/index", response_model=WorkspaceIndexResponse)
-def index_workspace(workspace_id: str) -> WorkspaceIndexResponse:
-    use_case = IndexWorkspaceUseCase(
+def _index_use_case() -> IndexWorkspaceUseCase:
+    return IndexWorkspaceUseCase(
         workspace_repository=workspace_repository,
         project_scan_repository=project_scan_repository,
         file_system=file_system,
@@ -1260,10 +1262,14 @@ def index_workspace(workspace_id: str) -> WorkspaceIndexResponse:
         vector_store=vector_store,
         index_status_repository=index_status_repository,
         timeline_repository=timeline_repository,
+        manifest_repository=index_manifest_repository,
     )
 
+
+@router.post("/{workspace_id}/index", response_model=WorkspaceIndexResponse)
+def index_workspace(workspace_id: str) -> WorkspaceIndexResponse:
     try:
-        result = use_case.execute(IndexWorkspaceInput(workspace_id=workspace_id))
+        result = _index_use_case().execute(IndexWorkspaceInput(workspace_id=workspace_id))
     except IndexWorkspaceNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -1277,6 +1283,25 @@ def index_workspace(workspace_id: str) -> WorkspaceIndexResponse:
 
     _safe_invalidate_storage(workspace_id)
     return to_workspace_index_response(result)
+
+
+@router.post(
+    "/{workspace_id}/index/changed", response_model=WorkspaceIncrementalIndexResponse
+)
+def reindex_changed_workspace(workspace_id: str) -> WorkspaceIncrementalIndexResponse:
+    """Re-index only files whose content changed since the last index — cheap:
+    re-embeds just the changed/new files (and drops chunks for changed/removed),
+    so the local model sees the latest content without re-indexing the whole repo.
+    Falls back to a full index when there is no prior index or the embedder changed."""
+    try:
+        result = _index_use_case().execute_changed(IndexWorkspaceInput(workspace_id=workspace_id))
+    except IndexWorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except IndexWorkspaceScanRequiredError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    _safe_invalidate_storage(workspace_id)
+    return to_workspace_incremental_index_response(result)
 
 
 @router.get("/{workspace_id}/index/status", response_model=WorkspaceIndexStatusResponse)

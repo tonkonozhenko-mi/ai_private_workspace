@@ -246,6 +246,17 @@ export interface WorkspaceIndexResponse {
   documents: IndexedDocumentSummaryResponse[];
 }
 
+export interface WorkspaceIncrementalIndexResponse {
+  workspace_id: string;
+  reindexed_files: number;
+  removed_files: number;
+  unchanged_files: number;
+  chunks_indexed: number;
+  indexed_files_count: number;
+  chunks_count: number;
+  documents: IndexedDocumentSummaryResponse[];
+}
+
 export type WorkspacePersistence = "saved" | "temporary";
 
 export interface CreateWorkspaceRequest {

@@ -2,6 +2,7 @@ from pydantic import BaseModel
 
 from app.core.domain.indexing import (
     ContextSearchResult,
+    IncrementalIndexResult,
     IndexedDocumentSummary,
     WorkspaceIndexResult,
 )
@@ -17,6 +18,17 @@ class WorkspaceIndexResponse(BaseModel):
     indexed_files_count: int
     chunks_count: int
     skipped_files_count: int
+    documents: list[IndexedDocumentSummaryResponse]
+
+
+class WorkspaceIncrementalIndexResponse(BaseModel):
+    workspace_id: str
+    reindexed_files: int
+    removed_files: int
+    unchanged_files: int
+    chunks_indexed: int
+    indexed_files_count: int
+    chunks_count: int
     documents: list[IndexedDocumentSummaryResponse]
 
 
@@ -45,6 +57,21 @@ def to_workspace_index_response(
         indexed_files_count=result.indexed_files_count,
         chunks_count=result.chunks_count,
         skipped_files_count=result.skipped_files_count,
+        documents=[to_indexed_document_summary_response(document) for document in result.documents],
+    )
+
+
+def to_workspace_incremental_index_response(
+    result: IncrementalIndexResult,
+) -> WorkspaceIncrementalIndexResponse:
+    return WorkspaceIncrementalIndexResponse(
+        workspace_id=result.workspace_id,
+        reindexed_files=result.reindexed_files,
+        removed_files=result.removed_files,
+        unchanged_files=result.unchanged_files,
+        chunks_indexed=result.chunks_indexed,
+        indexed_files_count=result.indexed_files_count,
+        chunks_count=result.chunks_count,
         documents=[to_indexed_document_summary_response(document) for document in result.documents],
     )
 
