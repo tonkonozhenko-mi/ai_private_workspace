@@ -36,3 +36,8 @@ class LLMProviderPort(Protocol):
     # Streaming is optional: providers that support it expose ``generate_stream``
     # with the same signature, yielding answer-text deltas. Consumers detect it
     # via getattr, so it is intentionally not a required method here.
+    #
+    # Structured output is optional too: providers that can constrain generation
+    # to a JSON Schema set ``supports_structured_output = True`` (the bundled
+    # llama.cpp does). Consumers detect it via ``getattr`` and only then pass a
+    # ``response_format``; everyone else keeps the text path.

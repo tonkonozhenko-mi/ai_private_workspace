@@ -15,9 +15,12 @@ from app.core.domain.investigator import (
     AgentStep,
     InvestigationResult,
     ToolSpec,
+    agent_step_schema,
     build_investigator_prompt,
     parse_agent_step,
+    parse_structured_step,
 )
+from app.core.domain.structured_output import json_schema_response_format
 from app.core.domain.project_memory import (
     MemoryItem,
     MemoryKind,
@@ -109,6 +112,17 @@ class InvestigateProjectUseCase:
         allowed = set(tools.keys())
         role_label = role_lens_for(request.role or "developer").label
 
+        # When the engine can constrain output to a JSON Schema (bundled
+        # llama.cpp), ask for each step as a JSON object so it cannot be
+        # malformed; otherwise (Ollama) keep the text protocol. Either way a
+        # bad parse degrades gracefully to the lenient text parser below.
+        structured = bool(getattr(provider, "supports_structured_output", False))
+        step_format = (
+            json_schema_response_format(agent_step_schema(), name="investigator_step")
+            if structured
+            else None
+        )
+
         # Durable project context (handbook + memory + graph facts), once.
         context_block = ""
         memory_used = 0
@@ -139,7 +153,9 @@ class InvestigateProjectUseCase:
                     sources.append(s)
 
         for _ in range(max(1, request.max_steps)):
-            prompt = build_investigator_prompt(request.question, tool_specs, steps, role_label)
+            prompt = build_investigator_prompt(
+                request.question, tool_specs, steps, role_label, structured=structured
+            )
             if context_block:
                 prompt = (
                     "Background knowledge about this project (may help; still verify "
@@ -147,11 +163,20 @@ class InvestigateProjectUseCase:
                     f"{context_block}\n\n" + prompt
                 )
             try:
-                text = provider.generate(prompt, temperature=0.0)
+                text = provider.generate(
+                    prompt, temperature=0.0, response_format=step_format
+                )
             except (RuntimeError, ValueError) as exc:
                 raise InvestigateProjectError(str(exc)) from exc
 
-            decision = parse_agent_step(text, allowed)
+            if structured:
+                decision = parse_structured_step(text, allowed)
+                # If the engine returned non-JSON despite the schema, don't fail
+                # the step — re-read it with the lenient text parser.
+                if decision.kind == "invalid" and not decision.tool:
+                    decision = parse_agent_step(text, allowed)
+            else:
+                decision = parse_agent_step(text, allowed)
 
             if decision.kind == "final":
                 self._remember_answer(request.workspace_id, request.question, decision.answer)
