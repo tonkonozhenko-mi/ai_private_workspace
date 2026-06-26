@@ -4879,7 +4879,14 @@ a.getting-ready-cta:hover {
 
 /* --- Project Intelligence: History (change timeline) tab --- */
 .pwh { display: flex; flex-direction: column; gap: 14px; }
-.pwh-intro { margin: 0; }
+.pwh-intro { margin: 0; max-width: 60ch; }
+.pwh-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.pwh-group { display: flex; flex-direction: column; gap: 8px; }
+.pwh-date {
+  font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--c-text-3); margin: 8px 0 2px; padding-bottom: 4px;
+  border-bottom: 1px solid var(--c-border);
+}
 .pwh-empty { display: flex; flex-direction: column; gap: 8px; }
 .pwh-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .pwh-item { position: relative; display: flex; gap: 14px; padding: 0 0 18px 4px; }

@@ -21,3 +21,16 @@ class ProjectWatchRepositoryPort(Protocol):
 
     def set_latest_history_summary(self, workspace_id: str, summary: str) -> None:
         """Attach an LLM ``llm_summary`` to the most recent history entry, if any."""
+
+    # -- git-only history cursor (baseline HEAD for the cheap, git-only record) -
+
+    def get_history_cursor(self, workspace_id: str) -> str | None:
+        """The git HEAD recorded at the last git-only history record — the baseline
+        for the next 'commits since' lookup. ``None`` if never recorded.
+
+        This is deliberately separate from the watch digest's ``git_head`` so the
+        cheap git-only journal and the full structural check don't fight over one
+        slot."""
+
+    def set_history_cursor(self, workspace_id: str, head: str | None) -> None:
+        """Remember the git HEAD recorded for the change-history journal."""

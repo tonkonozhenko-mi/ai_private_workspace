@@ -1,19 +1,25 @@
 """Change-history: domain entry builder, repository, and use-case auto-logging."""
 
+from types import SimpleNamespace
+
 from app.adapters.memory.in_memory_project_graph_repository import (
     InMemoryProjectGraphRepository,
 )
 from app.adapters.memory.in_memory_project_watch_repository import (
     InMemoryProjectWatchRepository,
 )
-from app.core.domain.git_change_brief import changed_files_by_area
+from app.core.domain.git_change_brief import GitChangeBrief, changed_files_by_area
 from app.core.domain.project_graph import (
     EntityType,
     ProjectEntity,
     ProjectFinding,
     ProjectGraph,
 )
-from app.core.domain.project_watch import build_watch_history_entry
+from app.core.domain.project_watch import build_git_only_digest, build_watch_history_entry
+from app.core.use_cases.record_git_history import (
+    RecordGitHistoryInput,
+    RecordGitHistoryUseCase,
+)
 from app.core.use_cases.run_project_watch import (
     RunProjectWatchInput,
     RunProjectWatchUseCase,
@@ -160,4 +166,71 @@ def test_run_use_case_does_not_log_baseline():
     RunProjectWatchUseCase(graph_repo, watch_repo, build_graph).execute(
         RunProjectWatchInput(workspace_id="w1")
     )
+    assert watch_repo.list_history("w1") == []
+
+
+# -- git-only (cheap) history recorder --------------------------------------
+
+
+def test_git_only_digest_shape():
+    brief = GitChangeBrief(
+        comparable=True,
+        head="def456",
+        commit_count=2,
+        authors=["Bob"],
+        changed_paths=["applications/a.tf", "applications/b.tf"],
+        commit_subjects=["x", "y"],
+    )
+    digest = build_git_only_digest(brief, "2026-06-26T12:00:00+00:00")
+    assert digest["has_changes"] is True
+    assert digest["git_head"] == "def456"
+    assert digest["highlights"] == []  # structural needs a full check
+    assert digest["git_brief"]["areas"][0]["area"] == "applications"
+
+
+class _WSRepo2:
+    def get(self, wid):
+        return SimpleNamespace(id=wid, project_path="/p") if wid == "w1" else None
+
+
+def test_record_git_history_uses_cursor_and_logs(monkeypatch):
+    watch_repo = InMemoryProjectWatchRepository()
+    seen = {}
+
+    def provider(wid, since):
+        seen["since"] = since
+        return GitChangeBrief(
+            comparable=True,
+            head="h2",
+            commit_count=3,
+            authors=["Bob"],
+            changed_paths=["accounts/x.tf"],
+            commit_subjects=["a", "b", "c"],
+        )
+
+    uc = RecordGitHistoryUseCase(_WSRepo2(), watch_repo, provider)
+    uc.execute(RecordGitHistoryInput(workspace_id="w1"))
+
+    # First record: cursor was empty, then advanced to the new HEAD.
+    assert seen["since"] is None
+    assert watch_repo.get_history_cursor("w1") == "h2"
+    history = watch_repo.list_history("w1")
+    assert len(history) == 1 and history[0]["commit_count"] == 3
+
+    # Second record reads from the advanced cursor.
+    uc.execute(RecordGitHistoryInput(workspace_id="w1"))
+    assert seen["since"] == "h2"
+
+
+def test_record_git_history_baseline_advances_cursor_without_entry():
+    watch_repo = InMemoryProjectWatchRepository()
+
+    def provider(wid, since):
+        # No baseline yet → not comparable, no commits, but a HEAD exists.
+        return GitChangeBrief(comparable=False, head="h0", commit_count=0)
+
+    RecordGitHistoryUseCase(_WSRepo2(), watch_repo, provider).execute(
+        RecordGitHistoryInput(workspace_id="w1")
+    )
+    assert watch_repo.get_history_cursor("w1") == "h0"
     assert watch_repo.list_history("w1") == []

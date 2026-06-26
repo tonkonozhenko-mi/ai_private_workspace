@@ -171,6 +171,7 @@ models, run benchmarks, or change active runtime configuration.
 | `GET /workspaces/{workspace_id}/intelligence/watch` | The most recent watcher digest. | No | No | Local DB read | Project Intelligence |
 | `POST /workspaces/{workspace_id}/intelligence/watch/summary` | One-tap local-model recap of the commits in the latest watcher digest. | No | No | Local model (commit subjects only) | Project Intelligence |
 | `GET /workspaces/{workspace_id}/intelligence/watch/history` | The change-history timeline: every check that found changes, newest first, with commit subjects and any saved one-tap summary. | No | No | Local DB read | Project Intelligence |
+| `POST /workspaces/{workspace_id}/intelligence/watch/history/record` | Record a history entry from git alone (commits since last record) - cheap: no file rescan, no graph rebuild, no re-indexing. | No | No | Local git read + DB | Project Intelligence |
 | `POST /workspaces/{workspace_id}/intelligence/investigate` | Read-only multi-step agent: answers a question via read-only tools, returns the step trace + sources. | No | No | Local model + read-only tools | Project Intelligence |
 | `GET /workspaces/{workspace_id}/memory` | List durable project-memory items. | No | No | Local DB read | Project Intelligence |
 | `POST /workspaces/{workspace_id}/memory` | Record a note / decision / correction. | No | No | Local DB write | Project Intelligence |

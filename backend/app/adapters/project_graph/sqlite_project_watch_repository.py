@@ -50,6 +50,15 @@ class SQLiteProjectWatchRepository:
                 ON project_watch_history (workspace_id, created_at DESC)
                 """
             )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS project_watch_history_cursor (
+                    workspace_id TEXT PRIMARY KEY,
+                    head TEXT,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
             connection.commit()
 
     def save_digest(self, workspace_id: str, digest: dict) -> None:
@@ -86,6 +95,33 @@ class SQLiteProjectWatchRepository:
             connection.execute(
                 "DELETE FROM project_watch_history WHERE workspace_id = ?",
                 (workspace_id,),
+            )
+            connection.execute(
+                "DELETE FROM project_watch_history_cursor WHERE workspace_id = ?",
+                (workspace_id,),
+            )
+            connection.commit()
+
+    def get_history_cursor(self, workspace_id: str) -> str | None:
+        with self._connect() as connection:
+            cursor = connection.execute(
+                "SELECT head FROM project_watch_history_cursor WHERE workspace_id = ?",
+                (workspace_id,),
+            )
+            row = cursor.fetchone()
+        return row["head"] if row is not None else None
+
+    def set_history_cursor(self, workspace_id: str, head: str | None) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO project_watch_history_cursor (workspace_id, head, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(workspace_id) DO UPDATE SET
+                    head = excluded.head,
+                    updated_at = excluded.updated_at
+                """,
+                (workspace_id, head, _utc_now_iso()),
             )
             connection.commit()
 
