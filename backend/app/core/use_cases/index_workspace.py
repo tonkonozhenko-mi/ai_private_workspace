@@ -11,6 +11,7 @@ from app.core.domain.chunking import (
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import (
     IncrementalIndexResult,
+    IndexChangePreview,
     IndexedDocumentSummary,
     TextChunk,
     WorkspaceIndexResult,
@@ -150,6 +151,49 @@ class IndexWorkspaceUseCase:
                 )
             )
         return result
+
+    def execute_changed_preview(self, request: IndexWorkspaceInput) -> IndexChangePreview:
+        """Count what an incremental re-index would touch — without embedding or
+        writing anything. Reads + hashes the indexable files and diffs against the
+        manifest, so the UI can show a 'N files changed' hint cheaply."""
+        workspace = self.workspace_repository.get(request.workspace_id)
+        if workspace is None:
+            raise IndexWorkspaceNotFoundError("Workspace not found")
+        latest_scan = self.project_scan_repository.get_latest_scan(request.workspace_id)
+        if latest_scan is None:
+            raise IndexWorkspaceScanRequiredError("Project scan required before indexing workspace")
+
+        manifest = (
+            self.manifest_repository.get(request.workspace_id)
+            if self.manifest_repository is not None
+            else {}
+        )
+        current = {
+            f.path: f
+            for f in latest_scan.files
+            if f.detected_type in INDEXABLE_FILE_TYPES
+        }
+        changed = new = 0
+        for path in current:
+            try:
+                content = self.file_system.read_text_file(workspace.project_path, path)
+            except Exception:  # noqa: BLE001 - a read failure shouldn't break the preview
+                content = ""
+            prior = manifest.get(path)
+            if prior is None:
+                new += 1
+            elif str(prior.get("hash")) != content_hash(content):
+                changed += 1
+        removed = len(set(manifest) - set(current))
+        unchanged = max(0, len(current) - changed - new)
+        return IndexChangePreview(
+            workspace_id=request.workspace_id,
+            has_index=bool(manifest),
+            changed_files=changed,
+            new_files=new,
+            removed_files=removed,
+            unchanged_files=unchanged,
+        )
 
     def execute_changed(self, request: IndexWorkspaceInput) -> IncrementalIndexResult:
         """Re-index only files whose content changed since the last index.

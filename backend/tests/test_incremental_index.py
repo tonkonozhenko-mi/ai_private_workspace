@@ -140,6 +140,30 @@ def test_incremental_falls_back_to_full_without_manifest():
     assert set(manifest.get("w1")) == {"a.md"}
 
 
+def test_changed_preview_counts_without_embedding():
+    files = [_file("a.md"), _file("b.md"), _file("c.md")]
+    contents = {"a.md": "alpha", "b.md": "beta", "c.md": "gamma"}
+    scan = _ScanRepo(files)
+    fs = _FS(contents)
+    vector = InMemoryVectorStore()
+    manifest = InMemoryIndexManifestRepository()
+    uc = _use_case(scan, fs, vector, InMemoryIndexStatusRepository(), manifest)
+    uc.execute(IndexWorkspaceInput(workspace_id="w1"))
+
+    # One changed, one new file, one removed.
+    fs.contents["b.md"] = "beta totally different"
+    scan.set_files([_file("a.md"), _file("b.md"), _file("d.md")])
+    fs.contents["d.md"] = "delta new file"
+    preview = uc.execute_changed_preview(IndexWorkspaceInput(workspace_id="w1"))
+    assert preview.has_index is True
+    assert preview.changed_files == 1  # b.md
+    assert preview.new_files == 1  # d.md
+    assert preview.removed_files == 1  # c.md
+    assert preview.pending == 3
+    # Preview must not write anything: store still holds the original 3 files.
+    assert _paths_in_store(vector, "w1") == ["a.md", "b.md", "c.md"]
+
+
 def test_unchanged_project_reindexes_nothing():
     files = [_file("a.md"), _file("b.md")]
     scan = _ScanRepo(files)

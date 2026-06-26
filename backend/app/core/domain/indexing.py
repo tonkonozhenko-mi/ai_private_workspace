@@ -49,6 +49,24 @@ class IncrementalIndexResult:
 
 
 @dataclass(frozen=True)
+class IndexChangePreview:
+    """A cheap, embed-free count of what an incremental re-index would touch,
+    so the UI can show "N files changed since the last index" and decide whether
+    to auto-update."""
+
+    workspace_id: str
+    has_index: bool
+    changed_files: int
+    new_files: int
+    removed_files: int
+    unchanged_files: int
+
+    @property
+    def pending(self) -> int:
+        return self.changed_files + self.new_files + self.removed_files
+
+
+@dataclass(frozen=True)
 class ContextSearchResult:
     chunk_id: str
     source_path: str

@@ -100,9 +100,11 @@ from app.api.schemas.indexing_rules_schemas import (
 from app.api.schemas.indexing_schemas import (
     ContextSearchResultResponse,
     WorkspaceIncrementalIndexResponse,
+    WorkspaceIndexChangePreviewResponse,
     WorkspaceIndexResponse,
     to_context_search_result_response,
     to_workspace_incremental_index_response,
+    to_workspace_index_change_preview_response,
     to_workspace_index_response,
 )
 from app.api.schemas.local_ai_activation_guide_schemas import (
@@ -1300,6 +1302,24 @@ def reindex_changed_workspace(workspace_id: str) -> WorkspaceIncrementalIndexRes
 
     _safe_invalidate_storage(workspace_id)
     return to_workspace_incremental_index_response(result)
+
+
+@router.get(
+    "/{workspace_id}/index/changed/preview",
+    response_model=WorkspaceIndexChangePreviewResponse,
+)
+def preview_changed_workspace(workspace_id: str) -> WorkspaceIndexChangePreviewResponse:
+    """How many files changed since the last index (embed-free) — for the
+    "N files changed, update?" hint and the optional auto-update."""
+    try:
+        result = _index_use_case().execute_changed_preview(
+            IndexWorkspaceInput(workspace_id=workspace_id)
+        )
+    except IndexWorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except IndexWorkspaceScanRequiredError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return to_workspace_index_change_preview_response(result)
 
 
 @router.get("/{workspace_id}/index/status", response_model=WorkspaceIndexStatusResponse)

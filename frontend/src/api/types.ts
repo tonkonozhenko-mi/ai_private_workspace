@@ -257,6 +257,16 @@ export interface WorkspaceIncrementalIndexResponse {
   documents: IndexedDocumentSummaryResponse[];
 }
 
+export interface WorkspaceIndexChangePreviewResponse {
+  workspace_id: string;
+  has_index: boolean;
+  changed_files: number;
+  new_files: number;
+  removed_files: number;
+  unchanged_files: number;
+  pending: number;
+}
+
 export type WorkspacePersistence = "saved" | "temporary";
 
 export interface CreateWorkspaceRequest {
