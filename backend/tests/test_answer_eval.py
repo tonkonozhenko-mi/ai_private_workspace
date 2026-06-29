@@ -70,9 +70,7 @@ class _Vector:
     def search(self, *, query_text, **kw):
         path = "db/config.tf" if "database" in query_text.lower() else "other.txt"
         return [
-            SimpleNamespace(
-                chunk_id="c", source_path=path, content="x", score=0.9, metadata={}
-            )
+            SimpleNamespace(chunk_id="c", source_path=path, content="x", score=0.9, metadata={})
         ]
 
 
@@ -82,7 +80,9 @@ def test_run_retrieval_eval_scores_per_case():
         RunRetrievalEvalInput(
             workspace_id="w1",
             cases=[
-                EvalCase(question="where is the database configured", expect_sources=["db/config.tf"]),
+                EvalCase(
+                    question="where is the database configured", expect_sources=["db/config.tf"]
+                ),
                 EvalCase(question="something unrelated", expect_sources=["db/config.tf"]),
             ],
         )

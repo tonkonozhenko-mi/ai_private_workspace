@@ -90,9 +90,7 @@ def aggregate(scores: list[CaseScore]) -> EvalReport:
     passed = sum(1 for s in scores if s.passed)
     src = [s.source_recall for s in scores]
     source_recall = sum(src) / len(src)
-    kw_scores = [
-        (s.keyword_hits / s.keyword_total) for s in scores if s.keyword_total > 0
-    ]
+    kw_scores = [(s.keyword_hits / s.keyword_total) for s in scores if s.keyword_total > 0]
     keyword_recall = sum(kw_scores) / len(kw_scores) if kw_scores else 1.0
     return EvalReport(
         total=len(scores),
