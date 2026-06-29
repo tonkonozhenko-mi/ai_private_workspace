@@ -59,7 +59,20 @@ def test_build_orchestrates_detected_analyzers_and_persists(tmp_path):
     meta = uc.execute(BuildProjectGraphInput(workspace_id="w1"))
     assert "terraform" in meta.analyzers_run and "terragrunt" in meta.analyzers_run
     assert {"gitlab_ci", "github_actions"} <= set(meta.analyzers_skipped)
-    assert meta.scan_signature == "files:3"
+    # Signature is now a content+version hash; still encodes the file count.
+    assert meta.scan_signature.startswith("sha256:")
+    assert meta.scan_signature.endswith(":files:3")
+
+
+def test_build_skips_rebuild_when_unchanged(tmp_path):
+    uc, repo = _use_case(tmp_path, _scan())
+    first = uc.execute(BuildProjectGraphInput(workspace_id="w1"))
+    # Same files → second build is skipped and returns the same snapshot.
+    second = uc.execute(BuildProjectGraphInput(workspace_id="w1"))
+    assert second.id == first.id
+    # force=True rebuilds → a new snapshot id.
+    forced = uc.execute(BuildProjectGraphInput(workspace_id="w1", force=True))
+    assert forced.id != first.id
 
     graph = repo.get_latest_graph("w1")
     assert graph is not None

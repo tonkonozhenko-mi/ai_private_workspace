@@ -6,6 +6,7 @@ snapshot. Runs only on explicit request; never on startup. Mirrors the analyzer
 orchestration in ``get_analysis_summary`` so behaviour stays consistent.
 """
 
+import hashlib
 from dataclasses import dataclass
 
 from app.core.domain.project_graph import ProjectSnapshotMeta
@@ -39,6 +40,10 @@ from app.core.use_cases.analyze_terragrunt import (
 @dataclass(frozen=True)
 class BuildProjectGraphInput:
     workspace_id: str
+    # When False, the build is skipped if the files (by content hash) and app
+    # version are unchanged since the last snapshot — the graph would be identical,
+    # so re-running the analyzers is wasted work. Set True to force a rebuild.
+    force: bool = False
 
 
 class BuildProjectGraphWorkspaceNotFoundError(ValueError):
@@ -70,6 +75,15 @@ class BuildProjectGraphUseCase:
         latest_scan = self.project_scan_repository.get_latest_scan(request.workspace_id)
         if latest_scan is None:
             raise BuildProjectGraphScanRequiredError("Project scan required before analysis")
+
+        # Skip the (expensive) analyzer pass when nothing that affects the graph
+        # changed: same files (by content hash) and same app version. The result
+        # would be byte-for-byte identical, so reuse the last snapshot.
+        signature = self._scan_signature(latest_scan)
+        if not request.force:
+            previous = self.project_graph_repository.get_latest_snapshot_meta(request.workspace_id)
+            if previous is not None and previous.scan_signature == signature:
+                return previous
 
         detected = {project_file.detected_type for project_file in latest_scan.files}
         skipped: list[str] = []
@@ -157,7 +171,24 @@ class BuildProjectGraphUseCase:
             scan_paths=[project_file.path for project_file in latest_scan.files],
             analyzers_skipped=skipped,
         )
-        # A simple scan signature (file count) lets the UI flag a stale snapshot
-        # when files change. A content hash can replace this in a later milestone.
-        signature = f"files:{len(latest_scan.files)}"
         return self.project_graph_repository.save_graph(graph, scan_signature=signature)
+
+    @staticmethod
+    def _scan_signature(latest_scan) -> str:
+        """Content + version fingerprint of the scan. Changes when any file's
+        path/size/mtime changes, or the app version changes (so analyzer
+        improvements take effect on the next build even if files didn't change)."""
+        try:
+            from app.config.settings import APP_VERSION
+
+            version = APP_VERSION
+        except Exception:  # noqa: BLE001 - version is best-effort; only busts cache
+            version = ""
+        parts = sorted(
+            f"{f.path}:{getattr(f, 'size_bytes', '')}:{getattr(f, 'modified_at', '')}"
+            for f in latest_scan.files
+        )
+        digest = hashlib.sha256(
+            ("v=" + version + "|" + "|".join(parts)).encode("utf-8")
+        ).hexdigest()
+        return f"sha256:{digest[:16]}:files:{len(latest_scan.files)}"

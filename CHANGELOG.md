@@ -9,6 +9,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Changed
 
+- **Instant "Check now" when nothing changed.** The Project Intelligence graph build now skips the whole analyzer pass when the files (by content hash) and app version are unchanged since the last snapshot — the graph would be identical. The Watcher's check and any rebuild become near-instant on an unchanged project; a real change (or an app update) rebuilds as before. A forced rebuild is still available.
 - **Faster indexing.** Both the full index and the incremental re-index now embed chunks in **batches** — one request per batch instead of one per chunk — where the engine supports it (the bundled llama.cpp embedding server takes a list of inputs). This markedly cuts the time to build or update context on larger projects. Engines without batch embedding (e.g. Ollama) transparently fall back to per-chunk.
 
 ## [0.2.3] - 2026-06-26
