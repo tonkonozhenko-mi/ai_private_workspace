@@ -7,4 +7,4 @@
 # Install with:
 #   pip install -r requirements-qdrant.txt
 qdrant-client>=1.18.0,<2.0
-idna>=3.15  # security floor for the transitive idna (PYSEC-2026-215)
+idna>=3.18  # security floor for the transitive idna (PYSEC-2026-215)
