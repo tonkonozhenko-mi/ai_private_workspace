@@ -89,3 +89,36 @@ def test_run_retrieval_eval_scores_per_case():
     )
     assert report.total == 2
     assert report.passed == 1  # first hits db/config.tf, second doesn't
+
+
+# -- negative / abstain cases + hallucination metric ------------------------
+
+
+def test_abstain_case_passes_when_retrieval_not_confident():
+    case = EvalCase(question="unrelated thing", expect_abstain=True)
+    # Top similarity below the threshold → system would correctly abstain.
+    score = score_case(case, ["whatever.txt"], top_score=0.10)
+    assert score.passed is True
+    assert score.abstained is True
+
+
+def test_abstain_case_fails_when_retrieval_is_confident():
+    case = EvalCase(question="unrelated thing", expect_abstain=True)
+    # High similarity → it would feed confident (wrong) context and likely fabricate.
+    score = score_case(case, ["whatever.txt"], top_score=0.95)
+    assert score.passed is False
+    assert score.abstained is False
+
+
+def test_aggregate_reports_hallucination_rate():
+    scores = [
+        score_case(EvalCase("pos", ["a.tf"]), ["a.tf"], top_score=0.9),
+        score_case(EvalCase("neg1", expect_abstain=True), ["x"], top_score=0.1),  # abstained ✓
+        score_case(EvalCase("neg2", expect_abstain=True), ["y"], top_score=0.9),  # leaked ✗
+    ]
+    report = aggregate(scores)
+    assert report.abstain_total == 2
+    assert report.abstain_correct == 1
+    assert report.hallucination_rate == 0.5
+    # Positive-case recall unaffected by the negative cases.
+    assert report.source_recall == 1.0

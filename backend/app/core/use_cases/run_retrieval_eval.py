@@ -56,5 +56,6 @@ class RunRetrievalEvalUseCase:
                 )
             )
             retrieved = [r.source_path for r in results]
-            scores.append(score_case(case, retrieved))
+            top_score = max((r.score for r in results), default=0.0)
+            scores.append(score_case(case, retrieved, top_score=top_score))
         return aggregate(scores)
