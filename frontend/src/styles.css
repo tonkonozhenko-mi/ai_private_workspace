@@ -4931,6 +4931,8 @@ a.getting-ready-cta:hover {
 .pwh-commit { font-size: 12px; color: var(--c-text-2); line-height: 1.45; }
 /* Pointer from the Home card to the single home of the full journal. */
 .pw-history-hint { margin-top: 2px; font-size: 12px; color: var(--c-text-3); }
+/* "AI knowledge updated" note after a unified Refresh. */
+.pw-knowledge-note { margin: 0; font-size: 12px; color: var(--c-accent); }
 
 /* Area chip with a hover/focus tooltip revealing the changed file paths. */
 .area-chip { position: relative; cursor: default; }
