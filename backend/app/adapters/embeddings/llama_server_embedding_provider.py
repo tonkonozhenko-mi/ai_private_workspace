@@ -46,15 +46,27 @@ class LlamaServerEmbeddingProvider:
         return self._embedding_dimension
 
     def embed_text(self, text: str) -> list[float]:
+        return self._request([text])[0]
+
+    def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        """Embed several texts in ONE request — the OpenAI-compatible route takes
+        ``input`` as a list, so indexing many chunks needs far fewer round-trips.
+        Vectors come back in request order."""
+        if not texts:
+            return []
+        return self._request(texts)
+
+    def _request(self, inputs: list[str]) -> list[list[float]]:
         response: httpx.Response | None = None
         last_detail = ""
         for attempt in range(_RETRY_ATTEMPTS):
             try:
                 candidate = self.client.post(
                     f"{self.base_url}/v1/embeddings",
-                    # `input` as a single-item list: some llama-server versions
-                    # reject a bare string on the OpenAI-compatible route.
-                    json={"model": self.model, "input": [text]},
+                    # `input` as a list: some llama-server versions reject a bare
+                    # string on the OpenAI-compatible route, and a list lets us
+                    # batch many chunks into one request.
+                    json={"model": self.model, "input": inputs},
                     timeout=self.timeout_seconds,
                 )
             except (httpx.TimeoutException, httpx.ConnectError) as exc:
@@ -81,21 +93,28 @@ class LlamaServerEmbeddingProvider:
 
         try:
             payload = response.json()
-            embedding = payload["data"][0]["embedding"]
-        except (ValueError, KeyError, IndexError, TypeError) as exc:
+            data = payload["data"]
+        except (ValueError, KeyError, TypeError) as exc:
             raise LlamaServerEmbeddingProviderError(
-                "llama-server embedding response did not include an embedding"
+                "llama-server embedding response did not include embeddings"
             ) from exc
 
-        if not isinstance(embedding, list) or not embedding:
-            raise LlamaServerEmbeddingProviderError("llama-server returned an empty embedding")
-
-        try:
-            vector = [float(value) for value in embedding]
-        except (TypeError, ValueError) as exc:
+        if not isinstance(data, list) or len(data) != len(inputs):
             raise LlamaServerEmbeddingProviderError(
-                "llama-server embedding contained invalid vector values"
-            ) from exc
+                "llama-server returned an unexpected number of embeddings"
+            )
 
-        self._embedding_dimension = len(vector)
-        return vector
+        vectors: list[list[float]] = []
+        for item in data:
+            embedding = item.get("embedding") if isinstance(item, dict) else None
+            if not isinstance(embedding, list) or not embedding:
+                raise LlamaServerEmbeddingProviderError("llama-server returned an empty embedding")
+            try:
+                vectors.append([float(value) for value in embedding])
+            except (TypeError, ValueError) as exc:
+                raise LlamaServerEmbeddingProviderError(
+                    "llama-server embedding contained invalid vector values"
+                ) from exc
+
+        self._embedding_dimension = len(vectors[0])
+        return vectors

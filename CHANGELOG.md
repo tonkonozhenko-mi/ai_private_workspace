@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **Faster indexing.** Both the full index and the incremental re-index now embed chunks in **batches** — one request per batch instead of one per chunk — where the engine supports it (the bundled llama.cpp embedding server takes a list of inputs). This markedly cuts the time to build or update context on larger projects. Engines without batch embedding (e.g. Ollama) transparently fall back to per-chunk.
+
 ## [0.2.3] - 2026-06-26
 
 A **change-aware** release. The app now keeps track of what changed in your
