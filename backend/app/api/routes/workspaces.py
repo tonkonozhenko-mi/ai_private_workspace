@@ -1093,6 +1093,10 @@ def start_index_workspace_job(workspace_id: str) -> WorkspaceJobResponse:
                 vector_store=vector_store,
                 index_status_repository=index_status_repository,
                 timeline_repository=timeline_repository,
+                # Write the content-hash manifest during the full index, so a later
+                # "Refresh" / "Update index (changed files)" is truly incremental
+                # instead of falling back to a slow full re-embed.
+                manifest_repository=index_manifest_repository,
             ).execute(
                 IndexWorkspaceInput(
                     workspace_id=workspace_id,

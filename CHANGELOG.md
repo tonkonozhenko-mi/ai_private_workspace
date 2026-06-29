@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **The full index now records the content-hash manifest.** The background "Build index" job was constructing the indexer without the manifest repository, so the manifest stayed empty after a normal scan → index. That made the *first* "Refresh" / "Update index (changed files)" fall back to a **full** re-embed of the whole project (minutes on the local CPU embedder) instead of touching only changed files. The job now writes the manifest like the synchronous index endpoint already did, so incremental updates are fast from the first one onward. (Existing pre-fix indexes pay the full re-embed once, then are fast.)
+
 ### Added
 
 - **Settings persist on the backend.** App-level preferences (theme, default Ask options, branding, accent, …) are now stored on the local backend (`GET`/`PUT /preferences`) instead of only the browser, so they survive a cache clear and are shared across the desktop window and any browser tab. localStorage is kept only as an instant first-paint cache; on first run the existing local settings are migrated up automatically. Fully local — nothing leaves the machine.
