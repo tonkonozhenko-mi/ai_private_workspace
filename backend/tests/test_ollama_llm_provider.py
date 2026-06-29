@@ -9,7 +9,7 @@ from app.adapters.llm.ollama_llm_provider import (
     OllamaLLMProvider,
     OllamaLLMProviderError,
 )
-from app.api.dependencies import build_llm_provider
+from app.api._container_factories import build_llm_provider
 from app.config.settings import get_settings
 
 RUN_OLLAMA_TESTS = os.getenv("RUN_OLLAMA_TESTS", "").lower() == "true"

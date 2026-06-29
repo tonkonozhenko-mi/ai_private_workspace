@@ -28,10 +28,12 @@ def test_packaged_runtime_uses_app_owned_vector_store_path():
 
 
 def test_sqlite_vector_store_provider_is_registered():
-    dependencies = repo_file("backend/app/api/dependencies.py")
+    # The repository/provider factories (including build_vector_store) live in
+    # app.api._container_factories; dependencies.py wires the singletons from them.
+    factories = repo_file("backend/app/api/_container_factories.py")
     settings = repo_file("backend/app/config/settings.py")
 
-    assert "SQLiteVectorStore" in dependencies
-    assert 'if vector_store_type == "sqlite"' in dependencies
+    assert "SQLiteVectorStore" in factories
+    assert 'if vector_store_type == "sqlite"' in factories
     assert "VECTOR_STORE_PATH" in settings
     assert "AI_WORKSPACE_VECTOR_STORE_PATH" in settings
