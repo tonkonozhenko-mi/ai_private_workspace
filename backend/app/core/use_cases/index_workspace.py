@@ -391,6 +391,7 @@ class IndexWorkspaceUseCase:
         self._checkpoint(cancellation_check)
         embedding_dimension = self._embedding_dimension(embeddings)
         if progress_callback is not None:
+            total_chunks = len(chunks) or 1
             progress_callback(total_chunks, total_chunks, "Writing vector store...")
         self.vector_store.clear_workspace(
             workspace_id=workspace_id,

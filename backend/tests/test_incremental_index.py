@@ -140,6 +140,28 @@ def test_incremental_falls_back_to_full_without_manifest():
     assert set(manifest.get("w1")) == {"a.md"}
 
 
+def test_full_index_with_progress_callback_completes():
+    # The job path passes a progress_callback; guard against regressions in the
+    # progress reporting (e.g. a dropped variable) that only fire on that path.
+    files = [_file("a.md"), _file("b.md")]
+    scan = _ScanRepo(files)
+    fs = _FS({"a.md": "alpha", "b.md": "beta"})
+    vector = InMemoryVectorStore()
+    uc = _use_case(
+        scan, fs, vector, InMemoryIndexStatusRepository(), InMemoryIndexManifestRepository()
+    )
+    messages = []
+    result = uc.execute(
+        IndexWorkspaceInput(
+            workspace_id="w1",
+            progress_callback=lambda c, t, m: messages.append(m),
+        )
+    )
+    assert result.indexed_files_count == 2
+    assert any("Writing vector store" in m for m in messages)
+    assert _paths_in_store(vector, "w1") == ["a.md", "b.md"]
+
+
 def test_changed_preview_counts_without_embedding():
     files = [_file("a.md"), _file("b.md"), _file("c.md")]
     contents = {"a.md": "alpha", "b.md": "beta", "c.md": "gamma"}
