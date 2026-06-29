@@ -1,6 +1,11 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
-import { DEFAULT_API_BASE_URL, setApiBaseUrl } from "./api/client";
+import {
+  DEFAULT_API_BASE_URL,
+  getAppPreferences,
+  saveAppPreferences,
+  setApiBaseUrl,
+} from "./api/client";
 import {
   DEFAULT_CUSTOM_SKILLS,
   DEFAULT_SKILL_PREFERENCES,
@@ -134,6 +139,62 @@ function isDemoModePreference(value: unknown): value is DemoModePreference {
   return value === "off" || value === "on";
 }
 
+/**
+ * Validate an arbitrary (possibly partial / untrusted) preferences object and
+ * fill any missing or invalid field with its default. Shared by the localStorage
+ * loader and the backend loader so both go through the same validation.
+ */
+export function normalizePreferences(parsed: Partial<WorkbenchPreferences>): WorkbenchPreferences {
+  return {
+    theme: isThemePreference(parsed.theme) ? parsed.theme : DEFAULT_PREFERENCES.theme,
+    textSize: isTextSizePreference(parsed.textSize)
+      ? parsed.textSize
+      : DEFAULT_PREFERENCES.textSize,
+    defaultReasoning:
+      typeof parsed.defaultReasoning === "boolean"
+        ? parsed.defaultReasoning
+        : DEFAULT_PREFERENCES.defaultReasoning,
+    defaultStreaming:
+      typeof parsed.defaultStreaming === "boolean"
+        ? parsed.defaultStreaming
+        : DEFAULT_PREFERENCES.defaultStreaming,
+    defaultSourceSnippets: isSourceSnippetPreference(parsed.defaultSourceSnippets)
+      ? parsed.defaultSourceSnippets
+      : DEFAULT_PREFERENCES.defaultSourceSnippets,
+    landingTab: isLandingTabPreference(parsed.landingTab)
+      ? parsed.landingTab
+      : DEFAULT_PREFERENCES.landingTab,
+    apiBaseUrl: isApiBaseUrlPreference(parsed.apiBaseUrl)
+      ? normalizeApiBaseUrl(parsed.apiBaseUrl)
+      : DEFAULT_PREFERENCES.apiBaseUrl,
+    brandInitials: isBrandInitialsPreference(parsed.brandInitials)
+      ? normalizeBrandInitials(parsed.brandInitials)
+      : DEFAULT_PREFERENCES.brandInitials,
+    productName: isProductNamePreference(parsed.productName)
+      ? normalizeProductName(parsed.productName)
+      : DEFAULT_PREFERENCES.productName,
+    accentColor: isAccentColorPreference(parsed.accentColor)
+      ? parsed.accentColor
+      : DEFAULT_PREFERENCES.accentColor,
+    demoMode: isDemoModePreference(parsed.demoMode)
+      ? parsed.demoMode
+      : DEFAULT_PREFERENCES.demoMode,
+    developerMode:
+      typeof parsed.developerMode === "boolean"
+        ? parsed.developerMode
+        : DEFAULT_PREFERENCES.developerMode,
+    answerCreativity:
+      parsed.answerCreativity === "precise" ||
+      parsed.answerCreativity === "balanced" ||
+      parsed.answerCreativity === "creative"
+        ? parsed.answerCreativity
+        : DEFAULT_PREFERENCES.answerCreativity,
+    skillPreferences: normalizeSkillPreferences(parsed.skillPreferences),
+    customSkills: normalizeCustomSkills(parsed.customSkills),
+    fileIndexingPreferences: normalizeFileIndexingPreferences(parsed.fileIndexingPreferences),
+  };
+}
+
 export function loadStoredPreferences(): WorkbenchPreferences {
   try {
     const raw =
@@ -142,66 +203,21 @@ export function loadStoredPreferences(): WorkbenchPreferences {
     if (!raw) {
       return DEFAULT_PREFERENCES;
     }
-    const parsed = JSON.parse(raw) as Partial<WorkbenchPreferences>;
-    return {
-      theme: isThemePreference(parsed.theme) ? parsed.theme : DEFAULT_PREFERENCES.theme,
-      textSize: isTextSizePreference(parsed.textSize)
-        ? parsed.textSize
-        : DEFAULT_PREFERENCES.textSize,
-      defaultReasoning:
-        typeof parsed.defaultReasoning === "boolean"
-          ? parsed.defaultReasoning
-          : DEFAULT_PREFERENCES.defaultReasoning,
-      defaultStreaming:
-        typeof parsed.defaultStreaming === "boolean"
-          ? parsed.defaultStreaming
-          : DEFAULT_PREFERENCES.defaultStreaming,
-      defaultSourceSnippets: isSourceSnippetPreference(parsed.defaultSourceSnippets)
-        ? parsed.defaultSourceSnippets
-        : DEFAULT_PREFERENCES.defaultSourceSnippets,
-      landingTab: isLandingTabPreference(parsed.landingTab)
-        ? parsed.landingTab
-        : DEFAULT_PREFERENCES.landingTab,
-      apiBaseUrl: isApiBaseUrlPreference(parsed.apiBaseUrl)
-        ? normalizeApiBaseUrl(parsed.apiBaseUrl)
-        : DEFAULT_PREFERENCES.apiBaseUrl,
-      brandInitials: isBrandInitialsPreference(parsed.brandInitials)
-        ? normalizeBrandInitials(parsed.brandInitials)
-        : DEFAULT_PREFERENCES.brandInitials,
-      productName: isProductNamePreference(parsed.productName)
-        ? normalizeProductName(parsed.productName)
-        : DEFAULT_PREFERENCES.productName,
-      accentColor: isAccentColorPreference(parsed.accentColor)
-        ? parsed.accentColor
-        : DEFAULT_PREFERENCES.accentColor,
-      demoMode: isDemoModePreference(parsed.demoMode)
-        ? parsed.demoMode
-        : DEFAULT_PREFERENCES.demoMode,
-      developerMode:
-        typeof parsed.developerMode === "boolean"
-          ? parsed.developerMode
-          : DEFAULT_PREFERENCES.developerMode,
-      answerCreativity:
-        parsed.answerCreativity === "precise" ||
-        parsed.answerCreativity === "balanced" ||
-        parsed.answerCreativity === "creative"
-          ? parsed.answerCreativity
-          : DEFAULT_PREFERENCES.answerCreativity,
-      skillPreferences: normalizeSkillPreferences(parsed.skillPreferences),
-      customSkills: normalizeCustomSkills(parsed.customSkills),
-      fileIndexingPreferences: normalizeFileIndexingPreferences(parsed.fileIndexingPreferences),
-    };
+    return normalizePreferences(JSON.parse(raw) as Partial<WorkbenchPreferences>);
   } catch {
     return DEFAULT_PREFERENCES;
   }
 }
 
 /**
- * Owns the user-preference state: loads it from localStorage (with a legacy-key
- * fallback) on first render, persists every change, and applies the visual
- * preferences (theme, text size, accent, demo mode) and the API base URL.
- * Extracted from App.tsx so the root component is no longer responsible for
- * preference plumbing.
+ * Owns the user-preference state. The backend is the source of truth: settings
+ * persist on the local backend (so they survive a browser-cache clear and are
+ * shared across the desktop window and any browser tab). localStorage is kept
+ * only as an instant first-paint cache — it seeds the initial state synchronously
+ * so there's no flash of default theme, then the backend value (once loaded)
+ * reconciles it. Every change is mirrored to localStorage immediately and saved
+ * to the backend (debounced). On first run with an empty backend, the existing
+ * localStorage preferences are migrated up.
  */
 export function usePreferences(): {
   preferences: WorkbenchPreferences;
@@ -210,7 +226,12 @@ export function usePreferences(): {
   const [preferences, setPreferences] = useState<WorkbenchPreferences>(() =>
     loadStoredPreferences(),
   );
+  // Becomes true once the backend value has been reconciled, so the debounced
+  // save effect doesn't push the local seed back up before we've read the server.
+  const backendReady = useRef(false);
 
+  // Apply visuals + write the localStorage cache on every change (instant, and
+  // works offline even if the backend save fails).
   useEffect(() => {
     window.localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
     document.documentElement.dataset.theme = preferences.theme;
@@ -218,6 +239,50 @@ export function usePreferences(): {
     setApiBaseUrl(preferences.apiBaseUrl);
     document.documentElement.dataset.accent = preferences.accentColor;
     document.documentElement.dataset.demoMode = preferences.demoMode;
+  }, [preferences]);
+
+  // Once, on mount: pull the authoritative preferences from the backend. If the
+  // backend has none yet, migrate the current (localStorage-seeded) ones up.
+  useEffect(() => {
+    let cancelled = false;
+    getAppPreferences()
+      .then((res) => {
+        if (cancelled) return;
+        const values = res.values ?? {};
+        if (Object.keys(values).length > 0) {
+          setPreferences((current) =>
+            // Keep the local apiBaseUrl — it's how we reached this backend, so it
+            // must not be overridden by a value the backend happens to hold.
+            normalizePreferences({
+              ...(values as Partial<WorkbenchPreferences>),
+              apiBaseUrl: current.apiBaseUrl,
+            }),
+          );
+        } else {
+          setPreferences((current) => {
+            void saveAppPreferences(current as unknown as Record<string, unknown>).catch(() => {});
+            return current;
+          });
+        }
+      })
+      .catch(() => {
+        // Backend unreachable — keep the localStorage-seeded values.
+      })
+      .finally(() => {
+        if (!cancelled) backendReady.current = true;
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Persist changes to the backend (debounced) once the initial read is done.
+  useEffect(() => {
+    if (!backendReady.current) return;
+    const handle = window.setTimeout(() => {
+      void saveAppPreferences(preferences as unknown as Record<string, unknown>).catch(() => {});
+    }, 400);
+    return () => window.clearTimeout(handle);
   }, [preferences]);
 
   return { preferences, setPreferences };

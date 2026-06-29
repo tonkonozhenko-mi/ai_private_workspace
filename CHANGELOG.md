@@ -9,6 +9,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Added
 
+- **Settings persist on the backend.** App-level preferences (theme, default Ask options, branding, accent, …) are now stored on the local backend (`GET`/`PUT /preferences`) instead of only the browser, so they survive a cache clear and are shared across the desktop window and any browser tab. localStorage is kept only as an instant first-paint cache; on first run the existing local settings are migrated up automatically. Fully local — nothing leaves the machine.
 - **Retrieval-quality eval harness.** A small, deterministic "golden questions" evaluator (`core.domain.answer_eval` + `RunRetrievalEvalUseCase`): each case declares the file(s) its answer should be grounded in, and scoring measures whether retrieval surfaced them (recall) — no LLM, no flakiness. A stable regression guard for RAG tuning, in the same spirit as the existing deterministic test suite.
 
 ### Changed

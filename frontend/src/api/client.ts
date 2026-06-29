@@ -2039,3 +2039,26 @@ export async function getAnswerRatingNudges(
     init,
   );
 }
+
+export interface AppPreferencesResponse {
+  values: Record<string, unknown>;
+}
+
+/** Read the app-level preferences stored on the backend (source of truth). */
+export function getAppPreferences(init: RequestInit = {}): Promise<AppPreferencesResponse> {
+  return getJson<AppPreferencesResponse>("/preferences", init);
+}
+
+/** Persist the app-level preferences to the backend. */
+export function saveAppPreferences(
+  values: Record<string, unknown>,
+): Promise<AppPreferencesResponse> {
+  return requestJson<AppPreferencesResponse>("/preferences", {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ values }),
+  });
+}

@@ -13,6 +13,9 @@ from app.adapters.memory.in_memory_agent_workflow_repository import InMemoryAgen
 from app.adapters.memory.in_memory_answer_rating_repository import (
     InMemoryAnswerRatingRepository,
 )
+from app.adapters.memory.in_memory_app_preferences_repository import (
+    InMemoryAppPreferencesRepository,
+)
 from app.adapters.memory.in_memory_command_repository import InMemoryCommandRepository
 from app.adapters.memory.in_memory_conversation_repository import InMemoryConversationRepository
 from app.adapters.memory.in_memory_index_status_repository import (
@@ -63,6 +66,9 @@ from app.adapters.memory.in_memory_workspace_storage_gateway import (
 from app.adapters.memory.sqlite_agent_workflow_repository import SQLiteAgentWorkflowRepository
 from app.adapters.memory.sqlite_answer_rating_repository import (
     SQLiteAnswerRatingRepository,
+)
+from app.adapters.memory.sqlite_app_preferences_repository import (
+    SQLiteAppPreferencesRepository,
 )
 from app.adapters.memory.sqlite_command_repository import SQLiteCommandRepository
 from app.adapters.memory.sqlite_conversation_repository import SQLiteConversationRepository
@@ -123,6 +129,7 @@ from app.config.settings import get_settings
 from app.core.domain.model_catalog_registry import ModelCatalogRegistry
 from app.core.ports.agent_workflow_repository import AgentWorkflowRepositoryPort
 from app.core.ports.answer_rating_repository import AnswerRatingRepositoryPort
+from app.core.ports.app_preferences_repository import AppPreferencesRepositoryPort
 from app.core.ports.command_repository import CommandRepositoryPort
 from app.core.ports.command_runner import CommandRunnerPort
 from app.core.ports.conversation_repository import ConversationRepositoryPort
@@ -627,3 +634,15 @@ def build_model_catalog_registry() -> ModelCatalogRegistry:
     registry = ModelCatalogRegistry(loader=loader)
     registry.reload()
     return registry
+
+
+def build_app_preferences_repository() -> AppPreferencesRepositoryPort:
+    settings = get_settings()
+    repository_type = settings.workspace_repository.lower()
+
+    if repository_type == "memory":
+        return InMemoryAppPreferencesRepository()
+    if repository_type == "sqlite":
+        return SQLiteAppPreferencesRepository(settings.workspace_db_path)
+
+    raise ValueError(f"Unsupported workspace repository: {settings.workspace_repository}")
