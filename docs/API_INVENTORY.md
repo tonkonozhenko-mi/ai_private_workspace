@@ -194,6 +194,13 @@ Cross-project facts about the person using the app, applied to every answer. Glo
 | `POST /user-profile/{item_id}/pin` | Pin or unpin a profile fact. | No | No | Local DB write | Settings |
 | `POST /user-profile/suggest` | Propose candidate facts from text via the local model (saves nothing; review-first). | No | No | Local model | Settings |
 
+## App Preferences
+
+| Endpoint | Purpose | Network | Writes Files | Side Effects | Surface |
+| --- | --- | --- | --- | --- | --- |
+| `GET /preferences` | Read the app-level user preferences (theme, default Ask options, branding, …) stored on the backend. | No | No | Local DB read | Settings |
+| `PUT /preferences` | Persist app-level user preferences (the frontend keeps a localStorage copy only for instant first paint). | No | No | Local DB write | Settings |
+
 ## Command Approval
 
 | Endpoint | Purpose | Writes | Executes commands | Runtime | Main UI surface |

@@ -14,6 +14,7 @@ from app.adapters.system.runtime_state_store import RuntimeStateStore
 from app.api._container_factories import (
     build_agent_workflow_repository,
     build_answer_rating_repository,
+    build_app_preferences_repository,
     build_command_repository,
     build_command_runner,
     build_conversation_repository,
@@ -101,6 +102,7 @@ project_graph_repository = build_project_graph_repository()
 project_watch_repository = build_project_watch_repository()
 project_memory_repository = build_project_memory_repository()
 user_profile_repository = build_user_profile_repository()
+app_preferences_repository = build_app_preferences_repository()
 project_group_repository = build_project_group_repository()
 answer_rating_repository = build_answer_rating_repository()
 # Shared project-context provider injected into Ask + the Investigator. It also
