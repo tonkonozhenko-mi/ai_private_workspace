@@ -11,7 +11,6 @@ import {
   getLocalAIActivationGuide,
   getModelsDashboardSummary,
   getWorkspaceDashboard,
-  getWorkspaceLatestScan,
   getWorkspaceModelsDashboard,
   getWorkspacesOverview,
   cancelWorkspaceJob,
@@ -76,6 +75,7 @@ import {
 } from "./preferences";
 import { useWorkspaceJobs } from "./hooks/useWorkspaceJobs";
 import { useSidebarCollapsed } from "./hooks/useSidebarCollapsed";
+import { useCommandPalette } from "./hooks/useCommandPalette";
 import { errorMessage } from "./lib/errorMessage";
 import { NavIcon, FirstRunWelcome } from "./components/AppChrome";
 
@@ -126,8 +126,6 @@ function App() {
   const [dropTargetGroupId, setDropTargetGroupId] = useState<string | null>(null);
   // A freshly created group opens in rename mode so it can be named right away.
   const [autoRenameGroupId, setAutoRenameGroupId] = useState<string | null>(null);
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [paletteFiles, setPaletteFiles] = useState<string[]>([]);
   const [inspectFilePath, setInspectFilePath] = useState<string | null>(null);
   // A question pushed into Ask from a dashboard suggested-question chip.
   const [askSeed, setAskSeed] = useState<{ text: string; nonce: number } | null>(null);
@@ -149,17 +147,6 @@ function App() {
     await loadWorkspaceDetail(workspaceId);
   };
 
-  // Cmd/Ctrl-K opens the command palette from anywhere.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
-        e.preventDefault();
-        setPaletteOpen((v) => !v);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
     null,
@@ -423,20 +410,10 @@ function App() {
     void loadGroups();
   }, [loadGroups]);
 
-  // Load the current project's file list (for palette file search) when the
-  // palette opens. Cheap: it's the cached scan, fetched at most once per open.
-  useEffect(() => {
-    if (!paletteOpen || !selectedWorkspaceId || selectedGroupId) return;
-    const controller = new AbortController();
-    getWorkspaceLatestScan(selectedWorkspaceId, { signal: controller.signal })
-      .then((scan) => {
-        if (!controller.signal.aborted) setPaletteFiles(scan.files.map((f) => f.path));
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setPaletteFiles([]);
-      });
-    return () => controller.abort();
-  }, [paletteOpen, selectedWorkspaceId, selectedGroupId]);
+  const { paletteOpen, setPaletteOpen, paletteFiles } = useCommandPalette({
+    selectedWorkspaceId,
+    selectedGroupId,
+  });
 
   const handleSelectGroup = useCallback((groupId: string) => {
     setShowCreateWorkspace(false);
