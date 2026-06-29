@@ -8,7 +8,6 @@ from app.core.use_cases.run_retrieval_eval import (
     RunRetrievalEvalUseCase,
 )
 
-
 # -- pure scorer ------------------------------------------------------------
 
 
