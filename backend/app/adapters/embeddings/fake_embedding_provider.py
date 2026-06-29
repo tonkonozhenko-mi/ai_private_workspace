@@ -20,3 +20,6 @@ class FakeEmbeddingProvider:
                 index = digest_byte % EMBEDDING_DIMENSIONS
                 vector[index] += 1.0
         return vector
+
+    def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        return [self.embed_text(text) for text in texts]

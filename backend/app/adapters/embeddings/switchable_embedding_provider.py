@@ -38,3 +38,11 @@ class SwitchableEmbeddingProvider:
 
     def embed_text(self, text: str) -> list[float]:
         return self._delegate.embed_text(text)
+
+    def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        """Delegate batch embedding when the active backend supports it; otherwise
+        fall back to one call per text so callers can always use the batch path."""
+        batch = getattr(self._delegate, "embed_texts", None)
+        if callable(batch):
+            return batch(texts)
+        return [self._delegate.embed_text(text) for text in texts]

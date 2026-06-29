@@ -311,10 +311,9 @@ class IndexWorkspaceUseCase:
             self.vector_store.delete_chunks_by_source_path(workspace_id, to_delete)
 
         if chunks_to_embed:
-            embeddings = [
-                self.embedding_provider.embed_text(strip_contextual_header(chunk.content))
-                for chunk in chunks_to_embed
-            ]
+            embeddings = self._embed_texts(
+                [strip_contextual_header(chunk.content) for chunk in chunks_to_embed]
+            )
             embedding_dimension = self._embedding_dimension(embeddings)
             self.vector_store.upsert_chunks(
                 workspace_id=workspace_id,
@@ -382,22 +381,17 @@ class IndexWorkspaceUseCase:
             chunks.extend(file_chunks)
             manifest[project_file.path] = {"hash": file_hash, "chunks": len(file_chunks)}
 
-        embeddings = []
-        total_chunks = len(chunks) or 1
-        for chunk_index, chunk in enumerate(chunks, start=1):
-            self._checkpoint(cancellation_check)
-            if progress_callback is not None:
-                progress_callback(
-                    chunk_index, total_chunks, f"Embedding chunks: {chunk_index}/{total_chunks}"
-                )
-            # Embed the clean chunk body (not the provenance header), so the dense
-            # vector reflects real content; the stored chunk keeps its header.
-            embeddings.append(
-                self.embedding_provider.embed_text(strip_contextual_header(chunk.content))
-            )
+        # Embed the clean chunk bodies (not the provenance headers), so the dense
+        # vectors reflect real content; the stored chunks keep their headers.
+        embeddings = self._embed_texts(
+            [strip_contextual_header(chunk.content) for chunk in chunks],
+            cancellation_check=cancellation_check,
+            progress_callback=progress_callback,
+        )
         self._checkpoint(cancellation_check)
         embedding_dimension = self._embedding_dimension(embeddings)
         if progress_callback is not None:
+            total_chunks = len(chunks) or 1
             progress_callback(total_chunks, total_chunks, "Writing vector store...")
         self.vector_store.clear_workspace(
             workspace_id=workspace_id,
@@ -428,6 +422,37 @@ class IndexWorkspaceUseCase:
             skipped_files_count=skipped_files_count,
             documents=documents,
         )
+
+    # How many chunk bodies to embed per request when the provider supports
+    # batch embedding. One round-trip per batch instead of per chunk.
+    _EMBED_BATCH = 64
+
+    def _embed_texts(
+        self,
+        texts: list[str],
+        cancellation_check: Callable[[], bool] | None = None,
+        progress_callback: Callable[[int, int, str], None] | None = None,
+    ) -> list[list[float]]:
+        """Embed many texts, using the provider's batch API when available
+        (far fewer round-trips), else one call per text. Order is preserved."""
+        total = len(texts) or 1
+        batch_fn = getattr(self.embedding_provider, "embed_texts", None)
+        embeddings: list[list[float]] = []
+        if callable(batch_fn):
+            for start in range(0, len(texts), self._EMBED_BATCH):
+                self._checkpoint(cancellation_check)
+                group = texts[start : start + self._EMBED_BATCH]
+                embeddings.extend(batch_fn(group))
+                done = min(start + len(group), total)
+                if progress_callback is not None:
+                    progress_callback(done, total, f"Embedding chunks: {done}/{total}")
+        else:
+            for index, text in enumerate(texts, start=1):
+                self._checkpoint(cancellation_check)
+                embeddings.append(self.embedding_provider.embed_text(text))
+                if progress_callback is not None:
+                    progress_callback(index, total, f"Embedding chunks: {index}/{total}")
+        return embeddings
 
     @staticmethod
     def _checkpoint(cancellation_check: Callable[[], bool] | None) -> None:
