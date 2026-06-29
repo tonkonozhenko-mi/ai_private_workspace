@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { getProjectWatch, runProjectWatch, summarizeProjectWatch } from "../api/client";
+import {
+  getProjectWatch,
+  reindexChangedWorkspace,
+  runProjectWatch,
+  summarizeProjectWatch,
+} from "../api/client";
 import type { ProjectWatchDigest, WorkspaceDashboard } from "../api/types";
 import { AreaChip } from "./AreaChip";
 
@@ -36,6 +41,7 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
   const [summary, setSummary] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [knowledgeNote, setKnowledgeNote] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -53,18 +59,37 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
     return () => controller.abort();
   }, [workspaceId]);
 
-  const check = useCallback(async () => {
+  const refresh = useCallback(async () => {
     setRunning(true);
     setError(null);
-    // A new check supersedes any earlier summary.
+    // A new refresh supersedes any earlier summary/note.
     setSummary(null);
     setSummaryError(null);
+    setKnowledgeNote(null);
     try {
+      // 1) Structure + git: re-scan, refresh the project map (skipped if nothing
+      //    changed) and record the dated change journal.
       const result = await runProjectWatch(workspaceId);
       setDigest(result);
       setHasDigest(true);
+      // 2) AI knowledge: re-embed only the files whose content changed, so Ask
+      //    sees the latest code. Best-effort — a failure here must not fail the
+      //    structural refresh above.
+      try {
+        const idx = await reindexChangedWorkspace(workspaceId);
+        if (idx.reindexed_files || idx.removed_files) {
+          const parts: string[] = [];
+          if (idx.reindexed_files) parts.push(`${idx.reindexed_files} re-indexed`);
+          if (idx.removed_files) parts.push(`${idx.removed_files} removed`);
+          setKnowledgeNote(`AI knowledge updated: ${parts.join(", ")}.`);
+        } else {
+          setKnowledgeNote("AI knowledge already up to date.");
+        }
+      } catch {
+        /* reindex is best-effort within a refresh */
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "The check could not be completed.");
+      setError(err instanceof Error ? err.message : "The refresh could not be completed.");
     } finally {
       setRunning(false);
     }
@@ -100,16 +125,18 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
             </p>
           ) : (
             <p className="pw-subtitle">
-              Re-scans the project and reports new environments, risks, cloud services and more.
+              Re-scans the project, refreshes the map and the AI's knowledge of changed files, and
+              reports what changed.
             </p>
           )}
         </div>
-        <button type="button" className="pw-button" onClick={check} disabled={running}>
-          {running ? "Checking…" : "Check now"}
+        <button type="button" className="pw-button" onClick={refresh} disabled={running}>
+          {running ? "Refreshing…" : "Refresh"}
         </button>
       </header>
 
       {error ? <p className="pw-error">{error}</p> : null}
+      {knowledgeNote ? <p className="pw-muted pw-knowledge-note">{knowledgeNote}</p> : null}
 
       {hasDigest === false && !digest && !running ? (
         <p className="pw-muted">No check has run yet. Run one to record a baseline.</p>
