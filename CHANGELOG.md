@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Added
+
+- **Retrieval-quality eval harness.** A small, deterministic "golden questions" evaluator (`core.domain.answer_eval` + `RunRetrievalEvalUseCase`): each case declares the file(s) its answer should be grounded in, and scoring measures whether retrieval surfaced them (recall) — no LLM, no flakiness. A stable regression guard for RAG tuning, in the same spirit as the existing deterministic test suite.
+
 ### Changed
 
 - **Instant "Check now" when nothing changed.** The Project Intelligence graph build now skips the whole analyzer pass when the files (by content hash) and app version are unchanged since the last snapshot — the graph would be identical. The Watcher's check and any rebuild become near-instant on an unchanged project; a real change (or an app update) rebuilds as before. A forced rebuild is still available.
