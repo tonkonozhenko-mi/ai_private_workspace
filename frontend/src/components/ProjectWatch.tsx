@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-  getProjectWatch,
-  reindexChangedWorkspace,
-  runProjectWatch,
-  summarizeProjectWatch,
-} from "../api/client";
+import { getProjectWatch, summarizeProjectWatch } from "../api/client";
 import type { ProjectWatchDigest, WorkspaceDashboard } from "../api/types";
+import { useProjectRefresh } from "../hooks/useProjectRefresh";
 import { AreaChip } from "./AreaChip";
+
+const REFRESH_PHASE_LABEL: Record<string, string> = {
+  structure: "Updating project structure…",
+  knowledge: "Updating the AI's knowledge…",
+};
 
 function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
@@ -35,14 +36,23 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
   const workspaceId = dashboard.workspace_id;
   const [digest, setDigest] = useState<ProjectWatchDigest | null>(null);
   const [hasDigest, setHasDigest] = useState<boolean | null>(null);
-  const [running, setRunning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
-  const [knowledgeNote, setKnowledgeNote] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Refresh state lives in a module-level store keyed by workspace, so it
+  // survives this card unmounting when the user switches tabs mid-refresh.
+  const {
+    running,
+    phase,
+    knowledgeNote,
+    error,
+    digest: refreshedDigest,
+    digestNonce,
+    refresh,
+  } = useProjectRefresh(workspaceId);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -59,41 +69,21 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
     return () => controller.abort();
   }, [workspaceId]);
 
-  const refresh = useCallback(async () => {
-    setRunning(true);
-    setError(null);
-    // A new refresh supersedes any earlier summary/note.
-    setSummary(null);
-    setSummaryError(null);
-    setKnowledgeNote(null);
-    try {
-      // 1) Structure + git: re-scan, refresh the project map (skipped if nothing
-      //    changed) and record the dated change journal.
-      const result = await runProjectWatch(workspaceId);
-      setDigest(result);
+  // When a (possibly off-tab) refresh produces a fresh digest, adopt it.
+  useEffect(() => {
+    if (refreshedDigest) {
+      setDigest(refreshedDigest);
       setHasDigest(true);
-      // 2) AI knowledge: re-embed only the files whose content changed, so Ask
-      //    sees the latest code. Best-effort — a failure here must not fail the
-      //    structural refresh above.
-      try {
-        const idx = await reindexChangedWorkspace(workspaceId);
-        if (idx.reindexed_files || idx.removed_files) {
-          const parts: string[] = [];
-          if (idx.reindexed_files) parts.push(`${idx.reindexed_files} re-indexed`);
-          if (idx.removed_files) parts.push(`${idx.removed_files} removed`);
-          setKnowledgeNote(`AI knowledge updated: ${parts.join(", ")}.`);
-        } else {
-          setKnowledgeNote("AI knowledge already up to date.");
-        }
-      } catch {
-        /* reindex is best-effort within a refresh */
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "The refresh could not be completed.");
-    } finally {
-      setRunning(false);
     }
-  }, [workspaceId]);
+  }, [refreshedDigest, digestNonce]);
+
+  // A new refresh supersedes any earlier LLM summary.
+  useEffect(() => {
+    if (running) {
+      setSummary(null);
+      setSummaryError(null);
+    }
+  }, [running]);
 
   const summarize = useCallback(async () => {
     setSummarizing(true);
@@ -134,6 +124,21 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
           {running ? "Refreshing…" : "Refresh"}
         </button>
       </header>
+
+      {running ? (
+        <div className="pw-progress" role="status" aria-live="polite">
+          <div className="pw-progress-bar">
+            <span
+              className="pw-progress-fill"
+              data-phase={phase}
+              style={{ width: phase === "knowledge" ? "66%" : "33%" }}
+            />
+          </div>
+          <p className="pw-progress-label">
+            {REFRESH_PHASE_LABEL[phase] ?? "Refreshing…"}
+          </p>
+        </div>
+      ) : null}
 
       {error ? <p className="pw-error">{error}</p> : null}
       {knowledgeNote ? <p className="pw-muted pw-knowledge-note">{knowledgeNote}</p> : null}
