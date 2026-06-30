@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Added
+
+- **One explicit budget for the answer's context window.** The durable context injected into every Ask/Investigate (user profile, handbook, memory, graph facts, recent changes) is now allocated by a single `ContextBudget` instead of scattered ad-hoc caps. Each source is trimmed to its own share and the whole block to a total, so no one source — a long handbook, a chatty note — can crowd out the retrieved code the answer actually needs. `core.use_cases.compose_project_context.ContextBudget`.
+- **Handbook injected small by default, full only when relevant.** The project handbook used to be prepended in full to every answer. Now a short digest is always included (cheap, keeps answers grounded in *this* project), and the fuller handbook is added only when the question meaningfully overlaps it — i.e. a broad, project-wide question — so it never steals the window on a narrow one. Deterministic, token-overlap based.
+- **Confidence is now explainable.** Each memory item records where its confidence number came from (`confidence_source`: you recorded it, captured automatically, adjusted from your ratings, or system default) and the API returns a human-readable explanation alongside the value, so a confidence isn't an opaque float. Backward-compatible: existing rows migrate to "default".
+
 ### Fixed
 
 - **The full index now records the content-hash manifest.** The background "Build index" job was constructing the indexer without the manifest repository, so the manifest stayed empty after a normal scan → index. That made the *first* "Refresh" / "Update index (changed files)" fall back to a **full** re-embed of the whole project (minutes on the local CPU embedder) instead of touching only changed files. The job now writes the manifest like the synchronous index endpoint already did, so incremental updates are fast from the first one onward. (Existing pre-fix indexes pay the full re-embed once, then are fast.)

@@ -32,9 +32,65 @@ from app.core.ports.project_watch_repository import ProjectWatchRepositoryPort
 from app.core.ports.user_profile_repository import UserProfileRepositoryPort
 
 _WORD_RE = re.compile(r"[a-z0-9_]+")
-_HANDBOOK_MAX = 1200
-_TOTAL_MAX = 3500
-_CHANGES_MAX = 700
+
+
+@dataclass(frozen=True)
+class ContextBudget:
+    """One explicit place that allocates the prompt's context window across the
+    durable sources, in characters (a stable proxy for tokens that needs no
+    tokenizer). Every section is trimmed to its own cap, and the assembled block
+    to ``total`` — so no single source (a long handbook, a chatty note) can crowd
+    out the retrieved code the answer actually needs.
+
+    ``handbook_small`` is what's *always* injected as background; ``handbook_full``
+    is the larger cap used only when the question is about the project as a whole
+    (see ``_handbook_block``), so the handbook informs without dominating.
+    """
+
+    profile: int = 400
+    handbook_small: int = 500
+    handbook_full: int = 1200
+    memory: int = 1500
+    graph: int = 600
+    changes: int = 700
+    total: int = 3500
+
+
+DEFAULT_BUDGET = ContextBudget()
+
+
+def _trim(text: str, max_chars: int) -> str:
+    text = text.rstrip()
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars].rstrip() + " …"
+
+
+def _handbook_block(handbook_text: str, query: str, budget: ContextBudget) -> str:
+    """The handbook, tiered: a short digest always, the fuller text only when the
+    question is broad/project-wide.
+
+    A small digest (first paragraph, capped at ``handbook_small``) is cheap and
+    keeps every answer grounded in *this* project. The fuller handbook is added
+    only when the query meaningfully overlaps it — i.e. the user is asking about
+    the project at large, not a single file — so it never crowds out retrieved
+    code on a narrow question. Deterministic: overlap is token-based, no model.
+    """
+    text = (handbook_text or "").strip()
+    if not text:
+        return ""
+    overlap = len(_tokens(query) & _tokens(text))
+    cap = budget.handbook_full if overlap >= 3 else budget.handbook_small
+    if len(text) <= cap:
+        body = text
+    elif cap == budget.handbook_small:
+        # Prefer a clean cut at the first paragraph for the always-on digest.
+        first_para = text.split("\n\n", 1)[0].strip()
+        body = first_para if first_para and len(first_para) <= cap else _trim(text, cap)
+    else:
+        body = _trim(text, cap)
+    return "Project handbook (background):\n" + body
+
 
 # Words that signal the question is about recent change ("what changed today?",
 # "що змінилось", "что нового со вчера"). When any appears, the dated change
@@ -102,9 +158,12 @@ class ComposeProjectContextUseCase:
         user_profile_repository: UserProfileRepositoryPort | None = None,
         embedding_provider=None,
         watch_repository: ProjectWatchRepositoryPort | None = None,
+        budget: ContextBudget | None = None,
     ) -> None:
         self.memory_repository = memory_repository
         self.project_graph_repository = project_graph_repository
+        # Single explicit allocation of the context window across sources.
+        self.budget = budget or DEFAULT_BUDGET
         # Optional so existing callers/tests keep working; when present, the
         # user's cross-project profile is applied to every answer.
         self.user_profile_repository = user_profile_repository
@@ -155,26 +214,25 @@ class ComposeProjectContextUseCase:
             profile_items = select_for_prompt(self.user_profile_repository.list(), query)
             profile_block = format_user_profile_context(profile_items)
             if profile_block:
-                blocks.append(profile_block)
+                blocks.append(_trim(profile_block, self.budget.profile))
                 profile_count = len(profile_items)
 
         items = self.memory_repository.list(workspace_id)
         handbook = next((i for i in items if i.kind == MemoryKind.HANDBOOK), None)
         has_handbook = handbook is not None
         if handbook:
-            text = handbook.text.strip()
-            if len(text) > _HANDBOOK_MAX:
-                text = text[:_HANDBOOK_MAX] + " …"
-            blocks.append("Project handbook (background):\n" + text)
+            handbook_block = _handbook_block(handbook.text, query, self.budget)
+            if handbook_block:
+                blocks.append(handbook_block)
 
         relevant = self._select_memory(items, query, limit=6)
-        memory_block = format_memory_context(relevant)
+        memory_block = format_memory_context(relevant, max_chars=self.budget.memory)
         if memory_block:
             blocks.append(memory_block)
 
         graph_block, graph_count = self._graph_facts(workspace_id, query)
         if graph_block:
-            blocks.append(graph_block)
+            blocks.append(_trim(graph_block, self.budget.graph))
 
         changes_block, changes_count = self._recent_changes(workspace_id, query)
         if changes_block:
@@ -190,8 +248,8 @@ class ComposeProjectContextUseCase:
         if not blocks:
             return "", stats
         combined = "\n\n".join(blocks)
-        if len(combined) > _TOTAL_MAX:
-            combined = combined[:_TOTAL_MAX] + " …"
+        if len(combined) > self.budget.total:
+            combined = combined[: self.budget.total] + " …"
         return combined, stats
 
     # Convenience for callbacks that take (workspace_id, query) -> str.
@@ -225,11 +283,9 @@ class ComposeProjectContextUseCase:
                 line += " | commits: " + "; ".join(subjects)
             lines.append(line)
             used += 1
-            if sum(len(item) for item in lines) > _CHANGES_MAX:
+            if sum(len(item) for item in lines) > self.budget.changes:
                 break
-        block = "\n".join(lines)
-        if len(block) > _CHANGES_MAX:
-            block = block[:_CHANGES_MAX] + " …"
+        block = _trim("\n".join(lines), self.budget.changes)
         return block, used
 
     def _graph_facts(self, workspace_id: str, query: str) -> tuple[str, int]:

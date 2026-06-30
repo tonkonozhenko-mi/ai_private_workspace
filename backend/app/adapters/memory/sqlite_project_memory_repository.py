@@ -53,6 +53,11 @@ class SQLiteProjectMemoryRepository:
                 connection.execute(
                     "ALTER TABLE project_memory ADD COLUMN stale INTEGER NOT NULL DEFAULT 0"
                 )
+            if "confidence_source" not in cols:
+                connection.execute(
+                    "ALTER TABLE project_memory "
+                    "ADD COLUMN confidence_source TEXT NOT NULL DEFAULT 'default'"
+                )
             connection.commit()
 
     @staticmethod
@@ -70,6 +75,11 @@ class SQLiteProjectMemoryRepository:
             created_at=row["created_at"],
             pinned=bool(row["pinned"]),
             confidence=confidence,
+            confidence_source=(
+                row["confidence_source"]
+                if "confidence_source" in keys and row["confidence_source"]
+                else "default"
+            ),
             status=(row["status"] if "status" in keys and row["status"] else "active"),
             updated_at=(row["updated_at"] if "updated_at" in keys else None),
             stale=bool(row["stale"]) if "stale" in keys and row["stale"] is not None else False,
@@ -81,8 +91,8 @@ class SQLiteProjectMemoryRepository:
                 """
                 INSERT INTO project_memory
                     (id, workspace_id, kind, text, source, created_at, pinned,
-                     confidence, status, updated_at, stale)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     confidence, status, updated_at, stale, confidence_source)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     item.id,
@@ -96,6 +106,7 @@ class SQLiteProjectMemoryRepository:
                     item.status,
                     item.updated_at,
                     1 if item.stale else 0,
+                    item.confidence_source,
                 ),
             )
             connection.commit()

@@ -35,6 +35,29 @@ class MemorySource:
     AUTO = "auto"
 
 
+class ConfidenceSource:
+    """Where a memory's ``confidence`` number came from — so it's explainable in
+    the UI instead of an opaque float. Not behaviour-bearing; purely provenance."""
+
+    DEFAULT = "default"  # unset / system default (1.0)
+    USER = "user"  # the user typed the note (and possibly set its confidence)
+    FEEDBACK = "feedback"  # adjusted from 👍/👎 answer ratings
+    AUTO = "auto"  # captured automatically (agent Q&A, auto-notes)
+
+
+_CONFIDENCE_EXPLANATIONS = {
+    ConfidenceSource.DEFAULT: "default confidence",
+    ConfidenceSource.USER: "you recorded this",
+    ConfidenceSource.FEEDBACK: "adjusted from your answer ratings",
+    ConfidenceSource.AUTO: "captured automatically",
+}
+
+
+def confidence_explanation(source: str) -> str:
+    """Human-readable provenance for a confidence value."""
+    return _CONFIDENCE_EXPLANATIONS.get(source, "default confidence")
+
+
 class MemoryStatus:
     ACTIVE = "active"
     # Superseded / no longer true. Kept in the store (and visible in the UI) for
@@ -62,6 +85,7 @@ class MemoryItem:
     pinned: bool = False
     # Lifecycle: how sure we are it is still true, and whether it is current.
     confidence: float = 1.0  # 0.0–1.0; scales how strongly it is recalled
+    confidence_source: str = ConfidenceSource.DEFAULT  # provenance of that number
     status: str = MemoryStatus.ACTIVE
     updated_at: str | None = None  # set when status/confidence last changed
     # Auto-suspected stale: a file this memory references changed recently. Still

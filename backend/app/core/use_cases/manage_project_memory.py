@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from app.core.domain.project_memory import (
+    ConfidenceSource,
     MemoryItem,
     MemoryKind,
     MemorySource,
@@ -29,6 +30,15 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+# Map who produced a memory onto where its confidence number came from, so the
+# provenance is honest without the caller having to spell it out every time.
+_SOURCE_TO_CONFIDENCE = {
+    MemorySource.USER: ConfidenceSource.USER,
+    MemorySource.AGENT: ConfidenceSource.AUTO,
+    MemorySource.AUTO: ConfidenceSource.AUTO,
+}
+
+
 @dataclass(frozen=True)
 class AddMemoryInput:
     workspace_id: str
@@ -37,6 +47,8 @@ class AddMemoryInput:
     source: str = MemorySource.USER
     pinned: bool = False
     confidence: float = 1.0
+    # Optional explicit provenance; when left unset it's inferred from ``source``.
+    confidence_source: str | None = None
 
 
 class AddMemoryValidationError(ValueError):
@@ -55,6 +67,9 @@ class AddMemoryUseCase:
             text = text[:2000]
         kind = request.kind if request.kind in _ALLOWED_KINDS else MemoryKind.NOTE
         confidence = min(1.0, max(0.0, request.confidence))
+        confidence_source = request.confidence_source or _SOURCE_TO_CONFIDENCE.get(
+            request.source, ConfidenceSource.DEFAULT
+        )
         item = MemoryItem(
             id=str(uuid.uuid4()),
             workspace_id=request.workspace_id,
@@ -64,6 +79,7 @@ class AddMemoryUseCase:
             created_at=_now_iso(),
             pinned=request.pinned,
             confidence=confidence,
+            confidence_source=confidence_source,
             status=MemoryStatus.ACTIVE,
         )
         return self.repository.add(item)
