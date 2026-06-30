@@ -361,9 +361,7 @@ def format_guardrails(items: list[MemoryItem], max_chars: int = 700) -> str:
     Active, non-obsolete guardrails only.
     """
     rules = [
-        i
-        for i in items
-        if i.kind == MemoryKind.GUARDRAIL and i.status != MemoryStatus.OBSOLETE
+        i for i in items if i.kind == MemoryKind.GUARDRAIL and i.status != MemoryStatus.OBSOLETE
     ]
     if not rules:
         return ""

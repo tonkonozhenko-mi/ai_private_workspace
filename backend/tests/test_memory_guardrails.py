@@ -49,8 +49,12 @@ def test_format_guardrails_lists_active_rules():
 
 def test_obsolete_guardrail_is_not_injected():
     items = [
-        _item("g", "do not assume qdrant is enabled", kind=MemoryKind.GUARDRAIL,
-              status=MemoryStatus.OBSOLETE),
+        _item(
+            "g",
+            "do not assume qdrant is enabled",
+            kind=MemoryKind.GUARDRAIL,
+            status=MemoryStatus.OBSOLETE,
+        ),
     ]
     assert format_guardrails(items) == ""
 

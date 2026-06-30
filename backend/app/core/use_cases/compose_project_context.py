@@ -226,9 +226,9 @@ class ComposeProjectContextUseCase:
                 key=lambda pair: pair[0],
                 reverse=True,
             )
-            semantic_candidates = [
-                it for sim, it in scored if sim >= self._SEMANTIC_MIN_SIM
-            ][: self._SEMANTIC_CANDIDATE_LIMIT]
+            semantic_candidates = [it for sim, it in scored if sim >= self._SEMANTIC_MIN_SIM][
+                : self._SEMANTIC_CANDIDATE_LIMIT
+            ]
             # Union (dedup by id), keyword first so it's stable when scores tie.
             union: dict[str, MemoryItem] = {}
             for it in keyword_candidates + semantic_candidates:
