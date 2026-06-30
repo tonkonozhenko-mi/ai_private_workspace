@@ -19,5 +19,8 @@ class ProjectMemoryRepositoryPort(Protocol):
     def set_pinned(self, workspace_id: str, item_id: str, pinned: bool) -> None:
         """Pin or unpin an item."""
 
+    def set_status(self, workspace_id: str, item_id: str, status: str) -> None:
+        """Mark an item active or obsolete (obsolete is excluded from prompts)."""
+
     def clear(self, workspace_id: str) -> None:
         """Remove all memory for a workspace."""

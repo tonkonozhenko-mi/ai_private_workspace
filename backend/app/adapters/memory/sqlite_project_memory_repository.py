@@ -36,10 +36,25 @@ class SQLiteProjectMemoryRepository:
                 "CREATE INDEX IF NOT EXISTS idx_project_memory_ws "
                 "ON project_memory (workspace_id, created_at)"
             )
+            # Lifecycle columns added in a later version; SQLite has no
+            # 'ADD COLUMN IF NOT EXISTS', so check the table info first.
+            cols = {r["name"] for r in connection.execute("PRAGMA table_info(project_memory)")}
+            if "confidence" not in cols:
+                connection.execute(
+                    "ALTER TABLE project_memory ADD COLUMN confidence REAL NOT NULL DEFAULT 1.0"
+                )
+            if "status" not in cols:
+                connection.execute(
+                    "ALTER TABLE project_memory ADD COLUMN status TEXT NOT NULL DEFAULT 'active'"
+                )
+            if "updated_at" not in cols:
+                connection.execute("ALTER TABLE project_memory ADD COLUMN updated_at TEXT")
             connection.commit()
 
     @staticmethod
     def _row_to_item(row: sqlite3.Row) -> MemoryItem:
+        keys = row.keys()
+        confidence = row["confidence"] if "confidence" in keys and row["confidence"] is not None else 1.0
         return MemoryItem(
             id=row["id"],
             workspace_id=row["workspace_id"],
@@ -48,14 +63,19 @@ class SQLiteProjectMemoryRepository:
             source=row["source"],
             created_at=row["created_at"],
             pinned=bool(row["pinned"]),
+            confidence=confidence,
+            status=(row["status"] if "status" in keys and row["status"] else "active"),
+            updated_at=(row["updated_at"] if "updated_at" in keys else None),
         )
 
     def add(self, item: MemoryItem) -> MemoryItem:
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO project_memory (id, workspace_id, kind, text, source, created_at, pinned)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO project_memory
+                    (id, workspace_id, kind, text, source, created_at, pinned,
+                     confidence, status, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     item.id,
@@ -65,6 +85,9 @@ class SQLiteProjectMemoryRepository:
                     item.source,
                     item.created_at,
                     1 if item.pinned else 0,
+                    item.confidence,
+                    item.status,
+                    item.updated_at,
                 ),
             )
             connection.commit()
@@ -100,6 +123,17 @@ class SQLiteProjectMemoryRepository:
             connection.execute(
                 "UPDATE project_memory SET pinned = ? WHERE workspace_id = ? AND id = ?",
                 (1 if pinned else 0, workspace_id, item_id),
+            )
+            connection.commit()
+
+    def set_status(self, workspace_id: str, item_id: str, status: str) -> None:
+        from datetime import datetime, timezone
+
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE project_memory SET status = ?, updated_at = ? "
+                "WHERE workspace_id = ? AND id = ?",
+                (status, datetime.now(timezone.utc).isoformat(), workspace_id, item_id),
             )
             connection.commit()
 
