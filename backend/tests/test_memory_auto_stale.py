@@ -26,8 +26,13 @@ from app.core.use_cases.record_git_history import (
 
 def _item(id_, text, *, stale=False):
     return MemoryItem(
-        id=id_, workspace_id="w1", kind="note", text=text, source="user",
-        created_at="2026-06-30T00:00:00+00:00", stale=stale,
+        id=id_,
+        workspace_id="w1",
+        kind="note",
+        text=text,
+        source="user",
+        created_at="2026-06-30T00:00:00+00:00",
+        stale=stale,
     )
 
 
