@@ -4,7 +4,12 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from app.core.domain.project_memory import MemoryItem, MemoryKind, MemorySource
+from app.core.domain.project_memory import (
+    MemoryItem,
+    MemoryKind,
+    MemorySource,
+    MemoryStatus,
+)
 from app.core.ports.project_memory_repository import ProjectMemoryRepositoryPort
 
 _ALLOWED_KINDS = {
@@ -14,6 +19,7 @@ _ALLOWED_KINDS = {
     MemoryKind.FACT,
     MemoryKind.QA,
 }
+_ALLOWED_STATUSES = {MemoryStatus.ACTIVE, MemoryStatus.OBSOLETE}
 
 
 def _now_iso() -> str:
@@ -27,6 +33,7 @@ class AddMemoryInput:
     kind: str = MemoryKind.NOTE
     source: str = MemorySource.USER
     pinned: bool = False
+    confidence: float = 1.0
 
 
 class AddMemoryValidationError(ValueError):
@@ -44,6 +51,7 @@ class AddMemoryUseCase:
         if len(text) > 2000:
             text = text[:2000]
         kind = request.kind if request.kind in _ALLOWED_KINDS else MemoryKind.NOTE
+        confidence = min(1.0, max(0.0, request.confidence))
         item = MemoryItem(
             id=str(uuid.uuid4()),
             workspace_id=request.workspace_id,
@@ -52,8 +60,23 @@ class AddMemoryUseCase:
             source=request.source,
             created_at=_now_iso(),
             pinned=request.pinned,
+            confidence=confidence,
+            status=MemoryStatus.ACTIVE,
         )
         return self.repository.add(item)
+
+
+class SetMemoryStatusUseCase:
+    """Mark a memory item active or obsolete. Obsolete items stay in the store
+    (visible in the UI) but are never injected into prompts."""
+
+    def __init__(self, repository: ProjectMemoryRepositoryPort) -> None:
+        self.repository = repository
+
+    def execute(self, workspace_id: str, item_id: str, status: str) -> None:
+        if status not in _ALLOWED_STATUSES:
+            raise AddMemoryValidationError(f"Unknown memory status: {status}")
+        self.repository.set_status(workspace_id, item_id, status)
 
 
 class ListMemoryUseCase:
