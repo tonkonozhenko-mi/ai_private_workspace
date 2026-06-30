@@ -12,7 +12,7 @@ import contextlib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from app.core.domain.project_memory import memories_referencing_paths
+from app.core.domain.project_memory import memories_referencing_paths_with_evidence
 from app.core.domain.project_watch import build_git_only_digest, build_watch_history_entry
 from app.core.ports.project_watch_repository import ProjectWatchRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -75,6 +75,10 @@ class RecordGitHistoryUseCase:
         if self.project_memory_repository is not None and changed_paths:
             with contextlib.suppress(Exception):
                 items = self.project_memory_repository.list(wid)
-                for item_id in memories_referencing_paths(items, changed_paths):
-                    self.project_memory_repository.set_stale(wid, item_id, True)
+                for item_id, path in memories_referencing_paths_with_evidence(
+                    items, changed_paths
+                ).items():
+                    self.project_memory_repository.set_stale(
+                        wid, item_id, True, reason=f"A file it references changed: {path}"
+                    )
         return digest

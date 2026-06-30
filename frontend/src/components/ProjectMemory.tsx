@@ -260,7 +260,11 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
                   {item.stale ? (
                     <span
                       className="pm-stale-badge"
-                      title="A file this note references changed recently — confirm it's still true."
+                      title={
+                        item.stale_reason
+                          ? `${item.stale_reason} — confirm it's still true.`
+                          : "A file this note references changed recently — confirm it's still true."
+                      }
                     >
                       check?
                     </span>

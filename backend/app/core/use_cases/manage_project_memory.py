@@ -11,7 +11,7 @@ from app.core.domain.project_memory import (
     MemorySource,
     MemoryStatus,
     contradiction_candidates,
-    memories_referencing_paths,
+    memories_referencing_paths_with_evidence,
 )
 from app.core.ports.project_memory_repository import ProjectMemoryRepositoryPort
 
@@ -147,10 +147,12 @@ class FlagStaleMemoriesUseCase:
         if not changed_paths:
             return 0
         items = self.repository.list(workspace_id)
-        ids = memories_referencing_paths(items, changed_paths)
-        for item_id in ids:
-            self.repository.set_stale(workspace_id, item_id, True)
-        return len(ids)
+        evidence = memories_referencing_paths_with_evidence(items, changed_paths)
+        for item_id, path in evidence.items():
+            self.repository.set_stale(
+                workspace_id, item_id, True, reason=f"A file it references changed: {path}"
+            )
+        return len(evidence)
 
 
 class SetMemoryStaleUseCase:

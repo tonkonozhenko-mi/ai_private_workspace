@@ -95,6 +95,9 @@ class MemoryItem:
     # superseded note is marked obsolete (kept for history, never recalled), so a
     # correction cleanly retires what it corrects instead of contradicting it.
     supersedes_id: str | None = None
+    # Why a note is flagged stale (e.g. which file changed), so the "check?" hint
+    # is explainable rather than mysterious. Cleared when the user confirms it.
+    stale_reason: str | None = None
 
 
 _WORD_RE = re.compile(r"[a-z0-9_]+")
@@ -162,36 +165,47 @@ def select_relevant_memory(
     return relevant[:limit]
 
 
-def memories_referencing_paths(items: list[MemoryItem], changed_paths: list[str]) -> list[str]:
-    """Ids of active, non-handbook memories whose text references one of the
-    ``changed_paths`` (by full path or its basename-with-extension).
+def memories_referencing_paths_with_evidence(
+    items: list[MemoryItem], changed_paths: list[str]
+) -> dict[str, str]:
+    """Map memory id → the changed path it references (its *evidence* for being
+    flagged stale), so the "check?" hint can say which file moved under it.
 
-    Used to flag memory as "stale, please review" when the Watcher sees those
-    files change. Deterministic; requires a basename with an extension (e.g.
-    ``main.tf``) so ordinary prose words can't trip it. Pinned items are still
-    flagged (the user is shown the hint) but they keep their ranking weight.
+    Same matching as before: a note matches a changed path by the full path or its
+    basename-with-extension (e.g. ``main.tf``), so ordinary prose can't trip it.
+    Handbook and already-obsolete notes are ignored.
     """
     if not changed_paths:
-        return []
-    targets: set[str] = set()
+        return {}
+    matchers: list[tuple[str, list[str]]] = []
     for path in changed_paths:
-        clean = (path or "").strip().strip("/").lower()
+        clean = (path or "").strip().strip("/")
         if not clean:
             continue
-        targets.add(clean)
-        base = clean.split("/")[-1]
+        low = clean.lower()
+        targets = [low]
+        base = low.split("/")[-1]
         if "." in base and len(base) >= 4:
-            targets.add(base)
-    if not targets:
-        return []
-    out: list[str] = []
+            targets.append(base)
+        matchers.append((clean, targets))
+    if not matchers:
+        return {}
+    out: dict[str, str] = {}
     for item in items:
         if item.kind == MemoryKind.HANDBOOK or item.status == MemoryStatus.OBSOLETE:
             continue
-        low = item.text.lower()
-        if any(target in low for target in targets):
-            out.append(item.id)
+        low_text = item.text.lower()
+        for original, targets in matchers:
+            if any(t in low_text for t in targets):
+                out[item.id] = original
+                break
     return out
+
+
+def memories_referencing_paths(items: list[MemoryItem], changed_paths: list[str]) -> list[str]:
+    """Ids of active, non-handbook memories whose text references a changed path.
+    Thin wrapper over :func:`memories_referencing_paths_with_evidence`."""
+    return list(memories_referencing_paths_with_evidence(items, changed_paths).keys())
 
 
 # Phrases in a *new* note that signal it overturns or replaces an earlier belief

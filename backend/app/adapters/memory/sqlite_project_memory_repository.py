@@ -60,6 +60,8 @@ class SQLiteProjectMemoryRepository:
                 )
             if "supersedes_id" not in cols:
                 connection.execute("ALTER TABLE project_memory ADD COLUMN supersedes_id TEXT")
+            if "stale_reason" not in cols:
+                connection.execute("ALTER TABLE project_memory ADD COLUMN stale_reason TEXT")
             connection.commit()
 
     @staticmethod
@@ -86,6 +88,7 @@ class SQLiteProjectMemoryRepository:
             updated_at=(row["updated_at"] if "updated_at" in keys else None),
             stale=bool(row["stale"]) if "stale" in keys and row["stale"] is not None else False,
             supersedes_id=(row["supersedes_id"] if "supersedes_id" in keys else None),
+            stale_reason=(row["stale_reason"] if "stale_reason" in keys else None),
         )
 
     def add(self, item: MemoryItem) -> MemoryItem:
@@ -95,8 +98,8 @@ class SQLiteProjectMemoryRepository:
                 INSERT INTO project_memory
                     (id, workspace_id, kind, text, source, created_at, pinned,
                      confidence, status, updated_at, stale, confidence_source,
-                     supersedes_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     supersedes_id, stale_reason)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     item.id,
@@ -112,6 +115,7 @@ class SQLiteProjectMemoryRepository:
                     1 if item.stale else 0,
                     item.confidence_source,
                     item.supersedes_id,
+                    item.stale_reason,
                 ),
             )
             connection.commit()
@@ -161,11 +165,16 @@ class SQLiteProjectMemoryRepository:
             )
             connection.commit()
 
-    def set_stale(self, workspace_id: str, item_id: str, stale: bool) -> None:
+    def set_stale(
+        self, workspace_id: str, item_id: str, stale: bool, reason: str | None = None
+    ) -> None:
+        # Clearing stale also clears the reason; flagging stores why.
+        stored_reason = reason if stale else None
         with self._connect() as connection:
             connection.execute(
-                "UPDATE project_memory SET stale = ? WHERE workspace_id = ? AND id = ?",
-                (1 if stale else 0, workspace_id, item_id),
+                "UPDATE project_memory SET stale = ?, stale_reason = ? "
+                "WHERE workspace_id = ? AND id = ?",
+                (1 if stale else 0, stored_reason, workspace_id, item_id),
             )
             connection.commit()
 

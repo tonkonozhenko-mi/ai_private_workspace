@@ -18,6 +18,8 @@ from app.core.domain.project_graph import EntityType
 from app.core.domain.project_memory import (
     MemoryItem,
     MemoryKind,
+    MemoryStatus,
+    cosine_similarity,
     format_memory_context,
     rank_memory_by_similarity,
     select_relevant_memory,
@@ -147,9 +149,11 @@ class ProjectContextStats:
 class ComposeProjectContextUseCase:
     # Beyond this many recalled candidates, a semantic re-rank is worth its cost;
     # at or below it, keyword recall already returns everything we'd keep.
-    _SEMANTIC_RERANK_MIN_CANDIDATES = 6
     _SEMANTIC_CANDIDATE_LIMIT = 12
     _SEMANTIC_EMBED_CHARS = 400
+    # Cap how many notes we embed per query, so a large memory store stays cheap.
+    # Memory is usually a handful of notes, so this rarely bites.
+    _MAX_EMBED_ITEMS = 60
 
     def __init__(
         self,
@@ -177,26 +181,53 @@ class ComposeProjectContextUseCase:
         self.embedding_provider = embedding_provider
 
     def _select_memory(self, items: list[MemoryItem], query: str, limit: int) -> list[MemoryItem]:
-        """Keyword recall, then an optional semantic re-rank of the candidates.
+        """Parallel retrieval: keyword candidates ∪ semantic candidates, re-ranked.
 
-        Semantic re-rank is best-effort: skipped when there's no embedder or few
-        candidates, and it falls back to the keyword order on any error, so memory
-        selection can never fail an answer.
+        Keyword recall alone misses a note that means the same thing in different
+        words (no shared tokens → never a candidate). So when an embedder is
+        present we *also* pull the top semantic matches over the eligible notes and
+        union them with the keyword hits before re-ranking by similarity. Without an
+        embedder it stays pure keyword + pin + recency. Best-effort: any error or a
+        missing embedder falls back to the keyword order, so selection never fails
+        an answer.
         """
-        candidates = select_relevant_memory(items, query, limit=self._SEMANTIC_CANDIDATE_LIMIT)
-        if self.embedding_provider is None or len(candidates) <= max(
-            limit, self._SEMANTIC_RERANK_MIN_CANDIDATES
-        ):
-            return candidates[:limit]
+        keyword_candidates = select_relevant_memory(
+            items, query, limit=self._SEMANTIC_CANDIDATE_LIMIT
+        )
+        if self.embedding_provider is None:
+            return keyword_candidates[:limit]
         try:
+            # Everything that could ever be recalled (active, non-handbook).
+            eligible = [
+                i
+                for i in items
+                if i.kind != MemoryKind.HANDBOOK and i.status != MemoryStatus.OBSOLETE
+            ][: self._MAX_EMBED_ITEMS]
+            if not eligible:
+                return keyword_candidates[:limit]
             query_vec = self.embedding_provider.embed_text(query)
-            item_vecs = [
-                self.embedding_provider.embed_text(item.text[: self._SEMANTIC_EMBED_CHARS])
-                for item in candidates
+            vec_by_id = {
+                it.id: self.embedding_provider.embed_text(it.text[: self._SEMANTIC_EMBED_CHARS])
+                for it in eligible
+            }
+            semantic_candidates = sorted(
+                eligible,
+                key=lambda it: cosine_similarity(query_vec, vec_by_id[it.id]),
+                reverse=True,
+            )[: self._SEMANTIC_CANDIDATE_LIMIT]
+            # Union (dedup by id), keyword first so it's stable when scores tie.
+            union: dict[str, MemoryItem] = {}
+            for it in keyword_candidates + semantic_candidates:
+                union.setdefault(it.id, it)
+            union_items = list(union.values())
+            union_vecs = [
+                vec_by_id.get(it.id)
+                or self.embedding_provider.embed_text(it.text[: self._SEMANTIC_EMBED_CHARS])
+                for it in union_items
             ]
-            return rank_memory_by_similarity(candidates, query_vec, item_vecs, limit=limit)
+            return rank_memory_by_similarity(union_items, query_vec, union_vecs, limit=limit)
         except Exception:  # noqa: BLE001 - memory selection must never fail the answer
-            return candidates[:limit]
+            return keyword_candidates[:limit]
 
     def compose(self, workspace_id: str, query: str) -> str:
         text, _ = self.compose_with_stats(workspace_id, query)

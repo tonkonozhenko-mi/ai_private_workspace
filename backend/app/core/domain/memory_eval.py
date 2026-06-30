@@ -17,6 +17,7 @@ Everything here is pure and trivially testable.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from app.core.domain.project_memory import (
@@ -24,6 +25,15 @@ from app.core.domain.project_memory import (
     MemoryStatus,
     select_relevant_memory,
 )
+
+# A selector takes (items, query, limit) and returns the recalled items. The
+# default is the deterministic keyword selector; tests can pass a semantic-aware
+# one (e.g. the compose use case's parallel retrieval) to score paraphrase recall.
+MemorySelector = Callable[[list[MemoryItem], str, int], list[MemoryItem]]
+
+
+def _default_selector(items: list[MemoryItem], query: str, limit: int) -> list[MemoryItem]:
+    return select_relevant_memory(items, query, limit=limit)
 
 
 @dataclass(frozen=True)
@@ -65,9 +75,16 @@ class MemoryEvalReport:
         return self.passed / self.total if self.total else 0.0
 
 
-def score_memory_case(case: MemoryEvalCase) -> MemoryCaseScore:
-    """Run the real memory selector for one case and score what it recalled."""
-    recalled = select_relevant_memory(case.items, case.question, limit=case.limit)
+def score_memory_case(
+    case: MemoryEvalCase, select_fn: MemorySelector | None = None
+) -> MemoryCaseScore:
+    """Run the memory selector for one case and score what it recalled.
+
+    ``select_fn`` defaults to the deterministic keyword selector; pass a
+    semantic-aware one to score paraphrase recall (catches a note that means the
+    same thing in different words)."""
+    selector = select_fn or _default_selector
+    recalled = selector(case.items, case.question, case.limit)
     recalled_ids = [i.id for i in recalled]
     recalled_set = set(recalled_ids)
 
@@ -114,6 +131,8 @@ def aggregate_memory(scores: list[MemoryCaseScore]) -> MemoryEvalReport:
     )
 
 
-def run_memory_eval(cases: list[MemoryEvalCase]) -> MemoryEvalReport:
+def run_memory_eval(
+    cases: list[MemoryEvalCase], select_fn: MemorySelector | None = None
+) -> MemoryEvalReport:
     """Score a whole golden set of memory cases in one call."""
-    return aggregate_memory([score_memory_case(c) for c in cases])
+    return aggregate_memory([score_memory_case(c, select_fn) for c in cases])
