@@ -10,6 +10,7 @@ from app.core.domain.project_memory import (
     MemoryKind,
     MemorySource,
     MemoryStatus,
+    contradiction_candidates,
     memories_referencing_paths,
 )
 from app.core.ports.project_memory_repository import ProjectMemoryRepositoryPort
@@ -49,6 +50,9 @@ class AddMemoryInput:
     confidence: float = 1.0
     # Optional explicit provenance; when left unset it's inferred from ``source``.
     confidence_source: str | None = None
+    # Optional id of an earlier note this one replaces; that note is retired
+    # (marked obsolete) so the correction cleanly supersedes what it corrects.
+    supersedes: str | None = None
 
 
 class AddMemoryValidationError(ValueError):
@@ -81,8 +85,43 @@ class AddMemoryUseCase:
             confidence=confidence,
             confidence_source=confidence_source,
             status=MemoryStatus.ACTIVE,
+            supersedes_id=request.supersedes or None,
         )
-        return self.repository.add(item)
+        saved = self.repository.add(item)
+        # Retire the note this one replaces: obsolete items stay for history but
+        # are never recalled, so the project keeps one current answer, not two
+        # conflicting ones. Best-effort — a bad id must not fail the add.
+        if request.supersedes:
+            try:
+                self.repository.set_status(
+                    request.workspace_id, request.supersedes, MemoryStatus.OBSOLETE
+                )
+            except Exception:  # noqa: BLE001 - superseding is best-effort
+                pass
+        return saved
+
+
+class FindContradictionsUseCase:
+    """Given a proposed note, return the existing active notes it likely
+    contradicts or replaces, so the UI can offer to supersede them before the
+    note is saved. Deterministic (token overlap + replacement markers); no LLM."""
+
+    def __init__(self, repository: ProjectMemoryRepositoryPort) -> None:
+        self.repository = repository
+
+    def execute(
+        self, workspace_id: str, text: str, kind: str = MemoryKind.NOTE
+    ) -> list[MemoryItem]:
+        text = (text or "").strip()
+        if not text:
+            return []
+        items = self.repository.list(workspace_id)
+        ids = set(
+            contradiction_candidates(
+                text, items, is_correction=(kind == MemoryKind.CORRECTION)
+            )
+        )
+        return [i for i in items if i.id in ids]
 
 
 class SetMemoryStatusUseCase:
