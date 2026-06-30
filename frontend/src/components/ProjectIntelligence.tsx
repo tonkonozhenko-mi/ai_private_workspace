@@ -22,6 +22,7 @@ import type {
   RoleBrief,
   WorkspaceDashboard,
 } from "../api/types";
+import { ProjectHandbook } from "./ProjectHandbook";
 import { ProjectMap } from "./ProjectMap";
 import { ProjectWatchHistory } from "./ProjectWatchHistory";
 import { SKILL_PRESETS } from "./skillLibrary";
@@ -424,6 +425,10 @@ export function ProjectIntelligence({
             {activeTab === MAP_TAB && graph ? <ProjectMap graph={graph} /> : null}
             {activeTab === HISTORY_TAB ? <ProjectWatchHistory workspaceId={workspaceId} /> : null}
           </div>
+
+          {/* Working memory derived from the map — lives here, next to what it's
+              built from, not on Home. Fed into every Ask/Investigate as background. */}
+          <ProjectHandbook workspaceId={workspaceId} />
         </>
       ) : null}
     </section>
