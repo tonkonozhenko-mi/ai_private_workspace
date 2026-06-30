@@ -62,6 +62,8 @@ class SQLiteProjectMemoryRepository:
                 connection.execute("ALTER TABLE project_memory ADD COLUMN supersedes_id TEXT")
             if "stale_reason" not in cols:
                 connection.execute("ALTER TABLE project_memory ADD COLUMN stale_reason TEXT")
+            if "grounding" not in cols:
+                connection.execute("ALTER TABLE project_memory ADD COLUMN grounding TEXT")
             connection.commit()
 
     @staticmethod
@@ -89,6 +91,7 @@ class SQLiteProjectMemoryRepository:
             stale=bool(row["stale"]) if "stale" in keys and row["stale"] is not None else False,
             supersedes_id=(row["supersedes_id"] if "supersedes_id" in keys else None),
             stale_reason=(row["stale_reason"] if "stale_reason" in keys else None),
+            grounding=(row["grounding"] if "grounding" in keys else None),
         )
 
     def add(self, item: MemoryItem) -> MemoryItem:
@@ -98,8 +101,8 @@ class SQLiteProjectMemoryRepository:
                 INSERT INTO project_memory
                     (id, workspace_id, kind, text, source, created_at, pinned,
                      confidence, status, updated_at, stale, confidence_source,
-                     supersedes_id, stale_reason)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     supersedes_id, stale_reason, grounding)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     item.id,
@@ -116,6 +119,7 @@ class SQLiteProjectMemoryRepository:
                     item.confidence_source,
                     item.supersedes_id,
                     item.stale_reason,
+                    item.grounding,
                 ),
             )
             connection.commit()

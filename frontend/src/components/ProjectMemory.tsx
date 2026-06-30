@@ -18,6 +18,7 @@ const KINDS: { value: string; label: string }[] = [
   { value: "correction", label: "Correction" },
   { value: "architecture_decision", label: "Architecture decision (why)" },
   { value: "incident_solution", label: "Past incident fix" },
+  { value: "guardrail", label: "Guardrail (do not…)" },
 ];
 
 const KIND_LABEL: Record<string, string> = {
@@ -28,6 +29,7 @@ const KIND_LABEL: Record<string, string> = {
   qa: "Q&A",
   architecture_decision: "Architecture decision",
   incident_solution: "Incident fix",
+  guardrail: "Guardrail",
 };
 
 export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) {
@@ -301,6 +303,11 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
                           title={`Confidence ${Math.round((item.confidence ?? 1) * 100)}% — ${item.confidence_explanation}`}
                         >
                           {item.confidence_explanation}
+                        </span>
+                      ) : null}
+                      {item.grounding ? (
+                        <span className="pm-grounding" title={`Source: ${item.grounding}`}>
+                          {item.grounding}
                         </span>
                       ) : null}
                       <div className="pm-actions">

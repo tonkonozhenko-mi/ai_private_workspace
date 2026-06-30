@@ -1910,6 +1910,7 @@ export interface ProjectMemoryItem {
   stale?: boolean;
   stale_reason?: string | null;
   supersedes_id?: string | null;
+  grounding?: string | null;
 }
 
 export interface ProjectMemoryList {

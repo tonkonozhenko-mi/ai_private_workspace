@@ -20,6 +20,7 @@ from app.core.domain.project_memory import (
     MemoryKind,
     MemoryStatus,
     cosine_similarity,
+    format_guardrails,
     format_memory_context,
     rank_memory_by_similarity,
     select_relevant_memory,
@@ -53,6 +54,7 @@ class ContextBudget:
     handbook_small: int = 500
     handbook_full: int = 1200
     memory: int = 1500
+    guardrails: int = 700
     graph: int = 600
     changes: int = 700
     total: int = 3500
@@ -144,6 +146,7 @@ class ProjectContextStats:
     handbook: bool = False
     profile_facts: int = 0
     recent_changes: int = 0
+    guardrails: int = 0
 
 
 class ComposeProjectContextUseCase:
@@ -154,6 +157,10 @@ class ComposeProjectContextUseCase:
     # Cap how many notes we embed per query, so a large memory store stays cheap.
     # Memory is usually a handful of notes, so this rarely bites.
     _MAX_EMBED_ITEMS = 60
+    # Floor on cosine similarity for a note to enter as a *semantic* candidate.
+    # Guards against weak embedders dragging in unrelated notes (semantic noise);
+    # keyword candidates are kept regardless, since they have lexical grounding.
+    _SEMANTIC_MIN_SIM = 0.25
 
     def __init__(
         self,
@@ -197,11 +204,13 @@ class ComposeProjectContextUseCase:
         if self.embedding_provider is None:
             return keyword_candidates[:limit]
         try:
-            # Everything that could ever be recalled (active, non-handbook).
+            # Everything that could ever be recalled (active, non-handbook, non-
+            # guardrail — those are injected separately and always).
             eligible = [
                 i
                 for i in items
-                if i.kind != MemoryKind.HANDBOOK and i.status != MemoryStatus.OBSOLETE
+                if i.kind not in (MemoryKind.HANDBOOK, MemoryKind.GUARDRAIL)
+                and i.status != MemoryStatus.OBSOLETE
             ][: self._MAX_EMBED_ITEMS]
             if not eligible:
                 return keyword_candidates[:limit]
@@ -210,11 +219,16 @@ class ComposeProjectContextUseCase:
                 it.id: self.embedding_provider.embed_text(it.text[: self._SEMANTIC_EMBED_CHARS])
                 for it in eligible
             }
-            semantic_candidates = sorted(
-                eligible,
-                key=lambda it: cosine_similarity(query_vec, vec_by_id[it.id]),
+            # Only notes clearing the similarity floor are semantic candidates, so
+            # a weak embedder can't drag in unrelated notes (semantic noise).
+            scored = sorted(
+                ((cosine_similarity(query_vec, vec_by_id[it.id]), it) for it in eligible),
+                key=lambda pair: pair[0],
                 reverse=True,
-            )[: self._SEMANTIC_CANDIDATE_LIMIT]
+            )
+            semantic_candidates = [
+                it for sim, it in scored if sim >= self._SEMANTIC_MIN_SIM
+            ][: self._SEMANTIC_CANDIDATE_LIMIT]
             # Union (dedup by id), keyword first so it's stable when scores tie.
             union: dict[str, MemoryItem] = {}
             for it in keyword_candidates + semantic_candidates:
@@ -261,6 +275,18 @@ class ComposeProjectContextUseCase:
         if memory_block:
             blocks.append(memory_block)
 
+        # Guardrails (negative memory) are constraints, not facts — injected on
+        # every answer regardless of overlap, so a rule always applies.
+        guardrails_block = format_guardrails(items, max_chars=self.budget.guardrails)
+        guardrails_count = 0
+        if guardrails_block:
+            blocks.append(guardrails_block)
+            guardrails_count = sum(
+                1
+                for i in items
+                if i.kind == MemoryKind.GUARDRAIL and i.status != MemoryStatus.OBSOLETE
+            )
+
         graph_block, graph_count = self._graph_facts(workspace_id, query)
         if graph_block:
             blocks.append(_trim(graph_block, self.budget.graph))
@@ -275,6 +301,7 @@ class ComposeProjectContextUseCase:
             handbook=has_handbook,
             profile_facts=profile_count,
             recent_changes=changes_count,
+            guardrails=guardrails_count,
         )
         if not blocks:
             return "", stats
