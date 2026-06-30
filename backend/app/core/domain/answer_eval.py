@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-
 # Mirrors Ask's DEFAULT_RELEVANCE_THRESHOLD: below this top similarity, the
 # system should treat retrieval as "nothing confident found" and abstain rather
 # than answer from weak context (the main hallucination vector on small models).

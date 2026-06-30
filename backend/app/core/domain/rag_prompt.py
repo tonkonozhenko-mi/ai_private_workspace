@@ -235,6 +235,7 @@ def build_general_chat_prompt(
     current_time: str | None = None,
     attached_section: str = "",
     assistant_identity: str | None = None,
+    project_context_missing: bool = False,
 ) -> str:
     normalized_skill_instructions = _normalize_skill_instructions(skill_instructions or [])
     skill_section = _build_skill_section(normalized_skill_instructions)
@@ -251,10 +252,29 @@ def build_general_chat_prompt(
         else ""
     )
 
-    return (
-        "You are a friendly, helpful local AI assistant. The user is making "
+    opener = (
+        "You are a friendly, helpful local AI assistant. No relevant files were "
+        "found in the user's indexed project for this question — so either it is "
+        "general conversation, or it is about their project but nothing matched.\n\n"
+        if project_context_missing
+        else "You are a friendly, helpful local AI assistant. The user is making "
         "general conversation that is not about their project files, so answer "
         "naturally and directly like a normal chat assistant.\n\n"
+    )
+    # The critical anti-hallucination rule: when we have no project context, the
+    # model must not fabricate project-specific facts (file names, services,
+    # config, env values). For genuinely general questions this clause is inert.
+    abstention_clause = (
+        "- IMPORTANT: if this question is about the user's specific project "
+        "(its files, services, configuration, deployment, or environments), do "
+        "NOT guess project details. Say you could not find anything relevant in "
+        "the indexed project, and suggest they rephrase or re-index it. Only "
+        "invent nothing — name no files, services, or settings you were not given.\n"
+        if project_context_missing
+        else ""
+    )
+    return (
+        f"{opener}"
         f"{identity_line}"
         f"{time_line}"
         f"{skill_section}"
@@ -262,8 +282,9 @@ def build_general_chat_prompt(
         f"Question:\n{question}\n\n"
         "Answer requirements:\n"
         "- Answer directly and conversationally.\n"
-        "- Do not mention project files, source paths, or context chunks.\n"
-        "- Do not pretend the question was about the project.\n"
+        f"{abstention_clause}"
+        "- Do not mention project files, source paths, or context chunks unless "
+        "you are telling the user nothing was found.\n"
         "- If you genuinely do not know, say so briefly.\n"
         "- Do not invent facts."
     )
