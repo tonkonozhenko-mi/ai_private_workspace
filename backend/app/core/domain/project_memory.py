@@ -45,6 +45,10 @@ class MemoryStatus:
 # Recency half-life: a memory this many days old counts half as much in ranking
 # (unless pinned). Gentle, so old-but-relevant facts still surface; recent ones win ties.
 _FRESHNESS_HALF_LIFE_DAYS = 90.0
+# How much a "stale" memory (a file it references just changed) is down-weighted.
+# It is NOT excluded — it may well still be true — only ranked lower until the
+# user confirms or edits it. Pinned items are never penalised.
+_STALE_PENALTY = 0.5
 
 
 @dataclass(frozen=True)
@@ -60,6 +64,9 @@ class MemoryItem:
     confidence: float = 1.0  # 0.0–1.0; scales how strongly it is recalled
     status: str = MemoryStatus.ACTIVE
     updated_at: str | None = None  # set when status/confidence last changed
+    # Auto-suspected stale: a file this memory references changed recently. Still
+    # recalled (it may be true), but down-weighted and flagged for the user.
+    stale: bool = False
 
 
 _WORD_RE = re.compile(r"[a-z0-9_]+")
@@ -114,7 +121,8 @@ def select_relevant_memory(
 
     def score(item: MemoryItem) -> tuple:
         overlap = len(_tokens(item.text) & query_tokens)
-        weighted = overlap * max(0.0, item.confidence) * _freshness_factor(item, now)
+        stale_factor = _STALE_PENALTY if (item.stale and not item.pinned) else 1.0
+        weighted = overlap * max(0.0, item.confidence) * _freshness_factor(item, now) * stale_factor
         return (1 if item.pinned else 0, weighted, item.created_at)
 
     ranked = sorted(candidates, key=score, reverse=True)
@@ -124,6 +132,38 @@ def select_relevant_memory(
     if not relevant:
         relevant = ranked[:limit]
     return relevant[:limit]
+
+
+def memories_referencing_paths(items: list[MemoryItem], changed_paths: list[str]) -> list[str]:
+    """Ids of active, non-handbook memories whose text references one of the
+    ``changed_paths`` (by full path or its basename-with-extension).
+
+    Used to flag memory as "stale, please review" when the Watcher sees those
+    files change. Deterministic; requires a basename with an extension (e.g.
+    ``main.tf``) so ordinary prose words can't trip it. Pinned items are still
+    flagged (the user is shown the hint) but they keep their ranking weight.
+    """
+    if not changed_paths:
+        return []
+    targets: set[str] = set()
+    for path in changed_paths:
+        clean = (path or "").strip().strip("/").lower()
+        if not clean:
+            continue
+        targets.add(clean)
+        base = clean.split("/")[-1]
+        if "." in base and len(base) >= 4:
+            targets.add(base)
+    if not targets:
+        return []
+    out: list[str] = []
+    for item in items:
+        if item.kind == MemoryKind.HANDBOOK or item.status == MemoryStatus.OBSOLETE:
+            continue
+        low = item.text.lower()
+        if any(target in low for target in targets):
+            out.append(item.id)
+    return out
 
 
 def cosine_similarity(a: list[float], b: list[float]) -> float:

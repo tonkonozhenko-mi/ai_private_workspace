@@ -180,6 +180,7 @@ models, run benchmarks, or change active runtime configuration.
 | `DELETE /workspaces/{workspace_id}/memory/{item_id}` | Delete a memory item. | No | No | Local DB write | Project Intelligence |
 | `POST /workspaces/{workspace_id}/memory/{item_id}/pin` | Pin or unpin a memory item. | No | No | Local DB write | Project Intelligence |
 | `POST /workspaces/{workspace_id}/memory/{item_id}/status` | Mark a memory item active or obsolete (obsolete stays listed but is never fed into prompts). | No | No | Local DB write | Project Intelligence |
+| `POST /workspaces/{workspace_id}/memory/{item_id}/stale` | Set/clear a memory's stale flag (the user's "still correct" confirmation after a referenced file changed). | No | No | Local DB write | Project Intelligence |
 | `POST /workspaces/{workspace_id}/handbook` | (Re)generate the deterministic project handbook from the latest map. | No | No | Local DB | Project Intelligence |
 | `GET /workspaces/{workspace_id}/handbook` | The stored project handbook text. | No | No | Local DB read | Project Intelligence |
 

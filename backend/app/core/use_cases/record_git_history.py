@@ -12,6 +12,7 @@ import contextlib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from app.core.domain.project_memory import memories_referencing_paths
 from app.core.domain.project_watch import build_git_only_digest, build_watch_history_entry
 from app.core.ports.project_watch_repository import ProjectWatchRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -32,11 +33,15 @@ class RecordGitHistoryUseCase:
         workspace_repository: WorkspaceRepositoryPort,
         watch_repository: ProjectWatchRepositoryPort,
         git_brief_provider,
+        project_memory_repository=None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.watch_repository = watch_repository
         # git_brief_provider(workspace_id, since_commit) -> GitChangeBrief (pure git).
         self.git_brief_provider = git_brief_provider
+        # Optional: when present, memories that reference a changed file are flagged
+        # 'stale' so the user can confirm they're still true. Best-effort.
+        self.project_memory_repository = project_memory_repository
 
     def execute(self, request: RecordGitHistoryInput) -> dict:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -62,4 +67,14 @@ class RecordGitHistoryUseCase:
         if entry is not None:
             with contextlib.suppress(Exception):  # history is best-effort
                 self.watch_repository.append_history(wid, entry)
+
+        # Auto-stale: flag memories that reference a file that just changed, so the
+        # user is prompted to confirm they're still true. Best-effort; never fails
+        # the history record.
+        changed_paths = getattr(git_brief, "changed_paths", None) if git_brief else None
+        if self.project_memory_repository is not None and changed_paths:
+            with contextlib.suppress(Exception):
+                items = self.project_memory_repository.list(wid)
+                for item_id in memories_referencing_paths(items, changed_paths):
+                    self.project_memory_repository.set_stale(wid, item_id, True)
         return digest

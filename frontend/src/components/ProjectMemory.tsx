@@ -7,6 +7,7 @@ import {
   getProjectHandbook,
   listProjectMemory,
   pinProjectMemory,
+  setProjectMemoryStale,
 } from "../api/client";
 import type { ProjectMemoryItem, WorkspaceDashboard } from "../api/types";
 
@@ -130,6 +131,14 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
     [workspaceId, load],
   );
 
+  const confirmStillCorrect = useCallback(
+    async (item: ProjectMemoryItem) => {
+      await setProjectMemoryStale(workspaceId, item.id, false).catch(() => {});
+      load();
+    },
+    [workspaceId, load],
+  );
+
   const regenHandbook = useCallback(async () => {
     setHandbookBusy(true);
     setError(null);
@@ -209,8 +218,16 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
           {showList ? (
             <ul className="pm-list">
               {visible.map((item) => (
-                <li key={item.id} className="pm-item">
+                <li key={item.id} className={`pm-item${item.stale ? " pm-item-stale" : ""}`}>
                   <span className="pm-kind">{KIND_LABEL[item.kind] ?? item.kind}</span>
+                  {item.stale ? (
+                    <span
+                      className="pm-stale-badge"
+                      title="A file this note references changed recently — confirm it's still true."
+                    >
+                      check?
+                    </span>
+                  ) : null}
                   {editingId === item.id ? (
                     <>
                       <input
@@ -255,6 +272,16 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
                         >
                           {item.pinned ? "★" : "☆"}
                         </button>
+                        {item.stale ? (
+                          <button
+                            type="button"
+                            className="pm-still-ok"
+                            title="Mark as still correct (clears the changed-file flag)"
+                            onClick={() => confirmStillCorrect(item)}
+                          >
+                            Still correct
+                          </button>
+                        ) : null}
                         <button type="button" className="pm-del" title="Delete" onClick={() => remove(item.id)}>
                           ✕
                         </button>

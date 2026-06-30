@@ -706,6 +706,19 @@ export function pinProjectMemory(
   });
 }
 
+/** Set/clear a memory's stale flag (clearing = the user's "still correct"). */
+export function setProjectMemoryStale(
+  workspaceId: string,
+  itemId: string,
+  stale: boolean,
+): Promise<void> {
+  return requestWithoutBody(`/workspaces/${workspaceId}/memory/${itemId}/stale`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ stale }),
+  });
+}
+
 export function buildProjectHandbook(workspaceId: string): Promise<{ handbook: string }> {
   return requestJson<{ handbook: string }>(`/workspaces/${workspaceId}/handbook`, {
     method: "POST",

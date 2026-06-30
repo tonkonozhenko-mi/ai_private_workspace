@@ -42,5 +42,11 @@ class InMemoryProjectMemoryRepository:
                     item, status=status, updated_at=datetime.now(timezone.utc).isoformat()
                 )
 
+    def set_stale(self, workspace_id: str, item_id: str, stale: bool) -> None:
+        items = self._items.get(workspace_id, [])
+        for idx, item in enumerate(items):
+            if item.id == item_id:
+                items[idx] = replace(item, stale=stale)
+
     def clear(self, workspace_id: str) -> None:
         self._items.pop(workspace_id, None)
