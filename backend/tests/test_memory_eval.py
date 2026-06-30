@@ -195,9 +195,7 @@ def test_paraphrase_recall_needs_semantic():
         _item("d1", "unrelated note about the billing invoice flow", created=RECENT),
         _item("d2", "unrelated note about user avatars", created=RECENT),
     ]
-    case = MemoryEvalCase(
-        "how do releases reach prod", items, expect_relevant_ids=["p"], limit=2
-    )
+    case = MemoryEvalCase("how do releases reach prod", items, expect_relevant_ids=["p"], limit=2)
     # Keyword-only misses it (no shared tokens); the semantic selector recalls it.
     assert score_memory_case(case).passed is False
     assert score_memory_case(case, _semantic_selector(items)).passed is True
@@ -233,8 +231,10 @@ def test_handbook_and_obsolete_never_leak():
     ]
     score = score_memory_case(
         MemoryEvalCase(
-            "where does production run", items,
-            expect_relevant_ids=["cur"], forbid_ids=["hb", "old"],
+            "where does production run",
+            items,
+            expect_relevant_ids=["cur"],
+            forbid_ids=["hb", "old"],
         )
     )
     assert score.passed is True
