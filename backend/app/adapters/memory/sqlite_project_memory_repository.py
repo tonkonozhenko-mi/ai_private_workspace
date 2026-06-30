@@ -49,6 +49,10 @@ class SQLiteProjectMemoryRepository:
                 )
             if "updated_at" not in cols:
                 connection.execute("ALTER TABLE project_memory ADD COLUMN updated_at TEXT")
+            if "stale" not in cols:
+                connection.execute(
+                    "ALTER TABLE project_memory ADD COLUMN stale INTEGER NOT NULL DEFAULT 0"
+                )
             connection.commit()
 
     @staticmethod
@@ -68,6 +72,7 @@ class SQLiteProjectMemoryRepository:
             confidence=confidence,
             status=(row["status"] if "status" in keys and row["status"] else "active"),
             updated_at=(row["updated_at"] if "updated_at" in keys else None),
+            stale=bool(row["stale"]) if "stale" in keys and row["stale"] is not None else False,
         )
 
     def add(self, item: MemoryItem) -> MemoryItem:
@@ -76,8 +81,8 @@ class SQLiteProjectMemoryRepository:
                 """
                 INSERT INTO project_memory
                     (id, workspace_id, kind, text, source, created_at, pinned,
-                     confidence, status, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     confidence, status, updated_at, stale)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     item.id,
@@ -90,6 +95,7 @@ class SQLiteProjectMemoryRepository:
                     item.confidence,
                     item.status,
                     item.updated_at,
+                    1 if item.stale else 0,
                 ),
             )
             connection.commit()
@@ -136,6 +142,14 @@ class SQLiteProjectMemoryRepository:
                 "UPDATE project_memory SET status = ?, updated_at = ? "
                 "WHERE workspace_id = ? AND id = ?",
                 (status, datetime.now(timezone.utc).isoformat(), workspace_id, item_id),
+            )
+            connection.commit()
+
+    def set_stale(self, workspace_id: str, item_id: str, stale: bool) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE project_memory SET stale = ? WHERE workspace_id = ? AND id = ?",
+                (1 if stale else 0, workspace_id, item_id),
             )
             connection.commit()
 

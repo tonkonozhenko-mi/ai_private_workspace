@@ -5048,6 +5048,11 @@ a.getting-ready-cta:hover {
 .pm-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
 .pm-item { display: flex; align-items: center; gap: 10px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 8px 12px; }
 .pm-kind { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--c-text-3); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 2px 7px; flex: none; }
+/* Auto-stale: a file this note references changed recently — flag for review. */
+.pm-stale-badge { font-size: 10px; font-weight: 700; color: var(--c-warning, #b06a00); background: color-mix(in srgb, var(--c-warning, #b06a00) 14%, transparent); border-radius: var(--r-sm); padding: 2px 7px; flex: none; }
+.pm-item-stale .pm-text { opacity: 0.85; }
+.pm-still-ok { font-size: 11px; font-weight: 600; color: var(--c-accent); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 2px 8px; background: transparent; cursor: pointer; }
+.pm-still-ok:hover { background: color-mix(in srgb, var(--c-accent) 12%, transparent); }
 .pm-text { flex: 1; font-size: 12.5px; color: var(--c-text); line-height: 1.45; white-space: pre-wrap; }
 .pm-actions { display: flex; gap: 4px; flex: none; }
 .pm-pin, .pm-del, .pm-edit { background: none; border: none; color: var(--c-text-3); cursor: pointer; font-size: 13px; padding: 2px 4px; }

@@ -1903,6 +1903,9 @@ export interface ProjectMemoryItem {
   source: string;
   created_at: string;
   pinned: boolean;
+  confidence?: number;
+  status?: string;
+  stale?: boolean;
 }
 
 export interface ProjectMemoryList {

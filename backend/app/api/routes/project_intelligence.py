@@ -67,6 +67,7 @@ from app.core.use_cases.manage_project_memory import (
     DeleteMemoryUseCase,
     ListMemoryUseCase,
     SetMemoryPinnedUseCase,
+    SetMemoryStaleUseCase,
     SetMemoryStatusUseCase,
 )
 from app.core.use_cases.record_git_history import (
@@ -240,6 +241,7 @@ def record_watch_history(workspace_id: str) -> dict:
         workspace_repository=workspace_repository,
         watch_repository=project_watch_repository,
         git_brief_provider=_watch_git_brief,
+        project_memory_repository=project_memory_repository,
     )
     try:
         return use_case.execute(RecordGitHistoryInput(workspace_id=workspace_id))
@@ -333,6 +335,7 @@ def _memory_dict(item) -> dict:
         "confidence": getattr(item, "confidence", 1.0),
         "status": getattr(item, "status", "active"),
         "updated_at": getattr(item, "updated_at", None),
+        "stale": getattr(item, "stale", False),
     }
 
 
@@ -399,6 +402,20 @@ def set_project_memory_status(
     except AddMemoryValidationError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return {"status": request.status}
+
+
+class MemoryStaleRequest(BaseModel):
+    stale: bool
+
+
+@router.post("/{workspace_id}/memory/{item_id}/stale")
+def set_project_memory_stale(
+    workspace_id: str, item_id: str, request: MemoryStaleRequest
+) -> dict:
+    """Set/clear a memory's stale flag. Clearing it is the user's "still correct"
+    confirmation after a file the memory references changed."""
+    SetMemoryStaleUseCase(project_memory_repository).execute(workspace_id, item_id, request.stale)
+    return {"stale": request.stale}
 
 
 @router.post("/{workspace_id}/handbook")

@@ -9,6 +9,7 @@ from app.core.domain.project_memory import (
     MemoryKind,
     MemorySource,
     MemoryStatus,
+    memories_referencing_paths,
 )
 from app.core.ports.project_memory_repository import ProjectMemoryRepositoryPort
 
@@ -79,6 +80,35 @@ class SetMemoryStatusUseCase:
         if status not in _ALLOWED_STATUSES:
             raise AddMemoryValidationError(f"Unknown memory status: {status}")
         self.repository.set_status(workspace_id, item_id, status)
+
+
+class FlagStaleMemoriesUseCase:
+    """Flag active memories that reference a file which just changed, so the user
+    can confirm they are still true. Stale items are still recalled (they may be
+    correct) but down-weighted in ranking. Best-effort: returns how many it flagged."""
+
+    def __init__(self, repository: ProjectMemoryRepositoryPort) -> None:
+        self.repository = repository
+
+    def execute(self, workspace_id: str, changed_paths: list[str]) -> int:
+        if not changed_paths:
+            return 0
+        items = self.repository.list(workspace_id)
+        ids = memories_referencing_paths(items, changed_paths)
+        for item_id in ids:
+            self.repository.set_stale(workspace_id, item_id, True)
+        return len(ids)
+
+
+class SetMemoryStaleUseCase:
+    """Set or clear a memory's stale flag. Clearing is the user's "still correct"
+    confirmation after a referenced file changed."""
+
+    def __init__(self, repository: ProjectMemoryRepositoryPort) -> None:
+        self.repository = repository
+
+    def execute(self, workspace_id: str, item_id: str, stale: bool) -> None:
+        self.repository.set_stale(workspace_id, item_id, stale)
 
 
 class ListMemoryUseCase:
