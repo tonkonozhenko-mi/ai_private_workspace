@@ -104,9 +104,7 @@ def select_relevant_memory(
     now = now or datetime.now(timezone.utc)
     query_tokens = _tokens(query)
     candidates = [
-        i
-        for i in items
-        if i.kind != MemoryKind.HANDBOOK and i.status != MemoryStatus.OBSOLETE
+        i for i in items if i.kind != MemoryKind.HANDBOOK and i.status != MemoryStatus.OBSOLETE
     ]
 
     def score(item: MemoryItem) -> tuple:

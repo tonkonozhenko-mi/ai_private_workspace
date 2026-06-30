@@ -54,7 +54,9 @@ class SQLiteProjectMemoryRepository:
     @staticmethod
     def _row_to_item(row: sqlite3.Row) -> MemoryItem:
         keys = row.keys()
-        confidence = row["confidence"] if "confidence" in keys and row["confidence"] is not None else 1.0
+        confidence = (
+            row["confidence"] if "confidence" in keys and row["confidence"] is not None else 1.0
+        )
         return MemoryItem(
             id=row["id"],
             workspace_id=row["workspace_id"],
