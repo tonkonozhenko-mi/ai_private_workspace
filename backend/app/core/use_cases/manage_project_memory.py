@@ -13,6 +13,8 @@ _ALLOWED_KINDS = {
     MemoryKind.CORRECTION,
     MemoryKind.FACT,
     MemoryKind.QA,
+    MemoryKind.ARCHITECTURE_DECISION,
+    MemoryKind.INCIDENT_SOLUTION,
 }
 
 

@@ -10,11 +10,14 @@ import {
 } from "../api/client";
 import type { ProjectMemoryItem, WorkspaceDashboard } from "../api/types";
 
-// Only two types are worth offering: a plain note, or a correction that overrides
-// a wrong assumption. (Older "decision"/"fact" items still render via KIND_LABEL.)
+// A note or a correction for everyday knowledge, plus the two high-value "why"
+// types: the rationale behind a design choice, and how a past incident was fixed —
+// the context a new model (or teammate) otherwise can't recover.
 const KINDS: { value: string; label: string }[] = [
   { value: "note", label: "Note" },
   { value: "correction", label: "Correction" },
+  { value: "architecture_decision", label: "Architecture decision (why)" },
+  { value: "incident_solution", label: "Past incident fix" },
 ];
 
 const KIND_LABEL: Record<string, string> = {
@@ -23,6 +26,8 @@ const KIND_LABEL: Record<string, string> = {
   correction: "Correction",
   fact: "Note",
   qa: "Q&A",
+  architecture_decision: "Architecture decision",
+  incident_solution: "Incident fix",
 };
 
 export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) {
