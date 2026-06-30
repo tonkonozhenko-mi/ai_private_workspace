@@ -26,6 +26,10 @@ class MemoryKind:
     # context that a new model (or a new teammate) otherwise cannot recover.
     ARCHITECTURE_DECISION = "architecture_decision"
     INCIDENT_SOLUTION = "incident_solution"
+    # A negative/guardrail rule ("do not assume Qdrant is enabled", "frontend
+    # must not run shell commands"). Always injected as a hard constraint, not a
+    # fact to recall — these are the project's guardrails for the model.
+    GUARDRAIL = "guardrail"
     HANDBOOK = "handbook"  # the singleton auto-generated project handbook
 
 
@@ -95,6 +99,10 @@ class MemoryItem:
     # superseded note is marked obsolete (kept for history, never recalled), so a
     # correction cleanly retires what it corrects instead of contradicting it.
     supersedes_id: str | None = None
+    # Where this fact came from (its grounding): a file, a commit, an Investigator
+    # session, or manual entry. Makes memory provable rather than "magic notes" —
+    # the user can see why a fact is trusted. Free-text, human-readable.
+    grounding: str | None = None
     # Why a note is flagged stale (e.g. which file changed), so the "check?" hint
     # is explainable rather than mysterious. Cleared when the user confirms it.
     stale_reason: str | None = None
@@ -146,8 +154,11 @@ def select_relevant_memory(
     """
     now = now or datetime.now(timezone.utc)
     query_tokens = _tokens(query)
+    # Handbook and guardrails are injected separately (always), so they're never
+    # recalled as ordinary facts here; obsolete items must never reach a prompt.
+    _excluded_kinds = {MemoryKind.HANDBOOK, MemoryKind.GUARDRAIL}
     candidates = [
-        i for i in items if i.kind != MemoryKind.HANDBOOK and i.status != MemoryStatus.OBSOLETE
+        i for i in items if i.kind not in _excluded_kinds and i.status != MemoryStatus.OBSOLETE
     ]
 
     def score(item: MemoryItem) -> tuple:
@@ -337,7 +348,35 @@ _KIND_LABELS = {
     MemoryKind.FACT: "Fact",
     MemoryKind.ARCHITECTURE_DECISION: "Architecture decision (why)",
     MemoryKind.INCIDENT_SOLUTION: "Past incident fix",
+    MemoryKind.GUARDRAIL: "Project guardrail (must respect)",
 }
+
+
+def format_guardrails(items: list[MemoryItem], max_chars: int = 700) -> str:
+    """A dedicated block of the project's guardrail rules (negative memory).
+
+    Guardrails are constraints, not facts to recall, so they're injected on *every*
+    answer regardless of keyword/semantic overlap — a rule like "frontend must not
+    run shell commands" has to apply even when the question never mentions it.
+    Active, non-obsolete guardrails only.
+    """
+    rules = [
+        i for i in items if i.kind == MemoryKind.GUARDRAIL and i.status != MemoryStatus.OBSOLETE
+    ]
+    if not rules:
+        return ""
+    lines: list[str] = []
+    used = 0
+    for item in rules:
+        text = " ".join(item.text.split())
+        line = f"- {text}"
+        if used + len(line) > max_chars:
+            break
+        lines.append(line)
+        used += len(line)
+    if not lines:
+        return ""
+    return "Project guardrails (hard rules you must respect):\n" + "\n".join(lines)
 
 
 def format_memory_context(items: list[MemoryItem], max_chars: int = 1500) -> str:

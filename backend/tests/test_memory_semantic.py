@@ -84,3 +84,38 @@ def test_compose_select_memory_without_embedder_is_keyword():
     selected = uc._select_memory(items, "production", limit=6)
     # Keyword recall keeps only the item overlapping the query.
     assert {i.id for i in selected} == {"a"}
+
+
+class _FractionalEmbedder:
+    """Returns fixed vectors so we can control exact cosine similarity to the
+    query and test the semantic noise floor."""
+
+    provider_name = "fake"
+    model_name = "fake"
+
+    def embed_text(self, text: str) -> list[float]:
+        t = text.lower()
+        if "queryvec" in t:
+            return [1.0, 0.0]
+        if "target" in t:
+            return [0.95, 0.31]  # cosine ~0.95 with query → kept
+        if "noise" in t:
+            return [0.20, 0.98]  # cosine ~0.20 with query → below 0.25 floor
+        return [0.0, 1.0]
+
+
+def test_semantic_noise_below_floor_is_dropped():
+    # A keyword anchor ("deploy") keeps keyword recall from falling back to "all";
+    # target/noise enter only via semantic, where the floor must drop the noise.
+    items = [
+        _item("kw", "deploy pipeline"),  # keyword hit for "deploy"
+        _item("target", "target note"),  # semantic ~0.95 → kept
+        _item("noise", "noise note"),  # semantic ~0.20 → dropped by the floor
+    ]
+    uc = ComposeProjectContextUseCase(
+        _MemRepo(items), _GraphRepo(), embedding_provider=_FractionalEmbedder()
+    )
+    selected = uc._select_memory(items, "queryvec deploy", limit=6)
+    ids = {i.id for i in selected}
+    assert "kw" in ids and "target" in ids  # keyword + high-similarity semantic
+    assert "noise" not in ids  # below the floor → not a semantic candidate

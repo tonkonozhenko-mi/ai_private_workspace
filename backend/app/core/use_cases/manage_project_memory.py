@@ -23,6 +23,7 @@ _ALLOWED_KINDS = {
     MemoryKind.QA,
     MemoryKind.ARCHITECTURE_DECISION,
     MemoryKind.INCIDENT_SOLUTION,
+    MemoryKind.GUARDRAIL,
 }
 _ALLOWED_STATUSES = {MemoryStatus.ACTIVE, MemoryStatus.OBSOLETE}
 
@@ -39,6 +40,13 @@ _SOURCE_TO_CONFIDENCE = {
     MemorySource.AUTO: ConfidenceSource.AUTO,
 }
 
+# Default human-readable grounding when the caller doesn't supply one.
+_SOURCE_TO_GROUNDING = {
+    MemorySource.USER: "Recorded by you",
+    MemorySource.AGENT: "Captured by the Investigator",
+    MemorySource.AUTO: "Auto-captured",
+}
+
 
 @dataclass(frozen=True)
 class AddMemoryInput:
@@ -53,6 +61,9 @@ class AddMemoryInput:
     # Optional id of an earlier note this one replaces; that note is retired
     # (marked obsolete) so the correction cleanly supersedes what it corrects.
     supersedes: str | None = None
+    # Optional origin of the fact (file / commit / investigation / manual entry),
+    # so memory is provable. Defaults to a sensible value from ``source``.
+    grounding: str | None = None
 
 
 class AddMemoryValidationError(ValueError):
@@ -74,6 +85,7 @@ class AddMemoryUseCase:
         confidence_source = request.confidence_source or _SOURCE_TO_CONFIDENCE.get(
             request.source, ConfidenceSource.DEFAULT
         )
+        grounding = request.grounding or _SOURCE_TO_GROUNDING.get(request.source)
         item = MemoryItem(
             id=str(uuid.uuid4()),
             workspace_id=request.workspace_id,
@@ -86,6 +98,7 @@ class AddMemoryUseCase:
             confidence_source=confidence_source,
             status=MemoryStatus.ACTIVE,
             supersedes_id=request.supersedes or None,
+            grounding=grounding,
         )
         saved = self.repository.add(item)
         # Retire the note this one replaces: obsolete items stay for history but

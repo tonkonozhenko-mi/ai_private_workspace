@@ -5054,6 +5054,7 @@ a.getting-ready-cta:hover {
 .pm-still-ok { font-size: 11px; font-weight: 600; color: var(--c-accent); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 2px 8px; background: transparent; cursor: pointer; }
 .pm-still-ok:hover { background: color-mix(in srgb, var(--c-accent) 12%, transparent); }
 .pm-confidence { font-size: 10.5px; color: var(--c-text-2); font-style: italic; flex: none; }
+.pm-grounding { font-size: 10.5px; color: var(--c-text-2); flex: none; opacity: 0.85; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Contradiction prompt shown before saving a note that may replace others. */
 .pm-contradiction { display: flex; flex-direction: column; gap: 8px; border: 1px solid color-mix(in srgb, var(--c-warning, #b06a00) 40%, var(--c-border)); background: color-mix(in srgb, var(--c-warning, #b06a00) 8%, transparent); border-radius: var(--r-md, 10px); padding: 12px 14px; }

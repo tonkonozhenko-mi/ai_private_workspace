@@ -343,6 +343,7 @@ def _memory_dict(item) -> dict:
         "stale": getattr(item, "stale", False),
         "stale_reason": getattr(item, "stale_reason", None),
         "supersedes_id": getattr(item, "supersedes_id", None),
+        "grounding": getattr(item, "grounding", None),
     }
 
 
@@ -359,6 +360,8 @@ class AddMemoryRequest(BaseModel):
     pinned: bool = False
     # Optional id of an earlier note this one replaces; that note is retired.
     supersedes: str | None = None
+    # Optional human-readable origin of the fact (file/commit/manual).
+    grounding: str | None = None
 
 
 @router.post("/{workspace_id}/memory")
@@ -372,6 +375,7 @@ def add_project_memory(workspace_id: str, request: AddMemoryRequest) -> dict:
                 kind=request.kind,
                 pinned=request.pinned,
                 supersedes=request.supersedes,
+                grounding=request.grounding,
             )
         )
     except AddMemoryValidationError as exc:
