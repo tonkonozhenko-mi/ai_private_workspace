@@ -91,6 +91,7 @@ def _handbook_block(handbook_text: str, query: str, budget: ContextBudget) -> st
         body = _trim(text, cap)
     return "Project handbook (background):\n" + body
 
+
 # Words that signal the question is about recent change ("what changed today?",
 # "що змінилось", "что нового со вчера"). When any appears, the dated change
 # journal is added to the context so plain Ask can answer it. Kept multilingual

@@ -97,9 +97,7 @@ def test_explicit_confidence_source_wins():
     repo = InMemoryProjectMemoryRepository()
     uc = AddMemoryUseCase(repo)
     item = uc.execute(
-        AddMemoryInput(
-            workspace_id="w", text="tuned", confidence_source=ConfidenceSource.FEEDBACK
-        )
+        AddMemoryInput(workspace_id="w", text="tuned", confidence_source=ConfidenceSource.FEEDBACK)
     )
     assert item.confidence_source == ConfidenceSource.FEEDBACK
 

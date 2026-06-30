@@ -413,9 +413,7 @@ class MemoryStaleRequest(BaseModel):
 
 
 @router.post("/{workspace_id}/memory/{item_id}/stale")
-def set_project_memory_stale(
-    workspace_id: str, item_id: str, request: MemoryStaleRequest
-) -> dict:
+def set_project_memory_stale(workspace_id: str, item_id: str, request: MemoryStaleRequest) -> dict:
     """Set/clear a memory's stale flag. Clearing it is the user's "still correct"
     confirmation after a file the memory references changed."""
     SetMemoryStaleUseCase(project_memory_repository).execute(workspace_id, item_id, request.stale)
