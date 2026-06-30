@@ -121,6 +121,7 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
     [workspaceId, load],
   );
 
+<<<<<<< HEAD
   const confirmStillCorrect = useCallback(
     async (item: ProjectMemoryItem) => {
       await setProjectMemoryStale(workspaceId, item.id, false).catch(() => {});
@@ -129,6 +130,8 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
     [workspaceId, load],
   );
 
+=======
+>>>>>>> f312d55226260248c0ee53921aa3d03dc9c80788
   // The handbook is stored as a memory item too; don't show it in the list.
   const visible = items.filter((i) => i.kind !== "handbook");
 
