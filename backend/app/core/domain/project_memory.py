@@ -91,6 +91,10 @@ class MemoryItem:
     # Auto-suspected stale: a file this memory references changed recently. Still
     # recalled (it may be true), but down-weighted and flagged for the user.
     stale: bool = False
+    # If this note replaces an earlier one, the id of that earlier note. The
+    # superseded note is marked obsolete (kept for history, never recalled), so a
+    # correction cleanly retires what it corrects instead of contradicting it.
+    supersedes_id: str | None = None
 
 
 _WORD_RE = re.compile(r"[a-z0-9_]+")
@@ -186,6 +190,72 @@ def memories_referencing_paths(items: list[MemoryItem], changed_paths: list[str]
             continue
         low = item.text.lower()
         if any(target in low for target in targets):
+            out.append(item.id)
+    return out
+
+
+# Phrases in a *new* note that signal it overturns or replaces an earlier belief
+# — so it likely contradicts/supersedes an existing note about the same subject.
+# Multilingual (en/uk/ru) to match how the product is used.
+_REPLACEMENT_MARKERS = (
+    "no longer",
+    "isn't",
+    "is not",
+    "aren't",
+    "doesn't",
+    "deprecated",
+    "removed",
+    "renamed",
+    "replaced",
+    "instead of",
+    "actually",
+    "not called",
+    "not named",
+    "wrong",
+    "більше не",
+    "тепер",
+    "насправді",
+    "замість",
+    "неправильно",
+    "больше не",
+    "теперь",
+    "на самом деле",
+    "вместо",
+    "неверно",
+)
+
+
+def contradiction_candidates(
+    new_text: str,
+    items: list[MemoryItem],
+    min_overlap: int = 2,
+    is_correction: bool = False,
+) -> list[str]:
+    """Ids of active notes that ``new_text`` likely contradicts or replaces.
+
+    Deterministic and conservative: a candidate must share at least
+    ``min_overlap`` significant tokens with the new note (same subject), and the
+    new note must either carry a replacement/negation marker or be a correction —
+    because only then is it overturning a prior belief rather than adding a fact.
+    Catches "prod is actually called prd" against an older "production is named
+    prod", so the user is offered to supersede the stale note instead of keeping
+    both and confusing the model. No LLM; pure token logic. Handbook and
+    already-obsolete notes are ignored.
+    """
+    new_tokens = _tokens(new_text)
+    if not new_tokens:
+        return []
+    low_new = new_text.lower()
+    if not (is_correction or any(marker in low_new for marker in _REPLACEMENT_MARKERS)):
+        return []
+    # A correction is the user explicitly overturning a belief, so a single shared
+    # subject token is enough; a marker-only note must share more to be flagged.
+    threshold = 1 if is_correction else min_overlap
+    out: list[str] = []
+    for item in items:
+        if item.kind == MemoryKind.HANDBOOK or item.status == MemoryStatus.OBSOLETE:
+            continue
+        if len(_tokens(item.text) & new_tokens) >= threshold:
             out.append(item.id)
     return out
 

@@ -176,7 +176,8 @@ models, run benchmarks, or change active runtime configuration.
 | `POST /workspaces/{workspace_id}/intelligence/watch/history/record` | Record a history entry from git alone (commits since last record) - cheap: no file rescan, no graph rebuild, no re-indexing. | No | No | Local git read + DB | Project Intelligence |
 | `POST /workspaces/{workspace_id}/intelligence/investigate` | Read-only multi-step agent: answers a question via read-only tools, returns the step trace + sources. | No | No | Local model + read-only tools | Project Intelligence |
 | `GET /workspaces/{workspace_id}/memory` | List durable project-memory items. | No | No | Local DB read | Project Intelligence |
-| `POST /workspaces/{workspace_id}/memory` | Record a note / decision / correction. | No | No | Local DB write | Project Intelligence |
+| `POST /workspaces/{workspace_id}/memory` | Record a note / decision / correction. Optional `supersedes` id retires the note it replaces. | No | No | Local DB write | Project Intelligence |
+| `POST /workspaces/{workspace_id}/memory/contradictions` | Given a proposed note, return existing active notes it likely contradicts/replaces (deterministic), so the UI can offer to supersede them. | No | No | Local DB read | Project Intelligence |
 | `DELETE /workspaces/{workspace_id}/memory/{item_id}` | Delete a memory item. | No | No | Local DB write | Project Intelligence |
 | `POST /workspaces/{workspace_id}/memory/{item_id}/pin` | Pin or unpin a memory item. | No | No | Local DB write | Project Intelligence |
 | `POST /workspaces/{workspace_id}/memory/{item_id}/status` | Mark a memory item active or obsolete (obsolete stays listed but is never fed into prompts). | No | No | Local DB write | Project Intelligence |

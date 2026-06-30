@@ -58,6 +58,8 @@ class SQLiteProjectMemoryRepository:
                     "ALTER TABLE project_memory "
                     "ADD COLUMN confidence_source TEXT NOT NULL DEFAULT 'default'"
                 )
+            if "supersedes_id" not in cols:
+                connection.execute("ALTER TABLE project_memory ADD COLUMN supersedes_id TEXT")
             connection.commit()
 
     @staticmethod
@@ -83,6 +85,7 @@ class SQLiteProjectMemoryRepository:
             status=(row["status"] if "status" in keys and row["status"] else "active"),
             updated_at=(row["updated_at"] if "updated_at" in keys else None),
             stale=bool(row["stale"]) if "stale" in keys and row["stale"] is not None else False,
+            supersedes_id=(row["supersedes_id"] if "supersedes_id" in keys else None),
         )
 
     def add(self, item: MemoryItem) -> MemoryItem:
@@ -91,8 +94,9 @@ class SQLiteProjectMemoryRepository:
                 """
                 INSERT INTO project_memory
                     (id, workspace_id, kind, text, source, created_at, pinned,
-                     confidence, status, updated_at, stale, confidence_source)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     confidence, status, updated_at, stale, confidence_source,
+                     supersedes_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     item.id,
@@ -107,6 +111,7 @@ class SQLiteProjectMemoryRepository:
                     item.updated_at,
                     1 if item.stale else 0,
                     item.confidence_source,
+                    item.supersedes_id,
                 ),
             )
             connection.commit()

@@ -65,6 +65,7 @@ from app.core.use_cases.manage_project_memory import (
     AddMemoryUseCase,
     AddMemoryValidationError,
     DeleteMemoryUseCase,
+    FindContradictionsUseCase,
     ListMemoryUseCase,
     SetMemoryPinnedUseCase,
     SetMemoryStaleUseCase,
@@ -340,6 +341,7 @@ def _memory_dict(item) -> dict:
         "status": getattr(item, "status", "active"),
         "updated_at": getattr(item, "updated_at", None),
         "stale": getattr(item, "stale", False),
+        "supersedes_id": getattr(item, "supersedes_id", None),
     }
 
 
@@ -354,6 +356,8 @@ class AddMemoryRequest(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
     kind: str = MemoryKind.NOTE
     pinned: bool = False
+    # Optional id of an earlier note this one replaces; that note is retired.
+    supersedes: str | None = None
 
 
 @router.post("/{workspace_id}/memory")
@@ -366,11 +370,29 @@ def add_project_memory(workspace_id: str, request: AddMemoryRequest) -> dict:
                 text=request.text,
                 kind=request.kind,
                 pinned=request.pinned,
+                supersedes=request.supersedes,
             )
         )
     except AddMemoryValidationError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return _memory_dict(item)
+
+
+class CheckContradictionsRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+    kind: str = MemoryKind.NOTE
+
+
+@router.post("/{workspace_id}/memory/contradictions")
+def check_project_memory_contradictions(
+    workspace_id: str, request: CheckContradictionsRequest
+) -> dict:
+    """Before saving a note, return existing active notes it likely contradicts
+    or replaces, so the UI can offer to supersede them. Deterministic; no LLM."""
+    candidates = FindContradictionsUseCase(project_memory_repository).execute(
+        workspace_id, request.text, request.kind
+    )
+    return {"candidates": [_memory_dict(i) for i in candidates]}
 
 
 @router.delete("/{workspace_id}/memory/{item_id}")
