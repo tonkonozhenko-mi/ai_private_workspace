@@ -117,9 +117,7 @@ class FindContradictionsUseCase:
             return []
         items = self.repository.list(workspace_id)
         ids = set(
-            contradiction_candidates(
-                text, items, is_correction=(kind == MemoryKind.CORRECTION)
-            )
+            contradiction_candidates(text, items, is_correction=(kind == MemoryKind.CORRECTION))
         )
         return [i for i in items if i.id in ids]
 

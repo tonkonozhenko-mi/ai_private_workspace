@@ -112,9 +112,7 @@ def test_sqlite_persists_supersedes_id(tmp_path):
     repo = SQLiteProjectMemoryRepository(tmp_path / "mem.db")
     uc = AddMemoryUseCase(repo)
     old = uc.execute(AddMemoryInput(workspace_id="w", text="old value here"))
-    uc.execute(
-        AddMemoryInput(workspace_id="w", text="new replacement value", supersedes=old.id)
-    )
+    uc.execute(AddMemoryInput(workspace_id="w", text="new replacement value", supersedes=old.id))
     by_id = {i.id: i for i in repo.list("w")}
     new = next(i for i in by_id.values() if i.supersedes_id)
     assert new.supersedes_id == old.id
