@@ -39,7 +39,7 @@ from app.core.domain.project_intelligence_view import (
     present_project_intelligence,
     present_references,
 )
-from app.core.domain.project_memory import MemoryKind
+from app.core.domain.project_memory import MemoryKind, confidence_explanation
 from app.core.domain.role_brief import build_role_brief
 from app.core.domain.role_lens import role_lens_for
 from app.core.ports.llm_provider_factory import LLMProviderFactoryError
@@ -333,6 +333,10 @@ def _memory_dict(item) -> dict:
         "created_at": item.created_at,
         "pinned": item.pinned,
         "confidence": getattr(item, "confidence", 1.0),
+        "confidence_source": getattr(item, "confidence_source", "default"),
+        "confidence_explanation": confidence_explanation(
+            getattr(item, "confidence_source", "default")
+        ),
         "status": getattr(item, "status", "active"),
         "updated_at": getattr(item, "updated_at", None),
         "stale": getattr(item, "stale", False),
