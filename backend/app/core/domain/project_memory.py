@@ -21,6 +21,11 @@ class MemoryKind:
     CORRECTION = "correction"
     QA = "qa"  # an answered question (often captured from the Investigator)
     FACT = "fact"
+    # The "why is it built this way" layer: rationale behind a design choice, and
+    # how a past incident was resolved. These are the highest-value memories — the
+    # context that a new model (or a new teammate) otherwise cannot recover.
+    ARCHITECTURE_DECISION = "architecture_decision"
+    INCIDENT_SOLUTION = "incident_solution"
     HANDBOOK = "handbook"  # the singleton auto-generated project handbook
 
 
@@ -182,6 +187,8 @@ _KIND_LABELS = {
     MemoryKind.CORRECTION: "Correction",
     MemoryKind.QA: "Earlier Q&A",
     MemoryKind.FACT: "Fact",
+    MemoryKind.ARCHITECTURE_DECISION: "Architecture decision (why)",
+    MemoryKind.INCIDENT_SOLUTION: "Past incident fix",
 }
 
 
