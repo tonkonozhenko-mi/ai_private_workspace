@@ -75,6 +75,24 @@ def evaluate_rag_answer(
             )
         )
 
+    # Groundedness check: concrete project-specific terms the answer states as
+    # fact (backticked identifiers/values: env names, config keys, services) that
+    # do not appear anywhere in the retrieved file text. These are the small-model
+    # fabrications the citation check above (paths only) misses.
+    ungrounded = find_ungrounded_terms(answer, source_contents, already_flagged=unsupported)
+    if ungrounded:
+        warnings.append(
+            RagQualityWarning(
+                code="answer_term_not_in_context",
+                message=(
+                    "The answer states these project-specific terms as fact, but "
+                    "they do not appear in the retrieved files — verify them."
+                ),
+                severity="review",
+                evidence=ungrounded,
+            )
+        )
+
     matched_absence_phrases = [phrase for phrase in ABSENCE_PHRASES if phrase in normalized_answer]
     conflicting_keywords = _find_conflicting_question_keywords(
         question=question,
@@ -136,6 +154,51 @@ def find_unsupported_citations(answer: str, source_paths: list[str]) -> list[str
         unsupported.append(token)
     # De-duplicate, keep order, cap.
     return list(dict.fromkeys(unsupported))[:8]
+
+
+# A backticked token is "concrete" (a project identifier/value worth grounding,
+# not backticked prose) if it carries a separator, a camelCase boundary, is all
+# upper-case (an env/const), or contains a digit.
+_CAMEL_RE = re.compile(r"[a-z][A-Z]")
+_CONCRETE_SEP_RE = re.compile(r"[_./:\-]")
+
+
+def find_ungrounded_terms(
+    answer: str,
+    source_contents: list[str],
+    already_flagged: list[str] = (),
+) -> list[str]:
+    """Backticked, concrete project-specific terms the answer asserts as fact that
+    appear nowhere in the retrieved file text — likely fabrications.
+
+    Complements :func:`find_unsupported_citations` (which checks file *paths*
+    against the retrieved source list): this checks *identifiers and values*
+    (env names, config keys, service names) against the retrieved *content*.
+    Backticked prose, short words and terms already flagged as bad citations are
+    skipped to keep false positives low. Read-only — it flags, never edits.
+    """
+    if not answer or not source_contents:
+        return []
+    blob = "\n".join(source_contents).casefold()
+    already = set(already_flagged)
+    out: list[str] = []
+    for raw in _BACKTICK_TOKEN_RE.findall(answer):
+        token = raw.strip()
+        if not token or token in already or " " in token or len(token) < 3:
+            continue
+        concrete = (
+            bool(_CONCRETE_SEP_RE.search(token))
+            or bool(_CAMEL_RE.search(token))
+            or token.isupper()
+            or any(c.isdigit() for c in token)
+        )
+        if not concrete:
+            continue
+        folded = token.casefold()
+        if folded in blob or folded.split("/")[-1] in blob:
+            continue
+        out.append(token)
+    return list(dict.fromkeys(out))[:8]
 
 
 def _find_conflicting_question_keywords(
