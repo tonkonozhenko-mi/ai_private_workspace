@@ -22,8 +22,11 @@ class ProjectMemoryRepositoryPort(Protocol):
     def set_status(self, workspace_id: str, item_id: str, status: str) -> None:
         """Mark an item active or obsolete (obsolete is excluded from prompts)."""
 
-    def set_stale(self, workspace_id: str, item_id: str, stale: bool) -> None:
-        """Flag/unflag an item as stale (a file it references changed)."""
+    def set_stale(
+        self, workspace_id: str, item_id: str, stale: bool, reason: str | None = None
+    ) -> None:
+        """Flag/unflag an item as stale (a file it references changed). ``reason``
+        records why (e.g. the changed path); it's cleared when stale is cleared."""
 
     def clear(self, workspace_id: str) -> None:
         """Remove all memory for a workspace."""

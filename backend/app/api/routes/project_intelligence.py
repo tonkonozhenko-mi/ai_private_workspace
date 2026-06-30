@@ -341,6 +341,7 @@ def _memory_dict(item) -> dict:
         "status": getattr(item, "status", "active"),
         "updated_at": getattr(item, "updated_at", None),
         "stale": getattr(item, "stale", False),
+        "stale_reason": getattr(item, "stale_reason", None),
         "supersedes_id": getattr(item, "supersedes_id", None),
     }
 

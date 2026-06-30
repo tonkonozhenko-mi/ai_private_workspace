@@ -1908,6 +1908,7 @@ export interface ProjectMemoryItem {
   confidence_explanation?: string;
   status?: string;
   stale?: boolean;
+  stale_reason?: string | null;
   supersedes_id?: string | null;
 }
 
