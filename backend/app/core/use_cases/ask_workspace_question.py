@@ -18,6 +18,7 @@ from app.core.domain.conversation_budget import (
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
 from app.core.domain.mmr import EMBEDDING_KEY, mmr_select
+from app.core.domain.question_intent import looks_project_specific
 from app.core.domain.rag import (
     RagQualityWarning,
     RagSource,
@@ -69,6 +70,19 @@ GENERAL_CHAT_DIAGNOSTIC_CODE = "answered_as_general_conversation"
 GENERAL_CHAT_DIAGNOSTIC_MESSAGE = (
     "No project files were relevant to this question, so it was answered as "
     "general conversation instead of from project context."
+)
+
+# Attached when a question that *looks* project-specific found no confident
+# context — so the user knows the answer is general-knowledge, not grounded.
+PROJECT_NOT_FOUND_WARNING = RagQualityWarning(
+    code="project_answer_not_grounded",
+    message=(
+        "No relevant files were found in the indexed project for this question, "
+        "so this answer is from the model's general knowledge — not your project. "
+        "Try rephrasing, or re-index if the project changed."
+    ),
+    severity="warning",
+    evidence=[],
 )
 
 # How many chunks to aim for in a grounded answer (the window budget trims if
@@ -430,7 +444,9 @@ class AskWorkspaceQuestionUseCase:
         best_score = max((result.score for result in context_results), default=0.0)
         if best_score < self._relevance_threshold():
             return self._record_question_event(
-                self._answer_general_conversation(request, llm_provider),
+                self._answer_general_conversation(
+                    request, llm_provider, project_context_missing=True
+                ),
                 request,
             )
 
@@ -563,6 +579,7 @@ class AskWorkspaceQuestionUseCase:
                     request.question, request.attached_documents
                 ),
                 assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+                project_context_missing=True,
             )
             answer_text, usage, failed = yield from self._stream_generation(
                 llm_provider, prompt, request, self._conversation_history(request)
@@ -600,6 +617,11 @@ class AskWorkspaceQuestionUseCase:
                         diagnostic_message=GENERAL_CHAT_DIAGNOSTIC_MESSAGE,
                         quality_warnings=[
                             *empty_context_warnings,
+                            *(
+                                [PROJECT_NOT_FOUND_WARNING]
+                                if looks_project_specific(request.question)
+                                else []
+                            ),
                             *request.additional_quality_warnings,
                         ],
                         usage=usage,
@@ -772,6 +794,7 @@ class AskWorkspaceQuestionUseCase:
         request: AskWorkspaceQuestionInput,
         llm_provider: LLMProviderPort,
         extra_warnings: list[RagQualityWarning] | None = None,
+        project_context_missing: bool = False,
     ) -> WorkspaceQuestionAnswer:
         prompt = build_general_chat_prompt(
             question=request.question,
@@ -781,7 +804,14 @@ class AskWorkspaceQuestionUseCase:
                 request.question, request.attached_documents
             ),
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+            project_context_missing=project_context_missing,
         )
+        # A project-looking question with no confident context: warn the user the
+        # answer isn't grounded (the prompt already tells the model to abstain).
+        warnings = list(extra_warnings or [])
+        if project_context_missing and looks_project_specific(request.question):
+            warnings.append(PROJECT_NOT_FOUND_WARNING)
+        extra_warnings = warnings
         try:
             answer, usage = self._generate_answer_with_usage(
                 llm_provider,
