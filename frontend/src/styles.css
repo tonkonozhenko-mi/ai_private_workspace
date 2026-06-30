@@ -5062,6 +5062,7 @@ a.getting-ready-cta:hover {
 .pm-pin-on { color: var(--c-accent); }
 .pm-pin:hover, .pm-del:hover { color: var(--c-text); }
 .pm-handbook { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--c-border); padding-top: 12px; }
+.pi-handbook { margin-top: 20px; }
 .pm-handbook-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .pm-handbook-badge { margin-left: 9px; font-size: 9.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--c-success); background: rgba(143, 209, 154, 0.14); border: 1px solid rgba(143, 209, 154, 0.35); border-radius: 999px; padding: 1px 8px; }
 .pm-handbook-actions { display: flex; gap: 12px; }
