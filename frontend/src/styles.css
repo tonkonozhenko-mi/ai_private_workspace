@@ -5053,6 +5053,17 @@ a.getting-ready-cta:hover {
 .pm-item-stale .pm-text { opacity: 0.85; }
 .pm-still-ok { font-size: 11px; font-weight: 600; color: var(--c-accent); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 2px 8px; background: transparent; cursor: pointer; }
 .pm-still-ok:hover { background: color-mix(in srgb, var(--c-accent) 12%, transparent); }
+.pm-confidence { font-size: 10.5px; color: var(--c-text-2); font-style: italic; flex: none; }
+
+/* Contradiction prompt shown before saving a note that may replace others. */
+.pm-contradiction { display: flex; flex-direction: column; gap: 8px; border: 1px solid color-mix(in srgb, var(--c-warning, #b06a00) 40%, var(--c-border)); background: color-mix(in srgb, var(--c-warning, #b06a00) 8%, transparent); border-radius: var(--r-md, 10px); padding: 12px 14px; }
+.pm-contradiction-head { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--c-text); }
+.pm-contradiction-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pm-contradiction-list li { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.pm-replace { font-size: 11px; font-weight: 600; color: var(--c-accent); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 2px 9px; background: var(--c-surface, transparent); cursor: pointer; flex: none; }
+.pm-replace:hover:not(:disabled) { background: color-mix(in srgb, var(--c-accent) 12%, transparent); }
+.pm-replace:disabled { opacity: 0.55; cursor: default; }
+.pm-contradiction-actions { display: flex; gap: 16px; }
 .pm-text { flex: 1; font-size: 12.5px; color: var(--c-text); line-height: 1.45; white-space: pre-wrap; }
 .pm-actions { display: flex; gap: 4px; flex: none; }
 .pm-pin, .pm-del, .pm-edit { background: none; border: none; color: var(--c-text-3); cursor: pointer; font-size: 13px; padding: 2px 4px; }

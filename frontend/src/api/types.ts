@@ -1904,8 +1904,11 @@ export interface ProjectMemoryItem {
   created_at: string;
   pinned: boolean;
   confidence?: number;
+  confidence_source?: string;
+  confidence_explanation?: string;
   status?: string;
   stale?: boolean;
+  supersedes_id?: string | null;
 }
 
 export interface ProjectMemoryList {

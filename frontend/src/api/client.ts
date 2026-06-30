@@ -679,12 +679,31 @@ export function addProjectMemory(
   text: string,
   kind = "note",
   pinned = false,
+  supersedes?: string,
 ): Promise<ProjectMemoryItem> {
   return requestJson<ProjectMemoryItem>(`/workspaces/${workspaceId}/memory`, {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({ text, kind, pinned }),
+    body: JSON.stringify({ text, kind, pinned, supersedes }),
   });
+}
+
+/** Before saving a note, list existing active notes it likely contradicts/replaces. */
+export function checkProjectMemoryContradictions(
+  workspaceId: string,
+  text: string,
+  kind = "note",
+  options?: { signal?: AbortSignal },
+): Promise<{ candidates: ProjectMemoryItem[] }> {
+  return requestJson<{ candidates: ProjectMemoryItem[] }>(
+    `/workspaces/${workspaceId}/memory/contradictions`,
+    {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ text, kind }),
+      signal: options?.signal,
+    },
+  );
 }
 
 export function deleteProjectMemory(workspaceId: string, itemId: string): Promise<void> {
