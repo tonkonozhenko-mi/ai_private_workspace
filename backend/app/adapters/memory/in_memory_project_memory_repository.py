@@ -1,5 +1,8 @@
 """In-memory Project Memory store (tests / memory mode)."""
 
+from dataclasses import replace
+from datetime import datetime, timezone
+
 from app.core.domain.project_memory import MemoryItem
 
 
@@ -29,14 +32,14 @@ class InMemoryProjectMemoryRepository:
         items = self._items.get(workspace_id, [])
         for idx, item in enumerate(items):
             if item.id == item_id:
-                items[idx] = MemoryItem(
-                    id=item.id,
-                    workspace_id=item.workspace_id,
-                    kind=item.kind,
-                    text=item.text,
-                    source=item.source,
-                    created_at=item.created_at,
-                    pinned=pinned,
+                items[idx] = replace(item, pinned=pinned)
+
+    def set_status(self, workspace_id: str, item_id: str, status: str) -> None:
+        items = self._items.get(workspace_id, [])
+        for idx, item in enumerate(items):
+            if item.id == item_id:
+                items[idx] = replace(
+                    item, status=status, updated_at=datetime.now(timezone.utc).isoformat()
                 )
 
     def clear(self, workspace_id: str) -> None:

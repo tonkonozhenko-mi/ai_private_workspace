@@ -12,6 +12,7 @@ relevant is keyword + pin + recency based, not an LLM guess.
 
 import re
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 
 class MemoryKind:
@@ -34,6 +35,18 @@ class MemorySource:
     AUTO = "auto"
 
 
+class MemoryStatus:
+    ACTIVE = "active"
+    # Superseded / no longer true. Kept in the store (and visible in the UI) for
+    # history, but never injected into prompts — stale memory poisons answers.
+    OBSOLETE = "obsolete"
+
+
+# Recency half-life: a memory this many days old counts half as much in ranking
+# (unless pinned). Gentle, so old-but-relevant facts still surface; recent ones win ties.
+_FRESHNESS_HALF_LIFE_DAYS = 90.0
+
+
 @dataclass(frozen=True)
 class MemoryItem:
     id: str
@@ -43,6 +56,10 @@ class MemoryItem:
     source: str
     created_at: str  # ISO 8601
     pinned: bool = False
+    # Lifecycle: how sure we are it is still true, and whether it is current.
+    confidence: float = 1.0  # 0.0–1.0; scales how strongly it is recalled
+    status: str = MemoryStatus.ACTIVE
+    updated_at: str | None = None  # set when status/confidence last changed
 
 
 _WORD_RE = re.compile(r"[a-z0-9_]+")
@@ -52,22 +69,53 @@ def _tokens(text: str) -> set[str]:
     return {t for t in _WORD_RE.findall(text.lower()) if len(t) > 2}
 
 
+def _parse_iso(timestamp: str) -> datetime | None:
+    try:
+        parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except (ValueError, TypeError, AttributeError):
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def _freshness_factor(item: MemoryItem, now: datetime) -> float:
+    """Recency weight in (0, 1]: ~1.0 when fresh, 0.5 at one half-life old.
+
+    Pinned items don't decay (the user forced them in); an unparseable timestamp
+    counts as fully fresh so a bad date never silently drops a memory.
+    """
+    if item.pinned:
+        return 1.0
+    created = _parse_iso(item.created_at)
+    if created is None:
+        return 1.0
+    age_days = max(0.0, (now - created).total_seconds() / 86400.0)
+    return _FRESHNESS_HALF_LIFE_DAYS / (_FRESHNESS_HALF_LIFE_DAYS + age_days)
+
+
 def select_relevant_memory(
     items: list[MemoryItem],
     query: str,
     limit: int = 6,
+    now: datetime | None = None,
 ) -> list[MemoryItem]:
-    """Rank memory for a query: pinned first, then keyword overlap, then recency.
+    """Rank memory for a query: pinned first, then keyword overlap weighted by
+    confidence and recency.
 
-    The handbook is handled separately by the context composer, so it is excluded
-    here to avoid duplicating it.
+    Obsolete items are excluded entirely (stale memory must never reach a prompt),
+    as is the handbook (the context composer handles it separately). Among the
+    rest, the keyword-overlap score is scaled by the item's ``confidence`` and a
+    recency factor, so a confident, recent note outranks an old, uncertain one.
     """
+    now = now or datetime.now(timezone.utc)
     query_tokens = _tokens(query)
-    candidates = [i for i in items if i.kind != MemoryKind.HANDBOOK]
+    candidates = [
+        i for i in items if i.kind != MemoryKind.HANDBOOK and i.status != MemoryStatus.OBSOLETE
+    ]
 
     def score(item: MemoryItem) -> tuple:
         overlap = len(_tokens(item.text) & query_tokens)
-        return (1 if item.pinned else 0, overlap, item.created_at)
+        weighted = overlap * max(0.0, item.confidence) * _freshness_factor(item, now)
+        return (1 if item.pinned else 0, weighted, item.created_at)
 
     ranked = sorted(candidates, key=score, reverse=True)
     # Keep items that are pinned or actually overlap the query; if nothing

@@ -67,6 +67,7 @@ from app.core.use_cases.manage_project_memory import (
     DeleteMemoryUseCase,
     ListMemoryUseCase,
     SetMemoryPinnedUseCase,
+    SetMemoryStatusUseCase,
 )
 from app.core.use_cases.record_git_history import (
     RecordGitHistoryInput,
@@ -329,6 +330,9 @@ def _memory_dict(item) -> dict:
         "source": item.source,
         "created_at": item.created_at,
         "pinned": item.pinned,
+        "confidence": getattr(item, "confidence", 1.0),
+        "status": getattr(item, "status", "active"),
+        "updated_at": getattr(item, "updated_at", None),
     }
 
 
@@ -376,6 +380,25 @@ class PinMemoryRequest(BaseModel):
 def pin_project_memory(workspace_id: str, item_id: str, request: PinMemoryRequest) -> dict:
     SetMemoryPinnedUseCase(project_memory_repository).execute(workspace_id, item_id, request.pinned)
     return {"pinned": request.pinned}
+
+
+class MemoryStatusRequest(BaseModel):
+    status: str
+
+
+@router.post("/{workspace_id}/memory/{item_id}/status")
+def set_project_memory_status(
+    workspace_id: str, item_id: str, request: MemoryStatusRequest
+) -> dict:
+    """Mark a memory item active or obsolete. Obsolete items stay listed but are
+    never fed into prompts, so stale knowledge can't poison answers."""
+    try:
+        SetMemoryStatusUseCase(project_memory_repository).execute(
+            workspace_id, item_id, request.status
+        )
+    except AddMemoryValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return {"status": request.status}
 
 
 @router.post("/{workspace_id}/handbook")
