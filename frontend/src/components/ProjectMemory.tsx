@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   addProjectMemory,
+  checkProjectMemoryContradictions,
   deleteProjectMemory,
   listProjectMemory,
   pinProjectMemory,
@@ -36,6 +37,9 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
   const [kind, setKind] = useState("note");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // When a new note looks like it contradicts/replaces existing ones, we hold the
+  // candidates here and ask the user to supersede one or keep both — before saving.
+  const [contradictions, setContradictions] = useState<ProjectMemoryItem[]>([]);
   // The list is management, not the main job — keep it collapsed by default and
   // just confirm each add transiently, so the card stays clean.
   const [showList, setShowList] = useState(false);
@@ -64,25 +68,50 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
     };
   }, [load]);
 
+  // Actually persist the note. When ``supersedes`` is set, the chosen older note
+  // is retired by the backend so the project keeps one current answer.
+  const doSave = useCallback(
+    async (supersedes?: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      setAdding(true);
+      setError(null);
+      try {
+        await addProjectMemory(workspaceId, trimmed, kind, false, supersedes);
+        setText("");
+        setContradictions([]);
+        // Transient confirmation that fades — no need to expand the whole list.
+        setJustAdded(trimmed);
+        if (confirmTimer.current) window.clearTimeout(confirmTimer.current);
+        confirmTimer.current = window.setTimeout(() => setJustAdded(null), 6000);
+        load();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not save.");
+      } finally {
+        setAdding(false);
+      }
+    },
+    [text, kind, workspaceId, load],
+  );
+
+  // Step 1: before saving, ask the backend if this note likely contradicts/
+  // replaces existing ones. If so, surface them and let the user decide; if not
+  // (or the check fails), just save.
   const add = useCallback(async () => {
     const trimmed = text.trim();
     if (!trimmed || adding) return;
-    setAdding(true);
     setError(null);
     try {
-      await addProjectMemory(workspaceId, trimmed, kind);
-      setText("");
-      // Transient confirmation that fades — no need to expand the whole list.
-      setJustAdded(trimmed);
-      if (confirmTimer.current) window.clearTimeout(confirmTimer.current);
-      confirmTimer.current = window.setTimeout(() => setJustAdded(null), 6000);
-      load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save.");
-    } finally {
-      setAdding(false);
+      const res = await checkProjectMemoryContradictions(workspaceId, trimmed, kind);
+      if (res.candidates.length > 0) {
+        setContradictions(res.candidates);
+        return;
+      }
+    } catch {
+      /* best-effort — a failed check must never block saving */
     }
-  }, [text, kind, adding, workspaceId, load]);
+    doSave();
+  }, [text, kind, adding, workspaceId, doSave]);
 
   const remove = useCallback(
     async (id: string) => {
@@ -170,6 +199,38 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
         </button>
       </div>
 
+      {contradictions.length > 0 ? (
+        <div className="pm-contradiction">
+          <p className="pm-contradiction-head">
+            This may already be covered. Replace the old note, or keep both?
+          </p>
+          <ul className="pm-contradiction-list">
+            {contradictions.map((c) => (
+              <li key={c.id}>
+                <span className="pm-text">{c.text}</span>
+                <button
+                  type="button"
+                  className="pm-replace"
+                  disabled={adding}
+                  title="Retire this older note and save the new one in its place"
+                  onClick={() => doSave(c.id)}
+                >
+                  Replace this
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="pm-contradiction-actions">
+            <button type="button" className="pm-link" disabled={adding} onClick={() => doSave()}>
+              Keep both
+            </button>
+            <button type="button" className="pm-link" onClick={() => setContradictions([])}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {justAdded ? (
         <p className="pm-just-added" key={justAdded}>
           <span className="pm-just-added-tick">✓</span> Remembered: <span>{justAdded}</span>
@@ -228,6 +289,16 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
                   ) : (
                     <>
                       <span className="pm-text">{item.text}</span>
+                      {item.confidence_explanation &&
+                      item.confidence_source &&
+                      item.confidence_source !== "default" ? (
+                        <span
+                          className="pm-confidence"
+                          title={`Confidence ${Math.round((item.confidence ?? 1) * 100)}% — ${item.confidence_explanation}`}
+                        >
+                          {item.confidence_explanation}
+                        </span>
+                      ) : null}
                       <div className="pm-actions">
                         <button
                           type="button"
