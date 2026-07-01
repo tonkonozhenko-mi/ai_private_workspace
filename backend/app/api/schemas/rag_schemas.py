@@ -83,6 +83,8 @@ class WorkspaceQuestionAnswerResponse(BaseModel):
     used_context_chunks: int
     project_memory_used: int = 0
     project_facts_used: int = 0
+    project_memory_details: list[dict] = Field(default_factory=list)
+    project_guardrails_used: list[str] = Field(default_factory=list)
     llm_provider: str
     llm_model: str | None
     diagnostic_code: str | None
@@ -153,6 +155,8 @@ def to_workspace_question_answer_response(
         used_context_chunks=result.used_context_chunks,
         project_memory_used=result.project_memory_used,
         project_facts_used=result.project_facts_used,
+        project_memory_details=list(getattr(result, "project_memory_details", []) or []),
+        project_guardrails_used=list(getattr(result, "project_guardrails_used", []) or []),
         llm_provider=result.llm_provider,
         llm_model=result.llm_model,
         diagnostic_code=result.diagnostic_code,

@@ -245,21 +245,29 @@ class AskWorkspaceQuestionUseCase:
         self.enable_query_rewrite = enable_query_rewrite
 
     def _project_memory_section(self, workspace_id: str, query: str) -> str:
-        section, _, _ = self._project_context(workspace_id, query)
+        section, _, _, _ = self._project_context(workspace_id, query)
         return section
 
-    def _project_context(self, workspace_id: str, query: str) -> tuple[str, int, int]:
-        """Return (context_text, memory_items_used, graph_facts_used)."""
+    def _project_context(self, workspace_id: str, query: str) -> tuple[str, int, int, dict]:
+        """Return (context_text, memory_items_used, graph_facts_used, used_details).
+
+        ``used_details`` = {"memory": [...], "guardrails": [...]} for the
+        "Why this answer?" panel; empty when no stats-aware provider is present."""
+        empty: dict = {"memory": [], "guardrails": []}
         provider = self.project_context_provider
         if provider is None:
-            return "", 0, 0
+            return "", 0, 0, empty
         try:
             if hasattr(provider, "compose_with_stats"):
                 text, stats = provider.compose_with_stats(workspace_id, query)
-                return text or "", stats.memory_items, stats.graph_facts
-            return provider(workspace_id, query) or "", 0, 0
+                details = {
+                    "memory": list(getattr(stats, "memory_used", []) or []),
+                    "guardrails": list(getattr(stats, "guardrails_used", []) or []),
+                }
+                return text or "", stats.memory_items, stats.graph_facts, details
+            return provider(workspace_id, query) or "", 0, 0, empty
         except Exception:  # noqa: BLE001 - context is best-effort, never fatal
-            return "", 0, 0
+            return "", 0, 0, empty
 
     def _grounded_prompt(
         self,
@@ -281,7 +289,7 @@ class AskWorkspaceQuestionUseCase:
         """
         # Memory selection uses the same history-expanded query as retrieval, so a
         # bare follow-up ("disable it") still matches relevant memory.
-        memory_section, memory_used, facts_used = self._project_context(
+        memory_section, memory_used, facts_used, context_used = self._project_context(
             request.workspace_id, self._retrieval_query(request)
         )
         budget = chunk_char_budget(
@@ -303,7 +311,7 @@ class AskWorkspaceQuestionUseCase:
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
             project_memory_section=memory_section,
         )
-        return fitted, prompt, memory_used, facts_used
+        return fitted, prompt, memory_used, facts_used, context_used
 
     def _all_turns(self, request: AskWorkspaceQuestionInput) -> list[tuple[str, str]]:
         """Every (role, content) user/assistant turn of this conversation.
@@ -451,7 +459,7 @@ class AskWorkspaceQuestionUseCase:
             )
 
         prompt_history = self._history_for_prompt(request, llm_provider)
-        context_results, prompt, memory_used, facts_used = self._grounded_prompt(
+        context_results, prompt, memory_used, facts_used, context_used = self._grounded_prompt(
             request, llm_provider, context_results, prompt_history
         )
         # Rebuild sources from the chunks that actually fit the window.
@@ -509,6 +517,8 @@ class AskWorkspaceQuestionUseCase:
                 llm_model=llm_provider.model_name,
                 project_memory_used=memory_used,
                 project_facts_used=facts_used,
+                project_memory_details=context_used.get("memory", []),
+                project_guardrails_used=context_used.get("guardrails", []),
                 diagnostic_code=None,
                 diagnostic_message=None,
                 quality_warnings=quality_warnings,
@@ -634,7 +644,7 @@ class AskWorkspaceQuestionUseCase:
             return
 
         prompt_history = self._history_for_prompt(request, llm_provider)
-        context_results, prompt, memory_used, facts_used = self._grounded_prompt(
+        context_results, prompt, memory_used, facts_used, context_used = self._grounded_prompt(
             request, llm_provider, context_results, prompt_history
         )
         # Rebuild sources from the chunks that actually fit the window.
@@ -691,6 +701,8 @@ class AskWorkspaceQuestionUseCase:
                     llm_model=llm_provider.model_name,
                     project_memory_used=memory_used,
                     project_facts_used=facts_used,
+                    project_memory_details=context_used.get("memory", []),
+                    project_guardrails_used=context_used.get("guardrails", []),
                     diagnostic_code=None,
                     diagnostic_message=None,
                     quality_warnings=quality_warnings,

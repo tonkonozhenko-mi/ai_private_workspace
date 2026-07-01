@@ -2072,11 +2072,42 @@ function AnswerResult({
           </div>
         ) : null}
 
-        {(answer.project_memory_used ?? 0) > 0 || (answer.project_facts_used ?? 0) > 0 ? (
-          <p className="answer-memory-note">
-            Used {answer.project_memory_used ?? 0} memory note(s) and{" "}
-            {answer.project_facts_used ?? 0} map fact(s) from this project.
-          </p>
+        {(answer.project_memory_used ?? 0) > 0 ||
+        (answer.project_facts_used ?? 0) > 0 ||
+        (answer.project_guardrails_used?.length ?? 0) > 0 ? (
+          <details className="why-answer">
+            <summary>
+              Why this answer? · {answer.project_memory_used ?? 0} note(s),{" "}
+              {answer.project_facts_used ?? 0} map fact(s)
+              {(answer.project_guardrails_used?.length ?? 0) > 0
+                ? `, ${answer.project_guardrails_used?.length} guardrail(s)`
+                : ""}
+            </summary>
+            {(answer.project_memory_details?.length ?? 0) > 0 ? (
+              <div className="why-answer-group">
+                <p className="why-answer-label">Memory used</p>
+                <ul>
+                  {answer.project_memory_details?.map((m, i) => (
+                    <li key={`mem-${i}`}>
+                      <span className="why-answer-text">{m.text}</span>
+                      {m.grounding ? <span className="why-answer-src"> — {m.grounding}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {(answer.project_guardrails_used?.length ?? 0) > 0 ? (
+              <div className="why-answer-group">
+                <p className="why-answer-label">Guardrails applied</p>
+                <ul>
+                  {answer.project_guardrails_used?.map((g, i) => (
+                    <li key={`gr-${i}`}>{g}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            <p className="why-answer-foot">Shown from what actually went into the prompt.</p>
+          </details>
         ) : null}
 
         {answer.sources.length > 0 || attachedFileNames.length > 0 ? (

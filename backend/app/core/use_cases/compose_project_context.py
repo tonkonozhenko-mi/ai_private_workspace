@@ -12,7 +12,7 @@ Everything is deterministic and local. Returns ``""`` when there is nothing.
 """
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from app.core.domain.project_graph import EntityType
 from app.core.domain.project_memory import (
@@ -68,6 +68,12 @@ def _trim(text: str, max_chars: int) -> str:
     if len(text) <= max_chars:
         return text
     return text[:max_chars].rstrip() + " …"
+
+
+def _shorten(text: str, max_chars: int = 140) -> str:
+    """One-line, length-capped version of a note, for the 'Why this answer?' list."""
+    one_line = " ".join((text or "").split())
+    return one_line if len(one_line) <= max_chars else one_line[:max_chars].rstrip() + "…"
 
 
 def _handbook_block(handbook_text: str, query: str, budget: ContextBudget) -> str:
@@ -147,6 +153,11 @@ class ProjectContextStats:
     profile_facts: int = 0
     recent_changes: int = 0
     guardrails: int = 0
+    # For a "Why this answer?" panel: the notes/guardrails that actually went into
+    # the prompt. Each item is {kind, text, grounding}. Kept short and optional so
+    # the UI can show provenance on demand instead of crowding the answer.
+    memory_used: list = field(default_factory=list)
+    guardrails_used: list = field(default_factory=list)
 
 
 class ComposeProjectContextUseCase:
@@ -279,13 +290,16 @@ class ComposeProjectContextUseCase:
         # every answer regardless of overlap, so a rule always applies.
         guardrails_block = format_guardrails(items, max_chars=self.budget.guardrails)
         guardrails_count = 0
+        guardrails_used: list = []
         if guardrails_block:
             blocks.append(guardrails_block)
-            guardrails_count = sum(
-                1
+            active_rails = [
+                i
                 for i in items
                 if i.kind == MemoryKind.GUARDRAIL and i.status != MemoryStatus.OBSOLETE
-            )
+            ]
+            guardrails_count = len(active_rails)
+            guardrails_used = [_shorten(i.text) for i in active_rails]
 
         graph_block, graph_count = self._graph_facts(workspace_id, query)
         if graph_block:
@@ -295,6 +309,18 @@ class ComposeProjectContextUseCase:
         if changes_block:
             blocks.append(changes_block)
 
+        memory_used = (
+            [
+                {
+                    "kind": i.kind,
+                    "text": _shorten(i.text),
+                    "grounding": getattr(i, "grounding", None),
+                }
+                for i in relevant
+            ]
+            if memory_block
+            else []
+        )
         stats = ProjectContextStats(
             memory_items=len(relevant) if memory_block else 0,
             graph_facts=graph_count,
@@ -302,6 +328,8 @@ class ComposeProjectContextUseCase:
             profile_facts=profile_count,
             recent_changes=changes_count,
             guardrails=guardrails_count,
+            memory_used=memory_used,
+            guardrails_used=guardrails_used,
         )
         if not blocks:
             return "", stats
