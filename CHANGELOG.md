@@ -7,6 +7,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-01
+
 ### Added
 
 - **Provable memory: source grounding.** Every memory note now records where the fact came from (`grounding`: a file, a commit, an Investigator session, or "Recorded by you") and the memory card shows it — so memory is traceable rather than a pile of "magic notes" you can't vet. Especially important for architecture decisions and incident fixes. Defaults sensibly from who recorded it; settable on the add endpoint. sqlite column migration; existing rows read as null.
