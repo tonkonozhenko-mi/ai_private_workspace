@@ -130,12 +130,8 @@ def test_aggregate_reports_hallucination_rate():
 def test_overblock_rate_counts_wrongly_refused_positives():
     # Positive case whose top similarity is below the abstain threshold → the
     # safeguards would refuse it even though the sources were retrieved.
-    blocked = score_case(
-        EvalCase("db?", expect_sources=["db.tf"]), ["db.tf"], top_score=0.10
-    )
-    fine = score_case(
-        EvalCase("db?", expect_sources=["db.tf"]), ["db.tf"], top_score=0.90
-    )
+    blocked = score_case(EvalCase("db?", expect_sources=["db.tf"]), ["db.tf"], top_score=0.10)
+    fine = score_case(EvalCase("db?", expect_sources=["db.tf"]), ["db.tf"], top_score=0.90)
     assert blocked.overblocked is True
     assert fine.overblocked is False
     report = aggregate([blocked, fine])

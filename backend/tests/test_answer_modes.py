@@ -48,9 +48,7 @@ def test_sources_only_forbids_outside_knowledge():
 
 
 def test_prompt_includes_mode_section_only_when_non_safe():
-    safe = build_workspace_question_prompt(
-        question="q", context_results=_ctx(), answer_mode="safe"
-    )
+    safe = build_workspace_question_prompt(question="q", context_results=_ctx(), answer_mode="safe")
     strict = build_workspace_question_prompt(
         question="q", context_results=_ctx(), answer_mode="sources_only"
     )

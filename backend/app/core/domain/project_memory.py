@@ -293,9 +293,7 @@ def _jaccard(a: set[str], b: set[str]) -> float:
     return inter / union if union else 0.0
 
 
-def find_duplicate_groups(
-    items: list[MemoryItem], threshold: float = 0.6
-) -> list[list[str]]:
+def find_duplicate_groups(items: list[MemoryItem], threshold: float = 0.6) -> list[list[str]]:
     """Cluster active notes that are near-duplicates of each other (same kind,
     high token-overlap), so the UI can offer to merge them before memory turns
     noisy. Deterministic (Jaccard over significant tokens), review-first — this
