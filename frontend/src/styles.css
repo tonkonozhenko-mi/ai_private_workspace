@@ -3558,6 +3558,25 @@ a.getting-ready-cta:visited { color: var(--c-accent-ink); }
   cursor: pointer;
 }
 
+/* Answer mode: a first-class trust control, always visible next to Ask. */
+.ask-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--c-text-2);
+  cursor: pointer;
+}
+.ask-mode select {
+  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  padding: 2px 6px;
+  font: inherit;
+  cursor: pointer;
+}
+
 /* developer details: one calm, deliberate block instead of scattered chips */
 .ask-answer-details {
   display: flex;

@@ -1551,6 +1551,7 @@ export function askSelectedWorkspace(
     temperature?: number | null;
     think?: boolean | null;
     attachedDocuments?: AttachedDocumentInput[];
+    answerMode?: string | null;
   } = {},
 ): Promise<WorkspaceQuestionAnswer> {
   return requestJson<WorkspaceQuestionAnswer>(
@@ -1570,6 +1571,7 @@ export function askSelectedWorkspace(
         temperature: options.temperature ?? null,
         think: options.think ?? null,
         attached_documents: options.attachedDocuments ?? [],
+        answer_mode: options.answerMode ?? null,
       }),
       signal: options.signal,
     },
@@ -1588,6 +1590,7 @@ export async function askSelectedWorkspaceStream(
     temperature?: number | null;
     think?: boolean | null;
     attachedDocuments?: AttachedDocumentInput[];
+    answerMode?: string | null;
     onToken?: (text: string) => void;
   } = {},
 ): Promise<WorkspaceQuestionAnswer> {
@@ -1608,6 +1611,7 @@ export async function askSelectedWorkspaceStream(
         temperature: options.temperature ?? null,
         think: options.think ?? null,
         attached_documents: options.attachedDocuments ?? [],
+        answer_mode: options.answerMode ?? null,
       }),
       signal: options.signal,
     },

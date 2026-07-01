@@ -37,6 +37,7 @@ class AskWorkspaceQuestionWithSelectedLLMInput:
     temperature: float | None = None
     think: bool | None = None
     attached_documents: list[AttachedDocument] | None = None
+    answer_mode: str | None = None
 
 
 class AskWorkspaceQuestionWithSelectedLLMNotFoundError(ValueError):
@@ -156,6 +157,7 @@ class AskWorkspaceQuestionWithSelectedLLMUseCase:
             temperature=request.temperature,
             think=request.think,
             attached_documents=request.attached_documents or [],
+            answer_mode=request.answer_mode,
         )
 
     def _embedding_matches_active(self, selected: WorkspaceSelectedModel) -> bool:

@@ -26,6 +26,7 @@ class AskWorkspaceQuestionRequest(BaseModel):
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
     think: bool | None = None
     attached_documents: list[AttachedDocumentRequest] = Field(default_factory=list, max_length=6)
+    answer_mode: str | None = None
 
 
 class AskWorkspaceQuestionWithSelectedLLMRequest(BaseModel):
@@ -37,6 +38,7 @@ class AskWorkspaceQuestionWithSelectedLLMRequest(BaseModel):
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
     think: bool | None = None
     attached_documents: list[AttachedDocumentRequest] = Field(default_factory=list, max_length=6)
+    answer_mode: str | None = None
 
 
 class RagSourceResponse(BaseModel):

@@ -172,6 +172,7 @@ class AskWorkspaceQuestionInput:
     temperature: float | None = None
     think: bool | None = None
     attached_documents: list[AttachedDocument] = field(default_factory=list)
+    answer_mode: str | None = None
 
 
 @dataclass(frozen=True)
@@ -310,6 +311,7 @@ class AskWorkspaceQuestionUseCase:
             ),
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
             project_memory_section=memory_section,
+            answer_mode=request.answer_mode,
         )
         return fitted, prompt, memory_used, facts_used, context_used
 

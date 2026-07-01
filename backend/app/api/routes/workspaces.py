@@ -1927,6 +1927,7 @@ def ask_workspace_question(
                 temperature=request.temperature,
                 think=request.think,
                 attached_documents=_to_attached_documents(request.attached_documents),
+                answer_mode=request.answer_mode,
             )
         )
         result = _persist_answer_in_conversation(conversation.id, result)
@@ -2019,6 +2020,7 @@ def ask_workspace_question_with_selected_llm(
                 temperature=request.temperature,
                 think=request.think,
                 attached_documents=_to_attached_documents(request.attached_documents),
+                answer_mode=request.answer_mode,
             )
         )
         result = _persist_answer_in_conversation(conversation.id, result)
@@ -2274,6 +2276,7 @@ def ask_workspace_question_with_selected_llm_stream(
         temperature=request.temperature,
         think=request.think,
         attached_documents=_to_attached_documents(request.attached_documents),
+        answer_mode=request.answer_mode,
     )
 
     def event_stream():

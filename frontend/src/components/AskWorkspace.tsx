@@ -248,6 +248,9 @@ export function AskWorkspace({
   const [reasoning, setReasoning] = useState(defaultReasoning);
   const [streaming, setStreaming] = useState(defaultStreaming);
   const [streamingText, setStreamingText] = useState("");
+  // How hard the answer should lean on the project files. "safe" is the
+  // everyday default; the stricter modes help weaker local models stay honest.
+  const [answerMode, setAnswerMode] = useState<string>("safe");
   // Per-question "answer style" override (dev mode): "" = workspace default.
   // Value is a preset id or a custom-skill id.
   const [skillOverride, setSkillOverride] = useState<string>("");
@@ -698,6 +701,8 @@ export function AskWorkspace({
           name: file.name,
           content: file.content,
         })),
+        // "safe" is the default and sends nothing, so the prompt is unchanged.
+        answerMode: answerMode === "safe" ? null : answerMode,
       };
 
       let result;
@@ -937,6 +942,21 @@ export function AskWorkspace({
             <div className="ask-bottom-meta-row">
               <span className="ask-privacy-note">Answers stay on your computer, with sources attached.</span>
               <div className="ask-meta-controls">
+                <label
+                  className="ask-mode"
+                  title="How strictly the answer should stick to your project files."
+                >
+                  <span>Mode</span>
+                  <select
+                    value={answerMode}
+                    onChange={(event) => setAnswerMode(event.target.value)}
+                  >
+                    <option value="safe">Balanced</option>
+                    <option value="sources_only">Only from sources</option>
+                    <option value="deep">Deep dive</option>
+                    <option value="explain">Explain with sources</option>
+                  </select>
+                </label>
                 {devMode ? (
                   <div className="ask-dev-cluster">
                     <label className="ask-switch" title="Only affects reasoning models (deepseek-r1, qwq…)">
