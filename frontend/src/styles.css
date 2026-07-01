@@ -5065,6 +5065,12 @@ a.getting-ready-cta:hover {
 .pm-replace:hover:not(:disabled) { background: color-mix(in srgb, var(--c-accent) 12%, transparent); }
 .pm-replace:disabled { opacity: 0.55; cursor: default; }
 .pm-contradiction-actions { display: flex; gap: 16px; }
+
+/* Near-duplicate clusters, offered for a review-first merge. */
+.pm-duplicates { display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--c-border); border-radius: var(--r-md, 10px); padding: 12px 14px; }
+.pm-duplicates-head { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--c-text); }
+.pm-dup-group { display: flex; flex-direction: column; gap: 5px; padding: 8px 10px; background: var(--c-surface-2); border-radius: var(--r-sm); }
+.pm-dup-row { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
 .pm-text { flex: 1; font-size: 12.5px; color: var(--c-text); line-height: 1.45; white-space: pre-wrap; }
 .pm-actions { display: flex; gap: 4px; flex: none; }
 .pm-pin, .pm-del, .pm-edit { background: none; border: none; color: var(--c-text-3); cursor: pointer; font-size: 13px; padding: 2px 4px; }

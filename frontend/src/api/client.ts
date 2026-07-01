@@ -706,6 +706,30 @@ export function checkProjectMemoryContradictions(
   );
 }
 
+/** Clusters of near-duplicate notes, for a review-first merge. */
+export function getProjectMemoryDuplicates(
+  workspaceId: string,
+  options?: { signal?: AbortSignal },
+): Promise<{ groups: ProjectMemoryItem[][] }> {
+  return requestJson<{ groups: ProjectMemoryItem[][] }>(
+    `/workspaces/${workspaceId}/memory/duplicates`,
+    { headers: { Accept: "application/json" }, signal: options?.signal },
+  );
+}
+
+/** Merge a duplicate cluster: keep one note, retire the rest as obsolete. */
+export function mergeProjectMemory(
+  workspaceId: string,
+  keepId: string,
+  dropIds: string[],
+): Promise<{ merged: number }> {
+  return requestJson<{ merged: number }>(`/workspaces/${workspaceId}/memory/merge`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ keep_id: keepId, drop_ids: dropIds }),
+  });
+}
+
 export function deleteProjectMemory(workspaceId: string, itemId: string): Promise<void> {
   return requestWithoutBody(`/workspaces/${workspaceId}/memory/${itemId}`, {
     method: "DELETE",

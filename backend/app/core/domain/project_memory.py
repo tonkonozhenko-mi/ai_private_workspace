@@ -285,6 +285,54 @@ def contradiction_candidates(
     return out
 
 
+def _jaccard(a: set[str], b: set[str]) -> float:
+    if not a or not b:
+        return 0.0
+    inter = len(a & b)
+    union = len(a | b)
+    return inter / union if union else 0.0
+
+
+def find_duplicate_groups(
+    items: list[MemoryItem], threshold: float = 0.6
+) -> list[list[str]]:
+    """Cluster active notes that are near-duplicates of each other (same kind,
+    high token-overlap), so the UI can offer to merge them before memory turns
+    noisy. Deterministic (Jaccard over significant tokens), review-first — this
+    only *finds* clusters, it never deletes anything. Handbook/guardrails and
+    obsolete notes are ignored; only groups of 2+ are returned.
+
+    Transitive: a↔b and b↔c put a, b, c in one group. Order is stable (by the
+    input order), so the same store always yields the same clusters.
+    """
+    eligible = [
+        i
+        for i in items
+        if i.kind not in (MemoryKind.HANDBOOK, MemoryKind.GUARDRAIL)
+        and i.status != MemoryStatus.OBSOLETE
+    ]
+    toks = {i.id: _tokens(i.text) for i in eligible}
+    parent: dict[str, str] = {i.id: i.id for i in eligible}
+
+    def find(x: str) -> str:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for idx, a in enumerate(eligible):
+        for b in eligible[idx + 1 :]:
+            if a.kind != b.kind:
+                continue
+            if _jaccard(toks[a.id], toks[b.id]) >= threshold:
+                parent[find(a.id)] = find(b.id)
+
+    clusters: dict[str, list[str]] = {}
+    for i in eligible:  # preserve input order within each cluster
+        clusters.setdefault(find(i.id), []).append(i.id)
+    return [ids for ids in clusters.values() if len(ids) >= 2]
+
+
 def cosine_similarity(a: list[float], b: list[float]) -> float:
     """Cosine similarity of two equal-length vectors; 0.0 for degenerate input."""
     if not a or not b or len(a) != len(b):

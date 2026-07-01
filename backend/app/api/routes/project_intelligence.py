@@ -66,7 +66,9 @@ from app.core.use_cases.manage_project_memory import (
     AddMemoryValidationError,
     DeleteMemoryUseCase,
     FindContradictionsUseCase,
+    FindMemoryDuplicatesUseCase,
     ListMemoryUseCase,
+    MergeMemoryDuplicatesUseCase,
     SetMemoryPinnedUseCase,
     SetMemoryStaleUseCase,
     SetMemoryStatusUseCase,
@@ -381,6 +383,29 @@ def add_project_memory(workspace_id: str, request: AddMemoryRequest) -> dict:
     except AddMemoryValidationError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return _memory_dict(item)
+
+
+@router.get("/{workspace_id}/memory/duplicates")
+def get_project_memory_duplicates(workspace_id: str) -> dict:
+    """Clusters of near-duplicate active notes, for a review-first merge. Never
+    deletes; just finds. Deterministic (token overlap), no LLM."""
+    groups = FindMemoryDuplicatesUseCase(project_memory_repository).execute(workspace_id)
+    return {"groups": [[_memory_dict(i) for i in group] for group in groups]}
+
+
+class MergeMemoryRequest(BaseModel):
+    keep_id: str
+    drop_ids: list[str]
+
+
+@router.post("/{workspace_id}/memory/merge")
+def merge_project_memory(workspace_id: str, request: MergeMemoryRequest) -> dict:
+    """Merge a duplicate cluster: keep one note, retire the rest as obsolete
+    (kept for history, never recalled)."""
+    dropped = MergeMemoryDuplicatesUseCase(project_memory_repository).execute(
+        workspace_id, request.keep_id, request.drop_ids
+    )
+    return {"merged": dropped}
 
 
 class CheckContradictionsRequest(BaseModel):
