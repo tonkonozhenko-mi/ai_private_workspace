@@ -9,6 +9,56 @@ class SkillPromptInstruction:
     instruction: str
 
 
+class AnswerMode:
+    """How hard the model should lean on the retrieved files vs. its own
+    knowledge. Small local models follow one short, explicit instruction far
+    better than a long system prompt, so each mode is a single steering clause
+    injected near the top of the prompt (right where the model decides how to
+    behave). ``SAFE`` is the default and matches the historic behaviour.
+    """
+
+    SAFE = "safe"
+    SOURCES_ONLY = "sources_only"
+    DEEP = "deep"
+    EXPLAIN = "explain"
+
+    _ALL = frozenset({SAFE, SOURCES_ONLY, DEEP, EXPLAIN})
+
+    @classmethod
+    def normalize(cls, mode: str | None) -> str:
+        """Coerce arbitrary input to a known mode, defaulting to SAFE."""
+        value = (mode or "").strip().lower()
+        return value if value in cls._ALL else cls.SAFE
+
+
+def answer_mode_instructions(mode: str | None) -> str:
+    """Return the one-line steering clause for an answer mode (or "" for SAFE).
+
+    Pure and deterministic so it can be unit-tested without a model.
+    """
+    normalized = AnswerMode.normalize(mode)
+    if normalized == AnswerMode.SOURCES_ONLY:
+        return (
+            "Answer STRICTLY from the project files below and nothing else. "
+            "If the answer is not present in these files, say plainly that the "
+            "files do not contain it — do not use outside knowledge, do not "
+            "guess, and do not fill gaps."
+        )
+    if normalized == AnswerMode.DEEP:
+        return (
+            "Be thorough: check every relevant file below, compare configurations "
+            "that disagree, and note edge cases or gaps you notice. Still cite the "
+            "exact source_path for each claim and stay grounded in the files."
+        )
+    if normalized == AnswerMode.EXPLAIN:
+        return (
+            "Explain your reasoning as you go: for each conclusion, walk through "
+            "the evidence and name the exact source_path it came from, so the "
+            "reader can verify every step."
+        )
+    return ""
+
+
 def render_conversation_history(conversation_history: list[tuple[str, str]] | None) -> str:
     """Flatten recent dialogue into a text block so the model can resolve
     follow-ups ("it", "that", "disable it") against what was just discussed.
@@ -39,6 +89,7 @@ def build_workspace_question_prompt(
     attached_section: str = "",
     assistant_identity: str | None = None,
     project_memory_section: str = "",
+    answer_mode: str | None = None,
 ) -> str:
     context_sections = [
         (
@@ -62,6 +113,9 @@ def build_workspace_question_prompt(
         else ""
     )
 
+    mode_clause = answer_mode_instructions(answer_mode)
+    mode_section = f"Answer mode: {mode_clause}\n\n" if mode_clause else ""
+
     # Ordering note: the large, stable blocks (instructions, memory, context,
     # requirements) come first and the volatile question comes LAST. Keeping the
     # prefix stable across turns lets llama.cpp reuse the KV cache, and putting the
@@ -79,6 +133,7 @@ def build_workspace_question_prompt(
         "from these files, ignore the files and answer directly and briefly — do not "
         "describe the project, do not cite source paths, and do not pretend the "
         "question was about the project.\n\n"
+        f"{mode_section}"
         f"{attached_section}"
         f"{(project_memory_section + chr(10) + chr(10)) if project_memory_section else ''}"
         f"Context chunks:\n{context}\n\n"

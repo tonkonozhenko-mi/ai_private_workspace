@@ -178,6 +178,8 @@ models, run benchmarks, or change active runtime configuration.
 | `GET /workspaces/{workspace_id}/memory` | List durable project-memory items. | No | No | Local DB read | Project Intelligence |
 | `POST /workspaces/{workspace_id}/memory` | Record a note / decision / correction. Optional `supersedes` id retires the note it replaces. | No | No | Local DB write | Project Intelligence |
 | `POST /workspaces/{workspace_id}/memory/contradictions` | Given a proposed note, return existing active notes it likely contradicts/replaces (deterministic), so the UI can offer to supersede them. | No | No | Local DB read | Project Intelligence |
+| `GET /workspaces/{workspace_id}/memory/duplicates` | Clusters of near-duplicate active notes (deterministic token overlap), for a review-first merge. Finds only; never deletes. | No | No | Local DB read | Project Intelligence |
+| `POST /workspaces/{workspace_id}/memory/merge` | Merge a duplicate cluster: keep one note, retire the rest as obsolete (kept for history). | No | No | Local DB write | Project Intelligence |
 | `DELETE /workspaces/{workspace_id}/memory/{item_id}` | Delete a memory item. | No | No | Local DB write | Project Intelligence |
 | `POST /workspaces/{workspace_id}/memory/{item_id}/pin` | Pin or unpin a memory item. | No | No | Local DB write | Project Intelligence |
 | `POST /workspaces/{workspace_id}/memory/{item_id}/status` | Mark a memory item active or obsolete (obsolete stays listed but is never fed into prompts). | No | No | Local DB write | Project Intelligence |

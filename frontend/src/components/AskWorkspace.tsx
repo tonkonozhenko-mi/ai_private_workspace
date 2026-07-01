@@ -248,6 +248,9 @@ export function AskWorkspace({
   const [reasoning, setReasoning] = useState(defaultReasoning);
   const [streaming, setStreaming] = useState(defaultStreaming);
   const [streamingText, setStreamingText] = useState("");
+  // How hard the answer should lean on the project files. "safe" is the
+  // everyday default; the stricter modes help weaker local models stay honest.
+  const [answerMode, setAnswerMode] = useState<string>("safe");
   // Per-question "answer style" override (dev mode): "" = workspace default.
   // Value is a preset id or a custom-skill id.
   const [skillOverride, setSkillOverride] = useState<string>("");
@@ -698,6 +701,8 @@ export function AskWorkspace({
           name: file.name,
           content: file.content,
         })),
+        // "safe" is the default and sends nothing, so the prompt is unchanged.
+        answerMode: answerMode === "safe" ? null : answerMode,
       };
 
       let result;
@@ -937,6 +942,21 @@ export function AskWorkspace({
             <div className="ask-bottom-meta-row">
               <span className="ask-privacy-note">Answers stay on your computer, with sources attached.</span>
               <div className="ask-meta-controls">
+                <label
+                  className="ask-mode"
+                  title="How strictly the answer should stick to your project files."
+                >
+                  <span>Mode</span>
+                  <select
+                    value={answerMode}
+                    onChange={(event) => setAnswerMode(event.target.value)}
+                  >
+                    <option value="safe">Balanced</option>
+                    <option value="sources_only">Only from sources</option>
+                    <option value="deep">Deep dive</option>
+                    <option value="explain">Explain with sources</option>
+                  </select>
+                </label>
                 {devMode ? (
                   <div className="ask-dev-cluster">
                     <label className="ask-switch" title="Only affects reasoning models (deepseek-r1, qwq…)">
@@ -2072,11 +2092,42 @@ function AnswerResult({
           </div>
         ) : null}
 
-        {(answer.project_memory_used ?? 0) > 0 || (answer.project_facts_used ?? 0) > 0 ? (
-          <p className="answer-memory-note">
-            Used {answer.project_memory_used ?? 0} memory note(s) and{" "}
-            {answer.project_facts_used ?? 0} map fact(s) from this project.
-          </p>
+        {(answer.project_memory_used ?? 0) > 0 ||
+        (answer.project_facts_used ?? 0) > 0 ||
+        (answer.project_guardrails_used?.length ?? 0) > 0 ? (
+          <details className="why-answer">
+            <summary>
+              Why this answer? · {answer.project_memory_used ?? 0} note(s),{" "}
+              {answer.project_facts_used ?? 0} map fact(s)
+              {(answer.project_guardrails_used?.length ?? 0) > 0
+                ? `, ${answer.project_guardrails_used?.length} guardrail(s)`
+                : ""}
+            </summary>
+            {(answer.project_memory_details?.length ?? 0) > 0 ? (
+              <div className="why-answer-group">
+                <p className="why-answer-label">Memory used</p>
+                <ul>
+                  {answer.project_memory_details?.map((m, i) => (
+                    <li key={`mem-${i}`}>
+                      <span className="why-answer-text">{m.text}</span>
+                      {m.grounding ? <span className="why-answer-src"> — {m.grounding}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {(answer.project_guardrails_used?.length ?? 0) > 0 ? (
+              <div className="why-answer-group">
+                <p className="why-answer-label">Guardrails applied</p>
+                <ul>
+                  {answer.project_guardrails_used?.map((g, i) => (
+                    <li key={`gr-${i}`}>{g}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            <p className="why-answer-foot">Shown from what actually went into the prompt.</p>
+          </details>
         ) : null}
 
         {answer.sources.length > 0 || attachedFileNames.length > 0 ? (

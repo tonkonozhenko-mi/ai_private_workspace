@@ -46,3 +46,7 @@ class WorkspaceQuestionAnswer:
     conversation_message_id: str | None = None
     project_memory_used: int = 0
     project_facts_used: int = 0
+    # For a "Why this answer?" panel: the notes/guardrails that actually went into
+    # the prompt (each {kind, text, grounding}); guardrails as plain strings.
+    project_memory_details: list = field(default_factory=list)
+    project_guardrails_used: list = field(default_factory=list)

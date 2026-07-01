@@ -4,7 +4,9 @@ import {
   addProjectMemory,
   checkProjectMemoryContradictions,
   deleteProjectMemory,
+  getProjectMemoryDuplicates,
   listProjectMemory,
+  mergeProjectMemory,
   pinProjectMemory,
   setProjectMemoryStale,
 } from "../api/client";
@@ -42,6 +44,8 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
   // When a new note looks like it contradicts/replaces existing ones, we hold the
   // candidates here and ask the user to supersede one or keep both — before saving.
   const [contradictions, setContradictions] = useState<ProjectMemoryItem[]>([]);
+  // Clusters of near-duplicate notes, surfaced for a review-first merge.
+  const [duplicates, setDuplicates] = useState<ProjectMemoryItem[][]>([]);
   // The list is management, not the main job — keep it collapsed by default and
   // just confirm each add transiently, so the card stays clean.
   const [showList, setShowList] = useState(false);
@@ -60,7 +64,21 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
         if (!controller.signal.aborted) setItems(res.items);
       })
       .catch(() => {});
+    getProjectMemoryDuplicates(workspaceId, { signal: controller.signal })
+      .then((res) => {
+        if (!controller.signal.aborted) setDuplicates(res.groups ?? []);
+      })
+      .catch(() => {});
   }, [workspaceId]);
+
+  const mergeGroup = useCallback(
+    async (group: ProjectMemoryItem[], keepId: string) => {
+      const dropIds = group.filter((i) => i.id !== keepId).map((i) => i.id);
+      await mergeProjectMemory(workspaceId, keepId, dropIds).catch(() => {});
+      load();
+    },
+    [workspaceId, load],
+  );
 
   useEffect(() => {
     load();
@@ -243,6 +261,31 @@ export function ProjectMemory({ dashboard }: { dashboard: WorkspaceDashboard }) 
           prd here"); <strong>Note</strong> for anything else worth remembering.
         </p>
       )}
+
+      {duplicates.length > 0 ? (
+        <div className="pm-duplicates">
+          <p className="pm-duplicates-head">
+            Possible duplicates — keep one, retire the rest?
+          </p>
+          {duplicates.map((group, gi) => (
+            <div className="pm-dup-group" key={`dup-${gi}`}>
+              {group.map((item) => (
+                <div className="pm-dup-row" key={item.id}>
+                  <span className="pm-text">{item.text}</span>
+                  <button
+                    type="button"
+                    className="pm-replace"
+                    title="Keep this one, retire the others in this group"
+                    onClick={() => mergeGroup(group, item.id)}
+                  >
+                    Keep this
+                  </button>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {visible.length > 0 ? (
         <div className="pm-entries">

@@ -11,6 +11,7 @@ from app.core.domain.project_memory import (
     MemorySource,
     MemoryStatus,
     contradiction_candidates,
+    find_duplicate_groups,
     memories_referencing_paths_with_evidence,
 )
 from app.core.ports.project_memory_repository import ProjectMemoryRepositoryPort
@@ -133,6 +134,38 @@ class FindContradictionsUseCase:
             contradiction_candidates(text, items, is_correction=(kind == MemoryKind.CORRECTION))
         )
         return [i for i in items if i.id in ids]
+
+
+class FindMemoryDuplicatesUseCase:
+    """Return clusters of near-duplicate active notes, so the UI can offer to merge
+    them before memory turns noisy. Deterministic; finds only, never deletes."""
+
+    def __init__(self, repository: ProjectMemoryRepositoryPort) -> None:
+        self.repository = repository
+
+    def execute(self, workspace_id: str) -> list[list[MemoryItem]]:
+        items = self.repository.list(workspace_id)
+        by_id = {i.id: i for i in items}
+        groups = find_duplicate_groups(items)
+        return [[by_id[i] for i in group if i in by_id] for group in groups]
+
+
+class MergeMemoryDuplicatesUseCase:
+    """Merge a duplicate cluster: keep one note, retire the rest as obsolete
+    (kept for history, never recalled). Review-first — the user picks which to
+    keep. No text is lost."""
+
+    def __init__(self, repository: ProjectMemoryRepositoryPort) -> None:
+        self.repository = repository
+
+    def execute(self, workspace_id: str, keep_id: str, drop_ids: list[str]) -> int:
+        dropped = 0
+        for item_id in drop_ids:
+            if item_id == keep_id:
+                continue
+            self.repository.set_status(workspace_id, item_id, MemoryStatus.OBSOLETE)
+            dropped += 1
+        return dropped
 
 
 class SetMemoryStatusUseCase:

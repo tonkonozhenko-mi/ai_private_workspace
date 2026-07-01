@@ -465,6 +465,8 @@ export interface WorkspaceQuestionAnswer {
   used_context_chunks: number;
   project_memory_used?: number;
   project_facts_used?: number;
+  project_memory_details?: { kind: string; text: string; grounding?: string | null }[];
+  project_guardrails_used?: string[];
   llm_provider: string;
   llm_model: string | null;
   diagnostic_code?: string | null;

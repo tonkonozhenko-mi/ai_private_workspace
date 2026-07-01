@@ -7,6 +7,13 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Added
+
+- **Answer modes: Balanced, Only-from-sources, Deep dive, Explain with sources.** A first-class Mode selector next to Ask sets how hard the answer leans on your project files. "Only from sources" forbids outside knowledge and makes the model say plainly when the files don't contain the answer; "Deep dive" pushes it to compare disagreeing configs and note gaps; "Explain with sources" walks the evidence step by step. Implemented as one short steering clause (small local models follow a single explicit instruction far better than a long system prompt), injected near the top of the RAG prompt — "Balanced" is the default and leaves the prompt unchanged. Threaded through Ask and Ask-with-selected-LLM, streaming and not. `core.domain.rag_prompt.AnswerMode`.
+- **Memory compaction: find & merge near-duplicate notes.** As memory grows it accumulates almost-identical notes. The memory card now surfaces clusters of near-duplicates (deterministic token-overlap, same kind, transitive grouping — no LLM) and offers a review-first "keep one, retire the rest" merge: the kept note stays active, the others become obsolete (kept for history, never recalled). Nothing is deleted or merged automatically. `find_duplicate_groups`, `FindMemoryDuplicatesUseCase` / `MergeMemoryDuplicatesUseCase`; `GET /memory/duplicates`, `POST /memory/merge`.
+- **"Why this answer?"** Each grounded answer now has a calm, collapsible panel listing exactly which memory notes and guardrails were actually used to build it (with their grounding), instead of a bare "used N notes" line — so you can see, and trust, what shaped the reply. Backend already returned the used items; this surfaces them.
+- **Eval: helpfulness and over-block rates.** The deterministic evaluators now measure not just safety but whether caution costs answers: the memory eval reports a **helpfulness rate** (of cases that should recall a note, how often it did), and the answer eval reports an **over-block rate** (positive cases wrongly pushed below the abstention threshold). Together they guard against the failure mode where anti-hallucination work quietly makes the assistant useless.
+
 ## [0.3.0] - 2026-07-01
 
 ### Added
