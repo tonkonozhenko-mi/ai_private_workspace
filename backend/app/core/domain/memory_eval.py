@@ -74,6 +74,17 @@ class MemoryEvalReport:
     def pass_rate(self) -> float:
         return self.passed / self.total if self.total else 0.0
 
+    @property
+    def helpfulness_rate(self) -> float:
+        """Of the cases where memory *should* have helped (they declared expected
+        notes), the fraction where it actually surfaced all of them. Answers
+        "does memory help?" — 1.0 means every case that needed a note got it."""
+        expecting = [s for s in self.scores if s.relevant_total > 0]
+        if not expecting:
+            return 1.0
+        helped = sum(1 for s in expecting if s.relevant_recall >= 1.0)
+        return helped / len(expecting)
+
 
 def score_memory_case(
     case: MemoryEvalCase, select_fn: MemorySelector | None = None

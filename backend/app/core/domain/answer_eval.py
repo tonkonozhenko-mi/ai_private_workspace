@@ -46,6 +46,9 @@ class CaseScore:
     top_score: float = 1.0
     # For an abstain case: did the system correctly abstain (find nothing confident)?
     abstained: bool | None = None
+    # For a positive case: did the safeguards wrongly abstain despite the answer
+    # being available (top_score below the threshold)? True = a safety over-block.
+    overblocked: bool = False
 
 
 @dataclass(frozen=True)
@@ -70,6 +73,16 @@ class EvalReport:
         if self.abstain_total == 0:
             return 0.0
         return (self.abstain_total - self.abstain_correct) / self.abstain_total
+
+    @property
+    def overblock_rate(self) -> float:
+        """Of the positive (should-answer) cases, the fraction the safeguards would
+        wrongly refuse (top similarity below the abstain threshold). Lower is
+        better; the mirror of hallucination_rate — measures over-caution."""
+        positives = [s for s in self.scores if not s.expect_abstain]
+        if not positives:
+            return 0.0
+        return sum(1 for s in positives if s.overblocked) / len(positives)
 
 
 def _norm(path: str) -> str:
@@ -123,6 +136,9 @@ def score_case(
         )
 
     passed = source_recall >= 1.0 and keyword_ok
+    # A positive case whose top similarity fell below the abstain threshold would
+    # be silently refused by the safeguards even though the answer was there.
+    overblocked = top_score < abstain_threshold
     return CaseScore(
         question=case.question,
         retrieved_sources=list(retrieved_sources),
@@ -133,6 +149,7 @@ def score_case(
         passed=passed,
         expect_abstain=False,
         top_score=top_score,
+        overblocked=overblocked,
     )
 
 
