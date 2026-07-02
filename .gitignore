@@ -45,3 +45,7 @@ backend/.venv_t/
 
 # Raw, unredacted screenshot drop — never commit (may contain names/paths/tickets)
 /assets/screenshots/
+
+# Local design mockups (not part of the app)
+/answer_trace_mockup.html
+/project_brain_mockup.html
