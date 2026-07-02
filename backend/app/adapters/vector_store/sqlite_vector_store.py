@@ -546,9 +546,7 @@ class SQLiteVectorStore:
             elif arrays[i].shape[0] == query_dim and query_norm == 0.0:
                 scored.append((0.0, row))
             else:  # odd-length embedding: keep the exact scalar behaviour
-                scored.append(
-                    (self._cosine_similarity(query_embedding, arrays[i].tolist()), row)
-                )
+                scored.append((self._cosine_similarity(query_embedding, arrays[i].tolist()), row))
         return scored
 
     @staticmethod
