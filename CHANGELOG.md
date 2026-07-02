@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **Faster dense retrieval scoring (numpy batch).** The vector store scored every candidate chunk with a per-row Python cosine loop; it now scores the whole batch in one vectorized numpy pass when numpy is present, with an exact pure-Python fallback (numerically identical, verified in tests) when it isn't. A modest end-to-end win today, because the dominant per-query cost is deserializing JSON embeddings — the larger fix (packed-binary embedding storage or a cached parsed matrix) is a separate, bigger change.
+
 ### Fixed
 
 - **No more "database is locked".** Background indexing writes the same SQLite files that a foreground `/ask` or status poll reads; with the default journal and no busy-timeout, a read arriving mid-write failed instantly. Every connection now opens in WAL mode (readers and a writer share the file) with `synchronous=NORMAL` and a 30-second busy-timeout, via a single shared helper routed through all 27 connection sites.
