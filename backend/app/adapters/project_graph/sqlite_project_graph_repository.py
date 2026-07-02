@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from app.adapters.memory.sqlite_connection import open_sqlite
 from app.core.domain.project_graph import (
     ProjectEntity,
     ProjectFinding,
@@ -150,7 +151,7 @@ class SQLiteProjectGraphRepository:
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.db_path)
+        connection = open_sqlite(self.db_path)
         connection.row_factory = sqlite3.Row
         return connection
 

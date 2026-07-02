@@ -2,6 +2,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+from app.adapters.memory.sqlite_connection import open_sqlite
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
 from app.core.domain.workspace import Workspace
 
@@ -142,7 +143,7 @@ class SQLiteWorkspaceRepository:
     def _connect(self) -> sqlite3.Connection:
         try:
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
-            connection = sqlite3.connect(self.db_path)
+            connection = open_sqlite(self.db_path)
         except (OSError, sqlite3.Error) as exc:
             raise RuntimeError(
                 f"Could not open workspace SQLite database at {self.db_path}: {exc}"

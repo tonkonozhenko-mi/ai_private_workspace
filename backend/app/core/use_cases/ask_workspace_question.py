@@ -46,7 +46,7 @@ from app.core.ports.llm_provider_factory import (
 )
 from app.core.ports.reranker import RerankerPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
-from app.core.ports.vector_store import VectorStorePort
+from app.core.ports.vector_store import VectorStoreCorruptError, VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.use_cases.add_timeline_event import (
     AddTimelineEventInput,
@@ -57,6 +57,12 @@ WORKSPACE_NOT_INDEXED_ANSWER = (
     "This workspace has not been indexed yet. Run workspace indexing first."
 )
 WORKSPACE_NOT_INDEXED_MESSAGE = "No workspace index metadata was found."
+
+WORKSPACE_INDEX_CORRUPT_ANSWER = (
+    "The project's search index looks damaged, so I can't search your files right "
+    "now. Rebuild the index for this workspace (re-index it), then ask again."
+)
+WORKSPACE_INDEX_CORRUPT_MESSAGE = "The search index is corrupt and must be rebuilt."
 
 # When the best retrieved chunk is below this cosine-similarity score, the
 # question is treated as general conversation (e.g. "what time is it", "how are
@@ -426,7 +432,19 @@ class AskWorkspaceQuestionUseCase:
                 request,
             )
 
-        context_results = self._search_context(request, llm_provider)
+        try:
+            context_results = self._search_context(request, llm_provider)
+        except VectorStoreCorruptError:
+            return self._record_question_event(
+                self._diagnostic_answer(
+                    request=request,
+                    llm_provider=llm_provider,
+                    answer=WORKSPACE_INDEX_CORRUPT_ANSWER,
+                    diagnostic_code="index_corrupt",
+                    diagnostic_message=WORKSPACE_INDEX_CORRUPT_MESSAGE,
+                ),
+                request,
+            )
         sources = [
             RagSource(
                 chunk_id=result.chunk_id,
@@ -563,7 +581,22 @@ class AskWorkspaceQuestionUseCase:
             )
             return
 
-        context_results = self._search_context(request, llm_provider)
+        try:
+            context_results = self._search_context(request, llm_provider)
+        except VectorStoreCorruptError:
+            yield AskStreamFinal(
+                self._record_question_event(
+                    self._diagnostic_answer(
+                        request=request,
+                        llm_provider=llm_provider,
+                        answer=WORKSPACE_INDEX_CORRUPT_ANSWER,
+                        diagnostic_code="index_corrupt",
+                        diagnostic_message=WORKSPACE_INDEX_CORRUPT_MESSAGE,
+                    ),
+                    request,
+                )
+            )
+            return
         sources = [
             RagSource(
                 chunk_id=result.chunk_id,

@@ -1,3 +1,4 @@
+from app.adapters.memory.sqlite_connection import open_sqlite
 """SQLite-backed store for the latest Project Watcher digest per workspace,
 plus an append-only change-history timeline."""
 
@@ -19,7 +20,7 @@ class SQLiteProjectWatchRepository:
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.db_path)
+        connection = open_sqlite(self.db_path)
         connection.row_factory = sqlite3.Row
         return connection
 

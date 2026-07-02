@@ -5,6 +5,7 @@ import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
+from app.adapters.memory.sqlite_connection import open_sqlite
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
 from app.core.domain.workspace_storage import WorkspaceStorageBreakdown
 
@@ -263,6 +264,6 @@ class SQLiteWorkspaceStorageGateway:
     @staticmethod
     def _connect(db_path: Path) -> sqlite3.Connection:
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        connection = sqlite3.connect(db_path)
+        connection = open_sqlite(db_path)
         connection.row_factory = sqlite3.Row
         return connection

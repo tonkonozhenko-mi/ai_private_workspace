@@ -3,6 +3,7 @@ import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
+from app.adapters.memory.sqlite_connection import open_sqlite
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
 from app.core.domain.project_scan import ProjectFile, ProjectScanResult
 from app.core.domain.skill import SkillMatch
@@ -53,7 +54,7 @@ class SQLiteProjectScanRepository:
         return self._from_dict(json.loads(row["scan_json"]))
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.db_path)
+        connection = open_sqlite(self.db_path)
         connection.row_factory = sqlite3.Row
         return connection
 

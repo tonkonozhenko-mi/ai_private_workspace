@@ -3,6 +3,16 @@ from typing import Protocol
 from app.core.domain.indexing import ContextSearchResult, TextChunk
 
 
+class VectorStoreCorruptError(Exception):
+    """The vector index file is damaged and can't be read.
+
+    Adapters raise this (instead of leaking a backend-specific error like
+    ``sqlite3.DatabaseError``) when the underlying store reports corruption, so
+    callers can respond with a clear "rebuild the index" message rather than a
+    raw 500. The only cure is to re-index the workspace.
+    """
+
+
 class VectorStorePort(Protocol):
     def upsert_chunks(
         self,

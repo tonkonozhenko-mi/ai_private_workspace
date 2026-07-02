@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **No more "database is locked".** Background indexing writes the same SQLite files that a foreground `/ask` or status poll reads; with the default journal and no busy-timeout, a read arriving mid-write failed instantly. Every connection now opens in WAL mode (readers and a writer share the file) with `synchronous=NORMAL` and a 30-second busy-timeout, via a single shared helper routed through all 27 connection sites.
+- **A corrupt search index gives a clear message, not a raw 500.** If the vector index file is damaged, `/ask` used to crash with an unhandled `sqlite3` error. It now surfaces a friendly "the search index looks damaged — rebuild it for this workspace" answer (diagnostic code `index_corrupt`), on both the normal and streaming paths. Unrelated database errors still propagate as before.
 ### Security
 
 - **Triaged quick-xml DoS advisories (RUSTSEC-2026-0194 / -0195).** OSV flagged a quadratic-time parsing DoS in `quick-xml 0.38.4`, reachable only when parsing untrusted XML. In this app the crate is pulled purely transitively (Tauri's `plist` parses the app's own Info.plist at build/bundle time — never attacker-controlled input), so the issue isn't reachable in the shipped product. The only fix is `quick-xml >= 0.41.0`, currently blocked upstream by `plist 1.8.0`'s `^0.38` pin. Documented both in `osv-scanner.toml` with a short re-review date so we pick up the upstream bump promptly.
