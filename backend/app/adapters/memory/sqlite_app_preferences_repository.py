@@ -1,3 +1,4 @@
+from app.adapters.memory.sqlite_connection import open_sqlite
 """SQLite-backed app preferences store (global — one blob per install)."""
 
 import json
@@ -12,7 +13,7 @@ class SQLiteAppPreferencesRepository:
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.db_path)
+        connection = open_sqlite(self.db_path)
         connection.row_factory = sqlite3.Row
         return connection
 

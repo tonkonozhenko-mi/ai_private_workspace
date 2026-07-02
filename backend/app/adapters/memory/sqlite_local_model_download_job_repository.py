@@ -3,6 +3,7 @@ import sqlite3
 from dataclasses import asdict
 from pathlib import Path
 
+from app.adapters.memory.sqlite_connection import open_sqlite
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
 from app.core.domain.command import CommandProposal
 from app.core.domain.local_model_download_job import LocalModelDownloadJob
@@ -60,7 +61,7 @@ class SQLiteLocalModelDownloadJobRepository:
         return job
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.db_path)
+        connection = open_sqlite(self.db_path)
         connection.row_factory = sqlite3.Row
         return connection
 

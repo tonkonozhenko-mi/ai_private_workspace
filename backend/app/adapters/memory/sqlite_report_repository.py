@@ -2,6 +2,7 @@ import json
 import sqlite3
 from pathlib import Path
 
+from app.adapters.memory.sqlite_connection import open_sqlite
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
 from app.core.domain.report import SavedWorkspaceReport, update_saved_workspace_report
 
@@ -188,6 +189,6 @@ class SQLiteReportRepository:
         return [str(item) for item in data] if isinstance(data, list) else []
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.db_path)
+        connection = open_sqlite(self.db_path)
         connection.row_factory = sqlite3.Row
         return connection

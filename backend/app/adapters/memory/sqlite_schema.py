@@ -1,3 +1,4 @@
+from app.adapters.memory.sqlite_connection import open_sqlite
 import sqlite3
 from pathlib import Path
 
@@ -6,7 +7,7 @@ def initialize_workspace_schema(db_path: str | Path) -> None:
     database_path = Path(db_path)
     database_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with sqlite3.connect(database_path) as connection:
+    with open_sqlite(database_path) as connection:
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS workspaces (

@@ -3,6 +3,7 @@ import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
+from app.adapters.memory.sqlite_connection import open_sqlite
 from app.adapters.memory.sqlite_schema import initialize_workspace_schema
 from app.core.domain.workspace_model_selection import (
     WorkspaceModelSelection,
@@ -53,7 +54,7 @@ class SQLiteWorkspaceModelSelectionRepository:
         return selection
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.db_path)
+        connection = open_sqlite(self.db_path)
         connection.row_factory = sqlite3.Row
         return connection
 
