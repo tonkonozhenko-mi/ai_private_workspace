@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
+import struct
 from datetime import UTC, datetime
 from math import sqrt
 from pathlib import Path
@@ -38,6 +39,20 @@ def _raise_if_corrupt(error: sqlite3.DatabaseError) -> None:
     message = str(error).lower()
     if any(marker in message for marker in _CORRUPTION_MARKERS):
         raise VectorStoreCorruptError(str(error)) from error
+
+
+def _pack_embedding(embedding: list[float]) -> bytes:
+    """Pack a vector as little-endian float32 (4 bytes/dim) for embedding_blob."""
+    return struct.pack(f"<{len(embedding)}f", *embedding)
+
+
+def _row_blob(row: sqlite3.Row) -> bytes | None:
+    """The float32 blob for a row, or None for a legacy JSON-only row."""
+    try:
+        blob = row["embedding_blob"]
+    except (IndexError, KeyError):
+        return None
+    return blob if blob else None
 
 
 class SQLiteVectorStore:
@@ -80,7 +95,11 @@ class SQLiteVectorStore:
                 chunk.content,
                 chunk.token_estimate,
                 json.dumps(chunk.metadata, sort_keys=True),
-                json.dumps([float(value) for value in embedding]),
+                # Embedding lives in embedding_blob now; keep embedding_json a
+                # valid-but-empty placeholder for the NOT NULL constraint (and so
+                # any old code that reads it gets a harmless empty list).
+                "[]",
+                _pack_embedding(embedding),
                 embedding_provider or "",
                 embedding_model or "",
                 embedding_dimension or len(embedding),
@@ -94,10 +113,10 @@ class SQLiteVectorStore:
                 """
                 INSERT INTO workspace_vector_chunks (
                     workspace_id, chunk_id, source_path, chunk_index, content,
-                    token_estimate, metadata_json, embedding_json,
+                    token_estimate, metadata_json, embedding_json, embedding_blob,
                     embedding_provider, embedding_model, embedding_dimension,
                     created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(workspace_id, chunk_id) DO UPDATE SET
                     source_path = excluded.source_path,
                     chunk_index = excluded.chunk_index,
@@ -105,6 +124,7 @@ class SQLiteVectorStore:
                     token_estimate = excluded.token_estimate,
                     metadata_json = excluded.metadata_json,
                     embedding_json = excluded.embedding_json,
+                    embedding_blob = excluded.embedding_blob,
                     embedding_provider = excluded.embedding_provider,
                     embedding_model = excluded.embedding_model,
                     embedding_dimension = excluded.embedding_dimension,
@@ -155,7 +175,8 @@ class SQLiteVectorStore:
             with self._connect() as connection:
                 rows = connection.execute(
                     """
-                    SELECT chunk_id, source_path, content, metadata_json, embedding_json
+                    SELECT chunk_id, source_path, content, metadata_json,
+                           embedding_json, embedding_blob
                     FROM workspace_vector_chunks
                     WHERE workspace_id = ?
                       AND (? = '' OR embedding_provider = ?)
@@ -218,7 +239,7 @@ class SQLiteVectorStore:
             # Carry the chunk's embedding so downstream MMR diversification can
             # reuse it without re-embedding. Internal only — never serialized to
             # the client (the API exposes RagSource, not this metadata).
-            metadata["_embedding"] = self._loads_embedding(row["embedding_json"])
+            metadata["_embedding"] = self._decode_embedding(row)
             results.append(
                 ContextSearchResult(
                     chunk_id=row["chunk_id"],
@@ -402,6 +423,20 @@ class SQLiteVectorStore:
                 )
                 """
             )
+            # Embeddings are stored as packed little-endian float32 (4 bytes each)
+            # in embedding_blob — decoding a blob is a single frombuffer, vs.
+            # json.loads over N×D numbers on every query. Nullable + additive so
+            # old JSON-only rows keep working until they're re-indexed.
+            existing_columns = {
+                column[1]
+                for column in connection.execute(
+                    "PRAGMA table_info(workspace_vector_chunks)"
+                ).fetchall()
+            }
+            if "embedding_blob" not in existing_columns:
+                connection.execute(
+                    "ALTER TABLE workspace_vector_chunks ADD COLUMN embedding_blob BLOB"
+                )
             connection.execute(
                 """
                 CREATE INDEX IF NOT EXISTS idx_workspace_vector_chunks_workspace
@@ -454,6 +489,23 @@ class SQLiteVectorStore:
             return {}
         return {str(key): str(item) for key, item in loaded.items()}
 
+    def _decode_embedding(self, row: sqlite3.Row) -> list[float]:
+        """A row's embedding as a list — from the float32 blob when present,
+        else the legacy JSON column (for rows written before blob storage)."""
+        blob = _row_blob(row)
+        if blob is not None:
+            return list(struct.unpack(f"<{len(blob) // 4}f", blob))
+        return self._loads_embedding(row["embedding_json"])
+
+    def _row_array(self, row: sqlite3.Row) -> Any:
+        """A row's embedding as a numpy float64 array (blob decode is a single
+        frombuffer; JSON rows are parsed once)."""
+        blob = _row_blob(row)
+        if blob is not None:
+            return _np.frombuffer(blob, dtype="<f4").astype(_np.float64)
+        loaded = json.loads(row["embedding_json"])
+        return _np.asarray(loaded if isinstance(loaded, list) else [], dtype=_np.float64)
+
     def _dense_scores(
         self, query_embedding: list[float], rows: list[sqlite3.Row]
     ) -> list[tuple[float, sqlite3.Row]]:
@@ -468,25 +520,19 @@ class SQLiteVectorStore:
         if _np is None or not query_embedding:
             scored_fallback: list[tuple[float, sqlite3.Row]] = []
             for row in rows:
-                embedding = self._loads_embedding(row["embedding_json"])
+                embedding = self._decode_embedding(row)
                 scored_fallback.append((self._cosine_similarity(query_embedding, embedding), row))
             return scored_fallback
 
-        # Parse JSON straight into lists once (skip the per-element float() pass
-        # that _loads_embedding does — numpy coerces dtype in bulk instead).
-        parsed: list[list[float]] = []
-        for row in rows:
-            loaded = json.loads(row["embedding_json"])
-            parsed.append(loaded if isinstance(loaded, list) else [])
-
+        arrays = [self._row_array(row) for row in rows]
         query = _np.asarray(query_embedding, dtype=_np.float64)
         query_norm = float(_np.linalg.norm(query))
         query_dim = len(query_embedding)
 
         batch_scores: dict[int, float] = {}
-        batch_indexes = [i for i, emb in enumerate(parsed) if len(emb) == query_dim]
+        batch_indexes = [i for i, arr in enumerate(arrays) if arr.shape[0] == query_dim]
         if batch_indexes and query_norm > 0.0:
-            matrix = _np.asarray([parsed[i] for i in batch_indexes], dtype=_np.float64)
+            matrix = _np.stack([arrays[i] for i in batch_indexes])
             dots = matrix @ query
             norms = _np.linalg.norm(matrix, axis=1)
             with _np.errstate(divide="ignore", invalid="ignore"):
@@ -494,13 +540,15 @@ class SQLiteVectorStore:
             batch_scores = {i: float(score) for i, score in zip(batch_indexes, sims)}
 
         scored: list[tuple[float, sqlite3.Row]] = []
-        for i, (embedding, row) in enumerate(zip(parsed, rows)):
+        for i, row in enumerate(rows):
             if i in batch_scores:
                 scored.append((batch_scores[i], row))
-            elif len(embedding) == query_dim and query_norm == 0.0:
+            elif arrays[i].shape[0] == query_dim and query_norm == 0.0:
                 scored.append((0.0, row))
             else:  # odd-length embedding: keep the exact scalar behaviour
-                scored.append((self._cosine_similarity(query_embedding, embedding), row))
+                scored.append(
+                    (self._cosine_similarity(query_embedding, arrays[i].tolist()), row)
+                )
         return scored
 
     @staticmethod
