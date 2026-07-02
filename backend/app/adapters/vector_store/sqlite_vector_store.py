@@ -10,6 +10,29 @@ from typing import Any
 
 from app.adapters.memory.sqlite_connection import open_sqlite
 from app.core.domain.indexing import ContextSearchResult, TextChunk
+from app.core.ports.vector_store import VectorStoreCorruptError
+
+# Substrings SQLite uses when the database file itself is damaged (vs. a normal
+# operational error like a missing table). We only translate these to a
+# "rebuild the index" signal — everything else propagates unchanged.
+_CORRUPTION_MARKERS = (
+    "malformed",
+    "not a database",
+    "disk image",
+    "file is encrypted",
+    "database corruption",
+)
+
+
+def _raise_if_corrupt(error: sqlite3.DatabaseError) -> None:
+    """Re-raise a damaged-index error as the typed ``VectorStoreCorruptError``.
+
+    Returns without raising when the error is not corruption, so the caller can
+    ``raise`` the original.
+    """
+    message = str(error).lower()
+    if any(marker in message for marker in _CORRUPTION_MARKERS):
+        raise VectorStoreCorruptError(str(error)) from error
 
 
 class SQLiteVectorStore:
@@ -123,41 +146,45 @@ class SQLiteVectorStore:
         if limit <= 0:
             return []
 
-        with self._connect() as connection:
-            rows = connection.execute(
-                """
-                SELECT chunk_id, source_path, content, metadata_json, embedding_json
-                FROM workspace_vector_chunks
-                WHERE workspace_id = ?
-                  AND (? = '' OR embedding_provider = ?)
-                  AND (? = '' OR embedding_model = ?)
-                  AND (? IS NULL OR embedding_dimension = ?)
-                """,
-                (
-                    workspace_id,
-                    embedding_provider or "",
-                    embedding_provider or "",
-                    embedding_model or "",
-                    embedding_model or "",
-                    embedding_dimension,
-                    embedding_dimension,
-                ),
-            ).fetchall()
+        try:
+            with self._connect() as connection:
+                rows = connection.execute(
+                    """
+                    SELECT chunk_id, source_path, content, metadata_json, embedding_json
+                    FROM workspace_vector_chunks
+                    WHERE workspace_id = ?
+                      AND (? = '' OR embedding_provider = ?)
+                      AND (? = '' OR embedding_model = ?)
+                      AND (? IS NULL OR embedding_dimension = ?)
+                    """,
+                    (
+                        workspace_id,
+                        embedding_provider or "",
+                        embedding_provider or "",
+                        embedding_model or "",
+                        embedding_model or "",
+                        embedding_dimension,
+                        embedding_dimension,
+                    ),
+                ).fetchall()
 
-            # Dense ranking: cosine similarity over every candidate chunk.
-            scored: list[tuple[float, sqlite3.Row]] = []
-            for row in rows:
-                embedding = self._loads_embedding(row["embedding_json"])
-                scored.append((self._cosine_similarity(query_embedding, embedding), row))
-            scored.sort(key=lambda item: item[0], reverse=True)
+                # Dense ranking: cosine similarity over every candidate chunk.
+                scored: list[tuple[float, sqlite3.Row]] = []
+                for row in rows:
+                    embedding = self._loads_embedding(row["embedding_json"])
+                    scored.append((self._cosine_similarity(query_embedding, embedding), row))
+                scored.sort(key=lambda item: item[0], reverse=True)
 
-            # How wide to fuse: a generous window so BM25-only hits can surface.
-            fusion_cap = max(limit * 5, 50)
-            cosine_by_id = {row["chunk_id"]: (score, row) for score, row in scored}
-            vector_ids = [row["chunk_id"] for _, row in scored[:fusion_cap]]
+                # How wide to fuse: a generous window so BM25-only hits can surface.
+                fusion_cap = max(limit * 5, 50)
+                cosine_by_id = {row["chunk_id"]: (score, row) for score, row in scored}
+                vector_ids = [row["chunk_id"] for _, row in scored[:fusion_cap]]
 
-            # Sparse ranking: BM25 keyword search over path + content.
-            bm25_ids = self._bm25_ids(connection, workspace_id, query_text, fusion_cap)
+                # Sparse ranking: BM25 keyword search over path + content.
+                bm25_ids = self._bm25_ids(connection, workspace_id, query_text, fusion_cap)
+        except sqlite3.DatabaseError as error:
+            _raise_if_corrupt(error)
+            raise
 
         # --- Reciprocal Rank Fusion across three signals --------------------
         # 1) dense vectors, 2) BM25 keywords, 3) a path/env boost: chunks whose
