@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Security
+
+- **Triaged quick-xml DoS advisories (RUSTSEC-2026-0194 / -0195).** OSV flagged a quadratic-time parsing DoS in `quick-xml 0.38.4`, reachable only when parsing untrusted XML. In this app the crate is pulled purely transitively (Tauri's `plist` parses the app's own Info.plist at build/bundle time — never attacker-controlled input), so the issue isn't reachable in the shipped product. The only fix is `quick-xml >= 0.41.0`, currently blocked upstream by `plist 1.8.0`'s `^0.38` pin. Documented both in `osv-scanner.toml` with a short re-review date so we pick up the upstream bump promptly.
+
 ### Changed
 
 - **"How did the AI reach this?" — on-demand trace panel instead of an inline dump.** The answer now stays clean by default; a quiet button under it opens a right-side panel only when you ask for it. Two tabs: **Reasoning** (honest, data-driven steps — understood the question → searched memory → retrieved N files/chunks → used K map facts → applied guardrails → grounding check) and **Sources** (the exact memory notes with their kind and grounding, the files, the map-fact count, guardrails, and the groundedness result). Every line comes from real response fields — no invented confidence score; the grounding step simply reflects whether the answer flagged anything to verify. Replaces the old inline "Why this answer?" disclosure. The same panel is now used in **Group Ask** for parity (memory/map-fact counts and sources grouped by repository).

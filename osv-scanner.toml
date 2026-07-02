@@ -95,3 +95,21 @@ reason = "Unmaintained Unicode crate pulled in transitively; no fix available."
 id = "GHSA-6w46-j5rx-g56g" # pytest
 ignoreUntil = 2027-01-01
 reason = "Test-only dependency, never shipped. The advisory concerns collecting tests from an attacker-controlled directory; not applicable to our first-party suite run in CI."
+
+# quick-xml 0.38.4 quadratic-time DoS when iterating a start tag's attributes on
+# UNTRUSTED XML. Reached only transitively: tauri-utils/tauri-build → plist →
+# quick-xml, where plist parses the app's OWN Info.plist at build/bundle time.
+# The app never feeds attacker-controlled XML or property lists into this path,
+# so the DoS is not reachable in the shipped product. No upstream fix yet: the
+# only patched quick-xml is >= 0.41.0, but plist 1.8.0 pins `quick-xml ^0.38`,
+# so it can't be bumped until plist (and Tauri) release a version on 0.41.
+# Short re-review window so we pick up the upstream bump promptly.
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0194" # quick-xml — quadratic attribute-name duplicate check
+ignoreUntil = 2026-10-01
+reason = "Transitive via Tauri's plist; only the app's own build-time Info.plist is parsed, never untrusted input. Fix needs quick-xml >= 0.41.0, blocked by plist 1.8.0's `^0.38` pin until upstream bumps it."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0195" # quick-xml — related quadratic-time parsing DoS
+ignoreUntil = 2026-10-01
+reason = "Transitive via Tauri's plist; only the app's own build-time Info.plist is parsed, never untrusted input. Fix needs quick-xml >= 0.41.0, blocked by plist 1.8.0's `^0.38` pin until upstream bumps it."
