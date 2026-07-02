@@ -1,4 +1,5 @@
 from app.adapters.memory.sqlite_connection import open_sqlite
+
 """SQLite-backed app preferences store (global — one blob per install)."""
 
 import json

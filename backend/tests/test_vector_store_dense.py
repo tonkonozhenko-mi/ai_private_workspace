@@ -10,7 +10,9 @@ from app.core.domain.indexing import TextChunk
 
 def _rows(count, dim, seed=0):
     rng = random.Random(seed)
-    return [{"embedding_json": json.dumps([rng.random() for _ in range(dim)])} for _ in range(count)]
+    return [
+        {"embedding_json": json.dumps([rng.random() for _ in range(dim)])} for _ in range(count)
+    ]
 
 
 def test_numpy_matches_pure_python_exactly(tmp_path):

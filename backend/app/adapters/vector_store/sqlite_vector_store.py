@@ -490,9 +490,7 @@ class SQLiteVectorStore:
             dots = matrix @ query
             norms = _np.linalg.norm(matrix, axis=1)
             with _np.errstate(divide="ignore", invalid="ignore"):
-                sims = _np.nan_to_num(
-                    dots / (norms * query_norm), nan=0.0, posinf=0.0, neginf=0.0
-                )
+                sims = _np.nan_to_num(dots / (norms * query_norm), nan=0.0, posinf=0.0, neginf=0.0)
             batch_scores = {i: float(score) for i, score in zip(batch_indexes, sims)}
 
         scored: list[tuple[float, sqlite3.Row]] = []

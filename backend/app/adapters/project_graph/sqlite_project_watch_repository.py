@@ -1,4 +1,5 @@
 from app.adapters.memory.sqlite_connection import open_sqlite
+
 """SQLite-backed store for the latest Project Watcher digest per workspace,
 plus an append-only change-history timeline."""
 

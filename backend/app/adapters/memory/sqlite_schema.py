@@ -1,6 +1,7 @@
-from app.adapters.memory.sqlite_connection import open_sqlite
 import sqlite3
 from pathlib import Path
+
+from app.adapters.memory.sqlite_connection import open_sqlite
 
 
 def initialize_workspace_schema(db_path: str | Path) -> None:
