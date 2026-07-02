@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **"How did the AI reach this?" — on-demand trace panel instead of an inline dump.** The answer now stays clean by default; a quiet button under it opens a right-side panel only when you ask for it. Two tabs: **Reasoning** (honest, data-driven steps — understood the question → searched memory → retrieved N files/chunks → used K map facts → applied guardrails → grounding check) and **Sources** (the exact memory notes with their kind and grounding, the files, the map-fact count, guardrails, and the groundedness result). Every line comes from real response fields — no invented confidence score; the grounding step simply reflects whether the answer flagged anything to verify. Replaces the old inline "Why this answer?" disclosure.
+
 ### Added
 
 - **Answer modes: Balanced, Only-from-sources, Deep dive, Explain with sources.** A first-class Mode selector next to Ask sets how hard the answer leans on your project files. "Only from sources" forbids outside knowledge and makes the model say plainly when the files don't contain the answer; "Deep dive" pushes it to compare disagreeing configs and note gaps; "Explain with sources" walks the evidence step by step. Implemented as one short steering clause (small local models follow a single explicit instruction far better than a long system prompt), injected near the top of the RAG prompt — "Balanced" is the default and leaves the prompt unchanged. Threaded through Ask and Ask-with-selected-LLM, streaming and not. `core.domain.rag_prompt.AnswerMode`.

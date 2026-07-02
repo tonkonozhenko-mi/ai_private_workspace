@@ -5112,18 +5112,51 @@ a.getting-ready-cta:hover {
 .answer-memory-note { font-size: 11.5px; color: var(--c-text-3); margin: 8px 0 0; }
 
 /* "Why this answer?" — collapsed by default so signals don't crowd the answer. */
-.why-answer { margin: 10px 0 0; font-size: 12px; color: var(--c-text-2); }
-.why-answer > summary { cursor: pointer; color: var(--c-text-3); font-size: 11.5px; list-style: none; user-select: none; }
-.why-answer > summary::-webkit-details-marker { display: none; }
-.why-answer > summary::before { content: "▸ "; color: var(--c-text-3); }
-.why-answer[open] > summary::before { content: "▾ "; }
-.why-answer > summary:hover { color: var(--c-text); }
-.why-answer-group { margin: 8px 0 0; }
-.why-answer-label { margin: 0 0 3px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--c-text-3); }
-.why-answer-group ul { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 3px; }
-.why-answer-group li { font-size: 12px; color: var(--c-text-2); line-height: 1.45; }
-.why-answer-src { color: var(--c-text-3); font-style: italic; }
-.why-answer-foot { margin: 8px 0 0; font-size: 10.5px; color: var(--c-text-3); }
+/* --- "How did the AI reach this?" — calm button that opens a side panel --- */
+.why-answer-btn { display: inline-flex; align-items: center; gap: 8px; margin: 10px 0 0; padding: 7px 12px; border: 1px solid var(--c-border-strong); border-radius: var(--r-sm); background: var(--c-surface-2); color: var(--c-text); font-size: 12.5px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.why-answer-btn:hover { border-color: var(--c-accent-border); background: var(--c-surface-3); }
+.wab-icon { width: 18px; height: 18px; border-radius: 6px; background: var(--c-accent-soft); color: var(--c-accent); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+.wab-meta { color: var(--c-text-3); font-size: 11.5px; }
+
+.trace-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.28); z-index: 60; animation: traceFade 0.18s ease; }
+.trace-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 400px; max-width: 92vw; z-index: 61; display: flex; flex-direction: column; background: var(--c-surface); border-left: 1px solid var(--c-border-strong); box-shadow: -18px 0 44px rgba(0, 0, 0, 0.35); animation: traceSlide 0.24s cubic-bezier(0.4, 0, 0.2, 1); }
+@keyframes traceFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes traceSlide { from { transform: translateX(24px); opacity: 0.4; } to { transform: none; opacity: 1; } }
+.trace-head { display: flex; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--c-border); }
+.trace-head h3 { margin: 0; font-size: 14px; font-weight: 600; color: var(--c-text); }
+.trace-head p { margin: 4px 0 0; font-size: 12px; color: var(--c-text-2); line-height: 1.5; }
+.trace-close { margin-left: auto; align-self: flex-start; background: none; border: none; color: var(--c-text-2); font-size: 16px; line-height: 1; cursor: pointer; }
+.trace-close:hover { color: var(--c-text); }
+.trace-tabs { display: flex; gap: 4px; padding: 10px 16px 0; border-bottom: 1px solid var(--c-border); }
+.trace-tab { background: none; border: none; border-bottom: 2px solid transparent; padding: 8px 12px; font-size: 12.5px; color: var(--c-text-2); cursor: pointer; }
+.trace-tab.on { color: var(--c-text); border-bottom-color: var(--c-accent); }
+.trace-tab:hover { color: var(--c-text); }
+.trace-body { flex: 1; overflow: auto; padding: 14px 16px; }
+
+.trace-steps { list-style: none; margin: 0; padding: 0; }
+.trace-step { display: flex; gap: 11px; padding: 9px 0; border-bottom: 1px solid var(--c-border); }
+.trace-step.muted { opacity: 0.6; }
+.trace-mk { width: 22px; height: 22px; flex: none; border-radius: 6px; background: var(--c-surface-2); display: grid; place-items: center; font-size: 12px; }
+.trace-step.done .trace-mk { background: var(--c-accent-soft); }
+.trace-step-text { display: flex; flex-direction: column; }
+.trace-step-text .tt { font-size: 13px; color: var(--c-text); }
+.trace-step-text .ss { font-size: 11.5px; color: var(--c-text-2); margin-top: 2px; }
+.trace-foot { margin: 12px 0 0; font-size: 11.5px; color: var(--c-text-3); }
+
+.trace-grp { margin-bottom: 16px; }
+.trace-grp h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 12px; font-weight: 600; color: var(--c-text-2); }
+.trace-grp .dot { width: 9px; height: 9px; border-radius: 2px; background: var(--c-text-3); }
+.trace-grp .dot.mem { background: #34d399; }
+.trace-grp .dot.file { background: #f5a623; }
+.trace-grp .dot.map { background: #4a90ff; }
+.trace-grp .dot.grd { background: #eab308; }
+.trace-grp .dot.ok { background: var(--c-success); }
+.trace-src { border: 1px solid var(--c-border); border-radius: var(--r-sm); background: var(--c-surface-2); padding: 9px 11px; margin-bottom: 7px; }
+.trace-src .t { font-size: 12.5px; color: var(--c-text); line-height: 1.45; }
+.trace-src.file .t { font-family: var(--font-mono, monospace); font-size: 11.5px; color: var(--c-text-2); word-break: break-all; }
+.trace-src .m { font-size: 11px; color: var(--c-text-3); margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; }
+.trace-src .kind { text-transform: capitalize; }
+.trace-src.warn { border-color: var(--c-warning); }
 
 /* --- Watch: show-all link --- */
 .pw-link { background: none; border: none; color: var(--c-accent); font-size: 12px; cursor: pointer; padding: 2px 0 0; align-self: flex-start; }
