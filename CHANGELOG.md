@@ -7,6 +7,11 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **No more "database is locked".** Background indexing writes the same SQLite files that a foreground `/ask` or status poll reads; with the default journal and no busy-timeout, a read arriving mid-write failed instantly. Every connection now opens in WAL mode (readers and a writer share the file) with `synchronous=NORMAL` and a 30-second busy-timeout, via a single shared helper routed through all 27 connection sites.
+- **A corrupt search index gives a clear message, not a raw 500.** If the vector index file is damaged, `/ask` used to crash with an unhandled `sqlite3` error. It now surfaces a friendly "the search index looks damaged — rebuild it for this workspace" answer (diagnostic code `index_corrupt`), on both the normal and streaming paths. Unrelated database errors still propagate as before.
+
 ### Changed
 
 - **"How did the AI reach this?" — on-demand trace panel instead of an inline dump.** The answer now stays clean by default; a quiet button under it opens a right-side panel only when you ask for it. Two tabs: **Reasoning** (honest, data-driven steps — understood the question → searched memory → retrieved N files/chunks → used K map facts → applied guardrails → grounding check) and **Sources** (the exact memory notes with their kind and grounding, the files, the map-fact count, guardrails, and the groundedness result). Every line comes from real response fields — no invented confidence score; the grounding step simply reflects whether the answer flagged anything to verify. Replaces the old inline "Why this answer?" disclosure. The same panel is now used in **Group Ask** for parity (memory/map-fact counts and sources grouped by repository).
