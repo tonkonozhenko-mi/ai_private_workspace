@@ -22,6 +22,7 @@ import type {
   ProjectGroupDetail,
 } from "../api/types";
 import { AnswerFeedback } from "./AnswerFeedback";
+import { AnswerTracePanel } from "./AnswerTracePanel";
 import { MarkdownAnswer } from "./AskWorkspace";
 
 const MEMORY_KIND_LABEL: Record<string, string> = {
@@ -687,6 +688,7 @@ function GroupAsk({ groupId }: { groupId: string }) {
   const [loading, setLoading] = useState(false);
   const [think, setThink] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [traceOpen, setTraceOpen] = useState(false);
 
   async function submit() {
     const trimmed = question.trim();
@@ -771,7 +773,35 @@ function GroupAsk({ groupId }: { groupId: string }) {
               ))}
             </div>
           ) : null}
-          {memoryNote ? <p className="grp-memory-note">{memoryNote}</p> : null}
+          {result &&
+          (result.memory_used > 0 || result.facts_used > 0 || result.sources.length > 0) ? (
+            <>
+              <button type="button" className="why-answer-btn" onClick={() => setTraceOpen(true)}>
+                <span className="wab-icon" aria-hidden="true">?</span>
+                How did the AI reach this?
+                <span className="wab-meta">
+                  {result.memory_used} note{result.memory_used === 1 ? "" : "s"} · {result.facts_used} map
+                  fact{result.facts_used === 1 ? "" : "s"} · {result.contributions.length} repo
+                  {result.contributions.length === 1 ? "" : "s"}
+                </span>
+              </button>
+              {traceOpen ? (
+                <AnswerTracePanel
+                  scope="group"
+                  memoryUsed={result.memory_used}
+                  factsUsed={result.facts_used}
+                  chunks={result.used_context_chunks}
+                  files={result.sources.map((source) => ({
+                    source_path: source.source_path,
+                    repo: source.workspace_name,
+                  }))}
+                  onClose={() => setTraceOpen(false)}
+                />
+              ) : null}
+            </>
+          ) : memoryNote ? (
+            <p className="grp-memory-note">{memoryNote}</p>
+          ) : null}
 
           {result && result.sources.length > 0 ? (
             <div className="grp-sources">

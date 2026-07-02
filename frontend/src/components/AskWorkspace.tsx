@@ -65,6 +65,7 @@ import {
 } from "../api/client";
 import { AnswerFeedback } from "./AnswerFeedback";
 import { AnswerNudges } from "./AnswerNudges";
+import { AnswerTracePanel } from "./AnswerTracePanel";
 import { CopyButton } from "./CopyButton";
 import type {
   RagSource,
@@ -2113,7 +2114,19 @@ function AnswerResult({
           </button>
         ) : null}
         {traceOpen ? (
-          <AnswerTracePanel answer={answer} onClose={() => setTraceOpen(false)} />
+          <AnswerTracePanel
+            scope="project"
+            memoryUsed={answer.project_memory_used ?? 0}
+            factsUsed={answer.project_facts_used ?? 0}
+            chunks={answer.used_context_chunks ?? 0}
+            files={answer.sources.map((source) => ({ source_path: source.source_path }))}
+            guardrails={answer.project_guardrails_used ?? []}
+            memoryDetails={answer.project_memory_details ?? []}
+            warnings={answer.quality_warnings ?? []}
+            latencyMs={answer.usage?.latency_ms ?? null}
+            investigate={{ workspaceId: answer.workspace_id, question: answer.question }}
+            onClose={() => setTraceOpen(false)}
+          />
         ) : null}
 
         {answer.sources.length > 0 || attachedFileNames.length > 0 ? (
@@ -2821,208 +2834,6 @@ function AskEmptyState() {
       title="Ask anything about this project"
       message="Type a question below and get an answer grounded in your own files — with the sources it came from. Try “How does deployment work?”, “What are the main risks here?”, or “Where should I start reading?”"
     />
-  );
-}
-
-function AnswerTracePanel({
-  answer,
-  onClose,
-}: {
-  answer: WorkspaceQuestionAnswer;
-  onClose: () => void;
-}) {
-  const [tab, setTab] = useState<"reasoning" | "sources">("reasoning");
-  const memoryUsed = answer.project_memory_used ?? 0;
-  const factsUsed = answer.project_facts_used ?? 0;
-  const guardrails = answer.project_guardrails_used ?? [];
-  const memoryDetails = answer.project_memory_details ?? [];
-  const files = answer.sources ?? [];
-  const chunks = answer.used_context_chunks ?? 0;
-  const warnings = answer.quality_warnings ?? [];
-  // Grounding-related warnings are the honest confidence signal — no invented %.
-  const grounding = warnings.filter(
-    (w) =>
-      /ground|hallucin|verify|unsupported|abstain/i.test(w.code) ||
-      /ground|verify|not found|couldn't find/i.test(w.message),
-  );
-  const latencyMs = answer.usage?.latency_ms ?? null;
-  const plural = (n: number) => (n === 1 ? "" : "s");
-
-  const steps: { icon: string; title: string; detail: string; muted?: boolean }[] = [
-    {
-      icon: "🧠",
-      title: "Understood your question",
-      detail: "Parsed what you're asking about this project.",
-    },
-    memoryUsed > 0
-      ? { icon: "💾", title: "Searched project memory", detail: `${memoryUsed} note${plural(memoryUsed)} used` }
-      : { icon: "💾", title: "Searched project memory", detail: "no notes matched", muted: true },
-    files.length > 0
-      ? {
-          icon: "📄",
-          title: "Retrieved source files",
-          detail: `${files.length} file${plural(files.length)} · ${chunks} chunk${plural(chunks)}`,
-        }
-      : { icon: "📄", title: "Retrieved source files", detail: "nothing confident found", muted: true },
-  ];
-  if (factsUsed > 0) {
-    steps.push({
-      icon: "🕸",
-      title: "Used the project map",
-      detail: `${factsUsed} fact${plural(factsUsed)} informed the answer`,
-    });
-  }
-  if (guardrails.length > 0) {
-    steps.push({
-      icon: "🛡",
-      title: "Applied guardrails",
-      detail: `${guardrails.length} rule${plural(guardrails.length)} enforced`,
-    });
-  }
-  steps.push(
-    grounding.length > 0
-      ? {
-          icon: "⚠",
-          title: "Grounding check",
-          detail: `${grounding.length} thing${plural(grounding.length)} to verify`,
-          muted: true,
-        }
-      : { icon: "✓", title: "Grounding check passed", detail: "no terms stated outside the sources" },
-  );
-
-  return (
-    <>
-      <div className="trace-backdrop" onClick={onClose} aria-hidden="true" />
-      <aside className="trace-panel" role="dialog" aria-label="How the answer was built">
-        <header className="trace-head">
-          <div>
-            <h3>How the AI reached this</h3>
-            <p>The reasoning and the exact sources behind this answer.</p>
-          </div>
-          <button className="trace-close" onClick={onClose} aria-label="Close">
-            ✕
-          </button>
-        </header>
-        <div className="trace-tabs" role="tablist">
-          <button
-            className={`trace-tab ${tab === "reasoning" ? "on" : ""}`}
-            onClick={() => setTab("reasoning")}
-            role="tab"
-            aria-selected={tab === "reasoning"}
-          >
-            Reasoning
-          </button>
-          <button
-            className={`trace-tab ${tab === "sources" ? "on" : ""}`}
-            onClick={() => setTab("sources")}
-            role="tab"
-            aria-selected={tab === "sources"}
-          >
-            Sources
-          </button>
-        </div>
-        <div className="trace-body">
-          {tab === "reasoning" ? (
-            <>
-              <ol className="trace-steps">
-                {steps.map((step, index) => (
-                  <li key={index} className={`trace-step ${step.muted ? "muted" : "done"}`}>
-                    <span className="trace-mk" aria-hidden="true">
-                      {step.icon}
-                    </span>
-                    <span className="trace-step-text">
-                      <span className="tt">{step.title}</span>
-                      <span className="ss">{step.detail}</span>
-                    </span>
-                  </li>
-                ))}
-              </ol>
-              {latencyMs != null ? (
-                <p className="trace-foot">Answered locally in {(latencyMs / 1000).toFixed(1)}s.</p>
-              ) : null}
-            </>
-          ) : (
-            <div className="trace-sources">
-              {memoryDetails.length > 0 ? (
-                <section className="trace-grp">
-                  <h4>
-                    <span className="dot mem" aria-hidden="true" /> Memory ({memoryDetails.length})
-                  </h4>
-                  {memoryDetails.map((memory, index) => (
-                    <div className="trace-src" key={index}>
-                      <div className="t">{memory.text}</div>
-                      <div className="m">
-                        <span className="kind">{formatLabel(memory.kind)}</span>
-                        {memory.grounding ? <span>· {memory.grounding}</span> : null}
-                      </div>
-                    </div>
-                  ))}
-                </section>
-              ) : null}
-              {files.length > 0 ? (
-                <section className="trace-grp">
-                  <h4>
-                    <span className="dot file" aria-hidden="true" /> Files ({files.length})
-                  </h4>
-                  {files.map((source, index) => (
-                    <div className="trace-src file" key={index}>
-                      <div className="t">{source.source_path}</div>
-                    </div>
-                  ))}
-                </section>
-              ) : null}
-              {factsUsed > 0 ? (
-                <section className="trace-grp">
-                  <h4>
-                    <span className="dot map" aria-hidden="true" /> Project map
-                  </h4>
-                  <div className="trace-src">
-                    <div className="t">
-                      {factsUsed} fact{plural(factsUsed)} from the dependency graph informed this answer.
-                    </div>
-                  </div>
-                </section>
-              ) : null}
-              {guardrails.length > 0 ? (
-                <section className="trace-grp">
-                  <h4>
-                    <span className="dot grd" aria-hidden="true" /> Guardrails ({guardrails.length})
-                  </h4>
-                  {guardrails.map((rule, index) => (
-                    <div className="trace-src" key={index}>
-                      <div className="t">🛡 {rule}</div>
-                    </div>
-                  ))}
-                </section>
-              ) : null}
-              <section className="trace-grp">
-                <h4>
-                  <span className="dot ok" aria-hidden="true" /> Grounding
-                </h4>
-                {grounding.length > 0 ? (
-                  grounding.map((warning, index) => (
-                    <div className="trace-src warn" key={index}>
-                      <div className="t">{warning.message}</div>
-                      {warning.evidence.length > 0 ? (
-                        <div className="m">{warning.evidence.join(", ")}</div>
-                      ) : null}
-                    </div>
-                  ))
-                ) : (
-                  <div className="trace-src">
-                    <div className="t">
-                      ✓ Answer stays within the provided sources — nothing stated as fact that isn't in
-                      the retrieved text.
-                    </div>
-                  </div>
-                )}
-              </section>
-              <p className="trace-foot">Shown from what actually went into the prompt.</p>
-            </div>
-          )}
-        </div>
-      </aside>
-    </>
   );
 }
 
