@@ -422,24 +422,49 @@ def _pack_units(units: list[str], max_chars: int, overlap: int) -> list[str]:
     return [chunk for chunk in chunks if chunk]
 
 
+# When a single line is too long to fit a chunk (minified code, a huge string
+# literal, a data blob), prefer to break just before one of these separators so
+# a chunk ends at a natural token boundary instead of mid-identifier — better
+# embeddings than a blind character cut.
+_SOFT_BREAK_CHARS = frozenset(" \t,;)]}")
+
+
+def _soft_boundary(text: str, start: int, hard_end: int, max_chars: int) -> int:
+    """Best break point at or before ``hard_end`` for a single long line.
+
+    Searches back a bounded window for a separator and returns the index just
+    after it (keeping the separator with the current chunk). Falls back to the
+    hard character cut when no separator is near, so progress is guaranteed.
+    """
+    lookback = max(1, max_chars // 5)
+    floor = max(start + 1, hard_end - lookback)
+    for index in range(hard_end - 1, floor - 1, -1):
+        if text[index] in _SOFT_BREAK_CHARS:
+            return index + 1
+    return hard_end
+
+
 def _hard_split(text: str, max_chars: int, overlap: int) -> list[str]:
-    """Split a single oversized unit: prefer line boundaries, then characters."""
+    """Split a single oversized unit: prefer line boundaries, then soft
+    separators within a line, then a blind character cut as a last resort."""
     lines = text.split("\n")
     if len(lines) > 1:
         return _pack_units(lines, max_chars, overlap)
 
-    step = max_chars - overlap if max_chars > overlap else max_chars
     pieces: list[str] = []
     start = 0
     length = len(text)
     while start < length:
-        end = min(start + max_chars, length)
+        hard_end = min(start + max_chars, length)
+        end = hard_end if hard_end == length else _soft_boundary(text, start, hard_end, max_chars)
         piece = text[start:end].strip()
         if piece:
             pieces.append(piece)
-        if end == length:
+        if end >= length:
             break
-        start += step
+        # Advance with overlap, but always make forward progress.
+        next_start = end - overlap if overlap > 0 else end
+        start = next_start if next_start > start else end
     return pieces
 
 
