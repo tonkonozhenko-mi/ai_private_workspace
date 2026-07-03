@@ -4355,6 +4355,53 @@ a.getting-ready-cta:visited { color: var(--c-accent-ink); }
   margin: 0;
 }
 
+/* Headings inside an answer: modest, weighted, sized down by level — never as
+   loud as the app's own headings. */
+.markdown-heading {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--c-text);
+}
+.markdown-heading[data-level="1"] { font-size: 1.15em; }
+.markdown-heading[data-level="2"] { font-size: 1.07em; }
+.markdown-heading[data-level="3"] { font-size: 1em; }
+.markdown-heading[data-level="4"],
+.markdown-heading[data-level="5"],
+.markdown-heading[data-level="6"] { font-size: 0.95em; color: var(--c-text-2); }
+
+.markdown-answer a {
+  color: var(--c-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+/* GFM tables: horizontally scrollable on narrow widths, hairline grid. */
+.markdown-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.markdown-table {
+  border-collapse: collapse;
+  font-size: 0.92em;
+  min-width: max-content;
+}
+.markdown-table th,
+.markdown-table td {
+  border: 1px solid var(--c-border);
+  padding: 6px 10px;
+  vertical-align: top;
+}
+.markdown-table th {
+  background: var(--c-surface-2);
+  font-weight: 600;
+  color: var(--c-text);
+}
+.markdown-table tbody tr:nth-child(even) td {
+  background: var(--c-surface);
+}
+
 /* Inline code: a subtle mono chip so identifiers stand out from prose. */
 .answer-content :not(pre) > code,
 .markdown-answer :not(pre) > code {
