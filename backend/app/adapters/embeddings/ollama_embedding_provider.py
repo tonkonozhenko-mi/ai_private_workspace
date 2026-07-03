@@ -71,3 +71,63 @@ class OllamaEmbeddingProvider:
 
         self._embedding_dimension = len(vector)
         return vector
+
+    def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        """Embed several texts in ONE request via Ollama's ``/api/embed`` (array
+        input), instead of N sequential ``/api/embeddings`` calls — a big speed-up
+        for indexing. Falls back to per-text embedding on older Ollama builds that
+        don't have ``/api/embed`` (HTTP 404) or return an unexpected shape, so it
+        works across versions. Vector order matches the input order.
+        """
+        if not texts:
+            return []
+        try:
+            response = self.client.post(
+                f"{self.base_url}/api/embed",
+                json={"model": self.model, "input": list(texts)},
+                timeout=self.timeout_seconds,
+            )
+            response.raise_for_status()
+        except httpx.TimeoutException as exc:
+            raise OllamaEmbeddingProviderError(
+                f"Ollama embedding request timed out after {self.timeout_seconds} seconds"
+            ) from exc
+        except httpx.HTTPStatusError as exc:
+            # Endpoint missing on older Ollama → embed one at a time instead.
+            if exc.response is not None and exc.response.status_code == 404:
+                return [self.embed_text(text) for text in texts]
+            raise OllamaEmbeddingProviderError(
+                f"Unable to reach Ollama embedding API at {self.base_url}"
+            ) from exc
+        except httpx.HTTPError as exc:
+            raise OllamaEmbeddingProviderError(
+                f"Unable to reach Ollama embedding API at {self.base_url}"
+            ) from exc
+
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise OllamaEmbeddingProviderError(
+                "Ollama embedding response was not valid JSON"
+            ) from exc
+
+        embeddings = payload.get("embeddings") if isinstance(payload, dict) else None
+        if not isinstance(embeddings, list) or len(embeddings) != len(texts):
+            # Unexpected shape (or a build that ignores array input) → be safe.
+            return [self.embed_text(text) for text in texts]
+
+        vectors: list[list[float]] = []
+        for embedding in embeddings:
+            if not isinstance(embedding, list) or not embedding:
+                raise OllamaEmbeddingProviderError(
+                    "Ollama batch embedding response contained an empty vector"
+                )
+            try:
+                vectors.append([float(value) for value in embedding])
+            except (TypeError, ValueError) as exc:
+                raise OllamaEmbeddingProviderError(
+                    "Ollama embedding response contained invalid vector values"
+                ) from exc
+
+        self._embedding_dimension = len(vectors[0])
+        return vectors
