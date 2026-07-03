@@ -15,7 +15,9 @@ class _Response:
         if self.status_code >= 400:
             import httpx
 
-            raise httpx.HTTPStatusError("error", response=self)
+            # Real httpx.HTTPStatusError requires both request= and response=.
+            request = httpx.Request("POST", "http://x:11434/api/embed")
+            raise httpx.HTTPStatusError("error", request=request, response=self)
 
     def json(self):
         return self._payload
