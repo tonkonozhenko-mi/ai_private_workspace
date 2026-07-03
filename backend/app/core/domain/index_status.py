@@ -13,3 +13,6 @@ class WorkspaceIndexStatus:
     # The embedding model that built this index. Lets a later switch to a different
     # search model be detected as stale, so a reindex is prompted only when needed.
     embedding_model: str | None = None
+    # Abstention threshold calibrated to this embedding model's own score scale
+    # (noise floor of random chunk pairs). None → fall back to the hardcoded default.
+    relevance_floor: float | None = None

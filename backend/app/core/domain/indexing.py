@@ -32,6 +32,9 @@ class WorkspaceIndexResult:
     chunks_count: int
     skipped_files_count: int
     documents: list[IndexedDocumentSummary]
+    # Abstention threshold calibrated to the embedding model (noise floor of random
+    # chunk pairs); None when the index was too small to sample a trustworthy value.
+    relevance_floor: float | None = None
 
 
 @dataclass(frozen=True)
@@ -46,6 +49,9 @@ class IncrementalIndexResult:
     indexed_files_count: int  # total in the index after the update
     chunks_count: int  # total in the index after the update
     documents: list[IndexedDocumentSummary]  # the files that were (re)indexed
+    # Recalibrated abstention floor when enough chunks changed to resample; None when
+    # too few changed (the caller keeps the previously-calibrated floor).
+    relevance_floor: float | None = None
 
 
 @dataclass(frozen=True)
