@@ -15,6 +15,7 @@ from app.core.domain.conversation_budget import (
     history_token_budget,
     split_history_by_budget,
 )
+from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
 from app.core.domain.mmr import EMBEDDING_KEY, mmr_select
@@ -470,7 +471,7 @@ class AskWorkspaceQuestionUseCase:
             )
 
         best_score = max((result.score for result in context_results), default=0.0)
-        if best_score < self._relevance_threshold():
+        if best_score < self._relevance_threshold(index_status):
             return self._record_question_event(
                 self._answer_general_conversation(
                     request, llm_provider, project_context_missing=True
@@ -615,7 +616,7 @@ class AskWorkspaceQuestionUseCase:
         )
 
         best_score = max((result.score for result in context_results), default=0.0)
-        if not context_results or best_score < self._relevance_threshold():
+        if not context_results or best_score < self._relevance_threshold(index_status):
             prompt = build_general_chat_prompt(
                 question=request.question,
                 skill_instructions=request.skill_instructions,
@@ -825,7 +826,8 @@ class AskWorkspaceQuestionUseCase:
         )
         return answer, usage
 
-    def _relevance_threshold(self) -> float:
+    def _relevance_threshold(self, index_status: WorkspaceIndexStatus | None = None) -> float:
+        # Explicit env override always wins (ops/debugging escape hatch).
         override = os.environ.get(RELEVANCE_THRESHOLD_ENV_VAR)
         if override:
             try:
@@ -834,6 +836,11 @@ class AskWorkspaceQuestionUseCase:
                 pass
         if getattr(self.embedding_provider, "provider_name", "") == "fake":
             return FAKE_EMBEDDING_RELEVANCE_THRESHOLD
+        # Prefer a floor calibrated to this embedding model's own score scale (set at
+        # index time). Falls back to the hardcoded default for indexes built before
+        # calibration existed, or too small to sample a trustworthy floor.
+        if index_status is not None and index_status.relevance_floor is not None:
+            return index_status.relevance_floor
         return DEFAULT_RELEVANCE_THRESHOLD
 
     def _answer_general_conversation(

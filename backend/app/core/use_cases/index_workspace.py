@@ -18,6 +18,7 @@ from app.core.domain.indexing import (
     content_hash,
 )
 from app.core.domain.project_scan import ProjectFile, ProjectScanResult
+from app.core.domain.relevance_calibration import calibrate_from_embeddings
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.file_system import FileSystemPort
 from app.core.ports.index_manifest_repository import IndexManifestRepositoryPort
@@ -132,6 +133,7 @@ class IndexWorkspaceUseCase:
                 last_indexed_at=datetime.now(UTC).isoformat(),
                 last_error=None,
                 embedding_model=getattr(self.embedding_provider, "model_name", None),
+                relevance_floor=result.relevance_floor,
             )
         )
         if self.timeline_repository is not None:
@@ -246,6 +248,13 @@ class IndexWorkspaceUseCase:
                 last_indexed_at=datetime.now(UTC).isoformat(),
                 last_error=None,
                 embedding_model=current_model,
+                # Keep the previously-calibrated floor when too few chunks changed
+                # to resample a trustworthy one.
+                relevance_floor=(
+                    result.relevance_floor
+                    if result.relevance_floor is not None
+                    else (status.relevance_floor if status else None)
+                ),
             )
         )
         if self.timeline_repository is not None and (
@@ -310,6 +319,7 @@ class IndexWorkspaceUseCase:
         if to_delete:
             self.vector_store.delete_chunks_by_source_path(workspace_id, to_delete)
 
+        relevance_floor: float | None = None
         if chunks_to_embed:
             embeddings = self._embed_texts(
                 [strip_contextual_header(chunk.content) for chunk in chunks_to_embed]
@@ -323,6 +333,9 @@ class IndexWorkspaceUseCase:
                 embedding_model=self.embedding_provider.model_name,
                 embedding_dimension=embedding_dimension,
             )
+            # Recalibrate only when enough chunks changed to sample a trustworthy
+            # background; otherwise None → the caller keeps the previous floor.
+            relevance_floor = calibrate_from_embeddings(embeddings)
 
         if self.manifest_repository is not None:
             self.manifest_repository.replace_all(workspace_id, new_manifest)
@@ -337,6 +350,7 @@ class IndexWorkspaceUseCase:
             indexed_files_count=len(new_manifest),
             chunks_count=chunks_count,
             documents=reindexed_docs,
+            relevance_floor=relevance_floor,
         )
 
     def _index_workspace(
@@ -415,12 +429,17 @@ class IndexWorkspaceUseCase:
         if self.manifest_repository is not None:
             self.manifest_repository.replace_all(workspace_id, manifest)
 
+        # Calibrate the abstention floor to this embedding model's own score scale
+        # (noise floor of random chunk pairs). None on a tiny index → default is kept.
+        relevance_floor = calibrate_from_embeddings(embeddings)
+
         return WorkspaceIndexResult(
             workspace_id=workspace_id,
             indexed_files_count=len(documents),
             chunks_count=len(chunks),
             skipped_files_count=skipped_files_count,
             documents=documents,
+            relevance_floor=relevance_floor,
         )
 
     # How many chunk bodies to embed per request when the provider supports
