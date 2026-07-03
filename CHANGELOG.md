@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **SQLite connections are robust to missing folders and WAL-unfriendly filesystems.** `open_sqlite` now creates the database's parent directory if it doesn't exist yet (a nested path could otherwise fail with `unable to open database file`) and applies WAL best-effort — if a filesystem can't support WAL's side files, the connection keeps the default journal instead of failing to open. The busy-timeout that actually prevents `database is locked` is applied unconditionally.
+
 ### Changed
 
 - **Richer answer formatting.** The answer renderer now handles markdown headings, **numbered lists**, GFM **tables** (with column alignment), and `[links](url)` in addition to paragraphs, bullets and code — so structured model answers no longer look broken. Everything stays React-rendered (auto-escaped, XSS-safe); link URLs are scheme-checked so `javascript:`/`data:` hrefs are dropped to plain text. Shared by both single-project Ask and Group Ask.

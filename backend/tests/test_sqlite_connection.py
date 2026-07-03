@@ -13,6 +13,17 @@ def test_wal_and_synchronous_applied(tmp_path):
     conn.close()
 
 
+def test_creates_missing_parent_directories(tmp_path):
+    # A nested path whose folders don't exist yet must not raise
+    # "unable to open database file" — open_sqlite creates the parent.
+    conn = open_sqlite(tmp_path / "app-owned" / "data" / "workspaces.db")
+    conn.execute("CREATE TABLE t(x)")
+    conn.execute("INSERT INTO t VALUES (1)")
+    conn.commit()
+    assert conn.execute("SELECT COUNT(*) FROM t").fetchone()[0] == 1
+    conn.close()
+
+
 def test_wal_persists_for_later_plain_connections(tmp_path):
     path = tmp_path / "b.db"
     first = open_sqlite(path)
