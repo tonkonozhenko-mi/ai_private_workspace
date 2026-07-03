@@ -77,6 +77,12 @@ import type {
   RuntimeMemory,
 } from "../api/types";
 import { EmptyState } from "./EmptyState";
+import {
+  escapeHtml,
+  parseMarkdownBlocks,
+  tokenizeInline,
+  type MarkdownBlock,
+} from "../lib/markdown";
 import { StatusBadge } from "./StatusBadge";
 import { SKILL_PRESETS, getEnabledSkillPresets, getSkillPresetByAssistantMode, type CustomSkill, type SkillPreferences } from "./skillLibrary";
 
@@ -2558,23 +2564,6 @@ function getAskReindexReason(answer: WorkspaceQuestionAnswer): string | null {
   return null;
 }
 
-interface MarkdownBlock {
-  id: string;
-  type: "paragraph" | "bulletList" | "orderedList" | "heading" | "table" | "code";
-  lines: string[];
-  language?: string;
-  level?: number;
-  rows?: string[][];
-  align?: ("left" | "center" | "right" | null)[];
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
 // Renders a fenced code block with offline syntax highlighting. If the fence's
 // language is one we registered, highlight.js colorizes it; otherwise we show the
 // code as safely-escaped plain text (better no colors than wrong colors). The
@@ -2689,229 +2678,35 @@ export function MarkdownAnswer({ content }: { content: string }) {
   );
 }
 
-// Only allow safe URL schemes for rendered links. React does NOT block a
-// `javascript:`/`data:` href, so a link in an LLM answer (or an indexed file)
-// could otherwise execute — reject anything that isn't http(s)/mailto/relative.
-function safeLinkHref(url: string): string | null {
-  const trimmed = url.trim();
-  if (/^(https?:|mailto:)/i.test(trimmed)) return trimmed;
-  if (/^[./#?]/.test(trimmed)) return trimmed; // relative or in-page
-  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return null; // some other scheme → drop
-  return trimmed;
-}
-
 function InlineMarkdown({ text }: { text: string }) {
-  // Inline code, [links](url), **bold**, and *italic* (in that precedence order).
-  const parts = text.split(/(`[^`]+`|\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  // Inline code, [links](url), **bold**, *italic* — tokenized purely (see lib/markdown),
+  // rendered here as auto-escaped React elements.
   return (
     <>
-      {parts.map((part, index) => {
-        if (part.startsWith("`") && part.endsWith("`") && part.length > 1) {
-          return <code key={index}>{part.slice(1, -1)}</code>;
-        }
-        const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-        if (link) {
-          const href = safeLinkHref(link[2]);
-          if (href) {
-            return (
-              <a key={index} href={href} target="_blank" rel="noreferrer noopener">
-                {link[1]}
+      {tokenizeInline(text).map((token, index) => {
+        switch (token.kind) {
+          case "code":
+            return <code key={index}>{token.text}</code>;
+          case "link":
+            return token.href ? (
+              <a key={index} href={token.href} target="_blank" rel="noreferrer noopener">
+                {token.text}
               </a>
+            ) : (
+              <span key={index}>{token.text}</span> // unsafe scheme → show text only
             );
-          }
-          return <span key={index}>{link[1]}</span>; // unsafe scheme → show text only
+          case "bold":
+            return <strong key={index}>{token.text}</strong>;
+          case "italic":
+            return <em key={index}>{token.text}</em>;
+          default:
+            return <span key={index}>{token.text}</span>;
         }
-        if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
-          return <strong key={index}>{part.slice(2, -2)}</strong>;
-        }
-        if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
-          return <em key={index}>{part.slice(1, -1)}</em>;
-        }
-        return <span key={index}>{part}</span>;
       })}
     </>
   );
 }
 
-export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
-  const lines = content.replace(/\r\n/g, "\n").split("\n");
-  const blocks: MarkdownBlock[] = [];
-  let paragraph: string[] = [];
-  let bullets: string[] = [];
-  let ordered: string[] = [];
-  let tableLines: string[] = [];
-  let codeLines: string[] = [];
-  let codeLanguage: string | undefined;
-  let inCodeBlock = false;
-
-  function nextId(type: MarkdownBlock["type"]) {
-    return `${type}-${blocks.length}`;
-  }
-
-  function flushParagraph() {
-    if (paragraph.length === 0) return;
-    blocks.push({
-      id: nextId("paragraph"),
-      type: "paragraph",
-      lines: paragraph,
-    });
-    paragraph = [];
-  }
-
-  function flushBullets() {
-    if (bullets.length === 0) return;
-    blocks.push({
-      id: nextId("bulletList"),
-      type: "bulletList",
-      lines: bullets,
-    });
-    bullets = [];
-  }
-
-  function flushOrdered() {
-    if (ordered.length === 0) return;
-    blocks.push({
-      id: nextId("orderedList"),
-      type: "orderedList",
-      lines: ordered,
-    });
-    ordered = [];
-  }
-
-  function splitRow(row: string): string[] {
-    return row
-      .trim()
-      .replace(/^\||\|$/g, "")
-      .split("|")
-      .map((cell) => cell.trim());
-  }
-
-  function flushTable() {
-    if (tableLines.length === 0) return;
-    const isSeparator =
-      tableLines.length >= 2 &&
-      splitRow(tableLines[1]).every((cell) => /^:?-{1,}:?$/.test(cell));
-    if (isSeparator) {
-      const rows = [tableLines[0], ...tableLines.slice(2)].map(splitRow);
-      const align = splitRow(tableLines[1]).map((cell) => {
-        const left = cell.startsWith(":");
-        const right = cell.endsWith(":");
-        if (left && right) return "center" as const;
-        if (right) return "right" as const;
-        if (left) return "left" as const;
-        return null;
-      });
-      blocks.push({ id: nextId("table"), type: "table", lines: [], rows, align });
-    } else {
-      // Not a real table — fall back to plain paragraph text.
-      blocks.push({ id: nextId("paragraph"), type: "paragraph", lines: [...tableLines] });
-    }
-    tableLines = [];
-  }
-
-  function flushCode() {
-    blocks.push({
-      id: nextId("code"),
-      type: "code",
-      lines: codeLines,
-      language: codeLanguage,
-    });
-    codeLines = [];
-    codeLanguage = undefined;
-  }
-
-  for (const rawLine of lines) {
-    const line = rawLine.replace(/\s+$/g, "");
-    const trimmed = line.trim();
-
-    if (trimmed.startsWith("```")) {
-      if (inCodeBlock) {
-        flushCode();
-        inCodeBlock = false;
-      } else {
-        flushParagraph();
-        flushBullets();
-        flushOrdered();
-        flushTable();
-        inCodeBlock = true;
-        codeLanguage = trimmed.slice(3).trim() || undefined;
-        codeLines = [];
-      }
-      continue;
-    }
-
-    if (inCodeBlock) {
-      codeLines.push(line);
-      continue;
-    }
-
-    if (trimmed.length === 0) {
-      flushParagraph();
-      flushBullets();
-      flushOrdered();
-      flushTable();
-      continue;
-    }
-
-    const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
-    if (headingMatch) {
-      flushParagraph();
-      flushBullets();
-      flushOrdered();
-      flushTable();
-      blocks.push({
-        id: nextId("heading"),
-        type: "heading",
-        lines: [headingMatch[2]],
-        level: headingMatch[1].length,
-      });
-      continue;
-    }
-
-    const orderedMatch = trimmed.match(/^\d+[.)]\s+(.*)$/);
-    if (orderedMatch) {
-      flushParagraph();
-      flushBullets();
-      flushTable();
-      ordered.push(orderedMatch[1]);
-      continue;
-    }
-
-    const bulletMatch = trimmed.match(/^[-*•]\s+(.*)$/);
-    if (bulletMatch) {
-      flushParagraph();
-      flushOrdered();
-      flushTable();
-      bullets.push(bulletMatch[1]);
-      continue;
-    }
-
-    // A GFM table row contains a pipe; flushTable() validates the buffer (needs
-    // a `---` separator row) and falls back to a paragraph if it isn't one.
-    if (trimmed.includes("|")) {
-      flushParagraph();
-      flushBullets();
-      flushOrdered();
-      tableLines.push(trimmed);
-      continue;
-    }
-
-    flushBullets();
-    flushOrdered();
-    flushTable();
-    paragraph.push(trimmed);
-  }
-
-  if (inCodeBlock) {
-    flushCode();
-  }
-  flushParagraph();
-  flushBullets();
-  flushOrdered();
-  flushTable();
-
-  return blocks;
-}
 
 
 
