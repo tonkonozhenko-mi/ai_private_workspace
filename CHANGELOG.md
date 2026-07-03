@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **Friendlier error messages.** Technical failures shown to the user are now mapped to short, actionable sentences instead of raw `Failed to fetch` / `500 Internal Server Error` text: an unreachable backend says to start the engine, a 500 suggests retry/restart, a 503 says it's still starting, timeouts and cancellations read plainly. Backend `detail` messages (already human-readable) pass through unchanged.
+
 ### Changed
 
 - **Richer answer formatting.** The answer renderer now handles markdown headings, **numbered lists**, GFM **tables** (with column alignment), and `[links](url)` in addition to paragraphs, bullets and code — so structured model answers no longer look broken. Everything stays React-rendered (auto-escaped, XSS-safe); link URLs are scheme-checked so `javascript:`/`data:` hrefs are dropped to plain text. Shared by both single-project Ask and Group Ask.
