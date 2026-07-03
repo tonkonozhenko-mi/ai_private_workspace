@@ -10,6 +10,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 ### Changed
 
 - **Cleaner chunking of very long single lines.** When one line is too big to fit a chunk (minified code, a huge string/data blob), the splitter now breaks just before a natural separator (space, comma, `;`, `)`, `]`, `}`) instead of cutting mid-identifier — better embeddings and retrieval for those chunks. Multi-line units already split on line boundaries; a truly unbreakable line still falls back to a bounded character cut.
+- **Formatting appears while the answer streams.** The streaming answer bubble now renders markdown live (lists, code with highlighting, tables) as tokens arrive, instead of showing raw text that only "snaps" into formatting when generation finishes.
 
 ### Fixed
 

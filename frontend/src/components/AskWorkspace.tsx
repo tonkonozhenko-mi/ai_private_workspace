@@ -1347,7 +1347,9 @@ function ConversationPanel({
             <div className="ask-assistant-stack">
               {streamingText ? (
                 <div className="ask-message-bubble assistant-bubble is-streaming">
-                  {streamingText.replace(/<\/?think>/g, "").trimStart()}
+                  {/* Render markdown as it streams so formatting (lists, code,
+                      tables) builds up live instead of flashing in at the end. */}
+                  <MarkdownAnswer content={streamingText.replace(/<\/?think>/g, "").trimStart()} />
                   <span className="ask-stream-caret" aria-hidden="true" />
                 </div>
               ) : (
