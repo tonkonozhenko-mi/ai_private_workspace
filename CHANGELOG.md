@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **Formatting appears while the answer streams.** The streaming answer bubble now renders markdown live (lists, code with highlighting, tables) as tokens arrive, instead of showing raw text that only "snaps" into formatting when generation finishes.
+
 ### Fixed
 
 - **`database is locked` fixed via a busy-timeout (no WAL).** Every SQLite connection now opens with a 30-second busy-timeout, so a read arriving while the background indexer writes waits for the lock instead of erroring — the actual fix, and it needs no on-disk side files. `open_sqlite` also creates a missing parent directory. (An earlier attempt enabled WAL journal mode, but WAL opens three file handles per connection and the app opens a fresh connection per operation, which exhausted the process's file descriptors under load and caused `unable to open database file`; WAL was removed.)
