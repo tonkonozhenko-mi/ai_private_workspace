@@ -2558,9 +2558,12 @@ function getAskReindexReason(answer: WorkspaceQuestionAnswer): string | null {
 
 interface MarkdownBlock {
   id: string;
-  type: "paragraph" | "bulletList" | "code";
+  type: "paragraph" | "bulletList" | "orderedList" | "heading" | "table" | "code";
   lines: string[];
   language?: string;
+  level?: number;
+  rows?: string[][];
+  align?: ("left" | "center" | "right" | null)[];
 }
 
 function escapeHtml(value: string): string {
@@ -2610,6 +2613,15 @@ export function MarkdownAnswer({ content }: { content: string }) {
           );
         }
 
+        if (block.type === "heading") {
+          const level = Math.min(Math.max(block.level ?? 1, 1), 6);
+          return (
+            <p key={block.id} className="markdown-heading" data-level={level}>
+              <InlineMarkdown text={block.lines.join(" ")} />
+            </p>
+          );
+        }
+
         if (block.type === "bulletList") {
           return (
             <ul key={block.id}>
@@ -2619,6 +2631,49 @@ export function MarkdownAnswer({ content }: { content: string }) {
                 </li>
               ))}
             </ul>
+          );
+        }
+
+        if (block.type === "orderedList") {
+          return (
+            <ol key={block.id}>
+              {block.lines.map((line, index) => (
+                <li key={`${block.id}-${index}`}>
+                  <InlineMarkdown text={line} />
+                </li>
+              ))}
+            </ol>
+          );
+        }
+
+        if (block.type === "table" && block.rows && block.rows.length > 0) {
+          const [header, ...body] = block.rows;
+          const align = block.align ?? [];
+          return (
+            <div className="markdown-table-wrap" key={block.id}>
+              <table className="markdown-table">
+                <thead>
+                  <tr>
+                    {header.map((cell, index) => (
+                      <th key={index} style={{ textAlign: align[index] ?? "left" }}>
+                        <InlineMarkdown text={cell} />
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {body.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {row.map((cell, index) => (
+                        <td key={index} style={{ textAlign: align[index] ?? "left" }}>
+                          <InlineMarkdown text={cell} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           );
         }
 
@@ -2632,14 +2687,37 @@ export function MarkdownAnswer({ content }: { content: string }) {
   );
 }
 
+// Only allow safe URL schemes for rendered links. React does NOT block a
+// `javascript:`/`data:` href, so a link in an LLM answer (or an indexed file)
+// could otherwise execute — reject anything that isn't http(s)/mailto/relative.
+function safeLinkHref(url: string): string | null {
+  const trimmed = url.trim();
+  if (/^(https?:|mailto:)/i.test(trimmed)) return trimmed;
+  if (/^[./#?]/.test(trimmed)) return trimmed; // relative or in-page
+  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return null; // some other scheme → drop
+  return trimmed;
+}
+
 function InlineMarkdown({ text }: { text: string }) {
-  // Handle inline code, **bold**, and *italic* (in that precedence order).
-  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  // Inline code, [links](url), **bold**, and *italic* (in that precedence order).
+  const parts = text.split(/(`[^`]+`|\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|\*[^*]+\*)/g);
   return (
     <>
       {parts.map((part, index) => {
         if (part.startsWith("`") && part.endsWith("`") && part.length > 1) {
           return <code key={index}>{part.slice(1, -1)}</code>;
+        }
+        const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+        if (link) {
+          const href = safeLinkHref(link[2]);
+          if (href) {
+            return (
+              <a key={index} href={href} target="_blank" rel="noreferrer noopener">
+                {link[1]}
+              </a>
+            );
+          }
+          return <span key={index}>{link[1]}</span>; // unsafe scheme → show text only
         }
         if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
           return <strong key={index}>{part.slice(2, -2)}</strong>;
@@ -2658,6 +2736,8 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
   const blocks: MarkdownBlock[] = [];
   let paragraph: string[] = [];
   let bullets: string[] = [];
+  let ordered: string[] = [];
+  let tableLines: string[] = [];
   let codeLines: string[] = [];
   let codeLanguage: string | undefined;
   let inCodeBlock = false;
@@ -2686,6 +2766,47 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
     bullets = [];
   }
 
+  function flushOrdered() {
+    if (ordered.length === 0) return;
+    blocks.push({
+      id: nextId("orderedList"),
+      type: "orderedList",
+      lines: ordered,
+    });
+    ordered = [];
+  }
+
+  function splitRow(row: string): string[] {
+    return row
+      .trim()
+      .replace(/^\||\|$/g, "")
+      .split("|")
+      .map((cell) => cell.trim());
+  }
+
+  function flushTable() {
+    if (tableLines.length === 0) return;
+    const isSeparator =
+      tableLines.length >= 2 &&
+      splitRow(tableLines[1]).every((cell) => /^:?-{1,}:?$/.test(cell));
+    if (isSeparator) {
+      const rows = [tableLines[0], ...tableLines.slice(2)].map(splitRow);
+      const align = splitRow(tableLines[1]).map((cell) => {
+        const left = cell.startsWith(":");
+        const right = cell.endsWith(":");
+        if (left && right) return "center" as const;
+        if (right) return "right" as const;
+        if (left) return "left" as const;
+        return null;
+      });
+      blocks.push({ id: nextId("table"), type: "table", lines: [], rows, align });
+    } else {
+      // Not a real table — fall back to plain paragraph text.
+      blocks.push({ id: nextId("paragraph"), type: "paragraph", lines: [...tableLines] });
+    }
+    tableLines = [];
+  }
+
   function flushCode() {
     blocks.push({
       id: nextId("code"),
@@ -2708,6 +2829,8 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
       } else {
         flushParagraph();
         flushBullets();
+        flushOrdered();
+        flushTable();
         inCodeBlock = true;
         codeLanguage = trimmed.slice(3).trim() || undefined;
         codeLines = [];
@@ -2723,17 +2846,57 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
     if (trimmed.length === 0) {
       flushParagraph();
       flushBullets();
+      flushOrdered();
+      flushTable();
+      continue;
+    }
+
+    const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
+    if (headingMatch) {
+      flushParagraph();
+      flushBullets();
+      flushOrdered();
+      flushTable();
+      blocks.push({
+        id: nextId("heading"),
+        type: "heading",
+        lines: [headingMatch[2]],
+        level: headingMatch[1].length,
+      });
+      continue;
+    }
+
+    const orderedMatch = trimmed.match(/^\d+[.)]\s+(.*)$/);
+    if (orderedMatch) {
+      flushParagraph();
+      flushBullets();
+      flushTable();
+      ordered.push(orderedMatch[1]);
       continue;
     }
 
     const bulletMatch = trimmed.match(/^[-*•]\s+(.*)$/);
     if (bulletMatch) {
       flushParagraph();
+      flushOrdered();
+      flushTable();
       bullets.push(bulletMatch[1]);
       continue;
     }
 
+    // A GFM table row contains a pipe; flushTable() validates the buffer (needs
+    // a `---` separator row) and falls back to a paragraph if it isn't one.
+    if (trimmed.includes("|")) {
+      flushParagraph();
+      flushBullets();
+      flushOrdered();
+      tableLines.push(trimmed);
+      continue;
+    }
+
     flushBullets();
+    flushOrdered();
+    flushTable();
     paragraph.push(trimmed);
   }
 
@@ -2742,6 +2905,8 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
   }
   flushParagraph();
   flushBullets();
+  flushOrdered();
+  flushTable();
 
   return blocks;
 }
