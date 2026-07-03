@@ -9,6 +9,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 
+- **`database is locked` fixed via a busy-timeout (no WAL).** Every SQLite connection now opens with a 30-second busy-timeout, so a read arriving while the background indexer writes waits for the lock instead of erroring — the actual fix, and it needs no on-disk side files. `open_sqlite` also creates a missing parent directory. (An earlier attempt enabled WAL journal mode, but WAL opens three file handles per connection and the app opens a fresh connection per operation, which exhausted the process's file descriptors under load and caused `unable to open database file`; WAL was removed.)
 - **Friendlier error messages.** Technical failures shown to the user are now mapped to short, actionable sentences instead of raw `Failed to fetch` / `500 Internal Server Error` text: an unreachable backend says to start the engine, a 500 suggests retry/restart, a 503 says it's still starting, timeouts and cancellations read plainly. Backend `detail` messages (already human-readable) pass through unchanged.
 
 ### Changed
@@ -19,7 +20,6 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 
-- **No more "database is locked".** Background indexing writes the same SQLite files that a foreground `/ask` or status poll reads; with the default journal and no busy-timeout, a read arriving mid-write failed instantly. Every connection now opens in WAL mode (readers and a writer share the file) with `synchronous=NORMAL` and a 30-second busy-timeout, via a single shared helper routed through all 27 connection sites.
 - **A corrupt search index gives a clear message, not a raw 500.** If the vector index file is damaged, `/ask` used to crash with an unhandled `sqlite3` error. It now surfaces a friendly "the search index looks damaged — rebuild it for this workspace" answer (diagnostic code `index_corrupt`), on both the normal and streaming paths. Unrelated database errors still propagate as before.
 ### Security
 
