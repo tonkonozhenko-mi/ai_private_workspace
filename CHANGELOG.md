@@ -9,6 +9,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Changed
 
+- **Richer answer formatting.** The answer renderer now handles markdown headings, **numbered lists**, GFM **tables** (with column alignment), and `[links](url)` in addition to paragraphs, bullets and code — so structured model answers no longer look broken. Everything stays React-rendered (auto-escaped, XSS-safe); link URLs are scheme-checked so `javascript:`/`data:` hrefs are dropped to plain text. Shared by both single-project Ask and Group Ask.
+
 - **Faster dense retrieval scoring (numpy batch).** The vector store scored every candidate chunk with a per-row Python cosine loop; it now scores the whole batch in one vectorized numpy pass when numpy is present, with an exact pure-Python fallback (numerically identical, verified in tests) when it isn't. A modest end-to-end win today, because the dominant per-query cost is deserializing JSON embeddings — the larger fix (packed-binary embedding storage or a cached parsed matrix) is a separate, bigger change.
 
 ### Fixed
