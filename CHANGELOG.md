@@ -9,7 +9,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 
-- **SQLite connections are robust to missing folders and WAL-unfriendly filesystems.** `open_sqlite` now creates the database's parent directory if it doesn't exist yet (a nested path could otherwise fail with `unable to open database file`) and applies WAL best-effort — if a filesystem can't support WAL's side files, the connection keeps the default journal instead of failing to open. The busy-timeout that actually prevents `database is locked` is applied unconditionally.
+- **`database is locked` fixed via a busy-timeout (no WAL).** Every SQLite connection now opens with a 30-second busy-timeout, so a read arriving while the background indexer writes waits for the lock instead of erroring — the actual fix, and it needs no on-disk side files. `open_sqlite` also creates a missing parent directory. (An earlier attempt enabled WAL journal mode, but WAL opens three file handles per connection and the app opens a fresh connection per operation, which exhausted the process's file descriptors under load and caused `unable to open database file`; WAL was removed.)
 
 ### Changed
 
@@ -19,7 +19,6 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 
-- **No more "database is locked".** Background indexing writes the same SQLite files that a foreground `/ask` or status poll reads; with the default journal and no busy-timeout, a read arriving mid-write failed instantly. Every connection now opens in WAL mode (readers and a writer share the file) with `synchronous=NORMAL` and a 30-second busy-timeout, via a single shared helper routed through all 27 connection sites.
 - **A corrupt search index gives a clear message, not a raw 500.** If the vector index file is damaged, `/ask` used to crash with an unhandled `sqlite3` error. It now surfaces a friendly "the search index looks damaged — rebuild it for this workspace" answer (diagnostic code `index_corrupt`), on both the normal and streaming paths. Unrelated database errors still propagate as before.
 ### Security
 
