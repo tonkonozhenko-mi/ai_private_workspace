@@ -10,10 +10,10 @@ class SQLiteIndexStatusRepository:
     def __init__(self, db_path: str | Path) -> None:
         self.db_path = Path(db_path)
         initialize_workspace_schema(self.db_path)
-        self._ensure_embedding_model_column()
+        self._ensure_columns()
 
-    def _ensure_embedding_model_column(self) -> None:
-        """Add the embedding_model column to pre-existing databases. SQLite has no
+    def _ensure_columns(self) -> None:
+        """Add columns absent from pre-existing databases. SQLite has no
         'ADD COLUMN IF NOT EXISTS', so check the table info first."""
         with self._connect() as connection:
             columns = {
@@ -24,7 +24,11 @@ class SQLiteIndexStatusRepository:
                 connection.execute(
                     "ALTER TABLE workspace_index_status ADD COLUMN embedding_model TEXT"
                 )
-                connection.commit()
+            if "relevance_floor" not in columns:
+                connection.execute(
+                    "ALTER TABLE workspace_index_status ADD COLUMN relevance_floor REAL"
+                )
+            connection.commit()
 
     def save(self, status: WorkspaceIndexStatus) -> WorkspaceIndexStatus:
         with self._connect() as connection:
@@ -38,9 +42,10 @@ class SQLiteIndexStatusRepository:
                     skipped_files_count,
                     last_indexed_at,
                     last_error,
-                    embedding_model
+                    embedding_model,
+                    relevance_floor
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(workspace_id) DO UPDATE SET
                     status = excluded.status,
                     indexed_files_count = excluded.indexed_files_count,
@@ -48,7 +53,8 @@ class SQLiteIndexStatusRepository:
                     skipped_files_count = excluded.skipped_files_count,
                     last_indexed_at = excluded.last_indexed_at,
                     last_error = excluded.last_error,
-                    embedding_model = excluded.embedding_model
+                    embedding_model = excluded.embedding_model,
+                    relevance_floor = excluded.relevance_floor
                 """,
                 (
                     status.workspace_id,
@@ -59,6 +65,7 @@ class SQLiteIndexStatusRepository:
                     status.last_indexed_at,
                     status.last_error,
                     status.embedding_model,
+                    status.relevance_floor,
                 ),
             )
             connection.commit()
@@ -76,7 +83,8 @@ class SQLiteIndexStatusRepository:
                     skipped_files_count,
                     last_indexed_at,
                     last_error,
-                    embedding_model
+                    embedding_model,
+                    relevance_floor
                 FROM workspace_index_status
                 WHERE workspace_id = ?
                 """,
@@ -94,6 +102,7 @@ class SQLiteIndexStatusRepository:
             last_indexed_at=row["last_indexed_at"],
             last_error=row["last_error"],
             embedding_model=row["embedding_model"],
+            relevance_floor=row["relevance_floor"],
         )
 
     def _connect(self) -> sqlite3.Connection:
