@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Security
+
+- **Explicit Content-Security-Policy for the desktop webview.** `tauri.conf.json` now sets a real CSP instead of `csp: null`. Since LLM answers are rendered into the DOM (escaped, but still), a policy meaningfully shrinks the blast radius: `script-src 'self'` (no remote or inline scripts), `object-src 'none'`, `default-src 'self'`, and `connect-src` limited to the local backend via a **port wildcard** (`http://127.0.0.1:* http://localhost:*`) plus Tauri IPC — the wildcard keeps it working if the backend port ever changes. `style-src` keeps `'unsafe-inline'` for highlight.js themes and React inline styles. Must be smoke-tested on a real Tauri build (dev + packaged) before release; revert to `csp: null` if the webview fails to reach the backend or render.
+
 ### Changed
 
 - **Cleaner chunking of very long single lines.** When one line is too big to fit a chunk (minified code, a huge string/data blob), the splitter now breaks just before a natural separator (space, comma, `;`, `)`, `]`, `}`) instead of cutting mid-identifier — better embeddings and retrieval for those chunks. Multi-line units already split on line boundaries; a truly unbreakable line still falls back to a bounded character cut.
