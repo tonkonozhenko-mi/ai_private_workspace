@@ -8,6 +8,9 @@ from app.adapters.memory.sqlite_local_model_download_job_repository import (
 from app.config.settings import get_settings
 from app.core.domain.command import CommandProposal
 from app.core.domain.local_model_download_job import build_queued_model_download_job
+from app.core.use_cases.run_local_model_download_job import (
+    RunLocalModelDownloadJobUseCase,
+)
 from app.main import app
 
 client = TestClient(app)
@@ -23,9 +26,21 @@ def test_model_download_job_is_blocked_when_execution_disabled(tmp_path) -> None
     assert "disabled" in response.json()["detail"]
 
 
-def test_model_download_job_starts_background_status_and_finishes(tmp_path) -> None:
+def test_model_download_job_starts_background_status_and_finishes(tmp_path, monkeypatch) -> None:
     workspace = _create_workspace(tmp_path)
     draft = _create_draft(workspace["id"])
+
+    # The background worker normally streams a real `ollama pull` from the local
+    # Ollama daemon. That makes this test depend on the network, a running daemon,
+    # and the download finishing inside the poll window — flaky by construction.
+    # Stub the streaming pull so it "succeeds" instantly: we're testing the job
+    # lifecycle (queued → running → succeeded, proposal executed), not a real
+    # download.
+    monkeypatch.setattr(
+        RunLocalModelDownloadJobUseCase,
+        "_stream_ollama_pull",
+        lambda self, job_id, model_name, running_job: None,
+    )
 
     settings = get_settings()
     original_enabled = settings.MODEL_DOWNLOAD_EXECUTION_ENABLED
@@ -62,8 +77,10 @@ def test_model_download_job_read_rejects_unknown_job() -> None:
 
 
 def _wait_for_job(job_id: str):
+    # The worker runs on a daemon thread; with the streaming pull stubbed it
+    # finishes near-instantly, but keep a generous budget to avoid CI flakiness.
     last = None
-    for _ in range(30):
+    for _ in range(100):
         read_response = client.get(f"/models/local-download-jobs/{job_id}")
         assert read_response.status_code == 200
         last = read_response.json()
