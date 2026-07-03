@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **Cleaner chunking of very long single lines.** When one line is too big to fit a chunk (minified code, a huge string/data blob), the splitter now breaks just before a natural separator (space, comma, `;`, `)`, `]`, `}`) instead of cutting mid-identifier — better embeddings and retrieval for those chunks. Multi-line units already split on line boundaries; a truly unbreakable line still falls back to a bounded character cut.
+
 ### Fixed
 
 - **`database is locked` fixed via a busy-timeout (no WAL).** Every SQLite connection now opens with a 30-second busy-timeout, so a read arriving while the background indexer writes waits for the lock instead of erroring — the actual fix, and it needs no on-disk side files. `open_sqlite` also creates a missing parent directory. (An earlier attempt enabled WAL journal mode, but WAL opens three file handles per connection and the app opens a fresh connection per operation, which exhausted the process's file descriptors under load and caused `unable to open database file`; WAL was removed.)
