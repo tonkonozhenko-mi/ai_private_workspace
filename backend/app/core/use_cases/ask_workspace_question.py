@@ -846,8 +846,17 @@ class AskWorkspaceQuestionUseCase:
         # Prefer a floor calibrated to this embedding model's own score scale (set at
         # index time). Falls back to the hardcoded default for indexes built before
         # calibration existed, or too small to sample a trustworthy floor.
+        #
+        # The calibrated floor may only make abstention MORE permissive, never
+        # stricter than the historic default. Its background is sampled from random
+        # chunk pairs, which in a topically-focused repo aren't truly unrelated
+        # (they share the project's vocabulary), so the sampled p95 can overshoot
+        # real query↔chunk match scores and wrongly abstain on on-topic questions.
+        # The default (0.38) is battle-tested not to over-abstain, so we cap there:
+        # calibration lowers the bar for embedders whose matches score low, but
+        # can't raise it above a value we know is safe.
         if index_status is not None and index_status.relevance_floor is not None:
-            base = index_status.relevance_floor
+            base = min(index_status.relevance_floor, DEFAULT_RELEVANCE_THRESHOLD)
         else:
             base = DEFAULT_RELEVANCE_THRESHOLD
         # The answer mode scales strictness: Only-from-sources raises the floor so it

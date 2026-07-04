@@ -15,9 +15,14 @@ embedder changes, which is exactly the property a fixed constant lacks.
 Everything here is pure (stdlib only) so it can be unit-tested without a model.
 
 Caveat worth remembering: chunk↔chunk similarity is not identical to query↔chunk
-similarity (queries are short, chunks long; some embedders are asymmetric), so the
-floor is a *calibrated relative* threshold, not a physical constant — still far more
-transferable across models than a single hardcoded number.
+similarity (queries are short, chunks long; some embedders are asymmetric), and in a
+topically-focused repo random chunk pairs are NOT truly unrelated (they share the
+project's vocabulary), so the sampled background can sit *above* real query↔chunk
+match scores. That would wrongly abstain on on-topic questions. Because of this the
+calibrated floor is treated by consumers as a **permissive-only** signal: it may
+lower the abstention bar for embedders whose matches score low, but is capped at the
+historic default so it can't raise the bar above a value known not to over-abstain
+(see ``AskWorkspaceQuestionUseCase._relevance_threshold``).
 """
 
 from __future__ import annotations
