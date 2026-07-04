@@ -57,6 +57,17 @@ def test_missing_floor_falls_back_to_default():
     assert _threshold(_real_self(), _status(None)) == DEFAULT_RELEVANCE_THRESHOLD
 
 
+def test_answer_mode_scales_the_threshold():
+    # Deep dive is more permissive (lower floor); Only-from-sources is stricter
+    # (higher floor); Balanced sits in between — all off the same base.
+    _clear_env()
+    base = _threshold(_real_self(), _status(None), "safe")
+    deep = _threshold(_real_self(), _status(None), "deep")
+    strict = _threshold(_real_self(), _status(None), "sources_only")
+    assert deep < base < strict
+    assert base == DEFAULT_RELEVANCE_THRESHOLD
+
+
 def test_fake_embedding_ignores_calibrated_floor():
     _clear_env()
     assert _threshold(_fake_self(), _status(0.27)) == FAKE_EMBEDDING_RELEVANCE_THRESHOLD
