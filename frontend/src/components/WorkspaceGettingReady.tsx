@@ -104,6 +104,7 @@ export function WorkspaceGettingReady({
     total: number | null;
     percent: number | null;
     step: string | null;
+    startedAt: number;
   } | null>(null);
   const [runningJobId, setRunningJobId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
@@ -116,7 +117,14 @@ export function WorkspaceGettingReady({
     setBusy(kind);
     setError(null);
     setMessage(null);
-    setJobProgress({ kind, current: null, total: null, percent: null, step: "Starting…" });
+    setJobProgress({
+      kind,
+      current: null,
+      total: null,
+      percent: null,
+      step: "Starting…",
+      startedAt: Date.now(),
+    });
     try {
       const result = (await starter()) as WorkspaceJob | undefined;
       const jobId = result?.job_id;
@@ -133,13 +141,14 @@ export function WorkspaceGettingReady({
         } catch {
           continue;
         }
-        setJobProgress({
+        setJobProgress((prev) => ({
           kind,
           current: job.progress_current,
           total: job.progress_total,
           percent: job.progress_percent,
           step: job.current_step ?? job.message,
-        });
+          startedAt: prev?.startedAt ?? Date.now(),
+        }));
         if (["completed", "failed", "cancelled"].includes(job.status)) {
           if (job.status === "failed") {
             setError(job.error ?? "That step failed. Please try again.");
@@ -173,16 +182,41 @@ export function WorkspaceGettingReady({
     }
   }
 
+  // Estimate remaining time from the average rate so far. Only shown once there's
+  // enough signal (>=3% done and a few seconds elapsed) so it isn't wildly wrong.
+  function formatEta(progress: NonNullable<typeof jobProgress>): string | null {
+    const { current, total, startedAt } = progress;
+    if (!total || current == null || current <= 0 || current >= total) return null;
+    const elapsedMs = Date.now() - startedAt;
+    if (elapsedMs < 3000 || current / total < 0.03) return null;
+    const remainingMs = (elapsedMs / current) * (total - current);
+    const secs = Math.round(remainingMs / 1000);
+    if (secs < 60) return `${secs}s`;
+    const mins = Math.floor(secs / 60);
+    const rem = secs % 60;
+    return rem ? `${mins}m ${rem}s` : `${mins}m`;
+  }
+
   function renderJobProgress(progress: NonNullable<typeof jobProgress>) {
-    const label =
-      progress.total != null && progress.current != null
+    // Before the file list is known the backend reports a "0 of 1" placeholder,
+    // which reads like a stuck 0% — show a plain "Enumerating files…" instead.
+    const enumerating =
+      progress.current != null &&
+      progress.current <= 0 &&
+      (progress.total == null || progress.total <= 1);
+    const percent = enumerating
+      ? null
+      : progress.percent ??
+        (progress.total && progress.current != null
+          ? Math.round((progress.current / progress.total) * 100)
+          : null);
+    const label = enumerating
+      ? "Enumerating files…"
+      : progress.total != null && progress.current != null
         ? `${progress.current.toLocaleString()} of ${progress.total.toLocaleString()} files`
         : progress.step ?? "Working…";
-    const percent =
-      progress.percent ??
-      (progress.total && progress.current != null
-        ? Math.round((progress.current / progress.total) * 100)
-        : null);
+    // Rough ETA from the average rate so far — reassuring on large repos.
+    const eta = formatEta(progress);
     return (
       <div className="gr-job-progress">
         <div className={`install-progress-bar${percent === null ? " is-indeterminate" : ""}`}>
@@ -192,6 +226,7 @@ export function WorkspaceGettingReady({
           <span className="gr-job-progress-label">
             {label}
             {percent !== null ? ` · ${percent}%` : ""}
+            {eta ? ` · ~${eta} left` : ""}
           </span>
           {runningJobId ? (
             <button
@@ -555,7 +590,13 @@ export function WorkspaceGettingReady({
               disabled={busy !== null || downloading}
               onClick={() => void installRecommendedModels()}
             >
-              {downloading ? "Downloading…" : busy === "models" ? "Starting…" : "Install & continue"}
+              {downloading
+                ? "Downloading…"
+                : busy === "models"
+                  ? "Starting…"
+                  : recommendedInstalled
+                    ? "Continue"
+                    : "Install & continue"}
             </button>
             <button className="secondary-action" type="button" disabled={busy !== null} onClick={() => void recheck()}>
               {busy === "check" ? "Checking…" : "Re-check"}
@@ -568,7 +609,9 @@ export function WorkspaceGettingReady({
             <p className="getting-ready-message">
               Checked — {modelsReady
                 ? "all set, moving on."
-                : "tap Install & continue to use these models here."}
+                : recommendedInstalled
+                  ? "tap Continue to use these models here."
+                  : "tap Install & continue to use these models here."}
             </p>
           ) : null}
           </>

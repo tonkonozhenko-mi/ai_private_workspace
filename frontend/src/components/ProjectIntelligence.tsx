@@ -333,6 +333,22 @@ export function ProjectIntelligence({
             Build a deterministic map of the infrastructure, pipelines, environments and risks
             found in this project. Nothing runs and no files are changed.
           </p>
+          <p className="pi-empty-preview-lead">Once built, it surfaces things like:</p>
+          <ul className="pi-empty-preview" aria-hidden="true">
+            {[
+              "Environments",
+              "Pipelines (CI/CD)",
+              "Cloud services",
+              "Dependencies",
+              "Deployment flow",
+              "Risks",
+            ].map((label) => (
+              <li className="pi-empty-preview-item" key={label}>
+                <span className="pi-empty-preview-dot" />
+                {label}
+              </li>
+            ))}
+          </ul>
           <button
             type="button"
             className="pi-button pi-button-primary"
