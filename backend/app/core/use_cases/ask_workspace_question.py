@@ -27,7 +27,6 @@ from app.core.domain.rag import (
     WorkspaceQuestionAnswer,
 )
 from app.core.domain.rag_answer_cleanup import strip_source_path_echo
-from app.core.domain.retrieval_diversity import limit_per_source
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.rag_prompt import (
     SkillPromptInstruction,
@@ -40,6 +39,7 @@ from app.core.domain.rag_query_rewrite import (
     merge_queries,
     parse_rewritten_query,
 )
+from app.core.domain.retrieval_diversity import limit_per_source
 from app.core.ports.conversation_repository import ConversationRepositoryPort
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
