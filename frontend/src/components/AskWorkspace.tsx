@@ -925,7 +925,8 @@ export function AskWorkspace({
               </label>
               <textarea
                 id="workspace-question"
-                placeholder="Ask about this project, code, infrastructure, CI/CD, or setup... (Enter to send, Shift+Enter for a new line). Drop a log or file here to analyze it."
+                placeholder="Ask anything about this project… (Enter to send · Shift+Enter for a new line)"
+                title="You can also drop a log, text file, or image here to ask about it."
                 rows={2}
                 value={question}
                 onChange={(event) => setQuestion(event.target.value)}
@@ -1066,9 +1067,11 @@ export function AskWorkspace({
                 />
                 Attach image
               </label>
-              <span className="ask-attach-hint">
-                Add a diagram or screenshot to ask about it. Needs a vision model
-                (for example llama3.2-vision); it is sent only to your local AI.
+              <span
+                className="ask-attach-hint"
+                title="Add a diagram or screenshot to ask about it. Needs a vision model (for example llama3.2-vision); it is sent only to your local AI."
+              >
+                Needs a vision model · stays local
               </span>
             </div>
             {attachedImages.length > 0 ? (
@@ -1540,6 +1543,7 @@ function ThinkingIndicator() {
   return (
     <div className="ask-message-bubble assistant-bubble is-loading">
       <span>
+        <span className="ask-thinking-dot" aria-hidden="true" />
         {thinkingPhase(seconds)} <strong>{seconds}s</strong>
       </span>
       {seconds >= 10 ? (

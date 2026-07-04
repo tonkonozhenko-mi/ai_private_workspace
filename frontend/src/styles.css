@@ -5623,3 +5623,88 @@ a.getting-ready-cta:hover {
 .pm-card {
   padding: 18px 20px;
 }
+
+/* ================================================================
+   Motion & polish pass (feat/ui-polish-pass)
+   One quiet motion language: things appear by settling (fade + 4-6px
+   rise), state changes cross-fade, nothing bounces. Durations stay
+   under 300ms so the app feels responsive, not animated.
+   ================================================================ */
+
+/* Gentle state transitions for every interactive control. Colors and
+   borders only — no layout properties, so nothing can jitter. */
+button,
+.segmented-control button,
+input,
+select,
+textarea,
+a {
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+/* New chat messages settle into place. Applies on mount only; opening
+   an old conversation replays it once as a subtle 240ms fade — cheaper
+   than tracking "new vs restored" and visually calm either way. */
+.ask-message-row {
+  animation: msg-enter 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes msg-enter {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Thinking indicator: a small breathing dot next to the phase label —
+   continuous, quiet proof of life during long local generations. */
+.ask-thinking-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: var(--c-accent);
+  animation: thinking-breathe 1.6s ease-in-out infinite;
+  vertical-align: baseline;
+}
+@keyframes thinking-breathe {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* The send button breathes very slightly while a question is running,
+   instead of sitting frozen on a disabled "Thinking…". */
+.ask-send-button:disabled {
+  animation: thinking-button 2s ease-in-out infinite;
+}
+@keyframes thinking-button {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
+/* Avatars: one family. Both sit on the same surface chip; the assistant
+   carries a faint accent ring so "who is speaking" reads at a glance. */
+.ask-avatar-img {
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  padding: 2px;
+}
+.ask-message-row.is-assistant .ask-avatar-img {
+  border-color: color-mix(in srgb, var(--c-accent) 45%, var(--c-border));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-accent) 12%, transparent);
+}
+
+/* Respect reduced-motion across the polish pass. */
+@media (prefers-reduced-motion: reduce) {
+  .ask-message-row { animation: none; }
+  .ask-thinking-dot { animation: none; opacity: 0.8; }
+  .ask-send-button:disabled { animation: none; }
+  button,
+  input,
+  select,
+  textarea,
+  a { transition: none; }
+}
