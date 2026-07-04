@@ -83,6 +83,7 @@ import {
   tokenizeInline,
   type MarkdownBlock,
 } from "../lib/markdown";
+import { formatModelLabel, rawModelTitle } from "../lib/modelLabel";
 import { StatusBadge } from "./StatusBadge";
 import { SKILL_PRESETS, getEnabledSkillPresets, getSkillPresetByAssistantMode, type CustomSkill, type SkillPreferences } from "./skillLibrary";
 
@@ -1903,7 +1904,7 @@ function ConversationDetailsCard({ conversation }: { conversation: WorkspaceConv
     ? conversation.active_skills.join(" + ")
     : "No saved skill guidance captured yet";
   const model = conversation.last_llm_provider
-    ? `${conversation.last_llm_provider}/${conversation.last_llm_model ?? "default"}`
+    ? formatModelLabel(conversation.last_llm_provider, conversation.last_llm_model)
     : "No answer yet";
 
   return (
@@ -2009,8 +2010,8 @@ function AnswerResult({
         <article className="ask-message-bubble assistant-bubble">
           <div className="assistant-bubble-header">
             <div>
-              <small>
-                {answer.llm_provider}/{answer.llm_model ?? "default"} · {formatTime(createdAt)}
+              <small title={rawModelTitle(answer.llm_provider, answer.llm_model)}>
+                {formatModelLabel(answer.llm_provider, answer.llm_model)} · {formatTime(createdAt)}
               </small>
             </div>
             <div className="answer-header-actions">
@@ -2631,7 +2632,7 @@ export function MarkdownAnswer({ content }: { content: string }) {
 
         if (block.type === "orderedList") {
           return (
-            <ol key={block.id}>
+            <ol key={block.id} start={block.start}>
               {block.lines.map((line, index) => (
                 <li key={`${block.id}-${index}`}>
                   <InlineMarkdown text={line} />

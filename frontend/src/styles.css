@@ -2432,10 +2432,9 @@ a.getting-ready-cta:visited { color: var(--c-accent-ink); }
 
 /* version pinned bottom-left, always visible */
 .sidebar-version {
-  position: fixed;
-  left: var(--s-4);
-  bottom: var(--s-3);
-  z-index: 50;
+  /* Stays in the sidebar footer flow. Previously position:fixed, which kept the
+     label floating over main content (and over the last card) whenever the
+     sidebar was collapsed or the footer scrolled away. */
   color: var(--c-text-3);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -2660,10 +2659,13 @@ a.getting-ready-cta:visited { color: var(--c-accent-ink); }
   box-shadow: 0 -24px 0 var(--c-bg);
 }
 
-/* reset legacy borders/background on the nav containers */
+/* reset legacy borders/background on the nav containers.
+   Keep the opaque -24px strip from the base rule: it paints over the
+   main-content top padding so scrolled content can't peek above the
+   sticky bar (only the decorative border is dropped here). */
 .workspace-navigation-shell {
   border: none;
-  box-shadow: none;
+  box-shadow: 0 -24px 0 var(--c-bg);
 }
 
 .workspace-tabs {
@@ -3350,7 +3352,10 @@ a.getting-ready-cta:visited { color: var(--c-accent-ink); }
   border: 1px solid var(--c-border);
   border-radius: var(--r-lg);
   padding: var(--s-4);
-  box-shadow: var(--shadow-md);
+  /* The second shadow paints an opaque strip below the sticky composer
+     (bottom gap 8px + main-content padding 24px), so transcript text can't
+     show through underneath it while scrolling. */
+  box-shadow: var(--shadow-md), 0 33px 0 var(--c-bg);
 }
 .ask-bottom-composer form {
   display: flex;
