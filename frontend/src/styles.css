@@ -5708,3 +5708,14 @@ a {
   textarea,
   a { transition: none; }
 }
+
+/* "Answered as general conversation" deserves more than a grey footnote:
+   the user just got an answer that did NOT come from their files, which is
+   the single most important thing to notice about it. Amber accent, still
+   quiet — a caution, not an error. */
+.ask-diagnostic.is-general-conversation {
+  border-top-color: color-mix(in srgb, #d9a441 45%, var(--c-border));
+}
+.ask-diagnostic.is-general-conversation span {
+  color: #d9a441;
+}

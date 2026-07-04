@@ -2114,7 +2114,13 @@ function AnswerResult({
         ) : null}
 
         {answer.diagnostic_message ? (
-          <article className="ask-diagnostic">
+          <article
+            className={`ask-diagnostic${
+              answer.diagnostic_code === "answered_as_general_conversation"
+                ? " is-general-conversation"
+                : ""
+            }`}
+          >
             <span>{formatLabel(answer.diagnostic_code ?? "workspace status")}</span>
             <p>{answer.diagnostic_message}</p>
           </article>
