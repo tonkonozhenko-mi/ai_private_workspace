@@ -5756,3 +5756,27 @@ a {
   margin-left: auto;
   font-variant-numeric: tabular-nums;
 }
+
+/* Engine note in setup: Ollama offered as a detected integration, one quiet
+   line instead of an upfront tab decision. */
+.gr-engine-note {
+  font-size: 13px;
+  color: var(--c-text-2);
+}
+.gr-engine-note .text-button {
+  color: var(--c-accent);
+  font-size: inherit;
+}
+
+/* Intelligence tab panels settle in (the panel is keyed by tab, so this
+   plays on every switch). Same curve and restraint as msg-enter. */
+.pi-section {
+  animation: view-enter 0.18s ease both;
+}
+@keyframes view-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pi-section { animation: none; }
+}
