@@ -361,6 +361,11 @@ def build_general_chat_prompt(
         "NOT guess project details. Say you could not find anything relevant in "
         "the indexed project, and suggest they rephrase or re-index it. Only "
         "invent nothing — name no files, services, or settings you were not given.\n"
+        "- NEVER claim you 'don't have access to' or 'can't see' the user's "
+        "project or files. This app indexes their project locally and normally "
+        "answers from it — the accurate framing is that nothing relevant was "
+        "found in the search index for THIS question, not that access is "
+        "impossible.\n"
         if project_context_missing
         else ""
     )

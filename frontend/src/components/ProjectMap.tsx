@@ -100,6 +100,12 @@ function BlastColumn({
 export function ProjectMap({ graph }: { graph: ProjectGraphPayload }) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  // Fit-to-view by default: with a tall column (e.g. 47 cloud services) the
+  // native-size canvas opened on an empty corner — sparse columns are
+  // vertically centered against the tallest one, so the top-left viewport
+  // showed nothing but edge arcs. Scaling the whole graph into the container
+  // shows the full picture first; "1:1" restores native size for detail work.
+  const [fitToView, setFitToView] = useState(true);
   // Jobs are the biggest source of clutter (many same-named nodes), so the map
   // opens with that layer hidden; the legend toggles any layer on or off.
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(
@@ -259,13 +265,23 @@ export function ProjectMap({ graph }: { graph: ProjectGraphPayload }) {
             </button>
           );
         })}
+        <button
+          type="button"
+          className="pi-map-legend-item pi-map-zoom-toggle"
+          onClick={() => setFitToView((value) => !value)}
+          aria-pressed={fitToView}
+          title={fitToView ? "Show at actual size" : "Fit the whole map in view"}
+        >
+          {fitToView ? "1:1" : "Fit"}
+        </button>
       </div>
 
       <div className="pi-map-canvas">
         <svg
+          className={fitToView ? "pi-map-svg is-fit" : "pi-map-svg"}
           viewBox={`0 0 ${width} ${height}`}
-          width={width}
-          height={height}
+          width={fitToView ? undefined : width}
+          height={fitToView ? undefined : height}
           role="img"
           aria-label="Project map"
         >

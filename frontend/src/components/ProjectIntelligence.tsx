@@ -405,7 +405,9 @@ export function ProjectIntelligence({
             ))}
           </nav>
 
-          <div className="pi-section">
+          {/* key={activeTab} remounts the panel so the enter fade plays on every
+              tab switch — content stops "snapping" between tabs. */}
+          <div className="pi-section" key={activeTab}>
             {activeTab === "summary" ? (
               <SummarySection
                 view={view}

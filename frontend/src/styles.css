@@ -5719,3 +5719,64 @@ a {
 .ask-diagnostic.is-general-conversation span {
   color: #d9a441;
 }
+
+/* One-click rebuild (reindex guidance + general-conversation diagnostic). */
+.rebuild-context-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+.rebuild-context-button { white-space: nowrap; }
+.rebuild-context-progress {
+  font-size: 12px;
+  color: var(--c-text-3);
+}
+.rebuild-context-done {
+  font-size: 12px;
+  color: var(--c-accent);
+}
+.ask-diagnostic-actions {
+  margin-top: var(--s-2);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+/* Project map: fit-to-view scales the whole graph into the container (the
+   default — see ProjectMap.tsx), 1:1 restores native size with scrolling. */
+.pi-map-svg.is-fit {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 72vh;
+}
+.pi-map-zoom-toggle {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Engine note in setup: Ollama offered as a detected integration, one quiet
+   line instead of an upfront tab decision. */
+.gr-engine-note {
+  font-size: 13px;
+  color: var(--c-text-2);
+}
+.gr-engine-note .text-button {
+  color: var(--c-accent);
+  font-size: inherit;
+}
+
+/* Intelligence tab panels settle in (the panel is keyed by tab, so this
+   plays on every switch). Same curve and restraint as msg-enter. */
+.pi-section {
+  animation: view-enter 0.18s ease both;
+}
+@keyframes view-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pi-section { animation: none; }
+}

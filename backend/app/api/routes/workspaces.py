@@ -18,6 +18,7 @@ from app.api.dependencies import (
     index_manifest_repository,
     index_status_repository,
     indexing_rules_repository,
+    llama_runtime_manager,
     llm_provider_factory,
     model_catalog_registry,
     model_experiment_rating_repository,
@@ -1069,6 +1070,56 @@ def start_scan_workspace_job(
     return _to_workspace_job_response(job)
 
 
+def _align_embedding_backend_with_selection(workspace_id: str) -> None:
+    """Make an index build honor the workspace's chosen search engine.
+
+    The embedding delegate is app-global and can lag behind the workspace's
+    recorded selection — e.g. the setup flow's backend switch failed silently,
+    or another project re-pointed the delegate. Building an index with the
+    wrong vectorizer writes vectors this workspace can never search (observed
+    live: onboarding built via Ollama while the workspace selected llama.cpp →
+    "NEEDS CONTEXT INDEX" right after a successful build and Ask falling back
+    to general conversation). Align first; if the selected engine can't be
+    activated, fail loudly with a recoverable message instead of building a
+    useless index.
+    """
+    selection = workspace_model_selection_repository.get(workspace_id)
+    selected = selection.selected_embedding if selection is not None else None
+    if selected is None:
+        return
+    provider = selected.provider.strip().lower()
+    if provider not in {"ollama", "llamacpp"}:
+        return
+    current = str(getattr(embedding_provider, "provider_name", "")).strip().lower()
+    if current == provider:
+        return
+    if not hasattr(embedding_provider, "set_delegate"):
+        return
+
+    from app.api.dependencies import build_embedding_for_backend, runtime_state_store
+
+    try:
+        if provider == "llamacpp":
+            # Mirror activate_workspace_runtime: make sure the built-in engine
+            # is serving the selected search model before pointing embeds at it.
+            from app.core.use_cases.download_gguf_model import GgufModelRef
+
+            llama_runtime_manager.set_embed_ref(GgufModelRef(model_id=selected.model))
+            llama_runtime_manager.start()
+        delegate = build_embedding_for_backend(provider)
+        # Probe once so a dead engine fails here, with a clear message, rather
+        # than mid-job with a raw connection error.
+        delegate.embed_text("ok")
+        embedding_provider.set_delegate(delegate)
+        runtime_state_store.set_active_backend(provider)
+    except Exception as exc:  # noqa: BLE001 - converted into a clear job error
+        raise RuntimeError(
+            f"This workspace's search model runs on '{provider}', but that "
+            "engine is not available right now. Open Models, start the engine "
+            "(or choose another search model), then rebuild the search context."
+        ) from exc
+
+
 @router.post("/{workspace_id}/jobs/index", response_model=WorkspaceJobResponse)
 def start_index_workspace_job(workspace_id: str) -> WorkspaceJobResponse:
     workspace = workspace_repository.get(workspace_id)
@@ -1084,6 +1135,7 @@ def start_index_workspace_job(workspace_id: str) -> WorkspaceJobResponse:
             message="Preparing search context build...",
             current_step="prepare",
         )
+        _align_embedding_backend_with_selection(workspace_id)
         try:
             result = IndexWorkspaceUseCase(
                 workspace_repository=workspace_repository,
@@ -1275,6 +1327,7 @@ def _index_use_case() -> IndexWorkspaceUseCase:
 @router.post("/{workspace_id}/index", response_model=WorkspaceIndexResponse)
 def index_workspace(workspace_id: str) -> WorkspaceIndexResponse:
     try:
+        _align_embedding_backend_with_selection(workspace_id)
         result = _index_use_case().execute(IndexWorkspaceInput(workspace_id=workspace_id))
     except IndexWorkspaceNotFoundError as exc:
         raise HTTPException(
@@ -1284,6 +1337,13 @@ def index_workspace(workspace_id: str) -> WorkspaceIndexResponse:
     except IndexWorkspaceScanRequiredError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except RuntimeError as exc:
+        # Raised by _align_embedding_backend_with_selection when the workspace's
+        # chosen search engine can't be activated — recoverable, not a 500.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
             detail=str(exc),
         ) from exc
 
@@ -1298,6 +1358,7 @@ def reindex_changed_workspace(workspace_id: str) -> WorkspaceIncrementalIndexRes
     so the local model sees the latest content without re-indexing the whole repo.
     Falls back to a full index when there is no prior index or the embedder changed."""
     try:
+        _align_embedding_backend_with_selection(workspace_id)
         result = _index_use_case().execute_changed(IndexWorkspaceInput(workspace_id=workspace_id))
     except IndexWorkspaceNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

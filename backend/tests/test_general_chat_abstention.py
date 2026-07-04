@@ -13,6 +13,10 @@ def test_abstention_clause_present_when_context_missing():
     assert "do not guess project details" in low
     # It should NOT assert (falsely) that the user is making general conversation.
     assert "general conversation that is not about their project" not in low
+    # Live-observed failure: the model told the user "I don't have real-time
+    # access to your project files" — the opposite of what the product does.
+    # The prompt must explicitly forbid that framing.
+    assert "never claim you 'don't have access to'" in low
 
 
 def test_no_abstention_clause_for_plain_chat():

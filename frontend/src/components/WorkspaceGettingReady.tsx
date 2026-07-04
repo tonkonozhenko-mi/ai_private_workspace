@@ -79,9 +79,16 @@ export function WorkspaceGettingReady({
   // not that search works — search needs an index, which is the NEXT step.
 
   // The workspace already records its engine in its selected providers, so a
-  // returning project opens on the right toggle (no Ollama gate for a llama.cpp
-  // project, and vice-versa).
+  // returning project opens on the right engine. A FRESH workspace (no
+  // selection yet) defaults to the built-in llama.cpp engine: zero install,
+  // and the only path with Flash Attention, prompt cache, and exact token
+  // counts. Ollama is offered as a detected integration (one quiet line when
+  // it's actually running) rather than an upfront decision — progressive
+  // disclosure: the capability stays, the decision disappears.
+  const hasEngineSelection =
+    Boolean(modelsSummary.selected_llm) || Boolean(modelsSummary.selected_embedding);
   const workspaceBackend: "ollama" | "llamacpp" =
+    !hasEngineSelection ||
     modelsSummary.selected_llm?.startsWith("llamacpp") ||
     modelsSummary.selected_embedding?.startsWith("llamacpp")
       ? "llamacpp"
@@ -523,7 +530,33 @@ export function WorkspaceGettingReady({
             (about 2.5 GB, runs offline). Want a bigger, sharper model? Open Models.
           </p>
 
-          {backendToggle}
+          {backendChoice === "llamacpp" ? (
+            installStatus?.runtime_reachable === true ? (
+              <p className="gr-engine-note">
+                Found Ollama running on this Mac.{" "}
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => setBackendChoice("ollama")}
+                >
+                  Use your Ollama models instead
+                </button>{" "}
+                — keeps your existing models, skips the download.
+              </p>
+            ) : null
+          ) : (
+            <p className="gr-engine-note">
+              Using your Ollama install.{" "}
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => setBackendChoice("llamacpp")}
+              >
+                Switch to the built-in engine
+              </button>{" "}
+              — nothing to install, works even without Ollama.
+            </p>
+          )}
 
           {backendChoice === "llamacpp" ? (
             <LlamaCppModelsPanel
@@ -633,10 +666,15 @@ export function WorkspaceGettingReady({
         <div className="getting-ready-step">
           <span className="getting-ready-kicker">Ready</span>
           <h2>Everything’s set — ask anything</h2>
-          <p>Your project is scanned, your local AI is installed, and context is built. Answers stay on this Mac.</p>
+          <p>
+            {dashboard.summary.index_status.indexed_files_count > 0
+              ? `${dashboard.summary.index_status.indexed_files_count.toLocaleString()} files turned into ${dashboard.summary.index_status.chunks_count.toLocaleString()} searchable pieces — all on this Mac. `
+              : "Your project is scanned, your local AI is installed, and context is built. Answers stay on this Mac. "}
+            The AI now answers from your real project, with sources.
+          </p>
           <div className="getting-ready-actions">
             <button className="getting-ready-cta" type="button" onClick={onOpenAsk}>
-              Ask a question
+              Ask your first question
             </button>
           </div>
         </div>
