@@ -27,6 +27,7 @@ from app.core.domain.rag import (
     WorkspaceQuestionAnswer,
 )
 from app.core.domain.rag_answer_cleanup import strip_source_path_echo
+from app.core.domain.retrieval_diversity import limit_per_source
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.rag_prompt import (
     SkillPromptInstruction,
@@ -1021,6 +1022,9 @@ class AskWorkspaceQuestionUseCase:
                 embedding_dimension=len(query_embedding),
                 query_text=retrieval_query,
             )
+            # Don't let one file's chunks fill the whole context (starving other
+            # relevant files); cap per source before the reranker picks.
+            candidates = limit_per_source(candidates)
             if len(candidates) <= request.limit:
                 return _strip_embeddings(candidates[: request.limit])
             order = self.reranker.rerank(
@@ -1045,6 +1049,9 @@ class AskWorkspaceQuestionUseCase:
             embedding_dimension=len(query_embedding),
             query_text=retrieval_query,
         )
+        # Cap chunks-per-file before MMR so the diverse subset spans more files
+        # rather than several near-duplicate slices of one dominant document.
+        candidates = limit_per_source(candidates)
         return _strip_embeddings(mmr_select(query_embedding, candidates, target))
 
     def _skill_profile_audit(

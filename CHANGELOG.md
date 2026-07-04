@@ -9,6 +9,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Changed
 
+- **Retrieved context no longer gets dominated by a single file.** MMR de-duplicates by embedding similarity, but several distinct chunks of one large file could still fill the whole answer context and crowd out other relevant files (observed live: all 5 sources were the same doc while the Terraform files that answered the question were squeezed out). Retrieval now caps chunks-per-file (default 3) on the candidate pool before MMR / reranking, so the answer draws from more of the codebase.
+
 - **Answers no longer echo a `source_path:` list at the end.** Small local models often finished an answer by parroting the prompt's per-chunk provenance headers as a list — several identical lines like `1. source_path: …/SKILL.md` — which is pure noise since the app already shows a "N sources from your project" block. Two fixes: (1) the prompt now asks the model to cite files by putting the path in backticks and explicitly *not* to write the label `source_path:` or append a source list; (2) a deterministic post-process strips a trailing `source_path:` block (and its optional `Sources:` header) from the finished answer, on both the streamed and non-streamed paths. Inline mentions and the grounding check (which reads backtick-quoted file tokens) are untouched; it never blanks an answer.
 
 ### Security
