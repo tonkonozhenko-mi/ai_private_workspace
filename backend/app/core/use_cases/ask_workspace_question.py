@@ -29,6 +29,7 @@ from app.core.domain.rag import (
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.rag_prompt import (
     SkillPromptInstruction,
+    answer_mode_tuning,
     build_general_chat_prompt,
     build_workspace_question_prompt,
 )
@@ -471,7 +472,7 @@ class AskWorkspaceQuestionUseCase:
             )
 
         best_score = max((result.score for result in context_results), default=0.0)
-        if best_score < self._relevance_threshold(index_status):
+        if best_score < self._relevance_threshold(index_status, request.answer_mode):
             return self._record_question_event(
                 self._answer_general_conversation(
                     request, llm_provider, project_context_missing=True
@@ -616,7 +617,9 @@ class AskWorkspaceQuestionUseCase:
         )
 
         best_score = max((result.score for result in context_results), default=0.0)
-        if not context_results or best_score < self._relevance_threshold(index_status):
+        if not context_results or best_score < self._relevance_threshold(
+            index_status, request.answer_mode
+        ):
             prompt = build_general_chat_prompt(
                 question=request.question,
                 skill_instructions=request.skill_instructions,
@@ -826,7 +829,11 @@ class AskWorkspaceQuestionUseCase:
         )
         return answer, usage
 
-    def _relevance_threshold(self, index_status: WorkspaceIndexStatus | None = None) -> float:
+    def _relevance_threshold(
+        self,
+        index_status: WorkspaceIndexStatus | None = None,
+        answer_mode: str | None = None,
+    ) -> float:
         # Explicit env override always wins (ops/debugging escape hatch).
         override = os.environ.get(RELEVANCE_THRESHOLD_ENV_VAR)
         if override:
@@ -840,8 +847,13 @@ class AskWorkspaceQuestionUseCase:
         # index time). Falls back to the hardcoded default for indexes built before
         # calibration existed, or too small to sample a trustworthy floor.
         if index_status is not None and index_status.relevance_floor is not None:
-            return index_status.relevance_floor
-        return DEFAULT_RELEVANCE_THRESHOLD
+            base = index_status.relevance_floor
+        else:
+            base = DEFAULT_RELEVANCE_THRESHOLD
+        # The answer mode scales strictness: Only-from-sources raises the floor so it
+        # declines honestly on weak matches; Deep dive lowers it to consider more.
+        scaled = base * answer_mode_tuning(answer_mode).threshold_scale
+        return max(0.05, min(0.9, scaled))
 
     def _answer_general_conversation(
         self,
@@ -1007,8 +1019,10 @@ class AskWorkspaceQuestionUseCase:
 
         # Default path (no reranker): fetch a wider pool and pick a relevant-but-
         # diverse subset with MMR, so the budgeted context covers more of the
-        # codebase instead of near-duplicate top hits.
-        target = max(request.limit, _ANSWER_CHUNK_TARGET)
+        # codebase instead of near-duplicate top hits. The answer mode scales how
+        # broad that context is (Deep dive pulls more; others baseline).
+        chunk_scale = answer_mode_tuning(request.answer_mode).chunk_scale
+        target = max(request.limit, round(_ANSWER_CHUNK_TARGET * chunk_scale))
         pool = max(target * 3, _MMR_POOL)
         candidates = self.vector_store.search(
             workspace_id=request.workspace_id,

@@ -31,6 +31,40 @@ class AnswerMode:
         return value if value in cls._ALL else cls.SAFE
 
 
+@dataclass(frozen=True)
+class AnswerModeTuning:
+    """How a mode reshapes *retrieval*, not just the prompt wording.
+
+    Modes used to differ only in one steering sentence, which a small local model
+    barely acts on — so all four looked identical on easy questions. These scales
+    make each mode behave differently in what it actually retrieves and how
+    strictly it abstains:
+
+    - ``chunk_scale`` multiplies how many context chunks are pulled (breadth).
+    - ``threshold_scale`` multiplies the abstention floor (how confident a match
+      must be before the answer is grounded rather than declined).
+    """
+
+    chunk_scale: float = 1.0
+    threshold_scale: float = 1.0
+
+
+def answer_mode_tuning(mode: str | None) -> AnswerModeTuning:
+    """Retrieval tuning for an answer mode. Pure and deterministic.
+
+    Deep dive pulls a wider, more permissive context; Only-from-sources tightens
+    the abstention floor so it declines honestly when nothing is a confident match
+    (its prompt clause already forbids outside knowledge). Balanced and Explain
+    keep baseline retrieval — Explain differs only in how it presents reasoning.
+    """
+    normalized = AnswerMode.normalize(mode)
+    if normalized == AnswerMode.DEEP:
+        return AnswerModeTuning(chunk_scale=2.0, threshold_scale=0.7)
+    if normalized == AnswerMode.SOURCES_ONLY:
+        return AnswerModeTuning(chunk_scale=1.0, threshold_scale=1.3)
+    return AnswerModeTuning()
+
+
 def answer_mode_instructions(mode: str | None) -> str:
     """Return the one-line steering clause for an answer mode (or "" for SAFE).
 
