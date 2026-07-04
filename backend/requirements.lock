@@ -27,7 +27,7 @@ pydantic_core==2.46.4
 Pygments==2.20.0
 pyinstaller==6.21.0
 pyinstaller-hooks-contrib==2026.6
-pytest==8.4.2
+pytest==9.1.1
 python-dotenv==1.2.2
 PyYAML==6.0.3
 qdrant-client==1.18.0

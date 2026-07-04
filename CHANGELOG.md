@@ -9,6 +9,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Security
 
+- **Bumped pytest to clear CVE-2025-71176.** The lockfile (`requirements.lock`) still pinned `pytest==8.4.2`, which `pip-audit` flags for CVE-2025-71176 (fixed in 9.0.3), even though `requirements.txt` already floored `pytest>=9.1.1`. Synced the lock to `pytest==9.1.1`.
 - **Explicit Content-Security-Policy for the desktop webview.** `tauri.conf.json` now sets a real CSP instead of `csp: null`. Since LLM answers are rendered into the DOM (escaped, but still), a policy meaningfully shrinks the blast radius: `script-src 'self'` (no remote or inline scripts), `object-src 'none'`, `default-src 'self'`, and `connect-src` limited to the local backend via a **port wildcard** (`http://127.0.0.1:* http://localhost:*`) plus Tauri IPC — the wildcard keeps it working if the backend port ever changes. `style-src` keeps `'unsafe-inline'` for highlight.js themes and React inline styles. Must be smoke-tested on a real Tauri build (dev + packaged) before release; revert to `csp: null` if the webview fails to reach the backend or render.
 
 ### Changed
