@@ -256,6 +256,9 @@ export function AskWorkspace({
   const [reasoning, setReasoning] = useState(defaultReasoning);
   const [streaming, setStreaming] = useState(defaultStreaming);
   const [streamingText, setStreamingText] = useState("");
+  // The just-asked question, shown as a user bubble the instant it's sent (so the
+  // feed isn't empty and the text doesn't sit in the composer during the wait).
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
   // How hard the answer should lean on the project files. "safe" is the
   // everyday default; the stricter modes help weaker local models stay honest.
   const [answerMode, setAnswerMode] = useState<string>("safe");
@@ -688,6 +691,17 @@ export function AskWorkspace({
     setError(null);
     setCancelMessage(null);
     setStreamingText("");
+    // Show the question in the feed immediately and empty the composer, so the
+    // 30–40s wait for a local model doesn't look frozen. Capture the attached
+    // files first — the request payload was built above, but sentFiles is read
+    // after the await, so grab it before clearing.
+    setPendingQuestion(effectiveQuestion);
+    const sentFiles = attachedFiles;
+    if (options.clearComposer) {
+      setQuestion("");
+      setAttachedImages([]);
+      setAttachedFiles([]);
+    }
     try {
       const skillContext =
         devMode && skillOverride
@@ -751,7 +765,6 @@ export function AskWorkspace({
           askOptions,
         );
       }
-      const sentFiles = attachedFiles;
       const historyItem = createHistoryItem(
         result,
         sentFiles.map((file) => file.name),
@@ -769,11 +782,6 @@ export function AskWorkspace({
         });
       }
       await refreshConversations();
-      if (options.clearComposer) {
-        setQuestion("");
-        setAttachedImages([]);
-        setAttachedFiles([]);
-      }
       await onAsked?.();
     } catch (requestError) {
       if (isAbortError(requestError)) {
@@ -790,6 +798,7 @@ export function AskWorkspace({
         askAbortControllerRef.current = null;
         setLoading(false);
         setStreamingText("");
+        setPendingQuestion(null);
       }
     }
   }
@@ -834,6 +843,7 @@ export function AskWorkspace({
           history={history}
           loading={loading}
           streamingText={streamingText}
+          pendingQuestion={pendingQuestion}
           conversations={conversations}
           activeConversationId={activeConversationId}
           conversationLoading={conversationLoading}
@@ -1191,6 +1201,7 @@ function ConversationPanel({
   history,
   loading,
   streamingText,
+  pendingQuestion,
   conversations,
   activeConversationId,
   conversationLoading,
@@ -1227,6 +1238,7 @@ function ConversationPanel({
   history: AskHistoryItem[];
   loading: boolean;
   streamingText: string;
+  pendingQuestion: string | null;
   conversations: WorkspaceConversation[];
   activeConversationId: string | null;
   conversationLoading: boolean;
@@ -1348,6 +1360,11 @@ function ConversationPanel({
             onSaveAnswerNote={onSaveAnswerNote}
           />
         ))}
+        {loading && pendingQuestion ? (
+          <article className="ask-message-row is-user">
+            <div className="ask-message-bubble user-bubble">{pendingQuestion}</div>
+          </article>
+        ) : null}
         {loading ? (
           <article className="ask-message-row is-assistant">
             <img className="ask-avatar-img" src="/avatar-ai-robot-512.png" alt="AI" width={32} height={32} />
@@ -1503,6 +1520,17 @@ function RuntimeMemoryBar({ active }: { active: boolean }) {
   );
 }
 
+// Phase text derived from elapsed time. The backend doesn't stream retrieval
+// phases, but a moving label (searching → reading → writing) is far less "stuck"
+// than a static "Thinking…" during the 30–40s a local 7B needs before the first
+// token. Time thresholds are a heuristic; the label flips to the real streamed
+// text the moment a token arrives.
+function thinkingPhase(seconds: number): string {
+  if (seconds < 4) return "Searching your project files…";
+  if (seconds < 9) return "Reading the most relevant parts…";
+  return "Writing the answer…";
+}
+
 function ThinkingIndicator() {
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
@@ -1512,11 +1540,11 @@ function ThinkingIndicator() {
   return (
     <div className="ask-message-bubble assistant-bubble is-loading">
       <span>
-        Thinking with workspace context… <strong>{seconds}s</strong>
+        {thinkingPhase(seconds)} <strong>{seconds}s</strong>
       </span>
       {seconds >= 10 ? (
         <span className="ask-thinking-note">
-          Reasoning models run locally on your CPU and can take a while —
+          Running locally on your CPU, so this can take a while —
           the answer appears here when it's ready. Press Stop to cancel.
         </span>
       ) : null}
