@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **Answers no longer echo a `source_path:` list at the end.** Small local models often finished an answer by parroting the prompt's per-chunk provenance headers as a list — several identical lines like `1. source_path: …/SKILL.md` — which is pure noise since the app already shows a "N sources from your project" block. Two fixes: (1) the prompt now asks the model to cite files by putting the path in backticks and explicitly *not* to write the label `source_path:` or append a source list; (2) a deterministic post-process strips a trailing `source_path:` block (and its optional `Sources:` header) from the finished answer, on both the streamed and non-streamed paths. Inline mentions and the grounding check (which reads backtick-quoted file tokens) are untouched; it never blanks an answer.
+
 ### Security
 
 - **Bumped pytest to clear CVE-2025-71176.** The lockfile (`requirements.lock`) still pinned `pytest==8.4.2`, which `pip-audit` flags for CVE-2025-71176 (fixed in 9.0.3), even though `requirements.txt` already floored `pytest>=9.1.1`. Synced the lock to `pytest==9.1.1`.
