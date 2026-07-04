@@ -11,7 +11,6 @@ from app.core.domain.structured_output import (
     ollama_format_from_response_format,
 )
 
-
 # --- pure translation ------------------------------------------------------
 
 

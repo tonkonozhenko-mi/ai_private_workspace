@@ -222,9 +222,7 @@ def test_structured_schema_constrains_tool_to_enum_on_the_wire():
     provider = _StructuredProvider(
         [json.dumps({"thought": "", "next": "final", "tool": "", "tool_input": "", "answer": "ok"})]
     )
-    _use_case(provider).execute(
-        InvestigateProjectInput(workspace_id="w1", question="q")
-    )
+    _use_case(provider).execute(InvestigateProjectInput(workspace_id="w1", question="q"))
     schema = provider.formats_seen[0]["json_schema"]["schema"]
     tool_enum = schema["properties"]["tool"].get("enum")
     assert tool_enum is not None
@@ -283,7 +281,9 @@ def test_render_transcript_turns_invalid_step_into_a_correction():
     text = render_transcript(
         [
             AgentStep(
-                thought="", tool="(format)", tool_input="",
+                thought="",
+                tool="(format)",
+                tool_input="",
                 observation="No ACTION or FINAL found. Reply with exactly one.",
             )
         ]

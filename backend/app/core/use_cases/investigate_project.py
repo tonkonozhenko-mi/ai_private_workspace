@@ -123,9 +123,7 @@ class InvestigateProjectUseCase:
         # bad parse degrades gracefully to the lenient text parser below.
         structured = bool(getattr(provider, "supports_structured_output", False))
         step_format = (
-            json_schema_response_format(
-                agent_step_schema(allowed), name="investigator_step"
-            )
+            json_schema_response_format(agent_step_schema(allowed), name="investigator_step")
             if structured
             else None
         )
