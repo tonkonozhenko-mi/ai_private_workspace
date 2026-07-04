@@ -155,8 +155,12 @@ def test_agent_loop_searches_then_answers_with_sources():
 
 
 def test_agent_loop_budget_exhausted_forces_final():
-    # Always asks to search, never finalises → budget runs out → forced final.
-    uc = _use_case(["ACTION: search_code: x"] * 10 + ["From the files, it's Postgres."])
+    # Keeps taking *distinct* real actions, never finalises → the tool-step budget
+    # runs out → forced final. (Distinct inputs so this exercises the tool budget,
+    # not the identical-action repeat guard tested separately.)
+    uc = _use_case(
+        [f"ACTION: search_code: query {i}" for i in range(10)] + ["From the files, it's Postgres."]
+    )
     result = uc.execute(InvestigateProjectInput(workspace_id="w1", question="db?", max_steps=3))
     assert result.stopped_reason == "budget_exhausted"
     assert result.used_steps == 3

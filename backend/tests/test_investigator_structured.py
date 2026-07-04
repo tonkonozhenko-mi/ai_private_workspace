@@ -265,6 +265,48 @@ def test_format_failures_do_not_consume_tool_budget():
     assert len([s for s in result.steps if s.tool == "(format)"]) == 2
 
 
+def test_repeated_identical_action_is_short_circuited_and_stops():
+    # The model keeps asking for the SAME action that returns nothing — the agent
+    # must not re-run it forever; it nudges, then stops and forces a final.
+    provider = _TextProvider(
+        [
+            "ACTION: list_files: nonexistent",
+            "ACTION: list_files: nonexistent",
+            "ACTION: list_files: nonexistent",
+            "ACTION: list_files: nonexistent",
+            "ACTION: list_files: nonexistent",
+        ]
+    )
+    result = _use_case(provider).execute(
+        InvestigateProjectInput(workspace_id="w1", question="where is x?", max_steps=8)
+    )
+    assert result.stopped_reason == "budget_exhausted"
+    # The tool ran once; the rest were caught as repeats, not re-executed.
+    real_runs = [
+        s for s in result.steps if s.tool == "list_files" and "already ran" not in s.observation
+    ]
+    assert len(real_runs) == 1
+    repeats = [s for s in result.steps if "already ran" in s.observation]
+    assert 1 <= len(repeats) <= _repeat_cap() + 1
+
+
+def _repeat_cap():
+    from app.core.use_cases.investigate_project import _MAX_REPEATED_ACTIONS
+
+    return _MAX_REPEATED_ACTIONS
+
+
+def test_list_files_tolerates_glob_syntax():
+    # "*.tf" is a glob; the tool matches on substring. It must still find main.tf.
+    uc = _use_case(_TextProvider([]))
+    tools, _ = uc._build_tools("w1", "/p")
+    # _ScanRepo lists db/config.tf
+    out, _ = tools["list_files"]("*.tf")
+    assert "db/config.tf" in out
+    out2, _ = tools["list_files"]("**/*.tf")
+    assert "db/config.tf" in out2
+
+
 def test_exhausted_format_retries_forces_final_instead_of_looping():
     provider = _TextProvider(["nope, wrong format"] * 12)
     result = _use_case(provider).execute(
