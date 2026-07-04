@@ -158,8 +158,15 @@ def _parse_marker(line: str) -> tuple[str, str] | None:
     # Strip a leading owner tag like "(maks)" and separators.
     text = re.sub(r"^\(.*?\)\s*", "", text)
     text = text.lstrip(":-) ").strip()
-    # Drop trailing comment-close tokens like "*/" or "-->".
-    text = re.sub(r"\s*(\*/|-->|#\})\s*$", "", text).strip()
+    # Drop a trailing comment-close token like "*/", "-->", "--!>" or "#}". Done as
+    # an explicit suffix strip rather than a regex: this is cleanup of extracted
+    # comment text, not HTML sanitisation, and a regex alternation containing "-->"
+    # trips static analysers (CodeQL py/bad-tag-filter) that assume it's a partial
+    # HTML tag filter.
+    for _closer in ("--!>", "-->", "*/", "#}"):
+        if text.endswith(_closer):
+            text = text[: -len(_closer)].strip()
+            break
     # Ignore matches whose remaining text has no letters (e.g. stray quotes),
     # which are almost always false positives rather than real notes.
     if not any(char.isalpha() for char in text):
