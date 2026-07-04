@@ -52,6 +52,11 @@ _MAX_FILE_CHARS = 1600
 # on any model and either engine (llama.cpp or Ollama) — not just ones that honour
 # a JSON grammar. When these retries are exhausted we stop and force a final answer.
 _MAX_FORMAT_RETRIES = 3
+# A weak model can get stuck repeating the *same* valid action (e.g. list_files
+# "*.tf") that returns the same empty result, never adapting. We short-circuit an
+# already-run action with a nudge instead of re-running it, and stop after a couple
+# of repeats so the loop can't waste the whole budget spinning on one dead end.
+_MAX_REPEATED_ACTIONS = 2
 
 
 @dataclass(frozen=True)
@@ -163,7 +168,13 @@ class InvestigateProjectUseCase:
         max_tool_steps = max(1, request.max_steps)
         tool_steps_used = 0
         format_retries = 0
-        hard_iteration_cap = max_tool_steps + _MAX_FORMAT_RETRIES + 1
+        repeated_actions = 0
+        # Signatures of actions already executed, so a repeat is caught and nudged
+        # rather than silently re-run to the same dead end.
+        executed_actions: set[tuple[str, str]] = set()
+        hard_iteration_cap = (
+            max_tool_steps + _MAX_FORMAT_RETRIES + _MAX_REPEATED_ACTIONS + 1
+        )
         iterations = 0
 
         while tool_steps_used < max_tool_steps and iterations < hard_iteration_cap:
@@ -217,6 +228,29 @@ class InvestigateProjectUseCase:
                     break
                 continue
 
+            signature = (decision.tool, decision.tool_input.strip().lower())
+            if signature in executed_actions:
+                # Same action, same result: don't re-run it. Tell the model plainly
+                # that this path is exhausted so it changes tack (or answers), and
+                # stop after a couple of repeats so it can't spin the budget away.
+                repeated_actions += 1
+                steps.append(
+                    AgentStep(
+                        thought=decision.thought,
+                        tool=decision.tool,
+                        tool_input=decision.tool_input,
+                        observation=(
+                            f"You already ran {decision.tool}: {decision.tool_input} and it "
+                            "returned the same result. That path is exhausted — try a "
+                            "different tool or input, or give your FINAL answer now."
+                        ),
+                    )
+                )
+                if repeated_actions > _MAX_REPEATED_ACTIONS:
+                    break
+                continue
+
+            executed_actions.add(signature)
             observation, new_sources = tools[decision.tool](decision.tool_input)
             add_sources(new_sources)
             steps.append(
@@ -369,7 +403,11 @@ class InvestigateProjectUseCase:
             scan = self.project_scan_repository.get_latest_scan(workspace_id)
             if scan is None or not getattr(scan, "files", None):
                 return "No scan available; nothing to list.", []
-            sub = substring.strip().lower()
+            # Models naturally reach for glob syntax ("*.tf", "**/*.yaml"), but this
+            # tool matches on a plain substring — so a raw glob never matches and the
+            # agent thinks the files don't exist. Strip the glob wildcards so "*.tf"
+            # becomes the substring ".tf".
+            sub = substring.strip().lower().replace("**/", "").replace("*", "")
             paths = [f.path for f in scan.files]
             if sub:
                 hits = [p for p in paths if sub in p.lower()][:30]
@@ -440,7 +478,9 @@ class InvestigateProjectUseCase:
             ),
             ToolSpec("read_file", "read_file: <relative/path>", "read a project file's contents"),
             ToolSpec(
-                "list_files", "list_files: <substring>", "list project files matching a substring"
+                "list_files",
+                "list_files: <substring, e.g. .tf or config>",
+                "list project files whose path contains this text (substring, not a glob)",
             ),
             ToolSpec(
                 "git_history",
