@@ -21,6 +21,8 @@ export interface MarkdownBlock {
   level?: number;
   rows?: string[][];
   align?: ("left" | "center" | "right" | null)[];
+  /** First item's literal number for ordered lists, so <ol start=…> numbers correctly. */
+  start?: number;
 }
 
 export type InlineToken =
@@ -81,6 +83,7 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
   let paragraph: string[] = [];
   let bullets: string[] = [];
   let ordered: string[] = [];
+  let orderedStart: number | undefined;
   let tableLines: string[] = [];
   let codeLines: string[] = [];
   let codeLanguage: string | undefined;
@@ -104,8 +107,14 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
 
   function flushOrdered() {
     if (ordered.length === 0) return;
-    blocks.push({ id: nextId("orderedList"), type: "orderedList", lines: ordered });
+    blocks.push({
+      id: nextId("orderedList"),
+      type: "orderedList",
+      lines: ordered,
+      start: orderedStart,
+    });
     ordered = [];
+    orderedStart = undefined;
   }
 
   function splitRow(row: string): string[] {
@@ -176,9 +185,11 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
     }
 
     if (trimmed.length === 0) {
+      // Keep pending bullet/ordered lists open across blank lines: LLMs routinely
+      // emit "loose" lists (blank line between items), and flushing here would
+      // split one list into many — every <ol> restarting at "1.". Any non-list
+      // line that follows flushes them in its own branch, so order is preserved.
       flushParagraph();
-      flushBullets();
-      flushOrdered();
       flushTable();
       continue;
     }
@@ -198,12 +209,16 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
       continue;
     }
 
-    const orderedMatch = trimmed.match(/^\d+[.)]\s+(.*)$/);
+    const orderedMatch = trimmed.match(/^(\d+)[.)]\s+(.*)$/);
     if (orderedMatch) {
       flushParagraph();
       flushBullets();
       flushTable();
-      ordered.push(orderedMatch[1]);
+      if (ordered.length === 0) {
+        const parsed = Number.parseInt(orderedMatch[1], 10);
+        orderedStart = Number.isFinite(parsed) && parsed > 1 ? parsed : undefined;
+      }
+      ordered.push(orderedMatch[2]);
       continue;
     }
 

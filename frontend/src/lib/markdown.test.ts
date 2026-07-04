@@ -49,6 +49,37 @@ describe("parseMarkdownBlocks — supported subset", () => {
     expect(blocks[0].lines).toEqual(["first", "second"]);
   });
 
+  it("keeps a loose ordered list (blank lines between items) as ONE list", () => {
+    // LLMs routinely emit blank-separated numbered items, often all "1.".
+    // Splitting them into separate <ol> blocks renders as 1. 1. 1. — the bug
+    // observed live in v0.3.0.
+    const blocks = parseMarkdownBlocks("1. first\n\n1. second\n\n1. third");
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].type).toBe("orderedList");
+    expect(blocks[0].lines).toEqual(["first", "second", "third"]);
+    expect(blocks[0].start).toBe(undefined);
+  });
+
+  it("keeps a loose bullet list as one list", () => {
+    const blocks = parseMarkdownBlocks("- a\n\n- b\n\n- c");
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].type).toBe("bulletList");
+    expect(blocks[0].lines).toEqual(["a", "b", "c"]);
+  });
+
+  it("records the literal start number so <ol start=…> numbers correctly", () => {
+    const blocks = parseMarkdownBlocks("4. fourth\n5. fifth");
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].type).toBe("orderedList");
+    expect(blocks[0].start).toBe(4);
+  });
+
+  it("a paragraph after a blank line still ends the list", () => {
+    const blocks = parseMarkdownBlocks("1. only item\n\nplain text");
+    expect(blocks.map((b) => b.type)).toEqual(["orderedList", "paragraph"]);
+    expect(blocks[1].lines).toEqual(["plain text"]);
+  });
+
   it("parses a fenced code block with a language", () => {
     const blocks = parseMarkdownBlocks("```py\nprint(1)\n```");
     expect(blocks).toHaveLength(1);
