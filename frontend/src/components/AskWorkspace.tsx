@@ -2127,7 +2127,11 @@ function AnswerResult({
             memoryUsed={answer.project_memory_used ?? 0}
             factsUsed={answer.project_facts_used ?? 0}
             chunks={answer.used_context_chunks ?? 0}
-            files={answer.sources.map((source) => ({ source_path: source.source_path }))}
+            files={answer.sources.map((source) => ({
+              source_path: source.source_path,
+              chunk_id: source.chunk_id,
+              score: source.score,
+            }))}
             guardrails={answer.project_guardrails_used ?? []}
             memoryDetails={answer.project_memory_details ?? []}
             warnings={answer.quality_warnings ?? []}
