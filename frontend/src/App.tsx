@@ -793,6 +793,7 @@ function App() {
   // takeover (a previous "Skip for now" must not leak across workspaces).
   useEffect(() => {
     setSetupTakeoverDismissed(false);
+    setSetupCelebration(false);
     takeoverWasActiveRef.current = false;
   }, [selectedWorkspaceId]);
 
@@ -814,12 +815,17 @@ function App() {
       detail.dashboard.summary.index_status.status !== "indexed"
     : false;
 
-  // When the immersive setup finishes, land the user straight on Ask — the
-  // first useful thing to do with a ready workspace.
+  // When the immersive setup finishes, don't yank the takeover away mid-frame:
+  // keep it mounted one more beat so the "Everything's set — ask anything"
+  // completion screen actually shows (it existed but was never visible —
+  // needsInitialSetup flipped false and unmounted it instantly). Ask is
+  // prepared behind it; the user leaves by pressing the CTA.
   const takeoverWasActiveRef = useRef(false);
+  const [setupCelebration, setSetupCelebration] = useState(false);
   useEffect(() => {
     if (setupComplete && takeoverWasActiveRef.current) {
       takeoverWasActiveRef.current = false;
+      setSetupCelebration(true);
       setActiveTab("ask");
       setSidebarCollapsed(true);
     }
@@ -866,11 +872,11 @@ function App() {
     detail &&
     !detailLoading &&
     !detailError &&
-    needsInitialSetup &&
+    (needsInitialSetup || setupCelebration) &&
     !setupTakeoverDismissed &&
     !exitPrompt
   ) {
-    takeoverWasActiveRef.current = true;
+    if (needsInitialSetup) takeoverWasActiveRef.current = true;
     const ws = detail.dashboard.workspace_id;
     return (
       <div className="setup-takeover">
@@ -883,7 +889,10 @@ function App() {
           <button
             className="text-button"
             type="button"
-            onClick={() => setSetupTakeoverDismissed(true)}
+            onClick={() => {
+              setSetupTakeoverDismissed(true);
+              setSetupCelebration(false);
+            }}
           >
             Skip for now
           </button>
@@ -894,10 +903,12 @@ function App() {
             modelsSummary={detail.modelsSummary}
             onOpenAsk={() => {
               setSetupTakeoverDismissed(true);
+              setSetupCelebration(false);
               setActiveTab("ask");
             }}
             onOpenModels={() => {
               setSetupTakeoverDismissed(true);
+              setSetupCelebration(false);
               setActiveTab("models");
             }}
             onStartScanJob={() => handleStartScanJob(ws)}

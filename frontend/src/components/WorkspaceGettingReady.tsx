@@ -633,10 +633,15 @@ export function WorkspaceGettingReady({
         <div className="getting-ready-step">
           <span className="getting-ready-kicker">Ready</span>
           <h2>Everything’s set — ask anything</h2>
-          <p>Your project is scanned, your local AI is installed, and context is built. Answers stay on this Mac.</p>
+          <p>
+            {dashboard.summary.index_status.indexed_files_count > 0
+              ? `${dashboard.summary.index_status.indexed_files_count.toLocaleString()} files turned into ${dashboard.summary.index_status.chunks_count.toLocaleString()} searchable pieces — all on this Mac. `
+              : "Your project is scanned, your local AI is installed, and context is built. Answers stay on this Mac. "}
+            The AI now answers from your real project, with sources.
+          </p>
           <div className="getting-ready-actions">
             <button className="getting-ready-cta" type="button" onClick={onOpenAsk}>
-              Ask a question
+              Ask your first question
             </button>
           </div>
         </div>

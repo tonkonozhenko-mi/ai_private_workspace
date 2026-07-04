@@ -5743,3 +5743,16 @@ a {
   gap: var(--s-2);
   flex-wrap: wrap;
 }
+
+/* Project map: fit-to-view scales the whole graph into the container (the
+   default — see ProjectMap.tsx), 1:1 restores native size with scrolling. */
+.pi-map-svg.is-fit {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 72vh;
+}
+.pi-map-zoom-toggle {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
