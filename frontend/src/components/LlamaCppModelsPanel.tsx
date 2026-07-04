@@ -223,9 +223,20 @@ export function LlamaCppModelsPanel({
     });
   }
 
-  async function applyWorkspaceSelection(llmId: string) {
-    await setActiveBackend("llamacpp").catch(() => {});
-    if (!workspaceId) return;
+  async function applyWorkspaceSelection(llmId: string): Promise<boolean> {
+    // This switch decides which engine embeds the search index. Swallowing a
+    // failure here let onboarding build an index with the WRONG vectorizer
+    // (observed live: built via Ollama, workspace selected llama.cpp → Ask
+    // could never search it). Surface the failure and stop the flow instead.
+    try {
+      await setActiveBackend("llamacpp");
+    } catch {
+      setError(
+        "Could not point search at the built-in engine. Press Start engine, then try again.",
+      );
+      return false;
+    }
+    if (!workspaceId) return true;
     await updateWorkspaceModelSelection(workspaceId, {
       provider: "llamacpp",
       model: llmId,
@@ -240,6 +251,7 @@ export function LlamaCppModelsPanel({
         selected_reason: "Built-in llama.cpp engine",
       }).catch(() => {});
     }
+    return true;
   }
 
   async function startEngine() {
@@ -263,10 +275,12 @@ export function LlamaCppModelsPanel({
   // engine may already be running from another project, so auto-start didn't
   // apply the selection), then advance the setup flow.
   async function continueSetup() {
-    await applyWorkspaceSelection(
+    const applied = await applyWorkspaceSelection(
       runtime?.active_llm_model ?? recommendedLlm?.id ?? "",
     );
-    onReadyRef.current?.();
+    // Only advance when the engine switch actually took — otherwise the next
+    // step would build the search index with the wrong vectorizer.
+    if (applied) onReadyRef.current?.();
   }
 
   // Switch the running engine to a different, already-downloaded answer model.
