@@ -794,6 +794,8 @@ function GroupAsk({ groupId }: { groupId: string }) {
                   files={result.sources.map((source) => ({
                     source_path: source.source_path,
                     repo: source.workspace_name,
+                    chunk_id: source.chunk_id,
+                    score: source.score,
                   }))}
                   onClose={() => setTraceOpen(false)}
                 />

@@ -115,23 +115,33 @@ def _split_action(body: str) -> tuple[str, str]:
 _STRUCTURED_FIELDS = ("thought", "next", "tool", "tool_input", "answer")
 
 
-def agent_step_schema() -> dict:
+def agent_step_schema(allowed_tools: set[str] | None = None) -> dict:
     """JSON Schema for one investigator decision.
 
     Every field is required so the grammar is fully determined; the model fills
     the irrelevant ones with empty strings (e.g. ``answer`` is "" for an action,
     ``tool``/``tool_input`` are "" for a final). ``next`` is constrained to the
-    two legal moves. The tool name is validated against the live tool set by the
-    parser rather than baked into the schema, so a "final" step needn't name a
-    tool.
+    two legal moves.
+
+    When ``allowed_tools`` is given, ``tool`` is constrained to an **enum of the
+    real tool names plus ""** — so a grammar-constrained engine (llama.cpp)
+    literally cannot emit an empty or hallucinated tool name. This was the main
+    source of ``(format)`` dead-steps on small local models: they'd pick
+    ``next: "action"`` but leave ``tool`` blank or invent one, wasting a step.
+    Without ``allowed_tools`` (or for engines that ignore the schema) ``tool``
+    stays a free string and the parser validates it, as before.
     """
+    tool_schema: dict = {"type": "string"}
+    if allowed_tools:
+        # "" is a legal value for a final step (no tool). Sorted for determinism.
+        tool_schema = {"type": "string", "enum": [*sorted(allowed_tools), ""]}
     return {
         "type": "object",
         "additionalProperties": False,
         "properties": {
             "thought": {"type": "string"},
             "next": {"type": "string", "enum": ["action", "final"]},
-            "tool": {"type": "string"},
+            "tool": tool_schema,
             "tool_input": {"type": "string"},
             "answer": {"type": "string"},
         },
@@ -183,9 +193,24 @@ def parse_structured_step(text: str, allowed_tools: set[str]) -> AgentDecision:
     return AgentDecision(kind="action", thought=thought, tool=tool, tool_input=tool_input, raw=raw)
 
 
+# Marker tool name for a step where the model's reply didn't parse. Kept out of
+# the transcript as a fake ACTION — rendered as an explicit correction instead, so
+# every engine (llama.cpp or Ollama) and every model gets a crisp nudge to recover.
+FORMAT_STEP_TOOL = "(format)"
+
+
 def render_transcript(steps: list[AgentStep]) -> str:
     blocks: list[str] = []
     for step in steps:
+        if step.tool == FORMAT_STEP_TOOL:
+            # A parse failure: correct the model plainly rather than pretending it
+            # took an action it didn't. This is the main lever for weak/Ollama
+            # models that don't honour a grammar.
+            blocks.append(
+                f"NOTE: Your previous reply was not usable ({step.observation}). "
+                "Reply with EXACTLY one action or a final answer, in the required format."
+            )
+            continue
         lines = []
         if step.thought:
             lines.append(f"THOUGHT: {step.thought}")

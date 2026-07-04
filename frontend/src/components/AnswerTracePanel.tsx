@@ -6,6 +6,23 @@ import type { InvestigationResponse, RagQualityWarning } from "../api/types";
 export interface TraceFile {
   source_path: string;
   repo?: string | null;
+  // Optional per-chunk info so several chunks of the same file are distinguishable
+  // (otherwise "AGENTS.md" ×4 looks like a duplicate bug). chunk_id often encodes
+  // a trailing line number; score is the retrieval relevance for that chunk.
+  chunk_id?: string | null;
+  score?: number | null;
+}
+
+// A short, honest differentiator for a chunk of a file: the line number if the
+// chunk_id encodes one (…:path:14), else the retrieval score as a percentage.
+function chunkDetail(file: TraceFile): string | null {
+  const id = file.chunk_id ?? "";
+  const lineMatch = /:(\d+)$/.exec(id);
+  if (lineMatch) return `line ${lineMatch[1]}`;
+  if (typeof file.score === "number" && Number.isFinite(file.score)) {
+    return `${Math.round(Math.max(0, Math.min(1, file.score)) * 100)}% match`;
+  }
+  return null;
 }
 
 export interface TraceMemory {
@@ -138,6 +155,16 @@ export function AnswerTracePanel({
 
   const byRepo = files.some((f) => f.repo);
 
+  // Collapse exact-duplicate rows (same chunk), but keep distinct chunks of one
+  // file as separate rows — differentiated by line/score below.
+  const seenFileKeys = new Set<string>();
+  const uniqueFiles = files.filter((f) => {
+    const key = f.chunk_id ?? `${f.repo ?? ""}:${f.source_path}`;
+    if (seenFileKeys.has(key)) return false;
+    seenFileKeys.add(key);
+    return true;
+  });
+
   return (
     <>
       <div className="trace-backdrop" onClick={onClose} aria-hidden="true" />
@@ -172,33 +199,63 @@ export function AnswerTracePanel({
         <div className="trace-body">
           {tab === "reasoning" ? (
             investigation ? (
-              <div className="trace-react">
-                <p className="trace-react-lead">
-                  Real agent run · {investigation.used_steps} step
-                  {plural(investigation.used_steps)} · stopped: {labelize(investigation.stopped_reason)}
-                </p>
-                {investigation.steps.map((step, index) => (
-                  <div className="trace-react-step" key={index}>
-                    <span className="trace-react-n">{index + 1}</span>
-                    <div>
-                      {step.thought ? <p className="thought">{step.thought}</p> : null}
-                      <p className="tool">
-                        <span className="k">{labelize(step.tool)}</span>
-                        {step.tool_input ? <span className="in"> · {step.tool_input}</span> : null}
-                      </p>
-                      {step.observation ? <p className="obs">{step.observation}</p> : null}
-                    </div>
+              (() => {
+                // The deeper pass only "refines" when it actually converged.
+                // When it ran out of budget or couldn't answer, saying it "may
+                // refine the answer" is misleading — mark it tentative instead so
+                // a decent quick answer isn't undermined by an inconclusive agent.
+                const inconclusive = investigation.stopped_reason !== "answered";
+                return (
+                  <div className="trace-react">
+                    <p className={`trace-react-lead ${inconclusive ? "inconclusive" : ""}`}>
+                      Real agent run · {investigation.used_steps} step
+                      {plural(investigation.used_steps)} · stopped:{" "}
+                      {labelize(investigation.stopped_reason)}
+                    </p>
+                    {investigation.steps.map((step, index) => {
+                      const isFormat = step.tool === "(format)";
+                      return (
+                        <div
+                          className={`trace-react-step ${isFormat ? "muted" : ""}`}
+                          key={index}
+                        >
+                          <span className="trace-react-n">{index + 1}</span>
+                          <div>
+                            {step.thought ? <p className="thought">{step.thought}</p> : null}
+                            <p className="tool">
+                              <span className="k">
+                                {isFormat ? "format retry" : labelize(step.tool)}
+                              </span>
+                              {step.tool_input ? (
+                                <span className="in"> · {step.tool_input}</span>
+                              ) : null}
+                            </p>
+                            {step.observation ? <p className="obs">{step.observation}</p> : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {investigation.answer ? (
+                      <div
+                        className={`trace-src ${inconclusive ? "warn" : ""}`}
+                        style={{ marginTop: "12px" }}
+                      >
+                        <div className="t">
+                          <strong>
+                            {inconclusive ? "Agent conclusion (tentative):" : "Agent conclusion:"}
+                          </strong>{" "}
+                          {investigation.answer}
+                        </div>
+                      </div>
+                    ) : null}
+                    <p className="trace-foot">
+                      {inconclusive
+                        ? "This deeper pass didn't converge — treat its take as tentative; the quick answer above is usually more reliable."
+                        : "A fresh, deeper pass — its take may refine the answer above."}
+                    </p>
                   </div>
-                ))}
-                {investigation.answer ? (
-                  <div className="trace-src" style={{ marginTop: "12px" }}>
-                    <div className="t">
-                      <strong>Agent conclusion:</strong> {investigation.answer}
-                    </div>
-                  </div>
-                ) : null}
-                <p className="trace-foot">A fresh, deeper pass — its take may refine the answer above.</p>
-              </div>
+                );
+              })()
             ) : (
               <>
                 <ol className="trace-steps">
@@ -265,19 +322,23 @@ export function AnswerTracePanel({
                   </div>
                 </section>
               ) : null}
-              {files.length > 0 ? (
+              {uniqueFiles.length > 0 ? (
                 <section className="trace-grp">
                   <h4>
-                    <span className="dot file" aria-hidden="true" /> Files ({files.length})
+                    <span className="dot file" aria-hidden="true" /> Files ({uniqueFiles.length})
                   </h4>
-                  {files.map((file, index) => (
-                    <div className="trace-src file" key={index}>
-                      <div className="t">
-                        {byRepo && file.repo ? <span className="repo">{file.repo}/</span> : null}
-                        {file.source_path}
+                  {uniqueFiles.map((file, index) => {
+                    const detail = chunkDetail(file);
+                    return (
+                      <div className="trace-src file" key={file.chunk_id ?? index}>
+                        <div className="t">
+                          {byRepo && file.repo ? <span className="repo">{file.repo}/</span> : null}
+                          {file.source_path}
+                          {detail ? <span className="chunk-detail"> · {detail}</span> : null}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </section>
               ) : null}
               {factsUsed > 0 ? (

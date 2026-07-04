@@ -46,7 +46,12 @@ from app.core.use_cases.search_workspace_context import (
 
 _MAX_OBSERVATION_CHARS = 1200
 _MAX_FILE_CHARS = 1600
-_MAX_INVALID_RETRIES = 2
+# Format failures (a reply we can't parse) get their OWN budget, separate from the
+# tool-step budget, so a model that fumbles the format a few times still gets its
+# full allowance of real investigative steps. This is what makes the agent usable
+# on any model and either engine (llama.cpp or Ollama) — not just ones that honour
+# a JSON grammar. When these retries are exhausted we stop and force a final answer.
+_MAX_FORMAT_RETRIES = 3
 
 
 @dataclass(frozen=True)
@@ -118,7 +123,7 @@ class InvestigateProjectUseCase:
         # bad parse degrades gracefully to the lenient text parser below.
         structured = bool(getattr(provider, "supports_structured_output", False))
         step_format = (
-            json_schema_response_format(agent_step_schema(), name="investigator_step")
+            json_schema_response_format(agent_step_schema(allowed), name="investigator_step")
             if structured
             else None
         )
@@ -145,14 +150,24 @@ class InvestigateProjectUseCase:
 
         steps: list[AgentStep] = []
         sources: list[str] = []
-        invalid_streak = 0
 
         def add_sources(new: list[str]) -> None:
             for s in new:
                 if s and s not in sources:
                     sources.append(s)
 
-        for _ in range(max(1, request.max_steps)):
+        # Two independent budgets: real tool steps (max_steps) and format retries
+        # (_MAX_FORMAT_RETRIES). A malformed reply consumes only the retry budget, so
+        # a model that stumbles on the format doesn't lose its investigative steps.
+        # A hard iteration cap guards against a model that never produces either.
+        max_tool_steps = max(1, request.max_steps)
+        tool_steps_used = 0
+        format_retries = 0
+        hard_iteration_cap = max_tool_steps + _MAX_FORMAT_RETRIES + 1
+        iterations = 0
+
+        while tool_steps_used < max_tool_steps and iterations < hard_iteration_cap:
+            iterations += 1
             prompt = build_investigator_prompt(
                 request.question, tool_specs, steps, role_label, structured=structured
             )
@@ -189,9 +204,7 @@ class InvestigateProjectUseCase:
                 )
 
             if decision.kind == "invalid":
-                invalid_streak += 1
-                if invalid_streak > _MAX_INVALID_RETRIES:
-                    break
+                format_retries += 1
                 steps.append(
                     AgentStep(
                         thought=decision.thought,
@@ -200,9 +213,10 @@ class InvestigateProjectUseCase:
                         observation=f"Reply was not valid: {decision.error}",
                     )
                 )
+                if format_retries > _MAX_FORMAT_RETRIES:
+                    break
                 continue
 
-            invalid_streak = 0
             observation, new_sources = tools[decision.tool](decision.tool_input)
             add_sources(new_sources)
             steps.append(
@@ -213,6 +227,7 @@ class InvestigateProjectUseCase:
                     observation=_truncate(observation, _MAX_OBSERVATION_CHARS),
                 )
             )
+            tool_steps_used += 1
 
         # Out of steps: force a final answer from what was gathered.
         answer = self._forced_final(provider, request.question, tool_specs, steps, role_label)
@@ -406,26 +421,24 @@ class InvestigateProjectUseCase:
             block = format_memory_context(relevant)
             return (block or "No relevant memory recorded for that.", [])
 
+        # The project map powers graph_query and ci_triggers. If it hasn't been
+        # built, offering those tools just lures a weak model into a dead-end
+        # ("I need to build the project map…") it can't act on — so we hide them
+        # entirely until a map exists, rather than have every call return
+        # "No project map has been built yet."
+        has_graph = self.project_graph_repository.get_latest_graph(workspace_id) is not None
+
         tools = {
             "search_code": search_code,
             "read_file": read_file,
-            "graph_query": graph_query,
             "list_files": list_files,
             "git_history": git_history,
-            "ci_triggers": ci_triggers,
         }
-        if self.memory_repository is not None:
-            tools["recall_memory"] = recall_memory
         specs = [
             ToolSpec(
                 "search_code", "search_code: <query>", "semantic search over the indexed code/docs"
             ),
             ToolSpec("read_file", "read_file: <relative/path>", "read a project file's contents"),
-            ToolSpec(
-                "graph_query",
-                "graph_query: <name|type|all>",
-                "look up entities/relations in the project map",
-            ),
             ToolSpec(
                 "list_files", "list_files: <substring>", "list project files matching a substring"
             ),
@@ -434,13 +447,26 @@ class InvestigateProjectUseCase:
                 "git_history: <relative/path or empty>",
                 "who changed a file and its recent commits (empty = whole repo)",
             ),
-            ToolSpec(
-                "ci_triggers",
-                "ci_triggers: (no input)",
-                "what CI workflows run on push / pull request / tag / schedule",
-            ),
         ]
+        if has_graph:
+            tools["graph_query"] = graph_query
+            tools["ci_triggers"] = ci_triggers
+            specs.append(
+                ToolSpec(
+                    "graph_query",
+                    "graph_query: <name|type|all>",
+                    "look up entities/relations in the project map",
+                )
+            )
+            specs.append(
+                ToolSpec(
+                    "ci_triggers",
+                    "ci_triggers: (no input)",
+                    "what CI workflows run on push / pull request / tag / schedule",
+                )
+            )
         if self.memory_repository is not None:
+            tools["recall_memory"] = recall_memory
             specs.append(
                 ToolSpec(
                     "recall_memory",

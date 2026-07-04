@@ -32,6 +32,19 @@ def test_schema_is_strict_object_with_required_fields():
     assert schema["properties"]["next"]["enum"] == ["action", "final"]
 
 
+def test_schema_tool_is_free_string_without_allowed():
+    schema = agent_step_schema()
+    assert schema["properties"]["tool"] == {"type": "string"}
+
+
+def test_schema_enum_constrains_tool_when_allowed_given():
+    schema = agent_step_schema({"search_code", "read_file"})
+    tool = schema["properties"]["tool"]
+    # Grammar can only emit a real tool name or "" (final step) — never a blank
+    # or hallucinated tool that the parser would reject as (format).
+    assert tool["enum"] == ["read_file", "search_code", ""]
+
+
 def test_parse_structured_action():
     text = json.dumps(
         {
@@ -170,6 +183,114 @@ def _use_case(provider):
         project_scan_repository=_ScanRepo(),
         git_history=_GitHistory(),
     )
+
+
+def test_graph_tools_hidden_when_no_map_built():
+    # With no project map, graph_query/ci_triggers would only ever return
+    # "build first" — so they must not be offered (no dead-end loop).
+    uc = _use_case(_StructuredProvider([]))
+    tools, specs = uc._build_tools("w1", "/p")
+    assert "graph_query" not in tools
+    assert "ci_triggers" not in tools
+    assert "search_code" in tools and "read_file" in tools
+    names = {s.name for s in specs}
+    assert "graph_query" not in names and "ci_triggers" not in names
+
+
+def test_graph_tools_present_when_map_built():
+    class _GraphRepoWithMap:
+        def get_latest_graph(self, wid):
+            return SimpleNamespace(entities=[], relations=[], findings=[])
+
+    uc = InvestigateProjectUseCase(
+        workspace_repository=_WSRepo(),
+        llm_provider_factory=_Factory(_StructuredProvider([])),
+        embedding_provider=_Embed(),
+        vector_store=_Vector(),
+        file_system=_FS(),
+        project_graph_repository=_GraphRepoWithMap(),
+        project_scan_repository=_ScanRepo(),
+        git_history=_GitHistory(),
+    )
+    tools, specs = uc._build_tools("w1", "/p")
+    assert "graph_query" in tools and "ci_triggers" in tools
+
+
+def test_structured_schema_constrains_tool_to_enum_on_the_wire():
+    # The response_format actually sent to the engine must carry the tool enum,
+    # so the grammar forbids blank/hallucinated tools.
+    provider = _StructuredProvider(
+        [json.dumps({"thought": "", "next": "final", "tool": "", "tool_input": "", "answer": "ok"})]
+    )
+    _use_case(provider).execute(InvestigateProjectInput(workspace_id="w1", question="q"))
+    schema = provider.formats_seen[0]["json_schema"]["schema"]
+    tool_enum = schema["properties"]["tool"].get("enum")
+    assert tool_enum is not None
+    assert "search_code" in tool_enum and "" in tool_enum
+    # graph tools absent (no map) → not in the enum either
+    assert "graph_query" not in tool_enum
+
+
+class _TextProvider:
+    """A text-protocol engine (no structured support) — exercises the path used by
+    Ollama and any model that doesn't honour a grammar."""
+
+    supports_structured_output = False
+
+    def __init__(self, replies):
+        self._replies = list(replies)
+
+    def generate(self, prompt, response_format=None, **kw):
+        return self._replies.pop(0) if self._replies else "FINAL: done"
+
+
+def test_format_failures_do_not_consume_tool_budget():
+    # Two unparseable replies, then a real action + final. Even with max_steps=2,
+    # the format stumbles must NOT eat the tool budget — the agent still gets to
+    # act and answer. This is the engine-agnostic robustness fix.
+    provider = _TextProvider(
+        [
+            "some rambling with no action or final",
+            "still not the right format",
+            "ACTION: search_code: database engine",
+            "FINAL: PostgreSQL (db/config.tf).",
+        ]
+    )
+    result = _use_case(provider).execute(
+        InvestigateProjectInput(workspace_id="w1", question="Which database?", max_steps=2)
+    )
+    assert result.stopped_reason == "answered"
+    assert "PostgreSQL" in result.answer
+    assert [s.tool for s in result.steps if s.tool != "(format)"] == ["search_code"]
+    assert len([s for s in result.steps if s.tool == "(format)"]) == 2
+
+
+def test_exhausted_format_retries_forces_final_instead_of_looping():
+    provider = _TextProvider(["nope, wrong format"] * 12)
+    result = _use_case(provider).execute(
+        InvestigateProjectInput(workspace_id="w1", question="q", max_steps=4)
+    )
+    assert result.stopped_reason == "budget_exhausted"
+    # Bounded: it did not spin forever on malformed replies.
+    assert len([s for s in result.steps if s.tool == "(format)"]) <= 4
+
+
+def test_render_transcript_turns_invalid_step_into_a_correction():
+    from app.core.domain.investigator import AgentStep, render_transcript
+
+    text = render_transcript(
+        [
+            AgentStep(
+                thought="",
+                tool="(format)",
+                tool_input="",
+                observation="No ACTION or FINAL found. Reply with exactly one.",
+            )
+        ]
+    )
+    assert "NOTE:" in text and "required format" in text
+    # It must NOT pretend the model took an action it didn't.
+    assert "ACTION: (format)" not in text
 
 
 def test_structured_loop_uses_schema_and_answers():

@@ -5,6 +5,7 @@ from time import sleep
 import httpx
 
 from app.core.domain.rag_prompt import render_conversation_history
+from app.core.domain.structured_output import ollama_format_from_response_format
 
 
 class OllamaLLMProviderError(RuntimeError):
@@ -44,6 +45,12 @@ def _is_thinking_unsupported(response: "httpx.Response") -> bool:
 
 class OllamaLLMProvider:
     provider_name = "ollama"
+    # Ollama constrains output via a top-level ``format`` (raw JSON Schema). We
+    # translate the OpenAI-style ``response_format`` to it, so structured/agent
+    # callers get the same schema-constrained JSON they get on llama.cpp. Older
+    # Ollama builds that reject a schema ``format`` degrade gracefully (see the
+    # 400 fallback in ``_request_with_one_local_retry``).
+    supports_structured_output = True
 
     def __init__(
         self,
@@ -86,12 +93,12 @@ class OllamaLLMProvider:
         history: list[tuple[str, str]] | None = None,
         response_format: dict | None = None,
     ) -> str:
-        # ``response_format`` (JSON-Schema constrained output) is currently a
-        # llama.cpp-only capability; accepted here for a uniform port and ignored.
         self.last_prompt_tokens = None
         self.last_completion_tokens = None
         prompt = _with_history(prompt, history)
-        response = self._request_with_one_local_retry(prompt, images, temperature, think)
+        response = self._request_with_one_local_retry(
+            prompt, images, temperature, think, response_format
+        )
 
         try:
             payload = response.json()
@@ -224,6 +231,7 @@ class OllamaLLMProvider:
         images: list[str] | None = None,
         temperature: float | None = None,
         think: bool | None = None,
+        response_format: dict | None = None,
     ) -> httpx.Response:
         last_error: httpx.HTTPError | None = None
         payload: dict[str, object] = {
@@ -237,6 +245,11 @@ class OllamaLLMProvider:
         if images:
             # Ollama accepts base64-encoded images for vision-capable models.
             payload["images"] = images
+        # Constrain output to a JSON Schema (or "json") when the caller asked for
+        # structured output — Ollama's equivalent of llama.cpp's grammar.
+        ollama_format = ollama_format_from_response_format(response_format)
+        if ollama_format is not None:
+            payload["format"] = ollama_format
         # Ollama generation tuning (incl. the pinned context window) goes here.
         payload["options"] = self._options(temperature)
         attempt = 0
@@ -262,6 +275,12 @@ class OllamaLLMProvider:
                 # and retry so the Reasoning toggle never breaks a normal model.
                 if "think" in payload and _is_thinking_unsupported(exc.response):
                     payload.pop("think", None)
+                    continue
+                # An older Ollama that doesn't accept a schema ``format`` returns
+                # 400 — drop the constraint and retry so structured callers still
+                # get a (free-form) answer instead of a hard failure.
+                if "format" in payload and exc.response.status_code == 400:
+                    payload.pop("format", None)
                     continue
                 last_error = exc
             except httpx.HTTPError as exc:
