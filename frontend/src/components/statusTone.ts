@@ -68,6 +68,7 @@ const INFO_LABELS = new Set([
   "manual",
   "preference",
   "instructions only",
+  "needs rebuild",
   "per request override",
   "per-request override",
   "default runtime",

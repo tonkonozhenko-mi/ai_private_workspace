@@ -62,6 +62,8 @@ import {
   addProjectMemory,
   recordAnswerRating,
   getAnswerRatingNudges,
+  startIndexWorkspaceJob,
+  getWorkspaceJob,
 } from "../api/client";
 import { AnswerFeedback } from "./AnswerFeedback";
 import { AnswerNudges } from "./AnswerNudges";
@@ -2123,6 +2125,13 @@ function AnswerResult({
           >
             <span>{formatLabel(answer.diagnostic_code ?? "workspace status")}</span>
             <p>{answer.diagnostic_message}</p>
+            {answer.diagnostic_code === "answered_as_general_conversation" &&
+            !reindexReason ? (
+              <p className="ask-diagnostic-actions">
+                Asking about this project? Try rephrasing with names from your
+                code, or <RebuildContextButton workspaceId={answer.workspace_id} />
+              </p>
+            ) : null}
           </article>
         ) : null}
 
@@ -2538,6 +2547,69 @@ function Sources({
   );
 }
 
+// One-click "rebuild search context" used by the reindex guidance panel and
+// the "answered as general conversation" diagnostic. Runs the same explicit
+// jobs API the Models tab uses — nothing happens without this click, which is
+// exactly the app's safety contract. Replaces the old copy-these-curl-commands
+// panel, which asked non-technical users to operate a terminal.
+function RebuildContextButton({ workspaceId }: { workspaceId: string }) {
+  const [state, setState] = useState<"idle" | "running" | "done" | "failed">("idle");
+  const [progress, setProgress] = useState<string | null>(null);
+
+  async function run() {
+    setState("running");
+    setProgress(null);
+    try {
+      const job = await startIndexWorkspaceJob(workspaceId);
+      for (;;) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1500));
+        const current = await getWorkspaceJob(workspaceId, job.job_id);
+        if (current.status === "succeeded") {
+          setState("done");
+          setProgress(null);
+          return;
+        }
+        if (current.status === "failed" || current.status === "cancelled") {
+          setState("failed");
+          setProgress(current.message ?? null);
+          return;
+        }
+        setProgress(current.message ?? null);
+      }
+    } catch {
+      setState("failed");
+    }
+  }
+
+  if (state === "done") {
+    return (
+      <span className="rebuild-context-done">
+        ✓ Search context rebuilt — ask your question again.
+      </span>
+    );
+  }
+  return (
+    <span className="rebuild-context-cluster">
+      <button
+        type="button"
+        className="secondary-action rebuild-context-button"
+        disabled={state === "running"}
+        onClick={() => void run()}
+      >
+        {state === "running" ? "Rebuilding…" : "Rebuild search context"}
+      </button>
+      {state === "running" && progress ? (
+        <span className="rebuild-context-progress">{progress}</span>
+      ) : null}
+      {state === "failed" ? (
+        <span className="rebuild-context-progress">
+          {progress ?? "Could not rebuild — check Models for engine status."}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 function ReindexGuidance({
   workspaceId,
   reason,
@@ -2545,46 +2617,19 @@ function ReindexGuidance({
   workspaceId: string;
   reason: string;
 }) {
-  const scanCommand = `curl -X POST http://127.0.0.1:8000/workspaces/${workspaceId}/scan`;
-  const indexCommand = `curl -X POST http://127.0.0.1:8000/workspaces/${workspaceId}/index`;
-
   return (
     <article className="reindex-guidance">
       <div>
-        <StatusBadge label="instructions only" />
+        <StatusBadge label="needs rebuild" />
         <strong>Prepare search context</strong>
       </div>
       <p>{reason}</p>
-      <p>
-        If the project has not been scanned yet, run scan first. Then rebuild
-        the workspace index.
-      </p>
-      <CommandGuidanceRow label="Step 1 · scan project" command={scanCommand} />
-      <CommandGuidanceRow label="Step 2 · build search context" command={indexCommand} />
+      <RebuildContextButton workspaceId={workspaceId} />
       <small>
-        The frontend does not run scan or indexing automatically. Copy and run
-        these commands yourself when you intentionally want to rebuild the
-        workspace context.
+        Nothing runs on its own — the rebuild starts only when you press the
+        button, and only reads your project files.
       </small>
     </article>
-  );
-}
-
-function CommandGuidanceRow({
-  label,
-  command,
-}: {
-  label: string;
-  command: string;
-}) {
-  return (
-    <div className="reindex-command-step">
-      <span>{label}</span>
-      <div className="reindex-command-row">
-        <code title={command}>{command}</code>
-        <CopyButton text={command} />
-      </div>
-    </div>
   );
 }
 
