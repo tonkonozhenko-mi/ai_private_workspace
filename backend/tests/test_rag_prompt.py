@@ -42,7 +42,8 @@ def test_rag_prompt_requires_grounded_source_aware_answer() -> None:
     assert "decide for yourself whether they actually apply" in prompt
     assert "Decide first: is the question about the user's project?" in prompt
     assert "ignore the files and answer directly" in prompt
-    assert "When making any technical claim, name the actual source_path exactly" in prompt
+    assert "name the file it comes from by putting its path in backticks" in prompt
+    assert "do NOT append a list of source paths at the end" in prompt
     assert "If multiple files contain relevant configuration, compare them" in prompt
     assert "Available source paths: main.tf" in prompt
     assert "Do not cite only numeric references such as [1] or [2]" in prompt

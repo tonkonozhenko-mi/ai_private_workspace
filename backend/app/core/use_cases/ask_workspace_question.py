@@ -26,6 +26,7 @@ from app.core.domain.rag import (
     SkillProfileAudit,
     WorkspaceQuestionAnswer,
 )
+from app.core.domain.rag_answer_cleanup import strip_source_path_echo
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.rag_prompt import (
     SkillPromptInstruction,
@@ -795,7 +796,7 @@ class AskWorkspaceQuestionUseCase:
         except RuntimeError as exc:
             return "", None, str(exc) or "Model runtime error"
 
-        answer_text = "".join(chunks)
+        answer_text = strip_source_path_echo("".join(chunks))
         latency_ms = max(0, round((perf_counter() - started_at) * 1000))
         usage = build_llm_usage_metrics(
             prompt=prompt,
@@ -817,7 +818,9 @@ class AskWorkspaceQuestionUseCase:
         history: list[tuple[str, str]] | None = None,
     ) -> tuple[str, LLMUsageMetrics]:
         started_at = perf_counter()
-        answer = llm_provider.generate(prompt, images or None, temperature, think, history)
+        answer = strip_source_path_echo(
+            llm_provider.generate(prompt, images or None, temperature, think, history)
+        )
         latency_ms = max(0, round((perf_counter() - started_at) * 1000))
         usage = build_llm_usage_metrics(
             prompt=prompt,
