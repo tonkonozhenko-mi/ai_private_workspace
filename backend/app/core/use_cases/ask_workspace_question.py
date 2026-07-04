@@ -617,7 +617,9 @@ class AskWorkspaceQuestionUseCase:
         )
 
         best_score = max((result.score for result in context_results), default=0.0)
-        if not context_results or best_score < self._relevance_threshold(index_status, request.answer_mode):
+        if not context_results or best_score < self._relevance_threshold(
+            index_status, request.answer_mode
+        ):
             prompt = build_general_chat_prompt(
                 question=request.question,
                 skill_instructions=request.skill_instructions,

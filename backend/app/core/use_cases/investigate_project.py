@@ -172,9 +172,7 @@ class InvestigateProjectUseCase:
         # Signatures of actions already executed, so a repeat is caught and nudged
         # rather than silently re-run to the same dead end.
         executed_actions: set[tuple[str, str]] = set()
-        hard_iteration_cap = (
-            max_tool_steps + _MAX_FORMAT_RETRIES + _MAX_REPEATED_ACTIONS + 1
-        )
+        hard_iteration_cap = max_tool_steps + _MAX_FORMAT_RETRIES + _MAX_REPEATED_ACTIONS + 1
         iterations = 0
 
         while tool_steps_used < max_tool_steps and iterations < hard_iteration_cap:
