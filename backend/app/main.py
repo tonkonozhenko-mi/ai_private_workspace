@@ -43,6 +43,12 @@ async def lifespan(_app: FastAPI):
     import threading
 
     from app.api.dependencies import restore_active_backend
+    from app.config.fd_limit import raise_fd_limit
+
+    # macOS gives GUI-launched processes only 256 file descriptors; a long
+    # index build under frontend polling exhausts that and kills SQLite for
+    # the whole process (live incident — see app/config/fd_limit.py).
+    raise_fd_limit()
 
     threading.Thread(target=restore_active_backend, daemon=True).start()
     yield
