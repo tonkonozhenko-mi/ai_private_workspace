@@ -217,10 +217,14 @@ export function WorkspaceGettingReady({
         (progress.total && progress.current != null
           ? Math.round((progress.current / progress.total) * 100)
           : null);
+    // The index job counts CHUNKS (searchable pieces), not files — a 1,074-file
+    // project embeds ~3,577 pieces. Calling them "files" made the number
+    // contradict every other file count in the app (observed live).
+    const unit = progress.kind === "index" ? "pieces" : "files";
     const label = enumerating
       ? "Enumerating files…"
       : progress.total != null && progress.current != null
-        ? `${progress.current.toLocaleString()} of ${progress.total.toLocaleString()} files`
+        ? `${progress.current.toLocaleString()} of ${progress.total.toLocaleString()} ${unit}`
         : progress.step ?? "Working…";
     // Rough ETA from the average rate so far — reassuring on large repos.
     const eta = formatEta(progress);
