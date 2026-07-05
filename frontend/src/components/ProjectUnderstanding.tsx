@@ -1,6 +1,17 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
+import { formatModelLabel } from "../lib/modelLabel";
+
+// models_summary.selected_llm is a provider-qualified id like
+// "llamacpp/Org/Repo-GGUF/file.Q4_K_M.gguf" — unreadable in body copy.
+function humanizeSelectedModel(selected: string | null): string | null {
+  if (!selected) return null;
+  const [provider, ...rest] = selected.split("/");
+  if (rest.length === 0) return selected;
+  return formatModelLabel(provider, rest.join("/"));
+}
+
 import {
   generateProjectUnderstanding,
   getProjectUnderstanding,
@@ -889,7 +900,7 @@ export function ProjectUnderstanding({
         ) : null}
 
         {generating ? (
-          <p className="pu-analysis-loading">Analyzing your project with {selectedModel ?? "your local model"}… this runs locally and can take up to a minute.</p>
+          <p className="pu-analysis-loading">Analyzing your project with {humanizeSelectedModel(selectedModel) ?? "your local model"}… this runs locally and can take up to a minute.</p>
         ) : understanding ? (
           <>
             <p className="pu-analysis-summary">{cleanAnalysisSummary(understanding.summary)}</p>
