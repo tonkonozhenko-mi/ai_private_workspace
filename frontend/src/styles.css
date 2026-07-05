@@ -2026,7 +2026,19 @@ a.getting-ready-cta:visited { color: var(--c-accent-ink); }
 .gr-check { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-md); text-align: left; }
 .gr-check-name--button { display: inline-flex; align-items: center; gap: 8px; min-width: 0; background: none; border: none; padding: 0; cursor: pointer; font: inherit; color: var(--c-text); text-align: left; }
 .gr-check-name--button:hover { color: var(--c-text-1); }
-.gr-check-caret { flex: 0 0 auto; font-size: 10px; color: var(--c-text-3); }
+.gr-check-caret {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--c-text-2);
+  padding: 2px 6px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-pill);
+  background: var(--c-surface-2);
+}
+.gr-check-name--button:hover .gr-check-caret {
+  color: var(--c-accent);
+  border-color: color-mix(in srgb, var(--c-accent) 45%, var(--c-border));
+}
 .gr-model-detail-row { display: block; padding: 12px 14px; margin-top: -6px; background: var(--c-surface-2); border: 1px solid var(--c-border); border-top: none; border-radius: 0 0 var(--r-md) var(--r-md); }
 .gr-model-detail-row dl { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin: 0; }
 .gr-model-detail-row dl > div { display: flex; flex-direction: column; gap: 2px; }
