@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { formatModelLabel } from "../lib/modelLabel";
+
 import {
   archiveAgentWorkflow,
   createAgentPlanningPreview,
@@ -2766,15 +2768,17 @@ function SimpleModelCard({
   description: string;
   status: string;
 }) {
-  const displayModel = model
-    ? `${provider ?? "unknown"}/${model}`
-    : "Not selected";
+  // Humanized name front and center; the exact provider-qualified id stays
+  // one hover away — raw GGUF paths made the app's primary model card
+  // unreadable ("llamacpp/Org/Repo-GGUF/file.Q4_K_M.gguf").
+  const displayModel = model ? formatModelLabel(provider, model) : "Not selected";
+  const rawTitle = model ? `${provider ?? "unknown"}/${model}` : undefined;
 
   return (
     <article className="simple-model-card">
       <div>
         <span>{label}</span>
-        <strong>{displayModel}</strong>
+        <strong title={rawTitle}>{displayModel}</strong>
       </div>
       <p>{description}</p>
       {status !== "Ready" ? <StatusBadge label={status} /> : null}
