@@ -15,6 +15,7 @@ from app.api.dependencies import (
     embedding_provider,
     file_system,
     git_history,
+    handbook_text_provider,
     index_manifest_repository,
     index_status_repository,
     indexing_rules_repository,
@@ -1149,6 +1150,7 @@ def start_index_workspace_job(workspace_id: str) -> WorkspaceJobResponse:
                 # "Refresh" / "Update index (changed files)" is truly incremental
                 # instead of falling back to a slow full re-embed.
                 manifest_repository=index_manifest_repository,
+                handbook_provider=handbook_text_provider,
             ).execute(
                 IndexWorkspaceInput(
                     workspace_id=workspace_id,
@@ -1321,6 +1323,7 @@ def _index_use_case() -> IndexWorkspaceUseCase:
         index_status_repository=index_status_repository,
         timeline_repository=timeline_repository,
         manifest_repository=index_manifest_repository,
+        handbook_provider=handbook_text_provider,
     )
 
 

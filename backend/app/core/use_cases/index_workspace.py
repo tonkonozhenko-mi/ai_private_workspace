@@ -32,6 +32,14 @@ from app.core.use_cases.add_timeline_event import (
     AddTimelineEventUseCase,
 )
 
+# Synthetic "file" holding the deterministic project handbook / deep-analysis
+# digest. Indexing it as a pseudo-document lets broad "what is this project about"
+# questions find the summary through normal retrieval, instead of relying on the
+# right source file happening to rank. Namespaced so it never collides with a real
+# path; retrieval treats it like any other source (citation shows this name).
+HANDBOOK_PSEUDO_PATH = "__project_handbook__"
+HANDBOOK_PSEUDO_TYPE = "markdown"
+
 INDEXABLE_FILE_TYPES = {
     "markdown",
     "yaml",
@@ -78,6 +86,7 @@ class IndexWorkspaceUseCase:
         index_status_repository: IndexStatusRepositoryPort,
         timeline_repository: TimelineRepositoryPort | None = None,
         manifest_repository: IndexManifestRepositoryPort | None = None,
+        handbook_provider: Callable[[str], str | None] | None = None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.project_scan_repository = project_scan_repository
@@ -89,6 +98,10 @@ class IndexWorkspaceUseCase:
         # Optional: records {path: hash} of what is indexed, enabling incremental
         # re-index of only changed files. When absent, indexing stays full.
         self.manifest_repository = manifest_repository
+        # Optional (workspace_id) -> handbook/digest text. When it yields non-empty
+        # text, that text is indexed as a pseudo-document (HANDBOOK_PSEUDO_PATH) so
+        # "about this project" questions retrieve it. None = feature off.
+        self.handbook_provider = handbook_provider
 
     def execute(self, request: IndexWorkspaceInput) -> WorkspaceIndexResult:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -313,6 +326,27 @@ class IndexWorkspaceUseCase:
             chunks_to_embed.extend(file_chunks)
             new_manifest[path] = {"hash": file_hash, "chunks": len(file_chunks)}
 
+        # Refresh the handbook pseudo-document too: re-embed it only when its text
+        # changed (it tracks the map/memory, not any one file).
+        handbook_chunks, handbook_hash = self._handbook_pseudo_chunks(workspace_id)
+        if handbook_chunks:
+            prior = manifest.get(HANDBOOK_PSEUDO_PATH)
+            if prior and prior.get("hash") == handbook_hash:
+                unchanged += 1
+                new_manifest[HANDBOOK_PSEUDO_PATH] = dict(prior)
+            else:
+                reindexed_docs.append(
+                    IndexedDocumentSummary(
+                        source_path=HANDBOOK_PSEUDO_PATH,
+                        chunks_count=len(handbook_chunks),
+                    )
+                )
+                chunks_to_embed.extend(handbook_chunks)
+                new_manifest[HANDBOOK_PSEUDO_PATH] = {
+                    "hash": handbook_hash,
+                    "chunks": len(handbook_chunks),
+                }
+
         reindexed_paths = {doc.source_path for doc in reindexed_docs}
         removed_or_emptied = set(manifest) - set(new_manifest)
         to_delete = sorted(removed_or_emptied | (reindexed_paths & set(manifest)))
@@ -394,6 +428,22 @@ class IndexWorkspaceUseCase:
             )
             chunks.extend(file_chunks)
             manifest[project_file.path] = {"hash": file_hash, "chunks": len(file_chunks)}
+
+        # Index the project handbook/digest as a pseudo-document so broad
+        # "what is this project" questions find it through retrieval.
+        handbook_chunks, handbook_hash = self._handbook_pseudo_chunks(workspace_id)
+        if handbook_chunks:
+            documents.append(
+                IndexedDocumentSummary(
+                    source_path=HANDBOOK_PSEUDO_PATH,
+                    chunks_count=len(handbook_chunks),
+                )
+            )
+            chunks.extend(handbook_chunks)
+            manifest[HANDBOOK_PSEUDO_PATH] = {
+                "hash": handbook_hash,
+                "chunks": len(handbook_chunks),
+            }
 
         # Embed the clean chunk bodies (not the provenance headers), so the dense
         # vectors reflect real content; the stored chunks keep their headers.
@@ -488,6 +538,52 @@ class IndexWorkspaceUseCase:
         if any(len(embedding) != embedding_dimension for embedding in embeddings):
             raise ValueError("Embedding provider returned inconsistent vector dimensions")
         return embedding_dimension
+
+    def _handbook_pseudo_chunks(self, workspace_id: str) -> tuple[list[TextChunk], str | None]:
+        """Chunk the project handbook/digest into a pseudo-document, mirroring how
+        real files are chunked (contextual headers, ids). Returns ([], None) when
+        there's no provider, no text, or the lookup fails — the feature never
+        breaks indexing."""
+        provider = self.handbook_provider
+        if provider is None:
+            return [], None
+        try:
+            text = provider(workspace_id)
+        except Exception:  # noqa: BLE001 — the digest is optional, never fail indexing
+            return [], None
+        text = (text or "").strip()
+        if not text:
+            return [], None
+
+        file_hash = content_hash(text)
+        raw_chunks = chunk_document(text, file_type=HANDBOOK_PSEUDO_TYPE, extension="md")
+        total = len(raw_chunks)
+        chunks: list[TextChunk] = []
+        for chunk_index, chunk_content in enumerate(raw_chunks):
+            contextual_content = build_contextual_chunk(
+                chunk_content,
+                source_path=HANDBOOK_PSEUDO_PATH,
+                position=chunk_index + 1,
+                total=total,
+                file_type=HANDBOOK_PSEUDO_TYPE,
+                extension="md",
+            )
+            chunks.append(
+                TextChunk(
+                    id=f"{workspace_id}:{HANDBOOK_PSEUDO_PATH}:{chunk_index}",
+                    workspace_id=workspace_id,
+                    source_path=HANDBOOK_PSEUDO_PATH,
+                    chunk_index=chunk_index,
+                    content=contextual_content,
+                    token_estimate=estimate_tokens(contextual_content),
+                    metadata={
+                        "detected_type": HANDBOOK_PSEUDO_TYPE,
+                        "extension": "md",
+                        "pseudo_document": "handbook",
+                    },
+                )
+            )
+        return chunks, file_hash
 
     def _chunks_for_file(
         self,
