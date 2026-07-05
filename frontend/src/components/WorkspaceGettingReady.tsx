@@ -430,7 +430,13 @@ export function WorkspaceGettingReady({
   // If they picked the built-in llama.cpp engine, Ollama is irrelevant and must
   // not block them — skip straight to scan/models.
   let step: "ollama" | "scan" | "models" | "index" | "ready";
-  if (backendChoice === "ollama" && !ollamaReachable) step = "ollama";
+  // A scanned AND indexed workspace is ready, full stop — the index could not
+  // have been built without working models. Checking modelsReady first here
+  // relied on ephemeral component state (llamaReady resets on remount), which
+  // made the completion screen show "step 2" instead of "ready" right after
+  // indexing finished (observed live).
+  if (hasScan && indexReady) step = "ready";
+  else if (backendChoice === "ollama" && !ollamaReachable) step = "ollama";
   else if (!hasScan) step = "scan";
   else if (!modelsReady) step = "models";
   else if (!indexReady) step = "index";
