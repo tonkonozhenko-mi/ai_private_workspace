@@ -19,6 +19,7 @@ from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
 from app.core.domain.mmr import EMBEDDING_KEY, mmr_select
+from app.core.domain.parent_document import expand_to_parents
 from app.core.domain.question_intent import looks_project_specific
 from app.core.domain.rag import (
     RagQualityWarning,
@@ -995,6 +996,27 @@ class AskWorkspaceQuestionUseCase:
         rewritten = parse_rewritten_query(raw, request.question)
         return merge_queries(base_query, rewritten)
 
+    def _expand_parents(
+        self,
+        workspace_id: str,
+        results: list[ContextSearchResult],
+    ) -> list[ContextSearchResult]:
+        """Small-to-big: grow each retrieved chunk with its file neighbours so the
+        model sees enough surrounding context (a matched function body regains its
+        signature/imports). Deterministic and fail-open — any lookup error leaves the
+        retrieved chunks untouched."""
+        if not results:
+            return results
+        try:
+            return expand_to_parents(
+                results,
+                lambda source_path: self.vector_store.get_source_chunks(
+                    workspace_id, source_path
+                ),
+            )
+        except Exception:  # noqa: BLE001 — expansion is optional, never fail the ask
+            return results
+
     def _search_context(
         self,
         request: AskWorkspaceQuestionInput,
@@ -1026,12 +1048,17 @@ class AskWorkspaceQuestionUseCase:
             # relevant files); cap per source before the reranker picks.
             candidates = limit_per_source(candidates)
             if len(candidates) <= request.limit:
-                return _strip_embeddings(candidates[: request.limit])
+                return self._expand_parents(
+                    request.workspace_id, _strip_embeddings(candidates[: request.limit])
+                )
             order = self.reranker.rerank(
                 retrieval_query, [result.content for result in candidates], request.limit
             )
             reranked = [candidates[i] for i in order if 0 <= i < len(candidates)]
-            return _strip_embeddings((reranked or candidates)[: request.limit])
+            return self._expand_parents(
+                request.workspace_id,
+                _strip_embeddings((reranked or candidates)[: request.limit]),
+            )
 
         # Default path (no reranker): fetch a wider pool and pick a relevant-but-
         # diverse subset with MMR, so the budgeted context covers more of the
@@ -1052,7 +1079,10 @@ class AskWorkspaceQuestionUseCase:
         # Cap chunks-per-file before MMR so the diverse subset spans more files
         # rather than several near-duplicate slices of one dominant document.
         candidates = limit_per_source(candidates)
-        return _strip_embeddings(mmr_select(query_embedding, candidates, target))
+        return self._expand_parents(
+            request.workspace_id,
+            _strip_embeddings(mmr_select(query_embedding, candidates, target)),
+        )
 
     def _skill_profile_audit(
         self,

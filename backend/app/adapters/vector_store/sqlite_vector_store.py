@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from app.adapters.memory.sqlite_connection import open_sqlite
-from app.core.domain.indexing import ContextSearchResult, TextChunk
+from app.core.domain.indexing import ContextSearchResult, SourceChunk, TextChunk
 from app.core.ports.vector_store import VectorStoreCorruptError
 
 try:  # numpy vectorizes dense scoring; a pure-Python fallback keeps it optional
@@ -399,6 +399,30 @@ class SQLiteVectorStore:
                 f"WHERE workspace_id = ? AND source_path IN ({placeholders})",
                 (workspace_id, *paths),
             )
+
+    def get_source_chunks(self, workspace_id: str, source_path: str) -> list[SourceChunk]:
+        try:
+            with self._connect() as connection:
+                rows = connection.execute(
+                    """
+                    SELECT chunk_id, chunk_index, content
+                    FROM workspace_vector_chunks
+                    WHERE workspace_id = ? AND source_path = ?
+                    ORDER BY chunk_index
+                    """,
+                    (workspace_id, source_path),
+                ).fetchall()
+        except sqlite3.DatabaseError as error:
+            _raise_if_corrupt(error)
+            raise
+        return [
+            SourceChunk(
+                chunk_index=row["chunk_index"],
+                chunk_id=row["chunk_id"],
+                content=row["content"],
+            )
+            for row in rows
+        ]
 
     def _initialize_schema(self) -> None:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)

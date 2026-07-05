@@ -20,6 +20,16 @@ class TextChunk:
 
 
 @dataclass(frozen=True)
+class SourceChunk:
+    """One stored chunk of a file, in index order — used to expand a retrieved
+    chunk with its neighbours (parent-document / small-to-big retrieval)."""
+
+    chunk_index: int
+    chunk_id: str
+    content: str
+
+
+@dataclass(frozen=True)
 class IndexedDocumentSummary:
     source_path: str
     chunks_count: int

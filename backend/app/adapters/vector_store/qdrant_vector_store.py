@@ -5,11 +5,25 @@ from qdrant_client import QdrantClient, models
 from app.adapters.vector_store.qdrant_collection_naming import (
     build_qdrant_collection_name,
 )
-from app.core.domain.indexing import ContextSearchResult, TextChunk
+from app.core.domain.indexing import ContextSearchResult, SourceChunk, TextChunk
 
 
 class QdrantVectorStoreError(RuntimeError):
     pass
+
+
+def _chunk_index_from(payload: dict, chunk_id: str) -> int:
+    """Chunk position within its file. Prefer the stored ``chunk_index`` payload
+    (present on points indexed after this field was added); otherwise fall back to
+    the trailing integer of ``chunk_id`` (format ``{ws}:{path}:{idx}``) so points
+    indexed before the payload change still order correctly. Unknown → 0."""
+    raw = payload.get("chunk_index")
+    if isinstance(raw, int):
+        return raw
+    if isinstance(raw, str) and raw.isdigit():
+        return int(raw)
+    tail = chunk_id.rsplit(":", 1)[-1]
+    return int(tail) if tail.isdigit() else 0
 
 
 class QdrantVectorStore:
@@ -59,6 +73,7 @@ class QdrantVectorStore:
                 payload={
                     "workspace_id": workspace_id,
                     "chunk_id": chunk.id,
+                    "chunk_index": chunk.chunk_index,
                     "source_path": chunk.source_path,
                     "content": chunk.content,
                     "metadata": chunk.metadata,
@@ -171,6 +186,53 @@ class QdrantVectorStore:
                 ),
                 wait=True,
             )
+
+    def get_source_chunks(self, workspace_id: str, source_path: str) -> list[SourceChunk]:
+        # Parent-document expansion is a best-effort enhancement: any failure here
+        # (missing collection, transport error) must degrade to "no expansion"
+        # rather than break the answer. Scroll every existing collection for this
+        # file's points and order them by chunk_index.
+        collected: list[SourceChunk] = []
+        try:
+            for collection_name in self._existing_collection_names():
+                offset = None
+                while True:
+                    points, offset = self.client.scroll(
+                        collection_name=collection_name,
+                        scroll_filter=models.Filter(
+                            must=[
+                                models.FieldCondition(
+                                    key="workspace_id",
+                                    match=models.MatchValue(value=workspace_id),
+                                ),
+                                models.FieldCondition(
+                                    key="source_path",
+                                    match=models.MatchValue(value=source_path),
+                                ),
+                            ]
+                        ),
+                        with_payload=True,
+                        with_vectors=False,
+                        limit=256,
+                        offset=offset,
+                    )
+                    for point in points:
+                        if point.payload is None:
+                            continue
+                        chunk_id = str(point.payload.get("chunk_id", ""))
+                        collected.append(
+                            SourceChunk(
+                                chunk_index=_chunk_index_from(point.payload, chunk_id),
+                                chunk_id=chunk_id,
+                                content=str(point.payload.get("content", "")),
+                            )
+                        )
+                    if offset is None:
+                        break
+        except Exception:  # noqa: BLE001 — fail-open: expansion is optional
+            return []
+        collected.sort(key=lambda c: c.chunk_index)
+        return collected
 
     def _existing_collection_names(self) -> list[str]:
         try:

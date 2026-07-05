@@ -1,6 +1,6 @@
 from math import sqrt
 
-from app.core.domain.indexing import ContextSearchResult, TextChunk
+from app.core.domain.indexing import ContextSearchResult, SourceChunk, TextChunk
 
 StoredChunk = tuple[TextChunk, list[float]]
 
@@ -82,6 +82,15 @@ class InMemoryVectorStore:
         self._chunks[workspace_id] = [
             stored for stored in self._chunks[workspace_id] if stored[0].source_path not in targets
         ]
+
+    def get_source_chunks(self, workspace_id: str, source_path: str) -> list[SourceChunk]:
+        chunks = [
+            SourceChunk(chunk_index=chunk.chunk_index, chunk_id=chunk.id, content=chunk.content)
+            for chunk, _ in self._chunks.get(workspace_id, [])
+            if chunk.source_path == source_path
+        ]
+        chunks.sort(key=lambda c: c.chunk_index)
+        return chunks
 
     @staticmethod
     def _cosine_similarity(first: list[float], second: list[float]) -> float:

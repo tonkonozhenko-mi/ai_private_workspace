@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from app.core.domain.indexing import ContextSearchResult, TextChunk
+from app.core.domain.indexing import ContextSearchResult, SourceChunk, TextChunk
 
 
 class VectorStoreCorruptError(Exception):
@@ -57,6 +57,13 @@ class VectorStorePort(Protocol):
         Used by incremental re-indexing to drop the old chunks of changed or
         removed files before re-embedding only what changed. A no-op for paths
         with no stored chunks."""
+
+    def get_source_chunks(self, workspace_id: str, source_path: str) -> list[SourceChunk]:
+        """Return all chunks of one file, ordered by chunk_index.
+
+        Powers parent-document (small-to-big) retrieval: a retrieved chunk is
+        expanded with its neighbours in the same file so the model sees enough
+        surrounding context. Returns an empty list when the file has no chunks."""
 
 
 VectorStore = VectorStorePort
