@@ -28,10 +28,11 @@ Runs fully offline on a local model. Every answer cites your real files. Nothing
   <a href="https://github.com/tonkonozhenko-mi/ai_private_workspace/releases/latest"><b>⬇️ Download for macOS (Apple Silicon / Intel) and Windows x64</b></a>
 </p>
 
-<!-- TODO: replace the static hero with a short GIF (question → streaming answer → click a source) after the UI polish pass. -->
 <p align="center">
-  <img src="docs/assets/screenshots/01-ask.png" alt="Ask a question about your project and get an answer grounded in local sources" width="820">
+  <img src="docs/assets/demo.gif" alt="From an empty folder to a grounded answer in 35 seconds: create a workspace, scan, build context, ask — and get an answer with sources from your own files" width="820">
 </p>
+
+<p align="center"><sub>Real recording on a demo project: folder → scan → local engine → index → first answer with sources. ~35s, fully offline.</sub></p>
 
 ## Why
 
