@@ -183,9 +183,7 @@ def _build_span(
     pieces: list[str] = []
     for position, index in enumerate(ordered_indices):
         chunk = by_index[index]
-        pieces.append(
-            chunk.content if position == 0 else strip_contextual_header(chunk.content)
-        )
+        pieces.append(chunk.content if position == 0 else strip_contextual_header(chunk.content))
 
     content = "\n\n".join(pieces)
     first_chunk = by_index[ordered_indices[0]]

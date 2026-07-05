@@ -113,6 +113,8 @@ project_context_composer = ComposeProjectContextUseCase(
     user_profile_repository,
     watch_repository=project_watch_repository,
 )
+
+
 def handbook_text_provider(workspace_id: str) -> str | None:
     """Deterministic project handbook text for indexing as a pseudo-document.
 

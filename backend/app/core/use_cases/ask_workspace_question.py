@@ -1072,9 +1072,7 @@ class AskWorkspaceQuestionUseCase:
         try:
             return expand_to_parents(
                 results,
-                lambda source_path: self.vector_store.get_source_chunks(
-                    workspace_id, source_path
-                ),
+                lambda source_path: self.vector_store.get_source_chunks(workspace_id, source_path),
             )
         except Exception:  # noqa: BLE001 — expansion is optional, never fail the ask
             return results
