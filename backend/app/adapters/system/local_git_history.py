@@ -289,7 +289,11 @@ class LocalGitHistory:
     def _contributors_count(self, root: Path, scope: list[str] | None = None) -> int:
         # ``--all`` would count every ref regardless of path; when scoped to a
         # subfolder we drop it and count contributors to that path's HEAD history.
-        args = ["shortlog", "-sn", "--no-merges", "HEAD"] if scope else ["shortlog", "-sn", "--all", "--no-merges"]
+        args = (
+            ["shortlog", "-sn", "--no-merges", "HEAD"]
+            if scope
+            else ["shortlog", "-sn", "--all", "--no-merges"]
+        )
         value = self._run(root, [*args, *(scope or [])])
         if not value:
             return 0
