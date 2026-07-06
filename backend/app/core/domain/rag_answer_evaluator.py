@@ -253,7 +253,9 @@ def find_quotes_not_in_sources(answer: str, source_contents: list[str]) -> list[
     candidates.extend(_FENCED_CODE_RE.findall(answer))
     candidates.extend(_DOUBLE_QUOTED_RE.findall(answer))
     candidates.extend(
-        token for token in _BACKTICK_TOKEN_RE.findall(answer) if len(token.strip()) > _MIN_QUOTE_CHARS
+        token
+        for token in _BACKTICK_TOKEN_RE.findall(answer)
+        if len(token.strip()) > _MIN_QUOTE_CHARS
     )
 
     missing: list[str] = []

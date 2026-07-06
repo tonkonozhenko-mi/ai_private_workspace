@@ -104,9 +104,7 @@ PROJECT_NOT_FOUND_WARNING = RagQualityWarning(
 # the answer either cited no retrieved file, or asserted a project term that isn't
 # in the retrieved content. Softer signals (absence-phrase conflicts, quote
 # mismatches) don't trigger a costly regeneration.
-_HARD_GROUNDING_CODES = frozenset(
-    {"answer_missing_source_paths", "answer_term_not_in_context"}
-)
+_HARD_GROUNDING_CODES = frozenset({"answer_missing_source_paths", "answer_term_not_in_context"})
 
 
 def _hard_grounding_warnings(

@@ -101,7 +101,9 @@ def test_corrective_retrieval_fail_open_returns_none():
 
 def test_regeneration_skipped_without_hard_warnings():
     uc = _uc()
-    soft = [RagQualityWarning(code="quote_not_in_sources", message="m", severity="review", evidence=[])]
+    soft = [
+        RagQualityWarning(code="quote_not_in_sources", message="m", severity="review", evidence=[])
+    ]
     assert uc._corrective_regeneration(_req(), _LLM(), [], soft, 0.6) is None
 
 
@@ -114,7 +116,9 @@ def test_regeneration_skipped_when_no_score_improvement():
 
 def test_regeneration_adopted_when_grounding_improves():
     uc = _uc()
-    uc._corrective_retrieval = lambda request, provider: [_result("main.tf", 0.9, "terraform backend s3")]
+    uc._corrective_retrieval = lambda request, provider: [
+        _result("main.tf", 0.9, "terraform backend s3")
+    ]
     uc._grounded_prompt = lambda request, provider, ctx, hist: (ctx, "PROMPT", 0, 0, {})
     uc._generate_answer_with_usage = lambda *a, **k: ("Backend is S3 (main.tf).", None)
     out = uc._corrective_regeneration(_req(), _LLM(), [], [_hard_warning()], 0.4)
@@ -127,7 +131,9 @@ def test_regeneration_adopted_when_grounding_improves():
 
 def test_regeneration_rejected_when_still_ungrounded():
     uc = _uc()
-    uc._corrective_retrieval = lambda request, provider: [_result("main.tf", 0.9, "terraform backend s3")]
+    uc._corrective_retrieval = lambda request, provider: [
+        _result("main.tf", 0.9, "terraform backend s3")
+    ]
     uc._grounded_prompt = lambda request, provider, ctx, hist: (ctx, "PROMPT", 0, 0, {})
     # regenerated answer still cites no source path → not better → keep original
     uc._generate_answer_with_usage = lambda *a, **k: ("It is configured somewhere.", None)

@@ -93,7 +93,9 @@ def test_quote_present_verbatim_is_not_flagged() -> None:
 
 def test_quote_check_normalizes_whitespace_across_lines() -> None:
     # The code block reflows the source's single line; normalization should match.
-    answer = "Here is the config:\n\n```hcl\nregion = \"eu-central-1\"\nprofile = \"prod\"\n```\n(main.tf)"
+    answer = (
+        'Here is the config:\n\n```hcl\nregion = "eu-central-1"\nprofile = "prod"\n```\n(main.tf)'
+    )
     warnings = evaluate_rag_answer(
         question="What is the config?",
         answer=answer,
