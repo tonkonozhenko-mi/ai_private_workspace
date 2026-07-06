@@ -1017,13 +1017,17 @@ class AskWorkspaceQuestionUseCase:
         response_format: dict | None = None,
     ) -> tuple[str, LLMUsageMetrics]:
         started_at = perf_counter()
-        raw = llm_provider.generate(
-            prompt, images or None, temperature, think, history, response_format
-        )
-        # A schema-constrained answer is JSON — unwrap it to the Markdown body first,
-        # then still strip any stray source_path echo as a belt-and-braces guard.
+        # Only pass response_format when set, so providers/mocks with the older
+        # 5-arg generate() signature keep working (structured output is opt-in).
         if response_format is not None:
+            raw = llm_provider.generate(
+                prompt, images or None, temperature, think, history, response_format
+            )
+            # A schema-constrained answer is JSON — unwrap it to the Markdown body,
+            # then still strip any stray source_path echo as a belt-and-braces guard.
             raw = structured_answer_text(raw)
+        else:
+            raw = llm_provider.generate(prompt, images or None, temperature, think, history)
         answer = strip_source_path_echo(raw)
         latency_ms = max(0, round((perf_counter() - started_at) * 1000))
         usage = build_llm_usage_metrics(
