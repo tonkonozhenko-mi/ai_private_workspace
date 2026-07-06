@@ -262,7 +262,7 @@ def _run_embedder(alias: str, repo: Path, k: int, base_url: str, llm_model: str 
 
         cases = list(golden_set())
         report = compute_report(alias, k, cases, outcomes)
-        _write_reports(report, cases, outcomes)
+        _write_reports(report, cases, outcomes, floor=floor, threshold=threshold)
         _print_summary(report)
 
 
@@ -301,14 +301,26 @@ def _out_dir() -> Path:
     return out
 
 
-def _write_reports(report, cases, outcomes) -> None:
+def _write_reports(report, cases, outcomes, floor=None, threshold=None) -> None:
+    """Write JSON + markdown. ``floor``/``threshold`` are recorded in both — the
+    P5 verdict needs them next to the scores, not just in the console scrollback."""
     out = _out_dir()
     stamp = datetime.now().strftime("%Y-%m-%d")
     base = f"golden_{report.embedder}_{stamp}"
-    (out / f"{base}.json").write_text(
-        json.dumps(report_to_dict(report, cases, outcomes), indent=2), encoding="utf-8"
-    )
-    (out / f"{base}.md").write_text(render_markdown(report, cases, outcomes), encoding="utf-8")
+    data = report_to_dict(report, cases, outcomes)
+    if floor is not None:
+        data["relevance_floor"] = floor
+    if threshold is not None:
+        data["threshold"] = round(threshold, 4)
+    (out / f"{base}.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
+    md = render_markdown(report, cases, outcomes)
+    if threshold is not None:
+        md = md.replace(
+            "\n\n",
+            f"\n\n- Calibrated floor: **{floor}** → abstention threshold: **{threshold:.3f}**\n",
+            1,
+        )
+    (out / f"{base}.md").write_text(md, encoding="utf-8")
     print(f"  wrote {out / base}.json / .md", flush=True)
 
 
