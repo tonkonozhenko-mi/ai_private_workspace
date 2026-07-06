@@ -1,3 +1,5 @@
+import os
+import stat as stat_module
 from pathlib import Path
 
 from app.core.domain.project_scan import ProjectFile, ProjectFileList
@@ -115,26 +117,34 @@ class LocalFileSystem:
     def _collect_candidates(self, root: Path) -> list[tuple[Path, Path, int, float | None]]:
         candidates: list[tuple[Path, Path, int, float | None]] = []
 
-        for current_path in root.rglob("*"):
-            if self._is_in_skipped_directory(current_path.relative_to(root)):
-                continue
-            if not current_path.is_file():
-                continue
+        # Prune skipped directories DURING the walk, not after: os.walk lets us edit
+        # ``dirnames`` in place so it never descends into ``.git`` / ``node_modules``
+        # / ``.venv`` / ``target`` etc. The old ``rglob('*')`` walked those heavy
+        # trees fully and only filtered afterward — on a project sitting near a
+        # monorepo (or with a big vendored tree) that meant traversing tens of
+        # thousands of paths to keep a handful, which is why the scan could take
+        # minutes. (``followlinks`` stays False so a symlinked dir can't loop us.)
+        for dirpath, dirnames, filenames in os.walk(str(root)):
+            dirnames[:] = [d for d in dirnames if d not in SKIPPED_DIRECTORIES]
+            current_dir = Path(dirpath)
+            for name in filenames:
+                full_path = current_dir / name
+                try:
+                    stat_result = full_path.stat()
+                except OSError:
+                    continue
+                # Regular files only (skip fifos/sockets; a symlink to a file
+                # resolves to regular via stat, matching the old is_file() check).
+                if not stat_module.S_ISREG(stat_result.st_mode):
+                    continue
 
-            try:
-                stat_result = current_path.stat()
-            except OSError:
-                continue
+                size_bytes = stat_result.st_size
+                try:
+                    modified_at: float | None = stat_result.st_mtime
+                except (OSError, AttributeError):
+                    modified_at = None
 
-            size_bytes = stat_result.st_size
-            try:
-                modified_at: float | None = stat_result.st_mtime
-            except (OSError, AttributeError):
-                modified_at = None
-
-            candidates.append(
-                (current_path.relative_to(root), current_path, size_bytes, modified_at)
-            )
+                candidates.append((full_path.relative_to(root), full_path, size_bytes, modified_at))
 
         return candidates
 
@@ -184,10 +194,6 @@ class LocalFileSystem:
     @staticmethod
     def _extension(path: Path) -> str | None:
         return path.suffix.lower() or None
-
-    @staticmethod
-    def _is_in_skipped_directory(relative_path: Path) -> bool:
-        return any(part in SKIPPED_DIRECTORIES for part in relative_path.parts[:-1])
 
     @staticmethod
     def _is_helm_template(relative_path: Path, chart_roots: set[str]) -> bool:
