@@ -80,6 +80,28 @@ def _truncate(text: str, limit: int) -> str:
     return text if len(text) <= limit else text[:limit] + " …(truncated)"
 
 
+def _step_to_dict(step: AgentStep) -> dict:
+    """One ReAct step as the API/UI expects it."""
+    return {
+        "thought": step.thought,
+        "tool": step.tool,
+        "tool_input": step.tool_input,
+        "observation": step.observation,
+    }
+
+
+def _result_to_dict(result: InvestigationResult) -> dict:
+    """The completed investigation, matching the non-streaming endpoint payload."""
+    return {
+        "answer": result.answer,
+        "steps": [_step_to_dict(s) for s in result.steps],
+        "sources": result.sources,
+        "used_steps": result.used_steps,
+        "stopped_reason": result.stopped_reason,
+        "context_used": {"memory": result.memory_used, "facts": result.facts_used},
+    }
+
+
 class InvestigateProjectUseCase:
     def __init__(
         self,
@@ -109,6 +131,34 @@ class InvestigateProjectUseCase:
         self.context_provider = context_provider
 
     def execute(self, request: InvestigateProjectInput) -> InvestigationResult:
+        """Run the investigation and return the final result (steps + answer)."""
+        result: InvestigationResult | None = None
+        for kind, payload in self._run_events(request):
+            if kind == "final":
+                result = payload
+        # The loop always ends by yielding a final result (answered or exhausted).
+        assert result is not None
+        return result
+
+    def execute_stream(self, request: InvestigateProjectInput):
+        """Same investigation, but yield each step as it happens, then a final event,
+        so the UI can show the agent thinking live instead of after the fact. Setup
+        failures become an ``error`` event rather than an exception, since the caller
+        is already streaming. Event shapes: ``{"type": "step", "step": {...}}``,
+        ``{"type": "final", ...}``, ``{"type": "error", "error": str}``."""
+        try:
+            for kind, payload in self._run_events(request):
+                if kind == "step":
+                    yield {"type": "step", "step": _step_to_dict(payload)}
+                elif kind == "final":
+                    yield {"type": "final", **_result_to_dict(payload)}
+        except (InvestigateProjectWorkspaceNotFoundError, InvestigateProjectError) as exc:
+            yield {"type": "error", "error": str(exc)}
+
+    def _run_events(self, request: InvestigateProjectInput):
+        """The one investigation loop, shared by ``execute`` and ``execute_stream``.
+        Yields ``("step", AgentStep)`` as each step completes and finally
+        ``("final", InvestigationResult)``."""
         workspace = self.workspace_repository.get(request.workspace_id)
         if workspace is None:
             raise InvestigateProjectWorkspaceNotFoundError("Workspace not found")
@@ -202,26 +252,30 @@ class InvestigateProjectUseCase:
 
             if decision.kind == "final":
                 self._remember_answer(request.workspace_id, request.question, decision.answer)
-                return InvestigationResult(
-                    answer=decision.answer,
-                    steps=steps,
-                    sources=sources,
-                    used_steps=len(steps),
-                    stopped_reason="answered",
-                    memory_used=memory_used,
-                    facts_used=facts_used,
+                yield (
+                    "final",
+                    InvestigationResult(
+                        answer=decision.answer,
+                        steps=steps,
+                        sources=sources,
+                        used_steps=len(steps),
+                        stopped_reason="answered",
+                        memory_used=memory_used,
+                        facts_used=facts_used,
+                    ),
                 )
+                return
 
             if decision.kind == "invalid":
                 format_retries += 1
-                steps.append(
-                    AgentStep(
-                        thought=decision.thought,
-                        tool="(format)",
-                        tool_input="",
-                        observation=f"Reply was not valid: {decision.error}",
-                    )
+                step = AgentStep(
+                    thought=decision.thought,
+                    tool="(format)",
+                    tool_input="",
+                    observation=f"Reply was not valid: {decision.error}",
                 )
+                steps.append(step)
+                yield ("step", step)
                 if format_retries > _MAX_FORMAT_RETRIES:
                     break
                 continue
@@ -232,18 +286,18 @@ class InvestigateProjectUseCase:
                 # that this path is exhausted so it changes tack (or answers), and
                 # stop after a couple of repeats so it can't spin the budget away.
                 repeated_actions += 1
-                steps.append(
-                    AgentStep(
-                        thought=decision.thought,
-                        tool=decision.tool,
-                        tool_input=decision.tool_input,
-                        observation=(
-                            f"You already ran {decision.tool}: {decision.tool_input} and it "
-                            "returned the same result. That path is exhausted — try a "
-                            "different tool or input, or give your FINAL answer now."
-                        ),
-                    )
+                step = AgentStep(
+                    thought=decision.thought,
+                    tool=decision.tool,
+                    tool_input=decision.tool_input,
+                    observation=(
+                        f"You already ran {decision.tool}: {decision.tool_input} and it "
+                        "returned the same result. That path is exhausted — try a "
+                        "different tool or input, or give your FINAL answer now."
+                    ),
                 )
+                steps.append(step)
+                yield ("step", step)
                 if repeated_actions > _MAX_REPEATED_ACTIONS:
                     break
                 continue
@@ -251,26 +305,29 @@ class InvestigateProjectUseCase:
             executed_actions.add(signature)
             observation, new_sources = tools[decision.tool](decision.tool_input)
             add_sources(new_sources)
-            steps.append(
-                AgentStep(
-                    thought=decision.thought,
-                    tool=decision.tool,
-                    tool_input=decision.tool_input,
-                    observation=_truncate(observation, _MAX_OBSERVATION_CHARS),
-                )
+            step = AgentStep(
+                thought=decision.thought,
+                tool=decision.tool,
+                tool_input=decision.tool_input,
+                observation=_truncate(observation, _MAX_OBSERVATION_CHARS),
             )
+            steps.append(step)
+            yield ("step", step)
             tool_steps_used += 1
 
         # Out of steps: force a final answer from what was gathered.
         answer = self._forced_final(provider, request.question, tool_specs, steps, role_label)
-        return InvestigationResult(
-            answer=answer,
-            steps=steps,
-            sources=sources,
-            used_steps=len(steps),
-            stopped_reason="budget_exhausted",
-            memory_used=memory_used,
-            facts_used=facts_used,
+        yield (
+            "final",
+            InvestigationResult(
+                answer=answer,
+                steps=steps,
+                sources=sources,
+                used_steps=len(steps),
+                stopped_reason="budget_exhausted",
+                memory_used=memory_used,
+                facts_used=facts_used,
+            ),
         )
 
     def _remember_answer(self, workspace_id: str, question: str, answer: str) -> None:

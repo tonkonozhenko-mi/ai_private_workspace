@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
-import { investigateProject } from "../api/client";
-import type { InvestigationResponse, RagQualityWarning } from "../api/types";
+import { streamInvestigateProject } from "../api/client";
+import type {
+  InvestigationResponse,
+  InvestigationStep,
+  RagQualityWarning,
+} from "../api/types";
 import { formatSourceLabel } from "../lib/sourceLabel";
 
 export interface TraceFile {
@@ -77,6 +81,9 @@ export function AnswerTracePanel({
   const [investigation, setInvestigation] = useState<InvestigationResponse | null>(null);
   const [investigating, setInvestigating] = useState(false);
   const [investError, setInvestError] = useState<string | null>(null);
+  // Steps as they stream in, so the agent's thinking shows live before the final
+  // result lands; cleared once the finished investigation replaces them.
+  const [liveSteps, setLiveSteps] = useState<InvestigationStep[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -139,16 +146,21 @@ export function AnswerTracePanel({
     if (!investigate || investigating) return;
     setInvestError(null);
     setInvestigating(true);
+    setLiveSteps([]);
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const result = await investigateProject(
+      const result = await streamInvestigateProject(
         investigate.workspaceId,
         investigate.question,
         investigate.role ?? undefined,
-        { signal: controller.signal },
+        {
+          signal: controller.signal,
+          onStep: (step) => setLiveSteps((prev) => [...prev, step]),
+        },
       );
       setInvestigation(result);
+      setLiveSteps([]);
     } catch (error) {
       if ((error as Error)?.name !== "AbortError") {
         setInvestError("Couldn't run the deeper investigation. Try again.");
@@ -306,6 +318,33 @@ export function AnswerTracePanel({
                     <p className="trace-invite-note">
                       Runs the agent live and replaces the summary above with its true step-by-step trace.
                     </p>
+                    {investigating && liveSteps.length > 0 ? (
+                      <div className="trace-react" style={{ marginTop: "10px" }}>
+                        {liveSteps.map((step, index) => {
+                          const isFormat = step.tool === "(format)";
+                          return (
+                            <div
+                              className={`trace-react-step ${isFormat ? "muted" : ""}`}
+                              key={index}
+                            >
+                              <span className="trace-react-n">{index + 1}</span>
+                              <div>
+                                {step.thought ? <p className="thought">{step.thought}</p> : null}
+                                <p className="tool">
+                                  <span className="k">
+                                    {isFormat ? "format retry" : labelize(step.tool)}
+                                  </span>
+                                  {step.tool_input ? (
+                                    <span className="in"> · {step.tool_input}</span>
+                                  ) : null}
+                                </p>
+                                {step.observation ? <p className="obs">{step.observation}</p> : null}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : null}
                     {investError ? <p className="trace-invite-err">{investError}</p> : null}
                   </div>
                 ) : null}
