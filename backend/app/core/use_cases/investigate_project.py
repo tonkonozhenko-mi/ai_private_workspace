@@ -225,6 +225,29 @@ class InvestigateProjectUseCase:
         hard_iteration_cap = max_tool_steps + _MAX_FORMAT_RETRIES + _MAX_REPEATED_ACTIONS + 1
         iterations = 0
 
+        # Seed the transcript with the ordinary retrieval for the question, so the
+        # agent starts from the files a normal search surfaces instead of blindly
+        # globbing for them (a weak model otherwise burns steps on list_files that
+        # return nothing). It's free — this doesn't consume the tool-step budget —
+        # and skipped when search returns nothing useful.
+        seed_search = tools.get("search_code")
+        if seed_search is not None:
+            try:
+                seed_observation, seed_sources = seed_search(request.question)
+            except Exception:  # noqa: BLE001 - seeding is best-effort, never fatal
+                seed_observation, seed_sources = "", []
+            if seed_sources:
+                add_sources(seed_sources)
+                seed_step = AgentStep(
+                    thought="Start from what a normal project search returns for the question.",
+                    tool="search_code",
+                    tool_input=request.question,
+                    observation=_truncate(seed_observation, _MAX_OBSERVATION_CHARS),
+                )
+                steps.append(seed_step)
+                executed_actions.add(("search_code", request.question.strip().lower()))
+                yield ("step", seed_step)
+
         while tool_steps_used < max_tool_steps and iterations < hard_iteration_cap:
             iterations += 1
             prompt = build_investigator_prompt(
