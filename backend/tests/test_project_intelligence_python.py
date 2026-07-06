@@ -110,4 +110,6 @@ def test_presenter_surfaces_python_in_chips_and_description():
     view = present_project_intelligence(graph, role_lens_for("developer"))
     chips = view["summary"]["technology_chips"]
     assert "FastAPI" in chips and "SQLAlchemy" in chips
-    assert "Python application" in view["summary"]["description"]
+    # The description now leads with the framework-aware kind (D4), not a generic
+    # "Python application".
+    assert "FastAPI application" in view["summary"]["description"]
