@@ -176,7 +176,7 @@ _CONFIG_KEY_TYPES = {"json", "yaml"}
 # loaders would choke. Nested keys are wanted (csp lives under security), so this
 # matches keys at any depth.
 _JSON_KEY_RE = re.compile(r'"([A-Za-z_][\w.\-]{1,48})"\s*:')
-_YAML_KEY_RE = re.compile(r'^[ \t-]*([A-Za-z_][\w.\-]{1,48})\s*:(?:\s|$)', re.MULTILINE)
+_YAML_KEY_RE = re.compile(r"^[ \t-]*([A-Za-z_][\w.\-]{1,48})\s*:(?:\s|$)", re.MULTILINE)
 _MAX_CONFIG_KEYS = 24
 _MAX_CONFIG_KEYS_CHARS = 200
 

@@ -41,17 +41,17 @@ from app.core.domain.rag_prompt import (
     build_general_chat_prompt,
     build_workspace_question_prompt,
 )
-from app.core.domain.rag_structured_answer import (
-    STRUCTURED_CITATIONS_ENV_VAR,
-    citations_response_format,
-    structured_answer_instruction,
-    structured_answer_text,
-)
 from app.core.domain.rag_query_rewrite import (
     build_corrective_query_rewrite_prompt,
     build_query_rewrite_prompt,
     merge_queries,
     parse_rewritten_query,
+)
+from app.core.domain.rag_structured_answer import (
+    STRUCTURED_CITATIONS_ENV_VAR,
+    citations_response_format,
+    structured_answer_instruction,
+    structured_answer_text,
 )
 from app.core.domain.retrieval_diversity import limit_per_source
 from app.core.ports.conversation_repository import ConversationRepositoryPort

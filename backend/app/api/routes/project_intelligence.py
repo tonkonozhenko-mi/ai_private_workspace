@@ -569,9 +569,7 @@ def investigate_project(workspace_id: str, request: InvestigateRequest) -> dict:
 
 
 @router.post("/{workspace_id}/intelligence/investigate/stream")
-def investigate_project_stream(
-    workspace_id: str, request: InvestigateRequest
-) -> StreamingResponse:
+def investigate_project_stream(workspace_id: str, request: InvestigateRequest) -> StreamingResponse:
     """Same read-only investigation as ``/investigate``, but streamed: each ReAct
     step is emitted as it completes (``event: step``), then the answer + sources
     (``event: final``), so the UI shows the agent thinking live. Same tools, same

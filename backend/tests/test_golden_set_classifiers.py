@@ -32,9 +32,7 @@ def test_every_should_abstain_question_routes_to_general_chat():
 
 def test_no_project_question_is_routed_to_general_chat():
     wrong = [
-        c.id
-        for c in golden_set()
-        if c.cls in _PROJECT_CLASSES and looks_general_chat(c.question)
+        c.id for c in golden_set() if c.cls in _PROJECT_CLASSES and looks_general_chat(c.question)
     ]
     assert not wrong, f"project questions wrongly routed to general chat: {wrong}"
 

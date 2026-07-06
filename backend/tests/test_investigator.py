@@ -258,17 +258,13 @@ def test_stream_matches_non_streaming_result():
         )
     )
     final = next(e for e in streamed if e["type"] == "final")
-    result = _use_case(replies).execute(
-        InvestigateProjectInput(workspace_id="w1", question="db?")
-    )
+    result = _use_case(replies).execute(InvestigateProjectInput(workspace_id="w1", question="db?"))
     assert final["answer"] == result.answer
     assert final["sources"] == result.sources
 
 
 def test_stream_reports_setup_error_as_event():
     events = list(
-        _use_case([]).execute_stream(
-            InvestigateProjectInput(workspace_id="missing", question="q")
-        )
+        _use_case([]).execute_stream(InvestigateProjectInput(workspace_id="missing", question="q"))
     )
     assert events == [{"type": "error", "error": "Workspace not found"}]

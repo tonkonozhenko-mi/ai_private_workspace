@@ -79,8 +79,8 @@ def structured_answer_instruction() -> str:
     """A short nudge appended to the prompt so the model fills the fields with
     meaning (the grammar guarantees the shape, not the content)."""
     return (
-        "\n\nRespond as a JSON object with two keys: \"answer_md\" (your answer in "
-        "Markdown) and \"citations\" (a list of {\"path\", \"quote\"} objects, each a "
+        '\n\nRespond as a JSON object with two keys: "answer_md" (your answer in '
+        'Markdown) and "citations" (a list of {"path", "quote"} objects, each a '
         "short verbatim excerpt from a cited file). Put file paths in backticks inside "
         "answer_md; never append a plain source_path list."
     )

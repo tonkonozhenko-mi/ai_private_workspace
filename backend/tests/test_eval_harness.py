@@ -70,12 +70,8 @@ def test_raw_vs_product_hallucination_pair():
     # product rate is half the raw rate. This is the sieve-working headline.
     cases = [_precise("p1", ("a.py",)), _precise("p2", ("b.py",))]
     outcomes = [
-        QuestionOutcome(
-            "p1", False, ("src/a.py",), 0.8, hallucinated=True, raw_hallucinated=True
-        ),
-        QuestionOutcome(
-            "p2", False, ("src/b.py",), 0.7, hallucinated=False, raw_hallucinated=True
-        ),
+        QuestionOutcome("p1", False, ("src/a.py",), 0.8, hallucinated=True, raw_hallucinated=True),
+        QuestionOutcome("p2", False, ("src/b.py",), 0.7, hallucinated=False, raw_hallucinated=True),
     ]
     report = compute_report("qwen3", 5, cases, outcomes)
     assert report.overall_raw_hallucination_rate == 1.0

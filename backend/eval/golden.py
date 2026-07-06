@@ -375,7 +375,13 @@ def _generate_outcome(uc, request, results, best_score, llm, repeats: int) -> di
     majority vote across runs (ties count as flagged — conservative), which gives a
     stable label under generation non-determinism; the last run's answer/codes are
     kept for eyeballing. None if every run failed."""
-    runs = [r for r in (_one_generation(uc, request, results, best_score, llm) for _ in range(max(1, repeats))) if r]
+    runs = [
+        r
+        for r in (
+            _one_generation(uc, request, results, best_score, llm) for _ in range(max(1, repeats))
+        )
+        if r
+    ]
     if not runs:
         return None
     n = len(runs)

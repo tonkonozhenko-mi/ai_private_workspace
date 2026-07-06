@@ -11,7 +11,9 @@ from app.core.domain.project_type import (
 
 
 def _entity(etype, name, analyzer="a", **meta):
-    return ProjectEntity(id=f"{etype}:{name}", type=etype, name=name, analyzer=analyzer, metadata=meta)
+    return ProjectEntity(
+        id=f"{etype}:{name}", type=etype, name=name, analyzer=analyzer, metadata=meta
+    )
 
 
 def _graph(entities, analyzers):

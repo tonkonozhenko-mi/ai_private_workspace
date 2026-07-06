@@ -315,9 +315,7 @@ def present_project_intelligence(graph: ProjectGraph, lens: RoleLens) -> dict:
         parts.append(classification.label)
         if applications:
             parts.append(
-                f"with a {sorted(frameworks)[0]} component"
-                if frameworks
-                else "with helper scripts"
+                f"with a {sorted(frameworks)[0]} component" if frameworks else "with helper scripts"
             )
     else:
         # Application- or mixed-led (or unknown): headline the app when present.
