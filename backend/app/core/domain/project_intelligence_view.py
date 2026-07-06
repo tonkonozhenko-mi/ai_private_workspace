@@ -12,6 +12,7 @@ from app.core.domain.project_graph import (
     ProjectGraph,
     RelationType,
 )
+from app.core.domain.project_type import KIND_INFRASTRUCTURE, classify_project
 from app.core.domain.risk_explanation import explain_finding
 from app.core.domain.role_lens import RoleLens, Section
 
@@ -304,19 +305,31 @@ def present_project_intelligence(graph: ProjectGraph, lens: RoleLens) -> dict:
         | frameworks
     )
 
-    # A purely factual one-line description; the LLM (separately) elaborates.
+    # A purely factual one-line description that LEADS with the dominant project
+    # kind — so a Terraform repo isn't announced as "Python application" just
+    # because it has one helper script. The LLM (separately) elaborates.
+    classification = classify_project(graph)
     parts: list[str] = []
-    if applications:
-        app_part = "Python application"
-        if frameworks:
-            app_part += " (" + ", ".join(sorted(frameworks)) + ")"
-        if modules:
-            app_part += f", {len(modules)} module(s)"
-        parts.append(app_part)
-    if infra:
-        parts.append("infrastructure: " + ", ".join(sorted(e.name for e in infra)))
-    if pipelines:
-        parts.append(f"{len(pipelines)} CI/CD pipeline(s)")
+    if classification.kind == KIND_INFRASTRUCTURE:
+        # Infra-led: headline the infra, mention the (minor) app honestly.
+        parts.append(classification.label)
+        if applications:
+            parts.append(
+                f"with a {sorted(frameworks)[0]} component"
+                if frameworks
+                else "with helper scripts"
+            )
+    else:
+        # Application- or mixed-led (or unknown): headline the app when present.
+        if applications:
+            app_part = classification.label  # framework-aware, e.g. "FastAPI application"
+            if modules:
+                app_part += f", {len(modules)} module(s)"
+            parts.append(app_part)
+        if infra:
+            parts.append("infrastructure: " + ", ".join(sorted(e.name for e in infra)))
+        if pipelines:
+            parts.append(f"{len(pipelines)} CI/CD pipeline(s)")
     if environments:
         parts.append(
             f"{len(environments)} environment(s): "
