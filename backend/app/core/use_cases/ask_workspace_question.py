@@ -1090,9 +1090,17 @@ class AskWorkspaceQuestionUseCase:
         # retriever can only add the risk of missing the right file. Citations stay
         # intact (each chunk keeps its source_path); fit_context_results downstream
         # is still the overflow guard.
-        full_context = self._maybe_full_project_context(request, llm_provider)
-        if full_context is not None:
-            return full_context
+        #
+        # Gated on question intent: full-context bypasses the relevance threshold
+        # (its results carry an artificial score), so without this gate "what time
+        # is it" on a tiny project would come back with the whole repo attached as
+        # sources instead of routing to general conversation. Questions without
+        # project signals fall through to normal retrieval, where the calibrated
+        # threshold keeps doing that routing.
+        if looks_project_specific(request.question):
+            full_context = self._maybe_full_project_context(request, llm_provider)
+            if full_context is not None:
+                return full_context
 
         # Expand the follow-up with recent conversation terms so retrieval lands
         # on the files the dialogue is about ("disable it" -> "...ecs...disable it").
