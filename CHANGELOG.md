@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **"Investigate deeper" starts from a real search of the project instead of guessing.** The multi-step agent used to begin cold — with no idea which files were relevant, a weaker local model would burn its early steps listing folders and globbing for filenames that returned nothing. The investigation is now seeded with the files a normal retrieval surfaces for the question, shown as its first step, so the agent begins grounded in the right places and spends its budget reading and reasoning rather than hunting. The seed is free (it doesn't count against the step budget) and skipped when the search finds nothing.
+
 ## [0.4.1] - 2026-07-06
 
 ### Fixed

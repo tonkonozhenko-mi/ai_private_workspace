@@ -151,7 +151,10 @@ def test_agent_loop_searches_then_answers_with_sources():
     assert "PostgreSQL" in result.answer
     assert result.stopped_reason == "answered"
     assert "db/config.tf" in result.sources
-    assert [s.tool for s in result.steps] == ["search_code", "read_file"]
+    # The transcript is seeded with the normal retrieval first, then the agent's
+    # own scripted search + read.
+    assert [s.tool for s in result.steps] == ["search_code", "search_code", "read_file"]
+    assert result.steps[0].thought.startswith("Start from what a normal project search")
 
 
 def test_agent_loop_budget_exhausted_forces_final():
@@ -163,7 +166,8 @@ def test_agent_loop_budget_exhausted_forces_final():
     )
     result = uc.execute(InvestigateProjectInput(workspace_id="w1", question="db?", max_steps=3))
     assert result.stopped_reason == "budget_exhausted"
-    assert result.used_steps == 3
+    # 3 tool-budget steps + the free seed search that opens the transcript.
+    assert result.used_steps == 4
     assert result.answer
 
 
@@ -177,8 +181,10 @@ def test_agent_uses_git_history_tool():
     result = uc.execute(
         InvestigateProjectInput(workspace_id="w1", question="Who owns the db config?")
     )
-    assert result.steps[0].tool == "git_history"
-    assert "Alice (9)" in result.steps[0].observation
+    # steps[0] is the seeded search; the agent's git_history is next.
+    assert result.steps[0].tool == "search_code"
+    assert result.steps[1].tool == "git_history"
+    assert "Alice (9)" in result.steps[1].observation
     assert "db/config.tf" in result.sources
 
 
@@ -210,7 +216,8 @@ def test_agent_uses_memory_and_records_answer():
     )
     result = uc.execute(InvestigateProjectInput(workspace_id="w1", question="Which database?"))
     assert result.answer
-    assert result.steps[0].tool == "recall_memory"
+    # steps[0] is the seeded search; the agent's recall_memory is next.
+    assert result.steps[1].tool == "recall_memory"
     # The answered Q&A is now durable memory.
     qa = [i for i in mem.list("w1") if i.kind == MemoryKind.QA]
     assert qa and "PostgreSQL" in qa[0].text
@@ -235,9 +242,10 @@ def test_stream_emits_each_step_then_final():
         uc.execute_stream(InvestigateProjectInput(workspace_id="w1", question="Which database?"))
     )
     kinds = [e["type"] for e in events]
-    # Two tool steps stream first, then exactly one final event closes it.
-    assert kinds == ["step", "step", "final"]
+    # Seed search + two tool steps stream first, then exactly one final event.
+    assert kinds == ["step", "step", "step", "final"]
     assert [e["step"]["tool"] for e in events if e["type"] == "step"] == [
+        "search_code",
         "search_code",
         "read_file",
     ]
@@ -261,6 +269,29 @@ def test_stream_matches_non_streaming_result():
     result = _use_case(replies).execute(InvestigateProjectInput(workspace_id="w1", question="db?"))
     assert final["answer"] == result.answer
     assert final["sources"] == result.sources
+
+
+def test_seed_search_is_skipped_when_retrieval_finds_nothing():
+    class _EmptyVector:
+        def search(self, **kw):
+            return []
+
+    uc = InvestigateProjectUseCase(
+        workspace_repository=_WSRepo(),
+        llm_provider_factory=_Factory(_ScriptedProvider(["FINAL: nothing indexed yet."])),
+        embedding_provider=_Embed(),
+        vector_store=_EmptyVector(),
+        file_system=_FS(),
+        project_graph_repository=_GraphRepo(),
+        project_scan_repository=_ScanRepo(),
+        git_history=_GitHistory(),
+    )
+    result = uc.execute(InvestigateProjectInput(workspace_id="w1", question="anything?"))
+    # No retrieval hits → no seed step; the transcript is whatever the agent did.
+    assert all(
+        s.thought != "Start from what a normal project search returns for the question."
+        for s in result.steps
+    )
 
 
 def test_stream_reports_setup_error_as_event():
