@@ -2131,6 +2131,20 @@ function AnswerResult({
               <p className="ask-diagnostic-actions">
                 Asking about this project? Try rephrasing with names from your
                 code, or <RebuildContextButton workspaceId={answer.workspace_id} />
+                {(answer.quality_warnings ?? []).some(
+                  (w) => w.code === "project_answer_not_grounded",
+                ) ? (
+                  <>
+                    {" · or "}
+                    <button
+                      type="button"
+                      className="secondary-action"
+                      onClick={() => setTraceOpen(true)}
+                    >
+                      🔍 Investigate deeper
+                    </button>
+                  </>
+                ) : null}
               </p>
             ) : null}
           </article>

@@ -67,6 +67,55 @@ def test_grounded_answer_with_source_path_has_no_warnings() -> None:
     assert warnings == []
 
 
+def test_quote_not_in_sources_flags_invented_double_quote() -> None:
+    warnings = evaluate_rag_answer(
+        question="What does the readme say about setup?",
+        answer='The docs state "run the sacred bootstrap ritual before deploy" clearly.',
+        sources=[_source("README.md")],
+        source_contents=["# Setup\n\nRun `make install` then `make dev` to start."],
+    )
+
+    warning = _warning_by_code(warnings, "quote_not_in_sources")
+    assert warning.severity == "review"
+    assert "sacred bootstrap ritual" in warning.evidence[0]
+
+
+def test_quote_present_verbatim_is_not_flagged() -> None:
+    warnings = evaluate_rag_answer(
+        question="How do I start the app?",
+        answer='The README says "Run make install then make dev to start" (README.md).',
+        sources=[_source("README.md")],
+        source_contents=["# Setup\n\nRun make install then make dev to start the app."],
+    )
+
+    assert not any(w.code == "quote_not_in_sources" for w in warnings)
+
+
+def test_quote_check_normalizes_whitespace_across_lines() -> None:
+    # The code block reflows the source's single line; normalization should match.
+    answer = (
+        'Here is the config:\n\n```hcl\nregion = "eu-central-1"\nprofile = "prod"\n```\n(main.tf)'
+    )
+    warnings = evaluate_rag_answer(
+        question="What is the config?",
+        answer=answer,
+        sources=[_source("main.tf")],
+        source_contents=['region = "eu-central-1"   profile = "prod"'],
+    )
+    assert not any(w.code == "quote_not_in_sources" for w in warnings)
+
+
+def test_short_quotes_are_ignored() -> None:
+    warnings = evaluate_rag_answer(
+        question="What region?",
+        answer='It uses "us-east-1" region.',
+        sources=[_source("main.tf")],
+        source_contents=['region = "eu-central-1"'],
+    )
+    # "us-east-1" is under the 20-char verbatim threshold → not flagged as a quote.
+    assert not any(w.code == "quote_not_in_sources" for w in warnings)
+
+
 def _source(source_path: str) -> RagSource:
     return RagSource(
         chunk_id=f"{source_path}-1",
