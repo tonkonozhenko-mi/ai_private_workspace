@@ -33,3 +33,50 @@ _PROJECT_SIGNAL = re.compile(
 def looks_project_specific(question: str) -> bool:
     """True if the question appears to ask about the user's own project/infra."""
     return bool(_PROJECT_SIGNAL.search(question or ""))
+
+
+# The inverse detector. ``looks_project_specific`` is deliberately leaky the SAFE
+# way (a project question that looks generic still gets retrieval), but that means
+# it says False for most real project questions ("how does X work?"), so it can't
+# gate retrieval/routing on its own. Chit-chat, by contrast, is a small and regular
+# class — greetings, time/weather, jokes, world trivia, arithmetic, "in general" —
+# so detecting *that* is far more reliable. This routes obvious chit-chat straight
+# to general conversation and lets the retrieval gates fire on everything else.
+#
+# HIGH PRECISION is the rule: a false positive (a real project question flagged as
+# chat) skips retrieval and answers ungrounded, which is worse than over-abstaining.
+# So patterns are specific, and any project signal wins outright (guard below).
+_CHAT_SIGNAL = re.compile(
+    r"\bhow are you\b|\bhow'?s it going\b|\bnice to meet you\b"
+    r"|\bthat was (?:helpful|great|useful|awesome|nice)\b"
+    r"|\bwhat time is it\b|\bwhat'?s? (?:is )?the (?:time|weather|date)\b|\bthe weather\b"
+    r"|\b(?:tell|hear) (?:me )?a joke\b|\bmake me laugh\b"
+    r"|\bcapital of\b|\bworld cup\b|\bwho won\b|\bolympics?\b|\bpopulation of\b"
+    r"|\bpresident of\b|\bprime minister of\b|\bin general\b"
+    r"|\b(?:carbonara|recipe|pizza|pasta|omelette|risotto|espresso|cappuccino|smoothie)\b",
+    re.IGNORECASE,
+)
+# Two numbers joined by an arithmetic operator ("17 times 23", "5 + 4").
+_ARITHMETIC = re.compile(
+    r"\b\d+\s*(?:[-+*x×]|times|plus|minus|multiplied by|divided by)\s*\d+\b",
+    re.IGNORECASE,
+)
+# The WHOLE message is a bare greeting/thanks — matched only when it stands alone,
+# so "Hi, how does X work?" (a project question with a greeting prefix) is NOT chat.
+_SOCIAL_ONLY = re.compile(
+    r"^\s*(?:hi|hey|hello+|yo|sup|greetings|thanks|thanks a lot|thank you|"
+    r"thank you very much|thx|cheers|good (?:morning|afternoon|evening|night))"
+    r"[\s!.,'’?]*$",
+    re.IGNORECASE,
+)
+
+
+def looks_general_chat(question: str) -> bool:
+    """True if the question is obvious non-project chit-chat (greeting, world fact,
+    time/weather, joke, arithmetic, "in general" aside). High precision by design:
+    any project signal makes it False, and bare greetings only count when they are
+    the entire message."""
+    q = question or ""
+    if looks_project_specific(q):
+        return False
+    return bool(_CHAT_SIGNAL.search(q) or _ARITHMETIC.search(q) or _SOCIAL_ONLY.match(q))
