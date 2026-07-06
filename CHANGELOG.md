@@ -9,15 +9,15 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 
-- **After a full project reset, the engine returns to the *recommended* model instead of resurrecting the last-lived one (D3).** Resetting projects removes every workspace, but the built-in llama.cpp engine kept a persisted answer/search model ref — so it could come back on, say, an inherited Mistral rather than the recommended Qwen3 4B, even though no project (and therefore no explicit user selection) remained. A persisted ref is only ever the cache of an explicit user switch; once no project is left it's stale. Reset now clears both the in-memory and on-disk model refs (via a new `POST /models/llama-runtime/reset-selection`), so the engine falls back to the recommended catalog defaults (Qwen3 4B / Nomic Embed) and stops any running instance so the next activation starts clean. `active_backend` is untouched; only the specific model choice is forgotten. Fail-open: the reset itself never blocks on it.
+- **After a full project reset, the engine returns to the *recommended* model instead of resurrecting the last-lived one.** Resetting projects removes every workspace, but the built-in llama.cpp engine kept a persisted answer/search model ref — so it could come back on, say, an inherited Mistral rather than the recommended Qwen3 4B, even though no project (and therefore no explicit user selection) remained. A persisted ref is only ever the cache of an explicit user switch; once no project is left it's stale. Reset now clears both the in-memory and on-disk model refs (via a new `POST /models/llama-runtime/reset-selection`), so the engine falls back to the recommended catalog defaults (Qwen3 4B / Nomic Embed) and stops any running instance so the next activation starts clean. `active_backend` is untouched; only the specific model choice is forgotten. Fail-open: the reset itself never blocks on it.
 
 ### Changed
 
 - **The first-screen project summary leads with what the project actually is.** A Terraform repo with a single helper script was announced as "Detected Python application", because the summary blindly led with the (correctly detected but minor) Python entity. A deterministic classifier now weighs the application signal (frameworks, modules, services) against the infrastructure signal (Terraform/Kubernetes/Helm/CI components) and leads with the dominant one: a pure-infra repo reads "Detected infrastructure project (Terraform, CI/CD)", an app reads with its framework ("FastAPI application" rather than a generic "Python application"), and a repo with both real app code and real infra reads as mixed, led by whichever weighs more. Pure/deterministic (a weighted entity count, no LLM); only the summary wording changes.
 
-- **The empty Ask composer offers starter questions drawn from *this* project (D1).** A blank composer is the first-session barrier — a new user doesn't know what's worth asking. The empty state now shows up to four clickable starter questions built *deterministically* from the project map and ordered for the active role: "How is this deployed?" only appears when a pipeline was actually found, "How do the environments differ?" only when environments were, so every suggestion is answerable from the project (reusing the evidence-gated `suggested_questions` used elsewhere). Before the map exists — or if it yields nothing — it falls back to a generic starter set ("What is this project about?", "How do I run this locally?", …). No LLM: pure, instant, and fail-open (any fetch error just shows the static examples). New `GET /workspaces/{id}/starter-questions` endpoint (returns the questions plus a `from_map` flag) and a `getStarterQuestions` client call.
-- **Retrieval bridges the vocabulary gap with a deterministic synonym table (P7b).** A question asked as "Content-Security-Policy" missed the file that spells it `csp` — a pure lexical gap that neither dense nor keyword search closes. A small, fixed table now expands the search query with the known alternate forms of any recognised term (csp↔content-security-policy, k8s↔kubernetes, dev↔development, tf↔terraform, ci/cd, and ~20 more infra/dev pairs) before retrieval runs. It only *adds* tokens — never removes or reorders the user's wording — so it can't do worse than the baseline, and it's pure/instant so it's always on (unlike the optional LLM rewrite). Word-boundary matching keeps it from firing inside unrelated words ("prod" won't match "product"). This closes the golden-set's one standing retrieval miss (`pp-csp`).
-- **LLM query rewrite now defaults on when the reranker is on (P7a).** Turning on the cross-encoder reranker already opts the user into a slower precision pass, and the query rewrite is exactly what feeds that pass better candidates — so the two now travel together by default: rewrite defaults ON with an active reranker and OFF for plain hybrid retrieval (which stays fast). An explicit `AI_WORKSPACE_ASK_QUERY_REWRITE` env value still overrides either way, and an explicit constructor flag beats everything.
+- **The empty Ask composer offers starter questions drawn from *this* project.** A blank composer is the first-session barrier — a new user doesn't know what's worth asking. The empty state now shows up to four clickable starter questions built *deterministically* from the project map and ordered for the active role: "How is this deployed?" only appears when a pipeline was actually found, "How do the environments differ?" only when environments were, so every suggestion is answerable from the project (reusing the evidence-gated `suggested_questions` used elsewhere). Before the map exists — or if it yields nothing — it falls back to a generic starter set ("What is this project about?", "How do I run this locally?", …). No LLM: pure, instant, and fail-open (any fetch error just shows the static examples). New `GET /workspaces/{id}/starter-questions` endpoint (returns the questions plus a `from_map` flag) and a `getStarterQuestions` client call.
+- **Retrieval bridges the vocabulary gap with a deterministic synonym table.** A question asked as "Content-Security-Policy" missed the file that spells it `csp` — a pure lexical gap that neither dense nor keyword search closes. A small, fixed table now expands the search query with the known alternate forms of any recognised term (csp↔content-security-policy, k8s↔kubernetes, dev↔development, tf↔terraform, ci/cd, and ~20 more infra/dev pairs) before retrieval runs. It only *adds* tokens — never removes or reorders the user's wording — so it can't do worse than the baseline, and it's pure/instant so it's always on (unlike the optional LLM rewrite). Word-boundary matching keeps it from firing inside unrelated words ("prod" won't match "product"). This closes the golden-set's one standing retrieval miss (`pp-csp`).
+- **LLM query rewrite now defaults on when the reranker is on.** Turning on the cross-encoder reranker already opts the user into a slower precision pass, and the query rewrite is exactly what feeds that pass better candidates — so the two now travel together by default: rewrite defaults ON with an active reranker and OFF for plain hybrid retrieval (which stays fast). An explicit `AI_WORKSPACE_ASK_QUERY_REWRITE` env value still overrides either way, and an explicit constructor flag beats everything.
 
 - **Chit-chat is routed to a direct answer; the project floor no longer lets it through.** Two linked fixes from the golden-set eval. (1) A deterministic `looks_general_chat()` detector catches the small, regular chit-chat class — greetings, time/weather, jokes, world trivia, arithmetic, an "in general" aside — and routes those straight to a general answer with no retrieval at all (no unrelated project files attached, no wasted embedding on a small device). It's high-precision by design: any project signal makes it False, and a bare greeting only counts when it's the whole message, so "Hi, how does the RAG pipeline work?" is still treated as a project question. (2) The abstention threshold no longer uses a flat 0.38 cap — it now sits just below the model's *calibrated* noise floor (`floor − 0.10`, clamped to 0.15–0.60). The eval showed the noise floor calibrates to ~0.60 while unrelated text scores 0.40–0.66, so the old cap let all of it through; the margin-below-floor rule separates real matches (above the floor) from background (within it). (3) The retrieval gates for CRAG-lite corrective retrieval and small-project full-context now fire on *everything except* detected chit-chat, instead of on `looks_project_specific` — which returned False for most real project questions ("how does X work?"), so those features were barely triggering. Net on the golden set: should-abstain accuracy goes from ~0% to ~100% with ≤1 project question over-blocked, and the corrective/full-context paths finally reach the questions they were built for. Embedder default stays nomic (all three tie within noise once the threshold is fixed).
 
@@ -715,7 +715,7 @@ rolled into this release:
 
 ### Added
 
-- **Project Intelligence (M4): Python application analysis.** For projects that
+- **Project Intelligence: Python application analysis.** For projects that
   are mostly Python, the build now understands the code itself, not just the
   infrastructure around it. Using only the standard library's `ast` (parse,
   never execute), it detects the **framework(s)** in use (FastAPI / Flask /
@@ -737,7 +737,7 @@ rolled into this release:
 
 ### Added
 
-- **Project Intelligence (M3): deployment flow, environment comparison, and
+- **Project Intelligence: deployment flow, environment comparison, and
   ask-the-graph.**
   - The Deployment tab now opens with a **deployment-flow rail** — Source & CI →
     Build artifacts → Deploy → Environments — derived deterministically from the
@@ -757,7 +757,7 @@ rolled into this release:
 
 ### Added
 
-- **Project Intelligence (M2): Kubernetes & Helm + an interactive map.**
+- **Project Intelligence: Kubernetes & Helm + an interactive map.**
   - A deterministic **Kubernetes analyzer** parses manifests (multi-document
     YAML): workloads (Deployment / StatefulSet / DaemonSet / Job / CronJob /
     Pod), their container images, replicas, resource limits and health probes,
@@ -781,7 +781,7 @@ rolled into this release:
 
 ### Added
 
-- **Project Intelligence (M1).** A new block on the workspace Home builds a
+- **Project Intelligence.** A new block on the workspace Home builds a
   deterministic, role-aware map of an unfamiliar project from its own files —
   no LLM is required for the facts, and nothing runs or is modified.
   - A role-neutral *evidence graph* (services, environments, CI/CD pipelines and
