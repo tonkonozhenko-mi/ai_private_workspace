@@ -88,7 +88,10 @@ _SKIP_DIRS = {
 }
 # Path fragments (posix) that mark generated/vendored trees — skipped wholesale so
 # the corpus is only real project source. ``src-tauri/gen`` holds generated schemas.
-_SKIP_PATH_FRAGMENTS = ("src-tauri/gen/",)
+# ``backend/eval/`` is the benchmark itself: golden_set.py contains the questions
+# verbatim, so indexing it lets the eval retrieve its own answer sheet (observed:
+# golden_set.py surfacing for pp-full-context and several should_abstain questions).
+_SKIP_PATH_FRAGMENTS = ("src-tauri/gen/", "backend/eval/")
 
 
 def _is_skipped_dir(part: str) -> bool:
