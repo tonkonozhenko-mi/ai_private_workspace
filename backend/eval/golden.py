@@ -152,10 +152,21 @@ def _iter_files(root: Path):
             yield path.relative_to(root).as_posix(), file_type, path.suffix.lstrip("."), text
 
 
-def _build_embedder(model_tag: str, base_url: str):
+def _build_embedder(model_tag: str, backend: str, ollama_url: str, llama_embed_url: str):
+    """The embedder for the chosen backend. Ollama selects the model by tag; the
+    llama.cpp embed server serves whatever GGUF it was started with, so the tag is
+    only a label there — start the app's llama engine on the matching model first."""
+    if backend == "llamacpp":
+        from app.adapters.embeddings.llama_server_embedding_provider import (
+            LlamaServerEmbeddingProvider,
+        )
+
+        return LlamaServerEmbeddingProvider(
+            base_url=llama_embed_url, model=model_tag, timeout_seconds=120
+        )
     from app.adapters.embeddings.ollama_embedding_provider import OllamaEmbeddingProvider
 
-    return OllamaEmbeddingProvider(base_url=base_url, model=model_tag, timeout_seconds=120)
+    return OllamaEmbeddingProvider(base_url=ollama_url, model=model_tag, timeout_seconds=120)
 
 
 def _build_llm(base_url: str, model: str):
@@ -221,12 +232,17 @@ def _run_embedder(
     base_url: str,
     llm_model: str | None,
     *,
+    backend: str = "ollama",
+    llama_embed_url: str = "http://127.0.0.1:8081",
     save_answers: bool = False,
     repeats: int = 1,
 ):
     model_tag = EMBEDDERS[alias]
-    print(f"[{alias}] model={model_tag} repo={repo}", flush=True)
-    embedder = _build_embedder(model_tag, base_url)
+    # Distinct label per backend so the ollama and llama.cpp reports don't overwrite
+    # each other and the comparison (do the floors agree?) is legible at a glance.
+    label = alias if backend == "ollama" else f"{alias}-llamacpp"
+    print(f"[{label}] backend={backend} model={model_tag} repo={repo}", flush=True)
+    embedder = _build_embedder(model_tag, backend, base_url, llama_embed_url)
 
     from app.adapters.vector_store.sqlite_vector_store import SQLiteVectorStore
 
@@ -294,7 +310,7 @@ def _run_embedder(
             )
 
         cases = list(golden_set())
-        report = compute_report(alias, k, cases, outcomes)
+        report = compute_report(label, k, cases, outcomes)
         print(f"  routed to general chat before retrieval: {routed_count}", flush=True)
         _write_reports(report, cases, outcomes, floor=floor, threshold=threshold)
         _print_summary(report)
@@ -431,6 +447,20 @@ def main(argv=None) -> int:
     parser.add_argument("--k", type=int, default=5, help="top-k for retrieval (default 5)")
     parser.add_argument("--ollama-url", default="http://localhost:11434", help="Ollama base URL")
     parser.add_argument(
+        "--backend",
+        choices=("ollama", "llamacpp"),
+        default="ollama",
+        help="embedding backend (default ollama). 'llamacpp' talks to a running "
+        "llama-server embed endpoint — start the app's llama engine on the matching "
+        "model first; the report is labelled '<embedder>-llamacpp' so the two backends "
+        "can be compared side by side (do the floors agree?)",
+    )
+    parser.add_argument(
+        "--llama-embed-url",
+        default="http://127.0.0.1:8081",
+        help="llama-server embedding endpoint (used only with --backend llamacpp)",
+    )
+    parser.add_argument(
         "--with-generation",
         nargs="?",
         const="qwen3:4b",
@@ -468,6 +498,8 @@ def main(argv=None) -> int:
             args.k,
             args.ollama_url,
             args.with_generation,
+            backend=args.backend,
+            llama_embed_url=args.llama_embed_url,
             save_answers=args.save_answers,
             repeats=max(1, args.repeats),
         )

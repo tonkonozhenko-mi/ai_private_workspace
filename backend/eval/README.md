@@ -45,6 +45,13 @@ store, runs the question set, and writes a report to `build/notes/eval/`:
   `--with-generation`; larger report).
 - `--repeats N` — generate each answer N times and majority-vote the flags, to
   gauge spread under generation non-determinism (needs `--with-generation`).
+- `--backend llamacpp` — measure the same embedder on the built-in llama.cpp
+  engine instead of Ollama. The shipped product default is GGUF-on-llama.cpp, so
+  this closes the loop: start the app's llama engine on the matching embed model,
+  then run `--embedder nomic --backend llamacpp`. The report is labelled
+  `nomic-llamacpp`, so the two backends sit side by side — if their calibrated
+  floors agree, the "measured through Ollama but shipped on llama.cpp" caveat is
+  closed. `--llama-embed-url` overrides the embed endpoint (default `:8081`).
 - `--ollama-url http://host:port` — non-default Ollama endpoint.
 
 ## What it measures
