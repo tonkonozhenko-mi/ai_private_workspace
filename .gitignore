@@ -12,8 +12,13 @@ backend/.ai-workbench/
 **/node_modules/
 frontend/dist/
 
-# Generated desktop package artifacts
-build/
+# Generated desktop package artifacts. Ignore build/ contents rather than the
+# directory node itself, so the tracked eval fixture below can be re-included
+# (git can't re-include a path whose parent directory is excluded outright).
+build/*
+# The eval demo repo is a stable fixture the golden-set label CI test reads, so it
+# stays tracked even though the rest of build/ is generated and ignored.
+!build/demo-project/
 dist/
 # Virtual environments and caches
 .venv/

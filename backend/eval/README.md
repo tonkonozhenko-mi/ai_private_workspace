@@ -6,6 +6,27 @@ rest on numbers, not vibes. Runs the **real** retrieval path (hybrid dense + BM2
 → RRF → per-file cap → MMR → parent-document expansion → calibrated floor), so the
 numbers reflect what Ask actually does.
 
+## Two question sets
+
+Retrieval that looks good on the app's own codebase could just be tuned to that
+one domain, so there are two labelled sets, selected with `--set`:
+
+- `--set app` (default) — written against **this** repository (a Python RAG desktop
+  app). See `eval/golden_set.py`.
+- `--set acme` — written against an external demo repo, the fictional
+  *acme-payments-platform* under `build/demo-project` (AWS/Terraform + FastAPI +
+  GitHub Actions). A different domain, so agreement here means the floor and
+  hit-rate aren't an artefact of one codebase. See `eval/golden_set_acme.py`.
+
+`--set acme` points `--repo` at `build/demo-project` automatically; pass `--repo`
+to override. Reports for non-default sets are suffixed with the set name
+(`golden_nomic-acme_<date>.md`) so app and acme runs sit side by side.
+
+The labels of both sets are guarded in CI without an embedder: the ACME set's
+`expected_paths` are checked against the real files in `build/demo-project`
+(`tests/test_golden_set_acme.py`), so a label can't silently point at a file that
+no longer exists.
+
 ## Run it
 
 From the `backend/` directory, with [Ollama](https://ollama.com) running and the
@@ -21,6 +42,8 @@ python -m eval.golden --embedder qwen3
 python -m eval.golden --embedder bge-m3
 # or all three in one go:
 python -m eval.golden --all
+# the external demo repo instead of this one:
+python -m eval.golden --embedder nomic --set acme
 ```
 
 Each run indexes this repository with the chosen embedder into a throwaway SQLite
@@ -69,7 +92,7 @@ warning (no cited path, or a term not found in the retrieved context), including
 correct answer that just didn't name its file. It is not "% of fabrications". The
 raw → product pair is the point: the gap is the corrective pass rescuing answers.
 
-## Question classes (`eval/golden_set.py`)
+## Question classes (`eval/golden_set.py`, `eval/golden_set_acme.py`)
 
 - **project_precise** — a specific answer lives in specific file(s); `expected_paths`
   labels them (matched as path substrings).
