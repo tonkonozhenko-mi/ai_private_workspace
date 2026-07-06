@@ -21,6 +21,7 @@ import type {
   GroupOverviewResponse,
   ProjectGroupDetail,
 } from "../api/types";
+import { formatSourceLabel } from "../lib/sourceLabel";
 import { AnswerFeedback } from "./AnswerFeedback";
 import { AnswerTracePanel } from "./AnswerTracePanel";
 import { MarkdownAnswer } from "./AskWorkspace";
@@ -814,7 +815,7 @@ function GroupAsk({ groupId }: { groupId: string }) {
                   <ul>
                     {items.map((s) => (
                       <li key={s.chunk_id} title={s.preview}>
-                        <code>{s.source_path}</code>
+                        <code>{formatSourceLabel(s.source_path)}</code>
                       </li>
                     ))}
                   </ul>
