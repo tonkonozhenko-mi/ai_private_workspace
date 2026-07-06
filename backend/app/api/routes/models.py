@@ -740,6 +740,12 @@ def activate_workspace_runtime(workspace_id: str) -> ActivateWorkspaceRuntimeRes
         try:
             if selected_llm is not None and selected_llm.provider.lower() == "llamacpp":
                 llama_runtime_manager.set_llm_ref(GgufModelRef(model_id=selected_llm.model))
+            elif not runtime_state_store.get_llamacpp_llm():
+                # No per-workspace answer-model choice AND no globally-switched
+                # model: don't let the engine inherit a stale last-loaded model
+                # (e.g. one left running from a previous workspace). Fall back to
+                # the recommended default so a fresh workspace answers with it.
+                llama_runtime_manager.reset_llm_selection()
             if selected_embedding is not None and selected_embedding.provider.lower() == "llamacpp":
                 llama_runtime_manager.set_embed_ref(GgufModelRef(model_id=selected_embedding.model))
             llama_runtime_manager.start()

@@ -193,6 +193,14 @@ class LlamaRuntimeManager:
         self._llm_model = None
         self._embed_model = None
 
+    def reset_llm_selection(self) -> None:
+        """Forget only the chosen answer model so it resolves back to the
+        recommended catalog default; leaves the search/embedding model untouched
+        (changing that would invalidate an existing index). Used when a workspace
+        activates with no explicit answer-model choice, so the engine doesn't
+        inherit a stale last-loaded model. Does not (re)start anything."""
+        self._llm_model = None
+
     @property
     def active_llm_model_id(self) -> str:
         return self._resolve_llm_model().id
