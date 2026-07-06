@@ -509,6 +509,19 @@ export function switchLlamaRuntimeEmbedding(
   });
 }
 
+// Forget the engine's remembered answer/search models so both fall back to the
+// recommended catalog defaults. Called after a full workspace reset so the next
+// project starts on the recommendation, not the last-lived model (D3).
+export function resetLlamaRuntimeSelection(): Promise<{
+  active_llm_model: string;
+  active_embedding_model: string;
+}> {
+  return requestJson(`/models/llama-runtime/reset-selection`, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
+}
+
 // Auto-pick a usable GGUF filename from a Hugging Face repo (so the user only
 // needs to paste the repo id, like llama.cpp's -hf shorthand).
 export function resolveGgufModel(

@@ -93,6 +93,34 @@ class RuntimeStateStore:
     def set_rerank_enabled(self, enabled: bool) -> None:
         self._update("rerank_enabled", bool(enabled))
 
+    def clear_llamacpp_models(self) -> None:
+        """Forget the persisted answer/search model refs.
+
+        Called on a full workspace reset: a persisted ref is only meaningful as
+        the cache of an explicit user switch, but after every project is removed
+        there is no explicit selection left — so the engine must fall back to the
+        *recommended* defaults, not resurrect the last-lived model. Leaves
+        ``active_backend`` untouched (a fresh engine will just start on defaults).
+        """
+        self._delete("llamacpp_llm", "llamacpp_embedding")
+
+    def _delete(self, *keys: str) -> None:
+        with self._lock:
+            try:
+                loaded = json.loads(self._path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                return
+            if not isinstance(loaded, dict):
+                return
+            if not any(key in loaded for key in keys):
+                return
+            for key in keys:
+                loaded.pop(key, None)
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self._path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(loaded), encoding="utf-8")
+            tmp.replace(self._path)
+
     def _update(self, key: str, value: object) -> None:
         with self._lock:
             data: dict = {}
