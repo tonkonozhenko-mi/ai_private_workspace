@@ -343,10 +343,16 @@ def _one_generation(uc, request, results, best_score, llm) -> dict | None:
     report can show the sieve working. None on any failure."""
     try:
         # temperature 0 for reproducibility (seed isn't plumbed through the provider;
-        # greedy decoding is the reproducibility lever we have).
-        request = replace(request, temperature=0.0)
+        # greedy decoding is the reproducibility lever we have). think=False: the
+        # default answer model (qwen3) is a thinking model — left to its default it
+        # burns the whole token budget in Ollama's separate "thinking" field and
+        # returns an EMPTY response ("did not include response text" on every
+        # question, observed 2026-07-06). Grounded answers don't need chain-of-
+        # thought, and the provider transparently retries without the flag on
+        # models that can't think.
+        request = replace(request, temperature=0.0, think=False)
         context_results, prompt, _m, _f, _u = uc._grounded_prompt(request, llm, results, [])
-        answer, _usage = uc._generate_answer_with_usage(llm, prompt, [], 0.0, None, [])
+        answer, _usage = uc._generate_answer_with_usage(llm, prompt, [], 0.0, False, [])
         raw_warnings = _evaluate_answer(uc, request, context_results, answer)
 
         product_answer = answer
