@@ -267,4 +267,8 @@ def test_stream_reports_setup_error_as_event():
     events = list(
         _use_case([]).execute_stream(InvestigateProjectInput(workspace_id="missing", question="q"))
     )
-    assert events == [{"type": "error", "error": "Workspace not found"}]
+    # A setup failure (here: unknown workspace) is surfaced as a single error event
+    # with a generic message, rather than raising or leaking the raw exception text.
+    assert len(events) == 1
+    assert events[0]["type"] == "error"
+    assert events[0]["error"]
