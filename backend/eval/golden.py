@@ -94,6 +94,8 @@ def _is_skipped_dir(part: str) -> bool:
     # Virtualenvs come in variants (.venv, .venv-x86_64, venv, env) — a prefix match
     # catches them all; a bare-name set catches the rest.
     return part in _SKIP_DIRS or part == "venv" or part.startswith(".venv")
+
+
 _MAX_FILE_BYTES = 400_000
 # Generated lock/manifest files add thousands of low-signal chunks and dominate the
 # corpus without helping retrieval — skip them (the real app doesn't index most of

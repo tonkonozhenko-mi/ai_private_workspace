@@ -101,7 +101,9 @@ GOLDEN_SET: tuple[QuestionCase, ...] = (
         "pp-incremental",
         "How does the incremental re-index decide which files to re-embed?",
         CLASS_PROJECT_PRECISE,
-        ("core/use_cases/index_workspace.py",),
+        # The logic spans the use case, the domain content-hash, and the manifest;
+        # retrieval legitimately surfaces any of them (label was too strict before).
+        ("core/use_cases/index_workspace.py", "core/domain/indexing.py", "index_manifest"),
     ),
     QuestionCase(
         "pp-handbook-pseudo",

@@ -24,7 +24,7 @@ from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
 from app.core.domain.mmr import EMBEDDING_KEY, mmr_select
 from app.core.domain.parent_document import expand_to_parents
-from app.core.domain.question_intent import looks_project_specific
+from app.core.domain.question_intent import looks_general_chat, looks_project_specific
 from app.core.domain.rag import (
     RagQualityWarning,
     RagSource,
@@ -82,6 +82,15 @@ WORKSPACE_INDEX_CORRUPT_MESSAGE = "The search index is corrupt and must be rebui
 RELEVANCE_THRESHOLD_ENV_VAR = "AI_WORKSPACE_ASK_RELEVANCE_THRESHOLD"
 DEFAULT_RELEVANCE_THRESHOLD = 0.38
 FAKE_EMBEDDING_RELEVANCE_THRESHOLD = 0.2
+# The abstention threshold sits just BELOW the calibrated noise floor: real
+# query↔chunk matches score above the model's background, unrelated text sits
+# within it. The golden-set showed the noise floor calibrates to ~0.60 while
+# chit-chat scores 0.40–0.66, so the old flat 0.38 cap let all of it through —
+# floor minus this margin (clamped) separates them. Chit-chat itself is now routed
+# out earlier by looks_general_chat(); this threshold is the retrieval safety net.
+RELEVANCE_FLOOR_MARGIN = 0.10
+RELEVANCE_FLOOR_MIN = 0.15
+RELEVANCE_FLOOR_MAX = 0.60
 GENERAL_CHAT_DIAGNOSTIC_CODE = "answered_as_general_conversation"
 GENERAL_CHAT_DIAGNOSTIC_MESSAGE = (
     "No project files were relevant to this question, so it was answered as "
@@ -461,6 +470,15 @@ class AskWorkspaceQuestionUseCase:
                 request,
             )
 
+        # Obvious chit-chat (greeting, time, world trivia, "in general") is answered
+        # as general conversation without retrieval at all — no chance of attaching
+        # unrelated project files, and no wasted embedding on a tiny device.
+        if looks_general_chat(request.question):
+            return self._record_question_event(
+                self._answer_general_conversation(request, llm_provider),
+                request,
+            )
+
         try:
             context_results = self._search_context(request, llm_provider)
         except VectorStoreCorruptError:
@@ -641,6 +659,64 @@ class AskWorkspaceQuestionUseCase:
                         answer=WORKSPACE_NOT_INDEXED_ANSWER,
                         diagnostic_code="workspace_not_indexed",
                         diagnostic_message=WORKSPACE_NOT_INDEXED_MESSAGE,
+                    ),
+                    request,
+                )
+            )
+            return
+
+        # Obvious chit-chat: answer as general conversation without retrieval (same
+        # early route as execute()), streamed. No project_context_missing note — the
+        # user wasn't asking about the project.
+        if looks_general_chat(request.question):
+            prompt = build_general_chat_prompt(
+                question=request.question,
+                skill_instructions=request.skill_instructions,
+                current_time=datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z"),
+                attached_section=build_attached_documents_section(
+                    request.question, request.attached_documents
+                ),
+                assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+                project_context_missing=False,
+            )
+            answer_text, usage, failed = yield from self._stream_generation(
+                llm_provider, prompt, request, self._conversation_history(request)
+            )
+            if failed:
+                yield AskStreamFinal(
+                    self._record_question_event(
+                        self._diagnostic_answer(
+                            request=request,
+                            llm_provider=llm_provider,
+                            answer=(
+                                "The selected local model could not answer right now. "
+                                "Check that the local model engine is running and that "
+                                "this model is installed, or choose another ready model "
+                                "in Models."
+                            ),
+                            diagnostic_code="selected_llm_runtime_unavailable",
+                            diagnostic_message=failed,
+                        ),
+                        request,
+                    )
+                )
+                return
+            yield AskStreamFinal(
+                self._record_question_event(
+                    WorkspaceQuestionAnswer(
+                        workspace_id=request.workspace_id,
+                        question=request.question,
+                        answer=answer_text,
+                        sources=[],
+                        used_context_chunks=0,
+                        llm_provider=llm_provider.provider_name,
+                        llm_model=llm_provider.model_name,
+                        diagnostic_code=GENERAL_CHAT_DIAGNOSTIC_CODE,
+                        diagnostic_message=GENERAL_CHAT_DIAGNOSTIC_MESSAGE,
+                        quality_warnings=[*request.additional_quality_warnings],
+                        usage=usage,
+                        skill_profile=self._skill_profile_audit(request),
+                        conversation_id=request.conversation_id,
                     ),
                     request,
                 )
@@ -927,19 +1003,16 @@ class AskWorkspaceQuestionUseCase:
         if getattr(self.embedding_provider, "provider_name", "") == "fake":
             return FAKE_EMBEDDING_RELEVANCE_THRESHOLD
         # Prefer a floor calibrated to this embedding model's own score scale (set at
-        # index time). Falls back to the hardcoded default for indexes built before
-        # calibration existed, or too small to sample a trustworthy floor.
-        #
-        # The calibrated floor may only make abstention MORE permissive, never
-        # stricter than the historic default. Its background is sampled from random
-        # chunk pairs, which in a topically-focused repo aren't truly unrelated
-        # (they share the project's vocabulary), so the sampled p95 can overshoot
-        # real query↔chunk match scores and wrongly abstain on on-topic questions.
-        # The default (0.38) is battle-tested not to over-abstain, so we cap there:
-        # calibration lowers the bar for embedders whose matches score low, but
-        # can't raise it above a value we know is safe.
+        # index time). Sit just below it (floor − margin, clamped): matches beat the
+        # background, chit-chat sits within it. Golden-set validated this separates
+        # the two where the old flat 0.38 cap could not. Falls back to the hardcoded
+        # default for indexes built before calibration existed, or too small to
+        # sample a trustworthy floor.
         if index_status is not None and index_status.relevance_floor is not None:
-            base = min(index_status.relevance_floor, DEFAULT_RELEVANCE_THRESHOLD)
+            base = max(
+                RELEVANCE_FLOOR_MIN,
+                min(RELEVANCE_FLOOR_MAX, index_status.relevance_floor - RELEVANCE_FLOOR_MARGIN),
+            )
         else:
             base = DEFAULT_RELEVANCE_THRESHOLD
         # The answer mode scales strictness: Only-from-sources raises the floor so it
@@ -1160,10 +1233,11 @@ class AskWorkspaceQuestionUseCase:
     ) -> list[ContextSearchResult] | None:
         """CRAG-lite: one bounded corrective retrieval with a forced LLM query
         rewrite (~73% of RAG failures are retrieval, not generation). Returns the
-        new expanded context, or None if it can't run or comes back empty. Gated on
-        project-looking questions so chit-chat never triggers the extra model call;
+        new expanded context, or None if it can't run or comes back empty. Skipped
+        only for obvious chit-chat (not gated on looks_project_specific, which says
+        False for most real project questions and would starve the corrective pass);
         deterministic control flow, fully fail-open."""
-        if llm_provider is None or not looks_project_specific(request.question):
+        if llm_provider is None or looks_general_chat(request.question):
             return None
         try:
             results = self._search_context(
@@ -1251,13 +1325,14 @@ class AskWorkspaceQuestionUseCase:
         # intact (each chunk keeps its source_path); fit_context_results downstream
         # is still the overflow guard.
         #
-        # Gated on question intent: full-context bypasses the relevance threshold
-        # (its results carry an artificial score), so without this gate "what time
-        # is it" on a tiny project would come back with the whole repo attached as
-        # sources instead of routing to general conversation. Questions without
-        # project signals fall through to normal retrieval, where the calibrated
-        # threshold keeps doing that routing.
-        if looks_project_specific(request.question):
+        # Gated to skip obvious chit-chat: full-context bypasses the relevance
+        # threshold (its results carry an artificial score), so without this gate
+        # "what time is it" on a tiny project would come back with the whole repo
+        # attached. Using NOT looks_general_chat (rather than looks_project_specific)
+        # is deliberate — most real project questions look generic to the project
+        # detector, so this lets full-context fire for them while still excluding
+        # the small, well-detected chit-chat class.
+        if not looks_general_chat(request.question):
             full_context = self._maybe_full_project_context(request, llm_provider)
             if full_context is not None:
                 return full_context

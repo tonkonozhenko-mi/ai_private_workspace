@@ -47,9 +47,12 @@ def test_no_index_status_uses_default():
     assert _threshold(_real_self()) == DEFAULT_RELEVANCE_THRESHOLD
 
 
-def test_calibrated_floor_is_used_when_present():
+def test_threshold_sits_just_below_calibrated_floor():
+    # The threshold is the calibrated noise floor minus a margin (0.10), so real
+    # matches (above the floor) pass while background text (within it) is excluded.
     _clear_env()
-    assert _threshold(_real_self(), _status(0.27)) == 0.27
+    assert round(_threshold(_real_self(), _status(0.60)), 3) == 0.50
+    assert round(_threshold(_real_self(), _status(0.45)), 3) == 0.35
 
 
 def test_missing_floor_falls_back_to_default():
@@ -57,14 +60,15 @@ def test_missing_floor_falls_back_to_default():
     assert _threshold(_real_self(), _status(None)) == DEFAULT_RELEVANCE_THRESHOLD
 
 
-def test_calibrated_floor_capped_at_default_never_stricter():
-    # A calibrated floor above the historic default is capped there — calibration
-    # may only make abstention more permissive, so an over-sampled floor can't
-    # wrongly abstain on on-topic questions.
+def test_threshold_clamps_to_a_sane_band():
+    # The old flat 0.38 cap is gone: a high calibrated floor now yields a
+    # correspondingly high threshold (floor − 0.10), clamped to [0.15, 0.60].
     _clear_env()
-    assert _threshold(_real_self(), _status(0.55)) == DEFAULT_RELEVANCE_THRESHOLD
-    # A below-default floor is still honoured (permissive direction).
-    assert _threshold(_real_self(), _status(0.20)) == 0.20
+    # High floor is honoured (no longer capped at 0.38) but the ceiling holds.
+    assert round(_threshold(_real_self(), _status(0.55)), 3) == 0.45
+    assert round(_threshold(_real_self(), _status(0.80)), 3) == 0.60  # clamped to max
+    # Low floor clamps to the minimum, never below 0.15.
+    assert round(_threshold(_real_self(), _status(0.20)), 3) == 0.15
 
 
 def test_answer_mode_scales_the_threshold():
