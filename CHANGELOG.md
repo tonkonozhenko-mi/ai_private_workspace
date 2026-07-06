@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Added
+
+- **Retrieval quality is now benchmarked on a second, out-of-domain project, not just the app's own code.** The labelled question set that grades retrieval and calibrates the abstention floor was written entirely against this repository — a Python app — so strong numbers could partly reflect a fit to one codebase and one writing style. A second labelled set covers a deliberately different project: a small AWS/Terraform + FastAPI + GitHub Actions payments platform, with questions whose answers live in real infrastructure, service and CI files. The benchmark can now target either set, and each set's labels are guarded automatically, so a question can never point at a file that no longer exists. Agreement across the two sets is the evidence that the retrieval floor generalises rather than being tuned to a single repository.
+
 ### Changed
 
 - **"Investigate deeper" starts from a real search of the project instead of guessing.** The multi-step agent used to begin cold — with no idea which files were relevant, a weaker local model would burn its early steps listing folders and globbing for filenames that returned nothing. The investigation is now seeded with the files a normal retrieval surfaces for the question, shown as its first step, so the agent begins grounded in the right places and spends its budget reading and reasoning rather than hunting. The seed is free (it doesn't count against the step budget) and skipped when the search finds nothing.

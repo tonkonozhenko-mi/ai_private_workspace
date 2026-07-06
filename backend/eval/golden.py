@@ -54,12 +54,23 @@ from app.core.use_cases.ask_workspace_question import (
     _hard_grounding_warnings,
 )
 from eval.golden_set import golden_set
+from eval.golden_set_acme import ACME_REPO_RELATIVE, golden_set_acme
 from eval.harness import (
     QuestionOutcome,
     compute_report,
     render_markdown,
     report_to_dict,
 )
+
+# Selectable question sets. Each maps to its labelled set plus the repo it is
+# written against, relative to the project root (``None`` = this repository). The
+# app set exercises retrieval on the RAG desktop app's own code; the acme set
+# exercises a different domain (an AWS/Terraform + FastAPI payments platform under
+# ``build/demo-project``) so the floor and hit-rate aren't tuned to one codebase.
+QUESTION_SETS = {
+    "app": (golden_set, None),
+    "acme": (golden_set_acme, ACME_REPO_RELATIVE),
+}
 
 # --embedder alias -> (Ollama model tag, human label)
 EMBEDDERS = {
@@ -232,15 +243,22 @@ def _run_embedder(
     base_url: str,
     llm_model: str | None,
     *,
+    question_set=golden_set,
+    set_name: str = "app",
     backend: str = "ollama",
     llama_embed_url: str = "http://127.0.0.1:8081",
     save_answers: bool = False,
     repeats: int = 1,
 ):
+    cases_all = list(question_set())
     model_tag = EMBEDDERS[alias]
-    # Distinct label per backend so the ollama and llama.cpp reports don't overwrite
-    # each other and the comparison (do the floors agree?) is legible at a glance.
+    # Distinct label per backend AND per question set so reports never overwrite each
+    # other and the comparison (do the floors agree across backends and repos?) is
+    # legible at a glance. The app set keeps its bare alias for backwards-compatible
+    # report filenames; other sets are suffixed.
     label = alias if backend == "ollama" else f"{alias}-llamacpp"
+    if set_name != "app":
+        label = f"{label}-{set_name}"
     print(f"[{label}] backend={backend} model={model_tag} repo={repo}", flush=True)
     embedder = _build_embedder(model_tag, backend, base_url, llama_embed_url)
 
@@ -276,7 +294,7 @@ def _run_embedder(
         llm = _build_llm(base_url, llm_model) if llm_model else None
         outcomes: list[QuestionOutcome] = []
         routed_count = 0
-        for case in golden_set():
+        for case in cases_all:
             request = AskWorkspaceQuestionInput(
                 workspace_id=workspace_id, question=case.question, limit=k
             )
@@ -309,7 +327,7 @@ def _run_embedder(
                 )
             )
 
-        cases = list(golden_set())
+        cases = cases_all
         report = compute_report(label, k, cases, outcomes)
         print(f"  routed to general chat before retrieval: {routed_count}", flush=True)
         _write_reports(report, cases, outcomes, floor=floor, threshold=threshold)
@@ -455,7 +473,21 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Golden-set retrieval eval")
     parser.add_argument("--embedder", choices=sorted(EMBEDDERS), help="which embedder to run")
     parser.add_argument("--all", action="store_true", help="run all embedders in turn")
-    parser.add_argument("--repo", default=None, help="target repo path (default: this repo)")
+    parser.add_argument(
+        "--set",
+        dest="question_set",
+        choices=sorted(QUESTION_SETS),
+        default="app",
+        help="which labelled question set to run: 'app' (this repository, default) or "
+        "'acme' (the external payments/infra demo under build/demo-project). The 'acme' "
+        "set defaults --repo to that demo unless you pass --repo explicitly. The report "
+        "is suffixed with the set name so app and acme runs sit side by side.",
+    )
+    parser.add_argument(
+        "--repo",
+        default=None,
+        help="target repo path (default: the repo the chosen --set is written against)",
+    )
     parser.add_argument("--k", type=int, default=5, help="top-k for retrieval (default 5)")
     parser.add_argument("--ollama-url", default="http://localhost:11434", help="Ollama base URL")
     parser.add_argument(
@@ -501,7 +533,19 @@ def main(argv=None) -> int:
     if (args.save_answers or args.repeats != 1) and not args.with_generation:
         parser.error("--save-answers and --repeats require --with-generation")
 
-    repo = Path(args.repo).resolve() if args.repo else Path(__file__).resolve().parents[2]
+    question_set, set_repo_relative = QUESTION_SETS[args.question_set]
+    project_root = Path(__file__).resolve().parents[2]
+    # --repo wins; otherwise use the repo the chosen set is written against (the app
+    # set → this repository; the acme set → build/demo-project).
+    if args.repo:
+        repo = Path(args.repo).resolve()
+    elif set_repo_relative:
+        repo = (project_root / set_repo_relative).resolve()
+    else:
+        repo = project_root
+    if not repo.is_dir():
+        parser.error(f"target repo not found: {repo}")
+
     aliases = sorted(EMBEDDERS) if args.all else [args.embedder]
     for alias in aliases:
         _run_embedder(
@@ -510,6 +554,8 @@ def main(argv=None) -> int:
             args.k,
             args.ollama_url,
             args.with_generation,
+            question_set=question_set,
+            set_name=args.question_set,
             backend=args.backend,
             llama_embed_url=args.llama_embed_url,
             save_answers=args.save_answers,
