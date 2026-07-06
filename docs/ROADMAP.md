@@ -1,515 +1,77 @@
 # Roadmap
 
-This roadmap describes the likely product sequence for AI Private
-Workspace. It is directional rather than a release commitment. Safety,
-local-first operation, clean architecture, and replaceable adapters should
-remain stable constraints throughout every phase.
-
-## Phase 1: Backend Foundation
-
-**Status:** Mostly done
-
-Delivered foundations include:
-
-- FastAPI and Pydantic API boundary.
-- Clean Architecture with domain, use cases, ports, and adapters.
-- SQLite and in-memory persistence adapters.
-- Workspace lifecycle and read models.
-- Project scanner and Skill Registry.
-- Deterministic DevOps analyzers and reports.
-- Command approval, policy, fake runner, and guarded local runner.
-- Timeline and timeline backfill.
-- Onboarding, assistant profiles, runtime health, and setup guidance.
-- Stabilized API inventory, architecture, and configuration documentation.
-
-Remaining work in this phase should focus on maintenance, consistency, and
-carefully scoped shared abstractions rather than new foundational rewrites.
-
-## Phase 2: Local AI And RAG Foundation
-
-**Status:** Partially done, working MVP
-
-Delivered foundations include:
-
-- Deterministic indexing and persistent index-status metadata.
-- Context search.
-- In-memory vector store and optional Qdrant.
-- Fake embeddings and optional Ollama embeddings.
-- Fake LLM and optional Ollama LLM.
-- Source-grounded workspace question answering.
-- RAG diagnostics and deterministic quality warnings.
-- Embedding-dimension-aware Qdrant collections.
-
-Likely future improvements:
-
-- Better chunking and retrieval strategies.
-- Retrieval diagnostics and index inspection.
-- Explicit reindex planning and user confirmation.
-- More deterministic answer-validation rules.
-- RAG evaluation and experiment history.
-
-## Phase 3: Model Management And Experiments
-
-**Status:** In progress
-
-Delivered foundations include:
-
-- Static local model catalog.
-- Deterministic model recommendations.
-- User-defined JSON catalog loading and validation.
-- Reloadable user model catalog.
-- Deterministic model switching plans.
-- Deterministic model experiment plans.
-- Per-request LLM provider/model override foundation.
-- Persistent shared-context model experiment runs.
-- Deterministic model experiment comparison summaries.
-- Append-only manual experiment candidate ratings and preference signals.
-- Workspace-scoped historical model performance summaries.
-- Workspace-aware model recommendations using catalog and historical feedback.
-- Deterministic model recommendation explanations.
-- Persisted workspace LLM and embedding-model selection preferences.
-- Workspace model selection readiness/status projection.
-- Selected-model usage planning for ask, index, and search.
-- Ask using the persisted selected LLM through per-request override.
-- Selected-embedding indexing and vector-space transition planning.
-- Read-only Workspace Models Dashboard aggregation.
-- Compact Workspace Models Dashboard Summary projection.
-- Read-only Local AI Activation Guide with explicit setup commands.
-- Read-only Workspace UI Action Catalog for frontend buttons and cards.
-
-Next planned tasks:
-
-1. Frontend API mapping or real Ollama experiment happy path.
-2. Runtime selection validation against installed/available local models.
-3. Ollama-backed real experiment polish.
-4. AI-assisted experiment evaluator.
-3. Runtime model validation against installed Ollama models.
-4. Hugging Face metadata importer.
-
-This phase must keep model downloads, provider changes, reindexing, and runtime
-configuration changes explicit and user-controlled.
-
-## Phase 4: Frontend And UI Wizard
-
-**Status:** Not started
-
-Likely scope:
-
-- Application home using Workspaces Overview.
-- Workspace dashboard and Continue Workspace experience.
-- Onboarding wizard for project, assistant, laptop, privacy, and runtime choices.
-- Runtime setup and health views.
-- Scan, detected-skill, analysis, report, and timeline views.
-- RAG question interface with visible sources and quality warnings.
-- Command suggestion, proposal, approval, and execution review.
-- Model catalog, recommendation, switching-plan, and experiment views.
-
-The frontend should use existing aggregate endpoints where possible and avoid
-reimplementing deterministic backend decisions.
-
-## Phase 5: Desktop Packaging And Installer
-
-**Status:** Not started
-
-Likely scope:
-
-- Desktop launcher and process lifecycle management.
-- Cross-platform installer or packaged distribution.
-- Local data-directory selection.
-- Guided Qdrant and Ollama setup.
-- Safe environment configuration.
-- Backup, restore, diagnostics, and update flows.
-
-Packaging must preserve command approval, local-only defaults, and transparent
-runtime configuration.
-
-## Phase 6: Advanced Integrations
-
-**Status:** Later
-
-Possible future work:
-
-- Additional deterministic analyzers and skill packs.
-- User-defined skill and analyzer plugins.
-- Git provider integrations with explicit permissions.
-- Additional vector stores, embedding providers, and LLM providers.
-- Hugging Face metadata and model discovery.
-- Benchmark and evaluation suites.
-- Shared team summaries or exportable project reports.
-- Optional cloud integrations behind explicit configuration and consent.
-
-Advanced integrations should remain optional and isolated behind ports and
-adapters.
-
-## Packaging clarity update — Task 198
-
-The current macOS launcher is a bridge for developer-safe testing, not the final distribution model. The final product target remains a true desktop app for macOS and Windows: download, double-click, local services start safely, and the UI opens without cloning the repository or manually running backend/frontend scripts.
-
-Model downloads and MCP server setup should be implemented as explicit, user-approved product flows before the final installer: model manager first, MCP install/config/checks second, sandboxed execution later.
-
-
-## Packaging update after Task 215
-
-- Task 214 locked the real desktop app architecture.
-- Task 215 adds the first macOS `.app` package foundation:
-  - app bundle skeleton
-  - staged frontend assets
-  - staged backend source without runtime data
-  - temporary launcher stub
-  - packaging validation docs
-
-Next larger packaging tasks:
-1. App supervisor contract implementation.
-2. Tauri shell foundation.
-3. macOS release candidate packaging audit.
-4. Windows package foundation.
-- Task 216 — Desktop supervisor contract: startup states, localhost-only backend lifecycle, logs, safe shutdown, and no kill-by-port behavior. ✅
-
-
-### Task 217 — macOS app wiring to supervisor contract ✅
-
-The macOS `.app` foundation is now wired to the supervisor contract: app-owned backend startup, health polling, safe port behavior, logs, and packaged UI open.
-
-### Task 218 — backend runtime bundle readiness ✅
-
-Added a backend runtime manifest and package readiness plan so the macOS `.app` foundation can move toward an app-owned backend runtime instead of relying forever on a developer-managed local Python setup.
-
-Next packaging work:
-1. Tauri shell scaffold/foundation.
-2. Backend runtime freeze decision: PyInstaller, Nuitka, or packaged Python runtime.
-3. macOS release candidate packaging audit.
-4. Windows package foundation.
-
-### Task 219 — Tauri shell scaffold/foundation ✅
-
-The project now contains a minimal `frontend/src-tauri` scaffold and a validation helper. Next packaging work should implement the Tauri supervisor bridge, then Windows packaging foundation and final release audit.
-
-### Task 220 — Tauri supervisor bridge ✅
-
-Added the source-controlled bridge between Tauri shell and the desktop supervisor lifecycle. The bridge currently exposes read-only supervisor status/log path commands and documents the future app-owned backend startup flow. It does not start backend processes yet.
-
-Next packaging work:
-1. Windows packaging foundation.
-2. Release candidate audit for source archives, docs, tests, safety, and generated artifacts.
-3. Final v0.1 demo/release handoff.
-
-## Task 221 update
-
-Windows packaging foundation is now present. Phase 20 now has macOS foundation, Tauri scaffold/bridge, backend runtime readiness, and Windows lifecycle/installer direction. Remaining v0.1 work should focus on release candidate audit and final handoff/demo package unless new packaging implementation work is intentionally added.
-
-
-## Task 222 — release candidate audit
-
-Added a read-only release candidate audit endpoint, source archive policy, validation script, UI audit block, and docs for v0.1 handoff readiness.
-
-## Task 223 — v0.1 demo and GitHub handoff ✅
-
-Added the final source-handoff layer for v0.1:
-
-- GitHub-ready `README.md`.
-- `docs/V01_DEMO_HANDOFF.md`.
-- `docs/V01_RELEASE_NOTES.md`.
-- `docs/GITHUB_REPOSITORY_GUIDE.md`.
-- `GET /runtime/v0.1-handoff`.
-- Settings UI block for demo flow and handoff validation.
-
-The project is now ready for v0.1 source review and GitHub publication. The remaining work after v0.1 is installer-grade desktop packaging: finalized Tauri backend supervisor, bundled backend runtime, signed macOS package, Windows installer, and later sandboxed Agent/MCP execution.
-## Task 224 final product-quality pass
-
-- Repository now includes GitHub-ready README, contribution guide, security policy, issue templates, PR template, and CI workflows.
-- Frontend received a final Apple-style normalization layer for spacing, typography, controls, card rhythm, and dark mode.
-- Product-facing copy now consistently uses AI Private Workspace.
-- `docs/assets/product-flow.svg` explains the local-first flow on the GitHub landing page.
-
-
-
-## Task 225 — Model Manager real usage flow and render recovery
-
-- Fixed Models screen render resilience.
-- Added a clear Choose → Download → Verify → Use model workflow.
-- Kept frontend shell execution disabled.
-
-
-## Task 226 — Models screen fix and Ollama recommendation guide
-
-- Fixed the Models tab hook-order crash caused by conditional rendering before all hooks were registered.
-- Added a human-readable Ollama recommendation guide: answer model vs search model, starter/balanced/power user Mac profiles, safe next steps.
-- Added `GET /models/ollama-recommendations` for the UI and future onboarding/packaging flows.
-- Kept model downloads explicit, backend-owned, and opt-in.
-
-
-## Task 227 — Model context indexing clarity
-
-Clarified the difference between selecting an embedding/search model and building workspace context with it. The UI now says `Needs context build` when the selected search model is active but the workspace has not been indexed yet.
-
-- Task 228 — Model context build action ✅
-
-## Current Completion Reality
-
-AI Private Workspace is currently a **v0.1 source release candidate**, not a finished v1.0 installer-grade product. The repository is ready for GitHub publication and local demos, while the remaining v1 work is tracked in [`docs/V1_PRODUCT_COMPLETION_ROADMAP.md`](V1_PRODUCT_COMPLETION_ROADMAP.md).
-
-The next practical milestone is **v0.2 desktop runtime**: frozen backend runtime, stronger supervisor lifecycle, persistent local jobs, and a clearer path to signed macOS/Windows installers.
-
-
-## Task 230 — Source release stabilization ✅
-
-The GitHub publication surface and source archive flow were stabilized:
-
-- README, CONTRIBUTING, SECURITY, `.editorconfig`, `.gitattributes`, GitHub Actions, PR template, and issue forms are present at source root.
-- Release audit now treats local runtime/build directories as warnings and fails only on source-tree database files outside ignored paths.
-- Source release archive script now archives the current working tree with explicit runtime/build/cache excludes.
-
-Next practical work:
-1. Run one full local UI pass after applying the Task 230 archive.
-2. Push the v0.1 source RC to GitHub when audit/build checks pass.
-3. Continue into v0.2 desktop runtime only after the source RC is stable.
-
-## Task 231 status note
-
-The v0.1 source release candidate now has GitHub publication basics in place: README, contribution/security docs, CI workflows, PR template, issue templates, release audit, source archive script, and repository hygiene docs.
-
-Remaining v1 work is intentionally separate from the source RC:
-
-- frozen backend runtime;
-- signed macOS package;
-- Windows installer;
-- persistent background job storage;
-- real sandboxed Agent + MCP execution;
-- installer/update lifecycle.
-
-## Task 232 — final status and v1 runway clarity
-
-Added a final status endpoint and Settings UI section so the app clearly says where the project is: v0.1 source RC is ready after local validation, while a true v1.0 installer-grade product still requires roughly 15-25 large tasks across runtime bundling, installers, persistent jobs, and sandboxed Agent/MCP execution.
-
-## Task 235 — v0.1 release gate and roadmap lock ✅
-
-Task 235 adds the final source-release go/no-go layer before the first GitHub push:
-
-- `GET /runtime/v0.1-release-gate` for local audit/build/test/UI smoke-check status.
-- `GET /runtime/v0.1-ui-smoke-check` for the final manual browser verification path before GitHub/source archive publication.
-- explicit 0-1 large-task estimate for the remaining v0.1 source RC publication step.
-- explicit 15-25 large-task estimate for the future v1.0 installer-grade product.
-- updated next-task wording so v0.1 does not drift into new feature work before publication.
-
-Current position: Phase 21 is effectively complete as a source release candidate. The next step is local verification and GitHub/source archive publication. Phase 22/v0.2 should start only after v0.1 is published or intentionally frozen.
-
-
-
-## Task 237 — v0.1 publication handoff
-
-- Added final read-only publication handoff endpoint and Settings UI section.
-- Current roadmap position: Phase 21 effectively complete; v0.1 has 0-1 large task left for manual smoke-check/publication cleanup.
-- v1.0 still needs roughly 15-25 large tasks: frozen runtime, signed installers, persistent jobs, MCP runtime, sandboxed Agent execution, update flow, and final QA.
-## Task 238 — Phase 22 desktop runtime readiness
-
-Task 238 starts the post-v0.1 direction with `GET /runtime/desktop-runtime-readiness` and a Settings UI section for v0.2 runtime readiness. It keeps v0.1 frozen and defines the next safe implementation order: runtime manifest preflight, Tauri read-only supervisor status, deterministic app-owned backend startup, `/health` readiness, and Windows parity after macOS/Tauri is stable.
-
-
-### Task 239 — Desktop runtime preflight
-
-Task 239 adds a read-only Phase 22 gate with `GET /runtime/desktop-runtime-preflight`, `scripts/check_desktop_runtime_preflight.sh`, backend tests, and a Settings UI section. It verifies backend entrypoint, runtime manifest, frontend build output, macOS package foundation script, and Tauri scaffold before any real Tauri backend process supervision is implemented. It preserves the rule that frontend code can display/copy commands but never execute shell commands.
-
-
-Frontend React code must never execute shell commands. It may display and copy commands only.
-
-
-## Task 240 — Tauri supervisor static gate
-
-- Added a read-only Tauri supervisor static gate for Phase 22.
-- Added `GET /runtime/tauri-supervisor-static-gate`.
-- Added `scripts/check_tauri_supervisor_bridge.sh`.
-- Tauri bridge now exposes status, log paths, and preflight data while keeping backend startup disabled.
-- Next larger step: frozen/staged backend runtime and deterministic app-owned startup design.
-
-## Task 241 — Desktop technology decision
-
-- Added `GET /runtime/desktop-technology-decision` to make the Tauri choice explicit and reviewable.
-- Tauri is now documented as the current v0.2 candidate, not an irreversible v1.0 decision.
-- Alternatives are recorded: Electron, native SwiftUI/WinUI, and browser UI plus launcher scripts.
-- Guardrails remain unchanged: frontend cannot execute shell commands, desktop launch cannot auto-start scan/index/MCP/Agent/model downloads, and native commands must stay allowlisted.
-
-### Task 242 — Desktop stack and runtime contract
-
-Phase 22 now has an accepted v0.2 technology direction: open-source/free Tauri + React desktop shell, FastAPI backend, SQLite/Qdrant/Ollama local runtime, and a PyInstaller-first backend freeze spike. The desktop shell still cannot start the backend until runtime staging is deterministic and safety checks pass.
-
-
-## Phase 22 Update — Task 243
-
-**Task 243 — Staged backend runtime:** done.
-
-The project now has a practical v0.2 runtime staging layer:
-
-- `scripts/stage_backend_runtime.sh`
-- `scripts/check_staged_backend_runtime.sh`
-- `GET /runtime/staged-backend-runtime-contract`
-- Settings UI visibility for the staged runtime contract
-
-This is still not the final v1.0 frozen runtime. It is the bridge from v0.1
-source RC toward a real double-click desktop app.
-
-## Phase 22 Update — Task 244
-
-**Task 244 — PyInstaller backend runtime proof-of-concept:** done.
-
-The project now has the first frozen-backend runtime path:
-
-- `backend/packaging/pyinstaller_backend_entrypoint.py`
-- `backend/packaging/ai_private_workspace_backend.spec`
-- `scripts/build_pyinstaller_backend_runtime.sh`
-- `scripts/check_pyinstaller_backend_runtime.sh`
-- `GET /runtime/pyinstaller-backend-runtime-contract`
-- Settings UI visibility for the PyInstaller backend runtime PoC
-
-This does not claim final installer-grade packaging. It creates a reproducible PoC path toward a frozen backend executable that Tauri can later supervise only after explicit checks pass.
-
-## Phase 22 Update — Task 245
-
-**Task 245 — Frozen backend runtime selection:** done. The desktop runtime path now distinguishes frozen PyInstaller runtime, staged source runtime, and manual developer backend without enabling process startup. The release-candidate audit Settings error was fixed, and frontend build chunking was improved.
-
-## Phase 22 Update — Task 246
-
-**Task 246 — Frozen backend smoke contract:** done. The project now has an explicit developer-only smoke path for the PyInstaller frozen backend runtime:
-
-- `scripts/smoke_frozen_backend_runtime.sh`
-- `scripts/check_frozen_backend_smoke_contract.sh`
-- `GET /runtime/frozen-backend-smoke-contract`
-- Settings UI visibility for the smoke contract
-
-The smoke script starts only the app-owned generated backend executable, waits for `/health`, and stops only the PID it created. Tauri backend startup remains disabled until the next app-owned startup gate.
-
-### Task 247 — app-owned backend startup gate
-
-Phase 22 now has a metadata-only Tauri startup gate. The project can describe the exact conditions for future app-owned backend startup, but automatic backend startup remains disabled until a frozen runtime passes local smoke and PID-owned shutdown is implemented.
-
-
-## Task 248 — app-owned backend startup implementation
-
-- `GET /runtime/app-owned-backend-startup-implementation` records the first real Tauri backend lifecycle implementation.
-- Tauri now has narrow commands to report, start, and stop only the app-owned frozen backend runtime.
-- Startup is gated by the frozen backend manifest; missing manifest means blocked startup, not arbitrary fallback.
-- Shutdown is PID-owned and no kill-by-port/generic shell execution is allowed.
-- Settings crash coverage for `GET /runtime/v0.1-handoff` was added.
-
-### Task 249 — macOS frozen runtime and Tauri smoke runbook ✅
-
-Added the local macOS smoke runbook and check gate for the frozen backend runtime plus Tauri app-owned startup path. This keeps Phase 22 practical: build frozen backend, smoke it, compile-check Tauri, then run the desktop smoke locally before Windows parity or installer work.
-
-
-## Task 250 — Tauri backend health readiness gate ✅
-
-Task 250 hardens the real Tauri app-owned backend startup implementation. Desktop readiness now requires application-level `/health` HTTP 200 rather than only an open TCP port. This reduces false-positive startup success before packaged macOS/Windows smoke work.
-
-## Task 251 update
-
-- Phase 22 continues with macOS packaged app smoke preflight.
-- Frontend now includes Tauri CLI npm scripts and lockfile support so `npm run tauri dev` is reproducible after `npm ci`.
-- Next major step: run local macOS frozen backend + Tauri dev/package smoke, then mirror the flow on Windows.
-
-
-### Task 252 — Packaging toolchain fixes ✅
-
-- Fixed PyInstaller spec path resolution so the backend entrypoint no longer resolves to duplicated `backend/packaging/backend/packaging`.
-- Declared `pyinstaller>=6.0,<7.0` in backend requirements.
-- Added packaging toolchain prerequisite check and endpoint.
-- Documented Rust/Cargo installation for local Tauri smoke.
-
-### Task 253 — Tauri Rust structure and public npm registry guard ✅
-
-The desktop runtime path now has the correct Cargo library layout for Tauri: `main.rs` delegates to `ai_private_workspace_lib::run()` and `lib.rs` owns the app-owned backend lifecycle commands. The release checks also guard against internal package registry URLs in `frontend/package-lock.json`.
-
-
-* Task 254 — Tauri Rust dependency pin fix + src-tauri target hygiene ✅
-
-## Task 255 — Tauri icon assets ✅
-
-Fixed the local Tauri `cargo check` blocker caused by missing/non-RGBA icon assets. Added required RGBA PNG placeholder icons, removed an unused Rust import, added `scripts/check_tauri_icon_assets.sh`, and exposed `GET /runtime/tauri-icon-assets` for Settings/API readiness. Next local check: `scripts/check_tauri_icon_assets.sh && cd frontend && cargo check --manifest-path src-tauri/Cargo.toml`.
-
-## Task 256 — Tauri dev smoke success ✅
-
-`npm run tauri dev` now works locally on macOS after fixing the Rust library structure, npm lockfile registry hygiene, Rust dependency pinning, and Tauri RGBA icon assets. Phase 22 is no longer only scaffold/preflight work: the desktop shell can start in development mode. Next step is packaged macOS smoke with a locally built PyInstaller backend runtime, then Windows parity.
-
-## Task 257 — Packaged macOS app build readiness
-
-Phase 22 now moves from successful Tauri dev smoke to packaged macOS app smoke preparation. The next validation target is `npm run tauri:build` after frozen backend runtime build/check/smoke succeeds locally.
-
-### Task 258 — frozen backend startup diagnostics ✅
-
-After local packaged-app work, `npm run tauri:build` succeeded, but `scripts/smoke_frozen_backend_runtime.sh` showed the frozen backend process did not make `/health` ready. Task 258 hardened the PyInstaller entrypoint/spec and smoke script: explicit import self-check, broader hidden imports, app-owned smoke data directory, early-process-exit detection, and log-tail printing on failure. Next local step is to rebuild the frozen backend and rerun the smoke script to see either a clean `/health` pass or a concrete backend traceback.
-- Task 259 — macOS packaged app smoke result ✅
-
-
-- Task 260 — packaged app frontend bootstrap: React now invokes the narrow Tauri app-owned backend startup command before workspace HTTP API calls, fixing the packaged `.app` case where UI opened but backend/logs were missing. ✅
-
-
-## Task 261 — packaged app Tauri bridge fix and npm install-script policy ✅
-
-- Enabled `app.withGlobalTauri = true` so packaged React can invoke the Tauri bridge.
-- Added fallback detection for `__TAURI_INTERNALS__.invoke`.
-- Added `tauriBridgeDiagnostic()` to surface packaged bridge state in the UI.
-- Added explicit npm `allowScripts` policy for `esbuild` and `fsevents`.
-- Added `scripts/check_npm_supply_chain_policy.sh`.
-- Next local check: rebuild frozen backend, rebuild `.app`, open packaged app, verify `/health` and app-owned logs.
-
-## Task 263 update — macOS packaged runtime milestone
-
-The macOS packaged `.app` can now start the app-owned frozen backend runtime and write app-owned supervisor/backend logs. Phase 22 is very close to closed for macOS. Remaining v1.0 work is mostly Windows parity, installer/signing, persistent jobs, MCP runtime execution, sandboxed Agent execution, update flow, and final QA.
-
-### Task 264 — Packaged app SQLite/CORS bootstrap ✅
-
-The packaged macOS app can start the frozen backend. Task 264 fixed the next packaged-app blocker: app-owned SQLite database path bootstrap and Tauri/local CORS preflight for workspace/project APIs.
-
-### Task 265 — Packaged app SQLite workspace smoke
-
-Task 265 closes the remaining macOS packaged workspace-API bootstrap gap. The
-frozen runtime and Tauri supervisor now agree on the writable app-owned
-database path, supervisor readiness includes `/workspaces/overview`, and
-source checks preserve PID-owned shutdown with no generic shell execution or
-kill-by-port behavior.
-
-Next gate: rebuild and open the packaged `.app`, verify `/health` and
-`/workspaces/overview`, create the first project, then exercise explicit
-onboarding/scan/index/ask actions.
-
-### Task 266 — Packaged full product flow smoke ✅
-
-The macOS packaged path now has a complete source-contract and regression gate
-for create workspace, explicit scan, explicit index, explicit Ask, and restart
-persistence. Backend lifecycle logs distinguish job start/completion/failure
-and Ask retrieval/provider diagnostics. SQLite state survives restart; the
-default memory vector store remains intentionally ephemeral and produces a
-clear reindex diagnostic after restart.
-
-Next packaging work:
-
-1. Windows frozen-runtime and packaged full-flow parity.
-2. macOS signing/notarization and installer-grade distribution.
-3. Persistent job state and optional persistent Qdrant onboarding polish.
-
-
-## Task 267 — Persistent packaged RAG index
-
-The packaged MVP should keep workspace chunks after quit/reopen. Implemented SQLite-backed vector persistence under the app-owned data directory and added persistent RAG contract/tests.
-
-## Task 269 — Daily-use MVP polish
-
-The packaged MVP now includes a clearer daily-use path:
-
-- Overview shows a `Use it now` readiness panel.
-- The primary action changes between scan, build context, fix model setup, and ask.
-- Ask reloads the latest conversation for the selected workspace, so restart feels continuous.
-- A new `scripts/check_daily_use_mvp_contracts.sh` guard verifies this UX and safety contract.
-
-Safety remains unchanged: the frontend does not execute shell commands and scan/index/ask do not start automatically on mount.
-
-
-## Task 270
-
-Focus shifted from developer-dashboard completeness to daily-use MVP quality: reduce duplication, hide advanced/dev content, improve spacing, add folder picker, and provide one smoke command.
-
-## Task 271 update
-
-Daily-use UI was cleaned further: Ask is lighter, Settings no longer duplicates Models, Ask guidance shows only the selected template, Models now includes a local model catalog with Mac-fit guidance, and MCP/agent capabilities are preserved as approval-based permissions. Added `scripts/check_daily_use_product_ux_contracts.sh`.
-
-## Task 272 update
-
-Task 272 improves product fit for the original AI Private Workspace idea: less dashboard noise, stronger dark theme coverage, model catalog actions, model-specific skill presets, and simple approval-based MCP/tool permissions.
+Directional, not a release commitment. Four constraints hold through every
+phase: local-first (no cloud, no telemetry), explicit user actions (nothing
+runs on its own), read-only analysis (the app never changes your project),
+and clean ports-and-adapters boundaries.
+
+The task-by-task history that used to live in this file is preserved in git
+history and [`CHANGELOG.md`](../CHANGELOG.md); this document only looks forward
+from the current release.
+
+## Where the product is today (v0.4)
+
+A packaged desktop app for macOS (Apple Silicon + Intel) and Windows x64,
+built and released from CI with auto-update, SHA256 checksums, an SPDX SBOM,
+and a published test report. Shipped and working day to day:
+
+- Two local engines: built-in llama.cpp (bundled `llama-server`, GGUF catalog
+  + downloads) and Ollama, switchable per project; answer and embedding models
+  managed separately.
+- Hybrid retrieval (dense + BM25 + synonym bridge → RRF → diversity → optional
+  cross-encoder rerank → parent-document expansion) with a per-index calibrated
+  abstention floor, small-talk routing, small-project full-context mode, and a
+  one-shot corrective retrieval/regeneration pass.
+- Deterministic anti-hallucination checks (groundedness, quote verification)
+  with honest abstention, plus an experimental schema-constrained citations
+  mode behind a flag.
+- Project intelligence: evidence-backed map with role lenses, CI/CD and
+  environment views, security review, git activity, project memory with
+  guardrails, change journal, starter questions, and the Investigator — a
+  bounded ReAct agent whose steps stream live.
+- A reproducible 40-question golden-set benchmark (`backend/eval/`) measuring
+  retrieval, abstention, and generation grounding end to end; its
+  deterministic classifiers are pinned in CI. Current numbers are in the
+  README ("Measured, not promised").
+- 1,000+ deterministic backend tests on every push; SQLite (WAL) persistence
+  throughout, including the vector index.
+
+## Near term (v0.5)
+
+Quality you can trust on projects that are not this repository:
+
+1. **External golden-set** — a second labelled question set against the
+   bundled demo project (and later a real third-party repo), so thresholds
+   and retrieval are validated where self-eval can't be trusted; the
+   config-key question class moves there.
+2. **Benchmark cadence** — refresh the README numbers on each minor release;
+   compare Ollama vs built-in llama.cpp embedding paths once
+   (`--backend llamacpp`) to retire the proxy caveat.
+3. **Background contextual enrichment** (flagged off by default) — LLM-written
+   locator notes for markdown and orphan chunks, applied incrementally after
+   indexing, so the index quietly improves without blocking first use.
+4. **Structured-citations A/B** — decide from real answers whether the
+   schema-constrained mode graduates from experiment to Deep-dive default.
+5. Continued first-session polish: verify starter questions, project-type
+   detection, and reset-to-recommended behavior on fresh machines.
+
+## Road to 1.0
+
+- Code signing and notarization for macOS; a signed Windows installer — the
+  single biggest onboarding friction today.
+- Windows parity QA at the same depth as macOS.
+- Performance headroom on weak hardware (8 GB, no GPU): indexing throughput,
+  model recommendations that respect RAM honestly.
+- Persistent background jobs across restarts.
+- Sandboxed agent/MCP execution as explicit, approval-based product flows.
+- Broader QA sweep and the [v1 completion roadmap](V1_PRODUCT_COMPLETION_ROADMAP.md).
+
+## Later and explorations
+
+- Config-aware retrieval extended beyond json/yaml key names.
+- More analyzers and user-defined skill/analyzer plugins.
+- Team-facing exports: shareable project reports and summaries.
+- Watched, not built (revisit when local runtimes make them cheap): late
+  chunking, LLM-driven retrieval, full GraphRAG/RAPTOR hierarchies.
+- Optional integrations (git providers, extra vector stores) behind explicit
+  configuration and consent.

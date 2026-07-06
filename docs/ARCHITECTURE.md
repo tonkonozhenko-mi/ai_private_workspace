@@ -1,12 +1,15 @@
 # Architecture
 
-AI Private Workspace uses a small Ports and Adapters architecture. The
-core describes application behavior, while FastAPI, SQLite, the filesystem,
-Qdrant, Ollama, and subprocess execution remain replaceable edge concerns.
+AI Private Workspace is a Tauri desktop shell over a FastAPI backend, built as
+Ports and Adapters. The core describes application behavior; FastAPI, SQLite,
+the filesystem, the local model engines (bundled llama.cpp and Ollama), and
+subprocess execution remain replaceable edge concerns.
 
 ## Dependency Direction
 
 ```text
+Tauri shell (supervises the packaged backend)
+        |
 FastAPI routes and composition
         |
         v
@@ -19,297 +22,150 @@ domain models and deterministic rules
 Dependencies point inward:
 
 - `core/domain` contains dataclasses, registries, classifiers, prompt building,
-  deterministic analyzers, and other business rules.
+  chunking, retrieval scoring, answer evaluation, deterministic analyzers, and
+  other business rules.
 - `core/use_cases` coordinates domain behavior through ports. It does not
   import FastAPI, SQLite, or concrete adapters.
 - `core/ports` defines protocols for repositories, filesystem access, vector
-  storage, embeddings, LLM generation, command execution, and runtime health.
-- `adapters` implement those ports using local or optional runtime technology.
+  storage, embeddings, LLM generation, reranking, command execution, and
+  runtime health.
+- `adapters` implement those ports using local runtime technology.
 - `api/routes` translates HTTP requests into use-case inputs and domain errors
-  into HTTP responses.
-- `api/schemas` contains Pydantic request/response models and domain-to-API
-  conversion helpers.
-- `api/dependencies.py` is the composition root that selects concrete adapters
-  from settings and supplies them to routes.
+  into HTTP responses; `api/schemas` holds the Pydantic boundary;
+  `api/dependencies.py` is the composition root.
 
-## Core Domain
+## Desktop shell and packaged runtime
 
-The domain is intentionally framework-neutral. Major areas include:
+The packaged app is a Tauri (Rust + React) shell that supervises a frozen
+PyInstaller backend executable. Startup is gated by the frozen-runtime
+manifest, readiness requires an application-level `/health` 200 (not just an
+open port), shutdown is PID-owned (never kill-by-port), and supervisor/backend
+logs live in the app-owned data directory. The frontend never executes shell
+commands — it may only display and copy them. App launch never starts scans,
+indexing, model downloads, or rebuilds; every expensive action is an explicit
+user click. During backend startup the process raises its own file-descriptor
+limit (`app/config/fd_limit.py`) so large indexing runs don't exhaust the
+default macOS ceiling.
 
-- Workspace lifecycle, overview, summary, readiness, quick start, dashboard,
-  assistant profiles, onboarding, and runtime setup guidance.
-- Deterministic project scanning and the data-driven Skill Registry.
-- Terraform, Terragrunt, GitLab CI, and GitHub Actions static analysis.
-- Index chunks, index status, RAG prompts, diagnostics, and answer warnings.
-- Command proposals, risk classification, execution policy, and suggestions.
-- Persistent timeline events and deterministic timeline backfill.
-- Static local model metadata and deterministic model recommendation scoring.
+## Local engines
 
-Domain models are separate from API schemas so HTTP representation changes do
-not become core dependencies.
+Two interchangeable engine adapters sit behind the same provider ports:
 
-### Local Model Catalog
+- **Built-in llama.cpp** — the app manages a bundled `llama-server` process
+  (lifecycle, health, model loading) and a GGUF catalog with explicit,
+  user-approved downloads from Hugging Face. It also unlocks JSON-Schema
+  constrained output and the cross-encoder reranker.
+- **Ollama** — the app points at an existing Ollama install; user-pulled
+  models appear as detected installs. Thinking-capable models stream their
+  reasoning in a separate field, which the provider re-wraps for the UI.
 
-The local model catalog is a core-owned static registry. It describes a small
-initial set of fake and Ollama LLM/embedding models using honest, nullable
-metadata and recommends them with deterministic scoring based on requested model
-type, assistant profile, laptop profile, local-only suitability, quality tier,
-and low-power speed.
+`SwitchableEmbeddingProvider` is a global delegate so the active embedding
+backend can follow the workspace's persisted selection; index builds first
+re-align the delegate with that selection and fail loudly (not silently
+mis-embed) when the selected engine is down. Fake deterministic LLM/embedding
+providers back the test suite.
 
-The optional user-catalog adapter implements a core loader port and parses and
-validates a configured JSON file, returning valid domain models plus warning
-objects. The shared in-memory core registry merges valid user models, skips
-duplicate IDs, exposes warnings separately from the backward-compatible catalog
-list, and can replace its user-model snapshot on explicit reload. Catalog
-listing, reload, and recommendation do not call Ollama or Hugging Face, inspect
-installed models, download artifacts, run benchmarks, or update runtime
-settings. Future adapters can enrich the catalog with installed model metadata
-or evaluation results without moving recommendation logic into API routes.
+## Persistence
 
-The deterministic Model Switching Plan reads the same current catalog and can
-optionally validate a workspace and inspect its persisted index-status metadata.
-It explains whether a proposed LLM or embedding-model change requires a backend
-restart, reindex, or new dimension-aware vector collection. The use case is
-advisory only: it does not change settings, call providers, download models, or
-mutate workspace/index state.
+SQLite is the default for all state — workspace metadata, scans, index status
+and manifest, conversations, project memory, timeline, model preferences, and
+the vector index itself (`SQLiteVectorStore`, the packaged default; in-memory
+and optional Qdrant adapters implement the same port). Connections are opened
+per operation with WAL journal mode, `synchronous=NORMAL`, and a busy timeout;
+the PRAGMAs fail open on filesystems that reject them (network mounts).
+Schema initialization uses `CREATE TABLE IF NOT EXISTS` plus small compatible
+migrations; SQL never appears in core or API routes.
 
-## Use Cases And Ports
+## Retrieval pipeline
 
-Use cases are the application orchestration layer. They load domain state
-through repository ports, call provider ports when required, apply deterministic
-rules, and persist results through ports.
+Indexing is explicit and incremental (content-hash manifest). Documents are
+chunked structure-aware (AST/brace/markdown-aware, ~1500 chars with overlap),
+and each chunk is stored with a deterministic contextual header
+(`[source: path › label · part i/n]`; json/yaml headers also list the chunk's
+config keys so "how is X configured?" matches by key name). The header is for
+search and display — the dense vector embeds the stripped content. The
+project handbook (a deterministic digest of the project map) is indexed as a
+pseudo-document so "what is this project about?" questions retrieve it.
 
-Repository ports cover workspaces, scans, index status, commands, and timeline
-events. Provider ports cover:
+A query is answered through: domain-synonym expansion (csp ↔
+content-security-policy and ~25 infra pairs, add-only) → optional LLM query
+rewrite (on by default only when the reranker is on) → dense + BM25 (SQLite
+FTS5 over content *and* paths) → Reciprocal Rank Fusion → path/environment
+boost → per-file caps → MMR diversity → optional cross-encoder rerank →
+parent-document expansion (±1 neighbours, budget-aware). It degrades to
+vector-only search if FTS is unavailable.
 
-- `FileSystemPort`: safe local project listing and text reads.
-- `VectorStorePort`: workspace-scoped chunk upsert, search, and clear.
-- `EmbeddingProviderPort`: text-to-vector conversion plus provider metadata.
-- `LLMProviderPort`: prompt generation plus provider metadata.
-- `LLMProviderFactoryPort`: configured-default or supported per-request LLM
-  provider/model selection without changing runtime settings.
-- `CommandRunnerPort`: approved command execution.
-- `RuntimeHealthCheckerPort`: lightweight configured-component checks.
+## Answer honesty
 
-This makes in-memory test doubles and optional local runtime integrations
-interchangeable without changing use cases.
+Grounded answering is wrapped in deterministic honesty mechanisms:
 
-## Adapters
+- **Small-talk router** — `looks_general_chat()` sends obvious chit-chat
+  straight to general conversation, with no retrieval and no project sources.
+- **Calibrated abstention** — the relevance floor is calibrated per index
+  against the embedding model's own similarity noise; the answering threshold
+  sits a fixed margin below that floor. Below it, the app abstains honestly.
+- **Small-project full-context** — when the whole index provably fits the
+  model window, retrieval is skipped and every file is provided (citations
+  intact), gated so general questions don't inherit fake relevance.
+- **CRAG-lite corrective pass** — about to abstain on a project-looking
+  question, or a finished answer carries hard grounding warnings: one bounded
+  corrective retrieval (with a deliberately *different* rewrite prompt) and at
+  most one regeneration, adopted only if grounding provably improves.
+- **Deterministic evaluation** — every answer passes groundedness checks
+  (uncited sources, terms absent from context, quote-not-in-sources with a
+  how-to shell-example exemption) that surface as review warnings in the UI,
+  never silent edits.
+- **Structured citations (experimental, flagged)** — on engines with
+  schema-constrained output, Deep-dive mode can request
+  `{answer_md, citations:[{path, quote}]}`; parsing is fail-open.
 
-### Persistence
+## Project intelligence
 
-SQLite adapters live under `adapters/memory` alongside in-memory repository
-implementations. SQLite is the default for workspace state; in-memory
-repositories remain useful for focused unit tests.
+A deterministic scanner recognizes what a folder contains (Terraform,
+Kubernetes, CI, docs, application code …) and classifies the project by its
+dominant type. On top of the map sit read-only tools: role lenses, CI/CD and
+environment views, security review, git activity and per-file inspection,
+self-maintaining project memory with guardrails, a dated change journal,
+starter questions generated from map facts, and the **Investigator** — a
+bounded ReAct loop over read-only tools. The loop is a single generator
+consumed two ways: `execute()` returns the finished trace, and an SSE endpoint
+streams each step live to the UI.
 
-The SQLite schema stores:
+## Command safety
 
-- workspace metadata and archive state
-- latest project scan JSON
-- command proposals, policy decisions, and execution results
-- index-status metadata
-- timeline events and metadata JSON
-- model experiment runs and per-candidate result JSON
-- append-only user ratings for model experiment candidates
-- workspace-selected LLM and embedding-model preference metadata
+Unchanged and deliberate: suggestions are templates; proposals record command,
+cwd, reason, risk, and policy; execution requires explicit approval plus an
+auto-executable policy; destructive/compound commands are blocked;
+`FakeCommandRunner` is the default and the real runner (opt-in) uses
+`shell=False`, timeouts, output limits, and workspace-rooted cwd. API routes
+contain no subprocess logic.
 
-Schema initialization uses `CREATE TABLE IF NOT EXISTS` and small compatible
-column migrations. SQL does not appear in core or API routes.
+## Model management
 
-### Filesystem And Deterministic Analysis
+A core-owned catalog (static + user JSON + detected installs) drives
+deterministic, advisory model recommendations; workspace-scoped selections are
+persisted preferences that never restart services or download anything by
+themselves. Explicit model experiments run candidates against identical
+retrieved context and are scored by transparent observable signals, with
+append-only user ratings as a separate feedback loop. After a workspace reset
+the engine returns to the recommended model rather than resurrecting the last
+one that happened to be loaded.
 
-`LocalFileSystem` recursively scans project paths, skips generated/dependency
-directories and oversized files, detects file types, and safely reads files
-inside the project root. Static analyzers consume this capability through
-`FileSystemPort`; they do not execute Terraform, Terragrunt, GitLab, or GitHub
-workflows.
+## Evaluation
 
-### Vector, Embedding, And LLM Providers
+`backend/eval/` is a golden-set benchmark that runs the real retrieval path
+(and optionally real generation through the full corrective pipeline) against
+a labelled 40-question set: retrieval hit@k, wrongly-refused project questions
+(overblock), correctly-refused off-topic questions, and grounding-warning rate
+raw → after correction. Reports (JSON + Markdown, with the calibrated floor
+and threshold) land in `build/notes/eval/`. Its deterministic classifiers are
+pinned by fast CI tests; model runs are executed manually. The benchmark
+excludes its own files from the corpus — a self-eval lesson learned twice.
 
-The default development path is fully local and dependency-light:
+## Testing boundaries
 
-- in-memory vector store
-- fake deterministic embeddings
-- fake deterministic LLM
-
-Optional adapters provide Qdrant vector persistence and Ollama embeddings or
-generation. Qdrant collections are derived from collection base name, embedding
-provider/model, and vector dimension to avoid incompatible reuse. Core code
-knows only the provider ports. The LLM provider factory creates the configured
-default provider or a supported `fake`/`ollama` per-request override; provider
-selection remains in adapters rather than RAG use cases or API routes.
-Fake-provider model overrides preserve the requested model label for deterministic
-testing and experiment comparisons while keeping generated fake-answer behavior
-unchanged.
-
-### Runtime Health
-
-Dedicated health adapters perform short, lightweight checks only when Qdrant or
-Ollama is selected. The command-runner checker reports mode without executing a
-command. Runtime health is advisory: unavailable optional providers degrade
-health responses rather than preventing the default app from starting.
-
-## Command Safety
-
-Command handling is deliberately layered:
-
-1. Suggestions are templates only and create no proposal.
-2. A proposal records the command, working directory, reason, risk, and policy.
-3. The user must explicitly approve or reject the proposal.
-4. Execution requires both approved status and `auto_executable` policy mode.
-5. Destructive and compound-shell commands are blocked; write and unknown-risk
-   commands are manual-only.
-6. `FakeCommandRunner` is the default.
-7. `LocalCommandRunner`, when explicitly enabled, uses `shell=False`, enforces a
-   timeout and output limit, and restricts `cwd` to the workspace project path.
-
-API routes do not contain subprocess logic.
-
-## Timeline And Read Models
-
-Use cases append timeline events after meaningful mutations such as scans,
-indexing, report generation, command activity, and workspace questions. SQLite
-persists these events. Backfill reconstructs missing historical events from
-already-persisted state without modifying scans, vectors, or commands.
-
-Summary, readiness, quick start, dashboard, and workspaces overview are
-deterministic read models built from the same repositories. They do not trigger
-scan, index, or command execution.
-
-## Model Experiments
-
-Model experiment planning is advisory. Experiment execution is explicit and
-requires an indexed workspace. `RunModelExperimentUseCase` embeds the question
-and searches the active vector store once, builds one shared prompt, then uses
-`LLMProviderFactoryPort` for each requested candidate. Candidate failures are
-isolated, and completed, partial, or failed runs are persisted through
-`ModelExperimentRepositoryPort` with a workspace timeline event.
-
-This keeps comparisons fair: candidates receive identical retrieved context,
-and no candidate triggers reindexing, model downloads, runtime-setting changes,
-or shell commands.
-
-Persisted experiment runs can also be summarized by a deterministic comparison
-read model. The comparison use case reads a saved run, scores each candidate
-from observable signals such as completion status, source count, quality-warning
-count, answer length, and latency, then recommends the highest-scoring completed
-candidate. This is intentionally not a semantic quality evaluator; it gives the
-UI a concise, explainable comparison while leaving deeper AI-assisted
-evaluation as future work.
-
-Manual candidate ratings form a separate user-feedback loop. A rating use case
-validates the saved experiment and candidate, then appends a rating record with
-an optional preference, tags, and comment. Original experiment answers remain
-immutable. Comparison summaries expose rating counts, averages, and preferred
-votes, but user ratings do not yet alter deterministic comparison scores or
-model recommendations.
-
-The workspace-scoped Model Performance Summary is another read model over saved
-experiment runs and ratings. It aggregates completion and failure counts,
-latency, source and warning averages, rating averages, preferred votes, and
-common feedback tags by provider/model. Its deterministic score is transparent
-and advisory; reading performance never reruns experiments, calls providers, or
-mutates experiment/rating data. Future rating-aware recommendations can consume
-these signals through core use cases without moving aggregation into API routes.
-
-Workspace-aware model recommendations now compose the existing static catalog
-recommendation use case with the workspace performance read model. Catalog
-scores remain visible, performance scores and explicit historical adjustments
-are added separately, and models without workspace history retain their catalog
-score with a warning. Fake/testing providers remain visible but receive an
-explicit workspace-use penalty so historical test feedback cannot promote them
-above similarly scored real local models. The resulting ranking is advisory and
-read-only; it does not activate a model, change runtime settings, call
-providers, or mutate feedback.
-
-The Model Recommendation Explanation is a deterministic read model over those
-same sources. It presents catalog fit, workspace history, switching impact,
-risks, and suggested actions for both known and unknown models. Availability and
-installation remain explicitly unverified because the explanation does not call
-Ollama, Hugging Face, or any provider. LLM explanations state that reindexing is
-not required; embedding explanations state that reindexing is required.
-
-Workspace Model Selection is a separate persisted preference layer. Selecting an
-LLM or embedding model preserves the other selection, records timeline activity,
-and reports whether the preference matches active provider/model configuration.
-Unknown catalog models remain selectable with a validation note. Replacing an
-embedding preference adds a reindex warning, but selection never changes active
-settings, restarts services, downloads models, calls providers, or triggers
-reindexing.
-
-Workspace Model Selection Status is a read-only readiness projection over
-persisted selections, active configured provider/model names, and persisted
-index status. It distinguishes missing selections, runtime mismatches, embedding
-reindex requirements, and fully ready state, then returns deterministic next
-actions. It does not inspect installed models, restart the backend, change
-configuration, or trigger indexing.
-
-Selected Model Usage Plan builds on that state while preserving an important
-runtime distinction. Supported LLM selections can be passed to `/ask` as a
-per-request provider/model override without changing the active backend
-configuration. Embedding selections cannot be applied per request because
-indexing and search must use the same active embedding provider, model, and
-vector space. An embedding mismatch therefore requires an explicit runtime
-change followed by reindexing before selected-model search is available.
-
-Ask With Selected LLM is a thin orchestration use case over the existing
-workspace question-answering flow. It validates the persisted selected LLM and
-provider-factory support, then delegates retrieval, prompting, generation,
-diagnostics, quality checks, and timeline recording to
-`AskWorkspaceQuestionUseCase` with a per-request LLM override. Retrieval always
-uses the active embedding and vector-store configuration. When a separately
-selected embedding does not match that active configuration, the response adds
-a deterministic warning rather than changing embeddings or reindexing.
-
-Selected Embedding Indexing Plan is a read-only projection over the persisted
-embedding selection, active embedding provider/model identity, and workspace
-index status. A matching active embedding can index immediately and can search
-once indexed. A mismatch represents a different vector space, so the plan marks
-backend restart, a new vector collection, and reindexing as required actions.
-The plan does not call providers, create collections, change configuration, or
-run indexing.
-
-Local AI Activation Guide turns persisted workspace model selections, active
-configuration names, and index metadata into ordered setup instructions. It can
-recommend starting Qdrant, starting or pulling Ollama models, restarting the
-backend with selected provider/model environment variables, reindexing, and
-asking with the selected LLM. These are command strings for the user only: the
-guide performs no health checks, provider calls, downloads, configuration
-changes, process restarts, or indexing.
-
-Workspace Models Dashboard is a read-only aggregate over the existing model
-selection, selection status, selected-model usage plan, selected-embedding
-indexing plan, workspace-aware recommendations, and performance summary use
-cases. It adds only a deterministic overall status and primary next model
-action. Provider calls, indexing, selection changes, recommendations, and
-performance scoring remain owned by their existing boundaries rather than being
-reimplemented in the API route or dashboard.
-
-Workspace Models Dashboard Summary is a compact projection built from the
-detailed dashboard use case. It formats selected and active model identities,
-exposes the top recommendation and primary next action, counts performance
-models, and derives a warning total from recommendation warnings,
-embedding-indexing warnings, and non-ready usage capabilities. The detailed
-dashboard remains the source for full diagnostics and is unchanged.
-
-The main Workspace Dashboard includes this compact Models summary as a nested
-read model for its small Models card. It reuses
-`GetWorkspaceModelsDashboardSummaryUseCase`; model selection, recommendation,
-warning, and readiness logic are not duplicated in the main dashboard or API
-route. The dedicated detailed and compact Models dashboard endpoints remain
-unchanged.
-
-Workspace UI Action Catalog is a read-only frontend navigation projection over
-Quick Start, readiness, and the compact Models summary. It returns stable action
-IDs, HTTP methods, endpoint paths, availability, recommendation state, and
-whether each target endpoint mutates data. Its primary action follows Quick
-Start unless selected embedding setup must take precedence over a generic ask
-action. The catalog itself never executes an action, writes workspace state,
-checks runtime health, or calls providers.
-
-## Testing Boundaries
-
-Normal tests use fake providers, in-memory vector storage, temporary SQLite
-databases, and mocked optional-runtime calls. Live Qdrant and Ollama contract
-tests are opt-in through environment variables, so the standard suite remains
-self-contained.
+Normal tests use fake providers, in-memory or temporary-SQLite storage, and
+mocked optional-runtime calls; live engine contract tests are opt-in through
+environment variables. The suite (1,000+ tests) mirrors production limits —
+including the raised file-descriptor ceiling — so tests fail the way the
+packaged app would, not in artificial ways.
