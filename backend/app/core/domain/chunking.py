@@ -164,6 +164,51 @@ def chunk_section_label(
 
 _CONTEXT_HEADER_PREFIX = "[source: "
 
+# Config files answer "how is X configured?" by *key name*, but the value is often
+# a short token that dense and keyword search both miss — e.g. asking about
+# "content security policy" when the file only spells it `csp` under a nested
+# `security:` key. Listing a chunk's config keys in its header makes BM25 hit by
+# key name. Only for structured config; keys go in the header (searchable), not the
+# embedded body (which stays the clean content).
+_CONFIG_KEY_TYPES = {"json", "yaml"}
+# A quoted JSON key (`"csp":`) or a YAML key at line start (`  csp:`). Deliberately
+# regex, not a real parse: a chunk is usually a *fragment* of the file, so json/yaml
+# loaders would choke. Nested keys are wanted (csp lives under security), so this
+# matches keys at any depth.
+_JSON_KEY_RE = re.compile(r'"([A-Za-z_][\w.\-]{1,48})"\s*:')
+_YAML_KEY_RE = re.compile(r'^[ \t-]*([A-Za-z_][\w.\-]{1,48})\s*:(?:\s|$)', re.MULTILINE)
+_MAX_CONFIG_KEYS = 24
+_MAX_CONFIG_KEYS_CHARS = 200
+
+
+def config_keys(
+    content: str,
+    file_type: str | None = None,
+    extension: str | None = None,
+) -> list[str]:
+    """The config keys named in a json/yaml chunk, in first-seen order, deduped and
+    capped. Empty for non-config chunks. Deterministic, never raises — used only to
+    enrich the searchable header, so approximate is fine."""
+    ext = (extension or "").lower()
+    is_json = file_type == "json" or ext == ".json"
+    is_yaml = file_type == "yaml" or ext in {".yml", ".yaml"}
+    if not (is_json or is_yaml):
+        return []
+    pattern = _JSON_KEY_RE if is_json else _YAML_KEY_RE
+    seen: dict[str, None] = {}
+    used_chars = 0
+    for match in pattern.finditer(content):
+        key = match.group(1)
+        if key in seen or key.isdigit():
+            continue
+        if used_chars + len(key) > _MAX_CONFIG_KEYS_CHARS:
+            break
+        seen[key] = None
+        used_chars += len(key) + 2  # + ", "
+        if len(seen) >= _MAX_CONFIG_KEYS:
+            break
+    return list(seen)
+
 
 def build_contextual_chunk(
     content: str,
@@ -179,11 +224,15 @@ def build_contextual_chunk(
     The header is for storage/display only — embed the *clean* chunk via
     :func:`strip_contextual_header` so the dense vector reflects the real content,
     not boilerplate. Example header: ``[source: api/ask.py › ask_endpoint · part 2/5]``.
+    For json/yaml the header also lists the chunk's config keys, so "how is X
+    configured?" retrieves by key name even when the value is a short token.
     """
     label = chunk_section_label(content, file_type, extension)
     where = source_path if not label else f"{source_path} › {label}"
     suffix = f" · part {position}/{total}" if total > 1 else ""
-    return f"{_CONTEXT_HEADER_PREFIX}{where}{suffix}]\n{content}"
+    keys = config_keys(content, file_type, extension)
+    keys_suffix = f" · keys: {', '.join(keys)}" if keys else ""
+    return f"{_CONTEXT_HEADER_PREFIX}{where}{suffix}{keys_suffix}]\n{content}"
 
 
 def strip_contextual_header(content: str) -> str:
