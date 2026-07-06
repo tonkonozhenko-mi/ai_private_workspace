@@ -152,8 +152,8 @@ class InvestigateProjectUseCase:
                     yield {"type": "step", "step": _step_to_dict(payload)}
                 elif kind == "final":
                     yield {"type": "final", **_result_to_dict(payload)}
-        except (InvestigateProjectWorkspaceNotFoundError, InvestigateProjectError) as exc:
-            yield {"type": "error", "error": str(exc)}
+        except (InvestigateProjectWorkspaceNotFoundError, InvestigateProjectError):
+            yield {"type": "error", "error": "The investigation could not be completed."}
 
     def _run_events(self, request: InvestigateProjectInput):
         """The one investigation loop, shared by ``execute`` and ``execute_stream``.

@@ -598,8 +598,8 @@ def investigate_project_stream(workspace_id: str, request: InvestigateRequest) -
                 kind = event.get("type")
                 data = {k: v for k, v in event.items() if k != "type"}
                 yield f"event: {kind}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
-        except Exception as exc:  # noqa: BLE001 - surface any failure as a stream event
-            yield f"event: error\ndata: {json.dumps({'error': str(exc)})}\n\n"
+        except Exception:  # noqa: BLE001 - surface any failure as a stream event
+            yield f"event: error\ndata: {json.dumps({'error': 'An internal error has occurred.'})}\n\n"
 
     return StreamingResponse(
         event_stream(),
