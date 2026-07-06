@@ -144,9 +144,7 @@ class LocalFileSystem:
                 except (OSError, AttributeError):
                     modified_at = None
 
-                candidates.append(
-                    (full_path.relative_to(root), full_path, size_bytes, modified_at)
-                )
+                candidates.append((full_path.relative_to(root), full_path, size_bytes, modified_at))
 
         return candidates
 
