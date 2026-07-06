@@ -79,13 +79,21 @@ _SKIP_DIRS = {
     "build",
     "target",
     "__pycache__",
-    ".venv",
-    "venv",
+    "site-packages",
     ".mypy_cache",
     ".pytest_cache",
     "coverage",
     ".idea",
 }
+# Path fragments (posix) that mark generated/vendored trees — skipped wholesale so
+# the corpus is only real project source. ``src-tauri/gen`` holds generated schemas.
+_SKIP_PATH_FRAGMENTS = ("src-tauri/gen/",)
+
+
+def _is_skipped_dir(part: str) -> bool:
+    # Virtualenvs come in variants (.venv, .venv-x86_64, venv, env) — a prefix match
+    # catches them all; a bare-name set catches the rest.
+    return part in _SKIP_DIRS or part == "venv" or part.startswith(".venv")
 _MAX_FILE_BYTES = 400_000
 # Generated lock/manifest files add thousands of low-signal chunks and dominate the
 # corpus without helping retrieval — skip them (the real app doesn't index most of
@@ -113,7 +121,10 @@ def _iter_files(root: Path):
     for path in sorted(root.rglob("*")):
         if not path.is_file():
             continue
-        if any(part in _SKIP_DIRS for part in path.parts):
+        if any(_is_skipped_dir(part) for part in path.parts):
+            continue
+        posix = path.as_posix()
+        if any(fragment in posix for fragment in _SKIP_PATH_FRAGMENTS):
             continue
         file_type = _detect_type(path)
         if file_type is None:
