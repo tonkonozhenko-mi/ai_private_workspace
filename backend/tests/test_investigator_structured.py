@@ -261,7 +261,11 @@ def test_format_failures_do_not_consume_tool_budget():
     )
     assert result.stopped_reason == "answered"
     assert "PostgreSQL" in result.answer
-    assert [s.tool for s in result.steps if s.tool != "(format)"] == ["search_code"]
+    # Seeded retrieval opens the transcript, then the agent's own scripted search.
+    assert [s.tool for s in result.steps if s.tool != "(format)"] == [
+        "search_code",
+        "search_code",
+    ]
     assert len([s for s in result.steps if s.tool == "(format)"]) == 2
 
 
@@ -362,7 +366,8 @@ def test_structured_loop_uses_schema_and_answers():
         InvestigateProjectInput(workspace_id="w1", question="Which database?")
     )
     assert "PostgreSQL" in result.answer
-    assert [s.tool for s in result.steps] == ["search_code"]
+    # Seeded retrieval opens the transcript, then the agent's own scripted search.
+    assert [s.tool for s in result.steps] == ["search_code", "search_code"]
     assert "db/config.tf" in result.sources
     # The structured path passed a JSON-schema response_format on each step.
     assert provider.formats_seen[0] is not None
@@ -382,4 +387,5 @@ def test_structured_loop_falls_back_to_text_on_non_json():
         InvestigateProjectInput(workspace_id="w1", question="Which database?")
     )
     assert "PostgreSQL" in result.answer
-    assert [s.tool for s in result.steps] == ["search_code"]
+    # Seeded retrieval opens the transcript, then the agent's own scripted search.
+    assert [s.tool for s in result.steps] == ["search_code", "search_code"]
