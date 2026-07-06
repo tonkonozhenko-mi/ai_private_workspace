@@ -37,11 +37,11 @@ def test_report_metrics_by_class():
         QuestionCase("s2", "hello", CLASS_SHOULD_ABSTAIN),
     ]
     outcomes = [
-        QuestionOutcome("p1", False, ("src/a.py",), 0.8),   # hit
-        QuestionOutcome("p2", True, (), 0.1),               # abstained → overblock + miss
+        QuestionOutcome("p1", False, ("src/a.py",), 0.8),  # hit
+        QuestionOutcome("p2", True, (), 0.1),  # abstained → overblock + miss
         QuestionOutcome("b1", False, ("src/readme.md",), 0.6),  # grounded, ok
-        QuestionOutcome("s1", False, ("src/x.py",), 0.5),   # wrongly grounded (bad)
-        QuestionOutcome("s2", True, (), 0.05),              # correctly abstained
+        QuestionOutcome("s1", False, ("src/x.py",), 0.5),  # wrongly grounded (bad)
+        QuestionOutcome("s2", True, (), 0.05),  # correctly abstained
     ]
     report = compute_report("nomic", 5, cases, outcomes)
 
@@ -68,7 +68,7 @@ def test_hallucination_rate_when_generation_present():
 def test_render_markdown_and_dict_are_wellformed():
     cases = [_precise("p1", ("a.py",)), QuestionCase("s1", "hi", CLASS_SHOULD_ABSTAIN)]
     outcomes = [
-        QuestionOutcome("p1", True, (), 0.1),   # a failure (abstained on precise)
+        QuestionOutcome("p1", True, (), 0.1),  # a failure (abstained on precise)
         QuestionOutcome("s1", True, (), 0.05),  # correct
     ]
     report = compute_report("bge-m3", 5, cases, outcomes)

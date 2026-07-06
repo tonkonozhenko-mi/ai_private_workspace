@@ -166,13 +166,21 @@ GOLDEN_SET: tuple[QuestionCase, ...] = (
     # --- project_broad --------------------------------------------------
     QuestionCase("pb-what", "What is this project about?", CLASS_PROJECT_BROAD),
     QuestionCase("pb-arch", "Give me an overview of the architecture.", CLASS_PROJECT_BROAD),
-    QuestionCase("pb-stack", "What technologies and languages does this project use?", CLASS_PROJECT_BROAD),
-    QuestionCase("pb-start", "Where should a new developer start reading the code?", CLASS_PROJECT_BROAD),
+    QuestionCase(
+        "pb-stack", "What technologies and languages does this project use?", CLASS_PROJECT_BROAD
+    ),
+    QuestionCase(
+        "pb-start", "Where should a new developer start reading the code?", CLASS_PROJECT_BROAD
+    ),
     QuestionCase("pb-rag", "How does the RAG pipeline work end to end?", CLASS_PROJECT_BROAD),
     QuestionCase("pb-run", "How do I run this project locally?", CLASS_PROJECT_BROAD),
     QuestionCase("pb-tests", "How is the project tested?", CLASS_PROJECT_BROAD),
-    QuestionCase("pb-ports", "How is the backend structured (ports and adapters)?", CLASS_PROJECT_BROAD),
-    QuestionCase("pb-privacy", "What makes this project local-first and private?", CLASS_PROJECT_BROAD),
+    QuestionCase(
+        "pb-ports", "How is the backend structured (ports and adapters)?", CLASS_PROJECT_BROAD
+    ),
+    QuestionCase(
+        "pb-privacy", "What makes this project local-first and private?", CLASS_PROJECT_BROAD
+    ),
     QuestionCase("pb-changed", "What changed recently in the project?", CLASS_PROJECT_BROAD),
     # --- should_abstain (NOT about the project) -------------------------
     QuestionCase("sa-time", "What time is it?", CLASS_SHOULD_ABSTAIN),
@@ -183,7 +191,9 @@ GOLDEN_SET: tuple[QuestionCase, ...] = (
     QuestionCase("sa-joke", "Tell me a joke.", CLASS_SHOULD_ABSTAIN),
     QuestionCase("sa-math", "What is 17 times 23?", CLASS_SHOULD_ABSTAIN),
     QuestionCase("sa-recipe", "How do I make a good carbonara?", CLASS_SHOULD_ABSTAIN),
-    QuestionCase("sa-python-generic", "What is a Python decorator in general?", CLASS_SHOULD_ABSTAIN),
+    QuestionCase(
+        "sa-python-generic", "What is a Python decorator in general?", CLASS_SHOULD_ABSTAIN
+    ),
     QuestionCase("sa-thanks", "Thanks, that was helpful!", CLASS_SHOULD_ABSTAIN),
 )
 

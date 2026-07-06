@@ -73,8 +73,18 @@ _EXT_TYPE = {
     ".sh": "shell",
 }
 _SKIP_DIRS = {
-    ".git", "node_modules", "dist", "build", "target", "__pycache__",
-    ".venv", "venv", ".mypy_cache", ".pytest_cache", "coverage", ".idea",
+    ".git",
+    "node_modules",
+    "dist",
+    "build",
+    "target",
+    "__pycache__",
+    ".venv",
+    "venv",
+    ".mypy_cache",
+    ".pytest_cache",
+    "coverage",
+    ".idea",
 }
 _MAX_FILE_BYTES = 400_000
 
@@ -127,8 +137,12 @@ def _index_repo(workspace_id, repo, embedder, vector_store):
         total = len(raw)
         for i, body in enumerate(raw):
             content = build_contextual_chunk(
-                body, source_path=rel_path, position=i + 1, total=total,
-                file_type=file_type, extension=extension,
+                body,
+                source_path=rel_path,
+                position=i + 1,
+                total=total,
+                file_type=file_type,
+                extension=extension,
             )
             chunks.append(
                 TextChunk(
@@ -195,7 +209,9 @@ def _run_embedder(alias: str, repo: Path, k: int, base_url: str, llm_model: str 
         llm = _build_llm(base_url, llm_model) if llm_model else None
         outcomes: list[QuestionOutcome] = []
         for case in golden_set():
-            request = AskWorkspaceQuestionInput(workspace_id=workspace_id, question=case.question, limit=k)
+            request = AskWorkspaceQuestionInput(
+                workspace_id=workspace_id, question=case.question, limit=k
+            )
             results = uc._search_context(request, None)
             best = max((r.score for r in results), default=0.0)
             abstained = (not results) or best < threshold
@@ -228,7 +244,12 @@ def _generation_hallucinated(uc, request, results, llm) -> bool | None:
         context_results, prompt, _m, _f, _u = uc._grounded_prompt(request, llm, results, [])
         answer, _usage = uc._generate_answer_with_usage(llm, prompt, [], None, None, [])
         sources = [
-            RagSource(chunk_id=r.chunk_id, source_path=r.source_path, score=r.score, preview=r.content[:200])
+            RagSource(
+                chunk_id=r.chunk_id,
+                source_path=r.source_path,
+                score=r.score,
+                preview=r.content[:200],
+            )
             for r in context_results
         ]
         warnings = evaluate_rag_answer(

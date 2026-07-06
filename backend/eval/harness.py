@@ -94,9 +94,7 @@ def compute_report(
         )
         # For project classes, abstaining is a miss (overblock).
         overblock = (
-            _mean([1.0 if o.abstained else 0.0 for o in outs])
-            if cls in PROJECT_CLASSES
-            else None
+            _mean([1.0 if o.abstained else 0.0 for o in outs]) if cls in PROJECT_CLASSES else None
         )
         # For the abstain class, abstaining is the correct behaviour.
         abstain_correct = (
@@ -154,11 +152,17 @@ def render_markdown(
     lines.append(f"# Golden-set eval — `{report.embedder}`")
     lines.append("")
     lines.append(f"- Questions scored: **{report.total}** · top-k = {report.k}")
-    lines.append(f"- Retrieval hit@{report.k} (precise): **{_pct(report.overall_retrieval_hit_at_k)}**")
-    lines.append(f"- Overblock rate (project qs wrongly abstained): **{_pct(report.overall_overblock_rate)}**")
+    lines.append(
+        f"- Retrieval hit@{report.k} (precise): **{_pct(report.overall_retrieval_hit_at_k)}**"
+    )
+    lines.append(
+        f"- Overblock rate (project qs wrongly abstained): **{_pct(report.overall_overblock_rate)}**"
+    )
     lines.append(f"- Should-abstain accuracy: **{_pct(report.overall_should_abstain_accuracy)}**")
     if report.overall_hallucination_rate is not None:
-        lines.append(f"- Hallucination rate (generation): **{_pct(report.overall_hallucination_rate)}**")
+        lines.append(
+            f"- Hallucination rate (generation): **{_pct(report.overall_hallucination_rate)}**"
+        )
     lines.append("")
     lines.append("## By class")
     lines.append("")
