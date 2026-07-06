@@ -141,7 +141,7 @@ def test_shell_block_still_flagged_when_not_howto() -> None:
 def test_howto_non_shell_block_is_still_verified() -> None:
     warnings = evaluate_rag_answer(
         question="How do I set the region?",
-        answer="Set it here:\n\n```hcl\nregion = \"invented-region-zzz-1\" profile prod\n```",
+        answer='Set it here:\n\n```hcl\nregion = "invented-region-zzz-1" profile prod\n```',
         sources=[_source("main.tf")],
         source_contents=['region = "eu-central-1"'],
     )

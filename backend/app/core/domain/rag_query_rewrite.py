@@ -48,9 +48,7 @@ def build_query_rewrite_prompt(question: str, prior_terms: str | None = None) ->
     )
 
 
-def build_corrective_query_rewrite_prompt(
-    question: str, prior_terms: str | None = None
-) -> str:
+def build_corrective_query_rewrite_prompt(question: str, prior_terms: str | None = None) -> str:
     """A rewrite prompt for the CRAG-lite corrective pass: the first search found
     nothing relevant, so ask for *different* terms rather than the same query again.
 
