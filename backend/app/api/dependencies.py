@@ -113,6 +113,26 @@ project_context_composer = ComposeProjectContextUseCase(
     user_profile_repository,
     watch_repository=project_watch_repository,
 )
+
+
+def handbook_text_provider(workspace_id: str) -> str | None:
+    """Deterministic project handbook text for indexing as a pseudo-document.
+
+    Built fresh from the latest project map (same builder as the Handbook memory
+    item), so "what is this project about" questions can retrieve the summary.
+    Returns None when no map exists yet or the build fails — indexing then simply
+    skips the pseudo-document."""
+    graph = project_graph_repository.get_latest_graph(workspace_id)
+    if graph is None:
+        return None
+    try:
+        from app.core.domain.project_handbook import build_handbook
+
+        return build_handbook(graph)
+    except Exception:  # noqa: BLE001 — optional enrichment, never break indexing
+        return None
+
+
 model_experiment_repository = build_model_experiment_repository()
 model_experiment_rating_repository = build_model_experiment_rating_repository()
 workspace_model_selection_repository = build_workspace_model_selection_repository()

@@ -8,7 +8,11 @@ from app.core.domain.attached_documents import (
     AttachedDocument,
     build_attached_documents_section,
 )
-from app.core.domain.context_budget import chunk_char_budget, fit_context_results
+from app.core.domain.context_budget import (
+    chunk_char_budget,
+    fit_context_results,
+    project_fits_whole_context,
+)
 from app.core.domain.conversation_budget import (
     SUMMARY_TRIGGER_MIN_OLDER_TURNS,
     build_summary_prompt,
@@ -19,6 +23,7 @@ from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
 from app.core.domain.mmr import EMBEDDING_KEY, mmr_select
+from app.core.domain.parent_document import expand_to_parents
 from app.core.domain.question_intent import looks_project_specific
 from app.core.domain.rag import (
     RagQualityWarning,
@@ -225,6 +230,7 @@ class AskWorkspaceQuestionUseCase:
         max_history_turns: int = 6,
         project_context_provider=None,
         enable_query_rewrite: bool | None = None,
+        index_manifest_repository=None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.embedding_provider = embedding_provider
@@ -254,6 +260,11 @@ class AskWorkspaceQuestionUseCase:
                 "on",
             )
         self.enable_query_rewrite = enable_query_rewrite
+        # Optional index manifest (source_path -> {hash, chunks}). When present it
+        # enumerates every indexed file, enabling small-project full-context mode:
+        # if the whole project provably fits the window we skip retrieval and feed
+        # all files. None = feature disabled (plain retrieval, as before).
+        self.index_manifest_repository = index_manifest_repository
 
     def _project_memory_section(self, workspace_id: str, query: str) -> str:
         section, _, _, _ = self._project_context(workspace_id, query)
@@ -995,6 +1006,77 @@ class AskWorkspaceQuestionUseCase:
         rewritten = parse_rewritten_query(raw, request.question)
         return merge_queries(base_query, rewritten)
 
+    def _full_project_context(self, workspace_id: str) -> list[ContextSearchResult]:
+        """Every indexed chunk of every file, ordered by file then position — the
+        whole project as context. Used only when it provably fits the window.
+        Returns [] (→ fall back to retrieval) if the manifest or chunks are
+        unavailable."""
+        repo = self.index_manifest_repository
+        if repo is None:
+            return []
+        try:
+            manifest = repo.get(workspace_id) or {}
+        except Exception:  # noqa: BLE001 — fail-open to retrieval
+            return []
+        results: list[ContextSearchResult] = []
+        for source_path in sorted(manifest):
+            try:
+                chunks = self.vector_store.get_source_chunks(workspace_id, source_path)
+            except Exception:  # noqa: BLE001 — skip a file we can't read, keep the rest
+                continue
+            for chunk in chunks:
+                results.append(
+                    ContextSearchResult(
+                        chunk_id=chunk.chunk_id,
+                        source_path=source_path,
+                        content=chunk.content,
+                        score=1.0,
+                        metadata={},
+                    )
+                )
+        return results
+
+    def _maybe_full_project_context(
+        self,
+        request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort | None,
+    ) -> list[ContextSearchResult] | None:
+        """Small-project full-context mode: if the entire index provably fits the
+        model's window, return all files as context (retrieval-free, citations
+        intact). Returns None when the project is too big or the feature is off, so
+        the caller proceeds with normal retrieval."""
+        if self.index_manifest_repository is None:
+            return None
+        try:
+            status = self.index_status_repository.get(request.workspace_id)
+        except Exception:  # noqa: BLE001 — fail-open to retrieval
+            return None
+        chunks_count = getattr(status, "chunks_count", 0) if status else 0
+        context_window = getattr(llm_provider, "context_window", None)
+        if not project_fits_whole_context(chunks_count, context_window):
+            return None
+        full = self._full_project_context(request.workspace_id)
+        return full or None
+
+    def _expand_parents(
+        self,
+        workspace_id: str,
+        results: list[ContextSearchResult],
+    ) -> list[ContextSearchResult]:
+        """Small-to-big: grow each retrieved chunk with its file neighbours so the
+        model sees enough surrounding context (a matched function body regains its
+        signature/imports). Deterministic and fail-open — any lookup error leaves the
+        retrieved chunks untouched."""
+        if not results:
+            return results
+        try:
+            return expand_to_parents(
+                results,
+                lambda source_path: self.vector_store.get_source_chunks(workspace_id, source_path),
+            )
+        except Exception:  # noqa: BLE001 — expansion is optional, never fail the ask
+            return results
+
     def _search_context(
         self,
         request: AskWorkspaceQuestionInput,
@@ -1002,6 +1084,23 @@ class AskWorkspaceQuestionUseCase:
     ) -> list[ContextSearchResult]:
         if request.limit <= 0 or not request.question.strip():
             return []
+
+        # Small-project full-context mode: when the whole index provably fits the
+        # window, feed every file instead of retrieving — on a small project the
+        # retriever can only add the risk of missing the right file. Citations stay
+        # intact (each chunk keeps its source_path); fit_context_results downstream
+        # is still the overflow guard.
+        #
+        # Gated on question intent: full-context bypasses the relevance threshold
+        # (its results carry an artificial score), so without this gate "what time
+        # is it" on a tiny project would come back with the whole repo attached as
+        # sources instead of routing to general conversation. Questions without
+        # project signals fall through to normal retrieval, where the calibrated
+        # threshold keeps doing that routing.
+        if looks_project_specific(request.question):
+            full_context = self._maybe_full_project_context(request, llm_provider)
+            if full_context is not None:
+                return full_context
 
         # Expand the follow-up with recent conversation terms so retrieval lands
         # on the files the dialogue is about ("disable it" -> "...ecs...disable it").
@@ -1026,12 +1125,17 @@ class AskWorkspaceQuestionUseCase:
             # relevant files); cap per source before the reranker picks.
             candidates = limit_per_source(candidates)
             if len(candidates) <= request.limit:
-                return _strip_embeddings(candidates[: request.limit])
+                return self._expand_parents(
+                    request.workspace_id, _strip_embeddings(candidates[: request.limit])
+                )
             order = self.reranker.rerank(
                 retrieval_query, [result.content for result in candidates], request.limit
             )
             reranked = [candidates[i] for i in order if 0 <= i < len(candidates)]
-            return _strip_embeddings((reranked or candidates)[: request.limit])
+            return self._expand_parents(
+                request.workspace_id,
+                _strip_embeddings((reranked or candidates)[: request.limit]),
+            )
 
         # Default path (no reranker): fetch a wider pool and pick a relevant-but-
         # diverse subset with MMR, so the budgeted context covers more of the
@@ -1052,7 +1156,10 @@ class AskWorkspaceQuestionUseCase:
         # Cap chunks-per-file before MMR so the diverse subset spans more files
         # rather than several near-duplicate slices of one dominant document.
         candidates = limit_per_source(candidates)
-        return _strip_embeddings(mmr_select(query_embedding, candidates, target))
+        return self._expand_parents(
+            request.workspace_id,
+            _strip_embeddings(mmr_select(query_embedding, candidates, target)),
+        )
 
     def _skill_profile_audit(
         self,

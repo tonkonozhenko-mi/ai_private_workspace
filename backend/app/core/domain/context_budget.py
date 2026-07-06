@@ -68,6 +68,43 @@ def chunk_char_budget(
     return max(min_chunk_chars, remaining_tokens * CHARS_PER_TOKEN)
 
 
+# Upper bound on the characters one stored chunk contributes to the prompt: the
+# structure-aware chunker's body cap (~1500) + a contextual header + per-chunk
+# framing. Deliberately generous (≈2x a typical chunk) so the "whole project
+# fits" decision is conservative and needs no content read — the slack also
+# absorbs the memory/history the gate doesn't measure.
+FULL_CONTEXT_PER_CHUNK_CHARS = 1500 + 120 + _PER_CHUNK_OVERHEAD_CHARS
+# Stay below the hard budget so fit_context_results never has to trim a file.
+FULL_CONTEXT_FILL_RATIO = 0.9
+
+
+def project_fits_whole_context(
+    chunks_count: int,
+    context_window: int | None,
+    *,
+    memory_text: str = "",
+    history: list[tuple[str, str]] | None = None,
+    token_counter: Callable[[str], int] | None = None,
+) -> bool:
+    """True when every indexed chunk provably fits the prompt at once.
+
+    On a small project the whole codebase fits the window, so retrieval only adds
+    the risk of missing the right file. When this returns True the caller may skip
+    retrieval and feed all files wholesale. Uses a generous per-chunk ceiling, so
+    the decision is deterministic and needs no content read; ``fit_context_results``
+    remains the final guard against overflow.
+    """
+    if chunks_count <= 0:
+        return False
+    budget = chunk_char_budget(
+        context_window,
+        memory_text=memory_text,
+        history=history,
+        token_counter=token_counter,
+    )
+    return chunks_count * FULL_CONTEXT_PER_CHUNK_CHARS <= budget * FULL_CONTEXT_FILL_RATIO
+
+
 def fit_context_results(
     results: list[ContextSearchResult],
     char_budget: int,
