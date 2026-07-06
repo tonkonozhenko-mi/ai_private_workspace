@@ -35,10 +35,17 @@ from app.core.domain.rag import (
 from app.core.domain.rag_answer_cleanup import strip_source_path_echo
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.rag_prompt import (
+    AnswerMode,
     SkillPromptInstruction,
     answer_mode_tuning,
     build_general_chat_prompt,
     build_workspace_question_prompt,
+)
+from app.core.domain.rag_structured_answer import (
+    STRUCTURED_CITATIONS_ENV_VAR,
+    citations_response_format,
+    structured_answer_instruction,
+    structured_answer_text,
 )
 from app.core.domain.rag_query_rewrite import (
     build_corrective_query_rewrite_prompt,
@@ -567,6 +574,7 @@ class AskWorkspaceQuestionUseCase:
             )
             for result in context_results
         ]
+        structured_format, prompt = self._structured_citations(request, llm_provider, prompt)
         try:
             answer, usage = self._generate_answer_with_usage(
                 llm_provider,
@@ -575,6 +583,7 @@ class AskWorkspaceQuestionUseCase:
                 request.temperature,
                 request.think,
                 prompt_history,
+                structured_format,
             )
         except RuntimeError as exc:
             return self._record_question_event(
@@ -972,6 +981,31 @@ class AskWorkspaceQuestionUseCase:
         )
         return answer_text, usage, None
 
+    def _structured_citations(
+        self,
+        request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort,
+        prompt: str,
+    ) -> tuple[dict | None, str]:
+        """Decide whether to ask for a schema-constrained answer, returning the
+        ``response_format`` and a prompt nudged toward the JSON shape (or ``(None,
+        prompt)`` unchanged). Experimental, so gated three ways: the opt-in env flag,
+        Deep-dive mode only (its wider context is where citation discipline slips
+        most, and it's not the fast default path), and only providers that can
+        actually constrain output — otherwise the flag is a no-op."""
+        if os.environ.get(STRUCTURED_CITATIONS_ENV_VAR, "").strip().lower() not in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        ):
+            return None, prompt
+        if AnswerMode.normalize(request.answer_mode) != AnswerMode.DEEP:
+            return None, prompt
+        if not getattr(llm_provider, "supports_structured_output", False):
+            return None, prompt
+        return citations_response_format(), prompt + structured_answer_instruction()
+
     def _generate_answer_with_usage(
         self,
         llm_provider: LLMProviderPort,
@@ -980,11 +1014,17 @@ class AskWorkspaceQuestionUseCase:
         temperature: float | None = None,
         think: bool | None = None,
         history: list[tuple[str, str]] | None = None,
+        response_format: dict | None = None,
     ) -> tuple[str, LLMUsageMetrics]:
         started_at = perf_counter()
-        answer = strip_source_path_echo(
-            llm_provider.generate(prompt, images or None, temperature, think, history)
+        raw = llm_provider.generate(
+            prompt, images or None, temperature, think, history, response_format
         )
+        # A schema-constrained answer is JSON — unwrap it to the Markdown body first,
+        # then still strip any stray source_path echo as a belt-and-braces guard.
+        if response_format is not None:
+            raw = structured_answer_text(raw)
+        answer = strip_source_path_echo(raw)
         latency_ms = max(0, round((perf_counter() - started_at) * 1000))
         usage = build_llm_usage_metrics(
             prompt=prompt,
