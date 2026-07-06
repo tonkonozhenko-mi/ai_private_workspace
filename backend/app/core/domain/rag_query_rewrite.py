@@ -48,6 +48,32 @@ def build_query_rewrite_prompt(question: str, prior_terms: str | None = None) ->
     )
 
 
+def build_corrective_query_rewrite_prompt(question: str, prior_terms: str | None = None) -> str:
+    """A rewrite prompt for the CRAG-lite corrective pass: the first search found
+    nothing relevant, so ask for *different* terms rather than the same query again.
+
+    Differs from :func:`build_query_rewrite_prompt` on purpose — reusing the same
+    prompt would very likely reproduce the same query (and the same empty result),
+    wasting the extra model call. This nudges the model toward synonyms, alternate
+    identifiers and related concepts.
+    """
+    context_line = ""
+    if prior_terms and prior_terms.strip():
+        context_line = (
+            f"Recent conversation (for context only, do not answer it):\n{prior_terms.strip()}\n\n"
+        )
+    return (
+        "A first search for this question found nothing relevant in the project. "
+        "Rewrite it into a DIFFERENT short search query — use synonyms, alternate "
+        "identifiers, and related concepts, not the same words as before. Output "
+        "ONLY the query: key nouns, identifiers and synonyms a relevant file would "
+        "contain. No explanation, no punctuation beyond spaces, at most 12 words.\n\n"
+        f"{context_line}"
+        f"Question: {question.strip()}\n"
+        "Different search query:"
+    )
+
+
 def parse_rewritten_query(raw: str, original: str) -> str:
     """Sanitise the model's reply into a usable query, or fall back to ``original``.
 

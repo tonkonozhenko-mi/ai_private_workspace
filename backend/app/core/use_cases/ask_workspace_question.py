@@ -40,6 +40,7 @@ from app.core.domain.rag_prompt import (
     build_workspace_question_prompt,
 )
 from app.core.domain.rag_query_rewrite import (
+    build_corrective_query_rewrite_prompt,
     build_query_rewrite_prompt,
     merge_queries,
     parse_rewritten_query,
@@ -1051,6 +1052,7 @@ class AskWorkspaceQuestionUseCase:
         request: AskWorkspaceQuestionInput,
         llm_provider: LLMProviderPort,
         force: bool = False,
+        corrective: bool = False,
     ) -> str:
         """Best-effort LLM rewrite of the retrieval query (opt-in via env).
 
@@ -1059,6 +1061,8 @@ class AskWorkspaceQuestionUseCase:
         or degenerate reply falls back to ``base_query``, so retrieval is never
         worse than the no-rewrite path. ``force`` runs the rewrite even when the
         env toggle is off — used by the one-shot corrective retrieval (CRAG-lite).
+        ``corrective`` uses a prompt that asks for *different* terms, so the
+        corrective pass doesn't just reproduce the query that already failed.
         """
         if not self.enable_query_rewrite and not force:
             return base_query
@@ -1067,7 +1071,10 @@ class AskWorkspaceQuestionUseCase:
             for role, content in self._conversation_history(request)
             if role == "user" and content.strip()
         )
-        prompt = build_query_rewrite_prompt(request.question, prior_terms=prior_terms or None)
+        build_prompt = (
+            build_corrective_query_rewrite_prompt if corrective else build_query_rewrite_prompt
+        )
+        prompt = build_prompt(request.question, prior_terms=prior_terms or None)
         try:
             raw = llm_provider.generate(prompt, None, 0.0, False, None)
         except Exception:  # noqa: BLE001 - rewrite is optional, never fail the ask
@@ -1159,7 +1166,9 @@ class AskWorkspaceQuestionUseCase:
         if llm_provider is None or not looks_project_specific(request.question):
             return None
         try:
-            results = self._search_context(request, llm_provider, force_rewrite=True)
+            results = self._search_context(
+                request, llm_provider, force_rewrite=True, corrective_rewrite=True
+            )
         except Exception:  # noqa: BLE001 — correction is optional, never fail the ask
             return None
         return results or None
@@ -1231,6 +1240,7 @@ class AskWorkspaceQuestionUseCase:
         request: AskWorkspaceQuestionInput,
         llm_provider: LLMProviderPort | None = None,
         force_rewrite: bool = False,
+        corrective_rewrite: bool = False,
     ) -> list[ContextSearchResult]:
         if request.limit <= 0 or not request.question.strip():
             return []
@@ -1257,7 +1267,11 @@ class AskWorkspaceQuestionUseCase:
         retrieval_query = self._retrieval_query(request)
         if llm_provider is not None:
             retrieval_query = self._rewrite_query(
-                retrieval_query, request, llm_provider, force=force_rewrite
+                retrieval_query,
+                request,
+                llm_provider,
+                force=force_rewrite,
+                corrective=corrective_rewrite,
             )
         query_embedding = self.embedding_provider.embed_text(retrieval_query)
         rerank = self.reranker is not None and self.reranker.enabled

@@ -116,6 +116,38 @@ def test_short_quotes_are_ignored() -> None:
     assert not any(w.code == "quote_not_in_sources" for w in warnings)
 
 
+def test_howto_shell_block_is_not_flagged_as_quote() -> None:
+    warnings = evaluate_rag_answer(
+        question="How do I deploy the infrastructure?",
+        answer="Run the following:\n\n```bash\nterraform init && terraform apply -auto-approve\n```",
+        sources=[_source("README.md")],
+        source_contents=["# Project\n\nSee the deploy docs for details."],
+    )
+    assert not any(w.code == "quote_not_in_sources" for w in warnings)
+
+
+def test_shell_block_still_flagged_when_not_howto() -> None:
+    # Not a how-to question → a fenced block claiming to be from the files is
+    # still verified.
+    warnings = evaluate_rag_answer(
+        question="What commands are defined in the makefile?",
+        answer="The file contains:\n\n```bash\nmake sacrifice && make ascend\n```",
+        sources=[_source("Makefile")],
+        source_contents=["build:\n\tgo build ./..."],
+    )
+    assert any(w.code == "quote_not_in_sources" for w in warnings)
+
+
+def test_howto_non_shell_block_is_still_verified() -> None:
+    warnings = evaluate_rag_answer(
+        question="How do I set the region?",
+        answer='Set it here:\n\n```hcl\nregion = "invented-region-zzz-1" profile prod\n```',
+        sources=[_source("main.tf")],
+        source_contents=['region = "eu-central-1"'],
+    )
+    assert any(w.code == "quote_not_in_sources" for w in warnings)
+
+
 def _source(source_path: str) -> RagSource:
     return RagSource(
         chunk_id=f"{source_path}-1",
