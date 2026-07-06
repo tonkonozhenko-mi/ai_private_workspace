@@ -7,6 +7,13 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-07-06
+
+### Fixed
+
+- **A workspace opened inside a bigger repository no longer reports that repository's git history.** If you pointed the app at a subfolder of a monorepo, git still "found" the parent repository (it climbs to the nearest `.git`), so the Home activity card showed the *parent's* commit counts and contributors, and the Investigator's git-history tool could quote the parent's commit messages verbatim — another project's history leaking into your answers and stats. Every git query is now scoped to the workspace's own subtree when the workspace isn't the repository root, so counts, contributors, hotspots, recent commits and "what changed" all reflect only the workspace. When the workspace *is* the repository root (the common case), nothing changes.
+- **A fresh workspace answers with the recommended model instead of a stale one.** Opening a new workspace whose engine happened to still hold a different model from a previous session (e.g. an inherited Mistral) kept answering on that model, even though setup showed the recommended Qwen3 4B — worse answers, and a noticeably weaker agent. Now, when a workspace activates with no explicit answer-model choice of its own and nothing was globally switched, the engine falls back to the recommended default. The search/embedding model is left untouched so an existing index stays valid.
+
 ## [0.4.0] - 2026-07-06
 
 ### Fixed

@@ -33,6 +33,23 @@ def test_reset_is_idempotent_and_safe_when_unset():
     assert manager.active_llm_model_id == default_gguf_llm().id
 
 
+def test_reset_llm_only_leaves_the_embedding_model_untouched():
+    # A fresh workspace with no answer-model choice resets the LLM to recommended,
+    # but must NOT change the search/embedding model (that would invalidate the
+    # existing index).
+    from app.core.domain.gguf_catalog import default_gguf_embedding
+
+    manager = _manager()
+    manager.set_llm_ref(GgufModelRef(model_id="llama3.2"))
+    manager.set_embed_ref(GgufModelRef(model_id="bge-m3"))
+
+    manager.reset_llm_selection()
+
+    assert manager.active_llm_model_id == default_gguf_llm().id  # back to recommended
+    assert manager.active_embed_model_id == "bge-m3"  # untouched
+    assert default_gguf_embedding().id == "nomic-embed-text"
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):
