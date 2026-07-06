@@ -1,7 +1,12 @@
 """looks_general_chat() — the high-precision inverse chit-chat detector."""
 
 from app.core.domain.question_intent import looks_general_chat, looks_project_specific
-from eval.golden_set import CLASS_PROJECT_BROAD, CLASS_PROJECT_PRECISE, CLASS_SHOULD_ABSTAIN, golden_set
+from eval.golden_set import (
+    CLASS_PROJECT_BROAD,
+    CLASS_PROJECT_PRECISE,
+    CLASS_SHOULD_ABSTAIN,
+    golden_set,
+)
 
 
 def test_all_should_abstain_are_chat():
@@ -19,13 +24,22 @@ def test_no_project_question_is_chat():
 
 
 def test_bare_greetings_and_thanks():
-    for q in ("hi", "Hello!", "hey there".replace(" there", ""), "Thanks!", "thank you very much", "Good morning"):
+    for q in (
+        "hi",
+        "Hello!",
+        "hey there".replace(" there", ""),
+        "Thanks!",
+        "thank you very much",
+        "Good morning",
+    ):
         assert looks_general_chat(q), q
 
 
 def test_greeting_prefix_on_a_project_question_is_not_chat():
     # A greeting that prefixes a substantive project question must NOT route to chat.
-    assert not looks_general_chat("Hi, how does the RAG pipeline work?")  # 'pipeline' = project signal
+    assert not looks_general_chat(
+        "Hi, how does the RAG pipeline work?"
+    )  # 'pipeline' = project signal
     assert not looks_general_chat("Hello, what is this project about?")  # 'this project'
 
 
