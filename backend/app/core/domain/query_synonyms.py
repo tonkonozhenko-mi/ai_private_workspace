@@ -58,9 +58,7 @@ _COMPILED: tuple[tuple[re.Pattern[str], str], ...] = tuple(
     (_member_pattern(term), term) for group in _SYNONYM_GROUPS for term in group
 )
 # term -> its group, for quick lookup of what to add.
-_GROUP_OF: dict[str, tuple[str, ...]] = {
-    term: group for group in _SYNONYM_GROUPS for term in group
-}
+_GROUP_OF: dict[str, tuple[str, ...]] = {term: group for group in _SYNONYM_GROUPS for term in group}
 
 
 def synonym_additions(query: str) -> list[str]:

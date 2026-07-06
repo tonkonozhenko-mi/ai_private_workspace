@@ -287,7 +287,9 @@ class AskWorkspaceQuestionUseCase:
             elif env in ("0", "false", "no", "off"):
                 enable_query_rewrite = False
             else:
-                enable_query_rewrite = bool(reranker is not None and getattr(reranker, "enabled", False))
+                enable_query_rewrite = bool(
+                    reranker is not None and getattr(reranker, "enabled", False)
+                )
         self.enable_query_rewrite = enable_query_rewrite
         # Optional index manifest (source_path -> {hash, chunks}). When present it
         # enumerates every indexed file, enabling small-project full-context mode:

@@ -2,7 +2,6 @@
 applied to the retrieval query before it reaches the vector store."""
 
 import os
-from types import SimpleNamespace
 
 from app.core.use_cases.ask_workspace_question import (
     QUERY_REWRITE_ENV_VAR,
