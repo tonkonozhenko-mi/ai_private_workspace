@@ -37,8 +37,8 @@ from app.core.domain.chunking import (
 )
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import TextChunk
-from app.core.domain.rag import RagSource
 from app.core.domain.question_intent import looks_general_chat
+from app.core.domain.rag import RagSource
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.relevance_calibration import calibrate_from_embeddings
 from app.core.use_cases.ask_workspace_question import (

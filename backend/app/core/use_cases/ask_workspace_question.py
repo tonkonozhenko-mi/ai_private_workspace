@@ -24,6 +24,7 @@ from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
 from app.core.domain.mmr import EMBEDDING_KEY, mmr_select
 from app.core.domain.parent_document import expand_to_parents
+from app.core.domain.query_synonyms import expand_query_synonyms
 from app.core.domain.question_intent import looks_general_chat, looks_project_specific
 from app.core.domain.rag import (
     RagQualityWarning,
@@ -273,15 +274,22 @@ class AskWorkspaceQuestionUseCase:
         # Optional shared project-context provider (handbook + memory + graph
         # facts): (workspace_id, query) -> str. None = unchanged behaviour.
         self.project_context_provider = project_context_provider
-        # Optional LLM query rewrite before retrieval. None reads the env toggle
-        # (default off), so it can ship available-but-not-forced like the reranker.
+        # Optional LLM query rewrite before retrieval. Precedence: explicit env
+        # override wins either way; otherwise it defaults ON when a reranker is
+        # active and OFF when not. Rationale (P7a): enabling the reranker already
+        # opts the user into the extra latency of a precision pass, and the rewrite
+        # is exactly what feeds that pass better candidates — so pairing them is the
+        # sensible default, while a plain-retrieval setup stays fast by default.
         if enable_query_rewrite is None:
-            enable_query_rewrite = os.environ.get(QUERY_REWRITE_ENV_VAR, "").strip().lower() in (
-                "1",
-                "true",
-                "yes",
-                "on",
-            )
+            env = os.environ.get(QUERY_REWRITE_ENV_VAR, "").strip().lower()
+            if env in ("1", "true", "yes", "on"):
+                enable_query_rewrite = True
+            elif env in ("0", "false", "no", "off"):
+                enable_query_rewrite = False
+            else:
+                enable_query_rewrite = bool(
+                    reranker is not None and getattr(reranker, "enabled", False)
+                )
         self.enable_query_rewrite = enable_query_rewrite
         # Optional index manifest (source_path -> {hash, chunks}). When present it
         # enumerates every indexed file, enabling small-project full-context mode:
@@ -1340,6 +1348,11 @@ class AskWorkspaceQuestionUseCase:
         # Expand the follow-up with recent conversation terms so retrieval lands
         # on the files the dialogue is about ("disable it" -> "...ecs...disable it").
         retrieval_query = self._retrieval_query(request)
+        # Deterministic domain-synonym expansion (csp↔content-security-policy,
+        # k8s↔kubernetes, dev↔development, …): bridges the vocabulary gap between
+        # how the user asks and how the code is written, before any LLM rewrite.
+        # Pure and always-on — it only adds tokens, never removes the user's.
+        retrieval_query = expand_query_synonyms(retrieval_query)
         if llm_provider is not None:
             retrieval_query = self._rewrite_query(
                 retrieval_query,
