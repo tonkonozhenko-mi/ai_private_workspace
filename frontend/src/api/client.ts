@@ -620,6 +620,18 @@ export function getProjectIntelligence(
   );
 }
 
+export function getStarterQuestions(
+  workspaceId: string,
+  role?: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<{ questions: string[]; from_map: boolean }> {
+  const query = role ? `?role=${encodeURIComponent(role)}` : "";
+  return requestJson<{ questions: string[]; from_map: boolean }>(
+    `/workspaces/${workspaceId}/starter-questions${query}`,
+    { signal: options.signal, method: "GET", headers: { Accept: "application/json" } },
+  );
+}
+
 export function buildProjectIntelligence(
   workspaceId: string,
   options: { signal?: AbortSignal } = {},

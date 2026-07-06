@@ -42,6 +42,7 @@ from app.core.domain.project_intelligence_view import (
 from app.core.domain.project_memory import MemoryKind, confidence_explanation
 from app.core.domain.role_brief import build_role_brief
 from app.core.domain.role_lens import role_lens_for
+from app.core.domain.starter_questions import starter_questions
 from app.core.ports.llm_provider_factory import LLMProviderFactoryError
 from app.core.use_cases.build_project_graph import (
     BuildProjectGraphInput,
@@ -133,6 +134,19 @@ def build_project_intelligence(workspace_id: str) -> dict:
     except BuildProjectGraphScanRequiredError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return {"built": True, "snapshot": _meta_dict(meta)}
+
+
+@router.get("/{workspace_id}/starter-questions")
+def get_starter_questions(workspace_id: str, role: str | None = None) -> dict:
+    """A few deterministic, clickable questions for the empty Ask composer — built
+    from the project map when it exists, or a generic set before it does. Always
+    returns something (never 404), so the composer is never blank."""
+    graph = project_graph_repository.get_latest_graph(workspace_id)
+    lens = role_lens_for(_resolve_role(workspace_id, role))
+    return {
+        "questions": starter_questions(graph, lens, limit=4),
+        "from_map": graph is not None and bool(graph.entities),
+    }
 
 
 @router.get("/{workspace_id}/intelligence")

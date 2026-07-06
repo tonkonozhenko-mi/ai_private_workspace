@@ -64,6 +64,7 @@ import {
   getAnswerRatingNudges,
   startIndexWorkspaceJob,
   getWorkspaceJob,
+  getStarterQuestions,
 } from "../api/client";
 import { AnswerFeedback } from "./AnswerFeedback";
 import { AnswerNudges } from "./AnswerNudges";
@@ -251,6 +252,9 @@ export function AskWorkspace({
   seedQuestion = null,
 }: AskWorkspaceProps) {
   const [question, setQuestion] = useState("");
+  // Deterministic starter questions for the empty composer (D1): built from the
+  // project map when it exists, generic before it does. Fetched once per workspace.
+  const [starterQuestions, setStarterQuestions] = useState<string[]>([]);
   // Developer details are off by default and can be toggled right here on the
   // Ask screen.
   const [devMode, setDevMode] = useState(false);
@@ -441,6 +445,23 @@ export function AskWorkspace({
     }, 250);
     return () => window.clearTimeout(timeout);
   }, [answerNoteSearch, answerNotesPinnedOnly]);
+
+  // Map-derived starter questions for the empty composer (D1). Deterministic
+  // backend endpoint; falls back to the static per-mode examples if it returns
+  // nothing or errors (offline / no map yet).
+  useEffect(() => {
+    let cancelled = false;
+    getStarterQuestions(workspaceId)
+      .then((result) => {
+        if (!cancelled) setStarterQuestions(result.questions ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setStarterQuestions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId]);
 
   async function refreshConversations(
     options: { search?: string; includeArchived?: boolean; pinnedOnly?: boolean } = {},
@@ -1130,8 +1151,11 @@ export function AskWorkspace({
             ) : null}
 
             {history.length === 0 ? (
-              <div className="ask-example-strip" aria-label="Example questions">
-                {exampleQuestionsForMode(assistantMode).map((example) => (
+              <div className="ask-example-strip" aria-label="Questions worth asking">
+                {(starterQuestions.length > 0
+                  ? starterQuestions
+                  : exampleQuestionsForMode(assistantMode)
+                ).map((example) => (
                   <button
                     key={example}
                     type="button"
