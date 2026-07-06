@@ -97,7 +97,7 @@ def evaluate_rag_answer(
     # quoted spans or code, over ~20 chars) that doesn't appear in any retrieved
     # file. A paraphrase-in-quotes or an invented snippet is a subtle fabrication
     # the term/citation checks above don't catch (they look at identifiers/paths).
-    missing_quotes = find_quotes_not_in_sources(answer, source_contents)
+    missing_quotes = find_quotes_not_in_sources(answer, source_contents, question=question)
     if missing_quotes:
         warnings.append(
             RagQualityWarning(
@@ -219,15 +219,43 @@ def find_ungrounded_terms(
     return list(dict.fromkeys(out))[:8]
 
 
-# Verbatim-quote detection. Fenced code blocks, double-quoted spans (straight or
-# curly), and long inline-code spans are the forms a model uses to present text
-# "as quoted from the file".
-_FENCED_CODE_RE = re.compile(r"```[^\n]*\n(.*?)```", re.DOTALL)
+# Verbatim-quote detection. Fenced code blocks (with their optional language tag),
+# double-quoted spans (straight or curly), and long inline-code spans are the forms
+# a model uses to present text "as quoted from the file".
+_FENCED_CODE_RE = re.compile(r"```([^\n`]*)\n(.*?)```", re.DOTALL)
 _DOUBLE_QUOTED_RE = re.compile(r"[\"“]([^\"“”\n]+)[\"”]")
 _WHITESPACE_RE = re.compile(r"\s+")
 # A quote shorter than this is too small to trust as "verbatim" (and risks
 # matching common phrases by chance), so we don't verify it.
 _MIN_QUOTE_CHARS = 20
+# Fenced-block languages that mark a *runnable command example*, not a quote from a
+# file. On a how-to question the model legitimately generates these ("run `terraform
+# init && terraform apply`"), so verifying them against the sources is a false
+# positive.
+_SHELL_LANGS = frozenset(
+    {
+        "bash",
+        "sh",
+        "shell",
+        "zsh",
+        "console",
+        "shell-session",
+        "shellsession",
+        "powershell",
+        "ps",
+        "ps1",
+        "bat",
+        "cmd",
+    }
+)
+# The question asks "how do I run/do X" — where generated command examples are
+# expected and shouldn't be treated as quotes from the project.
+_HOWTO_RE = re.compile(
+    r"\bhow\s+(?:do|to|can|would|should|does|might)\b"
+    r"|\b(?:command|steps?|instructions?)\s+(?:to|for)\b"
+    r"|\brun\b",
+    re.IGNORECASE,
+)
 
 
 def _normalize_for_quote(text: str) -> str:
@@ -236,12 +264,22 @@ def _normalize_for_quote(text: str) -> str:
     return _WHITESPACE_RE.sub(" ", text).strip().casefold()
 
 
-def find_quotes_not_in_sources(answer: str, source_contents: list[str]) -> list[str]:
+def _looks_like_howto(question: str) -> bool:
+    return bool(_HOWTO_RE.search(question or ""))
+
+
+def find_quotes_not_in_sources(
+    answer: str,
+    source_contents: list[str],
+    question: str = "",
+) -> list[str]:
     """Verbatim quotes (code blocks, double-quoted or long inline-code spans over
     ~20 chars) that don't appear in any retrieved file, whitespace-normalized.
 
     A quote is a claim of exactness; if it isn't actually in the sources it's a
     paraphrase dressed as a quote, or invented. Read-only — flags, never edits.
+    On a how-to question, fenced *shell/command* blocks are skipped: they're
+    generated command examples, not quotes from the project's files.
     """
     if not answer or not source_contents:
         return []
@@ -249,8 +287,12 @@ def find_quotes_not_in_sources(answer: str, source_contents: list[str]) -> list[
     if not source_blob:
         return []
 
+    howto = _looks_like_howto(question)
     candidates: list[str] = []
-    candidates.extend(_FENCED_CODE_RE.findall(answer))
+    for lang, body in _FENCED_CODE_RE.findall(answer):
+        if howto and lang.strip().casefold() in _SHELL_LANGS:
+            continue  # a generated command example, not a quote from the files
+        candidates.append(body)
     candidates.extend(_DOUBLE_QUOTED_RE.findall(answer))
     candidates.extend(
         token

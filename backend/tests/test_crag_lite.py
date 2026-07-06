@@ -78,7 +78,7 @@ def test_corrective_retrieval_none_for_chit_chat():
 def test_corrective_retrieval_returns_results_for_project_question():
     uc = _uc()
     seen = {}
-    uc._search_context = lambda request, provider, force_rewrite=False: (
+    uc._search_context = lambda request, provider, force_rewrite=False, corrective_rewrite=False: (
         seen.update(force=force_rewrite) or [_result("a.py", 0.7)]
     )
     out = uc._corrective_retrieval(_req(), _LLM())
@@ -138,3 +138,37 @@ def test_regeneration_rejected_when_still_ungrounded():
     # regenerated answer still cites no source path → not better → keep original
     uc._generate_answer_with_usage = lambda *a, **k: ("It is configured somewhere.", None)
     assert uc._corrective_regeneration(_req(), _LLM(), [], [_hard_warning()], 0.4) is None
+
+
+# --- corrective rewrite uses a differentiating prompt (#3) ---------------
+
+
+class _CapturingLLM:
+    def __init__(self):
+        self.prompts = []
+
+    def generate(self, prompt, images, temperature, think, history):
+        self.prompts.append(prompt)
+        return "different search terms"
+
+
+def test_corrective_rewrite_uses_different_prompt():
+    uc = _uc(enable_query_rewrite=False)
+    uc._conversation_history = lambda request: []
+    llm = _CapturingLLM()
+    out = uc._rewrite_query("base", _req(), llm, force=True, corrective=True)
+    assert "base" in out
+    # the corrective prompt explicitly asks for a *different* query
+    assert "DIFFERENT" in llm.prompts[0]
+    assert "nothing relevant" in llm.prompts[0]
+
+
+def test_corrective_retrieval_requests_corrective_rewrite():
+    uc = _uc()
+    seen = {}
+    uc._search_context = lambda request, provider, force_rewrite=False, corrective_rewrite=False: (
+        seen.update(force=force_rewrite, corrective=corrective_rewrite) or [_result("a.py", 0.8)]
+    )
+    uc._corrective_retrieval(_req(), _LLM())
+    assert seen["force"] is True
+    assert seen["corrective"] is True
