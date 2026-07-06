@@ -38,6 +38,7 @@ from app.core.domain.chunking import (
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import TextChunk
 from app.core.domain.rag import RagSource
+from app.core.domain.question_intent import looks_general_chat
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.relevance_calibration import calibrate_from_embeddings
 from app.core.use_cases.ask_workspace_question import (
@@ -239,13 +240,21 @@ def _run_embedder(alias: str, repo: Path, k: int, base_url: str, llm_model: str 
 
         llm = _build_llm(base_url, llm_model) if llm_model else None
         outcomes: list[QuestionOutcome] = []
+        routed_count = 0
         for case in golden_set():
             request = AskWorkspaceQuestionInput(
                 workspace_id=workspace_id, question=case.question, limit=k
             )
+            # Mirror the product decision: obvious chit-chat is routed straight to
+            # general conversation BEFORE retrieval (feat/general-chat-router). The
+            # eval still runs retrieval so best_score/source_paths stay available as
+            # diagnostics for the threshold layer, but `abstained` reflects what the
+            # app would actually do.
+            routed = looks_general_chat(case.question)
+            routed_count += routed
             results = uc._search_context(request, None)
             best = max((r.score for r in results), default=0.0)
-            abstained = (not results) or best < threshold
+            abstained = routed or (not results) or best < threshold
             paths = tuple(dict.fromkeys(r.source_path for r in results))
 
             hallucinated = None
@@ -264,6 +273,7 @@ def _run_embedder(alias: str, repo: Path, k: int, base_url: str, llm_model: str 
 
         cases = list(golden_set())
         report = compute_report(alias, k, cases, outcomes)
+        print(f"  routed to general chat before retrieval: {routed_count}", flush=True)
         _write_reports(report, cases, outcomes, floor=floor, threshold=threshold)
         _print_summary(report)
 
