@@ -288,7 +288,10 @@ def test_seed_search_is_skipped_when_retrieval_finds_nothing():
     )
     result = uc.execute(InvestigateProjectInput(workspace_id="w1", question="anything?"))
     # No retrieval hits → no seed step; the transcript is whatever the agent did.
-    assert all(s.thought != "Start from what a normal project search returns for the question." for s in result.steps)
+    assert all(
+        s.thought != "Start from what a normal project search returns for the question."
+        for s in result.steps
+    )
 
 
 def test_stream_reports_setup_error_as_event():
