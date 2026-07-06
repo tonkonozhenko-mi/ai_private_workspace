@@ -7,6 +7,7 @@ import {
   deleteWorkspace,
   getWorkspacesOverview,
   previewWorkspaceFileSelection,
+  resetLlamaRuntimeSelection,
   updateWorkspaceIndexingRules,
   updateWorkspaceSkillProfile,
 } from "../api/client";
@@ -100,6 +101,14 @@ export function SettingsPanel({
       const overview = await getWorkspacesOverview();
       for (const item of overview.items) {
         await deleteWorkspace(item.workspace_id);
+      }
+      // With no project left there is no explicit model selection, so the engine
+      // must fall back to the recommended defaults instead of resurrecting the
+      // last-lived model on next start (D3). Best-effort: never block the reset.
+      try {
+        await resetLlamaRuntimeSelection();
+      } catch {
+        // ignore — the reset itself succeeded; defaults still apply on restart
       }
       setResetMessage(
         `Removed ${overview.items.length} project(s) and their local index data. Reloading…`,

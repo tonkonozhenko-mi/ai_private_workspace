@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **After a full project reset, the engine returns to the *recommended* model instead of resurrecting the last-lived one (D3).** Resetting projects removes every workspace, but the built-in llama.cpp engine kept a persisted answer/search model ref — so it could come back on, say, an inherited Mistral rather than the recommended Qwen3 4B, even though no project (and therefore no explicit user selection) remained. A persisted ref is only ever the cache of an explicit user switch; once no project is left it's stale. Reset now clears both the in-memory and on-disk model refs (via a new `POST /models/llama-runtime/reset-selection`), so the engine falls back to the recommended catalog defaults (Qwen3 4B / Nomic Embed) and stops any running instance so the next activation starts clean. `active_backend` is untouched; only the specific model choice is forgotten. Fail-open: the reset itself never blocks on it.
+
 ### Changed
 
 - **Retrieval bridges the vocabulary gap with a deterministic synonym table (P7b).** A question asked as "Content-Security-Policy" missed the file that spells it `csp` — a pure lexical gap that neither dense nor keyword search closes. A small, fixed table now expands the search query with the known alternate forms of any recognised term (csp↔content-security-policy, k8s↔kubernetes, dev↔development, tf↔terraform, ci/cd, and ~20 more infra/dev pairs) before retrieval runs. It only *adds* tokens — never removes or reorders the user's wording — so it can't do worse than the baseline, and it's pure/instant so it's always on (unlike the optional LLM rewrite). Word-boundary matching keeps it from firing inside unrelated words ("prod" won't match "product"). This closes the golden-set's one standing retrieval miss (`pp-csp`).

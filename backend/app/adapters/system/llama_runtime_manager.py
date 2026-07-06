@@ -185,6 +185,14 @@ class LlamaRuntimeManager:
         except GgufModelNotResolvedError:
             pass
 
+    def reset_model_selection(self) -> None:
+        """Forget the chosen answer/search models so both resolve back to the
+        recommended catalog defaults. Used on a full workspace reset: with no
+        project left there is no explicit selection, so the engine must not keep
+        reporting the last-lived model. Does not (re)start anything."""
+        self._llm_model = None
+        self._embed_model = None
+
     @property
     def active_llm_model_id(self) -> str:
         return self._resolve_llm_model().id
