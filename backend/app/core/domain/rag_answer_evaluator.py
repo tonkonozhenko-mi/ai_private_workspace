@@ -93,6 +93,24 @@ def evaluate_rag_answer(
             )
         )
 
+    # Quote verification: text the answer presents as a verbatim quote (double-
+    # quoted spans or code, over ~20 chars) that doesn't appear in any retrieved
+    # file. A paraphrase-in-quotes or an invented snippet is a subtle fabrication
+    # the term/citation checks above don't catch (they look at identifiers/paths).
+    missing_quotes = find_quotes_not_in_sources(answer, source_contents)
+    if missing_quotes:
+        warnings.append(
+            RagQualityWarning(
+                code="quote_not_in_sources",
+                message=(
+                    "The answer presents quoted text that does not appear verbatim "
+                    "in the retrieved files — verify it wasn't paraphrased or invented."
+                ),
+                severity="review",
+                evidence=missing_quotes,
+            )
+        )
+
     matched_absence_phrases = [phrase for phrase in ABSENCE_PHRASES if phrase in normalized_answer]
     conflicting_keywords = _find_conflicting_question_keywords(
         question=question,
@@ -199,6 +217,57 @@ def find_ungrounded_terms(
             continue
         out.append(token)
     return list(dict.fromkeys(out))[:8]
+
+
+# Verbatim-quote detection. Fenced code blocks, double-quoted spans (straight or
+# curly), and long inline-code spans are the forms a model uses to present text
+# "as quoted from the file".
+_FENCED_CODE_RE = re.compile(r"```[^\n]*\n(.*?)```", re.DOTALL)
+_DOUBLE_QUOTED_RE = re.compile(r"[\"“]([^\"“”\n]+)[\"”]")
+_WHITESPACE_RE = re.compile(r"\s+")
+# A quote shorter than this is too small to trust as "verbatim" (and risks
+# matching common phrases by chance), so we don't verify it.
+_MIN_QUOTE_CHARS = 20
+
+
+def _normalize_for_quote(text: str) -> str:
+    """Collapse all whitespace and lowercase, so a quote still matches its source
+    when the model reflowed indentation or line breaks."""
+    return _WHITESPACE_RE.sub(" ", text).strip().casefold()
+
+
+def find_quotes_not_in_sources(answer: str, source_contents: list[str]) -> list[str]:
+    """Verbatim quotes (code blocks, double-quoted or long inline-code spans over
+    ~20 chars) that don't appear in any retrieved file, whitespace-normalized.
+
+    A quote is a claim of exactness; if it isn't actually in the sources it's a
+    paraphrase dressed as a quote, or invented. Read-only — flags, never edits.
+    """
+    if not answer or not source_contents:
+        return []
+    source_blob = _normalize_for_quote("\n".join(source_contents))
+    if not source_blob:
+        return []
+
+    candidates: list[str] = []
+    candidates.extend(_FENCED_CODE_RE.findall(answer))
+    candidates.extend(_DOUBLE_QUOTED_RE.findall(answer))
+    candidates.extend(
+        token for token in _BACKTICK_TOKEN_RE.findall(answer) if len(token.strip()) > _MIN_QUOTE_CHARS
+    )
+
+    missing: list[str] = []
+    seen: set[str] = set()
+    for raw in candidates:
+        quote = raw.strip()
+        normalized = _normalize_for_quote(quote)
+        if len(normalized) <= _MIN_QUOTE_CHARS or normalized in seen:
+            continue
+        seen.add(normalized)
+        if normalized not in source_blob:
+            # Trim over-long evidence so the warning stays readable.
+            missing.append(quote if len(quote) <= 120 else quote[:117] + "…")
+    return missing[:5]
 
 
 def _find_conflicting_question_keywords(

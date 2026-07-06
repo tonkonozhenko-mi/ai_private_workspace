@@ -100,6 +100,21 @@ PROJECT_NOT_FOUND_WARNING = RagQualityWarning(
     evidence=[],
 )
 
+# Grounding warnings strong enough to justify one CRAG-lite corrective pass:
+# the answer either cited no retrieved file, or asserted a project term that isn't
+# in the retrieved content. Softer signals (absence-phrase conflicts, quote
+# mismatches) don't trigger a costly regeneration.
+_HARD_GROUNDING_CODES = frozenset(
+    {"answer_missing_source_paths", "answer_term_not_in_context"}
+)
+
+
+def _hard_grounding_warnings(
+    warnings: list[RagQualityWarning],
+) -> list[RagQualityWarning]:
+    return [w for w in warnings if w.code in _HARD_GROUNDING_CODES]
+
+
 # How many chunks to aim for in a grounded answer (the window budget trims if
 # they don't fit), and how wide a candidate pool to draw them from for MMR.
 _ANSWER_CHUNK_TARGET = 8
@@ -485,13 +500,33 @@ class AskWorkspaceQuestionUseCase:
             )
 
         best_score = max((result.score for result in context_results), default=0.0)
-        if best_score < self._relevance_threshold(index_status, request.answer_mode):
-            return self._record_question_event(
-                self._answer_general_conversation(
-                    request, llm_provider, project_context_missing=True
-                ),
-                request,
-            )
+        threshold = self._relevance_threshold(index_status, request.answer_mode)
+        corrected_retrieval = False
+        if best_score < threshold:
+            # CRAG-lite trigger (a): about to abstain on a project-looking question —
+            # try one corrective retrieval (forced query rewrite) before giving up.
+            corrected = self._corrective_retrieval(request, llm_provider)
+            corrected_best = max((r.score for r in corrected), default=0.0) if corrected else 0.0
+            if corrected and corrected_best >= threshold:
+                context_results = corrected
+                sources = [
+                    RagSource(
+                        chunk_id=result.chunk_id,
+                        source_path=result.source_path,
+                        score=result.score,
+                        preview=result.content[:200],
+                    )
+                    for result in context_results
+                ]
+                best_score = corrected_best
+                corrected_retrieval = True
+            else:
+                return self._record_question_event(
+                    self._answer_general_conversation(
+                        request, llm_provider, project_context_missing=True
+                    ),
+                    request,
+                )
 
         prompt_history = self._history_for_prompt(request, llm_provider)
         context_results, prompt, memory_used, facts_used, context_used = self._grounded_prompt(
@@ -531,13 +566,30 @@ class AskWorkspaceQuestionUseCase:
                 ),
                 request,
             )
+        base_warnings = evaluate_rag_answer(
+            question=request.question,
+            answer=answer,
+            sources=sources,
+            source_contents=[result.content for result in context_results],
+        )
+        # CRAG-lite trigger (b): if the answer has hard grounding warnings and we
+        # haven't already corrected retrieval, try one corrective retrieval +
+        # regeneration; adopt it only if it strictly improves grounding.
+        if not corrected_retrieval:
+            regen = self._corrective_regeneration(
+                request, llm_provider, prompt_history, base_warnings, best_score
+            )
+            if regen is not None:
+                answer = regen["answer"]
+                sources = regen["sources"]
+                context_results = regen["context_results"]
+                memory_used = regen["memory_used"]
+                facts_used = regen["facts_used"]
+                context_used = regen["context_used"]
+                usage = regen["usage"]
+                base_warnings = regen["warnings"]
         quality_warnings = [
-            *evaluate_rag_answer(
-                question=request.question,
-                answer=answer,
-                sources=sources,
-                source_contents=[result.content for result in context_results],
-            ),
+            *base_warnings,
             *request.additional_quality_warnings,
         ]
 
@@ -630,9 +682,26 @@ class AskWorkspaceQuestionUseCase:
         )
 
         best_score = max((result.score for result in context_results), default=0.0)
-        if not context_results or best_score < self._relevance_threshold(
-            index_status, request.answer_mode
-        ):
+        threshold = self._relevance_threshold(index_status, request.answer_mode)
+        if context_results and best_score < threshold:
+            # CRAG-lite trigger (a): one corrective retrieval before abstaining.
+            # (Streaming applies only the pre-generation correction; a post-answer
+            # regenerate — trigger (b) — can't rewind tokens already streamed.)
+            corrected = self._corrective_retrieval(request, llm_provider)
+            corrected_best = max((r.score for r in corrected), default=0.0) if corrected else 0.0
+            if corrected and corrected_best >= threshold:
+                context_results = corrected
+                sources = [
+                    RagSource(
+                        chunk_id=result.chunk_id,
+                        source_path=result.source_path,
+                        score=result.score,
+                        preview=result.content[:200],
+                    )
+                    for result in context_results
+                ]
+                best_score = corrected_best
+        if not context_results or best_score < threshold:
             prompt = build_general_chat_prompt(
                 question=request.question,
                 skill_instructions=request.skill_instructions,
@@ -983,15 +1052,17 @@ class AskWorkspaceQuestionUseCase:
         base_query: str,
         request: AskWorkspaceQuestionInput,
         llm_provider: LLMProviderPort,
+        force: bool = False,
     ) -> str:
         """Best-effort LLM rewrite of the retrieval query (opt-in via env).
 
         Asks the already-loaded answer model to distil the question into search
         terms, then merges the result with the original wording. Any error, empty,
         or degenerate reply falls back to ``base_query``, so retrieval is never
-        worse than the no-rewrite path.
+        worse than the no-rewrite path. ``force`` runs the rewrite even when the
+        env toggle is off — used by the one-shot corrective retrieval (CRAG-lite).
         """
-        if not self.enable_query_rewrite:
+        if not self.enable_query_rewrite and not force:
             return base_query
         prior_terms = "\n".join(
             content
@@ -1077,10 +1148,91 @@ class AskWorkspaceQuestionUseCase:
         except Exception:  # noqa: BLE001 — expansion is optional, never fail the ask
             return results
 
+    def _corrective_retrieval(
+        self,
+        request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort | None,
+    ) -> list[ContextSearchResult] | None:
+        """CRAG-lite: one bounded corrective retrieval with a forced LLM query
+        rewrite (~73% of RAG failures are retrieval, not generation). Returns the
+        new expanded context, or None if it can't run or comes back empty. Gated on
+        project-looking questions so chit-chat never triggers the extra model call;
+        deterministic control flow, fully fail-open."""
+        if llm_provider is None or not looks_project_specific(request.question):
+            return None
+        try:
+            results = self._search_context(request, llm_provider, force_rewrite=True)
+        except Exception:  # noqa: BLE001 — correction is optional, never fail the ask
+            return None
+        return results or None
+
+    def _corrective_regeneration(
+        self,
+        request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort,
+        prompt_history: list[tuple[str, str]],
+        current_warnings: list[RagQualityWarning],
+        current_best_score: float,
+    ) -> dict | None:
+        """CRAG-lite trigger (b): when the answer has hard grounding warnings, try
+        ONE corrective retrieval and regenerate — but keep the new answer only if it
+        strictly reduces hard grounding warnings AND the corrective retrieval scored
+        higher than the original. Returns the replacement bundle or None (keep the
+        original). Bounded to a single extra retrieval + generation."""
+        hard = _hard_grounding_warnings(current_warnings)
+        if not hard:
+            return None
+        corrected = self._corrective_retrieval(request, llm_provider)
+        corrected_best = max((r.score for r in corrected), default=0.0) if corrected else 0.0
+        if not corrected or corrected_best <= current_best_score:
+            return None
+        context_results, prompt, memory_used, facts_used, context_used = self._grounded_prompt(
+            request, llm_provider, corrected, prompt_history
+        )
+        try:
+            answer, usage = self._generate_answer_with_usage(
+                llm_provider,
+                prompt,
+                request.images,
+                request.temperature,
+                request.think,
+                prompt_history,
+            )
+        except RuntimeError:
+            return None
+        sources = [
+            RagSource(
+                chunk_id=result.chunk_id,
+                source_path=result.source_path,
+                score=result.score,
+                preview=result.content[:200],
+            )
+            for result in context_results
+        ]
+        warnings = evaluate_rag_answer(
+            question=request.question,
+            answer=answer,
+            sources=sources,
+            source_contents=[result.content for result in context_results],
+        )
+        if len(_hard_grounding_warnings(warnings)) >= len(hard):
+            return None  # the retry didn't actually improve grounding — keep original
+        return {
+            "answer": answer,
+            "sources": sources,
+            "context_results": context_results,
+            "warnings": warnings,
+            "usage": usage,
+            "memory_used": memory_used,
+            "facts_used": facts_used,
+            "context_used": context_used,
+        }
+
     def _search_context(
         self,
         request: AskWorkspaceQuestionInput,
         llm_provider: LLMProviderPort | None = None,
+        force_rewrite: bool = False,
     ) -> list[ContextSearchResult]:
         if request.limit <= 0 or not request.question.strip():
             return []
@@ -1106,7 +1258,9 @@ class AskWorkspaceQuestionUseCase:
         # on the files the dialogue is about ("disable it" -> "...ecs...disable it").
         retrieval_query = self._retrieval_query(request)
         if llm_provider is not None:
-            retrieval_query = self._rewrite_query(retrieval_query, request, llm_provider)
+            retrieval_query = self._rewrite_query(
+                retrieval_query, request, llm_provider, force=force_rewrite
+            )
         query_embedding = self.embedding_provider.embed_text(retrieval_query)
         rerank = self.reranker is not None and self.reranker.enabled
 
