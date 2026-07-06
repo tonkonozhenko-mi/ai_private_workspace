@@ -87,9 +87,21 @@ _SKIP_DIRS = {
     ".idea",
 }
 _MAX_FILE_BYTES = 400_000
+# Generated lock/manifest files add thousands of low-signal chunks and dominate the
+# corpus without helping retrieval — skip them (the real app doesn't index most of
+# these types anyway; this keeps the eval faithful and fast).
+_SKIP_FILES = {"package-lock.json", "pnpm-lock.json"}
+# How many chunk bodies to embed per Ollama request. The API takes an array, but a
+# single request with tens of thousands of items overflows it (HTTP 400) — the app
+# indexer batches for the same reason.
+_EMBED_BATCH = 64
 
 
 def _detect_type(path: Path) -> str | None:
+    if path.name in _SKIP_FILES:
+        return None
+    if path.name.endswith("-lock.json"):
+        return None
     if path.name == "Dockerfile":
         return "docker"
     if path.name == "tauri.conf.json":
@@ -158,8 +170,14 @@ def _index_repo(workspace_id, repo, embedder, vector_store):
     if not chunks:
         raise SystemExit(f"No indexable files found under {repo}")
 
-    print(f"  embedding {len(chunks)} chunks…", flush=True)
-    embeddings = embedder.embed_texts([strip_contextual_header(c.content) for c in chunks])
+    bodies = [strip_contextual_header(c.content) for c in chunks]
+    print(f"  embedding {len(chunks)} chunks (batch {_EMBED_BATCH})…", flush=True)
+    embeddings: list[list[float]] = []
+    for start in range(0, len(bodies), _EMBED_BATCH):
+        embeddings.extend(embedder.embed_texts(bodies[start : start + _EMBED_BATCH]))
+        done = min(start + _EMBED_BATCH, len(bodies))
+        if done % (_EMBED_BATCH * 20) == 0 or done == len(bodies):
+            print(f"    {done}/{len(bodies)}", flush=True)
     dim = len(embeddings[0])
     vector_store.upsert_chunks(
         workspace_id=workspace_id,
