@@ -2037,6 +2037,9 @@ function AnswerResult({
   const reindexReason = getAskReindexReason(answer);
   const [showFileDraft, setShowFileDraft] = useState(false);
   const [traceOpen, setTraceOpen] = useState(false);
+  // Distinguishes the two ways the trace panel opens: "How did the AI reach this?"
+  // (just show the trace) vs. the abstain "Investigate deeper" handoff (auto-run).
+  const [traceAutoInvestigate, setTraceAutoInvestigate] = useState(false);
 
   return (
     <div className="ask-message-row is-assistant">
@@ -2139,7 +2142,10 @@ function AnswerResult({
                     <button
                       type="button"
                       className="secondary-action"
-                      onClick={() => setTraceOpen(true)}
+                      onClick={() => {
+                        setTraceAutoInvestigate(true);
+                        setTraceOpen(true);
+                      }}
                     >
                       🔍 Investigate deeper
                     </button>
@@ -2169,7 +2175,14 @@ function AnswerResult({
         (answer.project_facts_used ?? 0) > 0 ||
         (answer.project_guardrails_used?.length ?? 0) > 0 ||
         answer.sources.length > 0 ? (
-          <button type="button" className="why-answer-btn" onClick={() => setTraceOpen(true)}>
+          <button
+            type="button"
+            className="why-answer-btn"
+            onClick={() => {
+              setTraceAutoInvestigate(false);
+              setTraceOpen(true);
+            }}
+          >
             <span className="wab-icon" aria-hidden="true">?</span>
             How did the AI reach this?
             <span className="wab-meta">
@@ -2200,7 +2213,11 @@ function AnswerResult({
             warnings={answer.quality_warnings ?? []}
             latencyMs={answer.usage?.latency_ms ?? null}
             investigate={{ workspaceId: answer.workspace_id, question: answer.question }}
-            onClose={() => setTraceOpen(false)}
+            autoRun={traceAutoInvestigate}
+            onClose={() => {
+              setTraceOpen(false);
+              setTraceAutoInvestigate(false);
+            }}
           />
         ) : null}
 

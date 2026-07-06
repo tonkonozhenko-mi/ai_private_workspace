@@ -45,6 +45,9 @@ export interface AnswerTracePanelProps {
   // When present, the panel offers an opt-in "Investigate deeper" that runs the
   // real agent and replaces the derived steps with its true ReAct transcript.
   investigate?: { workspaceId: string; question: string; role?: string | null };
+  // Start the investigation immediately on open (used by the abstain handoff, whose
+  // button label promises a run — no second click inside the panel).
+  autoRun?: boolean;
   onClose: () => void;
 }
 
@@ -67,6 +70,7 @@ export function AnswerTracePanel({
   latencyMs = null,
   scope = "project",
   investigate,
+  autoRun = false,
   onClose,
 }: AnswerTracePanelProps) {
   const [tab, setTab] = useState<"reasoning" | "sources">("reasoning");
@@ -153,6 +157,19 @@ export function AnswerTracePanel({
       setInvestigating(false);
     }
   };
+
+  // Opened via the abstain "Investigate deeper" handoff: start the agent at once,
+  // so the button's promise is kept without a second click inside the panel. Runs
+  // only once (the ref guards React's double-invoke and re-renders).
+  const autoRanRef = useRef(false);
+  useEffect(() => {
+    if (autoRun && investigate && !autoRanRef.current) {
+      autoRanRef.current = true;
+      void runInvestigation();
+    }
+    // runInvestigation is stable enough for this one-shot; deps kept minimal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRun, investigate]);
 
   const byRepo = files.some((f) => f.repo);
 
