@@ -29,9 +29,17 @@ class QuestionOutcome:
     abstained: bool
     source_paths: tuple[str, ...]
     best_score: float
-    # Generation-side, only when the run included answer generation: True when the
-    # answer carried a hard grounding warning (cited no source / ungrounded term).
+    # Generation-side, only when the run included answer generation. ``hallucinated``
+    # is the PRODUCT number: whether the answer STILL carried a hard grounding warning
+    # after the app's corrective regeneration pass (CRAG trigger b) ran. ``raw_``
+    # is the same measurement on the first, uncorrected answer — the model on its own.
+    # The pair (raw → product) shows the corrective sieve is a working mechanism, not
+    # decoration. ``warning_codes`` are the product answer's warning codes and
+    # ``answer`` its text — populated only when the run saved answers, for eyeballing.
     hallucinated: bool | None = None
+    raw_hallucinated: bool | None = None
+    warning_codes: tuple[str, ...] = ()
+    answer: str | None = None
 
 
 @dataclass(frozen=True)
@@ -42,6 +50,7 @@ class ClassMetrics:
     overblock_rate: float | None = None
     abstain_correct_rate: float | None = None
     hallucination_rate: float | None = None
+    raw_hallucination_rate: float | None = None
 
 
 @dataclass(frozen=True)
@@ -54,6 +63,7 @@ class EvalReport:
     overall_overblock_rate: float | None = None
     overall_should_abstain_accuracy: float | None = None
     overall_hallucination_rate: float | None = None
+    overall_raw_hallucination_rate: float | None = None
 
 
 def case_is_hit(case: QuestionCase, outcome: QuestionOutcome) -> bool:
@@ -103,6 +113,9 @@ def compute_report(
             else None
         )
         halluc = _mean([1.0 if o.hallucinated else 0.0 for o in outs if o.hallucinated is not None])
+        raw_halluc = _mean(
+            [1.0 if o.raw_hallucinated else 0.0 for o in outs if o.raw_hallucinated is not None]
+        )
 
         per_class.append(
             ClassMetrics(
@@ -112,6 +125,7 @@ def compute_report(
                 overblock_rate=overblock,
                 abstain_correct_rate=abstain_correct,
                 hallucination_rate=halluc,
+                raw_hallucination_rate=raw_halluc,
             )
         )
 
@@ -120,6 +134,9 @@ def compute_report(
     abstain = [c for c in cases if c.cls == CLASS_SHOULD_ABSTAIN and c.id in by_id]
     project_hallu = [
         by_id[c.id].hallucinated for c in project if by_id[c.id].hallucinated is not None
+    ]
+    project_raw_hallu = [
+        by_id[c.id].raw_hallucinated for c in project if by_id[c.id].raw_hallucinated is not None
     ]
 
     return EvalReport(
@@ -135,6 +152,7 @@ def compute_report(
             [1.0 if by_id[c.id].abstained else 0.0 for c in abstain]
         ),
         overall_hallucination_rate=_mean([1.0 if h else 0.0 for h in project_hallu]),
+        overall_raw_hallucination_rate=_mean([1.0 if h else 0.0 for h in project_raw_hallu]),
     )
 
 
@@ -160,19 +178,34 @@ def render_markdown(
     )
     lines.append(f"- Should-abstain accuracy: **{_pct(report.overall_should_abstain_accuracy)}**")
     if report.overall_hallucination_rate is not None:
-        lines.append(
-            f"- Hallucination rate (generation): **{_pct(report.overall_hallucination_rate)}**"
-        )
+        # The honest pair: the raw model's grounding-warning rate, then what
+        # survives the app's corrective regeneration pass. The drop is the sieve
+        # doing its job; equal numbers mean the sieve didn't fire on these cases.
+        if report.overall_raw_hallucination_rate is not None:
+            lines.append(
+                "- Grounding-warning rate — raw model → after correction: "
+                f"**{_pct(report.overall_raw_hallucination_rate)} → "
+                f"{_pct(report.overall_hallucination_rate)}**"
+            )
+        else:
+            lines.append(
+                f"- Hallucination rate (generation): **{_pct(report.overall_hallucination_rate)}**"
+            )
     lines.append("")
     lines.append("## By class")
     lines.append("")
-    lines.append("| Class | N | hit@k | overblock | abstain-correct | halluc |")
+    lines.append("| Class | N | hit@k | overblock | abstain-correct | raw→halluc |")
     lines.append("|---|---:|---:|---:|---:|---:|")
     for cm in report.per_class:
+        halluc_cell = (
+            f"{_pct(cm.raw_hallucination_rate)}→{_pct(cm.hallucination_rate)}"
+            if cm.raw_hallucination_rate is not None
+            else _pct(cm.hallucination_rate)
+        )
         lines.append(
             f"| {cm.cls} | {cm.n} | {_pct(cm.retrieval_hit_at_k)} | "
             f"{_pct(cm.overblock_rate)} | {_pct(cm.abstain_correct_rate)} | "
-            f"{_pct(cm.hallucination_rate)} |"
+            f"{halluc_cell} |"
         )
     lines.append("")
     lines.append("## Failures to eyeball")
@@ -213,6 +246,7 @@ def report_to_dict(
             "overblock_rate": report.overall_overblock_rate,
             "should_abstain_accuracy": report.overall_should_abstain_accuracy,
             "hallucination_rate": report.overall_hallucination_rate,
+            "raw_hallucination_rate": report.overall_raw_hallucination_rate,
         },
         "per_class": [
             {
@@ -222,6 +256,7 @@ def report_to_dict(
                 "overblock_rate": cm.overblock_rate,
                 "abstain_correct_rate": cm.abstain_correct_rate,
                 "hallucination_rate": cm.hallucination_rate,
+                "raw_hallucination_rate": cm.raw_hallucination_rate,
             }
             for cm in report.per_class
         ],
@@ -233,6 +268,11 @@ def report_to_dict(
                 "best_score": round(o.best_score, 4),
                 "source_paths": list(o.source_paths),
                 "hallucinated": o.hallucinated,
+                "raw_hallucinated": o.raw_hallucinated,
+                # Warning codes + answer text are only populated under --save-answers,
+                # so flagged cases can be read by hand rather than trusted blind.
+                **({"warning_codes": list(o.warning_codes)} if o.warning_codes else {}),
+                **({"answer": o.answer} if o.answer is not None else {}),
                 "hit": (
                     case_is_hit(by_case[o.question_id], o)
                     if o.question_id in by_case

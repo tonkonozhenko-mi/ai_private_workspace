@@ -92,9 +92,7 @@ def classify_project(graph: ProjectGraph) -> ProjectClassification:
     app_score, frameworks, _modules = _application_signal(graph)
     infra_score, infra_tools = _infrastructure_signal(graph)
 
-    app_label = (
-        f"{frameworks[0]} application" if frameworks else "Python application"
-    )
+    app_label = f"{frameworks[0]} application" if frameworks else "Python application"
     infra_label = "infrastructure project"
     if infra_tools:
         infra_label += " (" + ", ".join(infra_tools[:3]) + ")"

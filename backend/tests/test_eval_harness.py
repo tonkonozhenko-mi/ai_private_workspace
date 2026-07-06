@@ -65,6 +65,50 @@ def test_hallucination_rate_when_generation_present():
     assert report.overall_hallucination_rate == 0.5
 
 
+def test_raw_vs_product_hallucination_pair():
+    # Two answers flagged on the raw model; the corrective pass rescues one → the
+    # product rate is half the raw rate. This is the sieve-working headline.
+    cases = [_precise("p1", ("a.py",)), _precise("p2", ("b.py",))]
+    outcomes = [
+        QuestionOutcome("p1", False, ("src/a.py",), 0.8, hallucinated=True, raw_hallucinated=True),
+        QuestionOutcome("p2", False, ("src/b.py",), 0.7, hallucinated=False, raw_hallucinated=True),
+    ]
+    report = compute_report("qwen3", 5, cases, outcomes)
+    assert report.overall_raw_hallucination_rate == 1.0
+    assert report.overall_hallucination_rate == 0.5
+    md = render_markdown(report, cases, outcomes)
+    assert "100.0% → 50.0%" in md  # raw → after-correction pair shown
+    d = report_to_dict(report, cases, outcomes)
+    assert d["overall"]["raw_hallucination_rate"] == 1.0
+    assert d["questions"][0]["raw_hallucinated"] is True
+
+
+def test_save_answers_fields_only_present_when_populated():
+    cases = [_precise("p1", ("a.py",))]
+    # With answer + codes recorded (the --save-answers path):
+    saved = [
+        QuestionOutcome(
+            "p1",
+            False,
+            ("src/a.py",),
+            0.8,
+            hallucinated=False,
+            raw_hallucinated=False,
+            warning_codes=("answer_missing_source_paths",),
+            answer="Because the config sets it.",
+        )
+    ]
+    d = report_to_dict(compute_report("nomic", 5, cases, saved), cases, saved)
+    q = d["questions"][0]
+    assert q["answer"] == "Because the config sets it."
+    assert q["warning_codes"] == ["answer_missing_source_paths"]
+    # Without them (default run), the keys are omitted, keeping reports small:
+    plain = [QuestionOutcome("p1", False, ("src/a.py",), 0.8, hallucinated=False)]
+    q2 = report_to_dict(compute_report("nomic", 5, cases, plain), cases, plain)["questions"][0]
+    assert "answer" not in q2
+    assert "warning_codes" not in q2
+
+
 def test_render_markdown_and_dict_are_wellformed():
     cases = [_precise("p1", ("a.py",)), QuestionCase("s1", "hi", CLASS_SHOULD_ABSTAIN)]
     outcomes = [

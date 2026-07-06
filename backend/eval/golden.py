@@ -12,11 +12,17 @@ Usage (from the ``backend/`` directory, with Ollama running):
     python -m eval.golden --embedder bge-m3
     python -m eval.golden --all                 # all three, one after another
     python -m eval.golden --embedder nomic --repo /path/to/other/repo --with-generation
+    python -m eval.golden --embedder nomic --with-generation --save-answers --repeats 3
 
 Retrieval metrics (hit@k, overblock, should-abstain) need only the embedder.
-``--with-generation`` additionally generates answers with the Ollama LLM and
-measures hallucination_rate (hard grounding warnings); skip it for a pure,
-fast embedder comparison.
+``--with-generation`` additionally generates answers with the Ollama LLM (default
+qwen3:4b, the app's recommended answer model) and measures the grounding-warning
+rate twice: on the raw first answer and again after the app's corrective
+regeneration pass — so the report shows the corrective sieve as a working
+mechanism, not decoration. ``--save-answers`` records each answer + its warning
+codes so flagged cases can be read by hand; ``--repeats N`` generates each answer
+N times and majority-votes the flags to gauge spread. Skip ``--with-generation``
+for a pure, fast embedder comparison.
 """
 
 from __future__ import annotations
@@ -25,6 +31,7 @@ import argparse
 import json
 import sys
 import tempfile
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -145,10 +152,21 @@ def _iter_files(root: Path):
             yield path.relative_to(root).as_posix(), file_type, path.suffix.lstrip("."), text
 
 
-def _build_embedder(model_tag: str, base_url: str):
+def _build_embedder(model_tag: str, backend: str, ollama_url: str, llama_embed_url: str):
+    """The embedder for the chosen backend. Ollama selects the model by tag; the
+    llama.cpp embed server serves whatever GGUF it was started with, so the tag is
+    only a label there — start the app's llama engine on the matching model first."""
+    if backend == "llamacpp":
+        from app.adapters.embeddings.llama_server_embedding_provider import (
+            LlamaServerEmbeddingProvider,
+        )
+
+        return LlamaServerEmbeddingProvider(
+            base_url=llama_embed_url, model=model_tag, timeout_seconds=120
+        )
     from app.adapters.embeddings.ollama_embedding_provider import OllamaEmbeddingProvider
 
-    return OllamaEmbeddingProvider(base_url=base_url, model=model_tag, timeout_seconds=120)
+    return OllamaEmbeddingProvider(base_url=ollama_url, model=model_tag, timeout_seconds=120)
 
 
 def _build_llm(base_url: str, model: str):
@@ -207,10 +225,24 @@ def _index_repo(workspace_id, repo, embedder, vector_store):
     return len(chunks), calibrate_from_embeddings(embeddings)
 
 
-def _run_embedder(alias: str, repo: Path, k: int, base_url: str, llm_model: str | None):
+def _run_embedder(
+    alias: str,
+    repo: Path,
+    k: int,
+    base_url: str,
+    llm_model: str | None,
+    *,
+    backend: str = "ollama",
+    llama_embed_url: str = "http://127.0.0.1:8081",
+    save_answers: bool = False,
+    repeats: int = 1,
+):
     model_tag = EMBEDDERS[alias]
-    print(f"[{alias}] model={model_tag} repo={repo}", flush=True)
-    embedder = _build_embedder(model_tag, base_url)
+    # Distinct label per backend so the ollama and llama.cpp reports don't overwrite
+    # each other and the comparison (do the floors agree?) is legible at a glance.
+    label = alias if backend == "ollama" else f"{alias}-llamacpp"
+    print(f"[{label}] backend={backend} model={model_tag} repo={repo}", flush=True)
+    embedder = _build_embedder(model_tag, backend, base_url, llama_embed_url)
 
     from app.adapters.vector_store.sqlite_vector_store import SQLiteVectorStore
 
@@ -260,9 +292,9 @@ def _run_embedder(alias: str, repo: Path, k: int, base_url: str, llm_model: str 
             abstained = routed or (not results) or best < threshold
             paths = tuple(dict.fromkeys(r.source_path for r in results))
 
-            hallucinated = None
+            gen = None
             if llm is not None and not abstained:
-                hallucinated = _generation_hallucinated(uc, request, results, llm)
+                gen = _generate_outcome(uc, request, results, best, llm, repeats)
 
             outcomes.append(
                 QuestionOutcome(
@@ -270,42 +302,98 @@ def _run_embedder(alias: str, repo: Path, k: int, base_url: str, llm_model: str 
                     abstained=abstained,
                     source_paths=paths,
                     best_score=best,
-                    hallucinated=hallucinated,
+                    hallucinated=gen["hallucinated"] if gen else None,
+                    raw_hallucinated=gen["raw_hallucinated"] if gen else None,
+                    warning_codes=tuple(gen["warning_codes"]) if gen else (),
+                    answer=(gen["answer"] if (gen and save_answers) else None),
                 )
             )
 
         cases = list(golden_set())
-        report = compute_report(alias, k, cases, outcomes)
+        report = compute_report(label, k, cases, outcomes)
         print(f"  routed to general chat before retrieval: {routed_count}", flush=True)
         _write_reports(report, cases, outcomes, floor=floor, threshold=threshold)
         _print_summary(report)
 
 
-def _generation_hallucinated(uc, request, results, llm) -> bool | None:
-    """Best-effort: generate a grounded answer and report whether it carried a hard
-    grounding warning. Returns None on any failure (generation is optional)."""
-    try:
-        context_results, prompt, _m, _f, _u = uc._grounded_prompt(request, llm, results, [])
-        answer, _usage = uc._generate_answer_with_usage(llm, prompt, [], None, None, [])
-        sources = [
-            RagSource(
-                chunk_id=r.chunk_id,
-                source_path=r.source_path,
-                score=r.score,
-                preview=r.content[:200],
-            )
-            for r in context_results
-        ]
-        warnings = evaluate_rag_answer(
-            question=request.question,
-            answer=answer,
-            sources=sources,
-            source_contents=[r.content for r in context_results],
+def _evaluate_answer(uc, request, context_results, answer):
+    """Run the product's grounding evaluator over one generated answer; return its
+    warnings list."""
+    sources = [
+        RagSource(
+            chunk_id=r.chunk_id,
+            source_path=r.source_path,
+            score=r.score,
+            preview=r.content[:200],
         )
-        return bool(_hard_grounding_warnings(warnings))
+        for r in context_results
+    ]
+    return evaluate_rag_answer(
+        question=request.question,
+        answer=answer,
+        sources=sources,
+        source_contents=[r.content for r in context_results],
+    )
+
+
+def _one_generation(uc, request, results, best_score, llm) -> dict | None:
+    """Generate one answer through the REAL product path — first the grounded
+    answer, then the app's corrective regeneration pass (the same one that fires in
+    production on hard grounding warnings). Returns raw vs. product warnings so the
+    report can show the sieve working. None on any failure."""
+    try:
+        # temperature 0 for reproducibility (seed isn't plumbed through the provider;
+        # greedy decoding is the reproducibility lever we have).
+        request = replace(request, temperature=0.0)
+        context_results, prompt, _m, _f, _u = uc._grounded_prompt(request, llm, results, [])
+        answer, _usage = uc._generate_answer_with_usage(llm, prompt, [], 0.0, None, [])
+        raw_warnings = _evaluate_answer(uc, request, context_results, answer)
+
+        product_answer = answer
+        product_warnings = raw_warnings
+        # CRAG trigger (b): exactly what production runs when the answer carries hard
+        # grounding warnings — one corrective retrieval + regeneration, kept only if
+        # it strictly improves grounding. Measuring the product, not the raw model.
+        regen = uc._corrective_regeneration(request, llm, [], raw_warnings, best_score)
+        if regen is not None:
+            product_answer = regen["answer"]
+            product_warnings = regen["warnings"]
+
+        return {
+            "raw_hallucinated": bool(_hard_grounding_warnings(raw_warnings)),
+            "hallucinated": bool(_hard_grounding_warnings(product_warnings)),
+            "warning_codes": [w.code for w in product_warnings],
+            "answer": product_answer,
+        }
     except Exception as error:  # noqa: BLE001
         print(f"    (generation skipped for {request.question[:40]!r}: {error})", flush=True)
         return None
+
+
+def _generate_outcome(uc, request, results, best_score, llm, repeats: int) -> dict | None:
+    """Generate ``repeats`` times and fold into one outcome. The boolean flags are a
+    majority vote across runs (ties count as flagged — conservative), which gives a
+    stable label under generation non-determinism; the last run's answer/codes are
+    kept for eyeballing. None if every run failed."""
+    runs = [
+        r
+        for r in (
+            _one_generation(uc, request, results, best_score, llm) for _ in range(max(1, repeats))
+        )
+        if r
+    ]
+    if not runs:
+        return None
+    n = len(runs)
+    raw_votes = sum(1 for r in runs if r["raw_hallucinated"])
+    prod_votes = sum(1 for r in runs if r["hallucinated"])
+    last = runs[-1]
+    return {
+        "raw_hallucinated": raw_votes * 2 >= n,
+        "hallucinated": prod_votes * 2 >= n,
+        "warning_codes": last["warning_codes"],
+        "answer": last["answer"],
+    }
 
 
 def _out_dir() -> Path:
@@ -340,11 +428,15 @@ def _write_reports(report, cases, outcomes, floor=None, threshold=None) -> None:
 
 
 def _print_summary(report) -> None:
+    if report.overall_raw_hallucination_rate is not None:
+        halluc = f"halluc={_p(report.overall_raw_hallucination_rate)}→{_p(report.overall_hallucination_rate)}"
+    else:
+        halluc = f"halluc={_p(report.overall_hallucination_rate)}"
     print(
         f"  hit@{report.k}={_p(report.overall_retrieval_hit_at_k)} "
         f"overblock={_p(report.overall_overblock_rate)} "
         f"should-abstain={_p(report.overall_should_abstain_accuracy)} "
-        f"halluc={_p(report.overall_hallucination_rate)}",
+        f"{halluc}",
         flush=True,
     )
 
@@ -361,22 +453,62 @@ def main(argv=None) -> int:
     parser.add_argument("--k", type=int, default=5, help="top-k for retrieval (default 5)")
     parser.add_argument("--ollama-url", default="http://localhost:11434", help="Ollama base URL")
     parser.add_argument(
+        "--backend",
+        choices=("ollama", "llamacpp"),
+        default="ollama",
+        help="embedding backend (default ollama). 'llamacpp' talks to a running "
+        "llama-server embed endpoint — start the app's llama engine on the matching "
+        "model first; the report is labelled '<embedder>-llamacpp' so the two backends "
+        "can be compared side by side (do the floors agree?)",
+    )
+    parser.add_argument(
+        "--llama-embed-url",
+        default="http://127.0.0.1:8081",
+        help="llama-server embedding endpoint (used only with --backend llamacpp)",
+    )
+    parser.add_argument(
         "--with-generation",
         nargs="?",
-        const="qwen2.5-coder",
+        const="qwen3:4b",
         default=None,
-        help="also generate answers with this Ollama LLM and measure hallucination "
-        "(default model qwen2.5-coder if flag given without value)",
+        help="also generate answers with this Ollama LLM and measure the grounding-"
+        "warning rate raw vs. after the corrective pass (default model qwen3:4b — the "
+        "app's recommended answer model — if the flag is given without a value)",
+    )
+    parser.add_argument(
+        "--save-answers",
+        action="store_true",
+        help="record each generated answer + its warning codes in the JSON report, so "
+        "flagged cases can be read by hand (larger report; needs --with-generation)",
+    )
+    parser.add_argument(
+        "--repeats",
+        type=int,
+        default=1,
+        help="generate each answer N times and take a majority vote on the flags, to "
+        "gauge spread under generation non-determinism (default 1; needs --with-generation)",
     )
     args = parser.parse_args(argv)
 
     if not args.all and not args.embedder:
         parser.error("pass --embedder <name> or --all")
+    if (args.save_answers or args.repeats != 1) and not args.with_generation:
+        parser.error("--save-answers and --repeats require --with-generation")
 
     repo = Path(args.repo).resolve() if args.repo else Path(__file__).resolve().parents[2]
     aliases = sorted(EMBEDDERS) if args.all else [args.embedder]
     for alias in aliases:
-        _run_embedder(alias, repo, args.k, args.ollama_url, args.with_generation)
+        _run_embedder(
+            alias,
+            repo,
+            args.k,
+            args.ollama_url,
+            args.with_generation,
+            backend=args.backend,
+            llama_embed_url=args.llama_embed_url,
+            save_answers=args.save_answers,
+            repeats=max(1, args.repeats),
+        )
     return 0
 
 

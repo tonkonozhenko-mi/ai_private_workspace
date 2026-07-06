@@ -6,8 +6,10 @@ the only LLM-written piece, and it is constrained to those facts.
 """
 
 import contextlib
+import json
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
@@ -564,6 +566,46 @@ def investigate_project(workspace_id: str, request: InvestigateRequest) -> dict:
             "facts": result.facts_used,
         },
     }
+
+
+@router.post("/{workspace_id}/intelligence/investigate/stream")
+def investigate_project_stream(workspace_id: str, request: InvestigateRequest) -> StreamingResponse:
+    """Same read-only investigation as ``/investigate``, but streamed: each ReAct
+    step is emitted as it completes (``event: step``), then the answer + sources
+    (``event: final``), so the UI shows the agent thinking live. Same tools, same
+    result — only the delivery differs."""
+    use_case = InvestigateProjectUseCase(
+        workspace_repository=workspace_repository,
+        llm_provider_factory=llm_provider_factory,
+        embedding_provider=embedding_provider,
+        vector_store=vector_store,
+        file_system=file_system,
+        project_graph_repository=project_graph_repository,
+        project_scan_repository=project_scan_repository,
+        git_history=git_history,
+        memory_repository=project_memory_repository,
+        context_provider=project_context_composer,
+    )
+    request_input = InvestigateProjectInput(
+        workspace_id=workspace_id,
+        question=request.question.strip(),
+        role=request.role,
+    )
+
+    def event_stream():
+        try:
+            for event in use_case.execute_stream(request_input):
+                kind = event.get("type")
+                data = {k: v for k, v in event.items() if k != "type"}
+                yield f"event: {kind}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+        except Exception:  # noqa: BLE001 - surface any failure as a stream event
+            yield f"event: error\ndata: {json.dumps({'error': 'An internal error has occurred.'})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 class AskProjectIntelligenceRequest(BaseModel):

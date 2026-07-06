@@ -1,6 +1,7 @@
 from app.core.domain.chunking import (
     build_contextual_chunk,
     chunk_section_label,
+    config_keys,
     strip_contextual_header,
 )
 
@@ -62,3 +63,35 @@ def test_strip_header_round_trips_to_original_body():
 def test_strip_header_leaves_plain_content_untouched():
     plain = "just a normal chunk\nwith two lines"
     assert strip_contextual_header(plain) == plain
+
+
+def test_config_keys_finds_nested_json_key():
+    # The pp-csp case: asking about the content security policy, but the file only
+    # spells it `csp`, nested under `security`. Both keys must surface.
+    content = '{\n  "security": {\n    "csp": "default-src \'self\'"\n  }\n}'
+    keys = config_keys(content, file_type="json")
+    assert "security" in keys and "csp" in keys
+
+
+def test_config_keys_finds_yaml_keys_at_any_indent():
+    content = "server:\n  host: localhost\n  tls:\n    enabled: true\n"
+    keys = config_keys(content, file_type="yaml")
+    assert keys[:1] == ["server"]
+    for expected in ("host", "tls", "enabled"):
+        assert expected in keys
+
+
+def test_config_keys_empty_for_non_config():
+    assert config_keys("def f():\n    pass", file_type="python") == []
+
+
+def test_config_header_lists_keys_and_still_strips_clean():
+    body = '{\n  "security": {\n    "csp": "x"\n  }\n}'
+    built = build_contextual_chunk(
+        body, source_path="tauri.conf.json", position=1, total=1, file_type="json"
+    )
+    header = built.split("\n", 1)[0]
+    assert header.startswith("[source: tauri.conf.json")
+    assert "keys: " in header and "csp" in header
+    # The embedded body must stay clean — keys live in the header only.
+    assert strip_contextual_header(built) == body

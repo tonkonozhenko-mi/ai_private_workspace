@@ -221,3 +221,50 @@ def test_agent_invalid_replies_break_gracefully():
     result = uc.execute(InvestigateProjectInput(workspace_id="w1", question="q", max_steps=8))
     # Two invalids recorded, then it breaks to a forced final.
     assert result.answer
+
+
+def test_stream_emits_each_step_then_final():
+    uc = _use_case(
+        [
+            "THOUGHT: find db config\nACTION: search_code: database engine",
+            "ACTION: read_file: db/config.tf",
+            "FINAL: The project uses PostgreSQL (db/config.tf).",
+        ]
+    )
+    events = list(
+        uc.execute_stream(InvestigateProjectInput(workspace_id="w1", question="Which database?"))
+    )
+    kinds = [e["type"] for e in events]
+    # Two tool steps stream first, then exactly one final event closes it.
+    assert kinds == ["step", "step", "final"]
+    assert [e["step"]["tool"] for e in events if e["type"] == "step"] == [
+        "search_code",
+        "read_file",
+    ]
+    final = events[-1]
+    assert "PostgreSQL" in final["answer"]
+    assert "db/config.tf" in final["sources"]
+    assert final["stopped_reason"] == "answered"
+
+
+def test_stream_matches_non_streaming_result():
+    replies = [
+        "ACTION: search_code: database engine",
+        "FINAL: Postgres (db/config.tf).",
+    ]
+    streamed = list(
+        _use_case(replies).execute_stream(
+            InvestigateProjectInput(workspace_id="w1", question="db?")
+        )
+    )
+    final = next(e for e in streamed if e["type"] == "final")
+    result = _use_case(replies).execute(InvestigateProjectInput(workspace_id="w1", question="db?"))
+    assert final["answer"] == result.answer
+    assert final["sources"] == result.sources
+
+
+def test_stream_reports_setup_error_as_event():
+    events = list(
+        _use_case([]).execute_stream(InvestigateProjectInput(workspace_id="missing", question="q"))
+    )
+    assert events == [{"type": "error", "error": "Workspace not found"}]

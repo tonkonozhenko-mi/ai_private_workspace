@@ -83,6 +83,7 @@ import type {
   LocalModelDownloadJob,
   LocalModelDownloadJobList,
   InvestigationResponse,
+  InvestigationStep,
   ProjectHandbookResponse,
   ProjectIntelligenceAnswer,
   ProjectMemoryItem,
@@ -686,6 +687,89 @@ export function investigateProject(
       body: JSON.stringify({ question, role: role ?? null }),
     },
   );
+}
+
+// Stream the investigation: each ReAct step is delivered via onStep as it
+// completes, so the UI shows the agent thinking live; resolves with the final
+// answer + sources. Falls back to a normal round-trip if streaming isn't
+// available in this environment.
+export async function streamInvestigateProject(
+  workspaceId: string,
+  question: string,
+  role: string | undefined,
+  options: { signal?: AbortSignal; onStep?: (step: InvestigationStep) => void } = {},
+): Promise<InvestigationResponse> {
+  const response = await fetch(
+    `${apiBaseUrl}/workspaces/${workspaceId}/intelligence/investigate/stream`,
+    {
+      method: "POST",
+      headers: { Accept: "text/event-stream", "Content-Type": "application/json" },
+      body: JSON.stringify({ question, role: role ?? null }),
+      signal: options.signal,
+    },
+  );
+  await assertOk(response);
+  if (!response.body) {
+    return investigateProject(workspaceId, question, role, { signal: options.signal });
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let final: InvestigationResponse | null = null;
+  let errorDetail: string | null = null;
+
+  const handleEvent = (rawEvent: string): void => {
+    let eventName = "message";
+    const dataLines: string[] = [];
+    for (const line of rawEvent.split("\n")) {
+      if (line.startsWith("event:")) {
+        eventName = line.slice(6).trim();
+      } else if (line.startsWith("data:")) {
+        dataLines.push(line.slice(5).replace(/^ /, ""));
+      }
+    }
+    const data = dataLines.join("\n");
+    if (!data) {
+      return;
+    }
+    if (eventName === "step") {
+      const parsed = JSON.parse(data) as { step?: InvestigationStep };
+      if (parsed.step) {
+        options.onStep?.(parsed.step);
+      }
+    } else if (eventName === "final") {
+      final = JSON.parse(data) as InvestigationResponse;
+    } else if (eventName === "error") {
+      const parsed = JSON.parse(data) as { error?: string };
+      errorDetail = parsed.error ?? "Investigation failed.";
+    }
+  };
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    buffer += decoder.decode(value, { stream: true });
+    let separatorIndex = buffer.indexOf("\n\n");
+    while (separatorIndex !== -1) {
+      handleEvent(buffer.slice(0, separatorIndex));
+      buffer = buffer.slice(separatorIndex + 2);
+      separatorIndex = buffer.indexOf("\n\n");
+    }
+  }
+  if (buffer.trim()) {
+    handleEvent(buffer);
+  }
+
+  if (errorDetail) {
+    throw new Error(errorDetail);
+  }
+  if (!final) {
+    throw new Error("The investigation ended without a result.");
+  }
+  return final;
 }
 
 export function listProjectMemory(

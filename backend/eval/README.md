@@ -35,8 +35,23 @@ store, runs the question set, and writes a report to `build/notes/eval/`:
   set is written against *this* repo; point it elsewhere only with a matching set.
 - `--k N` — top-k for retrieval-hit (default 5).
 - `--with-generation [model]` — also generate answers with an Ollama LLM and
-  measure `hallucination_rate` (hard grounding warnings). Slower; skip it for a
-  pure embedder comparison. Default model `qwen2.5-coder`.
+  measure the grounding-warning rate **twice**: on the raw first answer and again
+  after the app's corrective regeneration pass (CRAG trigger b), so the report
+  shows the sieve working (`raw → after-correction`). Slower; skip it for a pure
+  embedder comparison. Default model `qwen3:4b` — the app's recommended answer
+  model, so the number reflects the product, not an off-model.
+- `--save-answers` — record each generated answer + its warning codes in the JSON,
+  so flagged cases can be read by hand instead of trusted blind (needs
+  `--with-generation`; larger report).
+- `--repeats N` — generate each answer N times and majority-vote the flags, to
+  gauge spread under generation non-determinism (needs `--with-generation`).
+- `--backend llamacpp` — measure the same embedder on the built-in llama.cpp
+  engine instead of Ollama. The shipped product default is GGUF-on-llama.cpp, so
+  this closes the loop: start the app's llama engine on the matching embed model,
+  then run `--embedder nomic --backend llamacpp`. The report is labelled
+  `nomic-llamacpp`, so the two backends sit side by side — if their calibrated
+  floors agree, the "measured through Ollama but shipped on llama.cpp" caveat is
+  closed. `--llama-embed-url` overrides the embed endpoint (default `:8081`).
 - `--ollama-url http://host:port` — non-default Ollama endpoint.
 
 ## What it measures
@@ -46,7 +61,13 @@ store, runs the question set, and writes a report to `build/notes/eval/`:
 | `retrieval_hit@k` | for `project_precise` Qs, did a labelled file appear in top-k | high |
 | `overblock_rate` | project Qs wrongly routed to "no context" (abstained) | low |
 | `should_abstain_accuracy` | non-project Qs correctly returned 0 sources | high |
-| `hallucination_rate` | (with `--with-generation`) answers with hard grounding warnings | low |
+| `raw_hallucination_rate` | (with `--with-generation`) raw first answers with hard grounding warnings | low |
+| `hallucination_rate` | same, but after the corrective regeneration pass — the product number | lower |
+
+`hallucination_rate` is a **conservative proxy**: it counts any hard grounding
+warning (no cited path, or a term not found in the retrieved context), including a
+correct answer that just didn't name its file. It is not "% of fabrications". The
+raw → product pair is the point: the gap is the corrective pass rescuing answers.
 
 ## Question classes (`eval/golden_set.py`)
 
