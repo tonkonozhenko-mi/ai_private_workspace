@@ -46,7 +46,8 @@ Runs fully offline on a local model. Every answer cites your real files. Nothing
 - **Answers you can verify.** Every reply is grounded in retrieved sources with
   citations, a deterministic groundedness check flags unsupported claims, and the
   model abstains honestly instead of inventing details. It reads and explains —
-  it never changes your project.
+  it never changes your project. Quality isn't a promise: it's tracked by a
+  [reproducible benchmark](#measured-not-promised).
 
 ## Install and first run
 
@@ -85,6 +86,7 @@ management.
 - **Understands your project.** Point it at a folder; a local scan recognizes what's there — Terraform, Terragrunt, Kubernetes, Helm, Docker, Python, GitLab CI, docs, and more.
 - **Searches only when you ask.** The local index is built on an explicit action and respects your `.gitignore`, so virtualenvs, build output, caches, and `.env` secrets never enter it.
 - **Answers from your files.** Responses are grounded in retrieved sources with citations — and your conversations, history, model choices, and reports stay on your computer.
+- **Knows what to ask first.** The empty Ask composer suggests starter questions built from your project's own map — one click from a fresh index to a useful answer.
 - **Groups several repositories into one project.** Ask, Home, and Intelligence work across a whole portfolio — environments compared in a repo×environment matrix, technologies split into shared-vs-unique, risks grouped by pattern.
 - **Built to navigate.** A **Cmd/Ctrl-K command palette** jumps to any repository, group, section, or file; a **file inspector** shows each file's owner, change coupling, connections, and risks.
 - **Runs on two local engines.** Built-in **llama.cpp** or **Ollama**, switchable per project, with the answer and search models managed separately.
@@ -100,7 +102,8 @@ provable self-maintaining **project memory** with guardrails, **answer modes**
 that control how strictly a reply sticks to your files, a deterministic
 groundedness check, a dated change journal ("what changed since I last
 looked?"), incremental re-indexing by content hash, and **the Investigator** — a
-bounded ReAct loop over read-only tools with a transparent trace.
+bounded ReAct loop over read-only tools whose steps stream live, so you watch
+the agent think instead of waiting for a verdict.
 
 Every finding reads as a lead for a human, not a verdict: what was found, why it
 may matter, where, and what to check yourself. Full detail:
@@ -110,11 +113,39 @@ may matter, where, and what to check yourself. Full detail:
 
 Answers are grounded through **hybrid retrieval** running fully on your machine:
 dense vector search for meaning, BM25 keyword search (SQLite FTS5) over chunk
-text *and* file paths for exact identifiers, Reciprocal Rank Fusion to merge the
-rankings, a path/environment boost so `dev`-specific questions land on `dev`
-files, per-file diversity so one file can't fill the whole answer, and an
-optional cross-encoder reranker ("Sharper search"). It degrades gracefully to
-vector-only search if keyword indexing is unavailable.
+text *and* file paths for exact identifiers, a domain-synonym bridge (asking
+about "Content-Security-Policy" finds the file that spells it `csp`), Reciprocal
+Rank Fusion to merge the rankings, a path/environment boost so `dev`-specific
+questions land on `dev` files, per-file diversity so one file can't fill the
+whole answer, and an optional cross-encoder reranker ("Sharper search"). It
+degrades gracefully to vector-only search if keyword indexing is unavailable.
+
+Around retrieval sit honesty mechanisms: the relevance threshold is **calibrated
+per index** against the embedding model's own noise floor; obvious small talk is
+routed away from your files entirely; on a small project that fits the model's
+window the app skips retrieval and reads everything; and when a first answer
+fails the deterministic grounding check, the app runs **one corrective pass** —
+a rewritten search and a regeneration, kept only if it's provably better.
+
+### Measured, not promised
+
+A 40-question golden-set benchmark runs the real pipeline end to end
+([`backend/eval/`](backend/eval/README.md)) and gates its deterministic parts in
+CI. Current numbers with the default models (nomic-embed-text + Qwen3 4B,
+temperature 0, this repository as the corpus):
+
+| What is measured | Result |
+|---|---:|
+| The right file is in the sources (hit@5, questions with a known answer file) | **95%** |
+| Project questions wrongly refused | **0%** |
+| Off-topic questions correctly get no project sources | **100%** |
+| Answers carrying grounding warnings — raw model → after self-correction | **6.7% → 3.3%** |
+
+The last row is the one to read twice: when the deterministic grounding check
+flags a fresh answer, the corrective pass halves the failure rate — the safety
+net is a measured mechanism, not a claim. Reproduce it yourself:
+`python -m eval.golden --embedder nomic --with-generation` (from `backend/`,
+with Ollama running).
 
 ## Local engines
 
@@ -165,7 +196,7 @@ Pre-1.0 and actively developed; usable day to day on both engines. Each tagged
 release builds from CI into macOS DMGs (Apple Silicon + Intel) and a Windows x64
 installer with in-app auto-update, and publishes **SHA256 checksums**, an **SPDX
 SBOM**, and an **automated-test report** so you can verify what you download.
-The backend is covered by a deterministic suite of 600+ tests run on every push.
+The backend is covered by a deterministic suite of 1,000+ tests run on every push.
 The road to 1.0 focuses on code signing and broader QA.
 
 - [Roadmap](docs/ROADMAP.md) · [Start here](docs/START_HERE.md) · [Architecture](docs/ARCHITECTURE.md) · [v1 completion roadmap](docs/V1_PRODUCT_COMPLETION_ROADMAP.md)
