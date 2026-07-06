@@ -634,6 +634,41 @@ def switch_llama_runtime_embedding(
     return LlamaRuntimeStatusResponse(**result)
 
 
+class ResetRuntimeModelSelectionResponse(BaseModel):
+    active_llm_model: str
+    active_embedding_model: str
+
+
+@router.post(
+    "/llama-runtime/reset-selection",
+    response_model=ResetRuntimeModelSelectionResponse,
+)
+def reset_llama_runtime_selection() -> ResetRuntimeModelSelectionResponse:
+    """Forget the engine's remembered answer/search models so both fall back to
+    the recommended catalog defaults.
+
+    Called after a full workspace reset (every project removed). A persisted model
+    ref is only ever the cache of an explicit user switch; once no project is
+    left there is no explicit selection, so the engine must not resurrect the
+    last-lived model — it should serve the recommendation. Clears the in-memory
+    refs *and* their on-disk copy, and stops any running engine so the next
+    activation starts clean on the defaults. Best-effort: never raises on stop.
+    """
+    from app.api.dependencies import runtime_state_store
+
+    runtime_state_store.clear_llamacpp_models()
+    llama_runtime_manager.reset_model_selection()
+    try:
+        llama_runtime_manager.stop()
+    except Exception:  # noqa: BLE001 - stopping is best-effort; defaults still apply
+        pass
+    status_ = llama_runtime_manager.status()
+    return ResetRuntimeModelSelectionResponse(
+        active_llm_model=status_.get("active_llm_model", ""),
+        active_embedding_model=status_.get("active_embedding_model", ""),
+    )
+
+
 class DeleteGgufModelRequest(BaseModel):
     model_id: str | None = None
     repo_id: str | None = None
