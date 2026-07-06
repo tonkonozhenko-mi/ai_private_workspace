@@ -7,6 +7,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-06
+
 ### Fixed
 
 - **After a full project reset, the engine returns to the *recommended* model instead of resurrecting the last-lived one.** Resetting projects removes every workspace, but the built-in llama.cpp engine kept a persisted answer/search model ref — so it could come back on, say, an inherited Mistral rather than the recommended Qwen3 4B, even though no project (and therefore no explicit user selection) remained. A persisted ref is only ever the cache of an explicit user switch; once no project is left it's stale. Reset now clears both the in-memory and on-disk model refs (via a new `POST /models/llama-runtime/reset-selection`), so the engine falls back to the recommended catalog defaults (Qwen3 4B / Nomic Embed) and stops any running instance so the next activation starts clean. `active_backend` is untouched; only the specific model choice is forgotten. Fail-open: the reset itself never blocks on it.
