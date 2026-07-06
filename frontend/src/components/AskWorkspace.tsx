@@ -86,6 +86,7 @@ import {
   type MarkdownBlock,
 } from "../lib/markdown";
 import { formatModelLabel, rawModelTitle } from "../lib/modelLabel";
+import { formatSourceLabel } from "../lib/sourceLabel";
 import { StatusBadge } from "./StatusBadge";
 import { SKILL_PRESETS, getEnabledSkillPresets, getSkillPresetByAssistantMode, type CustomSkill, type SkillPreferences } from "./skillLibrary";
 
@@ -1876,7 +1877,7 @@ function AnswerNotesPanel({
             </div>
             {note.source_question ? <p><b>Question:</b> {note.source_question}</p> : null}
             {note.source_paths.length > 0 ? (
-              <p><b>Sources:</b> {note.source_paths.slice(0, 3).join(" · ")}{note.source_paths.length > 3 ? ` +${note.source_paths.length - 3} more` : ""}</p>
+              <p><b>Sources:</b> {note.source_paths.slice(0, 3).map(formatSourceLabel).join(" · ")}{note.source_paths.length > 3 ? ` +${note.source_paths.length - 3} more` : ""}</p>
             ) : null}
             <p>{truncateText(note.content, 260)}</p>
             <div className="answer-note-actions">
@@ -2490,7 +2491,7 @@ function Sources({
                     >
                       <div className="answer-context-source-head">
                         <strong title={source.source_path}>
-                          {source.source_path}
+                          {formatSourceLabel(source.source_path)}
                         </strong>
                         <span className="answer-context-score">
                           {formatSourceScore(source.score)}

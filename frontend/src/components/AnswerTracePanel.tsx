@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { investigateProject } from "../api/client";
 import type { InvestigationResponse, RagQualityWarning } from "../api/types";
+import { formatSourceLabel } from "../lib/sourceLabel";
 
 export interface TraceFile {
   source_path: string;
@@ -333,7 +334,7 @@ export function AnswerTracePanel({
                       <div className="trace-src file" key={file.chunk_id ?? index}>
                         <div className="t">
                           {byRepo && file.repo ? <span className="repo">{file.repo}/</span> : null}
-                          {file.source_path}
+                          {formatSourceLabel(file.source_path)}
                           {detail ? <span className="chunk-detail"> · {detail}</span> : null}
                         </div>
                       </div>
