@@ -881,6 +881,20 @@ function App() {
     setTourOpen(false);
   };
 
+  // Also run the guided tour the first time an *already-set-up* project is opened
+  // (the effect above only fires right after fresh setup). Once per app session and
+  // only until the tour is finished or skipped, so it never nags. The "Take a quick
+  // tour" link on Home replays it anytime.
+  const autoTourTriedRef = useRef(false);
+  useEffect(() => {
+    if (autoTourTriedRef.current) return;
+    if (!detail || selectedGroupId || needsInitialSetup) return;
+    if (isTourDone()) return;
+    autoTourTriedRef.current = true;
+    setActiveTab("overview");
+    setTourOpen(true);
+  }, [detail, selectedGroupId, needsInitialSetup]);
+
   const isFirstRun =
     !workspacesLoading &&
     !workspacesError &&
