@@ -8,9 +8,7 @@ from app.config.logging_setup import _HANDLER_MARKER, configure_app_logging
 
 
 def _our_handlers():
-    return [
-        h for h in logging.getLogger("app").handlers if getattr(h, _HANDLER_MARKER, False)
-    ]
+    return [h for h in logging.getLogger("app").handlers if getattr(h, _HANDLER_MARKER, False)]
 
 
 def test_app_logger_emits_after_configuration():
