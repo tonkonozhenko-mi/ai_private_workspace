@@ -30,7 +30,13 @@ from app.api.routes.projects import router as projects_router
 from app.api.routes.runtime_health import router as runtime_health_router
 from app.api.routes.user_profile import router as user_profile_router
 from app.api.routes.workspaces import router as workspaces_router
+from app.config.logging_setup import configure_app_logging
 from app.config.settings import get_settings
+
+# Attach a handler to the "app" logger so the application's own INFO logs (scan
+# phase timings, etc.) actually reach stdout / backend.log. Without this, uvicorn
+# only wires up its own loggers and every app.* message is dropped.
+configure_app_logging()
 
 settings = get_settings()
 
