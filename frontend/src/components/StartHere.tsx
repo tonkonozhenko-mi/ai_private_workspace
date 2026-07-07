@@ -42,6 +42,17 @@ export function markTourDone(): void {
   }
 }
 
+// Forget all first-run orientation state (tour done, seen tab captions) so a fresh
+// start — e.g. after resetting projects — shows the guided tour and captions again.
+export function resetOnboarding(): void {
+  try {
+    localStorage.removeItem(TOUR_KEY);
+    localStorage.removeItem(SEEN_TABS_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 // One-line caption shown the first time a tab is opened, so a new user learns what
 // each section is for. Auto-dismisses once seen. Complements the guided tour.
 const TAB_CAPTIONS: Partial<Record<WorkspaceTab, string>> = {

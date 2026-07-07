@@ -9,6 +9,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 
+- **Resetting all projects now brings back the first-run tour.** Removing every project returns you to the fresh-start experience, but the guided tour and the one-line section captions stayed dismissed, so a genuine "start over" never re-explained the app. The orientation state is now cleared as part of the reset, so the tour and captions greet the clean slate again — exactly as they did on the very first run.
 - **A failed streamed answer no longer echoes internal error text to the client.** When an unexpected error interrupted a streaming answer (single-project or across a group), the raw exception message was sent down to the browser, which could reveal internal details like file paths. Unexpected failures now return a short, generic message and the real detail is written only to the server log; deliberate, user-facing validation messages ("no such group", "a question is required") are unchanged.
 
 ### Changed

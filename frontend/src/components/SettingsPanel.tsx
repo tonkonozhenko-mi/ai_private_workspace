@@ -22,6 +22,7 @@ import {
   toFileSelectionRulesRequest,
 } from "./fileIndexingPreferences";
 import { StatusBadge } from "./StatusBadge";
+import { resetOnboarding } from "./StartHere";
 import {
   SKILL_PRESETS,
   normalizeSkillPreferences,
@@ -110,6 +111,10 @@ export function SettingsPanel({
       } catch {
         // ignore — the reset itself succeeded; defaults still apply on restart
       }
+      // Removing every project returns to the first-run experience, so forget the
+      // orientation state too — the guided tour and tab captions should greet the
+      // fresh start again rather than staying dismissed from the previous setup.
+      resetOnboarding();
       setResetMessage(
         `Removed ${overview.items.length} project(s) and their local index data. Reloading…`,
       );
