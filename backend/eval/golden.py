@@ -154,9 +154,14 @@ def _iter_files(root: Path):
     for path in sorted(root.rglob("*")):
         if not path.is_file():
             continue
-        if any(_is_skipped_dir(part) for part in path.parts):
+        # Judge skip rules against the path RELATIVE to the scanned root, never the
+        # absolute path: a directory name like "build" in the way TO the repo must
+        # not disqualify its contents ("--set acme" targets build/demo-project, and
+        # the absolute-parts check skipped the entire corpus — "No indexable files").
+        rel = path.relative_to(root)
+        if any(_is_skipped_dir(part) for part in rel.parts):
             continue
-        posix = path.as_posix()
+        posix = rel.as_posix()
         if any(fragment in posix for fragment in _SKIP_PATH_FRAGMENTS):
             continue
         file_type = _detect_type(path)
