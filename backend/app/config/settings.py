@@ -147,6 +147,9 @@ class Settings(BaseModel):
     USER_MODEL_CATALOG_CACHE_PATH: Path = DEFAULT_APP_DATA_DIR / "data" / "model_catalog_cache.json"
     USER_MODEL_CATALOG_FETCH_TIMEOUT_SECONDS: int = 5
     MODEL_DOWNLOAD_EXECUTION_ENABLED: bool = False
+    # Selective background contextual enrichment. Off by default: it spends an LLM
+    # call per enriched chunk, which the slow-hardware audience can't always afford.
+    CONTEXT_ENRICHMENT_ENABLED: bool = False
 
     @property
     def app_data_dir(self) -> Path:
@@ -244,6 +247,10 @@ class Settings(BaseModel):
     def model_download_execution_enabled(self) -> bool:
         return self.MODEL_DOWNLOAD_EXECUTION_ENABLED
 
+    @property
+    def context_enrichment_enabled(self) -> bool:
+        return self.CONTEXT_ENRICHMENT_ENABLED
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -329,6 +336,10 @@ def get_settings() -> Settings:
         USER_MODEL_CATALOG_URL=os.getenv("USER_MODEL_CATALOG_URL", ""),
         MODEL_DOWNLOAD_EXECUTION_ENABLED=os.getenv(
             "MODEL_DOWNLOAD_EXECUTION_ENABLED", "false"
+        ).lower()
+        in {"1", "true", "yes", "on"},
+        CONTEXT_ENRICHMENT_ENABLED=os.getenv(
+            "AI_WORKSPACE_CONTEXT_ENRICHMENT", "false"
         ).lower()
         in {"1", "true", "yes", "on"},
     )

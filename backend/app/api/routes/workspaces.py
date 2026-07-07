@@ -462,6 +462,11 @@ from app.core.use_cases.index_workspace import (
     IndexWorkspaceScanRequiredError,
     IndexWorkspaceUseCase,
 )
+from app.core.use_cases.enrich_workspace_context import (
+    EnrichWorkspaceContextInput,
+    EnrichWorkspaceContextNotFoundError,
+    EnrichWorkspaceContextUseCase,
+)
 from app.core.use_cases.list_workspace_model_experiments import (
     ListWorkspaceModelExperimentsInput,
     ListWorkspaceModelExperimentsUseCase,
@@ -1388,6 +1393,58 @@ def preview_changed_workspace(workspace_id: str) -> WorkspaceIndexChangePreviewR
     except IndexWorkspaceScanRequiredError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return to_workspace_index_change_preview_response(result)
+
+
+class WorkspaceContextEnrichmentResponse(BaseModel):
+    workspace_id: str
+    enabled: bool
+    examined_chunks: int
+    enriched_chunks: int
+    skipped_chunks: int
+    documents_touched: int
+
+
+def _enrich_use_case() -> EnrichWorkspaceContextUseCase:
+    return EnrichWorkspaceContextUseCase(
+        workspace_repository=workspace_repository,
+        project_scan_repository=project_scan_repository,
+        index_status_repository=index_status_repository,
+        vector_store=vector_store,
+        embedding_provider=embedding_provider,
+        llm_provider_factory=llm_provider_factory,
+        enabled=get_settings().context_enrichment_enabled,
+    )
+
+
+@router.post(
+    "/{workspace_id}/index/enrich",
+    response_model=WorkspaceContextEnrichmentResponse,
+)
+def enrich_workspace_context_endpoint(
+    workspace_id: str, max_chunks: int = 50
+) -> WorkspaceContextEnrichmentResponse:
+    """Selectively enrich a bounded batch of already-indexed chunks with a one-line
+    "where this sits" note and re-embed them (Anthropic-style contextual retrieval,
+    done only for the chunks that lose context when split). Off unless
+    ``AI_WORKSPACE_CONTEXT_ENRICHMENT`` is set — then ``enabled`` is false and
+    nothing is touched. Idempotent and progressive: call it again to enrich the next
+    batch. ``max_chunks`` caps how many are enriched in this call."""
+    try:
+        result = _enrich_use_case().execute(
+            EnrichWorkspaceContextInput(
+                workspace_id=workspace_id, max_chunks=max(1, max_chunks)
+            )
+        )
+    except EnrichWorkspaceContextNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return WorkspaceContextEnrichmentResponse(
+        workspace_id=result.workspace_id,
+        enabled=result.enabled,
+        examined_chunks=result.examined_chunks,
+        enriched_chunks=result.enriched_chunks,
+        skipped_chunks=result.skipped_chunks,
+        documents_touched=result.documents_touched,
+    )
 
 
 @router.get("/{workspace_id}/index/status", response_model=WorkspaceIndexStatusResponse)
