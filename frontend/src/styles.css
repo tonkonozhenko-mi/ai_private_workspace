@@ -5533,6 +5533,25 @@ a.getting-ready-cta:hover {
 .tab-caption-x { flex-shrink: 0; font-size: 11.5px; color: var(--c-text-3); background: none; border: none; cursor: pointer; padding: 2px 4px; }
 .tab-caption-x:hover { color: var(--c-text); }
 
+/* Guided spotlight tour: dim + highlighted target + captioned callout. */
+.tour-overlay { position: fixed; inset: 0; z-index: 1000; }
+.tour-dim { position: fixed; inset: 0; background: rgba(8, 10, 14, 0.6); }
+.tour-spot { position: fixed; border-radius: 12px; border: 2px solid var(--c-accent); box-shadow: 0 0 0 9999px rgba(8, 10, 14, 0.6); transition: top 0.18s ease, left 0.18s ease, width 0.18s ease, height 0.18s ease; pointer-events: none; }
+.tour-callout { position: fixed; background: var(--c-surface-2); border: 0.5px solid var(--c-border-strong); border-radius: 12px; padding: 14px 16px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35); }
+.tour-callout-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.tour-callout-title { font-size: 14px; font-weight: 500; color: var(--c-text); }
+.tour-skip { font-size: 11.5px; color: var(--c-text-3); background: none; border: none; cursor: pointer; padding: 2px 4px; }
+.tour-skip:hover { color: var(--c-text); }
+.tour-callout-body { font-size: 13px; color: var(--c-text-2); line-height: 1.55; margin: 0 0 12px; }
+.tour-callout-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tour-count { font-size: 11.5px; color: var(--c-text-3); }
+.tour-nav { display: flex; gap: 8px; }
+.tour-btn { font-size: 12.5px; padding: 6px 14px; border-radius: var(--r-pill); border: 0.5px solid var(--c-border-strong); background: var(--c-surface-2); color: var(--c-text); cursor: pointer; }
+.tour-btn:hover { background: var(--c-surface-1); }
+.tour-btn.is-primary { background: var(--c-accent); color: #fff; border-color: transparent; }
+.start-here-tour { font-size: 11.5px; color: var(--c-accent); background: none; border: none; cursor: pointer; padding: 2px 4px; }
+.start-here-tour:hover { text-decoration: underline; }
+
 /* group Ask — answer card + sources by repo */
 .grp-answer-eyebrow { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--c-text-3); margin: 0; }
 .grp-answer-body { font-size: 13px; color: var(--c-text); line-height: 1.65; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: 10px; padding: 14px 16px; }
