@@ -9,6 +9,23 @@ import type { WorkspaceTab } from "./appTabs";
 const DISMISS_KEY = "aiw.onboard.dismissed";
 const DONE_KEY = "aiw.onboard.doneSteps";
 const SEEN_TABS_KEY = "aiw.onboard.seenTabs";
+const TOUR_KEY = "aiw.onboard.tourDone";
+
+export function isTourDone(): boolean {
+  try {
+    return localStorage.getItem(TOUR_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markTourDone(): void {
+  try {
+    localStorage.setItem(TOUR_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
 
 function readSet(key: string): Set<string> {
   try {
@@ -72,6 +89,7 @@ interface StartHereProps {
   onOpenModels: () => void;
   onOpenAsk: () => void;
   onOpenIntelligence: () => void;
+  onTakeTour?: () => void;
 }
 
 interface Step {
@@ -89,6 +107,7 @@ export function StartHereChecklist({
   onOpenModels,
   onOpenAsk,
   onOpenIntelligence,
+  onTakeTour,
 }: StartHereProps) {
   const [dismissed, setDismissed] = useState(isDismissed);
   const [doneManual, setDoneManual] = useState<Set<string>>(() => readSet(DONE_KEY));
@@ -162,6 +181,11 @@ export function StartHereChecklist({
           </p>
         </div>
         <div className="start-here-head-right">
+          {onTakeTour ? (
+            <button type="button" className="start-here-tour" onClick={onTakeTour}>
+              Take a quick tour
+            </button>
+          ) : null}
           <span className="start-here-count">
             {doneCount} of {steps.length}
           </span>

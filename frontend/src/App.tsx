@@ -78,7 +78,43 @@ import { useSidebarCollapsed } from "./hooks/useSidebarCollapsed";
 import { useCommandPalette } from "./hooks/useCommandPalette";
 import { errorMessage } from "./lib/errorMessage";
 import { NavIcon, FirstRunWelcome } from "./components/AppChrome";
-import { StartHereChecklist, TabCaption } from "./components/StartHere";
+import {
+  StartHereChecklist,
+  TabCaption,
+  isTourDone,
+  markTourDone,
+} from "./components/StartHere";
+import { SpotlightTour, type TourStep } from "./components/SpotlightTour";
+
+// The guided first-run tour points at each workspace tab (they carry
+// data-tab-id), so a new user learns what each section is for in place.
+const WORKSPACE_TOUR_STEPS: TourStep[] = [
+  {
+    selector: '[data-tab-id="overview"]',
+    title: "Home",
+    body: "Your project at a glance — status, what changed, and the next thing to do.",
+  },
+  {
+    selector: '[data-tab-id="intelligence"]',
+    title: "Intelligence",
+    body: "The map of your project — architecture, risks and the environments the app found.",
+  },
+  {
+    selector: '[data-tab-id="ask"]',
+    title: "Ask",
+    body: "Ask anything about your project in plain words. Answers come from your own files.",
+  },
+  {
+    selector: '[data-tab-id="models"]',
+    title: "Models",
+    body: "Download, switch or remove the local AI models. Everything runs on your machine.",
+  },
+  {
+    selector: '[data-tab-id="settings"]',
+    title: "Settings",
+    body: "Appearance and behaviour — tune the app to how you like to work.",
+  },
+];
 
 import type { WorkspaceTab } from "./components/appTabs";
 import { workspaceTabs } from "./components/appTabs";
@@ -164,6 +200,7 @@ function App() {
   const [workspacesError, setWorkspacesError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
+  const [tourOpen, setTourOpen] = useState(false);
   const [setupTakeoverDismissed, setSetupTakeoverDismissed] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useSidebarCollapsed();
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
@@ -826,11 +863,23 @@ function App() {
   useEffect(() => {
     if (setupComplete && takeoverWasActiveRef.current) {
       takeoverWasActiveRef.current = false;
-      setSetupCelebration(true);
-      setActiveTab("ask");
       setSidebarCollapsed(true);
+      // First landing after setup: run the guided tour once. Otherwise celebrate
+      // and drop the user straight into Ask, as before.
+      if (!isTourDone()) {
+        setActiveTab("overview");
+        setTourOpen(true);
+      } else {
+        setSetupCelebration(true);
+        setActiveTab("ask");
+      }
     }
   }, [setupComplete]);
+
+  const closeTour = () => {
+    markTourDone();
+    setTourOpen(false);
+  };
 
   const isFirstRun =
     !workspacesLoading &&
@@ -978,6 +1027,9 @@ function App() {
           role={detail?.dashboard.assistant_mode}
           onClose={() => setInspectFilePath(null)}
         />
+      ) : null}
+      {tourOpen && detail && !selectedGroupId ? (
+        <SpotlightTour steps={WORKSPACE_TOUR_STEPS} onClose={closeTour} />
       ) : null}
       {sidebarCollapsed ? (
         <button
@@ -1300,6 +1352,7 @@ function App() {
                   onOpenModels={() => setActiveTab("models")}
                   onOpenAsk={() => setActiveTab("ask")}
                   onOpenIntelligence={() => setActiveTab("intelligence")}
+                  onTakeTour={() => setTourOpen(true)}
                 />
                 <WorkspaceDashboard
                   dashboard={detail.dashboard}
