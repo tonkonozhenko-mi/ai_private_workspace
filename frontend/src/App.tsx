@@ -78,17 +78,17 @@ import { useSidebarCollapsed } from "./hooks/useSidebarCollapsed";
 import { useCommandPalette } from "./hooks/useCommandPalette";
 import { errorMessage } from "./lib/errorMessage";
 import { NavIcon, FirstRunWelcome } from "./components/AppChrome";
-import {
-  StartHereChecklist,
-  TabCaption,
-  isTourDone,
-  markTourDone,
-} from "./components/StartHere";
+import { TabCaption, isTourDone, markTourDone } from "./components/StartHere";
 import { SpotlightTour, type TourStep } from "./components/SpotlightTour";
 
 // The guided first-run tour points at each workspace tab (they carry
 // data-tab-id), so a new user learns what each section is for in place.
 const WORKSPACE_TOUR_STEPS: TourStep[] = [
+  {
+    selector: '[data-tour-id="projects"]',
+    title: "Your projects",
+    body: "This button opens the list of your projects and groups. It's tucked away by default to keep things calm — click it anytime to switch projects, add a new one, or make a group.",
+  },
   {
     selector: '[data-tab-id="overview"]',
     title: "Home",
@@ -892,8 +892,9 @@ function App() {
     if (isTourDone()) return;
     autoTourTriedRef.current = true;
     setActiveTab("overview");
+    setSidebarCollapsed(true); // so the projects step can spotlight the reveal button
     setTourOpen(true);
-  }, [detail, selectedGroupId, needsInitialSetup]);
+  }, [detail, selectedGroupId, needsInitialSetup, setSidebarCollapsed]);
 
   const isFirstRun =
     !workspacesLoading &&
@@ -1001,6 +1002,20 @@ function App() {
           run: () => setActiveTab(t.id),
         }))
       : []),
+    ...(selectedWorkspaceId && !selectedGroupId
+      ? [
+          {
+            id: "__take_tour__",
+            kind: "tab" as const,
+            label: "Take a quick tour",
+            sub: "help",
+            run: () => {
+              setSidebarCollapsed(true);
+              setTourOpen(true);
+            },
+          },
+        ]
+      : []),
     ...workspaces.map((w) => ({
       id: w.workspace_id,
       kind: "repo" as const,
@@ -1051,6 +1066,7 @@ function App() {
           type="button"
           title="Show projects"
           aria-label="Show projects"
+          data-tour-id="projects"
           onClick={() => setSidebarCollapsed(false)}
         >
           <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1359,15 +1375,6 @@ function App() {
               role="tabpanel"
             >
               {activeTab === "overview" ? (
-                <>
-                <StartHereChecklist
-                  dashboard={detail.dashboard}
-                  modelsReady={detail.modelsSummary.can_ask_with_selected_llm}
-                  onOpenModels={() => setActiveTab("models")}
-                  onOpenAsk={() => setActiveTab("ask")}
-                  onOpenIntelligence={() => setActiveTab("intelligence")}
-                  onTakeTour={() => setTourOpen(true)}
-                />
                 <WorkspaceDashboard
                   dashboard={detail.dashboard}
                   modelsSummary={detail.modelsSummary}
@@ -1387,7 +1394,6 @@ function App() {
                   skillPreferences={preferences.skillPreferences}
                   fileIndexingPreferences={preferences.fileIndexingPreferences}
                 />
-                </>
               ) : null}
               {activeTab === "intelligence" ? (
                 <ProjectIntelligence
