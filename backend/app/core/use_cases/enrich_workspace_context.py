@@ -170,9 +170,7 @@ class EnrichWorkspaceContextUseCase:
                 )
         return candidates, digests
 
-    def _enrich_one(
-        self, workspace_id: str, target: EnrichmentCandidate, digest: str, llm
-    ) -> bool:
+    def _enrich_one(self, workspace_id: str, target: EnrichmentCandidate, digest: str, llm) -> bool:
         """Enrich a single chunk end-to-end. Returns True on a successful re-embed,
         False (counted as skipped) on an empty note or any failure — never raises."""
         try:

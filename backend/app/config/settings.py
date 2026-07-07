@@ -338,9 +338,7 @@ def get_settings() -> Settings:
             "MODEL_DOWNLOAD_EXECUTION_ENABLED", "false"
         ).lower()
         in {"1", "true", "yes", "on"},
-        CONTEXT_ENRICHMENT_ENABLED=os.getenv(
-            "AI_WORKSPACE_CONTEXT_ENRICHMENT", "false"
-        ).lower()
+        CONTEXT_ENRICHMENT_ENABLED=os.getenv("AI_WORKSPACE_CONTEXT_ENRICHMENT", "false").lower()
         in {"1", "true", "yes", "on"},
     )
     return settings

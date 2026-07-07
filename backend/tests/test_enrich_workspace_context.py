@@ -99,16 +99,14 @@ def _md_file(path="guide.md", parts=3):
 
 
 def _use_case(files, chunks_by_path, *, chunks_count, llm, enabled=True):
-    return (
-        EnrichWorkspaceContextUseCase(
-            workspace_repository=_WSRepo(),
-            project_scan_repository=_ScanRepo(files),
-            index_status_repository=_StatusRepo(chunks_count),
-            vector_store=_VS(chunks_by_path),
-            embedding_provider=_Embed(),
-            llm_provider_factory=_Factory(llm) if llm is not None else None,
-            enabled=enabled,
-        )
+    return EnrichWorkspaceContextUseCase(
+        workspace_repository=_WSRepo(),
+        project_scan_repository=_ScanRepo(files),
+        index_status_repository=_StatusRepo(chunks_count),
+        vector_store=_VS(chunks_by_path),
+        embedding_provider=_Embed(),
+        llm_provider_factory=_Factory(llm) if llm is not None else None,
+        enabled=enabled,
     )
 
 
@@ -150,8 +148,12 @@ def test_already_enriched_chunk_is_not_redone():
                 chunk_index=1,
                 chunk_id=f"w1:{path}:1",
                 content=build_contextual_chunk(
-                    "second paragraph", source_path=path, position=2, total=2,
-                    file_type="markdown", extension="md",
+                    "second paragraph",
+                    source_path=path,
+                    position=2,
+                    total=2,
+                    file_type="markdown",
+                    extension="md",
                 ),
             ),
         ]

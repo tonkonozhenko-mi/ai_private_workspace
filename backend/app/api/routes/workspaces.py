@@ -315,6 +315,11 @@ from app.core.use_cases.delete_workspace import (
     DeleteWorkspaceNotFoundError,
     DeleteWorkspaceUseCase,
 )
+from app.core.use_cases.enrich_workspace_context import (
+    EnrichWorkspaceContextInput,
+    EnrichWorkspaceContextNotFoundError,
+    EnrichWorkspaceContextUseCase,
+)
 from app.core.use_cases.explain_workspace_model_recommendation import (
     ExplainWorkspaceModelRecommendationInput,
     ExplainWorkspaceModelRecommendationUseCase,
@@ -461,11 +466,6 @@ from app.core.use_cases.index_workspace import (
     IndexWorkspaceNotFoundError,
     IndexWorkspaceScanRequiredError,
     IndexWorkspaceUseCase,
-)
-from app.core.use_cases.enrich_workspace_context import (
-    EnrichWorkspaceContextInput,
-    EnrichWorkspaceContextNotFoundError,
-    EnrichWorkspaceContextUseCase,
 )
 from app.core.use_cases.list_workspace_model_experiments import (
     ListWorkspaceModelExperimentsInput,
@@ -1431,9 +1431,7 @@ def enrich_workspace_context_endpoint(
     batch. ``max_chunks`` caps how many are enriched in this call."""
     try:
         result = _enrich_use_case().execute(
-            EnrichWorkspaceContextInput(
-                workspace_id=workspace_id, max_chunks=max(1, max_chunks)
-            )
+            EnrichWorkspaceContextInput(workspace_id=workspace_id, max_chunks=max(1, max_chunks))
         )
     except EnrichWorkspaceContextNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
