@@ -70,6 +70,7 @@ It prints the backend, frontend, and runtime-check commands without executing th
 
 The browser UI stores the last selected workspace id in localStorage and restores it on startup when the workspace still exists in SQLite. This is convenience state only; project data remains in `backend/.ai-workbench/workspaces.db`.
 
-## Production readiness
+## Packaging & releases
 
-See `docs/PRODUCTION_READINESS.md` for the final daily-use checklist and packaging path.
+See [RELEASE_AND_UPDATES.md](RELEASE_AND_UPDATES.md) for the packaging path and how
+releases and updates are produced.
