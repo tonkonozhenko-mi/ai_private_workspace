@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **A failed streamed answer no longer echoes internal error text to the client.** When an unexpected error interrupted a streaming answer (single-project or across a group), the raw exception message was sent down to the browser, which could reveal internal details like file paths. Unexpected failures now return a short, generic message and the real detail is written only to the server log; deliberate, user-facing validation messages ("no such group", "a question is required") are unchanged.
+
 ### Changed
 
 - **Asking a question across a group of repositories now matches the quality of asking a single project.** The group answer had quietly fallen behind the per-project one: it fanned out, merged the top hits and answered in a single pass, without the safeguards a single-project answer had gained. It now runs the same pipeline across every member — obvious small talk is answered directly instead of searching all repos; the search query is expanded with the same vocabulary bridging (so "k8s" finds "kubernetes"); each repo contributes a diverse, non-duplicated set of chunks that are grown with their surrounding context; and if nothing is genuinely relevant, the group now honestly answers from general knowledge instead of forcing an unrelated file into the answer. The merged context is fitted to the model's real window, the answer is checked for grounding, and a weak answer triggers one corrective retry. Every group answer now reports the same grounding warnings and token usage a single answer does, and the group view flags a low-confidence answer the same way.

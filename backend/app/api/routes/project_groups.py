@@ -7,6 +7,7 @@ workspaces are only referenced — never created or deleted by these endpoints.
 """
 
 import json
+import logging
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -66,6 +67,7 @@ from app.core.use_cases.manage_project_memory import (
 )
 
 router = APIRouter(prefix="/workspace-groups", tags=["workspace-groups"])
+logger = logging.getLogger(__name__)
 
 
 def _manage() -> ManageProjectGroupsUseCase:
@@ -485,9 +487,11 @@ def ask_group_stream(group_id: str, request: GroupAskRequest) -> StreamingRespon
                 elif isinstance(event, GroupAskStreamFinal):
                     yield _sse("final", _ask_response(event.answer).model_dump(mode="json"))
         except (AskGroupQuestionNotFoundError, AskGroupQuestionValidationError) as exc:
+            # Our own domain errors carry safe, user-facing messages.
             yield _sse("error", {"detail": str(exc)})
-        except Exception as exc:  # noqa: BLE001 - surface any failure to the client
-            yield _sse("error", {"detail": str(exc)})
+        except Exception:  # noqa: BLE001 - surface a failure without leaking internals
+            logger.exception("group ask stream failed group_id=%s", group_id)
+            yield _sse("error", {"detail": "The request could not be completed. Please try again."})
 
     return StreamingResponse(
         event_stream(),

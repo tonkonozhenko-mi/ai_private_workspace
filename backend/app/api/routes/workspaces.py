@@ -2420,12 +2420,15 @@ def ask_workspace_question_with_selected_llm_stream(
                 exc,
             )
             yield _sse_event("error", {"detail": str(exc)})
-        except Exception as exc:  # noqa: BLE001 - surface any failure to the client
+        except Exception:  # noqa: BLE001 - surface a failure without leaking internals
             logger.exception(
                 "workspace ask failed workspace_id=%s mode=selected_llm_stream",
                 workspace_id,
             )
-            yield _sse_event("error", {"detail": str(exc)})
+            yield _sse_event(
+                "error",
+                {"detail": "The request could not be completed. Please try again."},
+            )
 
     return StreamingResponse(
         event_stream(),
