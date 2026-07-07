@@ -39,9 +39,6 @@ Product, architecture, packaging, and release documentation for
 - [DESKTOP_PACKAGING_DESIGN_LOCK.md](DESKTOP_PACKAGING_DESIGN_LOCK.md) — locked packaging design decisions.
 - [MACOS_LAUNCHER.md](MACOS_LAUNCHER.md) — the macOS double-click launcher.
 - [WINDOWS_PACKAGING_FOUNDATION.md](WINDOWS_PACKAGING_FOUNDATION.md) — Windows packaging foundation.
-- [DESKTOP_STACK_AND_RUNTIME_CONTRACT.md](DESKTOP_STACK_AND_RUNTIME_CONTRACT.md) — desktop stack & runtime contract (referenced by scripts).
-- [MACOS_TAURI_SMOKE_RUNBOOK.md](MACOS_TAURI_SMOKE_RUNBOOK.md) — macOS/Tauri smoke runbook (referenced by backend and scripts).
-- [MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md](MACOS_PACKAGED_APP_SMOKE_PREFLIGHT.md) — packaged app smoke preflight (referenced by backend and scripts).
 
 ## Runbooks & troubleshooting
 
