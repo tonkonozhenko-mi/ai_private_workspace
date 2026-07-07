@@ -73,8 +73,8 @@ from app.core.use_cases.ask_workspace_question import (
     FAKE_EMBEDDING_RELEVANCE_THRESHOLD,
     PROJECT_NOT_FOUND_WARNING,
     QUERY_REWRITE_ENV_VAR,
-    RELEVANCE_FLOOR_MAX,
     RELEVANCE_FLOOR_MARGIN,
+    RELEVANCE_FLOOR_MAX,
     RELEVANCE_FLOOR_MIN,
     RELEVANCE_THRESHOLD_ENV_VAR,
     _hard_grounding_warnings,
@@ -321,9 +321,7 @@ class AskGroupQuestionUseCase:
                 corrected = True
             else:
                 warnings = (
-                    [PROJECT_NOT_FOUND_WARNING]
-                    if looks_project_specific(request.question)
-                    else []
+                    [PROJECT_NOT_FOUND_WARNING] if looks_project_specific(request.question) else []
                 )
                 return _Generation(
                     llm_provider=llm_provider,
@@ -441,9 +439,7 @@ class AskGroupQuestionUseCase:
             )
             candidates = limit_per_source(candidates)
             if len(candidates) > cap:
-                order = self.reranker.rerank(
-                    retrieval_query, [c.content for c in candidates], cap
-                )
+                order = self.reranker.rerank(retrieval_query, [c.content for c in candidates], cap)
                 reranked = [candidates[i] for i in order if 0 <= i < len(candidates)]
                 candidates = reranked or candidates
             picked = candidates[:cap]
