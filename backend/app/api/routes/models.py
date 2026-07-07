@@ -713,6 +713,53 @@ def delete_gguf_model(request: DeleteGgufModelRequest) -> DeleteGgufModelRespons
     return DeleteGgufModelResponse(deleted=_gguf_download_use_case.delete(model))
 
 
+class ImportLocalGgufRequest(BaseModel):
+    path: str
+    model_type: str | None = None
+
+
+@router.post("/gguf-import", response_model=GgufCatalogItemResponse)
+def import_local_gguf(request: ImportLocalGgufRequest) -> GgufCatalogItemResponse:
+    """Register a GGUF model the user already has on disk (from LM Studio, another
+    llama.cpp setup, or a manual download) so it becomes usable without
+    re-downloading. The file is linked into the managed model dir (copied only when
+    a link can't be made); the user's original file is never modified. Validates
+    the file is a real GGUF (extension, size, and the GGUF magic header)."""
+    from app.core.use_cases.import_local_gguf import (
+        ImportLocalGgufUseCase,
+        LocalGgufImportError,
+    )
+
+    try:
+        imported = ImportLocalGgufUseCase(_gguf_download_use_case.app_data_dir).execute(
+            request.path.strip(), request.model_type
+        )
+    except LocalGgufImportError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    runtime = llama_runtime_manager.status()
+    active = bool(runtime.get("running")) and imported.model_id in {
+        runtime.get("active_llm_model"),
+        runtime.get("active_embedding_model"),
+    }
+    return GgufCatalogItemResponse(
+        id=imported.model_id,
+        name=imported.filename,
+        model_type=imported.model_type,
+        repo_id=imported.repo_id,
+        filename=imported.filename,
+        quantization="custom",
+        size_bytes=imported.size_bytes,
+        recommended=False,
+        download_url=(
+            f"https://huggingface.co/{imported.repo_id}/resolve/main/{imported.filename}"
+        ),
+        installed=True,
+        active=active,
+        custom=True,
+    )
+
+
 class ActivateWorkspaceRuntimeResponse(BaseModel):
     active_backend: str
 
