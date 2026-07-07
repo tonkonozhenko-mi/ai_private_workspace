@@ -39,6 +39,7 @@ interface SettingsPanelProps {
   preferences: WorkbenchPreferences;
   onPreferencesChange: (preferences: WorkbenchPreferences) => void;
   onResetPreferences: () => void;
+  onStartTour?: () => void;
   onOpenModels: () => void;
   onIndexingRulesSaved?: () => void;
   skillProfileSource?: string;
@@ -52,6 +53,7 @@ export function SettingsPanel({
   preferences,
   onPreferencesChange,
   onResetPreferences,
+  onStartTour,
   onOpenModels,
   onIndexingRulesSaved,
   skillProfileSource = "default",
@@ -617,6 +619,11 @@ export function SettingsPanel({
         </div>
         <p className="settings-about-by">Created by Maks Tonkonozhenko</p>
         <p className="settings-about-note">Local-first. Your files never leave your computer.</p>
+        {onStartTour ? (
+          <button type="button" className="settings-tour-link" onClick={onStartTour}>
+            Take a quick tour
+          </button>
+        ) : null}
         <div className="settings-about-links">
           <a
             href="https://github.com/tonkonozhenko-mi/ai_private_workspace"

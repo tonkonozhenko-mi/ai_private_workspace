@@ -2946,6 +2946,20 @@ a.getting-ready-cta:visited { color: var(--c-accent-ink); }
   font-size: 11.5px;
   color: var(--c-text-3);
 }
+/* Mouse-discoverable replay of the first-run tour (also on the command palette). */
+.settings-tour-link {
+  align-self: flex-start;
+  margin: -2px 0 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12.5px;
+  color: var(--c-accent);
+  cursor: pointer;
+}
+.settings-tour-link:hover {
+  text-decoration: underline;
+}
 
 /* developer-mode toggle: checkbox beside a stacked label + description,
    filling the full card width instead of a cramped right-edge column */
