@@ -907,6 +907,61 @@ if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Ou
     }
 }
 
+#[tauri::command]
+fn choose_gguf_file() -> Result<Option<String>, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let output = Command::new("/usr/bin/osascript")
+            .arg("-e")
+            .arg("POSIX path of (choose file with prompt \"Choose a .gguf model file\" of type {\"gguf\"})")
+            .stdin(Stdio::null())
+            .output()
+            .map_err(|err| format!("Could not open macOS file picker: {}", err))?;
+        if output.status.success() {
+            let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if value.is_empty() {
+                return Ok(None);
+            }
+            return Ok(Some(value));
+        }
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        if stderr.contains("User canceled") || stderr.contains("-128") {
+            return Ok(None);
+        }
+        return Err(format!("File picker failed: {}", stderr.trim()));
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // Native Windows file picker via WinForms OpenFileDialog, filtered to
+        // .gguf. Runs in a single-threaded apartment (-STA) as the dialog requires.
+        let script = "Add-Type -AssemblyName System.Windows.Forms; \
+$d = New-Object System.Windows.Forms.OpenFileDialog; \
+$d.Title = 'Choose a .gguf model file'; \
+$d.Filter = 'GGUF models (*.gguf)|*.gguf'; \
+if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Out.Write($d.FileName) }";
+        let output = Command::new("powershell")
+            .args(["-NoProfile", "-STA", "-Command", script])
+            .stdin(Stdio::null())
+            .output()
+            .map_err(|err| format!("Could not open Windows file picker: {}", err))?;
+        if output.status.success() {
+            let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if value.is_empty() {
+                return Ok(None);
+            }
+            return Ok(Some(value));
+        }
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        return Err(format!("File picker failed: {}", stderr.trim()));
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        Err("Native file picker is currently implemented for macOS and Windows builds.".to_string())
+    }
+}
+
 /// Bring the main window back to the foreground (used by the tray "Show" item and
 /// a tray click). Safe no-op if the window is already visible.
 fn show_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
@@ -1039,6 +1094,7 @@ pub fn run() {
             start_app_owned_backend_runtime,
             stop_app_owned_backend_runtime,
             choose_project_directory,
+            choose_gguf_file,
             open_external_url
         ])
         .build(tauri::generate_context!())

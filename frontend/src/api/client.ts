@@ -550,6 +550,19 @@ export function deleteGgufModel(
   });
 }
 
+// Register a GGUF model the user already has on disk so it becomes usable without
+// re-downloading. Returns the imported model as a catalog item.
+export function importLocalGguf(
+  path: string,
+  modelType?: "llm" | "embedding",
+): Promise<GgufCatalogItem> {
+  return requestJson<GgufCatalogItem>(`/models/gguf-import`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ path, model_type: modelType ?? null }),
+  });
+}
+
 // Re-activate the engine a workspace uses (active backend is app-global). Call
 // when opening a workspace so its embeddings/answers run on the right engine.
 export function activateWorkspaceRuntime(

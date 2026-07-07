@@ -5,6 +5,7 @@ import {
   deleteGgufModel,
   getGgufCatalog,
   getGgufDownload,
+  importLocalGguf,
   listGgufDownloads,
   getLlamaRuntimeStatus,
   resolveGgufModel,
@@ -16,6 +17,7 @@ import {
   updateWorkspaceModelSelection,
 } from "../api/client";
 import type { GgufCatalogItem, GgufDownloadJob, LlamaRuntimeStatus } from "../api/types";
+import { chooseGgufFile, isRunningInsideTauri } from "../desktopRuntime";
 
 function formatGb(bytes: number): string {
   if (!bytes) return "";
@@ -55,6 +57,8 @@ export function LlamaCppModelsPanel({
   const [customFile, setCustomFile] = useState("");
   const [customBusy, setCustomBusy] = useState(false);
   const [customJobKey, setCustomJobKey] = useState<string | null>(null);
+  const [importPath, setImportPath] = useState("");
+  const [importBusy, setImportBusy] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const pollers = useRef<Record<string, number>>({});
@@ -384,6 +388,47 @@ export function LlamaCppModelsPanel({
     }
   }
 
+  // Register a GGUF the user already has on disk. The file is linked in place, so
+  // it appears in the list below like a downloaded model — ready to switch to.
+  async function importModel(pathArg?: string) {
+    const path = (pathArg ?? importPath).trim();
+    setError(null);
+    setNotice(null);
+    if (!path) {
+      setError("Choose a .gguf file, or paste its full path.");
+      return;
+    }
+    setImportBusy(true);
+    try {
+      const model = await importLocalGguf(path);
+      setImportPath("");
+      await refreshCatalog();
+      setNotice(`Imported ${model.name}. It's ready to use below.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not import that file.");
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
+  // Open the native .gguf picker (desktop app); import straight away once chosen.
+  async function chooseAndImport() {
+    setError(null);
+    try {
+      const picked = await chooseGgufFile();
+      if (picked) {
+        setImportPath(picked);
+        await importModel(picked);
+      } else if (!isRunningInsideTauri()) {
+        setError(
+          "The file picker is available in the desktop app. Paste the full path to your .gguf below.",
+        );
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not open the file picker.");
+    }
+  }
+
   async function removeModel(model: GgufCatalogItem) {
     if (!window.confirm(`Delete ${model.name}? The model file is removed from disk.`)) {
       return;
@@ -687,6 +732,45 @@ export function LlamaCppModelsPanel({
             </span>
           </div>
         ) : null}
+      </div>
+
+      <div className="gr-llama-custom">
+        <p className="gr-llama-custom-title">Already have a model?</p>
+        <p className="gr-llama-note gr-llama-note--left">
+          Import a .gguf you already downloaded — from LM Studio, another llama.cpp
+          setup, or by hand. It's linked in place, so your original file isn't moved
+          or copied.
+        </p>
+        <div className="gr-llama-custom-fields">
+          <button
+            type="button"
+            className="gr-check-use"
+            disabled={importBusy}
+            onClick={() => void chooseAndImport()}
+          >
+            {importBusy ? "Importing…" : "Choose .gguf file…"}
+          </button>
+        </div>
+        <div className="gr-llama-custom-fields">
+          <input
+            type="text"
+            value={importPath}
+            placeholder="…or paste the full path to a .gguf file"
+            disabled={importBusy}
+            onChange={(e) => setImportPath(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void importModel();
+            }}
+          />
+          <button
+            type="button"
+            className="gr-check-use"
+            disabled={importBusy || !importPath.trim()}
+            onClick={() => void importModel()}
+          >
+            Import
+          </button>
+        </div>
       </div>
     </div>
   );

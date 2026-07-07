@@ -81,6 +81,21 @@ export async function chooseProjectDirectory(): Promise<string | null> {
   return invoke<string | null>("choose_project_directory");
 }
 
+/**
+ * Open the native file picker filtered to .gguf model files. Returns the chosen
+ * absolute path, or null when cancelled or when not running inside the desktop
+ * shell (the web dev server has no native picker — the caller falls back to a
+ * pasted path).
+ */
+export async function chooseGgufFile(): Promise<string | null> {
+  const invoke = tauriInvoke();
+  if (!invoke) {
+    return null;
+  }
+
+  return invoke<string | null>("choose_gguf_file");
+}
+
 function currentTauriWindow(): TauriWindowHandle | null {
   const maybeWindow = window as typeof window & { __TAURI__?: TauriGlobal };
   const getCurrentWindow = maybeWindow.__TAURI__?.window?.getCurrentWindow;
