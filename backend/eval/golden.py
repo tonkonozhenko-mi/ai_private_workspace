@@ -103,6 +103,15 @@ _SKIP_DIRS = {
     ".pytest_cache",
     "coverage",
     ".idea",
+    # IaC caches: vendored copies of every Terraform module per environment. On a
+    # real Terragrunt monorepo these multiplied the corpus into tens of thousands
+    # of duplicate chunks (observed 2026-07-07: a --repo run took hours and every
+    # retrieval hit was a .terraform/.terragrunt-cache duplicate). The real app
+    # never indexes them — it respects .gitignore; the runner must skip them too.
+    ".terraform",
+    ".terragrunt-cache",
+    ".tox",
+    "vendor",
 }
 # Path fragments (posix) that mark generated/vendored trees — skipped wholesale so
 # the corpus is only real project source. ``src-tauri/gen`` holds generated schemas.
