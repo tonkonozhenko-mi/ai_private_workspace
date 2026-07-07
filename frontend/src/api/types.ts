@@ -2024,6 +2024,8 @@ export interface GroupAskResponse {
   memory_used: number;
   facts_used: number;
   diagnostic_code: string | null;
+  quality_warnings?: RagQualityWarning[];
+  usage?: LLMUsageMetrics | null;
 }
 
 export interface GroupMemoryItem {

@@ -73,9 +73,14 @@ class _LLMProvider:
 
     def __init__(self):
         self.last_prompt = None
+        # Every prompt the model saw. The grounded answer, and possibly a corrective
+        # rewrite/regeneration pass, each call generate(); asserting against the whole
+        # list keeps prompt checks robust to those extra passes.
+        self.prompts = []
 
     def generate(self, prompt, images=None, temperature=None, think=None, history=None):
         self.last_prompt = prompt
+        self.prompts.append(prompt)
         return "ANSWER"
 
 
@@ -151,8 +156,9 @@ def test_merges_and_tags_sources_by_repo():
     top = res.sources[0]
     assert top.source_path == "auth.py" and top.workspace_name == "api" and top.workspace_id == "w1"
     assert any(s.workspace_name == "web" and s.source_path == "login.ts" for s in res.sources)
-    # the prompt, however, cites the repo-prefixed path so the model attributes it
-    assert "api/auth.py" in factory.provider.last_prompt
+    # the grounded prompt, however, cites the repo-prefixed path so the model
+    # attributes it (checked across all prompts to tolerate a corrective pass)
+    assert any("api/auth.py" in p for p in factory.provider.prompts)
     # contributions reflect how many chunks each repo supplied
     by_id = {c.workspace_id: c.chunks_used for c in res.contributions}
     assert by_id["w1"] == 2 and by_id["w2"] == 1
@@ -233,6 +239,52 @@ def test_context_provider_counts_are_summed_across_repos():
     res = uc.execute(AskGroupQuestionInput(group_id="g1", question="db?"))
     assert res.memory_used == 3  # 2 + 1
     assert res.facts_used == 4  # 1 + 3
+
+
+def test_chitchat_is_routed_to_general_conversation():
+    # A greeting must not fan out into retrieval across the group.
+    uc, factory = _build(
+        group_members=["w1"],
+        vector_rows={"w1": [("auth.py", 0.95)]},
+        indexed_ids=["w1"],
+        workspaces=[_Workspace("w1", "api")],
+    )
+    res = uc.execute(AskGroupQuestionInput(group_id="g1", question="hello, how are you?"))
+    assert res.diagnostic_code == "answered_as_general_conversation"
+    assert res.sources == []
+    assert res.used_context_chunks == 0
+
+
+def test_low_relevance_abstains_instead_of_forcing_context():
+    # Every hit is below the abstention floor → answer from general knowledge, not
+    # forced project context (the parity safety net the group used to lack).
+    uc, _ = _build(
+        group_members=["w1", "w2"],
+        vector_rows={"w1": [("a.py", 0.10)], "w2": [("b.ts", 0.09)]},
+        indexed_ids=["w1", "w2"],
+        workspaces=[_Workspace("w1", "api"), _Workspace("w2", "web")],
+    )
+    res = uc.execute(
+        AskGroupQuestionInput(group_id="g1", question="where is the auth handler defined")
+    )
+    assert res.diagnostic_code == "answered_as_general_conversation"
+    assert res.sources == []
+
+
+def test_grounded_answer_carries_warnings_and_usage():
+    # A grounded group answer now reports the same grounding checks and token usage
+    # a single-repo answer does.
+    uc, _ = _build(
+        group_members=["w1"],
+        vector_rows={"w1": [("auth.py", 0.95)]},
+        indexed_ids=["w1"],
+        workspaces=[_Workspace("w1", "api")],
+    )
+    res = uc.execute(AskGroupQuestionInput(group_id="g1", question="how does auth work"))
+    assert res.sources  # grounded
+    assert res.usage is not None
+    # The canned "ANSWER" cites nothing, so a grounding warning is surfaced.
+    assert any(w.code == "answer_missing_source_paths" for w in res.quality_warnings)
 
 
 def test_per_repo_cap_limits_one_repo():

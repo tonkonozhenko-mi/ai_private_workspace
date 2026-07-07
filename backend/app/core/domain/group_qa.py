@@ -2,10 +2,15 @@
 
 Every source carries the repository it came from, so a group answer can be
 audited the same way a single-repo answer is — you always know which repo a fact
-was retrieved from.
+was retrieved from. Group answers now carry the same grounding ``quality_warnings``
+and token ``usage`` a single-repo answer does, so the group Ask has parity with the
+per-project Ask.
 """
 
 from dataclasses import dataclass, field
+
+from app.core.domain.llm_usage import LLMUsageMetrics
+from app.core.domain.rag import RagQualityWarning
 
 
 @dataclass(frozen=True)
@@ -40,3 +45,10 @@ class GroupQuestionAnswer:
     facts_used: int = 0
     diagnostic_code: str | None = None
     diagnostic_message: str | None = None
+    # Deterministic grounding checks over the generated answer (missing citations,
+    # terms not in context, quote mismatches, …) — same set the single-repo Ask
+    # surfaces, so a group answer can be trusted or questioned the same way.
+    quality_warnings: list[RagQualityWarning] = field(default_factory=list)
+    # Per-request token accounting (prompt/completion tokens, latency, context
+    # window). None when the answer was a short-circuit that never called the model.
+    usage: LLMUsageMetrics | None = None

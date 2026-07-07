@@ -759,6 +759,16 @@ function GroupAsk({ groupId }: { groupId: string }) {
             {loading && !result ? <span className="grp-caret" /> : null}
           </div>
 
+          {result && (result.quality_warnings ?? []).some((w) => w.severity === "high") ? (
+            <div className="ask-trust-notice" role="alert">
+              {(result.quality_warnings ?? [])
+                .filter((w) => w.severity === "high")
+                .map((warning, index) => (
+                  <p key={`${warning.code}-${index}`}>{warning.message}</p>
+                ))}
+            </div>
+          ) : null}
+
           {result && result.contributions.length > 0 ? (
             <div className="grp-contrib-bar">
               {result.contributions.map((c) => (
