@@ -400,6 +400,7 @@ class IndexWorkspaceUseCase:
             chunks_count=chunks_count,
             documents=reindexed_docs,
             relevance_floor=relevance_floor,
+            relevance_probe_ceiling=relevance_probe_ceiling,
         )
 
     def _index_workspace(

@@ -290,9 +290,7 @@ def _run_embedder(
     workspace_id = "eval"
     with tempfile.TemporaryDirectory() as tmp:
         store = SQLiteVectorStore(str(Path(tmp) / "eval.db"))
-        chunks_count, floor, probe_ceiling_value = _index_repo(
-            workspace_id, repo, embedder, store
-        )
+        chunks_count, floor, probe_ceiling_value = _index_repo(workspace_id, repo, embedder, store)
 
         status = WorkspaceIndexStatus(
             workspace_id=workspace_id,
@@ -315,12 +313,9 @@ def _run_embedder(
             index_status_repository=SimpleNamespace(get=lambda _wid: status),
         )
         threshold = uc._relevance_threshold(status, None)
-        ceiling_str = (
-            f"{probe_ceiling_value:.3f}" if probe_ceiling_value is not None else "n/a"
-        )
+        ceiling_str = f"{probe_ceiling_value:.3f}" if probe_ceiling_value is not None else "n/a"
         print(
-            f"  calibrated floor={floor} probe_ceiling={ceiling_str} "
-            f"→ threshold={threshold:.3f}",
+            f"  calibrated floor={floor} probe_ceiling={ceiling_str} → threshold={threshold:.3f}",
             flush=True,
         )
 
@@ -468,9 +463,7 @@ def _out_dir() -> Path:
     return out
 
 
-def _write_reports(
-    report, cases, outcomes, floor=None, threshold=None, probe_ceiling=None
-) -> None:
+def _write_reports(report, cases, outcomes, floor=None, threshold=None, probe_ceiling=None) -> None:
     """Write JSON + markdown. ``floor``/``probe_ceiling``/``threshold`` are recorded
     in both — the P5/P8 verdict needs them next to the scores, not just in the
     console scrollback."""
