@@ -1,8 +1,12 @@
+import logging
 import os
 import stat as stat_module
 from pathlib import Path
+from time import perf_counter
 
 from app.core.domain.project_scan import ProjectFile, ProjectFileList
+
+logger = logging.getLogger(__name__)
 
 MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024
 MAX_WRITTEN_FILE_SIZE_BYTES = 1024 * 1024
@@ -24,7 +28,9 @@ SKIPPED_DIRECTORIES = {
 class LocalFileSystem:
     def list_files(self, root_path: str) -> list[ProjectFile]:
         root = Path(root_path).resolve()
+        walk_started = perf_counter()
         candidates = self._collect_candidates(root)
+        walk_ms = (perf_counter() - walk_started) * 1000
         chart_roots = {
             relative_path.parent.as_posix()
             for relative_path, _, _, _ in candidates
@@ -35,6 +41,7 @@ class LocalFileSystem:
         skipped_files = 0
         total_size_bytes = 0
 
+        classify_started = perf_counter()
         for relative_path, full_path, size_bytes, modified_at in candidates:
             if size_bytes > MAX_FILE_SIZE_BYTES:
                 skipped_files += 1
@@ -51,6 +58,20 @@ class LocalFileSystem:
                 )
             )
             total_size_bytes += size_bytes
+        classify_ms = (perf_counter() - classify_started) * 1000
+
+        # This is the "Enumerating files…" window the user sees before per-file
+        # progress starts. Log the two sub-phases and the number of paths the walk
+        # actually visited, so a slow scan on a tiny project can be told apart from
+        # a walk dragging through a large sibling tree (visited ≫ kept). One line.
+        logger.info(
+            "scan.list_files walk=%.0fms classify=%.0fms visited=%d kept=%d root=%s",
+            walk_ms,
+            classify_ms,
+            len(candidates),
+            len(project_files),
+            root,
+        )
 
         return ProjectFileList(
             files=project_files,
