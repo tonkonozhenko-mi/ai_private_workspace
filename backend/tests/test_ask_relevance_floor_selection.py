@@ -16,7 +16,7 @@ from app.core.use_cases.ask_workspace_question import (
 _threshold = AskWorkspaceQuestionUseCase._relevance_threshold
 
 
-def _status(floor):
+def _status(floor, probe_ceiling=None):
     return WorkspaceIndexStatus(
         workspace_id="w",
         status="indexed",
@@ -27,6 +27,7 @@ def _status(floor):
         last_error=None,
         embedding_model="m",
         relevance_floor=floor,
+        relevance_probe_ceiling=probe_ceiling,
     )
 
 
@@ -80,6 +81,34 @@ def test_answer_mode_scales_the_threshold():
     strict = _threshold(_real_self(), _status(None), "sources_only")
     assert deep < base < strict
     assert base == DEFAULT_RELEVANCE_THRESHOLD
+
+
+def test_probe_ceiling_lowers_the_threshold_when_below_floor_margin():
+    # P8: on a small, homogeneous corpus the chunk↔chunk floor sits too high, so
+    # floor−0.10 over-abstains. The probe ceiling (measured query↔chunk) is the real
+    # chit-chat level; the threshold is capped just above it. Fable's acme×bge case:
+    # floor 0.60 → floor−0.10 = 0.50, probe ceiling 0.396 → 0.426.
+    _clear_env()
+    assert round(_threshold(_real_self(), _status(0.60, probe_ceiling=0.396)), 3) == 0.426
+
+
+def test_probe_ceiling_does_not_raise_the_threshold_above_floor_margin():
+    # When the ceiling sits ABOVE floor−0.10, min() keeps floor−0.10 unchanged, so
+    # the bar can only ever fall, never rise (Fable's nomic×acme / app cases).
+    _clear_env()
+    assert round(_threshold(_real_self(), _status(0.60, probe_ceiling=0.497)), 3) == 0.50
+    assert round(_threshold(_real_self(), _status(0.60, probe_ceiling=0.90)), 3) == 0.50
+
+
+def test_probe_ceiling_never_drops_below_the_minimum_band():
+    # An extremely low ceiling still can't push the threshold under the 0.15 floor.
+    _clear_env()
+    assert round(_threshold(_real_self(), _status(0.60, probe_ceiling=0.01)), 3) == 0.15
+
+
+def test_missing_probe_ceiling_leaves_floor_margin_behaviour_unchanged():
+    _clear_env()
+    assert round(_threshold(_real_self(), _status(0.60, probe_ceiling=None)), 3) == 0.50
 
 
 def test_fake_embedding_ignores_calibrated_floor():

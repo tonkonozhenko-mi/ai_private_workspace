@@ -44,6 +44,32 @@ DEFAULT_MAX_PAIRS = 200
 DEFAULT_PERCENTILE = 0.95
 DEFAULT_MARGIN = 0.05
 
+# A fixed, deliberately banal set of non-project "probe" queries. Their highest
+# similarity to a corpus is an empirical ceiling for how high genuinely off-topic
+# chit-chat scores against THIS (embedder, corpus) pair. Unlike the chunk↔chunk
+# floor, this ceiling is measured on the query↔chunk scale the abstention decision
+# actually uses, which is why it transfers between corpora where a fixed floor
+# margin does not. Keep every entry short, generic and domain-neutral so it can
+# never accidentally resemble a real project's content (they must stay non-project
+# for ANY domain — infra, web, ML, finance …).
+PROBE_QUERIES: tuple[str, ...] = (
+    "hello how are you today",
+    "what time is it right now",
+    "what is the weather like today",
+    "what is the capital of France",
+    "what is two plus two",
+    "tell me a fun fact",
+    "how do I make pancakes",
+    "recommend a good movie to watch",
+)
+
+# Scan at most this many corpus chunks per probe. The ceiling is a maximum, so a
+# sample can only ever underestimate it (which merely lowers the threshold a touch —
+# safe under the min() combination). The cap keeps a very large index bounded to a
+# few milliseconds; small, homogeneous corpora (where the ceiling matters most) are
+# scanned in full.
+DEFAULT_PROBE_MAX_CHUNKS = 4000
+
 
 def cosine(a: list[float], b: list[float]) -> float:
     """Cosine similarity of two equal-length vectors; 0.0 if either is a zero vector."""
@@ -147,3 +173,45 @@ def calibrate_from_embeddings(
     """
     cosines = sample_pair_cosines(embeddings, max_pairs=max_pairs, seed=seed)
     return calibrate_relevance_floor(cosines, **kwargs)
+
+
+def _sample_chunks(
+    embeddings: list[list[float]], *, max_chunks: int, seed: int
+) -> list[list[float]]:
+    """A deterministic subset of chunk embeddings, capped at ``max_chunks``.
+
+    Returns the whole list when it already fits, so small corpora — where the probe
+    ceiling matters most — are scanned in full.
+    """
+    if len(embeddings) <= max_chunks:
+        return embeddings
+    rng = random.Random(seed)
+    return [embeddings[i] for i in rng.sample(range(len(embeddings)), max_chunks)]
+
+
+def probe_ceiling(
+    probe_embeddings: list[list[float]],
+    chunk_embeddings: list[list[float]],
+    *,
+    max_chunks: int = DEFAULT_PROBE_MAX_CHUNKS,
+    seed: int = 0,
+) -> float | None:
+    """Highest similarity any neutral probe query reaches against the corpus.
+
+    This is the empirical ceiling for off-topic chit-chat against this
+    ``(embedder, corpus)`` pair, measured on the query↔chunk scale. ``None`` when
+    either side is empty (no probes embedded, or an empty index). Scans a bounded,
+    deterministic sample of chunks (the whole corpus when small); being a maximum, a
+    sample can only underestimate the ceiling, which is safe under the consumer's
+    ``min()`` combination (it can only lower the abstention bar, never raise it).
+    """
+    if not probe_embeddings or not chunk_embeddings:
+        return None
+    sample = _sample_chunks(chunk_embeddings, max_chunks=max_chunks, seed=seed)
+    best: float | None = None
+    for probe in probe_embeddings:
+        for chunk in sample:
+            score = cosine(probe, chunk)
+            if best is None or score > best:
+                best = score
+    return best

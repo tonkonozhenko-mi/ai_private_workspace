@@ -76,6 +76,7 @@ from app.core.use_cases.ask_workspace_question import (
     RELEVANCE_FLOOR_MARGIN,
     RELEVANCE_FLOOR_MAX,
     RELEVANCE_FLOOR_MIN,
+    RELEVANCE_PROBE_MARGIN,
     RELEVANCE_THRESHOLD_ENV_VAR,
     _hard_grounding_warnings,
     _strip_embeddings,
@@ -503,12 +504,20 @@ class AskGroupQuestionUseCase:
 
     def _member_threshold(self, workspace_id: str) -> float:
         floor = None
+        probe_ceiling = None
         if self.index_status_repository is not None:
             status = self.index_status_repository.get(workspace_id)
             floor = getattr(status, "relevance_floor", None)
+            probe_ceiling = getattr(status, "relevance_probe_ceiling", None)
         if floor is None:
             return DEFAULT_RELEVANCE_THRESHOLD
-        return max(RELEVANCE_FLOOR_MIN, min(RELEVANCE_FLOOR_MAX, floor - RELEVANCE_FLOOR_MARGIN))
+        base = max(RELEVANCE_FLOOR_MIN, min(RELEVANCE_FLOOR_MAX, floor - RELEVANCE_FLOOR_MARGIN))
+        # Same second anchor as single-project Ask: cap the bar just above the
+        # empirical chit-chat ceiling. min() means it can only lower a member's
+        # threshold, never raise it.
+        if probe_ceiling is not None:
+            base = max(RELEVANCE_FLOOR_MIN, min(base, probe_ceiling + RELEVANCE_PROBE_MARGIN))
+        return base
 
     # --- Generation ---
 

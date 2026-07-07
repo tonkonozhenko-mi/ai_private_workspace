@@ -5,10 +5,12 @@ import math
 from app.core.domain.relevance_calibration import (
     MAX_FLOOR,
     MIN_FLOOR,
+    PROBE_QUERIES,
     calibrate_from_embeddings,
     calibrate_relevance_floor,
     cosine,
     percentile,
+    probe_ceiling,
     sample_pair_cosines,
 )
 
@@ -98,3 +100,38 @@ def test_calibrate_from_embeddings_returns_value_on_real_index():
     floor = calibrate_from_embeddings(embeddings, seed=7)
     assert floor is not None
     assert MIN_FLOOR <= floor <= MAX_FLOOR
+
+
+# --- probe ceiling (P8, second calibration anchor) ---
+
+
+def test_probe_ceiling_is_the_single_highest_probe_to_chunk_similarity():
+    # One probe is nearly parallel to one chunk (score ~1), everything else is
+    # orthogonal (score 0). The ceiling must be that single maximum.
+    probes = [[1.0, 0.0], [0.0, 1.0]]
+    chunks = [[0.0, 1.0], [0.0, 1.0]]  # both align with the SECOND probe
+    ceiling = probe_ceiling(probes, chunks)
+    assert ceiling is not None
+    assert abs(ceiling - 1.0) < 1e-9
+
+
+def test_probe_ceiling_none_when_either_side_empty():
+    assert probe_ceiling([], [[1.0, 0.0]]) is None
+    assert probe_ceiling([[1.0, 0.0]], []) is None
+
+
+def test_probe_ceiling_is_deterministic_and_bounded_by_sampling():
+    # More chunks than the cap → a deterministic sample is scanned; repeated calls
+    # with the same seed agree, and the value never exceeds the true maximum (1.0).
+    probes = [[1.0, 0.0, 0.0]]
+    chunks = [[math.cos(i), math.sin(i), 0.0] for i in range(50)]
+    a = probe_ceiling(probes, chunks, max_chunks=8, seed=3)
+    b = probe_ceiling(probes, chunks, max_chunks=8, seed=3)
+    assert a == b
+    assert a is not None and a <= 1.0 + 1e-9
+
+
+def test_probe_queries_are_present_and_non_empty():
+    # The consumer relies on a fixed, non-empty probe list to compute the ceiling.
+    assert len(PROBE_QUERIES) >= 5
+    assert all(isinstance(q, str) and q.strip() for q in PROBE_QUERIES)

@@ -99,6 +99,17 @@ FAKE_EMBEDDING_RELEVANCE_THRESHOLD = 0.2
 RELEVANCE_FLOOR_MARGIN = 0.10
 RELEVANCE_FLOOR_MIN = 0.15
 RELEVANCE_FLOOR_MAX = 0.60
+# The chunk↔chunk noise floor is calibrated on a different scale than the
+# query↔chunk decision, and the fixed 0.10 margin doesn't transfer between corpora:
+# on a small, homogeneous index (e.g. an infra monorepo) the floor sits well above
+# where real matches actually score, so the threshold over-abstains. A second anchor
+# fixes this: the empirical chit-chat ceiling (highest similarity neutral probe
+# queries reach against the corpus), measured on the query↔chunk scale. The
+# threshold is capped just above that ceiling. Combined with min(), this can only
+# ever LOWER the bar (never raise it above today's floor−margin), so over-blocking
+# can fall but chit-chat protection — held by the router upstream and the ceiling
+# here — is never weakened.
+RELEVANCE_PROBE_MARGIN = 0.03
 GENERAL_CHAT_DIAGNOSTIC_CODE = "answered_as_general_conversation"
 GENERAL_CHAT_DIAGNOSTIC_MESSAGE = (
     "No project files were relevant to this question, so it was answered as "
@@ -1065,6 +1076,17 @@ class AskWorkspaceQuestionUseCase:
                 RELEVANCE_FLOOR_MIN,
                 min(RELEVANCE_FLOOR_MAX, index_status.relevance_floor - RELEVANCE_FLOOR_MARGIN),
             )
+            # Second calibration anchor: never sit above the empirical chit-chat
+            # ceiling (+ a hair). This only ever lowers the bar — min() guarantees the
+            # threshold can't exceed floor−margin — so over-blocking on a small,
+            # homogeneous index falls while off-topic protection is preserved (the
+            # router cuts small talk earlier, and the ceiling holds the background).
+            probe_ceiling = getattr(index_status, "relevance_probe_ceiling", None)
+            if probe_ceiling is not None:
+                base = max(
+                    RELEVANCE_FLOOR_MIN,
+                    min(base, probe_ceiling + RELEVANCE_PROBE_MARGIN),
+                )
         else:
             base = DEFAULT_RELEVANCE_THRESHOLD
         # The answer mode scales strictness: Only-from-sources raises the floor so it
