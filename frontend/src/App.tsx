@@ -78,6 +78,7 @@ import { useSidebarCollapsed } from "./hooks/useSidebarCollapsed";
 import { useCommandPalette } from "./hooks/useCommandPalette";
 import { errorMessage } from "./lib/errorMessage";
 import { NavIcon, FirstRunWelcome } from "./components/AppChrome";
+import { StartHereChecklist, TabCaption } from "./components/StartHere";
 
 import type { WorkspaceTab } from "./components/appTabs";
 import { workspaceTabs } from "./components/appTabs";
@@ -1278,6 +1279,8 @@ function App() {
               </div>
             </header>
 
+            <TabCaption tab={activeTab} />
+
             {resumeMessage ? (
               <div className="resume-workspace-banner" role="status">
                 <span>{resumeMessage}</span>
@@ -1290,6 +1293,14 @@ function App() {
               role="tabpanel"
             >
               {activeTab === "overview" ? (
+                <>
+                <StartHereChecklist
+                  dashboard={detail.dashboard}
+                  modelsReady={detail.modelsSummary.can_ask_with_selected_llm}
+                  onOpenModels={() => setActiveTab("models")}
+                  onOpenAsk={() => setActiveTab("ask")}
+                  onOpenIntelligence={() => setActiveTab("intelligence")}
+                />
                 <WorkspaceDashboard
                   dashboard={detail.dashboard}
                   modelsSummary={detail.modelsSummary}
@@ -1309,6 +1320,7 @@ function App() {
                   skillPreferences={preferences.skillPreferences}
                   fileIndexingPreferences={preferences.fileIndexingPreferences}
                 />
+                </>
               ) : null}
               {activeTab === "intelligence" ? (
                 <ProjectIntelligence
