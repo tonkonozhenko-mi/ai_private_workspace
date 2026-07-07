@@ -5497,6 +5497,14 @@ a.getting-ready-cta:hover {
 .grp-riskgroup-why { font-size: 12px; color: var(--c-text-2); line-height: 1.5; margin: 2px 0 0; flex: 1 1 100%; padding-left: 56px; }
 .grp-riskgroup-fix { font-size: 12px; color: var(--c-text-2); line-height: 1.5; margin: 2px 0 0; flex: 1 1 100%; padding-left: 56px; }
 .grp-riskgroup-fix-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--c-accent); margin-right: 6px; }
+.grp-memberlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.grp-memberrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 0.5px solid var(--c-border); border-radius: 10px; background: var(--c-surface-2); }
+.grp-memberrow-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.grp-memberrow-name { font-size: 13px; color: var(--c-text); }
+.grp-memberrow-desc { font-size: 11.5px; color: var(--c-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grp-drill-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.grp-drill-title { font-size: 12.5px; color: var(--c-text-2); }
+.grp-error { font-size: 12.5px; color: var(--c-danger, #c0392b); }
 
 /* group Ask — answer card + sources by repo */
 .grp-answer-eyebrow { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--c-text-3); margin: 0; }
