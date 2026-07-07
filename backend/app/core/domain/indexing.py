@@ -45,6 +45,9 @@ class WorkspaceIndexResult:
     # Abstention threshold calibrated to the embedding model (noise floor of random
     # chunk pairs); None when the index was too small to sample a trustworthy value.
     relevance_floor: float | None = None
+    # Empirical chit-chat ceiling from neutral probe queries against this corpus;
+    # None when there was nothing to embed or the provider can't be probed.
+    relevance_probe_ceiling: float | None = None
 
 
 @dataclass(frozen=True)
@@ -62,6 +65,9 @@ class IncrementalIndexResult:
     # Recalibrated abstention floor when enough chunks changed to resample; None when
     # too few changed (the caller keeps the previously-calibrated floor).
     relevance_floor: float | None = None
+    # Recalibrated chit-chat ceiling from the changed chunks; None when nothing was
+    # re-embedded (the caller keeps the previously-calibrated ceiling).
+    relevance_probe_ceiling: float | None = None
 
 
 @dataclass(frozen=True)

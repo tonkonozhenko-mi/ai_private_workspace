@@ -28,6 +28,10 @@ class SQLiteIndexStatusRepository:
                 connection.execute(
                     "ALTER TABLE workspace_index_status ADD COLUMN relevance_floor REAL"
                 )
+            if "relevance_probe_ceiling" not in columns:
+                connection.execute(
+                    "ALTER TABLE workspace_index_status ADD COLUMN relevance_probe_ceiling REAL"
+                )
             connection.commit()
 
     def save(self, status: WorkspaceIndexStatus) -> WorkspaceIndexStatus:
@@ -43,9 +47,10 @@ class SQLiteIndexStatusRepository:
                     last_indexed_at,
                     last_error,
                     embedding_model,
-                    relevance_floor
+                    relevance_floor,
+                    relevance_probe_ceiling
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(workspace_id) DO UPDATE SET
                     status = excluded.status,
                     indexed_files_count = excluded.indexed_files_count,
@@ -54,7 +59,8 @@ class SQLiteIndexStatusRepository:
                     last_indexed_at = excluded.last_indexed_at,
                     last_error = excluded.last_error,
                     embedding_model = excluded.embedding_model,
-                    relevance_floor = excluded.relevance_floor
+                    relevance_floor = excluded.relevance_floor,
+                    relevance_probe_ceiling = excluded.relevance_probe_ceiling
                 """,
                 (
                     status.workspace_id,
@@ -66,6 +72,7 @@ class SQLiteIndexStatusRepository:
                     status.last_error,
                     status.embedding_model,
                     status.relevance_floor,
+                    status.relevance_probe_ceiling,
                 ),
             )
             connection.commit()
@@ -84,7 +91,8 @@ class SQLiteIndexStatusRepository:
                     last_indexed_at,
                     last_error,
                     embedding_model,
-                    relevance_floor
+                    relevance_floor,
+                    relevance_probe_ceiling
                 FROM workspace_index_status
                 WHERE workspace_id = ?
                 """,
@@ -103,6 +111,7 @@ class SQLiteIndexStatusRepository:
             last_error=row["last_error"],
             embedding_model=row["embedding_model"],
             relevance_floor=row["relevance_floor"],
+            relevance_probe_ceiling=row["relevance_probe_ceiling"],
         )
 
     def _connect(self) -> sqlite3.Connection:

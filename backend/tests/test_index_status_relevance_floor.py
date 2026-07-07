@@ -7,7 +7,9 @@ from app.adapters.memory.sqlite_index_status_repository import SQLiteIndexStatus
 from app.core.domain.index_status import WorkspaceIndexStatus
 
 
-def _status(workspace_id: str, floor: float | None) -> WorkspaceIndexStatus:
+def _status(
+    workspace_id: str, floor: float | None, probe_ceiling: float | None = None
+) -> WorkspaceIndexStatus:
     return WorkspaceIndexStatus(
         workspace_id=workspace_id,
         status="indexed",
@@ -18,6 +20,7 @@ def _status(workspace_id: str, floor: float | None) -> WorkspaceIndexStatus:
         last_error=None,
         embedding_model="nomic-embed-text",
         relevance_floor=floor,
+        relevance_probe_ceiling=probe_ceiling,
     )
 
 
@@ -28,6 +31,14 @@ def test_relevance_floor_round_trips(tmp_path):
     assert got is not None
     assert got.relevance_floor == 0.27
     assert got.embedding_model == "nomic-embed-text"
+
+
+def test_probe_ceiling_round_trips(tmp_path):
+    repo = SQLiteIndexStatusRepository(tmp_path / "w.db")
+    repo.save(_status("ws1", 0.60, probe_ceiling=0.396))
+    got = repo.get("ws1")
+    assert got is not None
+    assert got.relevance_probe_ceiling == 0.396
 
 
 def test_relevance_floor_none_persists_as_none(tmp_path):

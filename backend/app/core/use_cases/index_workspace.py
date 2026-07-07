@@ -18,7 +18,11 @@ from app.core.domain.indexing import (
     content_hash,
 )
 from app.core.domain.project_scan import ProjectFile, ProjectScanResult
-from app.core.domain.relevance_calibration import calibrate_from_embeddings
+from app.core.domain.relevance_calibration import (
+    PROBE_QUERIES,
+    calibrate_from_embeddings,
+    probe_ceiling,
+)
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.file_system import FileSystemPort
 from app.core.ports.index_manifest_repository import IndexManifestRepositoryPort
@@ -147,6 +151,7 @@ class IndexWorkspaceUseCase:
                 last_error=None,
                 embedding_model=getattr(self.embedding_provider, "model_name", None),
                 relevance_floor=result.relevance_floor,
+                relevance_probe_ceiling=result.relevance_probe_ceiling,
             )
         )
         if self.timeline_repository is not None:
@@ -268,6 +273,12 @@ class IndexWorkspaceUseCase:
                     if result.relevance_floor is not None
                     else (status.relevance_floor if status else None)
                 ),
+                # Same keep-previous rule for the probe ceiling.
+                relevance_probe_ceiling=(
+                    result.relevance_probe_ceiling
+                    if result.relevance_probe_ceiling is not None
+                    else (status.relevance_probe_ceiling if status else None)
+                ),
             )
         )
         if self.timeline_repository is not None and (
@@ -354,6 +365,7 @@ class IndexWorkspaceUseCase:
             self.vector_store.delete_chunks_by_source_path(workspace_id, to_delete)
 
         relevance_floor: float | None = None
+        relevance_probe_ceiling: float | None = None
         if chunks_to_embed:
             embeddings = self._embed_texts(
                 [strip_contextual_header(chunk.content) for chunk in chunks_to_embed]
@@ -370,6 +382,9 @@ class IndexWorkspaceUseCase:
             # Recalibrate only when enough chunks changed to sample a trustworthy
             # background; otherwise None → the caller keeps the previous floor.
             relevance_floor = calibrate_from_embeddings(embeddings)
+            # Same for the probe ceiling, measured against the re-embedded chunks;
+            # None → the caller keeps the previously-calibrated ceiling.
+            relevance_probe_ceiling = self._probe_ceiling(embeddings)
 
         if self.manifest_repository is not None:
             self.manifest_repository.replace_all(workspace_id, new_manifest)
@@ -482,6 +497,9 @@ class IndexWorkspaceUseCase:
         # Calibrate the abstention floor to this embedding model's own score scale
         # (noise floor of random chunk pairs). None on a tiny index → default is kept.
         relevance_floor = calibrate_from_embeddings(embeddings)
+        # Second anchor: the empirical chit-chat ceiling from neutral probe queries,
+        # measured on the query↔chunk scale so it transfers between corpora.
+        relevance_probe_ceiling = self._probe_ceiling(embeddings)
 
         return WorkspaceIndexResult(
             workspace_id=workspace_id,
@@ -490,6 +508,7 @@ class IndexWorkspaceUseCase:
             skipped_files_count=skipped_files_count,
             documents=documents,
             relevance_floor=relevance_floor,
+            relevance_probe_ceiling=relevance_probe_ceiling,
         )
 
     # How many chunk bodies to embed per request when the provider supports
@@ -527,6 +546,22 @@ class IndexWorkspaceUseCase:
     def _checkpoint(cancellation_check: Callable[[], bool] | None) -> None:
         if cancellation_check is not None and cancellation_check():
             raise IndexWorkspaceCancelledError("Workspace indexing cancelled")
+
+    def _probe_ceiling(self, chunk_embeddings: list[list[float]]) -> float | None:
+        """Empirical chit-chat ceiling for this (embedder, corpus) pair: embed the
+        fixed neutral probe queries and take their highest similarity to the corpus.
+        A second calibration anchor for the abstention threshold. Best-effort — a
+        failure here (or the fake provider) never breaks indexing; the floor alone
+        then decides the threshold."""
+        if not chunk_embeddings:
+            return None
+        if getattr(self.embedding_provider, "provider_name", "") == "fake":
+            return None
+        try:
+            probe_embeddings = self._embed_texts(list(PROBE_QUERIES))
+        except Exception:  # noqa: BLE001 — the probe extra must never fail indexing
+            return None
+        return probe_ceiling(probe_embeddings, chunk_embeddings)
 
     def _embedding_dimension(self, embeddings: list[list[float]]) -> int | None:
         if not embeddings:

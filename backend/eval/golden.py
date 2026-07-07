@@ -47,7 +47,11 @@ from app.core.domain.indexing import TextChunk
 from app.core.domain.question_intent import looks_general_chat
 from app.core.domain.rag import RagSource
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
-from app.core.domain.relevance_calibration import calibrate_from_embeddings
+from app.core.domain.relevance_calibration import (
+    PROBE_QUERIES,
+    calibrate_from_embeddings,
+    probe_ceiling,
+)
 from app.core.use_cases.ask_workspace_question import (
     AskWorkspaceQuestionInput,
     AskWorkspaceQuestionUseCase,
@@ -202,7 +206,7 @@ def _build_llm(base_url: str, model: str):
 
 def _index_repo(workspace_id, repo, embedder, vector_store):
     """Chunk + embed every indexable file into the vector store. Returns
-    (chunks_count, relevance_floor)."""
+    (chunks_count, relevance_floor, relevance_probe_ceiling)."""
     chunks: list[TextChunk] = []
     for rel_path, file_type, extension, text in _iter_files(repo):
         raw = chunk_document(text, file_type=file_type, extension=extension)
@@ -247,7 +251,12 @@ def _index_repo(workspace_id, repo, embedder, vector_store):
         embedding_model=embedder.model_name,
         embedding_dimension=dim,
     )
-    return len(chunks), calibrate_from_embeddings(embeddings)
+    # Mirror production's second calibration anchor: embed the fixed neutral probe
+    # queries and take their highest similarity to the corpus (the empirical
+    # chit-chat ceiling), so the eval threshold matches what the app computes.
+    probe_embeddings = embedder.embed_texts(list(PROBE_QUERIES))
+    ceiling = probe_ceiling(probe_embeddings, embeddings)
+    return len(chunks), calibrate_from_embeddings(embeddings), ceiling
 
 
 def _run_embedder(
@@ -281,7 +290,9 @@ def _run_embedder(
     workspace_id = "eval"
     with tempfile.TemporaryDirectory() as tmp:
         store = SQLiteVectorStore(str(Path(tmp) / "eval.db"))
-        chunks_count, floor = _index_repo(workspace_id, repo, embedder, store)
+        chunks_count, floor, probe_ceiling_value = _index_repo(
+            workspace_id, repo, embedder, store
+        )
 
         status = WorkspaceIndexStatus(
             workspace_id=workspace_id,
@@ -293,6 +304,7 @@ def _run_embedder(
             last_error=None,
             embedding_model=embedder.model_name,
             relevance_floor=floor,
+            relevance_probe_ceiling=probe_ceiling_value,
         )
         workspace = SimpleNamespace(id=workspace_id, project_path=str(repo))
         uc = AskWorkspaceQuestionUseCase(
@@ -303,7 +315,14 @@ def _run_embedder(
             index_status_repository=SimpleNamespace(get=lambda _wid: status),
         )
         threshold = uc._relevance_threshold(status, None)
-        print(f"  calibrated floor={floor} → threshold={threshold:.3f}", flush=True)
+        ceiling_str = (
+            f"{probe_ceiling_value:.3f}" if probe_ceiling_value is not None else "n/a"
+        )
+        print(
+            f"  calibrated floor={floor} probe_ceiling={ceiling_str} "
+            f"→ threshold={threshold:.3f}",
+            flush=True,
+        )
 
         llm = _build_llm(base_url, llm_model) if llm_model else None
         outcomes: list[QuestionOutcome] = []
@@ -344,7 +363,14 @@ def _run_embedder(
         cases = cases_all
         report = compute_report(label, k, cases, outcomes)
         print(f"  routed to general chat before retrieval: {routed_count}", flush=True)
-        _write_reports(report, cases, outcomes, floor=floor, threshold=threshold)
+        _write_reports(
+            report,
+            cases,
+            outcomes,
+            floor=floor,
+            threshold=threshold,
+            probe_ceiling=probe_ceiling_value,
+        )
         _print_summary(report)
 
 
@@ -442,23 +468,32 @@ def _out_dir() -> Path:
     return out
 
 
-def _write_reports(report, cases, outcomes, floor=None, threshold=None) -> None:
-    """Write JSON + markdown. ``floor``/``threshold`` are recorded in both — the
-    P5 verdict needs them next to the scores, not just in the console scrollback."""
+def _write_reports(
+    report, cases, outcomes, floor=None, threshold=None, probe_ceiling=None
+) -> None:
+    """Write JSON + markdown. ``floor``/``probe_ceiling``/``threshold`` are recorded
+    in both — the P5/P8 verdict needs them next to the scores, not just in the
+    console scrollback."""
     out = _out_dir()
     stamp = datetime.now().strftime("%Y-%m-%d")
     base = f"golden_{report.embedder}_{stamp}"
     data = report_to_dict(report, cases, outcomes)
     if floor is not None:
         data["relevance_floor"] = floor
+    if probe_ceiling is not None:
+        data["relevance_probe_ceiling"] = round(probe_ceiling, 4)
     if threshold is not None:
         data["threshold"] = round(threshold, 4)
     (out / f"{base}.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
     md = render_markdown(report, cases, outcomes)
     if threshold is not None:
+        ceiling_note = (
+            f" · probe ceiling: **{probe_ceiling:.3f}**" if probe_ceiling is not None else ""
+        )
         md = md.replace(
             "\n\n",
-            f"\n\n- Calibrated floor: **{floor}** → abstention threshold: **{threshold:.3f}**\n",
+            f"\n\n- Calibrated floor: **{floor}**{ceiling_note} → "
+            f"abstention threshold: **{threshold:.3f}**\n",
             1,
         )
     (out / f"{base}.md").write_text(md, encoding="utf-8")
