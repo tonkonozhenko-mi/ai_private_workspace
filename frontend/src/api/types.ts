@@ -1964,6 +1964,10 @@ export interface GroupMemberRisk {
   workspace_name: string;
   severity: string;
   title: string;
+  explanation?: string;
+  recommendation?: string | null;
+  category?: string;
+  source_file?: string | null;
 }
 
 export interface GroupMemberOverview {

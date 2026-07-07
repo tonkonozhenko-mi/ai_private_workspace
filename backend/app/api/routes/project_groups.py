@@ -216,6 +216,10 @@ class GroupMemberRisk(BaseModel):
     workspace_name: str
     severity: str
     title: str
+    explanation: str = ""
+    recommendation: str | None = None
+    category: str = ""
+    source_file: str | None = None
 
 
 class GroupMemberOverview(BaseModel):

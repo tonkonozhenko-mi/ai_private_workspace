@@ -132,6 +132,10 @@ class BuildGroupOverviewUseCase:
                         workspace_name=workspace_name,
                         severity=finding.severity,
                         title=finding.title,
+                        explanation=finding.explanation,
+                        recommendation=finding.recommendation,
+                        category=finding.category,
+                        source_file=finding.source_file,
                     )
                 )
         return counts, items
