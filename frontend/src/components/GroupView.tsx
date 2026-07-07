@@ -10,6 +10,7 @@ import {
   getGroupHandbook,
   getProjectGroup,
   getProjectGroupOverview,
+  getWorkspaceDashboard,
   listGroupMemory,
   pinGroupMemory,
   removeProjectGroupMember,
@@ -20,11 +21,13 @@ import type {
   GroupMemoryItem,
   GroupOverviewResponse,
   ProjectGroupDetail,
+  WorkspaceDashboard,
 } from "../api/types";
 import { formatSourceLabel } from "../lib/sourceLabel";
 import { AnswerFeedback } from "./AnswerFeedback";
 import { AnswerTracePanel } from "./AnswerTracePanel";
 import { MarkdownAnswer } from "./AskWorkspace";
+import { ProjectIntelligence } from "./ProjectIntelligence";
 
 const MEMORY_KIND_LABEL: Record<string, string> = {
   note: "Note",
@@ -473,8 +476,40 @@ function GroupMemory({ groupId }: { groupId: string }) {
 // filter keeps the repo dimension first-class and lets you isolate one repo.
 function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | null }) {
   const [active, setActive] = useState<Set<string> | null>(null); // null = all repos
+  // Drill-down: open one member's FULL single-project Intelligence in place, so the
+  // group view is comparison on top + the same per-project depth on demand.
+  const [drillId, setDrillId] = useState<string | null>(null);
+  const [drillDashboard, setDrillDashboard] = useState<WorkspaceDashboard | null>(null);
+  const [drillLoading, setDrillLoading] = useState(false);
+  const [drillError, setDrillError] = useState<string | null>(null);
 
   const members = overview?.members ?? [];
+  const drillMember = members.find((m) => m.workspace_id === drillId) ?? null;
+
+  useEffect(() => {
+    if (!drillId) {
+      setDrillDashboard(null);
+      setDrillError(null);
+      return;
+    }
+    let cancelled = false;
+    setDrillLoading(true);
+    setDrillError(null);
+    getWorkspaceDashboard(drillId)
+      .then((d) => {
+        if (!cancelled) setDrillDashboard(d);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setDrillError(err instanceof Error ? err.message : "Could not load this project.");
+      })
+      .finally(() => {
+        if (!cancelled) setDrillLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [drillId]);
   const shown = useMemo(
     () => members.filter((m) => active === null || active.has(m.workspace_id)),
     [members, active],
@@ -550,6 +585,26 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
     return <p className="grp-muted">No repositories in this group yet.</p>;
   }
 
+  // Drilled into one repo: show its full single-project Intelligence, same
+  // component and depth as opening that project on its own.
+  if (drillId) {
+    return (
+      <div className="grp-stack">
+        <div className="grp-drill-bar">
+          <button type="button" className="grp-link" onClick={() => setDrillId(null)}>
+            ← Back to comparison
+          </button>
+          <span className="grp-drill-title">
+            {drillMember?.name ?? "Project"} · full intelligence
+          </span>
+        </div>
+        {drillLoading ? <p className="grp-muted">Loading…</p> : null}
+        {drillError ? <p className="grp-error">{drillError}</p> : null}
+        {drillDashboard ? <ProjectIntelligence dashboard={drillDashboard} /> : null}
+      </div>
+    );
+  }
+
   const toggle = (id: string) =>
     setActive((prev) => {
       const base = prev ?? new Set(members.map((m) => m.workspace_id));
@@ -586,6 +641,29 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
           ) : null}
         </div>
       ) : null}
+
+      <section className="grp-section">
+        <p className="grp-shead">Per repository — open the full project view</p>
+        <p className="grp-hint">Compare across repos above; open any one for its complete Intelligence.</p>
+        <ul className="grp-memberlist">
+          {shown.map((m) => (
+            <li key={m.workspace_id} className="grp-memberrow">
+              <div className="grp-memberrow-main">
+                <span className="grp-memberrow-name">{m.name}</span>
+                <span className="grp-memberrow-desc">{m.description}</span>
+              </div>
+              <button
+                type="button"
+                className="grp-link"
+                onClick={() => setDrillId(m.workspace_id)}
+                disabled={!m.built}
+              >
+                {m.built ? "Open full intelligence →" : "Not analyzed yet"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <section className="grp-section">
         <p className="grp-shead">Environments — which repo deploys where</p>
