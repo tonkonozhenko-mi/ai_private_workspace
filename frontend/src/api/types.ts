@@ -1964,6 +1964,10 @@ export interface GroupMemberRisk {
   workspace_name: string;
   severity: string;
   title: string;
+  explanation?: string;
+  recommendation?: string | null;
+  category?: string;
+  source_file?: string | null;
 }
 
 export interface GroupMemberOverview {
@@ -2024,6 +2028,8 @@ export interface GroupAskResponse {
   memory_used: number;
   facts_used: number;
   diagnostic_code: string | null;
+  quality_warnings?: RagQualityWarning[];
+  usage?: LLMUsageMetrics | null;
 }
 
 export interface GroupMemoryItem {

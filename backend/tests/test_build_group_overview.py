@@ -62,11 +62,13 @@ def _graph(wid, services=0, envs=(), pipelines=(), infra=(), findings=()):
 def _finding(sev, title):
     return ProjectFinding(
         id=f"{sev}:{title}",
-        category="c",
+        category="security",
         severity=sev,
         title=title,
-        explanation="e",
+        explanation=f"why {title} matters",
         analyzer="a",
+        source_file="main.tf",
+        recommendation=f"fix {title}",
     )
 
 
@@ -139,6 +141,17 @@ def test_overview_collects_repo_tagged_risks_high_first():
     assert ov.totals["risks_high"] == 1 and ov.totals["risks_medium"] == 1
     assert ov.risks[0].severity == "high" and ov.risks[0].workspace_name == "api"
     assert any(r.workspace_name == "web" and r.severity == "medium" for r in ov.risks)
+
+
+def test_group_risks_carry_the_single_repo_explanation_and_fix():
+    # Parity: a group risk now includes the same human-readable detail a per-repo
+    # risk card does, so it can be understood without opening the member project.
+    ov = _build().execute("g1")
+    top = ov.risks[0]
+    assert top.explanation == "why No remote state matters"
+    assert top.recommendation == "fix No remote state"
+    assert top.category == "security"
+    assert top.source_file == "main.tf"
 
 
 def test_overview_member_git_and_description():

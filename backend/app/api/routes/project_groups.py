@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
+    build_reranker,
     embedding_provider,
     git_history,
     index_status_repository,
@@ -23,6 +24,12 @@ from app.api.dependencies import (
     project_memory_repository,
     vector_store,
     workspace_repository,
+)
+from app.api.schemas.rag_schemas import (
+    LLMUsageMetricsResponse,
+    RagQualityWarningResponse,
+    to_llm_usage_metrics_response,
+    to_rag_quality_warning_response,
 )
 from app.core.domain.group_overview import GroupOverview
 from app.core.domain.group_qa import GroupQuestionAnswer
@@ -209,6 +216,10 @@ class GroupMemberRisk(BaseModel):
     workspace_name: str
     severity: str
     title: str
+    explanation: str = ""
+    recommendation: str | None = None
+    category: str = ""
+    source_file: str | None = None
 
 
 class GroupMemberOverview(BaseModel):
@@ -398,6 +409,8 @@ class GroupAskResponse(BaseModel):
     memory_used: int
     facts_used: int
     diagnostic_code: str | None
+    quality_warnings: list[RagQualityWarningResponse] = []
+    usage: LLMUsageMetricsResponse | None = None
 
 
 def _ask_response(answer: GroupQuestionAnswer) -> GroupAskResponse:
@@ -413,6 +426,8 @@ def _ask_response(answer: GroupQuestionAnswer) -> GroupAskResponse:
         memory_used=answer.memory_used,
         facts_used=answer.facts_used,
         diagnostic_code=answer.diagnostic_code,
+        quality_warnings=[to_rag_quality_warning_response(w) for w in answer.quality_warnings],
+        usage=to_llm_usage_metrics_response(answer.usage),
     )
 
 
@@ -425,6 +440,7 @@ def _build_ask_use_case() -> AskGroupQuestionUseCase:
         llm_provider_factory=llm_provider_factory,
         index_status_repository=index_status_repository,
         project_context_provider=project_context_composer,
+        reranker=build_reranker(),
     )
 
 

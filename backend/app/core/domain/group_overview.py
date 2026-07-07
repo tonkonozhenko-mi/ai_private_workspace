@@ -14,6 +14,12 @@ class GroupMemberRisk:
     workspace_name: str
     severity: str
     title: str
+    # Same human-readable detail a single-repo risk card carries, so a group risk
+    # can be understood and acted on without opening the member project.
+    explanation: str = ""
+    recommendation: str | None = None
+    category: str = ""
+    source_file: str | None = None
 
 
 @dataclass(frozen=True)

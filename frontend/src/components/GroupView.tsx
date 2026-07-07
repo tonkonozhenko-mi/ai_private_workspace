@@ -516,14 +516,28 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
 
   const riskGroups = useMemo(() => {
     const shownIds = new Set(shown.map((m) => m.workspace_id));
-    const byTitle = new Map<string, { severity: string; total: number; repos: Map<string, number> }>();
+    const byTitle = new Map<
+      string,
+      {
+        severity: string;
+        total: number;
+        repos: Map<string, number>;
+        explanation: string;
+        recommendation: string | null;
+      }
+    >();
     for (const r of overview?.risks ?? []) {
       if (!shownIds.has(r.workspace_id)) continue;
-      const entry = byTitle.get(r.title) ?? { severity: r.severity, total: 0, repos: new Map() };
+      const entry =
+        byTitle.get(r.title) ??
+        { severity: r.severity, total: 0, repos: new Map(), explanation: "", recommendation: null };
       entry.total += 1;
       entry.repos.set(r.workspace_name, (entry.repos.get(r.workspace_name) ?? 0) + 1);
       // Keep the most severe label seen for this title.
       if (r.severity === "high") entry.severity = "high";
+      // Keep the first human-readable detail seen (all repos share the finding text).
+      if (!entry.explanation && r.explanation) entry.explanation = r.explanation;
+      if (!entry.recommendation && r.recommendation) entry.recommendation = r.recommendation;
       byTitle.set(r.title, entry);
     }
     return Array.from(byTitle.entries())
@@ -659,6 +673,14 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
                     .map(([name, n]) => `${name} ×${n}`)
                     .join(" · ")}
                 </span>
+                {r.explanation ? (
+                  <p className="grp-riskgroup-why">{r.explanation}</p>
+                ) : null}
+                {r.recommendation ? (
+                  <p className="grp-riskgroup-fix">
+                    <span className="grp-riskgroup-fix-label">Fix</span> {r.recommendation}
+                  </p>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -758,6 +780,16 @@ function GroupAsk({ groupId }: { groupId: string }) {
             <MarkdownAnswer content={answerText} />
             {loading && !result ? <span className="grp-caret" /> : null}
           </div>
+
+          {result && (result.quality_warnings ?? []).some((w) => w.severity === "high") ? (
+            <div className="ask-trust-notice" role="alert">
+              {(result.quality_warnings ?? [])
+                .filter((w) => w.severity === "high")
+                .map((warning, index) => (
+                  <p key={`${warning.code}-${index}`}>{warning.message}</p>
+                ))}
+            </div>
+          ) : null}
 
           {result && result.contributions.length > 0 ? (
             <div className="grp-contrib-bar">
