@@ -484,6 +484,15 @@ def _p(v) -> str:
 
 
 def main(argv=None) -> int:
+    # The packaged backend raises its open-file limit during FastAPI lifespan
+    # startup and the test suite mirrors it in conftest — but this runner is a
+    # bare CLI, so it kept the macOS default of 256 fds. A multi-embedder run
+    # exhausted them (observed 2026-07-07: sqlite 'unable to open database file'
+    # on the second embedder, then Errno 24 in tempdir cleanup). Mirror production
+    # here too.
+    from app.config.fd_limit import raise_fd_limit
+
+    raise_fd_limit()
     parser = argparse.ArgumentParser(description="Golden-set retrieval eval")
     parser.add_argument("--embedder", choices=sorted(EMBEDDERS), help="which embedder to run")
     parser.add_argument("--all", action="store_true", help="run all embedders in turn")
