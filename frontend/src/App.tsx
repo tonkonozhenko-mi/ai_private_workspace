@@ -100,11 +100,6 @@ const WORKSPACE_TOUR_STEPS: TourStep[] = [
     body: "The map of your project — architecture, risks and the environments the app found.",
   },
   {
-    selector: '[data-tab-id="ask"]',
-    title: "Ask",
-    body: "Ask anything about your project in plain words. Answers come from your own files.",
-  },
-  {
     selector: '[data-tab-id="models"]',
     title: "Models",
     body: "Download, switch or remove the local AI models. Everything runs on your machine.",
@@ -113,6 +108,13 @@ const WORKSPACE_TOUR_STEPS: TourStep[] = [
     selector: '[data-tab-id="settings"]',
     title: "Settings",
     body: "Appearance and behaviour — tune the app to how you like to work.",
+  },
+  // End on the thing to do next, not a settings screen: the tour finishes on Ask
+  // and closing it lands the user right in the composer with a first-question nudge.
+  {
+    selector: '[data-tab-id="ask"]',
+    title: "Ask your first question",
+    body: "Ask anything about your project in plain words — the suggestions here are built from your own files, and every answer stays on your machine. Finish to start.",
   },
 ];
 
@@ -879,6 +881,18 @@ function App() {
   const closeTour = () => {
     markTourDone();
     setTourOpen(false);
+    // The tour ends on Ask, so leave the user there — pointed at the action, not
+    // back on whatever tab was open when it started.
+    setActiveTab("ask");
+  };
+
+  // Replay the guided tour on demand (command palette or the Settings link). Starts
+  // from Home with the sidebar collapsed so the very first step can spotlight the
+  // projects button, exactly like the first-run autostart.
+  const startTour = () => {
+    setActiveTab("overview");
+    setSidebarCollapsed(true);
+    setTourOpen(true);
   };
 
   // Also run the guided tour the first time an *already-set-up* project is opened
@@ -1009,10 +1023,7 @@ function App() {
             kind: "tab" as const,
             label: "Take a quick tour",
             sub: "help",
-            run: () => {
-              setSidebarCollapsed(true);
-              setTourOpen(true);
-            },
+            run: startTour,
           },
         ]
       : []),
@@ -1501,6 +1512,7 @@ function App() {
                   preferences={preferences}
                   onPreferencesChange={setPreferences}
                   onResetPreferences={() => setPreferences(DEFAULT_PREFERENCES)}
+                  onStartTour={startTour}
                   onOpenModels={() => setActiveTab("models")}
                   onIndexingRulesSaved={() => refreshWorkspaceReadOnlyState(detail.dashboard.workspace_id)}
                   skillProfileSource={workspaceSkillProfile?.source ?? "default"}
