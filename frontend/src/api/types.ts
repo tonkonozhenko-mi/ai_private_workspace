@@ -467,6 +467,8 @@ export interface WorkspaceQuestionAnswer {
   project_facts_used?: number;
   project_memory_details?: { kind: string; text: string; grounding?: string | null }[];
   project_guardrails_used?: string[];
+  profile_facts_used?: number;
+  profile_details?: { category: string; text: string }[];
   llm_provider: string;
   llm_model: string | null;
   diagnostic_code?: string | null;
