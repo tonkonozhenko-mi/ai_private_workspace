@@ -35,7 +35,13 @@ frontend/.vite/
 
 # Release archives are generated artifacts
 build/release/
+# Rust build output — never commit it. A committed target/ .rlib once tripped a
+# secret-scanning false positive (random bytes in a compiled dep matched a token
+# pattern). Ignore it everywhere, not just the one known path.
 frontend/src-tauri/target/
+**/target/
+*.rlib
+*.rmeta
 
 # IDE and OS metadata
 .idea/
