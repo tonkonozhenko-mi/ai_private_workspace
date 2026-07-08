@@ -5893,3 +5893,24 @@ a {
     padding-inline: clamp(24px, 3vw, 88px);
   }
 }
+
+@media (min-width: 1280px) {
+  /* Home — put the width to work instead of one narrow column with dead sides.
+     The cards are self-contained, so this is a container reflow, not a rewrite:
+     switch the stack to a balanced two-column flow with whole cards, while the
+     header and the "files changed" banner span the full width across the top. */
+  .project-understanding {
+    display: block;
+    column-count: 2;
+    column-gap: 22px;
+  }
+  .project-understanding > * {
+    break-inside: avoid;
+    /* multicolumn ignores the flex `gap`, so restore vertical rhythm per card */
+    margin-bottom: 14px;
+  }
+  .project-understanding > .pu-header,
+  .project-understanding > .pu-changes-banner {
+    column-span: all;
+  }
+}
