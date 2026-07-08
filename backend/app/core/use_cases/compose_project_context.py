@@ -26,6 +26,7 @@ from app.core.domain.project_memory import (
     select_relevant_memory,
 )
 from app.core.domain.user_profile import (
+    answer_style_directive,
     format_user_profile_context,
     select_for_prompt,
 )
@@ -153,6 +154,9 @@ class ProjectContextStats:
     profile_facts: int = 0
     recent_changes: int = 0
     guardrails: int = 0
+    # A short imperative reminder of the person's style/language preferences, to be
+    # restated at the very end of the answer prompt (empty when they have none).
+    style_directive: str = ""
     # For a "Why this answer?" panel: the notes/guardrails that actually went into
     # the prompt. Each item is {kind, text, grounding}. Kept short and optional so
     # the UI can show provenance on demand instead of crowding the answer.
@@ -258,6 +262,19 @@ class ComposeProjectContextUseCase:
         text, _ = self.compose_with_stats(workspace_id, query)
         return text
 
+    def user_style_directive(self) -> str:
+        """The person's style/language preference on its own, for prompts that skip
+        retrieval (chit-chat). Cheap and best-effort: reads the profile only, no
+        memory/graph work — so general conversation is still answered in the
+        requested language without paying for a full context compose."""
+        if self.user_profile_repository is None:
+            return ""
+        try:
+            items = select_for_prompt(self.user_profile_repository.list(), "")
+            return answer_style_directive(items)
+        except Exception:  # noqa: BLE001 - never fail an answer over a preference
+            return ""
+
     def compose_with_stats(
         self, workspace_id: str, query: str
     ) -> tuple[str, "ProjectContextStats"]:
@@ -266,12 +283,16 @@ class ComposeProjectContextUseCase:
         # The user's cross-project profile comes first — it shapes how to answer
         # (tone, language, focus), before any project-specific knowledge.
         profile_count = 0
+        style_directive = ""
         if self.user_profile_repository is not None:
             profile_items = select_for_prompt(self.user_profile_repository.list(), query)
             profile_block = format_user_profile_context(profile_items)
             if profile_block:
                 blocks.append(_trim(profile_block, self.budget.profile))
                 profile_count = len(profile_items)
+            # Restated separately at the very end of the answer prompt (strongest
+            # position) so a small model actually applies the requested language.
+            style_directive = answer_style_directive(profile_items)
 
         items = self.memory_repository.list(workspace_id)
         handbook = next((i for i in items if i.kind == MemoryKind.HANDBOOK), None)
@@ -330,6 +351,7 @@ class ComposeProjectContextUseCase:
             guardrails=guardrails_count,
             memory_used=memory_used,
             guardrails_used=guardrails_used,
+            style_directive=style_directive,
         )
         if not blocks:
             return "", stats

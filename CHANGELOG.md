@@ -7,7 +7,9 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-## [0.5.0] - 2026-07-08
+### Fixed
+
+- **Your "About you" preferences now actually shape the answer — including the language it's written in.** You can tell the app how you'd like answers written (for example "answer in Ukrainian" or "keep it concise"), and it's meant to apply to every project. But the preference was mentioned once, early in a long set of instructions, and buried above a wall of English guidance and English project files — so the local model would read past it and keep replying in English. That how-to-answer preference is now also restated as a direct instruction at the very end, right where the model begins writing, so it sets the language, tone and length of the whole answer and takes priority over the language of your files. It applies both when the answer comes from your project and in ordinary back-and-forth chat. Preferences that describe who you are or your situation are unaffected; only style and answer-preference notes are repeated this way, so nothing is added when you haven't set one.
 
 ### Fixed
 
