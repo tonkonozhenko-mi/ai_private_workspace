@@ -70,7 +70,11 @@ class PreviewWorkspaceFileSelectionUseCase:
         if not self.file_system.is_directory(workspace.project_path):
             raise PreviewWorkspaceFileSelectionError("Project path is not a directory")
 
-        discovered_files = self.file_system.list_files(workspace.project_path)
+        # The preview deliberately shows gitignored files too, labelled as excluded
+        # with the reason, so discover everything here (don't prune during the walk).
+        discovered_files = self.file_system.list_files(
+            workspace.project_path, respect_gitignore=False
+        )
         include_rules = _normalize_patterns(request.include_patterns)
         exclude_rules = _normalize_patterns(request.exclude_patterns)
         gitignore_matcher = self._build_gitignore_matcher(

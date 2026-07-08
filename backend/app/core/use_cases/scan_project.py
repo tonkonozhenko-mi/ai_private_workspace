@@ -52,7 +52,13 @@ class ScanProjectUseCase:
         if request.progress_callback is not None:
             request.progress_callback(0, 1, "Discovering project files...")
         discover_started = perf_counter()
-        discovered_files = self.file_system.list_files(request.project_path)
+        # Prune gitignored directories during the walk (huge speedup on repos with
+        # large ignored trees). Safe because the file-rule filter below drops every
+        # gitignored file anyway — so the kept set is identical, only faster. Gated
+        # on the same respect_gitignore flag so results never diverge from the filter.
+        discovered_files = self.file_system.list_files(
+            request.project_path, respect_gitignore=request.respect_gitignore
+        )
         discover_ms = (perf_counter() - discover_started) * 1000
         self._checkpoint(request.cancellation_check)
         gitignore_started = perf_counter()
