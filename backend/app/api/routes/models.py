@@ -772,8 +772,15 @@ def activate_workspace_runtime(workspace_id: str) -> ActivateWorkspaceRuntimeRes
     """Re-activate the engine the given workspace uses, since the active backend is
     app-global. Opening an Ollama project points embeddings back at Ollama; opening
     a llama.cpp project starts its engine and points embeddings at it. Best-effort:
-    if a llama.cpp engine can't start (models missing), it degrades to Ollama."""
-    from app.api.dependencies import build_embedding_for_backend, runtime_state_store
+    if a llama.cpp engine can't start (models missing), it degrades to Ollama, and if
+    Ollama isn't installed/reachable it switches to llama.cpp so the workspace stays
+    answerable."""
+    from app.api.dependencies import (
+        activate_llamacpp_engine,
+        build_embedding_for_backend,
+        ollama_reachable,
+        runtime_state_store,
+    )
     from app.core.use_cases.download_gguf_model import GgufModelRef
 
     selection = workspace_model_selection_repository.get(workspace_id)
@@ -802,6 +809,13 @@ def activate_workspace_runtime(workspace_id: str) -> ActivateWorkspaceRuntimeRes
             return ActivateWorkspaceRuntimeResponse(active_backend="llamacpp")
         except Exception:  # noqa: BLE001 - degrade to Ollama if the engine can't run
             pass
+
+    # This workspace uses Ollama. If Ollama is actually reachable, point back at it.
+    # If it isn't — the user removed or stopped it — switch to llama.cpp when a local
+    # model is available, so opening the project doesn't pin every answer to a dead
+    # endpoint. Falls through to Ollama only when llama.cpp can't start either.
+    if not ollama_reachable() and activate_llamacpp_engine(restore_saved=True):
+        return ActivateWorkspaceRuntimeResponse(active_backend="llamacpp")
 
     if hasattr(embedding_provider, "set_delegate"):
         embedding_provider.set_delegate(build_embedding_for_backend("ollama"))
