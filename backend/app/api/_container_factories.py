@@ -557,6 +557,19 @@ def build_llm_provider() -> LLMProviderPort:
     raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
 
 
+def _active_backend_default_provider() -> str | None:
+    """The engine that is actually live right now, for `create()` calls that pass no
+    provider. Lazily reads the runtime state (imported here to avoid an import cycle
+    with the dependency container). Returns None when nothing is set, so the factory
+    falls back to the configured default."""
+    try:
+        from app.api.dependencies import runtime_state_store
+
+        return runtime_state_store.get_active_backend()
+    except Exception:  # noqa: BLE001 - any failure just uses the configured default
+        return None
+
+
 def build_llm_provider_factory() -> LLMProviderFactoryPort:
     settings = get_settings()
     return LLMProviderFactory(
@@ -564,6 +577,7 @@ def build_llm_provider_factory() -> LLMProviderFactoryPort:
         ollama_base_url=settings.ollama_base_url,
         ollama_default_model=settings.ollama_llm_model,
         ollama_timeout_seconds=settings.ollama_llm_timeout_seconds,
+        default_provider_resolver=_active_backend_default_provider,
     )
 
 
