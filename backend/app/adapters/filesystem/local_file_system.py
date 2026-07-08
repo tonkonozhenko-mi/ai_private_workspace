@@ -162,9 +162,7 @@ class LocalFileSystem:
                 content = self._read_gitignore(current_dir / GITIGNORE_FILENAME)
                 if content:
                     rel_gitignore = (
-                        GITIGNORE_FILENAME
-                        if not rel_dir
-                        else f"{rel_dir}/{GITIGNORE_FILENAME}"
+                        GITIGNORE_FILENAME if not rel_dir else f"{rel_dir}/{GITIGNORE_FILENAME}"
                     )
                     gitignore_sources[rel_gitignore] = content
                     matcher = GitignoreMatcher.from_sources(gitignore_sources)
