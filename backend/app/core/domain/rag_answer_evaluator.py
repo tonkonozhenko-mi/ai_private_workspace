@@ -1,5 +1,6 @@
 import re
 
+from app.core.domain.handbook_source import display_source_path
 from app.core.domain.rag import RagQualityWarning, RagSource
 
 NO_CONTEXT_PHRASES = (
@@ -51,7 +52,15 @@ def evaluate_rag_answer(
             )
         )
 
-    if not any(source.source_path.casefold() in normalized_answer for source in sources):
+    # Accept either the raw source path or its human-facing label (the handbook is
+    # shown to the model as "Project handbook", so that's what it cites).
+    def _mentions(source: RagSource) -> bool:
+        return (
+            source.source_path.casefold() in normalized_answer
+            or display_source_path(source.source_path).casefold() in normalized_answer
+        )
+
+    if not any(_mentions(source) for source in sources):
         warnings.append(
             RagQualityWarning(
                 code="answer_missing_source_paths",
