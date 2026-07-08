@@ -50,3 +50,8 @@ class WorkspaceQuestionAnswer:
     # the prompt (each {kind, text, grounding}); guardrails as plain strings.
     project_memory_details: list = field(default_factory=list)
     project_guardrails_used: list = field(default_factory=list)
+    # The user's cross-project "About you" profile facts applied to this answer
+    # (count + each {category, text}), so the "Why this answer?" panel can show
+    # the profile — including a language/style preference — was actually used.
+    profile_facts_used: int = 0
+    profile_details: list = field(default_factory=list)

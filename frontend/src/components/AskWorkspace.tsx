@@ -2198,6 +2198,7 @@ function AnswerResult({
         {(answer.project_memory_used ?? 0) > 0 ||
         (answer.project_facts_used ?? 0) > 0 ||
         (answer.project_guardrails_used?.length ?? 0) > 0 ||
+        (answer.profile_facts_used ?? 0) > 0 ||
         answer.sources.length > 0 ? (
           <button
             type="button"
@@ -2218,6 +2219,11 @@ function AnswerResult({
                     (answer.project_guardrails_used?.length ?? 0) === 1 ? "" : "s"
                   }`
                 : ""}
+              {(answer.profile_facts_used ?? 0) > 0
+                ? ` · ${answer.profile_facts_used} about-you fact${
+                    (answer.profile_facts_used ?? 0) === 1 ? "" : "s"
+                  }`
+                : ""}
             </span>
           </button>
         ) : null}
@@ -2234,6 +2240,7 @@ function AnswerResult({
             }))}
             guardrails={answer.project_guardrails_used ?? []}
             memoryDetails={answer.project_memory_details ?? []}
+            profileDetails={answer.profile_details ?? []}
             warnings={answer.quality_warnings ?? []}
             latencyMs={answer.usage?.latency_ms ?? null}
             investigate={{ workspaceId: answer.workspace_id, question: answer.question }}

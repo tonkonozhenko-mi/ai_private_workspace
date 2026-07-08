@@ -162,6 +162,9 @@ class ProjectContextStats:
     # the UI can show provenance on demand instead of crowding the answer.
     memory_used: list = field(default_factory=list)
     guardrails_used: list = field(default_factory=list)
+    # The About-you facts that went into the prompt (each {category, text}), so the
+    # "Why this answer?" panel can show the profile was actually applied.
+    profile_used: list = field(default_factory=list)
 
 
 class ComposeProjectContextUseCase:
@@ -283,6 +286,7 @@ class ComposeProjectContextUseCase:
         # The user's cross-project profile comes first — it shapes how to answer
         # (tone, language, focus), before any project-specific knowledge.
         profile_count = 0
+        profile_used: list = []
         style_directive = ""
         if self.user_profile_repository is not None:
             profile_items = select_for_prompt(self.user_profile_repository.list(), query)
@@ -290,6 +294,11 @@ class ComposeProjectContextUseCase:
             if profile_block:
                 blocks.append(_trim(profile_block, self.budget.profile))
                 profile_count = len(profile_items)
+                # For the "Why this answer?" panel: the exact About-you facts that
+                # went into the prompt, so the user can see the profile was applied.
+                profile_used = [
+                    {"category": i.category, "text": _shorten(i.text)} for i in profile_items
+                ]
             # Restated separately at the very end of the answer prompt (strongest
             # position) so a small model actually applies the requested language.
             style_directive = answer_style_directive(profile_items)
@@ -351,6 +360,7 @@ class ComposeProjectContextUseCase:
             guardrails=guardrails_count,
             memory_used=memory_used,
             guardrails_used=guardrails_used,
+            profile_used=profile_used,
             style_directive=style_directive,
         )
         if not blocks:

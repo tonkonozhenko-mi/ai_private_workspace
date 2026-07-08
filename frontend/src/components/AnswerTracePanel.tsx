@@ -37,6 +37,11 @@ export interface TraceMemory {
   grounding?: string | null;
 }
 
+export interface TraceProfileFact {
+  category: string;
+  text: string;
+}
+
 export interface AnswerTracePanelProps {
   memoryUsed: number;
   factsUsed: number;
@@ -44,6 +49,7 @@ export interface AnswerTracePanelProps {
   files: TraceFile[];
   guardrails?: string[];
   memoryDetails?: TraceMemory[];
+  profileDetails?: TraceProfileFact[];
   warnings?: RagQualityWarning[];
   latencyMs?: number | null;
   scope?: "project" | "group";
@@ -71,6 +77,7 @@ export function AnswerTracePanel({
   files,
   guardrails = [],
   memoryDetails = [],
+  profileDetails = [],
   warnings = [],
   latencyMs = null,
   scope = "project",
@@ -118,6 +125,13 @@ export function AnswerTracePanel({
         }
       : { icon: "📄", title: "Retrieved source files", detail: "nothing confident found", muted: true },
   ];
+  if (profileDetails.length > 0) {
+    derivedSteps.push({
+      icon: "🧑",
+      title: "Applied your About-you profile",
+      detail: `${profileDetails.length} preference${plural(profileDetails.length)} shaped the answer`,
+    });
+  }
   if (factsUsed > 0) {
     derivedSteps.push({
       icon: "🕸",
@@ -357,6 +371,21 @@ export function AnswerTracePanel({
             )
           ) : (
             <div className="trace-sources">
+              {profileDetails.length > 0 ? (
+                <section className="trace-grp">
+                  <h4>
+                    <span className="dot mem" aria-hidden="true" /> About you ({profileDetails.length})
+                  </h4>
+                  {profileDetails.map((fact, index) => (
+                    <div className="trace-src" key={index}>
+                      <div className="t">{fact.text}</div>
+                      <div className="m">
+                        <span className="kind">{labelize(fact.category)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </section>
+              ) : null}
               {memoryDetails.length > 0 ? (
                 <section className="trace-grp">
                   <h4>

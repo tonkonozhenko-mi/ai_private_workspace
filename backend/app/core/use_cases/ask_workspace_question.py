@@ -338,7 +338,13 @@ class AskWorkspaceQuestionUseCase:
         ``used_details`` = {"memory": [...], "guardrails": [...], "style_directive": ...}
         for the "Why this answer?" panel and the terminal style directive; empty when
         no stats-aware provider is present."""
-        empty: dict = {"memory": [], "guardrails": [], "style_directive": ""}
+        empty: dict = {
+            "memory": [],
+            "guardrails": [],
+            "profile": [],
+            "profile_facts": 0,
+            "style_directive": "",
+        }
         provider = self.project_context_provider
         if provider is None:
             return "", 0, 0, empty
@@ -348,6 +354,8 @@ class AskWorkspaceQuestionUseCase:
                 details = {
                     "memory": list(getattr(stats, "memory_used", []) or []),
                     "guardrails": list(getattr(stats, "guardrails_used", []) or []),
+                    "profile": list(getattr(stats, "profile_used", []) or []),
+                    "profile_facts": getattr(stats, "profile_facts", 0) or 0,
                     "style_directive": getattr(stats, "style_directive", "") or "",
                 }
                 return text or "", stats.memory_items, stats.graph_facts, details
@@ -667,6 +675,8 @@ class AskWorkspaceQuestionUseCase:
                 project_facts_used=facts_used,
                 project_memory_details=context_used.get("memory", []),
                 project_guardrails_used=context_used.get("guardrails", []),
+                profile_facts_used=context_used.get("profile_facts", 0),
+                profile_details=context_used.get("profile", []),
                 diagnostic_code=None,
                 diagnostic_message=None,
                 quality_warnings=quality_warnings,
@@ -945,6 +955,8 @@ class AskWorkspaceQuestionUseCase:
                     project_facts_used=facts_used,
                     project_memory_details=context_used.get("memory", []),
                     project_guardrails_used=context_used.get("guardrails", []),
+                    profile_facts_used=context_used.get("profile_facts", 0),
+                    profile_details=context_used.get("profile", []),
                     diagnostic_code=None,
                     diagnostic_message=None,
                     quality_warnings=quality_warnings,
