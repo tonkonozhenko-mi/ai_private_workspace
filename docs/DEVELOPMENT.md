@@ -3,6 +3,20 @@
 Developer startup, validation, and source-hygiene rules. Product principles and
 the contribution flow live in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
+## First-time setup: enable the git hooks
+
+The repo ships a pre-commit guard (in `.githooks/`) that refuses commits made
+directly on `main` — the flow is feature-branch → PR → merge, and GitHub Desktop
+switches the local checkout to `main` right after merging a PR, which otherwise
+lets a follow-up commit land on `main` by accident. Enable it once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+For a deliberate commit on `main` (rare), bypass it once with
+`ALLOW_MAIN_COMMIT=1 git commit …`.
+
 ## Backend
 
 ```bash
