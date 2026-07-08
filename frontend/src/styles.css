@@ -5868,7 +5868,8 @@ a {
   .workspace-tab-content {
     transition: padding-right 240ms cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .workspace-tab-content:has(.trace-panel) {
+  /* The panel is portalled to <body>, so match it there and shift the content. */
+  body:has(.trace-panel) .workspace-tab-content {
     padding-right: var(--trace-rail-w);
   }
 }

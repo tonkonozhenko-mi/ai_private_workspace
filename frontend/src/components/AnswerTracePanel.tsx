@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { streamInvestigateProject } from "../api/client";
 import type {
@@ -195,7 +196,11 @@ export function AnswerTracePanel({
     return true;
   });
 
-  return (
+  // Render into document.body so the panel's position:fixed is anchored to the
+  // viewport, not to a transformed/animated ancestor in the answer card (which
+  // was turning "fixed" into "absolute-within-the-answer" and making the panel
+  // float over the prose). As a body child it becomes a true full-height rail.
+  return createPortal(
     <>
       <div className="trace-backdrop" onClick={onClose} aria-hidden="true" />
       <aside className="trace-panel" role="dialog" aria-label="How the answer was built">
@@ -451,6 +456,7 @@ export function AnswerTracePanel({
           )}
         </div>
       </aside>
-    </>
+    </>,
+    document.body,
   );
 }
