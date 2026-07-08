@@ -5840,3 +5840,47 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .pi-section { animation: none; }
 }
+
+/* =====================================================================
+   Wide-screen layout — give the width work instead of stretching text.
+   The measure stays ~70–80ch (never widen prose); instead the empty side
+   space is put to use. Breakpoints: base ≤1280 (unchanged) · wide ≥1280 ·
+   ultra ≥1800 (same as wide, plus symmetric outer framing).
+   ===================================================================== */
+:root {
+  --trace-rail-w: 400px;
+}
+
+@media (min-width: 1280px) {
+  /* Ask — the "How the AI reached this" panel stops floating over the answer
+     and docks as a right rail: full height under the header with its own
+     scroll (it already is position:fixed, top/bottom:0). The scrim is dropped
+     because a docked inspector isn't a modal, and the tab content shifts left
+     by the rail width so the conversation re-centres in the space that's left.
+     We shift with PADDING (not transform/filter) so the panel's position:fixed
+     stays anchored to the viewport rather than to a transformed ancestor. */
+  .trace-backdrop {
+    display: none;
+  }
+  .trace-panel {
+    box-shadow: -1px 0 0 var(--c-border);
+    animation: none;
+  }
+  .workspace-tab-content {
+    transition: padding-right 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .workspace-tab-content:has(.trace-panel) {
+    padding-right: var(--trace-rail-w);
+  }
+}
+
+@media (min-width: 1800px) {
+  /* Ultra-wide: a slightly wider rail, and inset the whole content area so the
+     leftover margins read as a balanced frame instead of a dead zone. */
+  :root {
+    --trace-rail-w: 420px;
+  }
+  .workspace-tab-content {
+    padding-inline: clamp(24px, 3vw, 88px);
+  }
+}
