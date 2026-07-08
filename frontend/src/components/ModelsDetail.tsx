@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { deviceNoun } from "../lib/deviceName";
 import { formatModelLabel } from "../lib/modelLabel";
 
 import {
@@ -460,13 +461,13 @@ function ProductFitPanel() {
           <p className="eyebrow">Product goal</p>
           <h2>Local AI workspace, not a developer dashboard.</h2>
           <p className="panel-helper">
-            The app should help you choose a project folder, build local context, pick a model that fits your Mac, and ask questions safely. Advanced tools stay available only when they are useful.
+            The app should help you choose a project folder, build local context, pick a model that fits your {deviceNoun()}, and ask questions safely. Advanced tools stay available only when they are useful.
           </p>
         </div>
         <StatusBadge label="Local-first" />
       </div>
       <div className="product-fit-grid">
-        <article><strong>1. Choose folder</strong><span>Project files stay on this Mac.</span></article>
+        <article><strong>1. Choose folder</strong><span>Project files stay on this {deviceNoun()}.</span></article>
         <article><strong>2. Build context</strong><span>Search uses local chunks and sources.</span></article>
         <article><strong>3. Pick model</strong><span>Recommended choices are sized for laptop use.</span></article>
         <article><strong>4. Approve tools</strong><span>MCP/edit/command actions are never hidden.</span></article>
@@ -600,7 +601,7 @@ function ModelCatalogPanel({
           <p className="eyebrow">Model catalog</p>
           <h2>Pick a local model without guessing.</h2>
           <p className="panel-helper">
-            Start with Qwen2.5 Coder for DevOps/code work and Nomic Embed Text for search. Avoid very large models unless your Mac has enough memory.
+            Start with Qwen2.5 Coder for DevOps/code work and Nomic Embed Text for search. Avoid very large models unless your {deviceNoun()} has enough memory.
           </p>
         </div>
         <StatusBadge label="Local only" />
@@ -648,7 +649,7 @@ function ModelCatalogPanel({
       {catalogMessage ? <p className="model-selection-message">{catalogMessage}</p> : null}
       {catalogError ? <p className="model-selection-error">{catalogError}</p> : null}
       <details className="model-catalog-details">
-        <summary>What should I use on my Mac?</summary>
+        <summary>What should I use on my {deviceNoun()}?</summary>
         <div className="model-catalog-advice-grid">
           <article><strong>8 GB RAM</strong><span>Llama 3.2 3B + Nomic Embed Text. Keep source snippets low.</span></article>
           <article><strong>16 GB RAM</strong><span>Qwen2.5 Coder 7B or Mistral 7B + Nomic Embed Text.</span></article>
@@ -1198,7 +1199,7 @@ function OllamaRecommendationPanel() {
       </div>
 
       <details className="models-disclosure-panel model-hardware-details" open>
-        <summary>Recommended Mac profiles</summary>
+        <summary>Recommended profiles by memory</summary>
         <div className="model-profile-grid">
           {asArray(guide.profiles).map((profile) => (
             <article
