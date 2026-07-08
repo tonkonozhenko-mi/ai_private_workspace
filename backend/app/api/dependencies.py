@@ -159,6 +159,36 @@ embedding_provider = SwitchableEmbeddingProvider(build_embedding_provider())
 project_context_composer.embedding_provider = embedding_provider
 runtime_state_store = RuntimeStateStore(Path(get_settings().app_data_dir) / "runtime_state.json")
 llm_provider_factory = build_llm_provider_factory()
+
+
+def build_workspace_llm_provider(workspace_id: str | None = None):
+    """The LLM provider a workspace should generate with — the same engine Ask uses,
+    not the static configured default.
+
+    Some features (the Intelligence overview, "ask the map") used to build their
+    provider with ``create(provider=None)``, which resolves to the configured default
+    (often Ollama/llama3.2) regardless of what the workspace actually runs. On a
+    llama.cpp-only setup that meant those features tried to reach an Ollama that isn't
+    there. Resolution order now mirrors Ask: the workspace's explicitly selected
+    answer model first; then the live active backend (llama.cpp with its running
+    model, or Ollama); then the configured default as a last resort.
+    """
+    if workspace_id:
+        try:
+            selection = workspace_model_selection_repository.get(workspace_id)
+        except Exception:  # noqa: BLE001 - fall through to the active backend
+            selection = None
+        selected = selection.selected_llm if selection is not None else None
+        if selected is not None and llm_provider_factory.supports(selected.provider):
+            return llm_provider_factory.create(selected.provider, selected.model)
+    backend = runtime_state_store.get_active_backend()
+    if backend == "llamacpp":
+        return llm_provider_factory.create("llamacpp", None)
+    if backend == "ollama":
+        return llm_provider_factory.create("ollama", None)
+    return llm_provider_factory.create(None, None)
+
+
 vector_store = build_vector_store()
 readiness_configuration = build_readiness_configuration()
 runtime_health_configuration = build_runtime_health_configuration()

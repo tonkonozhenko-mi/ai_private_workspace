@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.api.dependencies import (
+    build_workspace_llm_provider,
     embedding_provider,
     file_system,
     git_history,
@@ -192,7 +193,7 @@ def get_project_intelligence_overview_text(workspace_id: str, role: str | None =
     view = present_project_intelligence(graph, lens)
     prompt = build_project_intelligence_overview_prompt(view, lens.label)
     try:
-        provider = llm_provider_factory.create(provider=None, model=None)
+        provider = build_workspace_llm_provider(workspace_id)
         text = provider.generate(prompt)
     except (LLMProviderFactoryError, RuntimeError) as exc:
         raise HTTPException(
@@ -320,7 +321,7 @@ def summarize_project_watch(workspace_id: str) -> dict:
             detail="No new commits to summarise since the last check.",
         )
     try:
-        provider = llm_provider_factory.create(provider=None, model=None)
+        provider = build_workspace_llm_provider(workspace_id)
         summary = provider.generate(prompt)
     except (LLMProviderFactoryError, RuntimeError) as exc:
         raise HTTPException(
@@ -628,7 +629,7 @@ def ask_project_intelligence(workspace_id: str, request: AskProjectIntelligenceR
     view = present_project_intelligence(graph, lens)
     prompt = build_ask_graph_prompt(view, lens.label, request.question.strip())
     try:
-        provider = llm_provider_factory.create(provider=None, model=None)
+        provider = build_workspace_llm_provider(workspace_id)
         answer = provider.generate(prompt)
     except (LLMProviderFactoryError, RuntimeError) as exc:
         raise HTTPException(
