@@ -5862,6 +5862,10 @@ a {
     display: none;
   }
   .trace-panel {
+    /* Exactly the rail width so the panel and the content shift are pixel-consistent
+       (no seam between the answer column and the rail). A calm 1px seam, no big
+       drop shadow — it's a docked pane, not a floating card. */
+    width: var(--trace-rail-w);
     box-shadow: -1px 0 0 var(--c-border);
     animation: none;
   }
@@ -5871,6 +5875,12 @@ a {
   /* The panel is portalled to <body>, so match it there and shift the content. */
   body:has(.trace-panel) .workspace-tab-content {
     padding-right: var(--trace-rail-w);
+  }
+  /* Keep the conversation from stranding in the middle: cap the shifted content
+     area and centre it, so the answer column sits in a balanced band beside the
+     rail with symmetric outer margins rather than drifting hard to one side. */
+  body:has(.trace-panel) .ask-workspace-centered {
+    max-width: 820px;
   }
 }
 
