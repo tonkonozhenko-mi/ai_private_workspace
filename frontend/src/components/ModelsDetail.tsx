@@ -368,8 +368,14 @@ export function ModelsDetail({
             workspaceId={workspaceId}
             developerMode={developerMode}
             backend={
+              // Prefer the engine that's actually live: if the workspace is
+              // running on llama.cpp, show its GGUF manager even when a stale
+              // Ollama selection lingers — otherwise the Ollama guided flow would
+              // offer (and persist) models for an engine that isn't installed.
               dashboard.selected_llm_provider === "llamacpp" ||
-              dashboard.selected_embedding_provider === "llamacpp"
+              dashboard.selected_embedding_provider === "llamacpp" ||
+              usage.active_llm_provider === "llamacpp" ||
+              usage.active_embedding_provider === "llamacpp"
                 ? "llamacpp"
                 : "ollama"
             }
@@ -858,6 +864,39 @@ function RuntimeNextActionPanel({
     }
   }
 
+  async function useActiveLlmRuntime() {
+    if (!usage.active_llm_provider || !usage.active_llm_model) {
+      setActionError("Active backend answer model is not available.");
+      return;
+    }
+    setActionBusy("use-active-llm");
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      await updateWorkspaceModelSelection(workspaceId, {
+        provider: usage.active_llm_provider,
+        model: usage.active_llm_model,
+        model_type: "llm",
+        selected_reason: "Switched to the running backend answer model.",
+      });
+      setActionMessage(`AI answer model changed to the active runtime: ${activeLlm}.`);
+      await onSelectionUpdated();
+    } catch (error) {
+      setActionError(errorMessage(error));
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  // The selected answer model can't run (e.g. an Ollama pick that never installed)
+  // while the live engine is happily running a different model. Offer a one-click
+  // heal onto the active model instead of leaving the workspace stuck on "needs
+  // setup".
+  const answerModelMismatch =
+    !usage.can_ask_with_selected_llm &&
+    Boolean(usage.active_llm_provider && usage.active_llm_model) &&
+    activeLlm !== selectedLlm;
+
   if (needsEmbeddingRuntime) {
     return (
       <div className="runtime-next-action-panel runtime-next-action-panel-warning">
@@ -963,9 +1002,27 @@ function RuntimeNextActionPanel({
         <div>
           <strong>Model setup needs attention.</strong>
           <p>{getModelWorkspaceStatusMessage(dashboard)}</p>
+          {answerModelMismatch ? (
+            <p className="runtime-next-action-hint">
+              The selected answer model <code>{selectedLlm}</code> can’t run, but the engine is
+              running <code>{activeLlm}</code>. You can switch this workspace onto it.
+            </p>
+          ) : null}
         </div>
       </div>
       <div className="runtime-next-action-buttons">
+        {answerModelMismatch ? (
+          <button
+            className="primary-button"
+            type="button"
+            disabled={actionBusy !== null}
+            onClick={() => void useActiveLlmRuntime()}
+          >
+            {actionBusy === "use-active-llm"
+              ? "Applying…"
+              : `Use active answer model (${activeLlm})`}
+          </button>
+        ) : null}
         <button className="secondary-action" type="button" onClick={() => void recheckRuntime()}>
           Re-check runtime
         </button>
@@ -2328,26 +2385,15 @@ function GuidedModelSetupPanel({
   const [installJobId, setInstallJobId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  // The built-in llama.cpp engine manages GGUF model files, not Ollama pulls, so
-  // in that mode the Ollama guided controls don't apply — show the llama.cpp
-  // panel instead (it has its own per-model download + Stop).
-  if (backend === "llamacpp") {
-    return (
-      <section className="panel guided-model-setup-panel">
-        <PanelHeading eyebrow="Guided setup" title="Built-in engine models" />
-        <p className="panel-intro">
-          This workspace uses the built-in llama.cpp engine. Manage its local
-          models below — nothing is installed through Ollama.
-        </p>
-        <LlamaCppModelsPanel
-          workspaceId={workspaceId}
-          onSelectionUpdated={onSelectionUpdated}
-        />
-      </section>
-    );
-  }
-
+  // Load the Ollama guided setup — but only in Ollama mode. This hook MUST run on
+  // every render (before any early return), or switching the workspace's engine
+  // from llama.cpp to Ollama would change the hook count between renders and crash
+  // the screen with React error #300 ("rendered more hooks than the previous
+  // render"). The body no-ops for llama.cpp so nothing is fetched there.
   useEffect(() => {
+    if (backend === "llamacpp") {
+      return;
+    }
     let cancelled = false;
     getGuidedModelSetup(workspaceId)
       .then((result) => {
@@ -2377,7 +2423,26 @@ function GuidedModelSetupPanel({
     return () => {
       cancelled = true;
     };
-  }, [workspaceId]);
+  }, [workspaceId, backend]);
+
+  // The built-in llama.cpp engine manages GGUF model files, not Ollama pulls, so
+  // in that mode the Ollama guided controls don't apply — show the llama.cpp
+  // panel instead (it has its own per-model download + Stop).
+  if (backend === "llamacpp") {
+    return (
+      <section className="panel guided-model-setup-panel">
+        <PanelHeading eyebrow="Guided setup" title="Built-in engine models" />
+        <p className="panel-intro">
+          This workspace uses the built-in llama.cpp engine. Manage its local
+          models below — nothing is installed through Ollama.
+        </p>
+        <LlamaCppModelsPanel
+          workspaceId={workspaceId}
+          onSelectionUpdated={onSelectionUpdated}
+        />
+      </section>
+    );
+  }
 
   async function saveGuidedSelection(modelType: "llm" | "embedding") {
     const value = modelType === "llm" ? llmChoice : embeddingChoice;
