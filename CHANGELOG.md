@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **Deleting a local llama.cpp model works again.** The "Delete model" button in the model manager asked for confirmation through a native browser dialog, which the desktop app's webview silently blocks — so the click did nothing and no delete request was ever sent. It now confirms inline (the button turns into "Confirm delete" with a Cancel beside it), so removing a downloaded or imported GGUF model works in the desktop app.
+
 ### Changed
 
 - **First-run setup now auto-selects the local engine that's actually installed, instead of a fixed guess.** A brand-new project defaulted to a preset engine regardless of what was on the machine, so someone who only has Ollama — or only the built-in llama.cpp — could be pointed at the one they don't have. Setup now detects what's available and picks it: a ready llama.cpp model wins (bundled, nothing to install), otherwise a running Ollama, otherwise the built-in engine with a prompt to download a model. You can still switch engines by hand, and once you do, auto-detection steps aside.
