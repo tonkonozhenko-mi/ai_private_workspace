@@ -7,6 +7,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-07-08
+
 ### Fixed
 
 - **Copy no longer assumes you're on a Mac.** The app runs on both macOS and Windows, but onboarding and help text said "Mac" throughout. It now says "Mac" only on macOS and the neutral "computer" everywhere else, so Windows users don't read about a machine they don't have.
