@@ -1,0 +1,30 @@
+#!/bin/sh
+# Guard: refuse commits made directly on the protected main branch.
+#
+# The project flow is feature-branch → PR → merge. GitHub Desktop switches the
+# local checkout to `main` right after merging a PR, so a follow-up commit
+# silently lands on `main` instead of a new branch. This hook stops that.
+#
+# Deliberate main commit (rare): ALLOW_MAIN_COMMIT=1 git commit ...
+
+[ -n "$ALLOW_MAIN_COMMIT" ] && exit 0
+
+# Detached HEAD (mid rebase/merge) has no branch name → don't block those.
+branch=$(git symbolic-ref --short -q HEAD) || exit 0
+
+case "$branch" in
+  main|master)
+    echo "" >&2
+    echo "  ✖ Commit blocked: you are on '$branch'." >&2
+    echo "" >&2
+    echo "  Create a feature branch first, e.g.:" >&2
+    echo "      git switch -c feat/your-change" >&2
+    echo "" >&2
+    echo "  (GitHub Desktop switches to main after merging a PR — this guard" >&2
+    echo "   keeps stray commits off main. Override once with:" >&2
+    echo "      ALLOW_MAIN_COMMIT=1 git commit …)" >&2
+    echo "" >&2
+    exit 1
+    ;;
+esac
+exit 0
