@@ -476,6 +476,41 @@ def llama_runtime_status() -> LlamaRuntimeStatusResponse:
     return LlamaRuntimeStatusResponse(**llama_runtime_manager.status())
 
 
+class RecommendedBackendResponse(BaseModel):
+    recommended_backend: str  # "llamacpp" | "ollama"
+    llama_ready: bool
+    llama_binary_available: bool
+    ollama_reachable: bool
+
+
+@router.get("/recommended-backend", response_model=RecommendedBackendResponse)
+def get_recommended_backend() -> RecommendedBackendResponse:
+    """Which local engine the app should default to on first-run setup, based on
+    what is actually installed on this machine — so the guided setup auto-selects
+    llama.cpp when a local model is ready, or Ollama when it's running, instead of
+    guessing. Preference: a ready llama.cpp (bundled, no external dependency) wins;
+    otherwise a reachable Ollama; otherwise llama.cpp so the user is guided to
+    download a local model."""
+    from app.api.dependencies import ollama_reachable
+
+    llama = llama_runtime_manager.status()
+    llama_ready = bool(llama.get("models_ready"))
+    llama_binary = bool(llama.get("binary_available"))
+    ollama_ok = ollama_reachable()
+    if llama_ready:
+        recommended = "llamacpp"
+    elif ollama_ok:
+        recommended = "ollama"
+    else:
+        recommended = "llamacpp"
+    return RecommendedBackendResponse(
+        recommended_backend=recommended,
+        llama_ready=llama_ready,
+        llama_binary_available=llama_binary,
+        ollama_reachable=ollama_ok,
+    )
+
+
 @router.post("/llama-runtime/start", response_model=LlamaRuntimeStatusResponse)
 def llama_runtime_start() -> LlamaRuntimeStatusResponse:
     from app.adapters.system.llama_runtime_manager import LlamaRuntimeError

@@ -145,6 +145,13 @@ export interface LlamaRuntimeStatus {
   embed_url: string | null;
 }
 
+export interface RecommendedBackend {
+  recommended_backend: "llamacpp" | "ollama";
+  llama_ready: boolean;
+  llama_binary_available: boolean;
+  ollama_reachable: boolean;
+}
+
 export interface ProjectScanResponse {
   project_path: string;
   total_files: number;

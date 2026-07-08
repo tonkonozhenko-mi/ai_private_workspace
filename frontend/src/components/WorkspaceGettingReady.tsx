@@ -8,6 +8,7 @@ import {
   createLocalModelInstallDraft,
   getLocalModelDownloadExecutionCapability,
   getLocalModelInstallStatus,
+  getRecommendedBackend,
   getWorkspaceJob,
   listLocalModelDownloadJobs,
   setActiveBackend,
@@ -98,6 +99,33 @@ export function WorkspaceGettingReady({
   const [downloadJobs, setDownloadJobs] = useState<LocalModelDownloadJob[]>([]);
   const [busy, setBusy] = useState<"scan" | "models" | "index" | "check" | null>(null);
   const [backendChoice, setBackendChoice] = useState<"ollama" | "llamacpp">(workspaceBackend);
+  // Once the user picks an engine by hand, stop auto-detection from overriding it.
+  const userPickedBackend = useRef(false);
+  const pickBackend = useCallback((choice: "ollama" | "llamacpp") => {
+    userPickedBackend.current = true;
+    setBackendChoice(choice);
+  }, []);
+
+  // Fresh workspace (no engine chosen yet): default to whatever is actually
+  // installed on this machine, rather than a fixed guess. The backend probes both
+  // engines — a ready llama.cpp model wins, else a reachable Ollama — so a user who
+  // only has one of them lands on it automatically. Skipped once the user toggles.
+  useEffect(() => {
+    if (hasEngineSelection) return;
+    let cancelled = false;
+    getRecommendedBackend()
+      .then((res) => {
+        if (!cancelled && !userPickedBackend.current) {
+          setBackendChoice(res.recommended_backend);
+        }
+      })
+      .catch(() => {
+        /* detection is best-effort; keep the default engine on failure */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hasEngineSelection]);
   // True once the built-in llama.cpp engine reports running (models downloaded,
   // engine up, selections applied). Used to pass the "models" step in llama.cpp
   // mode, the same way recommendedInstalled does for Ollama.
@@ -456,7 +484,7 @@ export function WorkspaceGettingReady({
         role="tab"
         aria-selected={backendChoice === "ollama"}
         className={backendChoice === "ollama" ? "is-selected" : ""}
-        onClick={() => setBackendChoice("ollama")}
+        onClick={() => pickBackend("ollama")}
       >
         Ollama
       </button>
@@ -465,7 +493,7 @@ export function WorkspaceGettingReady({
         role="tab"
         aria-selected={backendChoice === "llamacpp"}
         className={backendChoice === "llamacpp" ? "is-selected" : ""}
-        onClick={() => setBackendChoice("llamacpp")}
+        onClick={() => pickBackend("llamacpp")}
       >
         Built-in (llama.cpp)
       </button>
@@ -547,7 +575,7 @@ export function WorkspaceGettingReady({
                 <button
                   type="button"
                   className="text-button"
-                  onClick={() => setBackendChoice("ollama")}
+                  onClick={() => pickBackend("ollama")}
                 >
                   Use your Ollama models instead
                 </button>{" "}
@@ -560,7 +588,7 @@ export function WorkspaceGettingReady({
               <button
                 type="button"
                 className="text-button"
-                onClick={() => setBackendChoice("llamacpp")}
+                onClick={() => pickBackend("llamacpp")}
               >
                 Switch to the built-in engine
               </button>{" "}
