@@ -138,9 +138,7 @@ def build_workspace_question_prompt(
         for index, result in enumerate(context_results, start=1)
     ]
     context = "\n\n".join(context_sections)
-    source_paths = ", ".join(
-        display_source_path(result.source_path) for result in context_results
-    )
+    source_paths = ", ".join(display_source_path(result.source_path) for result in context_results)
     normalized_skill_instructions = _normalize_skill_instructions(skill_instructions or [])
     skill_section = _build_skill_section(normalized_skill_instructions)
     # Identity is a low-priority end-clause, not a headline: small models otherwise
