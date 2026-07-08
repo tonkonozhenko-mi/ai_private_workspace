@@ -155,25 +155,37 @@ export function LlamaCppModelsPanel({
 
   const llmModels = (models ?? []).filter((m) => m.model_type === "llm");
   const embeddingModels = (models ?? []).filter((m) => m.model_type === "embedding");
-  const embedModel =
+  const installedLlm = llmModels.filter((m) => isInstalled(m));
+  const installedEmbedding = embeddingModels.filter((m) => isInstalled(m));
+  const recommendedEmbed =
     embeddingModels.find((m) => m.recommended) ?? embeddingModels[0];
   const recommendedLlm =
     llmModels.find((m) => m.recommended) ?? llmModels[0];
 
-  // First-run setup stays simple: only the recommended answer model is shown.
-  // The Models tab ("manage") shows every answer model with download/switch.
-  const visibleLlmModels = interactive
-    ? llmModels
-    : recommendedLlm
-      ? [recommendedLlm]
-      : [];
+  // What first-run actually runs: the recommended pair when it's installed,
+  // otherwise whichever answer + search model the user already downloaded. So
+  // deleting the recommended models but keeping your own doesn't force setup to
+  // re-download — it offers to use what's already here.
+  const effectiveLlm =
+    recommendedLlm && isInstalled(recommendedLlm) ? recommendedLlm : installedLlm[0] ?? recommendedLlm;
+  const effectiveEmbed =
+    recommendedEmbed && isInstalled(recommendedEmbed)
+      ? recommendedEmbed
+      : installedEmbedding[0] ?? recommendedEmbed;
+  // Kept name: the rest of the component (selection, setup row) reads embedModel.
+  const embedModel = effectiveEmbed;
 
-  // The minimum to run: a recommended answer model + the embedder.
-  const requiredModels = [recommendedLlm, embedModel].filter(
+  // First-run setup stays simple: only the effective answer model is shown.
+  // The Models tab ("manage") shows every answer model with download/switch.
+  const visibleLlmModels = interactive ? llmModels : effectiveLlm ? [effectiveLlm] : [];
+
+  // The minimum to run: an answer model + a search model, both downloaded.
+  const requiredModels = [effectiveLlm, effectiveEmbed].filter(
     (m): m is GgufCatalogItem => Boolean(m),
   );
-  const requiredInstalled =
-    requiredModels.length > 0 && requiredModels.every((m) => isInstalled(m));
+  const requiredInstalled = Boolean(
+    effectiveLlm && isInstalled(effectiveLlm) && effectiveEmbed && isInstalled(effectiveEmbed),
+  );
 
   // If the models are downloaded and the bundled binary is present, bring the
   // engine up on its own — the user already chose llama.cpp and downloaded the
@@ -266,10 +278,29 @@ export function LlamaCppModelsPanel({
     setStarting(true);
     setError(null);
     try {
-      const status = await startLlamaRuntime();
+      // Point the engine at the models we actually intend to run before starting:
+      // when the recommended pair was deleted, that's the user's own installed
+      // models. Plain start would fall back to the (missing) recommended default.
+      let status;
+      if (effectiveLlm) {
+        status = await switchLlamaRuntimeLlm(
+          effectiveLlm.custom
+            ? { repo_id: effectiveLlm.repo_id, filename: effectiveLlm.filename }
+            : { model_id: effectiveLlm.id },
+        );
+        if (effectiveEmbed) {
+          status = await switchLlamaRuntimeEmbedding(
+            effectiveEmbed.custom
+              ? { repo_id: effectiveEmbed.repo_id, filename: effectiveEmbed.filename }
+              : { model_id: effectiveEmbed.id },
+          );
+        }
+      } else {
+        status = await startLlamaRuntime();
+      }
       setRuntime(status);
       if (status.running) {
-        await applyWorkspaceSelection(status.active_llm_model ?? recommendedLlm?.id ?? "");
+        await applyWorkspaceSelection(effectiveLlm?.id ?? status.active_llm_model ?? "");
         await refreshCatalog();
       }
     } catch (e) {
@@ -284,7 +315,7 @@ export function LlamaCppModelsPanel({
   // apply the selection), then advance the setup flow.
   async function continueSetup() {
     const applied = await applyWorkspaceSelection(
-      runtime?.active_llm_model ?? recommendedLlm?.id ?? "",
+      runtime?.active_llm_model ?? effectiveLlm?.id ?? "",
     );
     // Only advance when the engine switch actually took — otherwise the next
     // step would build the search index with the wrong vectorizer.
@@ -608,9 +639,7 @@ export function LlamaCppModelsPanel({
     );
   }
 
-  const installedLlm = llmModels.filter((m) => isInstalled(m));
   const addableLlm = llmModels.filter((m) => !isInstalled(m));
-  const installedEmbedding = embeddingModels.filter((m) => isInstalled(m));
   const addableEmbedding = embeddingModels.filter((m) => !isInstalled(m));
 
   const engineCta = !requiredInstalled ? (
