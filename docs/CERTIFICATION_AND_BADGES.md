@@ -102,7 +102,18 @@ one-time action on your side (usually a GitHub setting, not code).
 ### Analysis
 
 - **Static analysis** ✅ — CodeQL (`codeql.yml`) + `ruff`.
-- **Dynamic analysis (optional for passing)** — not required at passing level.
+- **Dynamic analysis** — the only passing-level blocker is the one **MUST**
+  criterion (`dynamic_analysis_fixed`); the other three are SUGGESTED and don't
+  block. Recommended answers on bestpractices.dev/projects/13357:
+  - `dynamic_analysis` → **Met**: the pytest suite runs the software in CI on
+    every push, exercising real runtime behavior; CodeQL provides SAST.
+  - `dynamic_analysis_unsafe` → **N/A**: the produced software is Python +
+    TypeScript; the only Rust is the memory-safe Tauri shell — no C/C++.
+  - `dynamic_analysis_enable_assertions` → **Met**: tests run under CPython with
+    assertions enabled (no `-O` / `PYTHONOPTIMIZE`); pytest evaluates `assert`.
+  - `dynamic_analysis_fixed` (**MUST**) → **Met**: no separate dynamic-analysis
+    tool is used, so there are no such findings; any confirmed medium+ severity
+    exploitable vulnerability would be fixed promptly.
 
 ### Remaining one-time actions for a clean Passing
 
