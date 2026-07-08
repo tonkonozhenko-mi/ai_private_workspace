@@ -4,6 +4,7 @@ import stat as stat_module
 from pathlib import Path
 from time import perf_counter
 
+from app.core.domain.gitignore_matcher import GITIGNORE_FILENAME, GitignoreMatcher
 from app.core.domain.project_scan import ProjectFile, ProjectFileList
 
 logger = logging.getLogger(__name__)
@@ -26,10 +27,10 @@ SKIPPED_DIRECTORIES = {
 
 
 class LocalFileSystem:
-    def list_files(self, root_path: str) -> list[ProjectFile]:
+    def list_files(self, root_path: str, respect_gitignore: bool = True) -> list[ProjectFile]:
         root = Path(root_path).resolve()
         walk_started = perf_counter()
-        candidates = self._collect_candidates(root)
+        candidates = self._collect_candidates(root, respect_gitignore=respect_gitignore)
         walk_ms = (perf_counter() - walk_started) * 1000
         chart_roots = {
             relative_path.parent.as_posix()
@@ -135,19 +136,50 @@ class LocalFileSystem:
         target_path.write_text(content, encoding="utf-8")
         return replaced_existing
 
-    def _collect_candidates(self, root: Path) -> list[tuple[Path, Path, int, float | None]]:
+    def _collect_candidates(
+        self, root: Path, *, respect_gitignore: bool = True
+    ) -> list[tuple[Path, Path, int, float | None]]:
         candidates: list[tuple[Path, Path, int, float | None]] = []
 
-        # Prune skipped directories DURING the walk, not after: os.walk lets us edit
-        # ``dirnames`` in place so it never descends into ``.git`` / ``node_modules``
-        # / ``.venv`` / ``target`` etc. The old ``rglob('*')`` walked those heavy
-        # trees fully and only filtered afterward — on a project sitting near a
-        # monorepo (or with a big vendored tree) that meant traversing tens of
-        # thousands of paths to keep a handful, which is why the scan could take
-        # minutes. (``followlinks`` stays False so a symlinked dir can't loop us.)
+        # Prune directories DURING the walk, not after, on two fronts:
+        #   1. The hardcoded SKIPPED_DIRECTORIES (.git / node_modules / .venv / …).
+        #   2. Anything the project's own .gitignore ignores — built incrementally as
+        #      os.walk descends (top-down), matching git's per-directory semantics.
+        # This is what makes a scan fast on a real repo: the scan filter already drops
+        # every gitignored file unconditionally, so never descending into an ignored
+        # tree yields the identical kept set while skipping the stat + classify + match
+        # of (often the vast majority of) files. (``followlinks`` stays False so a
+        # symlinked dir can't loop us.)
+        gitignore_sources: dict[str, str] = {}
+        matcher = GitignoreMatcher.empty()
         for dirpath, dirnames, filenames in os.walk(str(root)):
-            dirnames[:] = [d for d in dirnames if d not in SKIPPED_DIRECTORIES]
             current_dir = Path(dirpath)
+            rel_dir = "" if current_dir == root else current_dir.relative_to(root).as_posix()
+
+            # Load this directory's .gitignore before deciding which children to
+            # descend into, so its rules apply to its own subtree.
+            if respect_gitignore and GITIGNORE_FILENAME in filenames:
+                content = self._read_gitignore(current_dir / GITIGNORE_FILENAME)
+                if content:
+                    rel_gitignore = (
+                        GITIGNORE_FILENAME
+                        if not rel_dir
+                        else f"{rel_dir}/{GITIGNORE_FILENAME}"
+                    )
+                    gitignore_sources[rel_gitignore] = content
+                    matcher = GitignoreMatcher.from_sources(gitignore_sources)
+
+            def _keep_dir(name: str) -> bool:
+                if name in SKIPPED_DIRECTORIES:
+                    return False
+                if respect_gitignore and matcher.active:
+                    child_rel = name if not rel_dir else f"{rel_dir}/{name}"
+                    # Trailing slash so a directory-only rule ("build/") matches.
+                    if matcher.is_ignored(f"{child_rel}/"):
+                        return False
+                return True
+
+            dirnames[:] = [d for d in dirnames if _keep_dir(d)]
             for name in filenames:
                 full_path = current_dir / name
                 try:
@@ -168,6 +200,17 @@ class LocalFileSystem:
                 candidates.append((full_path.relative_to(root), full_path, size_bytes, modified_at))
 
         return candidates
+
+    @staticmethod
+    def _read_gitignore(path: Path) -> str:
+        """Read a ``.gitignore`` file for walk-time pruning; empty string on any
+        error so a single unreadable file never breaks the scan."""
+        try:
+            if path.stat().st_size > MAX_FILE_SIZE_BYTES:
+                return ""
+            return path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            return ""
 
     def _detect_file_type(
         self,

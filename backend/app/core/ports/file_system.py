@@ -4,8 +4,13 @@ from app.core.domain.project_scan import ProjectFile
 
 
 class FileSystemPort(Protocol):
-    def list_files(self, root_path: str) -> list[ProjectFile]:
-        """Return project files discovered under a root path."""
+    def list_files(self, root_path: str, respect_gitignore: bool = True) -> list[ProjectFile]:
+        """Return project files discovered under a root path.
+
+        When ``respect_gitignore`` is set, directories the project's .gitignore
+        ignores are skipped during discovery (a performance optimization; the scan
+        drops those files regardless).
+        """
 
     def path_exists(self, path: str) -> bool:
         """Return whether a path exists."""
