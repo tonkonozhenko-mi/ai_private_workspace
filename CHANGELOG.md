@@ -9,6 +9,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 
+- **First-run setup uses the local models you already have instead of only offering to re-download the recommended ones.** If you'd deleted the two recommended models but still had your own answer and search models downloaded, the "local brain" step ignored them and only showed a "Download models" button. It now detects your installed models, shows them as ready, and offers to start the engine on them (Start engine / Continue) — no forced re-download. The recommended pair is still used when it's present, and it falls back to downloading only when you have no usable model of a given type.
+
 - **Deleting a local llama.cpp model works again.** The "Delete model" button in the model manager asked for confirmation through a native browser dialog, which the desktop app's webview silently blocks — so the click did nothing and no delete request was ever sent. It now confirms inline (the button turns into "Confirm delete" with a Cancel beside it), so removing a downloaded or imported GGUF model works in the desktop app.
 
 - **Renaming a chat, editing a saved answer note, and renaming a report work in the desktop app.** These used the same native pop-up prompt that the desktop webview blocks, so the actions silently did nothing. They now open a small in-app dialog with a text field (Enter to save, Escape to cancel), so editing works everywhere.
