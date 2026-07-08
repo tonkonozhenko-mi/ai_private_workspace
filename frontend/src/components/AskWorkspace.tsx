@@ -70,6 +70,7 @@ import { AnswerFeedback } from "./AnswerFeedback";
 import { AnswerNudges } from "./AnswerNudges";
 import { AnswerTracePanel } from "./AnswerTracePanel";
 import { CopyButton } from "./CopyButton";
+import { usePromptDialog } from "./PromptDialog";
 import type {
   RagSource,
   WorkspaceQuestionAnswer,
@@ -277,6 +278,8 @@ export function AskWorkspace({
   const [conversations, setConversations] = useState<WorkspaceConversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [conversationLoading, setConversationLoading] = useState(false);
+  // In-app prompt replacement (native window.prompt is blocked in the Tauri webview).
+  const { prompt: promptDialog, dialog: promptDialogEl } = usePromptDialog();
   const [conversationSearch, setConversationSearch] = useState("");
   const [answerNoteSearch, setAnswerNoteSearch] = useState("");
   const [answerNotesPinnedOnly, setAnswerNotesPinnedOnly] = useState(false);
@@ -535,11 +538,11 @@ export function AskWorkspace({
   }
 
   async function editAnswerNote(note: ConversationAnswerNote) {
-    const nextTitle = window.prompt("Edit note title", note.title);
+    const nextTitle = await promptDialog("Edit note title", note.title);
     if (nextTitle === null || nextTitle.trim().length === 0) {
       return;
     }
-    const nextContent = window.prompt("Edit note content", note.content);
+    const nextContent = await promptDialog("Edit note content", note.content, { multiline: true });
     if (nextContent === null || nextContent.trim().length === 0) {
       return;
     }
@@ -617,7 +620,7 @@ export function AskWorkspace({
   }
 
   async function renameConversation(conversationId: string, currentTitle: string) {
-    const nextTitle = window.prompt("Rename this conversation", currentTitle);
+    const nextTitle = await promptDialog("Rename this conversation", currentTitle);
     if (nextTitle === null || nextTitle.trim().length === 0) {
       return;
     }
@@ -853,6 +856,7 @@ export function AskWorkspace({
 
   return (
     <AskDeveloperModeContext.Provider value={devMode}>
+    {promptDialogEl}
     <div
       className="ask-workspace ask-workspace-chat ask-workspace-centered"
       style={{ "--composer-height": `${composerHeight}px` } as CSSProperties}
