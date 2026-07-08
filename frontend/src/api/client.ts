@@ -11,6 +11,7 @@ import type {
   GgufCatalogItem,
   GgufDownloadJob,
   LlamaRuntimeStatus,
+  RecommendedBackend,
   GitInsightsResponse,
   ProjectScanResponse,
   ProjectTodosResponse,
@@ -472,6 +473,10 @@ export function setRerankerEnabled(enabled: boolean): Promise<RerankerStatus> {
 
 export function getLlamaRuntimeStatus(): Promise<LlamaRuntimeStatus> {
   return getJson<LlamaRuntimeStatus>(`/models/llama-runtime/status`);
+}
+
+export function getRecommendedBackend(): Promise<RecommendedBackend> {
+  return getJson<RecommendedBackend>(`/models/recommended-backend`);
 }
 
 export function startLlamaRuntime(): Promise<LlamaRuntimeStatus> {

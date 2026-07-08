@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **First-run setup now auto-selects the local engine that's actually installed, instead of a fixed guess.** A brand-new project defaulted to a preset engine regardless of what was on the machine, so someone who only has Ollama — or only the built-in llama.cpp — could be pointed at the one they don't have. Setup now detects what's available and picks it: a ready llama.cpp model wins (bundled, nothing to install), otherwise a running Ollama, otherwise the built-in engine with a prompt to download a model. You can still switch engines by hand, and once you do, auto-detection steps aside.
+
 ### Fixed
 
 - **The Intelligence overview and "ask the map" now use the same local model as the rest of the app, instead of demanding Ollama.** These features generated their text with the app's configured default engine rather than the model the project actually uses. On a setup that runs the built-in llama.cpp engine (with no Ollama installed), the project overview and map questions still tried to reach Ollama and failed with "Unable to reach Ollama generation API… retried model 'llama3.2'", even though the Models tab showed the workspace was ready on a llama.cpp model. They now resolve the engine the same way answers do — the workspace's selected model first, then whichever engine is actually running — so they work on a llama.cpp-only machine.
