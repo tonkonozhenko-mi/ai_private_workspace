@@ -18,6 +18,7 @@ import { CopyButton } from "./CopyButton";
 import { EmptyState } from "./EmptyState";
 import { ErrorState } from "./ErrorState";
 import { LoadingState } from "./LoadingState";
+import { usePromptDialog } from "./PromptDialog";
 import { StatusBadge } from "./StatusBadge";
 
 interface ReportsPanelProps {
@@ -26,6 +27,7 @@ interface ReportsPanelProps {
 }
 
 export function ReportsPanel({ workspaceId, hasScan }: ReportsPanelProps) {
+  const { prompt: promptDialog, dialog: promptDialogEl } = usePromptDialog();
   const [catalog, setCatalog] = useState<ReportCatalog | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState<string | null>(null);
@@ -220,7 +222,7 @@ export function ReportsPanel({ workspaceId, hasScan }: ReportsPanelProps) {
   }
 
   async function handleRenameReport(savedReport: SavedWorkspaceReport) {
-    const nextTitle = window.prompt("Report title", savedReport.title);
+    const nextTitle = await promptDialog("Report title", savedReport.title);
     if (!nextTitle || nextTitle.trim() === savedReport.title) return;
     setSavedReportError(null);
     try {
@@ -268,6 +270,7 @@ export function ReportsPanel({ workspaceId, hasScan }: ReportsPanelProps) {
 
   return (
     <section className="reports-workbench">
+      {promptDialogEl}
       <div className="panel reports-hero">
         <div className="panel-heading">
           <div>
