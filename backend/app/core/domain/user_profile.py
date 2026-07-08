@@ -112,3 +112,31 @@ def format_user_profile_context(items: list[UserProfileItem], max_chars: int = 9
         "About the person you are helping (apply this to tone, language, focus and "
         "assumptions; it is not a fact about the project):\n" + "\n".join(lines)
     )
+
+
+# Categories that govern *how* to answer rather than *what* the project is. These
+# need repeating at the very end of the prompt: the "about the person" block above
+# sits before a long wall of grounding rules, and a small local model tends to
+# mirror the (usually English) project files unless a how-to-answer instruction —
+# language especially — is restated right where generation begins.
+_DIRECTIVE_CATEGORIES = (UserProfileCategory.STYLE, UserProfileCategory.PREFERENCE)
+
+
+def answer_style_directive(items: list[UserProfileItem]) -> str:
+    """A short, imperative reminder of the person's style/preference facts, meant to
+    be placed at the very end of a prompt (the strongest position). Empty when the
+    person has no style/preference facts, so nothing is added for a bare profile."""
+    directives = [
+        " ".join(item.text.split())
+        for item in items
+        if item.category in _DIRECTIVE_CATEGORIES and item.text.strip()
+    ]
+    if not directives:
+        return ""
+    joined = "; ".join(directives)
+    return (
+        "The person you are helping has stated how they want answers written: "
+        f"{joined}. Follow this for your entire answer — it sets the language, "
+        "tone and length and takes priority over the language of the files and "
+        "instructions above."
+    )

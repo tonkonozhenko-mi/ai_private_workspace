@@ -319,12 +319,26 @@ class AskWorkspaceQuestionUseCase:
         section, _, _, _ = self._project_context(workspace_id, query)
         return section
 
+    def _user_style_directive(self) -> str:
+        """The person's cross-project style/language preference, for the general-chat
+        path that skips retrieval. Best-effort: empty when no profile-aware provider
+        is wired or the person has set no style preference."""
+        provider = self.project_context_provider
+        getter = getattr(provider, "user_style_directive", None)
+        if not callable(getter):
+            return ""
+        try:
+            return getter() or ""
+        except Exception:  # noqa: BLE001 - a preference must never fail an answer
+            return ""
+
     def _project_context(self, workspace_id: str, query: str) -> tuple[str, int, int, dict]:
         """Return (context_text, memory_items_used, graph_facts_used, used_details).
 
-        ``used_details`` = {"memory": [...], "guardrails": [...]} for the
-        "Why this answer?" panel; empty when no stats-aware provider is present."""
-        empty: dict = {"memory": [], "guardrails": []}
+        ``used_details`` = {"memory": [...], "guardrails": [...], "style_directive": ...}
+        for the "Why this answer?" panel and the terminal style directive; empty when
+        no stats-aware provider is present."""
+        empty: dict = {"memory": [], "guardrails": [], "style_directive": ""}
         provider = self.project_context_provider
         if provider is None:
             return "", 0, 0, empty
@@ -334,6 +348,7 @@ class AskWorkspaceQuestionUseCase:
                 details = {
                     "memory": list(getattr(stats, "memory_used", []) or []),
                     "guardrails": list(getattr(stats, "guardrails_used", []) or []),
+                    "style_directive": getattr(stats, "style_directive", "") or "",
                 }
                 return text or "", stats.memory_items, stats.graph_facts, details
             return provider(workspace_id, query) or "", 0, 0, empty
@@ -382,6 +397,7 @@ class AskWorkspaceQuestionUseCase:
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
             project_memory_section=memory_section,
             answer_mode=request.answer_mode,
+            user_style_directive=context_used.get("style_directive", ""),
         )
         return fitted, prompt, memory_used, facts_used, context_used
 
@@ -706,6 +722,7 @@ class AskWorkspaceQuestionUseCase:
                 ),
                 assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
                 project_context_missing=False,
+                user_style_directive=self._user_style_directive(),
             )
             answer_text, usage, failed = yield from self._stream_generation(
                 llm_provider, prompt, request, self._conversation_history(request)
@@ -814,6 +831,7 @@ class AskWorkspaceQuestionUseCase:
                 ),
                 assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
                 project_context_missing=True,
+                user_style_directive=self._user_style_directive(),
             )
             answer_text, usage, failed = yield from self._stream_generation(
                 llm_provider, prompt, request, self._conversation_history(request)
@@ -1110,6 +1128,7 @@ class AskWorkspaceQuestionUseCase:
             ),
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
             project_context_missing=project_context_missing,
+            user_style_directive=self._user_style_directive(),
         )
         # A project-looking question with no confident context: warn the user the
         # answer isn't grounded (the prompt already tells the model to abstain).

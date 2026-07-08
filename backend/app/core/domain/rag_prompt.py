@@ -125,6 +125,7 @@ def build_workspace_question_prompt(
     assistant_identity: str | None = None,
     project_memory_section: str = "",
     answer_mode: str | None = None,
+    user_style_directive: str = "",
 ) -> str:
     # Present a human-facing label for each source. Real files show their path
     # unchanged; the internal handbook pseudo-path shows as "Project handbook" so
@@ -201,6 +202,7 @@ def build_workspace_question_prompt(
         "short approval note saying the app must ask before applying changes.\n"
         "- Do not invent facts."
         f"{identity_clause}\n\n"
+        f"{(user_style_directive + chr(10) + chr(10)) if user_style_directive else ''}"
         f"Now answer this question:\n{question}"
     )
 
@@ -331,6 +333,7 @@ def build_general_chat_prompt(
     attached_section: str = "",
     assistant_identity: str | None = None,
     project_context_missing: bool = False,
+    user_style_directive: str = "",
 ) -> str:
     normalized_skill_instructions = _normalize_skill_instructions(skill_instructions or [])
     skill_section = _build_skill_section(normalized_skill_instructions)
@@ -387,6 +390,7 @@ def build_general_chat_prompt(
         "you are telling the user nothing was found.\n"
         "- If you genuinely do not know, say so briefly.\n"
         "- Do not invent facts."
+        f"{(chr(10) + chr(10) + user_style_directive) if user_style_directive else ''}"
     )
 
 
