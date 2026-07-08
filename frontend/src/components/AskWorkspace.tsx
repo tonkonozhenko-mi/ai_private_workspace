@@ -71,6 +71,7 @@ import { AnswerNudges } from "./AnswerNudges";
 import { AnswerTracePanel } from "./AnswerTracePanel";
 import { CopyButton } from "./CopyButton";
 import { usePromptDialog } from "./PromptDialog";
+import { deviceNoun } from "../lib/deviceName";
 import type {
   RagSource,
   WorkspaceQuestionAnswer,
@@ -3070,7 +3071,7 @@ export function friendlyAskError(message: string): string {
   const normalized = message.trim();
   const lower = normalized.toLowerCase();
   if (lower.includes("load failed")) {
-    return "The selected model did not load successfully. This usually means the model is not installed, the local engine is not running, or the model is too heavy for this Mac.";
+    return `The selected model did not load successfully. This usually means the model is not installed, the local engine is not running, or the model is too heavy for this ${deviceNoun()}.`;
   }
   if (lower.includes("unable to reach ollama")) {
     return "Ollama is not reachable. Start Ollama or choose a fake/local-ready model for smoke testing.";

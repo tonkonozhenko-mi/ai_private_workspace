@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { LlamaCppModelsPanel } from "./LlamaCppModelsPanel";
 
+import { deviceNoun } from "../lib/deviceName";
+
 import {
   cancelLocalModelDownloadJob,
   cancelWorkspaceJob,
@@ -525,7 +527,7 @@ export function WorkspaceGettingReady({
       {step === "ollama" ? (
         <div className="getting-ready-step">
           <span className="getting-ready-kicker">First — pick a local engine</span>
-          <h2>Choose how to run AI on your Mac</h2>
+          <h2>Choose how to run AI on your {deviceNoun()}</h2>
           <p>
             {dashboard.workspace_name} runs models locally. Use the built-in
             llama.cpp engine (nothing to install), or Ollama if you prefer it.
@@ -551,7 +553,7 @@ export function WorkspaceGettingReady({
         <div className="getting-ready-step">
           <span className="getting-ready-kicker">Step 1 of 3</span>
           <h2>Look at your project</h2>
-          <p>A quick, local scan lists your files so the AI knows what it can search. Nothing leaves this Mac.</p>
+          <p>A quick, local scan lists your files so the AI knows what it can search. Nothing leaves this {deviceNoun()}.</p>
           <div className="getting-ready-actions">
             <button className="getting-ready-cta" type="button" disabled={busy !== null} onClick={() => void runJob("scan", onStartScanJob)}>
               {busy === "scan" ? "Scanning…" : "Scan project"}
@@ -564,14 +566,15 @@ export function WorkspaceGettingReady({
           <span className="getting-ready-kicker">Step 2 of 3 · one click</span>
           <h2>Give your project a local brain</h2>
           <p>
-            Downloads two small local models — one to answer, one to search your files
-            (about 2.5 GB, runs offline). Want a bigger, sharper model? Open Models.
+            Downloads two small local models — one to answer, one to search your files.
+            Everything runs offline; each model's size is shown below. Want a bigger,
+            sharper model? Open Models.
           </p>
 
           {backendChoice === "llamacpp" ? (
             installStatus?.runtime_reachable === true ? (
               <p className="gr-engine-note">
-                Found Ollama running on this Mac.{" "}
+                Found Ollama running on this {deviceNoun()}.{" "}
                 <button
                   type="button"
                   className="text-button"
@@ -706,8 +709,8 @@ export function WorkspaceGettingReady({
           <h2>Everything’s set — ask anything</h2>
           <p>
             {dashboard.summary.index_status.indexed_files_count > 0
-              ? `${dashboard.summary.index_status.indexed_files_count.toLocaleString()} files turned into ${dashboard.summary.index_status.chunks_count.toLocaleString()} searchable pieces — all on this Mac. `
-              : "Your project is scanned, your local AI is installed, and context is built. Answers stay on this Mac. "}
+              ? `${dashboard.summary.index_status.indexed_files_count.toLocaleString()} files turned into ${dashboard.summary.index_status.chunks_count.toLocaleString()} searchable pieces — all on this ${deviceNoun()}. `
+              : `Your project is scanned, your local AI is installed, and context is built. Answers stay on this ${deviceNoun()}. `}
             The AI now answers from your real project, with sources.
           </p>
           <div className="getting-ready-actions">
@@ -720,7 +723,7 @@ export function WorkspaceGettingReady({
 
       {message ? <p className="getting-ready-message">{message}</p> : null}
       {error ? <p className="getting-ready-error">{error}</p> : null}
-      <p className="getting-ready-foot">Everything runs on this Mac · no cloud · no accounts</p>
+      <p className="getting-ready-foot">Everything runs on this {deviceNoun()} · no cloud · no accounts</p>
     </section>
   );
 }

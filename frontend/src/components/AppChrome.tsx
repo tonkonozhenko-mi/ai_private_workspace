@@ -1,3 +1,4 @@
+import { deviceNoun } from "../lib/deviceName";
 import type { WorkspaceTab } from "./appTabs";
 
 export function NavIcon({ id }: { id: WorkspaceTab }) {
@@ -75,7 +76,7 @@ export function FirstRunWelcome({
         <p className="first-run-eyebrow">Local-first</p>
         <h1 className="first-run-title">A quiet place to think with your own projects</h1>
         <p className="first-run-sub">
-          Point {productName} at a folder on this Mac and ask anything. Your files,
+          Point {productName} at a folder on this {deviceNoun()} and ask anything. Your files,
           your answers — nothing leaves this computer.
         </p>
         <button className="first-run-cta" type="button" onClick={onOpen}>
