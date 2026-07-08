@@ -61,6 +61,10 @@ export function LlamaCppModelsPanel({
   const [importBusy, setImportBusy] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  // Inline two-step delete confirmation. A native window.confirm() is silently
+  // blocked in the Tauri webview (returns false), which would swallow the click and
+  // never send the request — so the confirm lives in the UI instead.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const pollers = useRef<Record<string, number>>({});
 
   // The setup flow advances only when the user clicks "Continue" below — never
@@ -430,9 +434,7 @@ export function LlamaCppModelsPanel({
   }
 
   async function removeModel(model: GgufCatalogItem) {
-    if (!window.confirm(`Delete ${model.name}? The model file is removed from disk.`)) {
-      return;
-    }
+    setConfirmDeleteId(null);
     setDeletingId(model.id);
     setError(null);
     try {
@@ -568,14 +570,35 @@ export function LlamaCppModelsPanel({
                     {switchingId === model.id ? "Switching…" : "Use this model"}
                   </button>
                 ) : null}
-                <button
-                  type="button"
-                  className="gr-model-delete"
-                  disabled={deletingId !== null}
-                  onClick={() => void removeModel(model)}
-                >
-                  {deletingId === model.id ? "Deleting…" : "Delete model"}
-                </button>
+                {confirmDeleteId === model.id ? (
+                  <>
+                    <button
+                      type="button"
+                      className="gr-model-delete"
+                      disabled={deletingId !== null}
+                      onClick={() => void removeModel(model)}
+                    >
+                      {deletingId === model.id ? "Deleting…" : "Confirm delete"}
+                    </button>
+                    <button
+                      type="button"
+                      className="gr-check-use"
+                      disabled={deletingId !== null}
+                      onClick={() => setConfirmDeleteId(null)}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="gr-model-delete"
+                    disabled={deletingId !== null}
+                    onClick={() => setConfirmDeleteId(model.id)}
+                  >
+                    Delete model
+                  </button>
+                )}
               </>
             )}
           </div>
