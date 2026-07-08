@@ -2,6 +2,8 @@
 /* ===== Design tokens (structural: spacing, radius, type, shadows, glass) ===== */
 :root {
   --accent-strong: #7dd3ae;
+  /* Docked Ask inspector rail width on wide screens (see Wide-screen layout). */
+  --trace-rail-w: 400px;
   --app-bg: #07110f;
   --app-bg-gradient: radial-gradient(circle at 18% 0%, rgba(84, 116, 136, 0.22), transparent 30rem),
       linear-gradient(135deg, #0b1117 0%, #101821 48%, #0c1218 100%);
@@ -5846,11 +5848,8 @@ a {
    The measure stays ~70–80ch (never widen prose); instead the empty side
    space is put to use. Breakpoints: base ≤1280 (unchanged) · wide ≥1280 ·
    ultra ≥1800 (same as wide, plus symmetric outer framing).
+   The --trace-rail-w token is declared once in the root token block above.
    ===================================================================== */
-:root {
-  --trace-rail-w: 400px;
-}
-
 @media (min-width: 1280px) {
   /* Ask — the "How the AI reached this" panel stops floating over the answer
      and docks as a right rail: full height under the header with its own
@@ -5875,12 +5874,11 @@ a {
 }
 
 @media (min-width: 1800px) {
-  /* Ultra-wide: a slightly wider rail, and inset the whole content area so the
-     leftover margins read as a balanced frame instead of a dead zone. */
-  :root {
-    --trace-rail-w: 420px;
-  }
+  /* Ultra-wide: a slightly wider rail (overridden on the consuming element, not
+     a second :root), and inset the whole content area so the leftover margins
+     read as a balanced frame instead of a dead zone. */
   .workspace-tab-content {
+    --trace-rail-w: 420px;
     padding-inline: clamp(24px, 3vw, 88px);
   }
 }
