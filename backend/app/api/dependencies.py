@@ -240,7 +240,7 @@ def ollama_reachable() -> bool:
         import httpx
 
         response = httpx.get(
-            f"{settings.ollama_base_url.rstrip('/')}/api/tags",
+            f"{get_settings().ollama_base_url.rstrip('/')}/api/tags",
             timeout=2.0,
         )
         return response.status_code < 500
