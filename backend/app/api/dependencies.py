@@ -230,58 +230,107 @@ def get_startup_diagnostics() -> list[dict[str, str]]:
     return list(_startup_diagnostics)
 
 
-def restore_active_backend() -> None:
-    """Re-activate the persisted engine on startup so index and search agree.
-
-    If the user last activated llama.cpp, bring the engine up and point the live
-    embedding provider at it. Fully best-effort: any failure (binary missing,
-    models not downloaded, engine won't start) silently leaves the default
-    (Ollama) active, so the app still boots.
-    """
-    backend = runtime_state_store.get_active_backend()
-    if backend != "llamacpp":
-        return
+def ollama_reachable() -> bool:
+    """Quick probe: is an Ollama server actually answering right now? Used to decide
+    whether to fall back to llama.cpp when the app would otherwise default to Ollama
+    (e.g. the user uninstalled Ollama). Best-effort — any error counts as
+    unreachable, so a missing/stopped Ollama never keeps the app pinned to a dead
+    endpoint."""
     try:
-        # Restore the previously chosen answer model before starting the engine.
-        saved_llm = runtime_state_store.get_llamacpp_llm()
-        if saved_llm:
+        import httpx
+
+        response = httpx.get(
+            f"{get_settings().ollama_base_url.rstrip('/')}/api/tags",
+            timeout=2.0,
+        )
+        return response.status_code < 500
+    except Exception:  # noqa: BLE001 - refused/timeout/DNS all mean "no Ollama"
+        return False
+
+
+def activate_llamacpp_engine(restore_saved: bool = True) -> bool:
+    """Bring the llama.cpp engine up and point the live embedding provider + active
+    backend at it. When ``restore_saved`` is set, the previously chosen answer/search
+    models are restored first (used on startup); otherwise the engine resolves to the
+    recommended defaults. Returns True only when the engine is actually running, so a
+    caller can fall back to Ollama on False. Best-effort: never raises."""
+    try:
+        if restore_saved:
             from app.core.use_cases.download_gguf_model import GgufModelRef
 
-            llama_runtime_manager.set_llm_ref(
-                GgufModelRef(
-                    model_id=saved_llm.get("model_id"),
-                    repo_id=saved_llm.get("repo_id"),
-                    filename=saved_llm.get("filename"),
+            saved_llm = runtime_state_store.get_llamacpp_llm()
+            if saved_llm:
+                llama_runtime_manager.set_llm_ref(
+                    GgufModelRef(
+                        model_id=saved_llm.get("model_id"),
+                        repo_id=saved_llm.get("repo_id"),
+                        filename=saved_llm.get("filename"),
+                    )
                 )
-            )
-        # Restore the previously chosen search/embedding model too.
-        saved_embedding = runtime_state_store.get_llamacpp_embedding()
-        if saved_embedding:
-            from app.core.use_cases.download_gguf_model import GgufModelRef
-
-            llama_runtime_manager.set_embed_ref(
-                GgufModelRef(
-                    model_id=saved_embedding.get("model_id"),
-                    repo_id=saved_embedding.get("repo_id"),
-                    filename=saved_embedding.get("filename"),
+            saved_embedding = runtime_state_store.get_llamacpp_embedding()
+            if saved_embedding:
+                llama_runtime_manager.set_embed_ref(
+                    GgufModelRef(
+                        model_id=saved_embedding.get("model_id"),
+                        repo_id=saved_embedding.get("repo_id"),
+                        filename=saved_embedding.get("filename"),
+                    )
                 )
-            )
         status = llama_runtime_manager.start()
-        if status.get("running") and hasattr(embedding_provider, "set_delegate"):
+        if not status.get("running"):
+            return False
+        if hasattr(embedding_provider, "set_delegate"):
             embedding_provider.set_delegate(build_embedding_for_backend("llamacpp"))
+        runtime_state_store.set_active_backend("llamacpp")
         # Restore the optional "sharper search" reranker if it was on.
         if runtime_state_store.get_rerank_enabled():
             try:
                 llama_runtime_manager.enable_rerank()
-            except Exception as exc:  # noqa: BLE001 - reranker is optional, never block boot
+            except Exception as exc:  # noqa: BLE001 - reranker is optional, never block
                 _record_startup_diagnostic(
                     "reranker",
                     f"Could not restore the 'sharper search' reranker: {exc}",
                 )
-    except Exception as exc:  # noqa: BLE001 - degrade to Ollama default on any failure
+        return True
+    except Exception:  # noqa: BLE001 - caller decides what to do when the engine won't start
+        return False
+
+
+def restore_active_backend() -> None:
+    """Re-activate the right engine on startup so index and search agree.
+
+    If the user last activated llama.cpp, bring it up. If the persisted engine is
+    Ollama but Ollama is no longer reachable (e.g. the user uninstalled it), fall
+    back to llama.cpp when a local model is available, so the app doesn't boot onto a
+    dead engine. Fully best-effort: any failure leaves the Ollama default active so
+    the app still boots.
+    """
+    backend = runtime_state_store.get_active_backend()
+    if backend == "llamacpp":
+        if not activate_llamacpp_engine(restore_saved=True):
+            _record_startup_diagnostic(
+                "engine",
+                "Could not re-activate the saved llama.cpp engine; fell back to the "
+                "Ollama default. Answers/search use Ollama until you re-select the "
+                "engine.",
+            )
+        return
+
+    # Persisted engine is Ollama (or unset). Keep it only if Ollama is actually
+    # reachable; if it isn't — removed or stopped — switch to llama.cpp so the app
+    # stays usable instead of pointing every answer at a dead endpoint.
+    if ollama_reachable():
+        return
+    if activate_llamacpp_engine(restore_saved=True):
         _record_startup_diagnostic(
             "engine",
-            "Could not re-activate the saved llama.cpp engine; fell back to the "
-            f"Ollama default. Answers/search use Ollama until you re-select the "
-            f"engine. Reason: {exc}",
+            "Ollama was not reachable at startup, so the app switched to the local "
+            "llama.cpp engine.",
+        )
+    else:
+        _record_startup_diagnostic(
+            "engine",
+            "Ollama was not reachable at startup and no local llama.cpp model was "
+            "available to fall back to. Download a local model (or start Ollama) to "
+            "answer questions.",
         )
