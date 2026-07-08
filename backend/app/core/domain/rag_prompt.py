@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from app.core.domain.handbook_source import display_source_path, mask_handbook_token
 from app.core.domain.indexing import ContextSearchResult
 
 
@@ -125,16 +126,21 @@ def build_workspace_question_prompt(
     project_memory_section: str = "",
     answer_mode: str | None = None,
 ) -> str:
+    # Present a human-facing label for each source. Real files show their path
+    # unchanged; the internal handbook pseudo-path shows as "Project handbook" so
+    # small models don't echo the raw "__project_handbook__" token in their prose.
     context_sections = [
         (
-            f"[{index}] source_path: {result.source_path}\n"
-            f"chunk_id: {result.chunk_id}\n"
+            f"[{index}] source_path: {display_source_path(result.source_path)}\n"
+            f"chunk_id: {mask_handbook_token(result.chunk_id)}\n"
             f"content:\n{result.content}"
         )
         for index, result in enumerate(context_results, start=1)
     ]
     context = "\n\n".join(context_sections)
-    source_paths = ", ".join(result.source_path for result in context_results)
+    source_paths = ", ".join(
+        display_source_path(result.source_path) for result in context_results
+    )
     normalized_skill_instructions = _normalize_skill_instructions(skill_instructions or [])
     skill_section = _build_skill_section(normalized_skill_instructions)
     # Identity is a low-priority end-clause, not a headline: small models otherwise

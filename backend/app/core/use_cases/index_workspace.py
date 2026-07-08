@@ -17,6 +17,7 @@ from app.core.domain.indexing import (
     WorkspaceIndexResult,
     content_hash,
 )
+from app.core.domain.handbook_source import HANDBOOK_SOURCE_PATH
 from app.core.domain.project_scan import ProjectFile, ProjectScanResult
 from app.core.domain.relevance_calibration import (
     PROBE_QUERIES,
@@ -40,8 +41,10 @@ from app.core.use_cases.add_timeline_event import (
 # digest. Indexing it as a pseudo-document lets broad "what is this project about"
 # questions find the summary through normal retrieval, instead of relying on the
 # right source file happening to rank. Namespaced so it never collides with a real
-# path; retrieval treats it like any other source (citation shows this name).
-HANDBOOK_PSEUDO_PATH = "__project_handbook__"
+# path; the prompt/evaluator show its friendly label ("Project handbook") to the
+# model. The token itself lives in the domain (handbook_source) as the single
+# source of truth shared with the prompt and answer-cleanup code.
+HANDBOOK_PSEUDO_PATH = HANDBOOK_SOURCE_PATH
 HANDBOOK_PSEUDO_TYPE = "markdown"
 
 INDEXABLE_FILE_TYPES = {

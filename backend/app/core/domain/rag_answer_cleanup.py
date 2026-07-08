@@ -16,6 +16,14 @@ from __future__ import annotations
 
 import re
 
+from app.core.domain.handbook_source import HANDBOOK_DISPLAY_NAME, HANDBOOK_SOURCE_PATH
+
+# The internal handbook pseudo-path, optionally backtick-wrapped, as it might appear
+# echoed inside prose (e.g. "… the `__project_handbook__` documents this"). The
+# grounded prompt no longer shows this token, but answers built before that fix — or
+# from an index whose chunks still carry it — get it softened to the friendly label.
+_HANDBOOK_TOKEN_RE = re.compile(rf"`?{re.escape(HANDBOOK_SOURCE_PATH)}`?")
+
 # A line that is (only) a provenance echo: optional list marker / bullet / quote,
 # then "source_path:". Matches "1. source_path: x", "- source_path: x",
 # "(source_path: x)", "`source_path: x`".
@@ -26,12 +34,22 @@ _SOURCE_PATH_LINE = re.compile(
 _SOURCES_HEADER = re.compile(r"^\s*[`*_]*\s*sources?\s*:?\s*[`*_]*\s*$", re.IGNORECASE)
 
 
+def soften_handbook_identifier(text: str) -> str:
+    """Replace the internal ``__project_handbook__`` token (bare or backticked) with
+    its friendly label, so the machine identifier never shows up in an answer."""
+    if not text or HANDBOOK_SOURCE_PATH not in text:
+        return text
+    return _HANDBOOK_TOKEN_RE.sub(HANDBOOK_DISPLAY_NAME, text)
+
+
 def strip_source_path_echo(text: str) -> str:
-    """Remove a trailing ``source_path:`` echo block (and its optional header).
+    """Remove a trailing ``source_path:`` echo block (and its optional header), and
+    soften any echoed ``__project_handbook__`` identifier to its friendly label.
 
     Returns the text unchanged if there's no such trailing block, or if stripping
     it would leave nothing (never blank an answer).
     """
+    text = soften_handbook_identifier(text)
     if not text or "source_path" not in text.lower():
         return text
 
