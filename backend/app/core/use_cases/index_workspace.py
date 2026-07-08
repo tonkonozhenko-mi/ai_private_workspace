@@ -8,6 +8,7 @@ from app.core.domain.chunking import (
     estimate_tokens,
     strip_contextual_header,
 )
+from app.core.domain.handbook_source import HANDBOOK_SOURCE_PATH
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import (
     IncrementalIndexResult,
@@ -17,7 +18,6 @@ from app.core.domain.indexing import (
     WorkspaceIndexResult,
     content_hash,
 )
-from app.core.domain.handbook_source import HANDBOOK_SOURCE_PATH
 from app.core.domain.project_scan import ProjectFile, ProjectScanResult
 from app.core.domain.relevance_calibration import (
     PROBE_QUERIES,
