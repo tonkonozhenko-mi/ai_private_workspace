@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createWorkspace } from "../api/client";
 import { chooseProjectDirectory, isRunningInsideTauri } from "../desktopRuntime";
 import type { CreatedWorkspace, WorkspacePersistence } from "../api/types";
+import { SKILL_PRESETS } from "./skillLibrary";
 
 interface CreateWorkspacePanelProps {
   onCreated: (workspace: CreatedWorkspace) => void;
@@ -11,41 +12,13 @@ interface CreateWorkspacePanelProps {
 }
 
 // Who is reading this project? The same facts, ordered and worded for the person
-// in front of them — the ids match the backend's lenses exactly. Nothing is
-// preselected: a silent default would quietly make every user a DevOps engineer,
-// and no choice is honest ("just exploring") rather than wrong.
-const assistantModes: Array<{ id: string; label: string; description: string }> = [
-  {
-    id: "developer",
-    label: "Developer",
-    description: "Architecture, modules, key code paths and tests.",
-  },
-  {
-    id: "devops",
-    label: "DevOps",
-    description: "Deployment, environments, CI/CD, and what can break in production.",
-  },
-  {
-    id: "tester",
-    label: "Tester / QA",
-    description: "What's risky to change, how tests run, where coverage is thin.",
-  },
-  {
-    id: "manager",
-    label: "Manager",
-    description: "What changed, what's risky, how ready this is — in plain language.",
-  },
-  {
-    id: "business_analyst",
-    label: "Business analyst",
-    description: "What the system does for its users, features, and stakeholders.",
-  },
-  {
-    id: "dba",
-    label: "DBA",
-    description: "Tables and relationships, migrations, indexes, and what bites at scale.",
-  },
-];
+// in front of them. Read straight from the one canonical role list, so a role can
+// never again be offered here and be missing from the Intelligence lens picker.
+// Nothing is preselected: a silent default would quietly make every user a DevOps
+// engineer, and no choice is honest ("just exploring") rather than wrong.
+const assistantModes: Array<{ id: string; label: string; description: string }> = SKILL_PRESETS.map(
+  (preset) => ({ id: preset.id, label: preset.name, description: preset.roleDescription }),
+);
 
 const persistenceModes: Array<{
   id: WorkspacePersistence;

@@ -192,16 +192,10 @@ class AnalyzePythonUseCase:
                     evidence=[],
                 )
             )
-        if py_paths and not has_tests:
-            findings.append(
-                AnalysisFinding(
-                    id="python_no_tests",
-                    title="No test files detected",
-                    description="No tests/ directory or test_*.py files were found, so automated test coverage is unclear.",
-                    severity="info",
-                    evidence=[],
-                )
-            )
+        # No "this project has no tests" finding here. The test analyzer says that
+        # for every language, and said twice on one dashboard it read like two
+        # separate discoveries: "No test files were found · No test files detected".
+        # One fact, one sentence, from the analyzer that actually looks for tests.
 
         return PythonAnalysisResult(
             workspace_id=workspace.id,

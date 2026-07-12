@@ -155,66 +155,11 @@ const PROJECT_QUESTION_KEYWORDS = new Set([
   "test",
 ]);
 
-const EXAMPLE_QUESTIONS = [
-  "How is Terraform backend configured?",
-  "Which CI/CD systems are detected?",
-  "What should I review first in this project?",
-  "Are there any AI setup issues?",
-  "What files are related to Kubernetes or Helm?",
-];
-
-// Example prompts tailored to the workspace's assistant mode / skill, so the
-// suggestions match what the user actually picked (e.g. developer vs devops).
-const EXAMPLE_QUESTIONS_BY_MODE: Record<string, string[]> = {
-  devops: [
-    "How is Terraform backend configured?",
-    "Which CI/CD systems are detected?",
-    "What files are related to Kubernetes or Helm?",
-  ],
-  developer: [
-    "What does the main module do?",
-    "Where are the tests and what do they cover?",
-    "Explain the overall architecture of this project.",
-  ],
-  code: [
-    "What does the main module do?",
-    "Where are the tests and what do they cover?",
-    "Explain the overall architecture of this project.",
-  ],
-  documentation: [
-    "Summarize what this project is about.",
-    "How do I set up and run this project?",
-    "What are the main components and how do they fit together?",
-  ],
-  incident_support: [
-    "What could cause a failure at startup?",
-    "Where are logs and error handling defined?",
-    "What are the rollback or recovery steps?",
-  ],
-  manager: [
-    "Give a short summary of this project for a stakeholder.",
-    "What are the main risks in this codebase?",
-    "What does this project do, in plain terms?",
-  ],
-  manager_summary: [
-    "Give a short summary of this project for a stakeholder.",
-    "What are the main risks in this codebase?",
-    "What does this project do, in plain terms?",
-  ],
-  tester: [
-    "Which critical flows should I test?",
-    "Where is test coverage thin?",
-    "What should I re-test after a change here?",
-  ],
-  business_analyst: [
-    "What does this system do for its users?",
-    "What are the main entities and flows?",
-    "Which integrations and rules matter here?",
-  ],
-};
-
+// The chips a person sees before the map exists. They come from the same role
+// library every other picker reads — one role, one set of questions — instead of a
+// second hand-kept table that never heard of the DBA.
 function exampleQuestionsForMode(mode: string): string[] {
-  return EXAMPLE_QUESTIONS_BY_MODE[mode] ?? EXAMPLE_QUESTIONS.slice(0, 3);
+  return getSkillPresetByAssistantMode(mode).exampleQuestions;
 }
 
 const SOURCE_SNIPPET_LIMITS: SourceSnippetLimit[] = [3, 5, 8, 10];
@@ -1155,7 +1100,11 @@ export function AskWorkspace({
 
             {showGeneralQuestionHint ? (
               <p className="ask-question-hint ask-question-hint-centered">
-                Workspace Ask works best with project, code, infrastructure, CI/CD, or configuration questions.
+                {/* Named the four things a DevOps engineer cares about, to everyone.
+                    Say what is actually true — the answer comes from this project's
+                    files — and let the chips below say what those files contain. */}
+                Ask is grounded in this project's files. Questions it can't answer from them
+                get a general answer instead.
               </p>
             ) : null}
 

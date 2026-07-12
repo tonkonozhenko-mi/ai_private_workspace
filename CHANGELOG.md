@@ -19,6 +19,14 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 ### Fixed
 
 - **The demo project was a DevOps project.** It had Terraform, a pipeline and two Python files — so anyone trying the app as a tester, an analyst or a DBA opened it and found nothing, and reasonably concluded the app found nothing. It now has a schema (customers, orders, an append-only log with no primary key), migrations numbered so that V10 lands after V9 rather than after V1, a test suite with a skipped case, a runbook in Word, and a costs spreadsheet. Every role has something real to look at.
+- **The app spoke to every role in DevOps.** A tester's project map opened on Deployment, the questions offered before the map existed came from a list that had never heard of half the roles, and the empty Intelligence tab promised environments, pipelines and cloud services to a DBA. Each role is now offered what its own analyzer actually finds — test suites, tables, endpoints, ownership — the tester's view opens on what might break rather than on how it ships, and a manager is offered "What changed recently?" first. Same facts, everyone's own words.
+
+- **A promise we couldn't keep: "where coverage is thin".** The app never runs your tests, so it cannot know that. It now says what it does know — which modules no test file so much as mentions — and the tester's dashboard states it once, not twice.
+
+- **"1 commits by 1 person."** Now one commit, one person.
+
+- **DBA was a role you could choose and then could not go back to.** It was offered when you created a project, but the Intelligence lens picker had never heard of it — so the moment you looked at anything else, there was no way back to the database view. Every place that offers a role now reads the same list, and a test fails if a role is ever offered somewhere it cannot actually be used.
+- **A folder the app is not allowed to read no longer looks like a folder that takes forever to read.** On macOS the first look inside Documents waits for a permission dialog — and if that dialog is hidden behind another window, the scan simply stops: ten files, seven minutes, "Enumerating files…" and no explanation. Now the file walk reports its running count as it goes, so a big repository is visibly moving; if nothing moves for five seconds, the app says what is probably happening and where to grant access. And if the folder is genuinely closed to us, the scan fails with that same sentence instead of quietly returning a smaller project — an index missing the files it was never allowed to open is worse than no index at all.
 
 - **Saving the Manager role could fail silently.** "Manager" was offered everywhere in the UI but missing from the profile registry that validates the setting, so the app rejected the very role it had just suggested. Both Manager and the new DBA role are registered now.
 
