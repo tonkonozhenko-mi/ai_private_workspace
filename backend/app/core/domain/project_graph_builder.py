@@ -1139,6 +1139,35 @@ def from_source_scan(source_paths: list[str]) -> ProjectEntity | None:
     )
 
 
+def role_fact_contributions(
+    *,
+    sql_schema: SqlSchema | None = None,
+    tests: TestFacts | None = None,
+    javascript: JsFacts | None = None,
+    api_surface: ApiSurface | None = None,
+    ownership: OwnershipFacts | None = None,
+) -> list[tuple[tuple[list[ProjectEntity], list[ProjectRelation], list[ProjectFinding]], str]]:
+    """The facts the roles other than DevOps came for, ready to be absorbed.
+
+    Each is skipped when the project has nothing of that kind: a repository with no
+    SQL has no schema, and saying so is a truthful map — not a broken one. Kept out
+    of build_project_graph so that composing the graph stays one flat, readable list
+    of analyzers rather than a wall of guard clauses.
+    """
+    contributions = []
+    if sql_schema is not None and sql_schema.tables:
+        contributions.append((from_sql_schema(sql_schema), "sql"))
+    if tests is not None:
+        contributions.append((from_tests(tests), "tests"))
+    if javascript is not None:
+        contributions.append((from_javascript(javascript), "javascript"))
+    if api_surface is not None and (api_surface.endpoints or api_surface.domain_entities):
+        contributions.append((from_api_surface(api_surface), "api"))
+    if ownership is not None and ownership.files:
+        contributions.append((from_ownership(ownership), "ownership"))
+    return contributions
+
+
 def build_project_graph(
     workspace_id: str,
     *,
@@ -1214,19 +1243,14 @@ def build_project_graph(
         absorb(from_python(python), "python")
     if references is not None:
         absorb(from_references(references), "references")
-    # The facts the other four roles came for. Each is absent when the project has
-    # nothing of that kind — a repo with no SQL simply has no schema, which is a
-    # truthful map, not a broken one.
-    if sql_schema is not None and sql_schema.tables:
-        absorb(from_sql_schema(sql_schema), "sql")
-    if tests is not None:
-        absorb(from_tests(tests), "tests")
-    if javascript is not None:
-        absorb(from_javascript(javascript), "javascript")
-    if api_surface is not None and (api_surface.endpoints or api_surface.domain_entities):
-        absorb(from_api_surface(api_surface), "api")
-    if ownership is not None and ownership.files:
-        absorb(from_ownership(ownership), "ownership")
+    for triple, analyzer in role_fact_contributions(
+        sql_schema=sql_schema,
+        tests=tests,
+        javascript=javascript,
+        api_surface=api_surface,
+        ownership=ownership,
+    ):
+        absorb(triple, analyzer)
 
     source_application = from_source_scan(source_paths or [])
     if source_application is not None:
