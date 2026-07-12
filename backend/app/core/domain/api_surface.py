@@ -149,6 +149,35 @@ _PLUMBING_SUFFIX_RE = re.compile(
 )
 
 
+_CLASS_LINE_RE = re.compile(r"class\s+(\w+)")
+
+
+def _dataclass_names(content: str) -> list[str]:
+    """Classes decorated with @dataclass, found by walking the lines.
+
+    The obvious regex — `@dataclass.*\\n(?:@\\w+.*\\n)*class (\\w+)` — nests two
+    repetitions that can match the same text, so a file full of decorators makes it
+    backtrack exponentially. A user's file is untrusted input; a scan must never be
+    the thing that hangs. Reading line by line is linear and, frankly, clearer.
+    """
+    names: list[str] = []
+    after_dataclass = False
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("@dataclass"):
+            after_dataclass = True
+            continue
+        if not after_dataclass:
+            continue
+        if stripped.startswith("@"):
+            continue  # another decorator stacked on top of the class
+        match = _CLASS_LINE_RE.match(stripped)
+        if match:
+            names.append(match.group(1))
+        after_dataclass = False
+    return names
+
+
 def _domain_entities(path: str, content: str) -> list[str]:
     """Classes that carry the domain vocabulary: ORM models, dataclasses, schemas that
     are named after real things."""
@@ -161,11 +190,7 @@ def _domain_entities(path: str, content: str) -> list[str]:
         if _PLUMBING_SUFFIX_RE.search(name):
             continue
         names.append(name)
-    if "@dataclass" in content:
-        for match in re.finditer(r"@dataclass[^\n]*\n(?:@\w+[^\n]*\n)*class\s+(\w+)", content):
-            name = match.group(1)
-            if not _PLUMBING_SUFFIX_RE.search(name):
-                names.append(name)
+    names += [name for name in _dataclass_names(content) if not _PLUMBING_SUFFIX_RE.search(name)]
     return names
 
 

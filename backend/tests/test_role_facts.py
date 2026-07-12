@@ -155,6 +155,22 @@ def test_the_api_surface_is_the_verbs_the_system_offers():
     assert surface.domain_entities == ["Order"]
 
 
+def test_a_file_full_of_decorators_cannot_hang_the_scan():
+    """The obvious dataclass regex backtracks exponentially on stacked decorators —
+    and a user's file is untrusted input. A scan must never be the thing that hangs."""
+    import time
+
+    evil = "@DataClass\n" + "@\n" * 400 + "00\n" * 4000
+    started = time.time()
+    surface = build_api_surface({"evil.py": evil})
+    assert time.time() - started < 1.0
+    assert surface.domain_entities == []
+
+    # And the real thing still works, decorators stacked and all.
+    real = "@dataclass(frozen=True)\n@total_ordering\nclass Invoice:\n    id: int\n"
+    assert build_api_surface({"m.py": real}).domain_entities == ["Invoice"]
+
+
 def test_ownership_names_where_the_knowledge_is_concentrated():
     facts = build_ownership_facts(
         [
