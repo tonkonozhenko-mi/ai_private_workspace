@@ -9,9 +9,14 @@ const COLUMN_ORDER = [
   "infra_component",
   "pipeline",
   "pipeline_job",
+  "api_endpoint",
   "application",
   "module",
+  "test_suite",
   "service",
+  "domain_entity",
+  "table",
+  "migration",
   "container_image",
   "cloud_service",
   "dependency",
@@ -29,6 +34,11 @@ const TYPE_LABEL: Record<string, string> = {
   cloud_service: "Cloud service",
   dependency: "Dependency",
   config_file: "File",
+  table: "Table",
+  migration: "Migration",
+  test_suite: "Tests",
+  api_endpoint: "Endpoint",
+  domain_entity: "Entity",
 };
 
 const TYPE_COLOR: Record<string, string> = {
@@ -43,6 +53,11 @@ const TYPE_COLOR: Record<string, string> = {
   cloud_service: "#f0a878",
   dependency: "#d6cf8a",
   config_file: "#9aa6a1",
+  table: "#7fb3d5",
+  migration: "#a8c4dd",
+  test_suite: "#b8dba0",
+  api_endpoint: "#efc0d6",
+  domain_entity: "#d9c2ef",
 };
 
 const NODE_W = 158;

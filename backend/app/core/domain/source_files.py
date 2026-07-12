@@ -18,6 +18,10 @@ SOURCE_CODE = "source_code"
 CONFIG = "config"
 XML_CONFIG = "xml_config"
 MAKEFILE = "makefile"
+# SQL is source code, but it is also the only place a project writes down its data
+# model. Giving it its own type lets the schema analyzer find it — and stops a
+# migrations folder from making a Java service introduce itself as "SQL application".
+SQL = "sql"
 
 # Extension → the language a human would name. The value is only used for the
 # label ("TypeScript application"), so keep it human, not machine.
@@ -52,7 +56,6 @@ SOURCE_CODE_LANGUAGES: dict[str, str] = {
     ".r": "R",
     ".m": "Objective-C",
     ".dart": "Dart",
-    ".sql": "SQL",
     ".proto": "Protobuf",
     ".graphql": "GraphQL",
     ".gql": "GraphQL",

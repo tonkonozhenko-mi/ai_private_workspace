@@ -59,6 +59,12 @@ ROLE_STARTERS: dict[str, tuple[str, ...]] = {
         "Which integrations does it depend on?",
         "What is this project about?",
     ),
+    "dba": (
+        "What tables exist and how are they related?",
+        "What do the migrations do, and in what order?",
+        "Which tables have no primary key or no index on a foreign key?",
+        "Where is the database configured?",
+    ),
 }
 
 

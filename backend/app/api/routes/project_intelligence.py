@@ -129,6 +129,8 @@ def build_project_intelligence(workspace_id: str) -> dict:
         project_scan_repository=project_scan_repository,
         file_system=file_system,
         project_graph_repository=project_graph_repository,
+        # Ownership ("who alone knows this file") is read from git history.
+        git_history=git_history,
     )
     try:
         meta = use_case.execute(BuildProjectGraphInput(workspace_id=workspace_id))
@@ -214,6 +216,7 @@ def _watch_rebuild(workspace_id: str) -> ProjectSnapshotMeta:
         project_scan_repository=project_scan_repository,
         file_system=file_system,
         project_graph_repository=project_graph_repository,
+        git_history=git_history,
     ).execute(BuildProjectGraphInput(workspace_id=workspace_id))
 
 

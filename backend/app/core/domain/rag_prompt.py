@@ -253,6 +253,14 @@ ASSISTANT_MODE_LENS_HINTS: dict[str, str] = {
         "You are reviewing this project as a support/incident responder. "
         "Emphasize operational behavior, failure modes, and recent risks."
     ),
+    "dba": (
+        "You are reviewing this project as a database administrator. Emphasize the "
+        "data model: tables and their relationships, migrations and the order they "
+        "apply in, indexes, and anything that will bite at scale (a foreign key with "
+        "no index, a table with no primary key, a destructive migration). When asked "
+        "to explain the project, lead with what data it stores and how that data is "
+        "shaped. Never invent a column or a table that is not in the files."
+    ),
     "manager": (
         "You are reviewing this project for an engineering manager. Emphasize a "
         "concise, plain-language summary of readiness and notable risks. When "

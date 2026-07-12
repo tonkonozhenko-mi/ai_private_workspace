@@ -40,6 +40,7 @@ from app.core.domain.source_files import (
     GENERATED_SOURCE_REASON,
     MAKEFILE,
     SOURCE_CODE,
+    SQL,
     XML_CONFIG,
     is_generated_source,
 )
@@ -98,6 +99,9 @@ INDEXABLE_FILE_TYPES = {
     CONFIG,
     XML_CONFIG,
     MAKEFILE,
+    # SQL has its own type so the schema analyzer can find it — it must stay
+    # indexed, or "where is the orders table defined" would stop answering.
+    SQL,
 }
 
 

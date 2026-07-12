@@ -179,4 +179,48 @@ DEFAULT_ASSISTANT_PROFILES = [
             "LLM_PROVIDER": "ollama",
         },
     ),
+    # "manager" was reachable from the UI but missing here, so saving that role was
+    # rejected by the very validation that is supposed to protect it. "dba" is new.
+    AssistantProfile(
+        id="manager",
+        name="Manager Assistant",
+        description="Executive summary, main risks, recent changes, and where knowledge is concentrated.",
+        target_users=["Engineering managers", "Team leads", "Delivery managers"],
+        primary_capabilities=[
+            "project_overview_report",
+            "analysis_summary",
+            "workspace_ask",
+        ],
+        recommended_actions=[
+            "generate_project_overview",
+            "index_workspace",
+            "ask_workspace_question",
+        ],
+        recommended_runtime={
+            "VECTOR_STORE": "qdrant",
+            "EMBEDDING_PROVIDER": "ollama",
+            "LLM_PROVIDER": "ollama",
+        },
+    ),
+    AssistantProfile(
+        id="dba",
+        name="DBA Assistant",
+        description="The data model: tables, relationships, migrations, indexes, and what will bite at scale.",
+        target_users=["Database administrators", "Data engineers", "Backend engineers"],
+        primary_capabilities=[
+            "deterministic_analysis",
+            "project_overview_report",
+            "workspace_ask",
+        ],
+        recommended_actions=[
+            "generate_project_overview",
+            "index_workspace",
+            "ask_workspace_question",
+        ],
+        recommended_runtime={
+            "VECTOR_STORE": "qdrant",
+            "EMBEDDING_PROVIDER": "ollama",
+            "LLM_PROVIDER": "ollama",
+        },
+    ),
 ]
