@@ -23,6 +23,44 @@ GENERIC_STARTERS: tuple[str, ...] = (
     "How is this project deployed?",
 )
 
+# Before the map exists the questions cannot come from facts — but they can still
+# come from the person. A tester opening a strange repository does not want to know
+# where to start reading the code; they want to know what is risky to change and how
+# to run the tests. Every question here is answerable from the files alone, so none
+# of them promises something the index cannot deliver.
+ROLE_STARTERS: dict[str, tuple[str, ...]] = {
+    "developer": (
+        "What is this project about?",
+        "Where should I start reading the code?",
+        "How do I run this project locally?",
+        "How is the code structured?",
+    ),
+    "tester": (
+        "How do I run the tests?",
+        "What is risky to change here?",
+        "Which parts of this project have no tests?",
+        "What does the CI pipeline check?",
+    ),
+    "manager": (
+        "What is this project about?",
+        "What are the main risks in this project?",
+        "What changed recently?",
+        "How is this project deployed?",
+    ),
+    "devops": (
+        "How is this project deployed?",
+        "Which environments exist and how do they differ?",
+        "What runs in CI and when?",
+        "Where is the infrastructure defined?",
+    ),
+    "business_analyst": (
+        "What does this system do for its users?",
+        "What are the main entities and flows?",
+        "Which integrations does it depend on?",
+        "What is this project about?",
+    ),
+}
+
 
 def starter_questions(
     graph: ProjectGraph | None,
@@ -30,9 +68,10 @@ def starter_questions(
     limit: int = 4,
 ) -> list[str]:
     """Up to ``limit`` clickable starter questions. Map-derived and role-ordered
-    when a graph exists; a generic starter set otherwise."""
+    when a graph exists; otherwise the role's own openers, and the generic set for a
+    role we don't know."""
     if graph is not None and graph.entities:
         questions = suggested_questions(graph, lens, limit=limit)
         if questions:
             return questions[:limit]
-    return list(GENERIC_STARTERS[:limit])
+    return list(ROLE_STARTERS.get(lens.role, GENERIC_STARTERS)[:limit])

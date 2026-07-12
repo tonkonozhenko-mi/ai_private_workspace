@@ -126,6 +126,7 @@ def build_workspace_question_prompt(
     project_memory_section: str = "",
     answer_mode: str | None = None,
     user_style_directive: str = "",
+    assistant_mode: str | None = None,
 ) -> str:
     # Present a human-facing label for each source. Real files show their path
     # unchanged; the internal handbook pseudo-path shows as "Project handbook" so
@@ -155,6 +156,13 @@ def build_workspace_question_prompt(
     mode_clause = answer_mode_instructions(answer_mode)
     mode_section = f"Answer mode: {mode_clause}\n\n" if mode_clause else ""
 
+    # The reader's role changes what gets *said first* and in what words — never
+    # which files were retrieved, which facts are true, or what is cited. A tester
+    # and a manager asking the same question see the same sources; they just don't
+    # want the same sentence first. An unset/unknown role reads as developer, so
+    # skipping the question costs nothing.
+    role_section = f"{assistant_mode_lens_hint(assistant_mode)}\n\n"
+
     # Ordering note: the large, stable blocks (instructions, memory, context,
     # requirements) come first and the volatile question comes LAST. Keeping the
     # prefix stable across turns lets llama.cpp reuse the KV cache, and putting the
@@ -172,6 +180,7 @@ def build_workspace_question_prompt(
         "from these files, ignore the files and answer directly and briefly — do not "
         "describe the project, do not cite source paths, and do not pretend the "
         "question was about the project.\n\n"
+        f"{role_section}"
         f"{mode_section}"
         f"{attached_section}"
         f"{(project_memory_section + chr(10) + chr(10)) if project_memory_section else ''}"

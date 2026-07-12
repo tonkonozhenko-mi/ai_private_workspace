@@ -10,47 +10,6 @@ interface CreateWorkspacePanelProps {
   onCancel: () => void;
 }
 
-// The five canonical roles — same set and names as Settings skills and the
-// Intelligence "Viewed as" lens.
-type AssistantMode =
-  | "developer"
-  | "devops"
-  | "tester"
-  | "business_analyst"
-  | "manager";
-
-const assistantModes: Array<{
-  id: AssistantMode;
-  label: string;
-  description: string;
-}> = [
-  {
-    id: "developer",
-    label: "Developer",
-    description: "Application code, structure, implementation notes, and tests.",
-  },
-  {
-    id: "devops",
-    label: "DevOps",
-    description: "Infrastructure, CI/CD, Terraform, Kubernetes, and runtime setup.",
-  },
-  {
-    id: "tester",
-    label: "Tester / QA",
-    description: "Test coverage, how to run tests, and what to verify.",
-  },
-  {
-    id: "business_analyst",
-    label: "Business analyst",
-    description: "Plain-language overview, features, and stakeholders — no deep code.",
-  },
-  {
-    id: "manager",
-    label: "Manager",
-    description: "Executive summary, main risks, recent changes, and ownership.",
-  },
-];
-
 const persistenceModes: Array<{
   id: WorkspacePersistence;
   label: string;
@@ -71,7 +30,6 @@ const persistenceModes: Array<{
 export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePanelProps) {
   const [name, setName] = useState("");
   const [projectPath, setProjectPath] = useState("");
-  const [assistantMode, setAssistantMode] = useState<AssistantMode>("devops");
   const [persistence, setPersistence] = useState<WorkspacePersistence>("saved");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +73,11 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
       const workspace = await createWorkspace({
         name: trimmedName,
         project_path: trimmedPath,
-        assistant_mode: assistantMode,
+        // The role is asked once, in setup ("Who are you on this project?"), where
+        // it can be explained. Asking it here as well made people choose twice, and
+        // the old default silently made everyone a DevOps engineer. Empty means
+        // "not chosen yet" — which reads as the neutral developer lens everywhere.
+        assistant_mode: "",
         privacy_mode: "local_only",
         persistence,
       });
@@ -170,26 +132,6 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
             </div>
             <small>The path is sent only to your local backend.</small>
           </label>
-        </div>
-
-        <div className="create-mode-section">
-          <div className="create-section-head">
-            <span className="section-eyebrow">Assistant mode</span>
-            <p>Sets the starting lens — guidance and wording only. It never runs anything.</p>
-          </div>
-          <div className="choice-card-grid compact assistant-grid">
-            {assistantModes.map((mode) => (
-              <button
-                key={mode.id}
-                type="button"
-                className={`choice-card assistant-card${assistantMode === mode.id ? " is-selected" : ""}`}
-                onClick={() => setAssistantMode(mode.id)}
-              >
-                <strong>{mode.label}</strong>
-                <span>{mode.description}</span>
-              </button>
-            ))}
-          </div>
         </div>
 
         <div className="create-mode-section">

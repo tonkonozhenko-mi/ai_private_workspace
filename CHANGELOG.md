@@ -9,6 +9,13 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Added
 
+- **Setup asks who you are on this project.** After the models step, one question — Developer, Tester, Manager, DevOps, or "just exploring" — sets the lens the project is read through. Intelligence opens with that lens, the questions offered in Ask are the ones your role actually asks first, and answers lead with what matters to you. The role is a lens, not a cage: it changes the order and the wording, never which files are searched, which facts are true, or what is cited — a tester and a manager asking the same question see the same sources. It can be changed in one click at any time, and skipping it costs nothing (you get the neutral developer view).
+- **A tester and a manager are offered different opening questions.** On a fresh project, the starter questions in Ask now come from your role — "How do I run the tests?" and "What is risky to change here?" rather than "Where should I start reading the code?" — and once the project map exists they are still drawn from what the map actually found, so nothing is suggested that the project can't answer.
+
+### Changed
+
+- **The role is asked once, in setup, instead of buried in the create-project form.** It used to be a dropdown at creation with DevOps preselected, which quietly made everyone a DevOps engineer; now it is a real question, asked where it can be explained.
+
 - **Your Word, Excel, PDF and HTML documents can now be indexed and answered from.** A project folder is rarely only code — runbooks live in Word, cost sheets in Excel, decisions in PDF, and an exported wiki space is a pile of HTML files. Drop any of them into the project folder and they are read, indexed and cited like any source file. Everything happens on your computer; no document is uploaded anywhere.
 - **Citations point at the place inside the document, not just the file.** A quote from a 90-page PDF is worth little if you still have to find it, so each chunk carries the locator a reader would use to check it: `page 12` for a PDF, `sheet "Costs" rows 2-21` for a workbook, `heading path "Deploy > Rollback"` for a Word document or web page. Spreadsheet chunks repeat the header row, so a block of numbers still says what its columns mean.
 - **Documents that can't be read say so instead of quietly vanishing.** A scanned PDF with no text layer, a file over 20 MB, or a corrupt document is skipped with a plain-language reason rather than being indexed as empty — so "the answer isn't in there" never silently means "we couldn't open it".
