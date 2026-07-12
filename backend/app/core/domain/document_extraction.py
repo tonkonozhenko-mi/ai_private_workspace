@@ -29,9 +29,14 @@ EXCEL_WORKBOOK = "excel_workbook"
 PDF_DOCUMENT = "pdf_document"
 HTML_DOCUMENT = "html"
 PLAIN_TEXT = "plain_text"
+# CSV and Jupyter notebooks are text, but text with a structure worth keeping: a
+# CSV chunk needs its header row, a notebook cell needs its number. Reading them
+# as flat text throws both away, so they go through the extractor too.
+TABULAR_DATA = "tabular_data"
+NOTEBOOK = "notebook"
 
 EXTRACTABLE_DOCUMENT_TYPES: frozenset[str] = frozenset(
-    {WORD_DOCUMENT, EXCEL_WORKBOOK, PDF_DOCUMENT, HTML_DOCUMENT}
+    {WORD_DOCUMENT, EXCEL_WORKBOOK, PDF_DOCUMENT, HTML_DOCUMENT, TABULAR_DATA, NOTEBOOK}
 )
 
 # Guard rails. A single monster file must not stall a scan or blow up memory; we

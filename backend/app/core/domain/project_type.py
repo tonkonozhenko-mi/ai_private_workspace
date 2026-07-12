@@ -31,6 +31,18 @@ class ProjectClassification:
     infrastructure_score: int
 
 
+def _languages(graph: ProjectGraph) -> list[str]:
+    """Languages named by application entities. The scan supplies this for the
+    codebases that have no analyzer yet (TypeScript, Go, Java …), so the summary can
+    say what the project is written in instead of defaulting to Python."""
+    languages: list[str] = []
+    for app in graph.entities_of_type(EntityType.APPLICATION):
+        language = app.metadata.get("language", "").strip()
+        if language and language not in languages:
+            languages.append(language)
+    return languages
+
+
 def _application_signal(graph: ProjectGraph) -> tuple[int, list[str], int]:
     """Return (score, frameworks, module_count) for the app side."""
     applications = graph.entities_of_type(EntityType.APPLICATION)
@@ -92,7 +104,14 @@ def classify_project(graph: ProjectGraph) -> ProjectClassification:
     app_score, frameworks, _modules = _application_signal(graph)
     infra_score, infra_tools = _infrastructure_signal(graph)
 
-    app_label = f"{frameworks[0]} application" if frameworks else "Python application"
+    # Lead with the framework when one is known, then the language the code is
+    # actually written in. "Python application" is the last resort, not the default:
+    # calling a TypeScript repo a Python one is worse than saying nothing.
+    if frameworks:
+        app_label = f"{frameworks[0]} application"
+    else:
+        languages = _languages(graph)
+        app_label = f"{languages[0]} application" if languages else "Python application"
     infra_label = "infrastructure project"
     if infra_tools:
         infra_label += " (" + ", ".join(infra_tools[:3]) + ")"

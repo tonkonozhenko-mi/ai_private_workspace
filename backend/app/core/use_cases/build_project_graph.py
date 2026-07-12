@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 from app.core.domain.project_graph import ProjectSnapshotMeta
 from app.core.domain.project_graph_builder import build_project_graph
+from app.core.domain.source_files import SOURCE_CODE
 from app.core.ports.file_system import FileSystemPort
 from app.core.ports.project_graph_repository import ProjectGraphRepositoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
@@ -169,6 +170,13 @@ class BuildProjectGraphUseCase:
             python=python,
             references=references,
             scan_paths=[project_file.path for project_file in latest_scan.files],
+            # Lets the graph name the language a non-Python codebase is written in;
+            # without it a TypeScript repo has no application entity at all.
+            source_paths=[
+                project_file.path
+                for project_file in latest_scan.files
+                if project_file.detected_type == SOURCE_CODE
+            ],
             analyzers_skipped=skipped,
         )
         return self.project_graph_repository.save_graph(graph, scan_signature=signature)

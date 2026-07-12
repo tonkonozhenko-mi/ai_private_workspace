@@ -6,6 +6,14 @@ from time import perf_counter
 
 from app.core.domain.gitignore_matcher import GITIGNORE_FILENAME, GitignoreMatcher
 from app.core.domain.project_scan import ProjectFile, ProjectFileList
+from app.core.domain.source_files import (
+    CONFIG_EXTENSIONS,
+    SOURCE_CODE_EXTENSIONS,
+    is_build_output,
+    is_env_template,
+    is_lockfile,
+    is_secret_env_file,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +23,7 @@ MAX_WRITTEN_FILE_SIZE_BYTES = 1024 * 1024
 # Word runbook with images easily passes 2 MB while holding only a few pages of
 # text. The extractor enforces its own ceiling (MAX_DOCUMENT_BYTES), so the scan
 # just has to stop dropping them on the floor first.
-DOCUMENT_SUFFIXES = {".docx", ".xlsx", ".pdf", ".html", ".htm"}
+DOCUMENT_SUFFIXES = {".docx", ".xlsx", ".pdf", ".html", ".htm", ".csv", ".tsv", ".ipynb"}
 MAX_DOCUMENT_FILE_SIZE_BYTES = 20 * 1024 * 1024
 SKIPPED_DIRECTORIES = {
     ".git",
@@ -233,6 +241,14 @@ class LocalFileSystem:
         relative_posix = relative_path.as_posix()
         relative_lower = relative_posix.lower()
 
+        # Machine-written or secret files first, before any format rule can claim
+        # them: package-lock.json is JSON, pnpm-lock.yaml is YAML, and a minified
+        # bundle is JavaScript. Left as "unknown" so they never reach the index — a
+        # lockfile is tens of thousands of lines nobody reads, a bundle embeds to
+        # noise, and a real .env holds credentials.
+        if is_lockfile(name) or is_secret_env_file(name) or is_build_output(relative_posix):
+            return "unknown"
+
         if relative_posix == ".gitlab-ci.yml" or relative_posix == ".gitlab-ci.yaml":
             return "gitlab_ci"
         if relative_lower.startswith(".github/workflows/") and suffix in {".yml", ".yaml"}:
@@ -261,6 +277,21 @@ class LocalFileSystem:
             return "json"
         if suffix == ".sh":
             return "shell"
+
+        # Everything a real repository is actually made of. Without these a
+        # TypeScript project scanned as "unknown" from top to bottom.
+        if suffix in SOURCE_CODE_EXTENSIONS:
+            return "source_code"
+        if suffix in CONFIG_EXTENSIONS or is_env_template(name):
+            return "config"
+        if suffix == ".xml":
+            return "xml_config"
+        if name_lower in {"makefile", "gnumakefile"} or suffix == ".mk":
+            return "makefile"
+        if suffix in {".csv", ".tsv"}:
+            return "tabular_data"
+        if suffix == ".ipynb":
+            return "notebook"
         # Office documents and pages. These are binary/markup containers, so they
         # are indexed through a DocumentTextExtractor rather than read as UTF-8.
         # A Confluence space export lands here as .html; runbooks as .docx.
