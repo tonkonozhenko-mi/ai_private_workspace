@@ -11,6 +11,12 @@ logger = logging.getLogger(__name__)
 
 MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024
 MAX_WRITTEN_FILE_SIZE_BYTES = 1024 * 1024
+# Documents are allowed to be much larger than source files: a 40-page PDF or a
+# Word runbook with images easily passes 2 MB while holding only a few pages of
+# text. The extractor enforces its own ceiling (MAX_DOCUMENT_BYTES), so the scan
+# just has to stop dropping them on the floor first.
+DOCUMENT_SUFFIXES = {".docx", ".xlsx", ".pdf", ".html", ".htm"}
+MAX_DOCUMENT_FILE_SIZE_BYTES = 20 * 1024 * 1024
 SKIPPED_DIRECTORIES = {
     ".git",
     ".venv",
@@ -44,7 +50,12 @@ class LocalFileSystem:
 
         classify_started = perf_counter()
         for relative_path, full_path, size_bytes, modified_at in candidates:
-            if size_bytes > MAX_FILE_SIZE_BYTES:
+            limit = (
+                MAX_DOCUMENT_FILE_SIZE_BYTES
+                if relative_path.suffix.lower() in DOCUMENT_SUFFIXES
+                else MAX_FILE_SIZE_BYTES
+            )
+            if size_bytes > limit:
                 skipped_files += 1
                 continue
 
@@ -250,6 +261,19 @@ class LocalFileSystem:
             return "json"
         if suffix == ".sh":
             return "shell"
+        # Office documents and pages. These are binary/markup containers, so they
+        # are indexed through a DocumentTextExtractor rather than read as UTF-8.
+        # A Confluence space export lands here as .html; runbooks as .docx.
+        if suffix == ".docx":
+            return "word_document"
+        if suffix == ".xlsx":
+            return "excel_workbook"
+        if suffix == ".pdf":
+            return "pdf_document"
+        if suffix in {".html", ".htm"}:
+            return "html"
+        if suffix in {".txt", ".rst", ".adoc"}:
+            return "plain_text"
 
         return "unknown"
 

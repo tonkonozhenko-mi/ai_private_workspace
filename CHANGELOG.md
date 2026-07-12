@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Added
+
+- **Your Word, Excel, PDF and HTML documents can now be indexed and answered from.** A project folder is rarely only code — runbooks live in Word, cost sheets in Excel, decisions in PDF, and an exported wiki space is a pile of HTML files. Drop any of them into the project folder and they are read, indexed and cited like any source file. Everything happens on your computer; no document is uploaded anywhere.
+- **Citations point at the place inside the document, not just the file.** A quote from a 90-page PDF is worth little if you still have to find it, so each chunk carries the locator a reader would use to check it: `page 12` for a PDF, `sheet "Costs" rows 2-21` for a workbook, `heading path "Deploy > Rollback"` for a Word document or web page. Spreadsheet chunks repeat the header row, so a block of numbers still says what its columns mean.
+- **Documents that can't be read say so instead of quietly vanishing.** A scanned PDF with no text layer, a file over 20 MB, or a corrupt document is skipped with a plain-language reason rather than being indexed as empty — so "the answer isn't in there" never silently means "we couldn't open it".
+
 ## [0.5.1] - 2026-07-08
 
 ### Fixed

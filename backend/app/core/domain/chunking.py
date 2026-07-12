@@ -217,6 +217,7 @@ def build_contextual_chunk(
     total: int,
     file_type: str | None = None,
     extension: str | None = None,
+    section_label: str | None = None,
 ) -> str:
     """Prefix a one-line provenance header to a chunk so the model can ground and
     cite it, and the path becomes keyword-searchable. Deterministic, never raises.
@@ -227,7 +228,10 @@ def build_contextual_chunk(
     For json/yaml the header also lists the chunk's config keys, so "how is X
     configured?" retrieves by key name even when the value is a short token.
     """
-    label = chunk_section_label(content, file_type, extension)
+    # An extracted document already knows where the text sat (page 12, sheet rows,
+    # heading path); that locator beats anything guessed from the text, and it is
+    # what the reader needs in order to check the citation.
+    label = section_label or chunk_section_label(content, file_type, extension)
     where = source_path if not label else f"{source_path} › {label}"
     suffix = f" · part {position}/{total}" if total > 1 else ""
     keys = config_keys(content, file_type, extension)

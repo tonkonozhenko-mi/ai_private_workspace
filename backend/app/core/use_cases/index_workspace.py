@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -7,6 +8,14 @@ from app.core.domain.chunking import (
     chunk_document,
     estimate_tokens,
     strip_contextual_header,
+)
+from app.core.domain.document_extraction import (
+    EXCEL_WORKBOOK,
+    EXTRACTABLE_DOCUMENT_TYPES,
+    HTML_DOCUMENT,
+    PDF_DOCUMENT,
+    PLAIN_TEXT,
+    WORD_DOCUMENT,
 )
 from app.core.domain.handbook_source import HANDBOOK_SOURCE_PATH
 from app.core.domain.index_status import WorkspaceIndexStatus
@@ -24,6 +33,7 @@ from app.core.domain.relevance_calibration import (
     calibrate_from_embeddings,
     probe_ceiling,
 )
+from app.core.ports.document_text_extractor import DocumentTextExtractorPort
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.file_system import FileSystemPort
 from app.core.ports.index_manifest_repository import IndexManifestRepositoryPort
@@ -32,6 +42,8 @@ from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+
+logger = logging.getLogger(__name__)
 from app.core.use_cases.add_timeline_event import (
     AddTimelineEventInput,
     AddTimelineEventUseCase,
@@ -60,6 +72,13 @@ INDEXABLE_FILE_TYPES = {
     "kubernetes",
     "helm",
     "shell",
+    # Documents. The extractable ones (Word/Excel/PDF/HTML) go through the
+    # DocumentTextExtractor; plain text is read directly like any other text file.
+    WORD_DOCUMENT,
+    EXCEL_WORKBOOK,
+    PDF_DOCUMENT,
+    HTML_DOCUMENT,
+    PLAIN_TEXT,
 }
 
 
@@ -94,6 +113,7 @@ class IndexWorkspaceUseCase:
         timeline_repository: TimelineRepositoryPort | None = None,
         manifest_repository: IndexManifestRepositoryPort | None = None,
         handbook_provider: Callable[[str], str | None] | None = None,
+        document_extractor: DocumentTextExtractorPort | None = None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.project_scan_repository = project_scan_repository
@@ -109,6 +129,9 @@ class IndexWorkspaceUseCase:
         # text, that text is indexed as a pseudo-document (HANDBOOK_PSEUDO_PATH) so
         # "about this project" questions retrieve it. None = feature off.
         self.handbook_provider = handbook_provider
+        # Optional: turns Word/Excel/PDF/HTML into locatable text sections. Without
+        # it those files are simply not indexed — they cannot be read as UTF-8.
+        self.document_extractor = document_extractor
 
     def execute(self, request: IndexWorkspaceInput) -> WorkspaceIndexResult:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -630,6 +653,9 @@ class IndexWorkspaceUseCase:
         project_path: str,
         project_file: ProjectFile,
     ) -> tuple[list[TextChunk], str]:
+        if project_file.detected_type in EXTRACTABLE_DOCUMENT_TYPES:
+            return self._chunks_for_document(workspace_id, project_path, project_file)
+
         content = self.file_system.read_text_file(project_path, project_file.path)
         file_hash = content_hash(content)
         raw_chunks = chunk_document(
@@ -637,7 +663,60 @@ class IndexWorkspaceUseCase:
             file_type=project_file.detected_type,
             extension=project_file.extension,
         )
+        return self._build_chunks(workspace_id, project_file, raw_chunks), file_hash
 
+    def _chunks_for_document(
+        self,
+        workspace_id: str,
+        project_path: str,
+        project_file: ProjectFile,
+    ) -> tuple[list[TextChunk], str]:
+        """Word/Excel/PDF/HTML: extract first, then chunk each section separately so
+        a chunk never straddles two pages (or two sheets) and can carry the exact
+        locator a reader needs to verify it."""
+        if self.document_extractor is None:
+            return [], content_hash("")
+
+        document = self.document_extractor.extract(
+            project_path, project_file.path, project_file.detected_type
+        )
+        if document.skipped_reason or document.is_empty:
+            # Hash the reason, not the empty string: if the reason later changes
+            # (pypdf gets installed, the file is replaced), the file re-indexes.
+            reason = document.skipped_reason or "empty"
+            logger.info("index.document skipped path=%s reason=%s", project_file.path, reason)
+            return [], content_hash(f"skipped:{reason}")
+
+        # One hash over the extracted words, so re-saving a document that says the
+        # same thing does not force a re-embed.
+        file_hash = content_hash(document.full_text())
+
+        # Chunk section by section, keeping a flat running index across the file so
+        # chunk ids stay unique and "part i/n" counts the whole document.
+        pieces: list[tuple[str, str]] = []
+        for section in document.sections:
+            for piece in chunk_document(
+                section.text,
+                file_type=project_file.detected_type,
+                extension=project_file.extension,
+            ):
+                pieces.append((piece, section.locator))
+
+        chunks = self._build_chunks(
+            workspace_id,
+            project_file,
+            [piece for piece, _ in pieces],
+            section_labels=[locator for _, locator in pieces],
+        )
+        return chunks, file_hash
+
+    def _build_chunks(
+        self,
+        workspace_id: str,
+        project_file: ProjectFile,
+        raw_chunks: list[str],
+        section_labels: list[str] | None = None,
+    ) -> list[TextChunk]:
         total = len(raw_chunks)
         chunks: list[TextChunk] = []
         for chunk_index, chunk_content in enumerate(raw_chunks):
@@ -650,6 +729,7 @@ class IndexWorkspaceUseCase:
                 total=total,
                 file_type=project_file.detected_type,
                 extension=project_file.extension,
+                section_label=section_labels[chunk_index] if section_labels else None,
             )
             chunks.append(
                 TextChunk(
@@ -665,4 +745,4 @@ class IndexWorkspaceUseCase:
                     },
                 )
             )
-        return chunks, file_hash
+        return chunks
