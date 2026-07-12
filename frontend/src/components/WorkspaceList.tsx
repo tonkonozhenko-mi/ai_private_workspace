@@ -393,7 +393,12 @@ function WorkspaceCard({
           <span className="workspace-meta-row">
             <span className="workspace-meta-key">Status</span>
             <span className="workspace-meta-val">
-              {formatLabel(workspace.quick_start_status)} · {formatLabel(workspace.assistant_mode)} mode
+              {/* The role is chosen during setup, so a fresh project has none yet —
+                  say nothing rather than print a dangling "· mode". */}
+              {formatLabel(workspace.quick_start_status)}
+              {workspace.assistant_mode
+                ? ` · ${formatLabel(workspace.assistant_mode)} mode`
+                : ""}
             </span>
           </span>
           {workspace.engine ? (

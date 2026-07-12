@@ -110,7 +110,10 @@ export function WorkspaceDashboard({
           </div>
           <div className="workspace-header-status">
             <StatusBadge label={dashboard.status} size="md" />
-            <span>{formatLabel(dashboard.assistant_mode)} mode</span>
+            {/* No role until setup asks for one — don't render a bare "mode". */}
+            {dashboard.assistant_mode ? (
+              <span>{formatLabel(dashboard.assistant_mode)} mode</span>
+            ) : null}
           </div>
         </header>
       ) : null}
