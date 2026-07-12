@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { LlamaCppModelsPanel } from "./LlamaCppModelsPanel";
 
 import { deviceNoun } from "../lib/deviceName";
+import { FOLDER_PERMISSION_HINT, NO_PROGRESS_HINT_AFTER_MS } from "../lib/folderAccess";
 
 import {
   cancelLocalModelDownloadJob,
@@ -144,9 +145,29 @@ export function WorkspaceGettingReady({
     percent: number | null;
     step: string | null;
     startedAt: number;
+    // When the numbers last actually MOVED — not when the job started. A big repo
+    // takes minutes and keeps counting; a scan blocked on the macOS permission
+    // dialog reports nothing at all. Staleness is the only signal that tells them
+    // apart, and the difference is the whole bug.
+    lastChangeAt: number;
   } | null>(null);
+  const [stalled, setStalled] = useState(false);
   const [runningJobId, setRunningJobId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+
+  // The watchdog. While a job is running and its numbers have not moved for a few
+  // seconds, we say the one thing that might actually be true — and that the person
+  // cannot see, because the system dialog is behind a notification.
+  useEffect(() => {
+    if (!jobProgress) {
+      setStalled(false);
+      return;
+    }
+    const id = window.setInterval(() => {
+      setStalled(Date.now() - jobProgress.lastChangeAt > NO_PROGRESS_HINT_AFTER_MS);
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [jobProgress]);
   const prevActiveJobsRef = useRef(0);
   const prevInstalledCountRef = useRef<number | null>(null);
 
@@ -156,6 +177,7 @@ export function WorkspaceGettingReady({
     setBusy(kind);
     setError(null);
     setMessage(null);
+    setStalled(false);
     setJobProgress({
       kind,
       current: null,
@@ -163,6 +185,7 @@ export function WorkspaceGettingReady({
       percent: null,
       step: "Starting…",
       startedAt: Date.now(),
+      lastChangeAt: Date.now(),
     });
     try {
       const result = (await starter()) as WorkspaceJob | undefined;
@@ -180,14 +203,22 @@ export function WorkspaceGettingReady({
         } catch {
           continue;
         }
-        setJobProgress((prev) => ({
-          kind,
-          current: job.progress_current,
-          total: job.progress_total,
-          percent: job.progress_percent,
-          step: job.current_step ?? job.message,
-          startedAt: prev?.startedAt ?? Date.now(),
-        }));
+        setJobProgress((prev) => {
+          const moved =
+            !prev ||
+            prev.current !== job.progress_current ||
+            prev.percent !== job.progress_percent ||
+            prev.step !== (job.current_step ?? job.message);
+          return {
+            kind,
+            current: job.progress_current,
+            total: job.progress_total,
+            percent: job.progress_percent,
+            step: job.current_step ?? job.message,
+            startedAt: prev?.startedAt ?? Date.now(),
+            lastChangeAt: moved ? Date.now() : (prev?.lastChangeAt ?? Date.now()),
+          };
+        });
         if (["completed", "failed", "cancelled"].includes(job.status)) {
           if (job.status === "failed") {
             setError(job.error ?? "That step failed. Please try again.");
@@ -265,6 +296,7 @@ export function WorkspaceGettingReady({
         <div className={`install-progress-bar${percent === null ? " is-indeterminate" : ""}`}>
           <span style={percent === null ? undefined : { width: `${percent}%` }} />
         </div>
+        {stalled ? <p className="gr-job-permission-hint">{FOLDER_PERMISSION_HINT}</p> : null}
         <div className="gr-job-progress-foot">
           <span className="gr-job-progress-label">
             {label}

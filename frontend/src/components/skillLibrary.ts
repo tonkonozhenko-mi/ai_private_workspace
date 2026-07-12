@@ -1,16 +1,22 @@
-// The five canonical roles, used everywhere (Settings skills, the Intelligence
-// "Viewed as" lens, and the Ask answer style). One vocabulary, one set of names.
+// The canonical roles, used everywhere: the create-project form, Settings skills,
+// the Intelligence "Viewed as" lens, and the Ask answer style. One vocabulary, one
+// set of names, one list — a role offered in one place and missing from another is
+// how a DBA workspace ended up unable to switch back to its own lens. Must match
+// CANONICAL_ROLES in the backend's core/domain/role_lens.py, which a test pins.
 export type SkillPresetId =
   | "developer"
   | "devops"
   | "tester"
   | "business_analyst"
-  | "manager";
+  | "manager"
+  | "dba";
 
 export interface SkillPresetDefinition {
   id: SkillPresetId;
   name: string;
   shortName: string;
+  /** One line, second person, for the card you pick when creating a project. */
+  roleDescription: string;
   purpose: string;
   bestFor: string;
   exampleQuestions: string[];
@@ -30,7 +36,8 @@ export type SkillProfileTemplateId =
   | "devops_review"
   | "tester_review"
   | "business_analyst_review"
-  | "manager_review";
+  | "manager_review"
+  | "dba_review";
 
 export interface SkillProfileTemplateDefinition {
   id: SkillProfileTemplateId;
@@ -44,6 +51,7 @@ export interface SkillProfileTemplateDefinition {
 export const SKILL_PRESETS: SkillPresetDefinition[] = [
   {
     id: "developer",
+    roleDescription: "Architecture, modules, key code paths and tests.",
     name: "Developer",
     shortName: "Developer",
     purpose: "Application code, structure, dependencies, implementation details, and tests.",
@@ -58,6 +66,7 @@ export const SKILL_PRESETS: SkillPresetDefinition[] = [
   },
   {
     id: "devops",
+    roleDescription: "Deployment, environments, CI/CD, and what can break in production.",
     name: "DevOps",
     shortName: "DevOps",
     purpose: "Infrastructure, CI/CD, cloud, containers, runtime setup, and operational readiness.",
@@ -72,6 +81,10 @@ export const SKILL_PRESETS: SkillPresetDefinition[] = [
   },
   {
     id: "tester",
+    // We never promise a coverage number: the app does not run your tests, so it
+    // cannot know one. It knows which modules no test file so much as names — a
+    // weaker claim, honestly stated.
+    roleDescription: "What's risky to change, how the tests run, which modules no test mentions.",
     name: "Tester / QA",
     shortName: "Tester",
     purpose: "Test coverage, test types, critical flows, regression-risk areas, and edge cases.",
@@ -89,6 +102,7 @@ export const SKILL_PRESETS: SkillPresetDefinition[] = [
   },
   {
     id: "business_analyst",
+    roleDescription: "What the system does for its users, features, and stakeholders.",
     name: "Business analyst",
     shortName: "Analyst",
     purpose: "What the system does, business processes, user flows, entities, integrations, and rules.",
@@ -103,6 +117,7 @@ export const SKILL_PRESETS: SkillPresetDefinition[] = [
   },
   {
     id: "manager",
+    roleDescription: "What changed, what's risky, how ready this is — in plain language.",
     name: "Manager",
     shortName: "Manager",
     purpose: "Executive summary, project health, main risks, recent changes, ownership, and delivery.",
@@ -114,6 +129,21 @@ export const SKILL_PRESETS: SkillPresetDefinition[] = [
     ],
     defaultInstructions: "Answer for an engineering manager. Focus on a concise executive summary, project health, the main risks, recent changes, ownership, delivery flow, and stakeholder-friendly wording.",
     recommendedFiles: ["README*", "docs/**", "reports/**", "*.md"],
+  },
+  {
+    id: "dba",
+    roleDescription: "Tables and relationships, migrations, indexes, and what bites at scale.",
+    name: "DBA",
+    shortName: "DBA",
+    purpose: "The data model: tables, keys, relationships, indexes, migrations, and query paths.",
+    bestFor: "What the schema looks like, how migrations are applied and in what order, which keys and indexes exist, and what usually hurts at scale.",
+    exampleQuestions: [
+      "What tables exist and how are they related?",
+      "In what order do the migrations run?",
+      "Which foreign keys have no index?",
+    ],
+    defaultInstructions: "Answer as a database engineer. Focus on the data model — tables, columns, primary and foreign keys, indexes, views — on migrations and the order they apply in, and on the schema-level risks worth checking. State findings as facts to verify, not verdicts.",
+    recommendedFiles: ["**/migrations/**", "**/*.sql", "schema.sql", "models.py", "**/entity/**"],
   },
 ];
 
@@ -171,6 +201,17 @@ export const SKILL_PROFILE_TEMPLATES: SkillProfileTemplateDefinition[] = [
     guidance: {
       manager:
         "Review this workspace for an engineering manager. Focus on a concise executive summary, project health, the main risks, recent changes, ownership, delivery flow, and stakeholder-friendly wording. Keep project-specific claims grounded in retrieved sources.",
+    },
+  },
+  {
+    id: "dba_review",
+    name: "DBA review",
+    shortName: "DBA",
+    purpose: "Review the data model, migrations, keys and indexes, and schema-level risks.",
+    activeSkillIds: ["dba"],
+    guidance: {
+      dba:
+        "Review this workspace as a database engineer. Focus on the tables and their relationships, the migration order, primary keys, foreign keys and indexes, and the schema-level risks worth checking. Keep project-specific claims grounded in retrieved sources.",
     },
   },
 ];

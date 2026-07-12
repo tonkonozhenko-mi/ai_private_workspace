@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from fnmatch import fnmatch
 from time import perf_counter
 
+from app.core.domain.folder_access import FolderPermissionError
 from app.core.domain.gitignore_matcher import (
     GitignoreMatcher,
     discover_gitignore_relative_paths,
@@ -52,13 +53,28 @@ class ScanProjectUseCase:
         if request.progress_callback is not None:
             request.progress_callback(0, 1, "Discovering project files...")
         discover_started = perf_counter()
+
         # Prune gitignored directories during the walk (huge speedup on repos with
         # large ignored trees). Safe because the file-rule filter below drops every
         # gitignored file anyway — so the kept set is identical, only faster. Gated
         # on the same respect_gitignore flag so results never diverge from the filter.
-        discovered_files = self.file_system.list_files(
-            request.project_path, respect_gitignore=request.respect_gitignore
-        )
+        # The walk is the one step that can take minutes with nothing to show for it —
+        # and, on macOS, the one that can block on a permission dialog the person never
+        # saw. Report the running count so the UI can tell "big repository" from
+        # "waiting for you", and turn an unreadable folder into a clear failure rather
+        # than a silently smaller project.
+        def _walk_progress(found: int) -> None:
+            if request.progress_callback is not None:
+                request.progress_callback(found, 0, f"Enumerating files… {found} found")
+
+        try:
+            discovered_files = self.file_system.list_files(
+                request.project_path,
+                respect_gitignore=request.respect_gitignore,
+                progress=_walk_progress,
+            )
+        except FolderPermissionError as exc:
+            raise ProjectScanError(str(exc)) from exc
         discover_ms = (perf_counter() - discover_started) * 1000
         self._checkpoint(request.cancellation_check)
         gitignore_started = perf_counter()
