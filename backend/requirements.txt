@@ -1,8 +1,10 @@
 fastapi>=0.139.0,<1.0
 httpx>=0.28.1,<1.0
 pathspec>=1.1.1,<2.0
-# PDF text extraction. Word/Excel/HTML are handled with the standard library
-# (they are ZIP+XML), so this is the one document format that needs a package.
+# Document extraction. Word/Excel are ZIP+XML, read with the standard library —
+# but through defusedxml, since a .docx can be hostile (entity-expansion bombs).
+# PDF is the one format that needs a real parser.
+defusedxml>=0.7.1,<1.0
 pypdf>=6.0,<7.0
 pydantic>=2.13.4,<3.0
 pytest>=9.1.1,<10.0

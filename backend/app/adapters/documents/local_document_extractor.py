@@ -1,10 +1,10 @@
 """Extract text + locators from office documents on the local disk.
 
 Deliberately dependency-light: ``.docx`` and ``.xlsx`` are OOXML — a ZIP of XML
-parts — so ``zipfile`` + ``xml.etree`` read them with no third-party library, and
-HTML with ``html.parser``. That keeps two large packages out of the PyInstaller
-bundle. Only PDF genuinely needs a library (``pypdf``); when it isn't installed we
-say so rather than pretending the file is empty.
+parts — so they are read with ``zipfile`` plus a hardened ElementTree, and HTML
+with ``html.parser``. That keeps two large packages out of the PyInstaller bundle.
+Only PDF genuinely needs a library (``pypdf``); when it isn't installed we say so
+rather than pretending the file is empty.
 
 Nothing here touches the network — the whole point is that documents are read on
 this computer and never leave it.
@@ -17,7 +17,12 @@ import re
 import zipfile
 from html.parser import HTMLParser
 from pathlib import Path
-from xml.etree import ElementTree as ET
+
+# A .docx/.xlsx is XML written by someone else's tool — or by someone hostile. The
+# stdlib parser happily expands entities, which makes a "quadratic blowup" /
+# billion-laughs document able to exhaust memory during a scan. defusedxml is the
+# same ElementTree API with those features turned off.
+from defusedxml.ElementTree import fromstring as parse_xml
 
 from app.core.domain.document_extraction import (
     EXCEL_WORKBOOK,
@@ -99,7 +104,7 @@ class LocalDocumentExtractor:
             if "word/document.xml" not in archive.namelist():
                 return skipped("The Word document has no readable body.")
             body_xml = archive.read("word/document.xml")
-        body = ET.fromstring(body_xml).find(f"{_W}body")
+        body = parse_xml(body_xml).find(f"{_W}body")
         if body is None:
             return skipped("The Word document has no readable body.")
 
@@ -150,14 +155,14 @@ class LocalDocumentExtractor:
             names = archive.namelist()
             shared: list[str] = []
             if "xl/sharedStrings.xml" in names:
-                root = ET.fromstring(archive.read("xl/sharedStrings.xml"))
+                root = parse_xml(archive.read("xl/sharedStrings.xml"))
                 shared = [
                     "".join(t.text or "" for t in si.iter(f"{_S}t")) for si in root.iter(f"{_S}si")
                 ]
 
             sheet_names: list[str] = []
             if "xl/workbook.xml" in names:
-                wb = ET.fromstring(archive.read("xl/workbook.xml"))
+                wb = parse_xml(archive.read("xl/workbook.xml"))
                 sheet_names = [s.get("name") or "" for s in wb.iter(f"{_S}sheet")]
 
             parts = sorted(n for n in names if n.startswith("xl/worksheets/sheet"))
@@ -166,7 +171,7 @@ class LocalDocumentExtractor:
 
             for index, part in enumerate(parts):
                 sheet = sheet_names[index] if index < len(sheet_names) else f"Sheet{index + 1}"
-                root = ET.fromstring(archive.read(part))
+                root = parse_xml(archive.read(part))
                 table: list[list[str]] = []
                 for row in root.iter(f"{_S}row"):
                     if len(table) >= MAX_SHEET_ROWS:
@@ -229,7 +234,8 @@ class LocalDocumentExtractor:
         for number, page in enumerate(pages, start=1):
             try:
                 text = (page.extract_text() or "").strip()
-            except Exception:  # noqa: BLE001 - a bad page shouldn't lose the good ones
+            except Exception as exc:  # noqa: BLE001 - a bad page shouldn't lose the good ones
+                logger.warning("pdf page %d of %s could not be read: %s", number, path.name, exc)
                 continue
             if text:
                 sections.append(ExtractedSection(f"page {number}", text))

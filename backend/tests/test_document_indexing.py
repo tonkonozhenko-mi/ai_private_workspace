@@ -148,6 +148,24 @@ def test_corrupt_document_is_skipped_with_a_reason(tmp_path):
     assert result.skipped_reason  # honest, and never raises
 
 
+def test_xml_entity_bomb_in_a_document_is_refused(tmp_path):
+    """A .docx is XML from an untrusted source. An entity-expansion bomb must be
+    refused by the parser rather than expanded into gigabytes during a scan."""
+    bomb = (
+        '<?xml version="1.0"?><!DOCTYPE d ['
+        '<!ENTITY a "aaaaaaaaaa">'
+        '<!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">]>'
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        "<w:body><w:p><w:r><w:t>&b;</w:t></w:r></w:p></w:body></w:document>"
+    )
+    with zipfile.ZipFile(tmp_path / "bomb.docx", "w") as archive:
+        archive.writestr("word/document.xml", bomb)
+
+    result = LocalDocumentExtractor().extract(str(tmp_path), "bomb.docx", "word_document")
+    assert result.sections == []
+    assert result.skipped_reason
+
+
 def test_chunks_carry_the_document_locator_in_their_header(tmp_path):
     _write_fixtures(tmp_path)
     use_case = IndexWorkspaceUseCase(
