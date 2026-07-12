@@ -62,7 +62,9 @@ def _use_case(file_system):
 
 def test_an_unreadable_folder_fails_the_scan_with_something_actionable():
     with pytest.raises(ProjectScanError) as caught:
-        _use_case(_DeniedFileSystem()).execute(ScanProjectInput(project_path="/Users/x/Documents/p"))
+        _use_case(_DeniedFileSystem()).execute(
+            ScanProjectInput(project_path="/Users/x/Documents/p")
+        )
 
     message = str(caught.value)
     assert message == FOLDER_PERMISSION_MESSAGE

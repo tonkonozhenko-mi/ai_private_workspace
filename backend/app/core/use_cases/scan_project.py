@@ -53,6 +53,7 @@ class ScanProjectUseCase:
         if request.progress_callback is not None:
             request.progress_callback(0, 1, "Discovering project files...")
         discover_started = perf_counter()
+
         # Prune gitignored directories during the walk (huge speedup on repos with
         # large ignored trees). Safe because the file-rule filter below drops every
         # gitignored file anyway — so the kept set is identical, only faster. Gated

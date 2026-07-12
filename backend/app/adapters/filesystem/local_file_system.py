@@ -1,10 +1,9 @@
 import logging
 import os
 import stat as stat_module
+from collections.abc import Callable
 from pathlib import Path
 from time import perf_counter
-
-from collections.abc import Callable
 
 from app.core.domain.folder_access import FolderPermissionError, is_permission_error
 from app.core.domain.gitignore_matcher import GITIGNORE_FILENAME, GitignoreMatcher
