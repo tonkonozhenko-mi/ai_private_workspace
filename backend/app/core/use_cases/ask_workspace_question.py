@@ -406,8 +406,21 @@ class AskWorkspaceQuestionUseCase:
             project_memory_section=memory_section,
             answer_mode=request.answer_mode,
             user_style_directive=context_used.get("style_directive", ""),
+            # The person's role frames the answer — what is said first, in whose
+            # words. It is deliberately NOT part of retrieval: the same question
+            # returns the same chunks and the same citations for every role.
+            assistant_mode=self._assistant_mode(request.workspace_id),
         )
         return fitted, prompt, memory_used, facts_used, context_used
+
+    def _assistant_mode(self, workspace_id: str) -> str | None:
+        """The workspace's role, or None when it was never chosen — which the prompt
+        builder reads as the neutral developer lens."""
+        try:
+            workspace = self.workspace_repository.get(workspace_id)
+        except Exception:  # noqa: BLE001 - a missing role must never fail an answer
+            return None
+        return getattr(workspace, "assistant_mode", None) if workspace else None
 
     def _all_turns(self, request: AskWorkspaceQuestionInput) -> list[tuple[str, str]]:
         """Every (role, content) user/assistant turn of this conversation.

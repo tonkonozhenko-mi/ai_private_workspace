@@ -455,7 +455,11 @@ export function AskWorkspace({
   // nothing or errors (offline / no map yet).
   useEffect(() => {
     let cancelled = false;
-    getStarterQuestions(workspaceId)
+    // Pass the role explicitly and re-fetch when it changes: a tester and a manager
+    // open the same project on the same facts, but the questions worth asking first
+    // are not the same ones. Switching role must be felt immediately, without a
+    // rescan or a reload.
+    getStarterQuestions(workspaceId, assistantMode || undefined)
       .then((result) => {
         if (!cancelled) setStarterQuestions(result.questions ?? []);
       })
@@ -465,7 +469,7 @@ export function AskWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [workspaceId]);
+  }, [workspaceId, assistantMode]);
 
   async function refreshConversations(
     options: { search?: string; includeArchived?: boolean; pinnedOnly?: boolean } = {},
