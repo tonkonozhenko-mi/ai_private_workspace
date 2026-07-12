@@ -158,9 +158,7 @@ def parse_package_json(content: str) -> tuple[str | None, dict[str, str], list[s
     ]
     notable = sorted(name for name in dependencies if name in _NOTABLE_DEPENDENCIES)
     scripts = data.get("scripts")
-    scripts = (
-        {str(k): str(v) for k, v in scripts.items()} if isinstance(scripts, dict) else {}
-    )
+    scripts = {str(k): str(v) for k, v in scripts.items()} if isinstance(scripts, dict) else {}
     name = data.get("name")
     return (str(name) if name else None), scripts, frameworks, notable
 
@@ -168,11 +166,7 @@ def parse_package_json(content: str) -> tuple[str | None, dict[str, str], list[s
 def build_js_facts(files: dict[str, str]) -> JsFacts:
     """``files`` is {path: content} for the project's JS/TS sources and package.json."""
     manifests = sorted(p for p in files if PurePosixPath(p).name == "package.json")
-    source_paths = sorted(
-        p
-        for p in files
-        if PurePosixPath(p).suffix in _JS_SUFFIXES
-    )[:_MAX_FILES]
+    source_paths = sorted(p for p in files if PurePosixPath(p).suffix in _JS_SUFFIXES)[:_MAX_FILES]
 
     package_name: str | None = None
     scripts: dict[str, str] = {}
@@ -193,8 +187,7 @@ def build_js_facts(files: dict[str, str]) -> JsFacts:
 
     # Module name → path, so imports can be resolved to modules we actually have.
     by_resolved: dict[str, str] = {
-        re.sub(r"\.(ts|tsx|js|jsx|mjs|cjs|vue|svelte)$", "", path): path
-        for path in source_paths
+        re.sub(r"\.(ts|tsx|js|jsx|mjs|cjs|vue|svelte)$", "", path): path for path in source_paths
     }
 
     modules: list[JsModule] = []

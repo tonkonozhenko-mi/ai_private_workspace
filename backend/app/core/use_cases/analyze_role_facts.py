@@ -97,9 +97,7 @@ class AnalyzeRoleFactsUseCase:
             :_MAX_CODE_FILES
         ]
         contents = self._read(workspace.project_path, paths)
-        source_paths = [
-            f.path for f in scan.files if f.detected_type in {"python", "source_code"}
-        ]
+        source_paths = [f.path for f in scan.files if f.detected_type in {"python", "source_code"}]
         return build_test_facts(contents, source_paths, ci_job_names=ci_job_names)
 
     def javascript(self, request: AnalyzeRoleFactsInput) -> JsFacts:
@@ -107,17 +105,16 @@ class AnalyzeRoleFactsUseCase:
         paths = sorted(
             f.path
             for f in scan.files
-            if f.detected_type == "source_code"
-            or f.path.endswith("package.json")
+            if f.detected_type == "source_code" or f.path.endswith("package.json")
         )[:_MAX_CODE_FILES]
         contents = self._read(workspace.project_path, paths)
         return build_js_facts(contents)
 
     def api_surface(self, request: AnalyzeRoleFactsInput) -> ApiSurface:
         workspace, scan = self._context(request.workspace_id)
-        paths = sorted(
-            f.path for f in scan.files if f.detected_type in {"python", "source_code"}
-        )[:_MAX_CODE_FILES]
+        paths = sorted(f.path for f in scan.files if f.detected_type in {"python", "source_code"})[
+            :_MAX_CODE_FILES
+        ]
         contents = self._read(workspace.project_path, paths)
         return build_api_surface(contents)
 

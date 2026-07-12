@@ -22,6 +22,9 @@ from app.core.domain.analysis import (
     TerraformAnalysisResult,
     TerragruntAnalysisResult,
 )
+from app.core.domain.api_surface import ApiSurface
+from app.core.domain.js_modules import JsFacts
+from app.core.domain.ownership import OwnershipFacts
 from app.core.domain.project_graph import (
     Confidence,
     EntityType,
@@ -34,9 +37,6 @@ from app.core.domain.project_graph import (
     RelationType,
     Severity,
 )
-from app.core.domain.api_surface import ApiSurface
-from app.core.domain.js_modules import JsFacts
-from app.core.domain.ownership import OwnershipFacts
 from app.core.domain.source_files import dominant_source_language
 from app.core.domain.sql_schema import (
     SqlSchema,

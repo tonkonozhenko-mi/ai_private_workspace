@@ -21,9 +21,7 @@ _HTTP_METHODS = ("get", "post", "put", "patch", "delete", "head", "options")
 
 # FastAPI / Flask / Django-ninja: @router.post("/orders/{id}")
 _PY_DECORATOR_RE = re.compile(
-    r"@(?:\w+\.)?(?P<method>"
-    + "|".join(_HTTP_METHODS)
-    + r")\s*\(\s*['\"](?P<path>[^'\"]+)['\"]",
+    r"@(?:\w+\.)?(?P<method>" + "|".join(_HTTP_METHODS) + r")\s*\(\s*['\"](?P<path>[^'\"]+)['\"]",
     re.IGNORECASE,
 )
 # Flask's other spelling: @app.route("/orders", methods=["POST"])
@@ -43,9 +41,7 @@ _JAVA_DECORATOR_RE = re.compile(
 )
 
 # The nouns: ORM models and dataclasses that carry the domain vocabulary.
-_PY_MODEL_RE = re.compile(
-    r"^class\s+(?P<name>\w+)\s*\(\s*(?P<base>[^)]*)\)", re.MULTILINE
-)
+_PY_MODEL_RE = re.compile(r"^class\s+(?P<name>\w+)\s*\(\s*(?P<base>[^)]*)\)", re.MULTILINE)
 _MODEL_BASES = ("basemodel", "base", "models.model", "declarative_base", "sqlmodel")
 
 _MAX_FILES = 1200

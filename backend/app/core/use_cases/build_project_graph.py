@@ -12,12 +12,8 @@ from dataclasses import dataclass
 from app.core.domain.project_graph import ProjectSnapshotMeta
 from app.core.domain.project_graph_builder import build_project_graph
 from app.core.domain.source_files import SOURCE_CODE
-from app.core.ports.git_history import GitHistoryPort
-from app.core.use_cases.analyze_role_facts import (
-    AnalyzeRoleFactsInput,
-    AnalyzeRoleFactsUseCase,
-)
 from app.core.ports.file_system import FileSystemPort
+from app.core.ports.git_history import GitHistoryPort
 from app.core.ports.project_graph_repository import ProjectGraphRepositoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -35,6 +31,10 @@ from app.core.use_cases.analyze_python import AnalyzePythonInput, AnalyzePythonU
 from app.core.use_cases.analyze_references import (
     AnalyzeReferencesInput,
     AnalyzeReferencesUseCase,
+)
+from app.core.use_cases.analyze_role_facts import (
+    AnalyzeRoleFactsInput,
+    AnalyzeRoleFactsUseCase,
 )
 from app.core.use_cases.analyze_terraform import AnalyzeTerraformInput, AnalyzeTerraformUseCase
 from app.core.use_cases.analyze_terragrunt import (
