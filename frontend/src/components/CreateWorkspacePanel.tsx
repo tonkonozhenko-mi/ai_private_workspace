@@ -40,6 +40,11 @@ const assistantModes: Array<{ id: string; label: string; description: string }> 
     label: "Business analyst",
     description: "What the system does for its users, features, and stakeholders.",
   },
+  {
+    id: "dba",
+    label: "DBA",
+    description: "Tables and relationships, migrations, indexes, and what bites at scale.",
+  },
 ];
 
 const persistenceModes: Array<{

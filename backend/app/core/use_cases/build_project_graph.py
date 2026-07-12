@@ -13,6 +13,7 @@ from app.core.domain.project_graph import ProjectSnapshotMeta
 from app.core.domain.project_graph_builder import build_project_graph
 from app.core.domain.source_files import SOURCE_CODE
 from app.core.ports.file_system import FileSystemPort
+from app.core.ports.git_history import GitHistoryPort
 from app.core.ports.project_graph_repository import ProjectGraphRepositoryPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
@@ -30,6 +31,10 @@ from app.core.use_cases.analyze_python import AnalyzePythonInput, AnalyzePythonU
 from app.core.use_cases.analyze_references import (
     AnalyzeReferencesInput,
     AnalyzeReferencesUseCase,
+)
+from app.core.use_cases.analyze_role_facts import (
+    AnalyzeRoleFactsInput,
+    AnalyzeRoleFactsUseCase,
 )
 from app.core.use_cases.analyze_terraform import AnalyzeTerraformInput, AnalyzeTerraformUseCase
 from app.core.use_cases.analyze_terragrunt import (
@@ -62,11 +67,15 @@ class BuildProjectGraphUseCase:
         project_scan_repository: ProjectScanRepositoryPort,
         file_system: FileSystemPort,
         project_graph_repository: ProjectGraphRepositoryPort,
+        git_history: GitHistoryPort | None = None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.project_scan_repository = project_scan_repository
         self.file_system = file_system
         self.project_graph_repository = project_graph_repository
+        # Optional: ownership ("who alone knows this file") is a git fact. Without a
+        # repository there is simply no ownership section — not a broken map.
+        self.git_history = git_history
 
     def execute(self, request: BuildProjectGraphInput) -> ProjectSnapshotMeta:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -159,6 +168,39 @@ class BuildProjectGraphUseCase:
         except Exception:  # noqa: BLE001
             references = None
 
+        # The facts every role other than DevOps was missing. Each analyzer degrades
+        # to None on its own — a project with no SQL, no tests or no HTTP routes must
+        # still get a map of everything else.
+        role_facts = AnalyzeRoleFactsUseCase(
+            self.workspace_repository,
+            self.project_scan_repository,
+            self.file_system,
+            git_history=self.git_history,
+        )
+        facts_request = AnalyzeRoleFactsInput(workspace_id=ws_id)
+
+        def _facts(name: str, run):
+            try:
+                return run()
+            except Exception:  # noqa: BLE001 - one analyzer must not lose the whole map
+                skipped.append(name)
+                return None
+
+        # CI job names let the test analyzer answer "does anything actually run these
+        # in the pipeline" from the pipeline's own jobs rather than from a guess.
+        ci_job_names: list[str] = []
+        if github_actions is not None:
+            for workflow in github_actions.workflows:
+                ci_job_names += workflow.job_names
+        if gitlab_ci is not None:
+            ci_job_names += [job.name for job in gitlab_ci.jobs]
+
+        sql_schema = _facts("sql", lambda: role_facts.sql_schema(facts_request))
+        tests = _facts("tests", lambda: role_facts.tests(facts_request, ci_job_names=ci_job_names))
+        javascript = _facts("javascript", lambda: role_facts.javascript(facts_request))
+        api_surface = _facts("api", lambda: role_facts.api_surface(facts_request))
+        ownership = _facts("ownership", lambda: role_facts.ownership(facts_request))
+
         graph = build_project_graph(
             ws_id,
             terraform=terraform,
@@ -169,6 +211,11 @@ class BuildProjectGraphUseCase:
             helm=helm,
             python=python,
             references=references,
+            sql_schema=sql_schema,
+            tests=tests,
+            javascript=javascript,
+            api_surface=api_surface,
+            ownership=ownership,
             scan_paths=[project_file.path for project_file in latest_scan.files],
             # Lets the graph name the language a non-Python codebase is written in;
             # without it a TypeScript repo has no application entity at all.

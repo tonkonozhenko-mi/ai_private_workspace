@@ -29,6 +29,13 @@ class EntityType:
     DEPENDENCY = "dependency"  # a notable third-party library
     CLOUD_SERVICE = "cloud_service"  # a managed cloud service in use (AWS/GCP/Azure)
     REFERENCE = "reference"  # an external reference (URL / ARN / module source)
+    # Facts the roles other than DevOps actually came for. Until these existed, every
+    # lens reordered the same pipelines and environments and called itself a lens.
+    TABLE = "table"  # a database table or view, from the project's own DDL
+    MIGRATION = "migration"  # one migration file, in the order it will be applied
+    TEST_SUITE = "test_suite"  # a place tests live, with what runs them
+    API_ENDPOINT = "api_endpoint"  # one route the system exposes to its users
+    DOMAIN_ENTITY = "domain_entity"  # a noun the business speaks in (Order, Invoice)
 
 
 class RelationType:
@@ -41,6 +48,9 @@ class RelationType:
     INCLUDES = "includes"
     RUNS = "runs"
     PROVISIONS = "provisions"  # IaC provisions a cloud service
+    REFERENCES = "references"  # a table's foreign key points at another table
+    TESTS = "tests"  # a test suite covers a module
+    READS_WRITES = "reads_writes"  # code touches a table by name
 
 
 class Confidence:

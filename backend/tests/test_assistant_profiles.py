@@ -20,6 +20,8 @@ def test_list_assistant_profiles_returns_expected_profiles() -> None:
         "manager_summary",
         "tester",
         "business_analyst",
+        "manager",
+        "dba",
     ]
     devops = _profile(profiles, "devops")
     assert devops["name"] == "DevOps Assistant"

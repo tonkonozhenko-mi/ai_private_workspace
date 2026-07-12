@@ -47,14 +47,21 @@ class RoleLens:
     section_order: list[str] = field(default_factory=lambda: list(ALL_SECTIONS))
 
 
+# Until every role had facts of its own, all five lenses reordered the same DevOps
+# entities: the tester's "priorities" were pipelines and environments, the analyst's
+# were services. That is not a lens, it is a label. Each role now leads with the
+# entities its own analyzer produced — modules for the developer, test suites for the
+# tester, endpoints for the analyst, tables for the DBA — and the rest still follows.
+
 _DEVELOPER = RoleLens(
     role="developer",
     label="Developer",
     priority_entity_types=[
+        EntityType.APPLICATION,
+        EntityType.MODULE,
+        EntityType.DEPENDENCY,
         EntityType.SERVICE,
-        EntityType.CONTAINER_IMAGE,
         EntityType.CONFIG_FILE,
-        EntityType.PIPELINE,
     ],
     highlighted_finding_categories=[
         FindingCategory.CONFIGURATION,
@@ -102,10 +109,11 @@ _TESTER = RoleLens(
     role="tester",
     label="Tester / QA",
     priority_entity_types=[
-        EntityType.PIPELINE,
+        EntityType.TEST_SUITE,
+        EntityType.MODULE,
         EntityType.PIPELINE_JOB,
+        EntityType.API_ENDPOINT,
         EntityType.ENVIRONMENT,
-        EntityType.SERVICE,
     ],
     highlighted_finding_categories=[
         FindingCategory.TESTING,
@@ -127,6 +135,9 @@ _BUSINESS_ANALYST = RoleLens(
     role="business_analyst",
     label="Business analyst",
     priority_entity_types=[
+        EntityType.API_ENDPOINT,
+        EntityType.DOMAIN_ENTITY,
+        EntityType.TABLE,
         EntityType.SERVICE,
         EntityType.ENVIRONMENT,
     ],
@@ -149,8 +160,9 @@ _MANAGER = RoleLens(
     role="manager",
     label="Manager",
     priority_entity_types=[
-        EntityType.ENVIRONMENT,
+        EntityType.APPLICATION,
         EntityType.SERVICE,
+        EntityType.ENVIRONMENT,
         EntityType.PIPELINE,
     ],
     highlighted_finding_categories=[
@@ -173,12 +185,39 @@ _MANAGER = RoleLens(
 # one so older workspaces keep resolving. Documentation reads like a developer
 # view; incident support like a DevOps view; the old "manager_summary" is the
 # Manager role.
+_DBA = RoleLens(
+    role="dba",
+    label="DBA",
+    priority_entity_types=[
+        EntityType.TABLE,
+        EntityType.MIGRATION,
+        EntityType.DOMAIN_ENTITY,
+        EntityType.INFRA_COMPONENT,
+        EntityType.SERVICE,
+    ],
+    highlighted_finding_categories=[
+        FindingCategory.RELIABILITY,
+        FindingCategory.SECURITY,
+        FindingCategory.CONFIGURATION,
+    ],
+    section_order=[
+        Section.SUMMARY,
+        Section.RISKS,
+        Section.IMPORTANT_FILES,
+        Section.INFRASTRUCTURE,
+        Section.ENVIRONMENTS,
+        Section.DEPLOYMENT,
+        Section.QUESTIONS,
+    ],
+)
+
 ROLE_LENSES: dict[str, RoleLens] = {
     "developer": _DEVELOPER,
     "devops": _DEVOPS,
     "tester": _TESTER,
     "business_analyst": _BUSINESS_ANALYST,
     "manager": _MANAGER,
+    "dba": _DBA,
     # Legacy / folded modes.
     "documentation": _DEVELOPER,
     "support_incident": _DEVOPS,

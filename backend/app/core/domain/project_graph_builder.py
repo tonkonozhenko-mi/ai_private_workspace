@@ -22,6 +22,9 @@ from app.core.domain.analysis import (
     TerraformAnalysisResult,
     TerragruntAnalysisResult,
 )
+from app.core.domain.api_surface import ApiSurface
+from app.core.domain.js_modules import JsFacts
+from app.core.domain.ownership import OwnershipFacts
 from app.core.domain.project_graph import (
     Confidence,
     EntityType,
@@ -32,8 +35,16 @@ from app.core.domain.project_graph import (
     ProjectGraph,
     ProjectRelation,
     RelationType,
+    Severity,
 )
 from app.core.domain.source_files import dominant_source_language
+from app.core.domain.sql_schema import (
+    SqlSchema,
+    orphan_tables,
+    tables_without_primary_key,
+    unindexed_foreign_keys,
+)
+from app.core.domain.test_suites import TestFacts
 
 # One stray .ts helper in a Terraform repo is not "a TypeScript application".
 # Three files is the point where the code is the project, not a footnote.
@@ -652,6 +663,386 @@ def from_python(
     return entities, relations, findings
 
 
+def from_sql_schema(
+    schema: SqlSchema,
+) -> tuple[list[ProjectEntity], list[ProjectRelation], list[ProjectFinding]]:
+    """The data model, as the project itself wrote it down.
+
+    Findings are stated as facts a DBA can act on, never as verdicts: a table with no
+    primary key may be a deliberate append-only log, and an unindexed foreign key on a
+    tiny lookup table costs nothing. We say what is there and why it usually matters.
+    """
+    entities: list[ProjectEntity] = []
+    relations: list[ProjectRelation] = []
+    findings: list[ProjectFinding] = []
+
+    for table in schema.tables:
+        entities.append(
+            ProjectEntity(
+                id=_entity_id(EntityType.TABLE, table.name),
+                type=EntityType.TABLE,
+                name=table.name,
+                analyzer="sql",
+                source_file=table.source_file or None,
+                metadata={
+                    "columns": ", ".join(column.name for column in table.columns[:24]),
+                    "columns_count": str(len(table.columns)),
+                    "primary_key": ", ".join(table.primary_key),
+                    "kind": "view" if table.is_view else "table",
+                },
+            )
+        )
+
+    for foreign_key in schema.foreign_keys:
+        source_id = _entity_id(EntityType.TABLE, foreign_key.from_table)
+        target_id = _entity_id(EntityType.TABLE, foreign_key.to_table)
+        column = foreign_key.from_column or "foreign key"
+        relations.append(
+            ProjectRelation(
+                id=_relation_id(source_id, RelationType.REFERENCES, target_id),
+                source_entity_id=source_id,
+                target_entity_id=target_id,
+                relation_type=RelationType.REFERENCES,
+                analyzer="sql",
+                source_file=foreign_key.source_file,
+                evidence=[f"{foreign_key.from_table}.{column} references {foreign_key.to_table}"],
+            )
+        )
+
+    for index, migration in enumerate(schema.migrations, start=1):
+        name = migration.path.rsplit("/", 1)[-1]
+        entities.append(
+            ProjectEntity(
+                id=_entity_id(EntityType.MIGRATION, migration.path),
+                type=EntityType.MIGRATION,
+                name=name,
+                analyzer="sql",
+                source_file=migration.path,
+                metadata={
+                    "order": str(index),
+                    "creates": ", ".join(migration.creates),
+                    "alters": ", ".join(migration.alters),
+                    "drops": ", ".join(migration.drops),
+                },
+            )
+        )
+
+    missing_pk = tables_without_primary_key(schema)
+    if missing_pk:
+        findings.append(
+            ProjectFinding(
+                id="sql:tables_without_primary_key",
+                category=FindingCategory.RELIABILITY,
+                severity=Severity.MEDIUM,
+                title=f"{len(missing_pk)} table(s) have no primary key",
+                explanation=(
+                    "No PRIMARY KEY is declared for "
+                    + ", ".join(missing_pk[:6])
+                    + ". Rows in these tables cannot be addressed individually, which makes "
+                    "replication, de-duplication and safe updates harder. An append-only log "
+                    "may not need one — the others usually do."
+                ),
+                analyzer="sql",
+                evidence=missing_pk[:12],
+                recommendation="Confirm each is intentional; add a key where it is not.",
+            )
+        )
+
+    unindexed = unindexed_foreign_keys(schema)
+    if unindexed:
+        findings.append(
+            ProjectFinding(
+                id="sql:unindexed_foreign_keys",
+                category=FindingCategory.RELIABILITY,
+                severity=Severity.LOW,
+                title=f"{len(unindexed)} table(s) reference another table with no index",
+                explanation=(
+                    "These tables have a foreign key but no index on the referencing side: "
+                    + ", ".join(unindexed[:6])
+                    + ". Joins scan, and a DELETE on the parent takes a lock while it checks "
+                    "children. On a small table this costs nothing; on a large one it is the "
+                    "usual cause of a slow query nobody can explain."
+                ),
+                analyzer="sql",
+                evidence=unindexed[:12],
+            )
+        )
+
+    orphans = orphan_tables(schema)
+    if orphans:
+        findings.append(
+            ProjectFinding(
+                id="sql:unreferenced_tables",
+                category=FindingCategory.GENERAL,
+                severity=Severity.INFO,
+                title=f"{len(orphans)} table(s) stand alone in the schema",
+                explanation=(
+                    "Nothing references these and they reference nothing: "
+                    + ", ".join(orphans[:8])
+                    + ". Some are dead; some are the most important table in the system "
+                    "(an events log, an audit trail). Worth a glance, not an alarm."
+                ),
+                analyzer="sql",
+                evidence=orphans[:12],
+            )
+        )
+
+    return entities, relations, findings
+
+
+def from_tests(
+    facts: TestFacts,
+) -> tuple[list[ProjectEntity], list[ProjectRelation], list[ProjectFinding]]:
+    """Where the tests are, what runs them, and what nothing mentions."""
+    entities: list[ProjectEntity] = []
+    findings: list[ProjectFinding] = []
+
+    for suite in facts.suites:
+        entities.append(
+            ProjectEntity(
+                id=_entity_id(EntityType.TEST_SUITE, suite.path),
+                type=EntityType.TEST_SUITE,
+                name=suite.path,
+                analyzer="tests",
+                source_file=suite.path,
+                metadata={
+                    "files": str(suite.files_count),
+                    "test_cases": str(suite.test_cases),
+                    "skipped": str(suite.skipped_cases),
+                    "frameworks": ", ".join(suite.frameworks),
+                    "run_with": ", ".join(facts.run_commands[:2]),
+                },
+            )
+        )
+
+    if not facts.suites:
+        findings.append(
+            ProjectFinding(
+                id="tests:no_tests_found",
+                category=FindingCategory.TESTING,
+                severity=Severity.HIGH,
+                title="No test files were found",
+                explanation=(
+                    "The scan found no file that lives in a test directory or imports a test "
+                    "framework. Either this project has no automated tests, or they live "
+                    "somewhere the scan does not reach."
+                ),
+                analyzer="tests",
+            )
+        )
+
+    if facts.skipped_cases:
+        findings.append(
+            ProjectFinding(
+                id="tests:skipped_cases",
+                category=FindingCategory.TESTING,
+                severity=Severity.LOW,
+                title=f"{facts.skipped_cases} test(s) are skipped",
+                explanation=(
+                    "These tests exist but do not run (skip / xfail / it.skip). A skipped test "
+                    "protects nothing while still looking like coverage on the dashboard."
+                ),
+                analyzer="tests",
+            )
+        )
+
+    if facts.untested_areas:
+        findings.append(
+            ProjectFinding(
+                id="tests:areas_no_test_mentions",
+                category=FindingCategory.TESTING,
+                severity=Severity.MEDIUM,
+                title=f"{len(facts.untested_areas)} area(s) are not mentioned by any test",
+                explanation=(
+                    "No test file so much as names: "
+                    + ", ".join(facts.untested_areas[:6])
+                    + ". This is not a coverage measurement — we do not run the tests — but it "
+                    "is a good place for a tester to start asking."
+                ),
+                analyzer="tests",
+                evidence=facts.untested_areas[:12],
+            )
+        )
+
+    if facts.suites and not facts.ci_test_jobs:
+        findings.append(
+            ProjectFinding(
+                id="tests:not_run_in_ci",
+                category=FindingCategory.TESTING,
+                severity=Severity.MEDIUM,
+                title="Tests exist, but no CI job looks like it runs them",
+                explanation=(
+                    "The project has tests, and none of the pipeline's job names mention test, "
+                    "spec or check. Tests that only run on a laptop stop running."
+                ),
+                analyzer="tests",
+            )
+        )
+
+    return entities, [], findings
+
+
+def from_javascript(
+    facts: JsFacts,
+) -> tuple[list[ProjectEntity], list[ProjectRelation], list[ProjectFinding]]:
+    """A JS/TS codebase as an application with modules — the same shape the Python
+    analyzer produces, so the map does not care which language it is looking at."""
+    if not facts.modules and not facts.frameworks:
+        return [], [], []
+
+    entities: list[ProjectEntity] = []
+    relations: list[ProjectRelation] = []
+
+    app_name = (
+        f"{facts.frameworks[0]} application" if facts.frameworks else "JavaScript application"
+    )
+    application = ProjectEntity(
+        id=_entity_id(EntityType.APPLICATION, app_name),
+        type=EntityType.APPLICATION,
+        name=app_name,
+        analyzer="javascript",
+        source_file=facts.entrypoints[0] if facts.entrypoints else None,
+        metadata={
+            "frameworks": ", ".join(facts.frameworks),
+            "package": facts.package_name or "",
+            "entrypoints": str(len(facts.entrypoints)),
+            "modules": str(len(facts.modules)),
+            "scripts": ", ".join(list(facts.scripts)[:8]),
+        },
+    )
+    entities.append(application)
+
+    module_ids: dict[str, str] = {}
+    for module in facts.modules:
+        entity_id = _entity_id(EntityType.MODULE, module.name)
+        module_ids[module.name] = entity_id
+        entities.append(
+            ProjectEntity(
+                id=entity_id,
+                type=EntityType.MODULE,
+                name=module.name,
+                analyzer="javascript",
+                source_file=module.path,
+            )
+        )
+        relations.append(
+            ProjectRelation(
+                id=_relation_id(application.id, RelationType.INCLUDES, entity_id),
+                source_entity_id=application.id,
+                target_entity_id=entity_id,
+                relation_type=RelationType.INCLUDES,
+                analyzer="javascript",
+            )
+        )
+
+    for module in facts.modules:
+        source_id = module_ids[module.name]
+        for target in module.internal_imports:
+            target_id = module_ids.get(target)
+            if not target_id or target_id == source_id:
+                continue
+            relations.append(
+                ProjectRelation(
+                    id=_relation_id(source_id, RelationType.DEPENDS_ON, target_id),
+                    source_entity_id=source_id,
+                    target_entity_id=target_id,
+                    relation_type=RelationType.DEPENDS_ON,
+                    analyzer="javascript",
+                    evidence=[f"{module.name} imports {target}"],
+                )
+            )
+
+    for dependency in facts.notable_dependencies:
+        dependency_id = _entity_id(EntityType.DEPENDENCY, dependency)
+        entities.append(
+            ProjectEntity(
+                id=dependency_id,
+                type=EntityType.DEPENDENCY,
+                name=dependency,
+                analyzer="javascript",
+            )
+        )
+        relations.append(
+            ProjectRelation(
+                id=_relation_id(application.id, RelationType.DEPENDS_ON, dependency_id),
+                source_entity_id=application.id,
+                target_entity_id=dependency_id,
+                relation_type=RelationType.DEPENDS_ON,
+                analyzer="javascript",
+            )
+        )
+
+    return entities, relations, []
+
+
+def from_api_surface(
+    surface: ApiSurface,
+) -> tuple[list[ProjectEntity], list[ProjectRelation], list[ProjectFinding]]:
+    """The verbs the system offers its users, and the nouns it speaks in."""
+    entities: list[ProjectEntity] = []
+
+    for endpoint in surface.endpoints[:200]:
+        entities.append(
+            ProjectEntity(
+                id=_entity_id(EntityType.API_ENDPOINT, endpoint.label),
+                type=EntityType.API_ENDPOINT,
+                name=endpoint.label,
+                analyzer="api",
+                source_file=endpoint.source_file,
+                metadata={
+                    "method": endpoint.method.upper(),
+                    "path": endpoint.path,
+                    "handler": endpoint.handler or "",
+                },
+            )
+        )
+
+    for entity_name in surface.domain_entities[:60]:
+        entities.append(
+            ProjectEntity(
+                id=_entity_id(EntityType.DOMAIN_ENTITY, entity_name),
+                type=EntityType.DOMAIN_ENTITY,
+                name=entity_name,
+                analyzer="api",
+            )
+        )
+
+    return entities, [], []
+
+
+def from_ownership(
+    facts: OwnershipFacts,
+) -> tuple[list[ProjectEntity], list[ProjectRelation], list[ProjectFinding]]:
+    """The manager's own fact: where the knowledge is concentrated.
+
+    Named carefully. Someone being the sole author of a file is not a failing — it is
+    information. The risk is the *concentration*, and only in code that is alive.
+    """
+    if not facts.single_owner_files:
+        return [], [], []
+
+    people = ", ".join(f"{name} ({count})" for name, count in facts.key_people[:3])
+    paths = [file.path for file in facts.single_owner_files[:8]]
+    finding = ProjectFinding(
+        id="ownership:single_owner_files",
+        category=FindingCategory.RELIABILITY,
+        severity=Severity.MEDIUM if facts.bus_factor <= 2 else Severity.LOW,
+        title=(
+            f"{len(facts.single_owner_files)} actively-changed file(s) have effectively one author"
+        ),
+        explanation=(
+            "One person has written nearly all of the history of these files: "
+            + ", ".join(paths)
+            + f". Concentrated in: {people}. That is not a fault — it is where the project's "
+            "knowledge lives, and what it would lose if that person were unavailable."
+        ),
+        analyzer="ownership",
+        evidence=paths,
+        recommendation="Pair or review across these files before they become the only copy.",
+    )
+    return [], [], [finding]
+
+
 def from_references(
     result: ReferenceAnalysisResult,
 ) -> tuple[list[ProjectEntity], list[ProjectRelation], list[ProjectFinding]]:
@@ -748,6 +1139,35 @@ def from_source_scan(source_paths: list[str]) -> ProjectEntity | None:
     )
 
 
+def role_fact_contributions(
+    *,
+    sql_schema: SqlSchema | None = None,
+    tests: TestFacts | None = None,
+    javascript: JsFacts | None = None,
+    api_surface: ApiSurface | None = None,
+    ownership: OwnershipFacts | None = None,
+) -> list[tuple[tuple[list[ProjectEntity], list[ProjectRelation], list[ProjectFinding]], str]]:
+    """The facts the roles other than DevOps came for, ready to be absorbed.
+
+    Each is skipped when the project has nothing of that kind: a repository with no
+    SQL has no schema, and saying so is a truthful map — not a broken one. Kept out
+    of build_project_graph so that composing the graph stays one flat, readable list
+    of analyzers rather than a wall of guard clauses.
+    """
+    contributions = []
+    if sql_schema is not None and sql_schema.tables:
+        contributions.append((from_sql_schema(sql_schema), "sql"))
+    if tests is not None:
+        contributions.append((from_tests(tests), "tests"))
+    if javascript is not None:
+        contributions.append((from_javascript(javascript), "javascript"))
+    if api_surface is not None and (api_surface.endpoints or api_surface.domain_entities):
+        contributions.append((from_api_surface(api_surface), "api"))
+    if ownership is not None and ownership.files:
+        contributions.append((from_ownership(ownership), "ownership"))
+    return contributions
+
+
 def build_project_graph(
     workspace_id: str,
     *,
@@ -759,6 +1179,11 @@ def build_project_graph(
     helm: HelmAnalysisResult | None = None,
     python: PythonAnalysisResult | None = None,
     references: ReferenceAnalysisResult | None = None,
+    sql_schema: SqlSchema | None = None,
+    tests: TestFacts | None = None,
+    javascript: JsFacts | None = None,
+    api_surface: ApiSurface | None = None,
+    ownership: OwnershipFacts | None = None,
     scan_paths: list[str] | None = None,
     source_paths: list[str] | None = None,
     analyzers_skipped: list[str] | None = None,
@@ -818,6 +1243,14 @@ def build_project_graph(
         absorb(from_python(python), "python")
     if references is not None:
         absorb(from_references(references), "references")
+    for triple, analyzer in role_fact_contributions(
+        sql_schema=sql_schema,
+        tests=tests,
+        javascript=javascript,
+        api_surface=api_surface,
+        ownership=ownership,
+    ):
+        absorb(triple, analyzer)
 
     source_application = from_source_scan(source_paths or [])
     if source_application is not None:

@@ -280,6 +280,8 @@ class LocalFileSystem:
 
         # Everything a real repository is actually made of. Without these a
         # TypeScript project scanned as "unknown" from top to bottom.
+        if suffix == ".sql":
+            return "sql"
         if suffix in SOURCE_CODE_EXTENSIONS:
             return "source_code"
         if suffix in CONFIG_EXTENSIONS or is_env_template(name):
