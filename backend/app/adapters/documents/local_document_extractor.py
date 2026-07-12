@@ -152,8 +152,7 @@ class LocalDocumentExtractor:
             if "xl/sharedStrings.xml" in names:
                 root = ET.fromstring(archive.read("xl/sharedStrings.xml"))
                 shared = [
-                    "".join(t.text or "" for t in si.iter(f"{_S}t"))
-                    for si in root.iter(f"{_S}si")
+                    "".join(t.text or "" for t in si.iter(f"{_S}t")) for si in root.iter(f"{_S}si")
                 ]
 
             sheet_names: list[str] = []
@@ -196,9 +195,7 @@ class LocalDocumentExtractor:
                     first = start + 2  # 1-based, row 1 is the header
                     last = start + 1 + len(block)
                     sections.append(
-                        ExtractedSection(
-                            f'sheet "{sheet}" rows {first}-{last}', "\n".join(lines)
-                        )
+                        ExtractedSection(f'sheet "{sheet}" rows {first}-{last}', "\n".join(lines))
                     )
 
         if not sections:
@@ -226,9 +223,7 @@ class LocalDocumentExtractor:
         reader = PdfReader(str(path))
         pages = reader.pages
         if len(pages) > MAX_PDF_PAGES:
-            return skipped(
-                f"The PDF has more than {MAX_PDF_PAGES} pages and was not indexed."
-            )
+            return skipped(f"The PDF has more than {MAX_PDF_PAGES} pages and was not indexed.")
 
         sections: list[ExtractedSection] = []
         for number, page in enumerate(pages, start=1):

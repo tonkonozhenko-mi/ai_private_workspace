@@ -1,10 +1,10 @@
 import logging
 from pathlib import Path
 
+from app.adapters.documents.local_document_extractor import LocalDocumentExtractor
 from app.adapters.embeddings.switchable_embedding_provider import (
     SwitchableEmbeddingProvider,
 )
-from app.adapters.documents.local_document_extractor import LocalDocumentExtractor
 from app.adapters.filesystem.local_file_system import LocalFileSystem
 from app.adapters.llm.llama_server_reranker import LlamaServerReranker
 from app.adapters.system.gguf_download_job_runner import GgufDownloadJobRunner

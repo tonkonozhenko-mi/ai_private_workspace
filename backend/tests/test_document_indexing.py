@@ -101,9 +101,7 @@ def test_document_types_are_indexable():
 
 def test_scan_detects_document_types(tmp_path):
     _write_fixtures(tmp_path)
-    detected = {
-        f.path: f.detected_type for f in LocalFileSystem().list_files(str(tmp_path))
-    }
+    detected = {f.path: f.detected_type for f in LocalFileSystem().list_files(str(tmp_path))}
     assert detected["runbook.docx"] == "word_document"
     assert detected["costs.xlsx"] == "excel_workbook"
     assert detected["page.html"] == "html"
