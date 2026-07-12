@@ -10,6 +10,38 @@ interface CreateWorkspacePanelProps {
   onCancel: () => void;
 }
 
+// Who is reading this project? The same facts, ordered and worded for the person
+// in front of them — the ids match the backend's lenses exactly. Nothing is
+// preselected: a silent default would quietly make every user a DevOps engineer,
+// and no choice is honest ("just exploring") rather than wrong.
+const assistantModes: Array<{ id: string; label: string; description: string }> = [
+  {
+    id: "developer",
+    label: "Developer",
+    description: "Architecture, modules, key code paths and tests.",
+  },
+  {
+    id: "devops",
+    label: "DevOps",
+    description: "Deployment, environments, CI/CD, and what can break in production.",
+  },
+  {
+    id: "tester",
+    label: "Tester / QA",
+    description: "What's risky to change, how tests run, where coverage is thin.",
+  },
+  {
+    id: "manager",
+    label: "Manager",
+    description: "What changed, what's risky, how ready this is — in plain language.",
+  },
+  {
+    id: "business_analyst",
+    label: "Business analyst",
+    description: "What the system does for its users, features, and stakeholders.",
+  },
+];
+
 const persistenceModes: Array<{
   id: WorkspacePersistence;
   label: string;
@@ -31,6 +63,9 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
   const [name, setName] = useState("");
   const [projectPath, setProjectPath] = useState("");
   const [persistence, setPersistence] = useState<WorkspacePersistence>("saved");
+  // "" = not chosen. Everything downstream reads that as the neutral developer
+  // lens, so a person who just wants to look around loses nothing.
+  const [assistantMode, setAssistantMode] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pickingDirectory, setPickingDirectory] = useState(false);
@@ -73,11 +108,7 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
       const workspace = await createWorkspace({
         name: trimmedName,
         project_path: trimmedPath,
-        // The role is asked once, in setup ("Who are you on this project?"), where
-        // it can be explained. Asking it here as well made people choose twice, and
-        // the old default silently made everyone a DevOps engineer. Empty means
-        // "not chosen yet" — which reads as the neutral developer lens everywhere.
-        assistant_mode: "",
+        assistant_mode: assistantMode,
         privacy_mode: "local_only",
         persistence,
       });
@@ -132,6 +163,33 @@ export function CreateWorkspacePanel({ onCreated, onCancel }: CreateWorkspacePan
             </div>
             <small>The path is sent only to your local backend.</small>
           </label>
+        </div>
+
+        <div className="create-mode-section">
+          <div className="create-section-head">
+            <span className="section-eyebrow">Who are you on this project?</span>
+            <p>
+              Sets the lens: what the project leads with and how answers are worded. It never
+              changes which files are searched or what is true — and you can switch it any time.
+            </p>
+          </div>
+          <div className="choice-card-grid compact assistant-grid">
+            {assistantModes.map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                className={`choice-card assistant-card${assistantMode === mode.id ? " is-selected" : ""}`}
+                onClick={() =>
+                  // Clicking the selected card again clears it — "just exploring".
+                  setAssistantMode((current) => (current === mode.id ? "" : mode.id))
+                }
+              >
+                <strong>{mode.label}</strong>
+                <span>{mode.description}</span>
+              </button>
+            ))}
+          </div>
+          <small>Just exploring? Leave this unset — you'll get the neutral developer view.</small>
         </div>
 
         <div className="create-mode-section">
