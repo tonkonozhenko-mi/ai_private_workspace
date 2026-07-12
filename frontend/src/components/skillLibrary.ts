@@ -81,14 +81,20 @@ export const SKILL_PRESETS: SkillPresetDefinition[] = [
   },
   {
     id: "tester",
-    roleDescription: "What's risky to change, how tests run, where coverage is thin.",
+    // We never promise a coverage number: the app does not run your tests, so it
+    // cannot know one. It knows which modules no test file so much as names — a
+    // weaker claim, honestly stated.
+    roleDescription: "What's risky to change, how the tests run, which modules no test mentions.",
     name: "Tester / QA",
     shortName: "Tester",
     purpose: "Test coverage, test types, critical flows, regression-risk areas, and edge cases.",
     bestFor: "What is tested and how, the riskiest flows to verify, gaps in coverage, and what to re-test after a change.",
     exampleQuestions: [
       "Which critical flows should I test?",
-      "Where is test coverage thin?",
+      // Not "where is coverage thin" — the app never runs your tests, so it cannot
+      // know. It knows which modules no test file so much as names, which is a
+      // weaker claim, honestly stated.
+      "Which modules does no test mention?",
       "What should I re-test after this change?",
     ],
     defaultInstructions: "Answer as a QA / test engineer. Focus on test coverage and test types, the critical flows to verify, regression-risk areas, edge cases, and what to test after a change.",

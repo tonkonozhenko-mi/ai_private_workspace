@@ -901,7 +901,9 @@ export function ProjectUnderstanding({
         <p className="pu-lead-line">
           {summaryLine}
           {git
-            ? ` ${git.total_commits.toLocaleString()} commits by ${git.contributors_count} ${
+            ? ` ${git.total_commits.toLocaleString()} ${
+                git.total_commits === 1 ? "commit" : "commits"
+              } by ${git.contributors_count} ${
                 git.contributors_count === 1 ? "person" : "people"
               }${git.commits_last_7_days > 0 ? `, ${git.commits_last_7_days} this week` : ""}.`
             : ""}

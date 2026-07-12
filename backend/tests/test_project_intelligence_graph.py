@@ -177,9 +177,10 @@ def test_role_lens_fallback_and_distinct_orders():
     assert role_lens_for("tester").role == "tester"
     assert role_lens_for(None).role == "developer"  # default
     assert role_lens_for("unknown-role").role == "developer"
-    # DevOps leads with infrastructure; tester leads with deployment/tests.
+    # DevOps leads with infrastructure; a tester leads with what might break, not
+    # with how it ships (opening on Deployment was the DevOps view in disguise).
     assert role_lens_for("devops").section_order[1] == "infrastructure"
-    assert role_lens_for("tester").section_order[1] == "deployment"
+    assert role_lens_for("tester").section_order[1] == "risks"
 
 
 def test_presenter_projects_sections_with_role_order_and_facts():

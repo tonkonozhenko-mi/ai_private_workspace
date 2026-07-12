@@ -50,6 +50,23 @@ const ROLE_OPTIONS: { value: string; label: string }[] = SKILL_PRESETS.map((pres
   label: preset.name,
 }));
 
+// What the map will show you, promised in your own vocabulary. The old list named
+// environments, pipelines and cloud services to everyone — so a tester was invited
+// to build a map that, as advertised, contained nothing they had come for. Each
+// role now leads with what its own analyzer finds; the map itself is unchanged.
+const EMPTY_PREVIEW_BY_ROLE: Record<string, string[]> = {
+  developer: ["Modules", "Dependencies", "Tests", "Config files", "Important files", "Risks"],
+  devops: ["Environments", "Pipelines (CI/CD)", "Cloud services", "Deployment flow", "Risks"],
+  tester: ["Test suites", "What runs them in CI", "Modules no test mentions", "Risks"],
+  business_analyst: ["API endpoints", "Domain entities", "Services", "Integrations", "Risks"],
+  manager: ["What changed recently", "Who owns what", "Environments", "Risks"],
+  dba: ["Tables", "Relationships", "Migrations", "Indexes", "Risks"],
+};
+
+function emptyPreviewForRole(role: string): string[] {
+  return EMPTY_PREVIEW_BY_ROLE[role] ?? EMPTY_PREVIEW_BY_ROLE.developer;
+}
+
 const SECTION_LABELS: Record<string, string> = {
   summary: "Overview",
   infrastructure: "Infrastructure",
@@ -332,19 +349,12 @@ export function ProjectIntelligence({
         <div className="pi-empty">
           <p className="pi-empty-lead">No project map yet.</p>
           <p className="pi-muted">
-            Build a deterministic map of the infrastructure, pipelines, environments and risks
-            found in this project. Nothing runs and no files are changed.
+            Build a deterministic map of what this project is made of — code, tests, data,
+            infrastructure — and the risks in it. Nothing runs and no files are changed.
           </p>
           <p className="pi-empty-preview-lead">Once built, it surfaces things like:</p>
           <ul className="pi-empty-preview" aria-hidden="true">
-            {[
-              "Environments",
-              "Pipelines (CI/CD)",
-              "Cloud services",
-              "Dependencies",
-              "Deployment flow",
-              "Risks",
-            ].map((label) => (
+            {emptyPreviewForRole(role).map((label) => (
               <li className="pi-empty-preview-item" key={label}>
                 <span className="pi-empty-preview-dot" />
                 {label}
