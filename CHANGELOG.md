@@ -18,6 +18,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 
+- **DBA was a role you could choose and then could not go back to.** It was offered when you created a project, but the Intelligence lens picker had never heard of it — so the moment you looked at anything else, there was no way back to the database view. Every place that offers a role now reads the same list, and a test fails if a role is ever offered somewhere it cannot actually be used.
 - **A folder the app is not allowed to read no longer looks like a folder that takes forever to read.** On macOS the first look inside Documents waits for a permission dialog — and if that dialog is hidden behind another window, the scan simply stops: ten files, seven minutes, "Enumerating files…" and no explanation. Now the file walk reports its running count as it goes, so a big repository is visibly moving; if nothing moves for five seconds, the app says what is probably happening and where to grant access. And if the folder is genuinely closed to us, the scan fails with that same sentence instead of quietly returning a smaller project — an index missing the files it was never allowed to open is worse than no index at all.
 
 - **Saving the Manager role could fail silently.** "Manager" was offered everywhere in the UI but missing from the profile registry that validates the setting, so the app rejected the very role it had just suggested. Both Manager and the new DBA role are registered now.
