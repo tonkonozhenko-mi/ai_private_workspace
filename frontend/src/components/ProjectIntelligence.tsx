@@ -121,7 +121,9 @@ export function ProjectIntelligence({
   const [error, setError] = useState<string | null>(null);
   // The role is the workspace's saved assistant_mode — one setting, shared with
   // Ask. Changing it here persists it for the whole workspace.
-  const [role, setRole] = useState<string>(dashboard.assistant_mode);
+  // A workspace whose role was never chosen shows the neutral developer lens here,
+  // so the picker never renders blank.
+  const [role, setRole] = useState<string>(dashboard.assistant_mode || "developer");
   const [activeTab, setActiveTab] = useState<string>("summary");
   const [stale, setStale] = useState(false);
 
@@ -171,7 +173,7 @@ export function ProjectIntelligence({
 
   // Keep in sync if the role is changed elsewhere (e.g. Settings).
   useEffect(() => {
-    setRole(dashboard.assistant_mode);
+    setRole(dashboard.assistant_mode || "developer");
   }, [dashboard.assistant_mode]);
 
   // Change the workspace's role: re-frame the map immediately (the load effect
