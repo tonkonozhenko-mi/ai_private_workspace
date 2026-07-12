@@ -52,7 +52,6 @@ from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
-
 from app.core.use_cases.add_timeline_event import (
     AddTimelineEventInput,
     AddTimelineEventUseCase,

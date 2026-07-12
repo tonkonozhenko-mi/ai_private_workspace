@@ -63,9 +63,7 @@ SOURCE_CODE_EXTENSIONS = frozenset(SOURCE_CODE_LANGUAGES)
 # Config formats that aren't YAML or JSON. pyproject.toml, setup.cfg, my.ini and
 # friends answer "how is X configured" — the single most common question about a
 # repository after "where is X".
-CONFIG_EXTENSIONS = frozenset(
-    {".toml", ".ini", ".cfg", ".properties", ".conf", ".editorconfig"}
-)
+CONFIG_EXTENSIONS = frozenset({".toml", ".ini", ".cfg", ".properties", ".conf", ".editorconfig"})
 
 # A real .env holds secrets and must never be indexed; its committed *templates*
 # are documentation and should be.
