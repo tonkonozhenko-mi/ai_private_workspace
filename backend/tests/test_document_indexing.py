@@ -8,6 +8,8 @@ stay readable — and there is no opaque blob in the repository.
 import zipfile
 from pathlib import Path
 
+import pytest
+
 from app.adapters.documents.local_document_extractor import LocalDocumentExtractor
 from app.adapters.filesystem.local_file_system import LocalFileSystem
 from app.core.domain.document_extraction import EXTRACTABLE_DOCUMENT_TYPES
@@ -110,6 +112,9 @@ def test_scan_detects_document_types(tmp_path):
 
 
 def test_pdf_sections_are_addressed_by_page(tmp_path):
+    # pypdf is a declared dependency, so CI always runs this. A developer whose
+    # virtualenv predates it gets a skip with the reason, not a red failure.
+    pytest.importorskip("pypdf", reason="pypdf is not installed in this environment")
     _write_fixtures(tmp_path)
     pdf = LocalDocumentExtractor().extract(str(tmp_path), "adr.pdf", "pdf_document")
     assert pdf.skipped_reason is None
