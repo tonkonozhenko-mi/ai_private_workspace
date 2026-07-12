@@ -18,6 +18,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 
+- **DBA was a role you could choose and then could not go back to.** It was offered when you created a project, but the Intelligence lens picker had never heard of it — so the moment you looked at anything else, there was no way back to the database view. Every place that offers a role now reads the same list, and a test fails if a role is ever offered somewhere it cannot actually be used.
+
 - **Saving the Manager role could fail silently.** "Manager" was offered everywhere in the UI but missing from the profile registry that validates the setting, so the app rejected the very role it had just suggested. Both Manager and the new DBA role are registered now.
 
 - **Your role now actually changes what you read.** When you create a project you say who you are on it — Developer, DevOps, Tester, Manager, Business analyst — and that choice finally reaches the whole app: Intelligence opens with your lens, Ask offers the questions your role asks first, and answers lead with what matters to you. The role is a lens, not a cage: it changes the order and the wording, never which files are searched, which facts are true, or what is cited — a tester and a manager asking the same question see the same sources. It can be changed in one click at any time, and leaving it unset costs nothing (you get the neutral developer view).

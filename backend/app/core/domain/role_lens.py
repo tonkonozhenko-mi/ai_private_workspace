@@ -211,6 +211,20 @@ _DBA = RoleLens(
     ],
 )
 
+# The roles a person can actually choose. Everything that offers a role — the
+# create-project form, the Intelligence lens picker, Settings skills — must offer
+# exactly these, and nothing may offer a role that has no lens here. DBA existed
+# in the create form but not in the Intelligence picker, so a DBA workspace could
+# not switch back to its own lens; one list, checked by a test, is the cure.
+CANONICAL_ROLES: tuple[str, ...] = (
+    "developer",
+    "devops",
+    "tester",
+    "business_analyst",
+    "manager",
+    "dba",
+)
+
 ROLE_LENSES: dict[str, RoleLens] = {
     "developer": _DEVELOPER,
     "devops": _DEVOPS,
