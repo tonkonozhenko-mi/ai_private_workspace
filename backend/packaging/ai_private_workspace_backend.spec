@@ -19,6 +19,9 @@ for package in [
     "pydantic",
     "pydantic_core",
     "yaml",
+    # Imported lazily (inside the PDF extractor) so PyInstaller's static analysis
+    # cannot see it — name it here or PDFs silently stop working in the bundle.
+    "pypdf",
 ]:
     hiddenimports.extend(collect_submodules(package))
 

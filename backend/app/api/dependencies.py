@@ -4,6 +4,7 @@ from pathlib import Path
 from app.adapters.embeddings.switchable_embedding_provider import (
     SwitchableEmbeddingProvider,
 )
+from app.adapters.documents.local_document_extractor import LocalDocumentExtractor
 from app.adapters.filesystem.local_file_system import LocalFileSystem
 from app.adapters.llm.llama_server_reranker import LlamaServerReranker
 from app.adapters.system.gguf_download_job_runner import GgufDownloadJobRunner
@@ -139,6 +140,9 @@ workspace_model_selection_repository = build_workspace_model_selection_repositor
 workspace_storage_gateway = build_workspace_storage_gateway()
 file_system = LocalFileSystem()
 git_history = LocalGitHistory()
+# Reads Word/Excel/PDF/HTML into locatable text sections, entirely on this
+# computer — no document ever leaves the machine.
+document_extractor = LocalDocumentExtractor()
 _gguf_download_use_case = DownloadGgufModelUseCase(
     HuggingFaceGgufDownloader(), get_settings().app_data_dir
 )

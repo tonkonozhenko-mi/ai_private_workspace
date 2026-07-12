@@ -24,6 +24,16 @@ DEFAULT_INCLUDE_PATTERNS: tuple[str, ...] = (
     "helm/**",
     "chart/**",
     "charts/**",
+    # Documents. A project folder is not only code: runbooks in Word, cost sheets
+    # in Excel, decisions in PDF, an exported wiki as HTML. All read locally.
+    "*.docx",
+    "*.xlsx",
+    "*.pdf",
+    "*.html",
+    "*.htm",
+    "*.txt",
+    "*.rst",
+    "*.adoc",
 )
 DEFAULT_EXCLUDE_PATTERNS: tuple[str, ...] = (
     ".git/**",

@@ -12,6 +12,7 @@ from app.api.dependencies import (
     build_reranker,
     command_repository,
     conversation_repository,
+    document_extractor,
     embedding_provider,
     file_system,
     git_history,
@@ -1156,6 +1157,7 @@ def start_index_workspace_job(workspace_id: str) -> WorkspaceJobResponse:
                 # instead of falling back to a slow full re-embed.
                 manifest_repository=index_manifest_repository,
                 handbook_provider=handbook_text_provider,
+                document_extractor=document_extractor,
             ).execute(
                 IndexWorkspaceInput(
                     workspace_id=workspace_id,
@@ -1329,6 +1331,7 @@ def _index_use_case() -> IndexWorkspaceUseCase:
         timeline_repository=timeline_repository,
         manifest_repository=index_manifest_repository,
         handbook_provider=handbook_text_provider,
+        document_extractor=document_extractor,
     )
 
 
