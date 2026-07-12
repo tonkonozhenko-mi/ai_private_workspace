@@ -147,11 +147,44 @@ const SOURCE_EXTENSIONS = new Set([
   "vue", "svelte", "sh", "bash", "sql", "lua", "r", "dart", "ex", "exs", "clj",
 ]);
 
+// The scan already decided what each file is; trust it rather than re-deriving a
+// second, subtly different answer here. The regexes below stay as a fallback for
+// files the scanner leaves as "unknown".
+const GROUP_BY_DETECTED_TYPE: Record<string, FileGroupKey> = {
+  terraform: "infra",
+  terragrunt: "infra",
+  kubernetes: "infra",
+  helm: "infra",
+  docker: "infra",
+  gitlab_ci: "ci",
+  github_actions: "ci",
+  python: "code",
+  source_code: "code",
+  shell: "code",
+  makefile: "code",
+  notebook: "code",
+  markdown: "docs",
+  plain_text: "docs",
+  word_document: "docs",
+  pdf_document: "docs",
+  html: "docs",
+  tabular_data: "docs",
+  yaml: "config",
+  json: "config",
+  config: "config",
+  xml_config: "config",
+};
+
 function categorize(file: ProjectFileResponse): FileGroupKey {
   const p = file.path.toLowerCase();
+  // Tests are about *where* a file lives, not what it is written in, so this stays
+  // a path rule and runs first — a test .ts is a test, not a module.
+  if (/(^|\/)tests?\/|\.test\.|\.spec\.|__tests__|_test\.|\/spec\//.test(p)) return "tests";
+  const detected = GROUP_BY_DETECTED_TYPE[file.detected_type];
+  if (detected) return detected;
+
   if (/dockerfile|docker-compose|\.tf(\.|$)|\/terraform\/|\/k8s\/|kubernetes|\/helm\/|\/charts\/|ansible/.test(p)) return "infra";
   if (/\.github\/workflows|\.gitlab-ci|jenkinsfile|\.circleci|azure-pipelines|\.drone/.test(p)) return "ci";
-  if (/(^|\/)tests?\/|\.test\.|\.spec\.|__tests__|_test\.|\/spec\//.test(p)) return "tests";
   const ext = (file.extension ?? "").toLowerCase();
   if (ext === "md" || ext === "rst" || ext === "txt" || /(^|\/)docs?\//.test(p) || /readme|license|changelog|contributing/.test(p)) return "docs";
   if (SOURCE_EXTENSIONS.has(ext)) return "code";

@@ -13,8 +13,10 @@ from app.core.domain.document_extraction import (
     EXCEL_WORKBOOK,
     EXTRACTABLE_DOCUMENT_TYPES,
     HTML_DOCUMENT,
+    NOTEBOOK,
     PDF_DOCUMENT,
     PLAIN_TEXT,
+    TABULAR_DATA,
     WORD_DOCUMENT,
 )
 from app.core.domain.handbook_source import HANDBOOK_SOURCE_PATH
@@ -33,6 +35,14 @@ from app.core.domain.relevance_calibration import (
     calibrate_from_embeddings,
     probe_ceiling,
 )
+from app.core.domain.source_files import (
+    CONFIG,
+    GENERATED_SOURCE_REASON,
+    MAKEFILE,
+    SOURCE_CODE,
+    XML_CONFIG,
+    is_generated_source,
+)
 from app.core.ports.document_text_extractor import DocumentTextExtractorPort
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.file_system import FileSystemPort
@@ -42,12 +52,12 @@ from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.timeline_repository import TimelineRepositoryPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
-
-logger = logging.getLogger(__name__)
 from app.core.use_cases.add_timeline_event import (
     AddTimelineEventInput,
     AddTimelineEventUseCase,
 )
+
+logger = logging.getLogger(__name__)
 
 # Synthetic "file" holding the deterministic project handbook / deep-analysis
 # digest. Indexing it as a pseudo-document lets broad "what is this project about"
@@ -72,13 +82,22 @@ INDEXABLE_FILE_TYPES = {
     "kubernetes",
     "helm",
     "shell",
-    # Documents. The extractable ones (Word/Excel/PDF/HTML) go through the
-    # DocumentTextExtractor; plain text is read directly like any other text file.
+    # Documents. The extractable ones (Word/Excel/PDF/HTML, CSV, notebooks) go
+    # through the DocumentTextExtractor; plain text is read like any other text file.
     WORD_DOCUMENT,
     EXCEL_WORKBOOK,
     PDF_DOCUMENT,
     HTML_DOCUMENT,
     PLAIN_TEXT,
+    TABULAR_DATA,
+    NOTEBOOK,
+    # The rest of a real repository: every language that isn't Python, and the
+    # config formats that aren't YAML or JSON. Without these a TypeScript project
+    # indexed nothing at all.
+    SOURCE_CODE,
+    CONFIG,
+    XML_CONFIG,
+    MAKEFILE,
 }
 
 
@@ -657,6 +676,17 @@ class IndexWorkspaceUseCase:
             return self._chunks_for_document(workspace_id, project_path, project_file)
 
         content = self.file_system.read_text_file(project_path, project_file.path)
+
+        # A minified bundle or a generated blob survives every name-based check and
+        # then floods the index: one 300 KB line embeds to a vector that means
+        # nothing and cites a place no one can read. Refuse it here, where we have
+        # the content, and say why.
+        if project_file.detected_type == SOURCE_CODE and is_generated_source(content):
+            logger.info(
+                "index.source skipped path=%s reason=%s", project_file.path, GENERATED_SOURCE_REASON
+            )
+            return [], content_hash(f"skipped:{GENERATED_SOURCE_REASON}")
+
         file_hash = content_hash(content)
         raw_chunks = chunk_document(
             content,

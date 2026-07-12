@@ -33,6 +33,11 @@ from app.core.domain.project_graph import (
     ProjectRelation,
     RelationType,
 )
+from app.core.domain.source_files import dominant_source_language
+
+# One stray .ts helper in a Terraform repo is not "a TypeScript application".
+# Three files is the point where the code is the project, not a footnote.
+_MIN_SOURCE_FILES_FOR_APPLICATION = 3
 
 
 def _slug(value: str) -> str:
@@ -720,6 +725,29 @@ def important_files(paths: list[str], limit: int = 12) -> list[dict[str, str]]:
     return out
 
 
+def from_source_scan(source_paths: list[str]) -> ProjectEntity | None:
+    """The application entity for a codebase that has no analyzer of its own.
+
+    Only Python is analyzed properly, so a TypeScript, Go or Java repository used to
+    produce an empty graph and introduce itself as "unknown". The scan already knows
+    what the code is written in — say so. Deliberately shallow (one entity, no
+    modules or imports): enough for the project to have a name and a kind. A real
+    analyzer per language is separate work.
+    """
+    language, file_count = dominant_source_language(source_paths)
+    if not language or file_count < _MIN_SOURCE_FILES_FOR_APPLICATION:
+        return None
+
+    name = f"{language} application"
+    return ProjectEntity(
+        id=_entity_id(EntityType.APPLICATION, name),
+        type=EntityType.APPLICATION,
+        name=name,
+        analyzer="scan",
+        metadata={"language": language, "source_files": str(file_count)},
+    )
+
+
 def build_project_graph(
     workspace_id: str,
     *,
@@ -732,6 +760,7 @@ def build_project_graph(
     python: PythonAnalysisResult | None = None,
     references: ReferenceAnalysisResult | None = None,
     scan_paths: list[str] | None = None,
+    source_paths: list[str] | None = None,
     analyzers_skipped: list[str] | None = None,
 ) -> ProjectGraph:
     """Compose all available analyzer results into one role-neutral graph.
@@ -789,6 +818,11 @@ def build_project_graph(
         absorb(from_python(python), "python")
     if references is not None:
         absorb(from_references(references), "references")
+
+    source_application = from_source_scan(source_paths or [])
+    if source_application is not None:
+        entities.setdefault(source_application.id, source_application)
+        analyzers_run.append("source_scan")
 
     # Important files become config_file entities (with a plain-language reason),
     # so the "Important files" section is part of the same evidence graph.

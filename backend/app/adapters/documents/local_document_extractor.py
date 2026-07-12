@@ -12,9 +12,12 @@ this computer and never leave it.
 
 from __future__ import annotations
 
+import csv
+import json
 import logging
 import re
 import zipfile
+from collections.abc import Callable
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -30,7 +33,9 @@ from app.core.domain.document_extraction import (
     MAX_DOCUMENT_BYTES,
     MAX_PDF_PAGES,
     MAX_SHEET_ROWS,
+    NOTEBOOK,
     PDF_DOCUMENT,
+    TABULAR_DATA,
     WORD_DOCUMENT,
     ExtractedDocument,
     ExtractedSection,
@@ -61,6 +66,31 @@ def _markdown_table(rows: list[list[str]]) -> list[str]:
     return lines
 
 
+def _row_block_sections(
+    table: list[list[str]],
+    locator: Callable[[int, int], str],
+) -> list[ExtractedSection]:
+    """Split a table into sections of `_SHEET_ROWS_PER_SECTION` rows, repeating the
+    header in each one, and label each with `locator(first_row, last_row)` (1-based,
+    row 1 being the header).
+
+    Shared by the spreadsheet and the CSV path: a block of bare numbers means
+    nothing — to an embedder or to a reader — without its column names, and that
+    rule does not change with the file extension.
+    """
+    if not table:
+        return []
+    header, *body = table
+    sections: list[ExtractedSection] = []
+    for start in range(0, len(body), _SHEET_ROWS_PER_SECTION):
+        block = body[start : start + _SHEET_ROWS_PER_SECTION]
+        if not block:
+            break
+        text = "\n".join(_markdown_table([header, *block]))
+        sections.append(ExtractedSection(locator(start + 2, start + 1 + len(block)), text))
+    return sections
+
+
 class LocalDocumentExtractor:
     """Adapter implementing DocumentTextExtractorPort. Never raises."""
 
@@ -87,6 +117,10 @@ class LocalDocumentExtractor:
                 return self._html(path)
             if file_type == PDF_DOCUMENT:
                 return self._pdf(path)
+            if file_type == TABULAR_DATA:
+                return self._csv(path)
+            if file_type == NOTEBOOK:
+                return self._notebook(path)
             return skipped(f"No extractor for '{file_type}'.")
         except zipfile.BadZipFile:
             # A .docx/.xlsx that isn't a valid OOXML container — often a renamed
@@ -189,24 +223,68 @@ class LocalDocumentExtractor:
                 if not table:
                     continue
 
-                header, *body = table
-                # One section per block of rows, header repeated — see the note on
-                # _SHEET_ROWS_PER_SECTION.
-                for start in range(0, max(len(body), 1), _SHEET_ROWS_PER_SECTION):
-                    block = body[start : start + _SHEET_ROWS_PER_SECTION]
-                    if not block:
-                        break
-                    lines = _markdown_table([header, *block])
-                    first = start + 2  # 1-based, row 1 is the header
-                    last = start + 1 + len(block)
-                    sections.append(
-                        ExtractedSection(f'sheet "{sheet}" rows {first}-{last}', "\n".join(lines))
-                    )
+                sections += _row_block_sections(
+                    table, lambda a, b, sheet=sheet: f'sheet "{sheet}" rows {a}-{b}'
+                )
 
         if not sections:
             return skipped("The workbook contains no extractable rows.")
         if truncated:
             logger.info("xlsx truncated at %d rows path=%s", MAX_SHEET_ROWS, path.name)
+        return ExtractedDocument(sections=sections)
+
+    # --------------------------------------------------------------- .csv/.tsv
+    def _csv(self, path: Path) -> ExtractedDocument:
+        delimiter = "\t" if path.suffix.lower() == ".tsv" else ","
+        table: list[list[str]] = []
+        truncated = False
+        with path.open("r", encoding="utf-8", errors="ignore", newline="") as handle:
+            for row in csv.reader(handle, delimiter=delimiter):
+                if len(table) >= MAX_SHEET_ROWS:
+                    truncated = True
+                    break
+                cells = [cell.strip() for cell in row]
+                if any(cells):
+                    table.append(cells)
+
+        if len(table) < 2:
+            return skipped("The file has no data rows below its header.")
+        if truncated:
+            logger.info("csv truncated at %d rows path=%s", MAX_SHEET_ROWS, path.name)
+        return ExtractedDocument(sections=_row_block_sections(table, lambda a, b: f"rows {a}-{b}"))
+
+    # ----------------------------------------------------------------- .ipynb
+    def _notebook(self, path: Path) -> ExtractedDocument:
+        """Markdown and code cells in order, addressed by cell number.
+
+        Outputs are deliberately left out: they are re-runnable noise, and a single
+        plot is megabytes of base64 that would drown the notebook's actual words.
+        """
+        try:
+            notebook = json.loads(path.read_text(encoding="utf-8", errors="ignore"))
+        except json.JSONDecodeError:
+            return skipped("The notebook is not valid JSON and was skipped.")
+        if not isinstance(notebook, dict):
+            return skipped("The notebook has no readable cells.")
+
+        sections: list[ExtractedSection] = []
+        for number, cell in enumerate(notebook.get("cells") or [], start=1):
+            if not isinstance(cell, dict):
+                continue
+            kind = cell.get("cell_type")
+            if kind not in {"markdown", "code"}:
+                continue
+            source = cell.get("source") or ""
+            text = ("".join(source) if isinstance(source, list) else str(source)).strip()
+            if not text:
+                continue
+            # Fence the code so the chunker and the reader can both tell prose
+            # from program.
+            body = f"```\n{text}\n```" if kind == "code" else text
+            sections.append(ExtractedSection(f"cell {number}", body))
+
+        if not sections:
+            return skipped("The notebook has no readable cells.")
         return ExtractedDocument(sections=sections)
 
     # ------------------------------------------------------------------ .html

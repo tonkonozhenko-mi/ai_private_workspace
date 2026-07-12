@@ -46,6 +46,11 @@ _BLOCK_TYPES = {
     "docker",
     "gitlab_ci",
     "github_actions",
+    # TOML/INI tables, Makefile rules and XML elements are all separated by blank
+    # lines in practice; the block splitter keeps each stanza whole.
+    "config",
+    "makefile",
+    "xml_config",
 }
 
 # Scanner types whose syntax is brace/HCL-block structured.
@@ -177,6 +182,13 @@ _CONFIG_KEY_TYPES = {"json", "yaml"}
 # matches keys at any depth.
 _JSON_KEY_RE = re.compile(r'"([A-Za-z_][\w.\-]{1,48})"\s*:')
 _YAML_KEY_RE = re.compile(r"^[ \t-]*([A-Za-z_][\w.\-]{1,48})\s*:(?:\s|$)", re.MULTILINE)
+# TOML/INI: a `[tool.ruff]` table header or a `line-length = 100` assignment. Same
+# reasoning as above — "what linting rules are configured" must find pyproject.toml
+# by the key name, not by hoping the value happens to embed close to the question.
+_TOML_KEY_RE = re.compile(
+    r"^\s*(?:\[+([A-Za-z_][\w.\-]{1,48})[^\]]*\]+|([A-Za-z_][\w.\-]{1,48})\s*=)",
+    re.MULTILINE,
+)
 _MAX_CONFIG_KEYS = 24
 _MAX_CONFIG_KEYS_CHARS = 200
 
@@ -192,14 +204,21 @@ def config_keys(
     ext = (extension or "").lower()
     is_json = file_type == "json" or ext == ".json"
     is_yaml = file_type == "yaml" or ext in {".yml", ".yaml"}
-    if not (is_json or is_yaml):
+    is_toml = file_type == "config" or ext in {".toml", ".ini", ".cfg", ".properties"}
+    if not (is_json or is_yaml or is_toml):
         return []
-    pattern = _JSON_KEY_RE if is_json else _YAML_KEY_RE
+    if is_json:
+        pattern = _JSON_KEY_RE
+    elif is_yaml:
+        pattern = _YAML_KEY_RE
+    else:
+        pattern = _TOML_KEY_RE
     seen: dict[str, None] = {}
     used_chars = 0
     for match in pattern.finditer(content):
-        key = match.group(1)
-        if key in seen or key.isdigit():
+        # TOML has two alternatives (table header / assignment); take whichever fired.
+        key = next((group for group in match.groups() if group), None)
+        if not key or key in seen or key.isdigit():
             continue
         if used_chars + len(key) > _MAX_CONFIG_KEYS_CHARS:
             break
@@ -290,6 +309,10 @@ def _structural_units(
         return _split_brace_aware(content)
     if file_type in _BLOCK_TYPES:
         return _split_blocks(content)
+    # "source_code" spans two dozen languages, so the extension decides: braces for
+    # the C-family and its descendants, paragraphs for Ruby/Python-like syntax. That
+    # is exactly what the extension fallback below already does — fall through to it
+    # rather than guessing here.
 
     # The scanner reports "unknown"/None for most source languages — route by the
     # file extension, then fall back to a content heuristic so any file still gets
