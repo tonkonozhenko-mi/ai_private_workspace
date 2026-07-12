@@ -32,6 +32,13 @@ _ENTITY_LABEL: dict[str, str] = {
     EntityType.DEPENDENCY: "Dependencies",
     EntityType.CLOUD_SERVICE: "Cloud services",
     EntityType.REFERENCE: "References",
+    # The facts the newer analyzers produce. Without labels here the tester's and
+    # the DBA's own entities were counted but never named.
+    EntityType.TABLE: "Tables",
+    EntityType.MIGRATION: "Migrations",
+    EntityType.TEST_SUITE: "Test suites",
+    EntityType.API_ENDPOINT: "API endpoints",
+    EntityType.DOMAIN_ENTITY: "Domain entities",
 }
 
 
@@ -43,6 +50,10 @@ _ENTITY_LABEL: dict[str, str] = {
 class _QuestionCandidate:
     question: str
     requires_type: str | None  # entity type that must be present (None = always)
+    # Roles this question is *for*. Empty = everyone. A question with no required
+    # type but a role ("What changed recently?" for a manager) still leads that
+    # role's list rather than being crowded out by the orientation questions.
+    roles: tuple[str, ...] = ()
 
 
 _QUESTION_CANDIDATES: list[_QuestionCandidate] = [
@@ -67,9 +78,19 @@ _QUESTION_CANDIDATES: list[_QuestionCandidate] = [
     _QuestionCandidate(
         "Where is configuration kept, and what shapes runtime behaviour?", EntityType.CONFIG_FILE
     ),
-    # These two are always worth offering — every project can answer them.
+    # The facts the other analyzers found — a tester offered "How is this deployed?"
+    # and nothing about tests was being offered the DevOps map with a new label.
+    _QuestionCandidate("Where do the tests live, and how do I run them?", EntityType.TEST_SUITE),
+    _QuestionCandidate("What tables exist, and how are they related?", EntityType.TABLE),
+    _QuestionCandidate("In what order do the migrations apply?", EntityType.MIGRATION),
+    _QuestionCandidate("What does this system do for its users?", EntityType.API_ENDPOINT),
+    _QuestionCandidate("What are the main things this system deals with?", EntityType.DOMAIN_ENTITY),
+    # These are always worth offering — every project can answer them. "What changed
+    # recently" needs no map at all (it comes from git), and it is the first thing a
+    # manager asks, so it is offered to everyone rather than gated on evidence.
     _QuestionCandidate("Where should I start reading to understand this repo?", None),
     _QuestionCandidate("What are the biggest risks flagged here, and what should I check?", None),
+    _QuestionCandidate("What changed recently?", None, roles=("manager",)),
 ]
 
 
@@ -175,7 +196,14 @@ def suggested_questions(graph: ProjectGraph, lens: RoleLens, limit: int = 5) -> 
     # Split into the always-on orientation questions (no required type) and the
     # evidence-gated, role-relevant ones. The orientation questions are core for
     # every role, so they are guaranteed a slot; the role questions lead.
-    general = [c for c in _QUESTION_CANDIDATES if c.requires_type is None]
+    # Orientation questions everyone gets a slot for; role questions lead. A
+    # question with no required type but a role of its own ("What changed
+    # recently?" for a manager) counts as a role question, so it leads the list
+    # instead of being crowded out by the orientation pair.
+    general = [c for c in _QUESTION_CANDIDATES if c.requires_type is None and not c.roles]
+    role_general = [
+        c for c in _QUESTION_CANDIDATES if c.requires_type is None and lens.role in c.roles
+    ]
     typed = [
         c
         for c in _QUESTION_CANDIDATES
@@ -193,7 +221,7 @@ def suggested_questions(graph: ProjectGraph, lens: RoleLens, limit: int = 5) -> 
 
     # Reserve slots for the general questions, fill the rest with role questions.
     role_slots = max(0, limit - len(general))
-    chosen = typed_ordered[:role_slots] + general
+    chosen = (role_general + typed_ordered)[:role_slots] + general
 
     seen: set[str] = set()
     out: list[str] = []

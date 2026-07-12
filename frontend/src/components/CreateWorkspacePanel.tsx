@@ -28,7 +28,7 @@ const assistantModes: Array<{ id: string; label: string; description: string }> 
   {
     id: "tester",
     label: "Tester / QA",
-    description: "What's risky to change, how tests run, where coverage is thin.",
+    description: "What's risky to change, how the tests run, which modules no test mentions.",
   },
   {
     id: "manager",

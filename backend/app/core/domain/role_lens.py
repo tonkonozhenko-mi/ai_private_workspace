@@ -120,10 +120,13 @@ _TESTER = RoleLens(
         FindingCategory.RELIABILITY,
         FindingCategory.OBSERVABILITY,
     ],
+    # Risks first, not Deployment: a tester's first question is what is likely to
+    # break, not how it ships. Opening on Deployment made the tester's view look
+    # like the DevOps view wearing a different name.
     section_order=[
         Section.SUMMARY,
-        Section.DEPLOYMENT,
         Section.RISKS,
+        Section.DEPLOYMENT,
         Section.ENVIRONMENTS,
         Section.INFRASTRUCTURE,
         Section.IMPORTANT_FILES,

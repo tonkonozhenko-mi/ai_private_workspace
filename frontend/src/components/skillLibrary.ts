@@ -78,7 +78,10 @@ export const SKILL_PRESETS: SkillPresetDefinition[] = [
     bestFor: "What is tested and how, the riskiest flows to verify, gaps in coverage, and what to re-test after a change.",
     exampleQuestions: [
       "Which critical flows should I test?",
-      "Where is test coverage thin?",
+      // Not "where is coverage thin" — the app never runs your tests, so it cannot
+      // know. It knows which modules no test file so much as names, which is a
+      // weaker claim, honestly stated.
+      "Which modules does no test mention?",
       "What should I re-test after this change?",
     ],
     defaultInstructions: "Answer as a QA / test engineer. Focus on test coverage and test types, the critical flows to verify, regression-risk areas, edge cases, and what to test after a change.",

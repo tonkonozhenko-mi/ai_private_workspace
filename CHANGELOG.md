@@ -18,6 +18,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 
+- **The app spoke to every role in DevOps.** A tester's project map opened on Deployment, the questions offered before the map existed came from a list that had never heard of half the roles, and the empty Intelligence tab promised environments, pipelines and cloud services to a DBA. Each role is now offered what its own analyzer actually finds — test suites, tables, endpoints, ownership — the tester's view opens on what might break rather than on how it ships, and a manager is offered "What changed recently?" first. Same facts, everyone's own words.
+
+- **A promise we couldn't keep: "where coverage is thin".** The app never runs your tests, so it cannot know that. It now says what it does know — which modules no test file so much as mentions — and the tester's dashboard states it once, not twice.
+
+- **"1 commits by 1 person."** Now one commit, one person.
+
 - **Saving the Manager role could fail silently.** "Manager" was offered everywhere in the UI but missing from the profile registry that validates the setting, so the app rejected the very role it had just suggested. Both Manager and the new DBA role are registered now.
 
 - **Your role now actually changes what you read.** When you create a project you say who you are on it — Developer, DevOps, Tester, Manager, Business analyst — and that choice finally reaches the whole app: Intelligence opens with your lens, Ask offers the questions your role asks first, and answers lead with what matters to you. The role is a lens, not a cage: it changes the order and the wording, never which files are searched, which facts are true, or what is cited — a tester and a manager asking the same question see the same sources. It can be changed in one click at any time, and leaving it unset costs nothing (you get the neutral developer view).
