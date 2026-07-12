@@ -15,7 +15,6 @@ import {
   listLocalModelDownloadJobs,
   setActiveBackend,
   startLocalModelDownloadJob,
-  updateWorkspaceAssistantMode,
   updateWorkspaceModelSelection,
 } from "../api/client";
 import type {
@@ -31,31 +30,6 @@ function asArray<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [];
 }
 
-// Who is reading this project? The same facts, ordered and worded for the person
-// in front of them. Four roles because those are the four that ask genuinely
-// different first questions; the ids match the backend's lenses exactly.
-const ROLE_CHOICES: Array<{ id: string; label: string; description: string }> = [
-  {
-    id: "developer",
-    label: "Developer",
-    description: "Architecture, modules, key code paths and tests.",
-  },
-  {
-    id: "tester",
-    label: "Tester / QA",
-    description: "What's risky to change, how tests run, where coverage is thin.",
-  },
-  {
-    id: "manager",
-    label: "Manager",
-    description: "What changed, what's risky, how ready this is — in plain language.",
-  },
-  {
-    id: "devops",
-    label: "DevOps",
-    description: "How it deploys, which environments exist, what can break in production.",
-  },
-];
 
 function roleLabel(item: LocalModelStatusItem): string {
   return item.model_type === "embedding" ? "search" : "answers";
@@ -163,27 +137,6 @@ export function WorkspaceGettingReady({
   const [error, setError] = useState<string | null>(null);
   const [checkedAt, setCheckedAt] = useState<number | null>(null);
 
-  // The role is a lens, not a cage: it changes what the project leads with and how
-  // answers are worded — never which files are searched, which facts are true, or
-  // what is cited. A workspace whose role was never chosen (or that predates this
-  // step) reads as the neutral developer lens, so skipping the question costs
-  // nothing, and the role can be changed in one click at any time from Intelligence.
-  const [roleSaving, setRoleSaving] = useState<string | null>(null);
-  const roleChosen = ROLE_CHOICES.some((choice) => choice.id === dashboard.assistant_mode);
-  const chooseRole = useCallback(
-    async (role: string) => {
-      setRoleSaving(role);
-      try {
-        await updateWorkspaceAssistantMode(dashboard.workspace_id, role);
-        await onRefreshWorkspaceState();
-      } catch (roleError) {
-        setError(roleError instanceof Error ? roleError.message : "Could not save that role.");
-      } finally {
-        setRoleSaving(null);
-      }
-    },
-    [dashboard.workspace_id, onRefreshWorkspaceState],
-  );
   const [jobProgress, setJobProgress] = useState<{
     kind: "scan" | "index";
     current: number | null;
@@ -512,7 +465,7 @@ export function WorkspaceGettingReady({
   // The "install Ollama" gate only applies when the user actually chose Ollama.
   // If they picked the built-in llama.cpp engine, Ollama is irrelevant and must
   // not block them — skip straight to scan/models.
-  let step: "ollama" | "scan" | "models" | "role" | "index" | "ready";
+  let step: "ollama" | "scan" | "models" | "index" | "ready";
   // A scanned AND indexed workspace is ready, full stop — the index could not
   // have been built without working models. Checking modelsReady first here
   // relied on ephemeral component state (llamaReady resets on remount), which
@@ -522,7 +475,6 @@ export function WorkspaceGettingReady({
   else if (backendChoice === "ollama" && !ollamaReachable) step = "ollama";
   else if (!hasScan) step = "scan";
   else if (!modelsReady) step = "models";
-  else if (!roleChosen) step = "role";
   else if (!indexReady) step = "index";
   else step = "ready";
 
@@ -552,7 +504,7 @@ export function WorkspaceGettingReady({
     </div>
   );
 
-  const stepNumber = { ollama: 0, scan: 1, models: 2, role: 3, index: 4, ready: 5 }[step];
+  const stepNumber = { ollama: 0, scan: 1, models: 2, index: 3, ready: 4 }[step];
   const downloading = downloadJobs.length > 0;
 
   // While on the models or index step, gently re-pull parent state so the step
@@ -569,7 +521,7 @@ export function WorkspaceGettingReady({
   return (
     <section className="getting-ready">
       <div className="getting-ready-stepper" aria-hidden="true">
-        {[1, 2, 3, 4].map((n) => (
+        {[1, 2, 3].map((n) => (
           <span key={n} className={stepNumber >= n ? "is-on" : ""} />
         ))}
       </div>
@@ -601,7 +553,7 @@ export function WorkspaceGettingReady({
         </div>
       ) : step === "scan" ? (
         <div className="getting-ready-step">
-          <span className="getting-ready-kicker">Step 1 of 4</span>
+          <span className="getting-ready-kicker">Step 1 of 3</span>
           <h2>Look at your project</h2>
           <p>A quick, local scan lists your files so the AI knows what it can search. Nothing leaves this {deviceNoun()}.</p>
           <div className="getting-ready-actions">
@@ -613,7 +565,7 @@ export function WorkspaceGettingReady({
         </div>
       ) : step === "models" ? (
         <div className="getting-ready-step">
-          <span className="getting-ready-kicker">Step 2 of 4 · one click</span>
+          <span className="getting-ready-kicker">Step 2 of 3 · one click</span>
           <h2>Give your project a local brain</h2>
           <p>
             Downloads two small local models — one to answer, one to search your files.
@@ -741,44 +693,9 @@ export function WorkspaceGettingReady({
           </>
           )}
         </div>
-      ) : step === "role" ? (
-        <div className="getting-ready-step">
-          <span className="getting-ready-kicker">Step 3 of 4 · one click</span>
-          <h2>Who are you on this project?</h2>
-          <p>
-            Same project, same facts, same sources — but a tester and a manager don't want
-            to read the same sentence first. Your role sets what the project leads with and
-            how answers are worded. It never changes what is searched or what is true, and
-            you can switch it any time.
-          </p>
-          <div className="choice-card-grid compact assistant-grid">
-            {ROLE_CHOICES.map((choice) => (
-              <button
-                key={choice.id}
-                type="button"
-                className="choice-card assistant-card"
-                disabled={roleSaving !== null}
-                onClick={() => void chooseRole(choice.id)}
-              >
-                <strong>{choice.label}</strong>
-                <span>{roleSaving === choice.id ? "Saving…" : choice.description}</span>
-              </button>
-            ))}
-          </div>
-          <div className="getting-ready-actions">
-            <button
-              className="text-button"
-              type="button"
-              disabled={roleSaving !== null}
-              onClick={() => void chooseRole("developer")}
-            >
-              Just exploring — skip this
-            </button>
-          </div>
-        </div>
       ) : step === "index" ? (
         <div className="getting-ready-step">
-          <span className="getting-ready-kicker">Step 4 of 4</span>
+          <span className="getting-ready-kicker">Step 3 of 3</span>
           <h2>Build understanding</h2>
           <p>Turn your scanned files into searchable local context, so answers come from your real project.</p>
           <div className="getting-ready-actions">
