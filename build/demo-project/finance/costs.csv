@@ -1,0 +1,10 @@
+month,environment,service,cost_eur,notes
+2026-01,prod,rds-postgres,1840.22,orders + customers
+2026-01,prod,eks,2310.00,payments-api + ledger-worker
+2026-01,staging,rds-postgres,240.10,
+2026-02,prod,rds-postgres,1975.60,storage growth
+2026-02,prod,eks,2288.45,
+2026-02,staging,rds-postgres,251.33,
+2026-03,prod,rds-postgres,2410.05,index rebuild
+2026-03,prod,eks,2301.77,
+2026-03,staging,rds-postgres,248.90,
