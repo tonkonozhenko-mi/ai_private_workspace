@@ -9,3 +9,13 @@ infrastructure, FastAPI services, GitHub Actions CI/CD.
 ## Services
 - payments-api: REST API for payment intents
 - ledger-worker: async double-entry bookkeeping
+
+## Data
+- db/migrations: customers, orders, order_events (Flyway-style, applied by number)
+
+## Tests
+- `make test` — pytest, in tests/
+
+## Documents
+- docs/runbook.docx: deploy, rollback, and what breaks at 3am
+- finance/costs.csv: monthly cloud spend by environment

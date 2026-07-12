@@ -18,6 +18,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 
+- **The demo project was a DevOps project.** It had Terraform, a pipeline and two Python files — so anyone trying the app as a tester, an analyst or a DBA opened it and found nothing, and reasonably concluded the app found nothing. It now has a schema (customers, orders, an append-only log with no primary key), migrations numbered so that V10 lands after V9 rather than after V1, a test suite with a skipped case, a runbook in Word, and a costs spreadsheet. Every role has something real to look at.
 - **The app spoke to every role in DevOps.** A tester's project map opened on Deployment, the questions offered before the map existed came from a list that had never heard of half the roles, and the empty Intelligence tab promised environments, pipelines and cloud services to a DBA. Each role is now offered what its own analyzer actually finds — test suites, tables, endpoints, ownership — the tester's view opens on what might break rather than on how it ships, and a manager is offered "What changed recently?" first. Same facts, everyone's own words.
 
 - **A promise we couldn't keep: "where coverage is thin".** The app never runs your tests, so it cannot know that. It now says what it does know — which modules no test file so much as mentions — and the tester's dashboard states it once, not twice.
