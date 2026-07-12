@@ -18,6 +18,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 
+- **A folder the app is not allowed to read no longer looks like a folder that takes forever to read.** On macOS the first look inside Documents waits for a permission dialog — and if that dialog is hidden behind another window, the scan simply stops: ten files, seven minutes, "Enumerating files…" and no explanation. Now the file walk reports its running count as it goes, so a big repository is visibly moving; if nothing moves for five seconds, the app says what is probably happening and where to grant access. And if the folder is genuinely closed to us, the scan fails with that same sentence instead of quietly returning a smaller project — an index missing the files it was never allowed to open is worse than no index at all.
+
 - **Saving the Manager role could fail silently.** "Manager" was offered everywhere in the UI but missing from the profile registry that validates the setting, so the app rejected the very role it had just suggested. Both Manager and the new DBA role are registered now.
 
 - **Your role now actually changes what you read.** When you create a project you say who you are on it — Developer, DevOps, Tester, Manager, Business analyst — and that choice finally reaches the whole app: Intelligence opens with your lens, Ask offers the questions your role asks first, and answers lead with what matters to you. The role is a lens, not a cage: it changes the order and the wording, never which files are searched, which facts are true, or what is cited — a tester and a manager asking the same question see the same sources. It can be changed in one click at any time, and leaving it unset costs nothing (you get the neutral developer view).

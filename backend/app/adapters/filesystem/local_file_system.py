@@ -4,6 +4,9 @@ import stat as stat_module
 from pathlib import Path
 from time import perf_counter
 
+from collections.abc import Callable
+
+from app.core.domain.folder_access import FolderPermissionError, is_permission_error
 from app.core.domain.gitignore_matcher import GITIGNORE_FILENAME, GitignoreMatcher
 from app.core.domain.project_scan import ProjectFile, ProjectFileList
 from app.core.domain.source_files import (
@@ -41,10 +44,17 @@ SKIPPED_DIRECTORIES = {
 
 
 class LocalFileSystem:
-    def list_files(self, root_path: str, respect_gitignore: bool = True) -> list[ProjectFile]:
+    def list_files(
+        self,
+        root_path: str,
+        respect_gitignore: bool = True,
+        progress: Callable[[int], None] | None = None,
+    ) -> list[ProjectFile]:
         root = Path(root_path).resolve()
         walk_started = perf_counter()
-        candidates = self._collect_candidates(root, respect_gitignore=respect_gitignore)
+        candidates = self._collect_candidates(
+            root, respect_gitignore=respect_gitignore, progress=progress
+        )
         walk_ms = (perf_counter() - walk_started) * 1000
         chart_roots = {
             relative_path.parent.as_posix()
@@ -156,9 +166,28 @@ class LocalFileSystem:
         return replaced_existing
 
     def _collect_candidates(
-        self, root: Path, *, respect_gitignore: bool = True
+        self,
+        root: Path,
+        *,
+        respect_gitignore: bool = True,
+        progress: Callable[[int], None] | None = None,
     ) -> list[tuple[Path, Path, int, float | None]]:
         candidates: list[tuple[Path, Path, int, float | None]] = []
+
+        def _on_walk_error(error: OSError) -> None:
+            """os.walk swallows scandir errors by default, which is how a folder we are
+            not allowed to read produced a *successful* scan with a silently smaller
+            file set. Refuse to be quietly wrong.
+
+            The root being unreadable is fatal — there is no project to scan, and the
+            person needs to be told to grant access. A single unreadable directory
+            deeper in the tree is not: we skip it and count it, the way we already skip
+            an unreadable file."""
+            if not is_permission_error(error):
+                return
+            if Path(error.filename or "").resolve() == root:
+                raise FolderPermissionError(str(root))
+            logger.info("scan.skip_unreadable_dir path=%s", error.filename)
 
         # Prune directories DURING the walk, not after, on two fronts:
         #   1. The hardcoded SKIPPED_DIRECTORIES (.git / node_modules / .venv / …).
@@ -171,7 +200,7 @@ class LocalFileSystem:
         # symlinked dir can't loop us.)
         gitignore_sources: dict[str, str] = {}
         matcher = GitignoreMatcher.empty()
-        for dirpath, dirnames, filenames in os.walk(str(root)):
+        for dirpath, dirnames, filenames in os.walk(str(root), onerror=_on_walk_error):
             current_dir = Path(dirpath)
             rel_dir = "" if current_dir == root else current_dir.relative_to(root).as_posix()
 
@@ -215,6 +244,13 @@ class LocalFileSystem:
                     modified_at = None
 
                 candidates.append((full_path.relative_to(root), full_path, size_bytes, modified_at))
+
+            # A heartbeat, so a slow-but-healthy walk keeps ticking and only a *stuck*
+            # one looks stuck. Without it the UI cannot tell "large repository" from
+            # "blocked on a permission dialog" — and that is the whole difference
+            # between waiting and being lost.
+            if progress is not None:
+                progress(len(candidates))
 
         return candidates
 
