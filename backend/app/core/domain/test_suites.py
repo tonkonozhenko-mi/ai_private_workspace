@@ -57,6 +57,10 @@ _MAX_FILES = 2000
 class TestSuite:
     """One place tests live, e.g. `backend/tests` or `frontend/src/__tests__`."""
 
+    # pytest collects any class whose name starts with "Test". These are domain
+    # types that happen to be *about* tests, not tests themselves.
+    __test__ = False
+
     path: str
     files_count: int
     frameworks: list[str] = field(default_factory=list)
@@ -66,6 +70,8 @@ class TestSuite:
 
 @dataclass(frozen=True)
 class TestFacts:
+    __test__ = False
+
     suites: list[TestSuite] = field(default_factory=list)
     frameworks: list[str] = field(default_factory=list)
     # How to actually run them, in the project's own words: a CI step, a Makefile
