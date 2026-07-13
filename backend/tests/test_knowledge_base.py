@@ -232,3 +232,58 @@ def test_a_page_the_export_left_untitled_keeps_the_name_its_author_gave_it():
         ]
     )
     assert sorted(d.title for d in base.documents) == ["Ingestion layer", "Retention policy"]
+
+
+def test_the_infrastructure_project_lost_nothing_to_all_of_this():
+    """The other side of the same rule. Everything above teaches the app to stop
+    talking to a wiki about pipelines — it must not have learned to stop talking to a
+    Terraform repository about them. Sections follow facts, in both directions."""
+    from app.core.domain.analysis import TerraformAnalysisResult, TerragruntAnalysisResult
+    from app.core.domain.project_graph_builder import build_project_graph
+    from app.core.domain.project_intelligence_view import present_project_intelligence
+    from app.core.domain.role_lens import Section, role_lens_for
+    from app.core.domain.test_suites import build_test_facts
+
+    terraform = TerraformAnalysisResult(
+        workspace_id="w",
+        project_path="/p",
+        total_terraform_files=2,
+        files=["accounts/dev/main.tf", "accounts/prod/main.tf"],
+        has_backend_config=True,
+        has_provider_config=True,
+        has_variables=True,
+        has_outputs=True,
+        has_modules=True,
+        findings=[],
+    )
+    terragrunt = TerragruntAnalysisResult(
+        workspace_id="w",
+        project_path="/p",
+        total_terragrunt_files=1,
+        files=["accounts/prod/terragrunt.hcl"],
+        has_remote_state=True,
+        has_include_blocks=True,
+        has_dependencies=True,
+        has_inputs=True,
+        has_terraform_source=True,
+        findings=[],
+    )
+    graph = build_project_graph(
+        "w",
+        terraform=terraform,
+        terragrunt=terragrunt,
+        # A repo WITH code and no tests still hears about its missing tests.
+        tests=build_test_facts({"main.py": "print(1)"}, source_paths=["main.py"]),
+    )
+    view = present_project_intelligence(graph, role_lens_for("devops"))
+
+    assert view["section_order"][1] == Section.INFRASTRUCTURE
+    assert Section.ENVIRONMENTS in view["section_order"]
+    assert Section.DOCUMENTS not in view["section_order"]  # no pages here, so no tab
+    assert {"dev", "prod"} <= {e["name"] for e in view[Section.ENVIRONMENTS]["environments"]}
+    # A repo that HAS code and no tests still hears about it — the tightening was
+    # "you cannot fail to test what you never wrote", not "never mention tests".
+    assert any("test file" in f["title"].lower() for f in view["risks"]["findings"])
+    # And it is still asked the questions only a deployed thing can be asked. (Not the
+    # dev/staging/prod one: this repo's environments were found, so that gap is closed.)
+    assert any("Terraform state" in q["question"] for q in view["questions"]["questions"])
