@@ -84,7 +84,9 @@ _QUESTION_CANDIDATES: list[_QuestionCandidate] = [
     _QuestionCandidate("What tables exist, and how are they related?", EntityType.TABLE),
     _QuestionCandidate("In what order do the migrations apply?", EntityType.MIGRATION),
     _QuestionCandidate("What does this system do for its users?", EntityType.API_ENDPOINT),
-    _QuestionCandidate("What are the main things this system deals with?", EntityType.DOMAIN_ENTITY),
+    _QuestionCandidate(
+        "What are the main things this system deals with?", EntityType.DOMAIN_ENTITY
+    ),
     # These are always worth offering — every project can answer them. "What changed
     # recently" needs no map at all (it comes from git), and it is the first thing a
     # manager asks, so it is offered to everyone rather than gated on evidence.
