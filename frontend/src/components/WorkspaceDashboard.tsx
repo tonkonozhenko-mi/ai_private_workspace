@@ -41,6 +41,8 @@ interface WorkspaceDashboardProps {
   onRefreshWorkspaceState: () => Promise<void>;
   onOpenSettings: () => void;
   onInspectFile?: (path: string) => void;
+  // A fact on Home is the beginning of a question; this is how it finishes it.
+  onAskQuestion?: (question: string) => void;
   skillPreferences: SkillPreferences;
   fileIndexingPreferences: FileIndexingPreferences;
 }
@@ -49,6 +51,7 @@ export function WorkspaceDashboard({
   dashboard,
   modelsSummary,
   onOpenAsk,
+  onAskQuestion,
   onOpenModels,
   onOpenCapabilities,
   onPreviewSavedFileSelection,
@@ -129,6 +132,7 @@ export function WorkspaceDashboard({
             onStartIndexJob={onStartIndexJob}
             onRefreshWorkspaceState={onRefreshWorkspaceState}
             onInspectFile={onInspectFile}
+            onAskQuestion={onAskQuestion}
           />
           <ProjectWatch dashboard={dashboard} />
           <ProjectMemory dashboard={dashboard} />

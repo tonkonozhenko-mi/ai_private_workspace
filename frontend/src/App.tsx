@@ -1391,6 +1391,7 @@ function App() {
                   modelsSummary={detail.modelsSummary}
                   onInspectFile={(p) => setInspectFilePath(p)}
                   onOpenAsk={() => setActiveTab("ask")}
+                  onAskQuestion={openAskWithQuestion}
                   onOpenModels={() => setActiveTab("models")}
                   onOpenCapabilities={() => setActiveTab("actions")}
                   onPreviewSavedFileSelection={() => previewWorkspaceFileSelection(detail.dashboard.workspace_id)}

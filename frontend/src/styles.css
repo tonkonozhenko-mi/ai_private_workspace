@@ -4662,6 +4662,24 @@ a.getting-ready-cta:hover {
 .pi-muted { color: var(--c-text-2); font-size: 12.5px; line-height: 1.55; margin: 0; }
 .pi-error { color: #f0a3a3; font-size: 12.5px; margin: 0; }
 .pi-working { font-size: 12.5px; color: var(--c-text-3); }
+/* The question a fact raises, offered as one click into Ask. Styled as a question,
+   not as a call to action: it is the sentence you would have typed. */
+.pi-finding-ask,
+.pu-risk-ask {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--c-accent-border);
+  background: var(--c-accent-soft);
+  color: var(--c-accent);
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+.pi-finding-ask:hover,
+.pu-risk-ask:hover { border-color: var(--c-accent); }
 /* What the last action did. Quiet by design: it is a receipt, not an alert. */
 .pi-note { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--c-text-2); background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 8px 11px; }
 .pi-empty { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; padding: 8px 0 4px; }

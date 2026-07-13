@@ -786,10 +786,12 @@ function MapRisksCard({
   findings,
   label,
   onInspectFile,
+  onAskQuestion,
 }: {
   findings: ProjectGraphFinding[];
   label: string;
   onInspectFile?: (path: string) => void;
+  onAskQuestion?: (question: string) => void;
 }) {
   if (findings.length === 0) return null;
   const shown = findings.slice(0, 5);
@@ -827,6 +829,18 @@ function MapRisksCard({
                     {file}
                   </button>
                 ) : null}
+                {/* The fact already contains the question it raises. One click asks
+                    it, instead of leaving the person to re-type it in their own
+                    words and hope those words are the ones in the files. */}
+                {finding.ask && onAskQuestion ? (
+                  <button
+                    type="button"
+                    className="pu-risk-ask"
+                    onClick={() => onAskQuestion(finding.ask as string)}
+                  >
+                    {finding.ask}
+                  </button>
+                ) : null}
               </div>
             </div>
           );
@@ -850,6 +864,7 @@ export function ProjectUnderstanding({
   onStartIndexJob,
   onRefreshWorkspaceState,
   onInspectFile,
+  onAskQuestion,
 }: {
   dashboard: WorkspaceDashboard;
   projectPath: string;
@@ -859,6 +874,8 @@ export function ProjectUnderstanding({
   onStartIndexJob: () => Promise<unknown> | void;
   onRefreshWorkspaceState: () => Promise<void> | void;
   onInspectFile?: (path: string) => void;
+  // Each risk carries the question it is the beginning of; one click asks it.
+  onAskQuestion?: (question: string) => void;
 }) {
   const [scan, setScan] = useState<ProjectScanResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1333,6 +1350,7 @@ export function ProjectUnderstanding({
           findings={intel.view.risks.findings}
           label={lens.risksLabel}
           onInspectFile={onInspectFile}
+          onAskQuestion={onAskQuestion}
         />
       ) : null}
 

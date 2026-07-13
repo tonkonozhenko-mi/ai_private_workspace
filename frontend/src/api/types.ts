@@ -1624,6 +1624,10 @@ export interface ProjectGraphFinding {
   analyzer: string;
   // Calm, review-oriented framing derived deterministically on the backend.
   explained?: RiskExplanation;
+  // The question this fact is the beginning of — deterministic, built from the fact
+  // itself. Null when we have no question worth offering: better a fact with no
+  // button than a button that asks "tell me more about this".
+  ask?: string | null;
 }
 
 export interface ProjectIntelligenceQuestion {
