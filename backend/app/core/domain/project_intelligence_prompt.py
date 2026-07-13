@@ -91,7 +91,9 @@ def _code_lines(payload: dict) -> list[str]:
     if payload.get("applications"):
         lines.append(f"  Applications: {_names(payload['applications'])}")
     if payload.get("modules"):
-        lines.append(f"  Modules ({len(payload['modules'])}): {_names(payload['modules'], limit=8)}")
+        lines.append(
+            f"  Modules ({len(payload['modules'])}): {_names(payload['modules'], limit=8)}"
+        )
     if payload.get("dependencies"):
         lines.append(f"  Dependencies: {_names(payload['dependencies'])}")
     return lines
@@ -290,7 +292,7 @@ def build_project_intelligence_overview_prompt(view: dict, role_label: str) -> s
             "- This project IS a body of documentation. The systems, clouds and "
             "databases named on its pages are things the pages DESCRIBE — they are not "
             "in this folder and you must not attribute them to the project. Write "
-            "\"the documentation covers…\", never \"the project uses…\".",
+            '"the documentation covers…", never "the project uses…".',
         )
     return (
         f"{_role_focus(view, role_label)}\n\n"
