@@ -579,9 +579,11 @@ export function RoleDashboardBrief({
 export function RisksSection({
   view,
   onInspectFile,
+  onAskQuestion,
 }: {
   view: ProjectIntelligenceView;
   onInspectFile?: (path: string) => void;
+  onAskQuestion?: (question: string) => void;
 }) {
   const { findings } = view.risks;
   if (findings.length === 0) {
@@ -607,6 +609,7 @@ export function RisksSection({
             finding={f}
             roleRelevant={highlighted.has(f.category)}
             onInspectFile={onInspectFile}
+            onAskQuestion={onAskQuestion}
           />
         ))}
       </ul>
@@ -620,10 +623,12 @@ function FindingItem({
   finding,
   roleRelevant = false,
   onInspectFile,
+  onAskQuestion,
 }: {
   finding: ProjectGraphFinding;
   roleRelevant?: boolean;
   onInspectFile?: (path: string) => void;
+  onAskQuestion?: (question: string) => void;
 }) {
   const [showEvidence, setShowEvidence] = useState(false);
   const hasEvidence = finding.evidence.length > 0 || Boolean(finding.source_file);
@@ -640,6 +645,20 @@ function FindingItem({
       </div>
 
       <p className="pi-finding-explain">{ex?.what || finding.explanation}</p>
+
+      {/* Every fact is the beginning of a question. Until now the thought ended on the
+          dashboard and you had to re-type it in Ask, in your own words, hoping they
+          matched the words in the files. The question comes from the fact itself. */}
+      {finding.ask && onAskQuestion ? (
+        <button
+          type="button"
+          className="pi-finding-ask"
+          onClick={() => onAskQuestion(finding.ask as string)}
+          title="Ask this about your project"
+        >
+          {finding.ask}
+        </button>
+      ) : null}
 
       {ex ? (
         <>

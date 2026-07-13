@@ -6,6 +6,7 @@ ordered/prioritised for the role. No LLM here — every value comes straight fro
 the graph facts. The LLM (separately) only writes prose over these same facts.
 """
 
+from app.core.domain.fact_questions import question_for_finding
 from app.core.domain.project_graph import (
     EntityType,
     ProjectFinding,
@@ -42,6 +43,9 @@ def _ordered_findings(findings: list[ProjectFinding], lens: RoleLens) -> list[di
             # Calm, review-oriented framing (why it may matter, what to check
             # manually, plain-language confidence) — derived deterministically.
             "explained": explain_finding(f).as_dict(),
+            # The question this fact is the beginning of. The UI offers it as one
+            # click into Ask, so the map and the conversation stop being two places.
+            "ask": question_for_finding(f),
         }
         for f in sorted(findings, key=sort_key)
     ]

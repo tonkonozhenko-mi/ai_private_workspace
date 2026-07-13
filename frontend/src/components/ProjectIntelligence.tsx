@@ -528,7 +528,13 @@ export function ProjectIntelligence({
             {activeTab === "environments" ? (
               <EnvironmentsSection view={view} comparison={comparison} />
             ) : null}
-            {activeTab === "risks" ? <RisksSection view={view} onInspectFile={onInspectFile} /> : null}
+            {activeTab === "risks" ? (
+              <RisksSection
+                view={view}
+                onInspectFile={onInspectFile}
+                onAskQuestion={onAskQuestion}
+              />
+            ) : null}
             {activeTab === CICD_TAB && ci ? (
               <CicdFlowSection
                 ci={ci}

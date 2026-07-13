@@ -41,6 +41,8 @@ interface WorkspaceDashboardProps {
   onRefreshWorkspaceState: () => Promise<void>;
   onOpenSettings: () => void;
   onInspectFile?: (path: string) => void;
+  // A fact on Home is the beginning of a question; this is how it finishes it.
+  onAskQuestion?: (question: string) => void;
   skillPreferences: SkillPreferences;
   fileIndexingPreferences: FileIndexingPreferences;
 }
@@ -49,6 +51,7 @@ export function WorkspaceDashboard({
   dashboard,
   modelsSummary,
   onOpenAsk,
+  onAskQuestion,
   onOpenModels,
   onOpenCapabilities,
   onPreviewSavedFileSelection,
@@ -119,7 +122,11 @@ export function WorkspaceDashboard({
       ) : null}
 
       {fullyReady ? (
-        <>
+        // Home in the order the role reads it. A manager opening a project they have
+        // seen before does not want to be re-introduced to it — they want to know what
+        // moved since last time; everyone else wants the project first. The blocks are
+        // the same blocks: the lens changes what leads, never what is true.
+        <div className="home-stack" data-role={dashboard.assistant_mode ?? "developer"}>
           <ProjectUnderstanding
             dashboard={dashboard}
             projectPath={summary.project_path}
@@ -129,10 +136,11 @@ export function WorkspaceDashboard({
             onStartIndexJob={onStartIndexJob}
             onRefreshWorkspaceState={onRefreshWorkspaceState}
             onInspectFile={onInspectFile}
+            onAskQuestion={onAskQuestion}
           />
           <ProjectWatch dashboard={dashboard} />
           <ProjectMemory dashboard={dashboard} />
-        </>
+        </div>
       ) : (
         <WorkspaceGettingReady
           dashboard={dashboard}

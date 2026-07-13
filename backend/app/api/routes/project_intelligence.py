@@ -283,8 +283,22 @@ def record_watch_history(workspace_id: str) -> dict:
 
 @router.get("/{workspace_id}/intelligence/watch")
 def get_project_watch(workspace_id: str) -> dict:
-    """The most recent watcher digest, or ``has_digest: false`` if none yet."""
+    """The most recent watcher digest, or ``has_digest: false`` if none yet.
+
+    On the very first look, record the baseline. "What changed while you were away"
+    needs a *here* to measure from, and until now the only way to get one was to press
+    Refresh — so the first session recorded nothing and the second could only offer to
+    start counting from then. The graph is already built, so noting where the project
+    stands costs a read and no scan.
+    """
     digest = project_watch_repository.get_latest_digest(workspace_id)
+    if digest is None:
+        digest = RunProjectWatchUseCase(
+            project_graph_repository=project_graph_repository,
+            watch_repository=project_watch_repository,
+            build_graph=_watch_rebuild,
+            git_brief_provider=_watch_git_brief,
+        ).ensure_baseline(workspace_id)
     if digest is None:
         return {"has_digest": False}
     return {"has_digest": True, "digest": digest}
