@@ -916,9 +916,19 @@ export function DocumentsSection({
   const documents = view.documents;
   if (!documents) return null;
 
-  const pages = [...documents.pages, ...documents.decisions].sort(
-    (a, b) => Number(b.metadata?.linked_from ?? 0) - Number(a.metadata?.linked_from ?? 0),
-  );
+  const pages = [...documents.pages, ...documents.decisions];
+  // Only a knowledge base has a link graph. In a repository the backend does not send
+  // one — a hundred READMEs do not point at each other and were never meant to — and a
+  // column of "nothing links to it" under them would be the mirror of telling a wiki it
+  // has no tests. Where there is no graph, the documents are simply listed, by path.
+  const linked = pages.some((page) => page.metadata?.linked_from !== undefined);
+  if (linked) {
+    pages.sort(
+      (a, b) => Number(b.metadata?.linked_from ?? 0) - Number(a.metadata?.linked_from ?? 0),
+    );
+  } else {
+    pages.sort((a, b) => (a.source_file ?? a.name).localeCompare(b.source_file ?? b.name));
+  }
 
   return (
     <div className="pi-stack">
@@ -976,9 +986,11 @@ export function DocumentsSection({
                 {/* On its own line, quiet: the title is what the eye is scanning for, and
                     "nothing links to it" running into the name read like part of it. */}
                 <span className="pi-muted pi-page-meta">
-                  {linkedFrom > 0
-                    ? `linked from ${linkedFrom} page${linkedFrom === 1 ? "" : "s"}`
-                    : "nothing links to it"}
+                  {linked
+                    ? linkedFrom > 0
+                      ? `linked from ${linkedFrom} page${linkedFrom === 1 ? "" : "s"}`
+                      : "nothing links to it"
+                    : (page.source_file ?? "")}
                   {attachments > 0
                     ? ` · ${attachments} attachment${attachments === 1 ? "" : "s"}`
                     : ""}

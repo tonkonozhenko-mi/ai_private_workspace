@@ -4694,6 +4694,36 @@ a.getting-ready-cta:hover {
   cursor: pointer;
 }
 
+/* The sections that did not fit the row. Not fewer sections — fewer at once. */
+.pi-tab-more { position: relative; }
+.pi-tab-more > summary { list-style: none; cursor: pointer; }
+.pi-tab-more > summary::-webkit-details-marker { display: none; }
+.pi-tab-menu {
+  position: absolute;
+  right: 0;
+  z-index: 20;
+  margin-top: 6px;
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+.pi-tab-menu-item {
+  text-align: left;
+  padding: 7px 10px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--c-text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.pi-tab-menu-item:hover { background: var(--c-surface-2); }
+
 .pi-working { font-size: 12.5px; color: var(--c-text-3); }
 /* The question a fact raises, offered as one click into Ask. Styled as a question,
    not as a call to action: it is the sentence you would have typed. */

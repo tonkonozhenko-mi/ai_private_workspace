@@ -189,13 +189,20 @@ def build_role_brief(graph: ProjectGraph, lens: RoleLens, max_examples: int = 3)
     def risk_key(f) -> tuple[int, int]:
         return (0 if f.category in highlighted else 1, severity_rank.get(f.severity, 9))
 
-    # De-duplicate by title — several findings can share a title (e.g. one
-    # "Matrix strategy detected" per workflow file), and the top-three should
-    # read as three distinct things to look at, not the same one twice.
+    # "Worth your attention" must mean it. On a real CI setup the line read
+    # "Permissions not configured · Secrets referenced · Matrix strategy detected": one
+    # thing to look at, and two facts about how every pipeline in the world works. The
+    # low/info tier exists precisely so those can be *reported* without being *raised* —
+    # so only the tiers that ask for a human land here. When nothing does, the line is
+    # absent, which is the good news said by saying nothing.
+    #
+    # De-duplicating by title too: several findings can share one (a "Matrix strategy"
+    # per workflow file), and three lines should be three distinct things.
+    attention_severities = {"high", "medium"}
     top_risks: list[str] = []
     seen_titles: set[str] = set()
     for finding in sorted(graph.findings, key=risk_key):
-        if finding.title in seen_titles:
+        if finding.severity not in attention_severities or finding.title in seen_titles:
             continue
         seen_titles.add(finding.title)
         top_risks.append(finding.title)

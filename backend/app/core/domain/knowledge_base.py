@@ -82,6 +82,12 @@ class KnowledgeBase:
     areas: dict[str, int] = field(default_factory=dict)
     # path → how many other pages link to it.
     inbound_links: dict[str, int] = field(default_factory=dict)
+    # Is this collection a body of knowledge, or a repository that happens to contain
+    # documents? The facts below — areas, links, orphans, staleness — are a wiki's, and
+    # applied to a hundred READMEs in a Terraform monorepo they are the same category
+    # error as telling a wiki it has no tests, only pointing the other way. When this is
+    # False the documents are still listed; nothing else is said about them.
+    is_knowledge_base: bool = True
 
     @property
     def decisions(self) -> list[KnowledgeDocument]:
@@ -221,6 +227,51 @@ def title_of(page: PageSource) -> str:
     return document_title(page.path)
 
 
+def qualified_title(path: str) -> str:
+    """ "modules/vpc/README.md" → "modules/vpc · README".
+
+    A repository's documentation is boilerplate in the other direction: a hundred files
+    all called README, SKILL or AGENTS. The file name is the title their authors chose,
+    and it is useless on its own — what tells them apart is where they live. So when a
+    name is shared, the folder comes with it.
+    """
+    parent = PurePosixPath(path).parent.as_posix()
+    title = document_title(path)
+    if parent in ("", "."):
+        return title
+    return f"{parent} · {title}"
+
+
+# When documentation stops being *part of* a project and becomes the project. Below this
+# share of the files, a folder is a repository that happens to contain some documents,
+# and the wiki's own facts — orphan pages, inbound links, "areas" — are noise in it. A
+# README does not link to other READMEs, and saying "nothing links to it" about one is
+# the mirror image of telling a wiki it has no tests: every word true, the screen a lie.
+_KNOWLEDGE_BASE_SHARE = 0.6
+# A single document is not a body of knowledge, whatever share of the folder it is.
+_KNOWLEDGE_BASE_MIN_PAGES = 2
+# …but a cross-linked web of pages *inside* a bigger repository has to be a real web,
+# not two files that happen to mention each other.
+_LINKED_WEB_MIN_PAGES = 5
+
+
+def looks_like_a_knowledge_base(page_count: int, file_count: int, linked_pages: int) -> bool:
+    """Is this collection a body of knowledge, or a project that has some docs in it?
+
+    Two ways to be one, and both are about what the folder *is*, not what it is called:
+    documentation is most of what is there, or the pages genuinely reference each other
+    the way a wiki's do. An infrastructure monorepo with 106 READMEs among 1,098 files
+    is neither, and must not be told about its orphan pages.
+    """
+    if page_count < _KNOWLEDGE_BASE_MIN_PAGES or file_count <= 0:
+        return False
+    if page_count / file_count >= _KNOWLEDGE_BASE_SHARE:
+        return True
+    # A real cross-linked web of pages inside a bigger repository (a docs/ site, say) is
+    # still a knowledge base — but only if most of its pages take part in it.
+    return linked_pages >= max(_LINKED_WEB_MIN_PAGES, int(page_count * 0.5))
+
+
 def build_knowledge_base(
     pages: list[PageSource],
     all_paths: list[str] | None = None,
@@ -249,15 +300,22 @@ def build_knowledge_base(
     # A title several pages share is not a title, it is the export's boilerplate. The
     # file name is then the closest thing to what the author actually called the page.
     claimed: dict[str, int] = {}
+    named: dict[str, int] = {}
     for page in pages:
         claimed[title_of(page)] = claimed.get(title_of(page), 0) + 1
+        named[document_title(page.path)] = named.get(document_title(page.path), 0) + 1
 
     documents: list[KnowledgeDocument] = []
     inbound: dict[str, int] = {}
     for page in pages:
         title = title_of(page)
         if claimed.get(title, 0) > 1:
-            title = document_title(page.path)
+            # Shared by several pages, so it names none of them. Fall back to the file
+            # name the author chose — and when that is boilerplate too ("README", ninety
+            # times over, in a repository), to the folder it lives in, which is the only
+            # thing that tells them apart.
+            name = document_title(page.path)
+            title = name if named.get(name, 0) == 1 else qualified_title(page.path)
         area = area_of(title)
         targets = _resolve_links(page, links_from(page.text), known)
         for target in targets:
@@ -282,10 +340,21 @@ def build_knowledge_base(
         if family:
             areas[family] = areas.get(family, 0) + 1
 
+    is_kb = looks_like_a_knowledge_base(
+        page_count=len(pages),
+        file_count=len(known),
+        linked_pages=len({path for path in inbound if inbound[path] > 0}),
+    )
     return KnowledgeBase(
         documents=sorted(documents, key=lambda d: d.path),
-        areas=dict(sorted(areas.items(), key=lambda item: (-item[1], item[0]))),
-        inbound_links=inbound,
+        # An area is a wiki's own table of contents. In a repository, "[Capability]" in
+        # a file name is a coincidence, not a taxonomy — so the areas stay behind the
+        # same gate as everything else the wiki's convention implies.
+        areas=(
+            dict(sorted(areas.items(), key=lambda item: (-item[1], item[0]))) if is_kb else {}
+        ),
+        inbound_links=inbound if is_kb else {},
+        is_knowledge_base=is_kb,
     )
 
 
