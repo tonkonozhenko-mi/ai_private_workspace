@@ -107,6 +107,11 @@ def _plural(count: int, singular: str, plural: str | None = None) -> str:
     return f"{count} {word}"
 
 
+def _article(noun: str) -> str:
+    """ "a Python application", but "an infrastructure project"."""
+    return "an" if noun[:1].lower() in "aeiou" else "a"
+
+
 def describe_project(graph: ProjectGraph | None) -> str:
     """One sentence: what this project is, led by whatever it mostly is."""
     if graph is None:
@@ -128,25 +133,21 @@ def describe_project(graph: ProjectGraph | None) -> str:
             line += f", {counts['decisions']} of them decision records"
         return line + "."
 
-    # Otherwise the project leads with what it is built of. Each thing said once.
-    lead: str
+    # Otherwise the project leads with what it is built of. Each thing said once — the
+    # label may already name the infrastructure ("infrastructure project (Terraform,
+    # CI/CD)"), and appending "on Terraform" to that said it twice.
+    label = classification.label or "project"
+    lead = f"{_article(label)} {label}"
+    names_its_infra = label.lower().startswith("infrastructure")
     if classification.kind == KIND_INFRASTRUCTURE:
-        tools = ", ".join(sorted(e.name for e in infra))
-        lead = f"an infrastructure project ({tools})" if tools else "an infrastructure project"
         if applications:
             lead += (
                 f" with a {sorted(frameworks)[0]} component"
                 if frameworks
                 else " with helper scripts"
             )
-    elif applications:
-        lead = f"a {classification.label}"
-        if infra:
-            lead += " on " + ", ".join(sorted(e.name for e in infra))
-    elif infra:
-        lead = "an infrastructure project (" + ", ".join(sorted(e.name for e in infra)) + ")"
-    else:
-        lead = classification.label and f"a {classification.label}" or "a project"
+    elif applications and infra and not names_its_infra:
+        lead += " on " + ", ".join(sorted(e.name for e in infra))
 
     tail: list[str] = []
     if counts["modules"]:

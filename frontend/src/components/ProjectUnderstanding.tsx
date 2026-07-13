@@ -1245,7 +1245,12 @@ export function ProjectUnderstanding({
             {/* Prose a model wrote, standing among deterministic facts, unlabelled —
                 the one thing this app promises never to do. Whose words these are is
                 part of what they mean. */}
-            <small>written by {understanding.model} from your files</small>
+            {/* "llamacpp/MaziyarPanahi/Mistral-7B-Instruct-v0.3-GGUF/…Q4_K_M.gguf" is a
+                path, not a name. The catalogue already knows what to call it. */}
+            <small>
+              written by {humanizeSelectedModel(understanding.model) ?? understanding.model} from
+              your files
+            </small>
           </div>
           <p className="pu-guide-text">{understanding.architecture}</p>
         </div>

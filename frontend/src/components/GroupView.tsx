@@ -317,28 +317,45 @@ function GroupHome({ overview, groupId }: { overview: GroupOverviewResponse | nu
   // The cards show what this group is actually made of. They used to be four fixed
   // code-shaped numbers, so a group holding a wiki led with "0 services" and never
   // mentioned its 169 pages. A count of zero is not worth a card.
+  // "1 infrastructure components" is a number and a word that disagree with it.
+  const plural = (count: number, singular: string, many?: string) =>
+    count === 1 ? singular : (many ?? `${singular}s`);
   const cards: { value: number; label: string; sub?: string }[] = [
-    { value: t.repos ?? overview.member_count, label: "projects" },
+    {
+      value: t.repos ?? overview.member_count,
+      label: plural(t.repos ?? overview.member_count, "project"),
+    },
   ];
   if ((t.pages ?? 0) > 0) {
     cards.push({
       value: t.pages ?? 0,
-      label: "documents",
-      sub: (t.decisions ?? 0) > 0 ? `${t.decisions} decision records` : undefined,
+      label: plural(t.pages ?? 0, "document"),
+      sub:
+        (t.decisions ?? 0) > 0
+          ? `${t.decisions} ${plural(t.decisions, "decision record")}`
+          : undefined,
     });
   }
-  if ((t.services ?? 0) > 0) cards.push({ value: t.services, label: "services" });
+  if ((t.services ?? 0) > 0) {
+    cards.push({ value: t.services, label: plural(t.services, "service") });
+  }
   if ((t.infrastructure ?? 0) > 0) {
-    cards.push({ value: t.infrastructure, label: "infrastructure components" });
+    cards.push({
+      value: t.infrastructure,
+      label: plural(t.infrastructure, "infrastructure component"),
+    });
   }
   if ((t.environments ?? 0) > 0) {
     cards.push({
       value: t.environments,
-      label: "environments",
+      label: plural(t.environments, "environment"),
       sub: overview.environments.join(", ") || undefined,
     });
   }
-  cards.push({ value: t.commits_last_7_days ?? 0, label: "commits this week" });
+  cards.push({
+    value: t.commits_last_7_days ?? 0,
+    label: `${plural(t.commits_last_7_days ?? 0, "commit")} this week`,
+  });
   return (
     <div className="grp-stack">
       <div className="grp-hero">

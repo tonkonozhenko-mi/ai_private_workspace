@@ -969,7 +969,11 @@ export function DocumentsSection({
       ) : null}
 
       <div className="pi-block">
-        <h4 className="pi-block-title">Pages ({pages.length})</h4>
+        {/* A repository has documents, not pages — the list learned that; the heading
+            above it had not. */}
+        <h4 className="pi-block-title">
+          {linked ? "Pages" : "Documents"} ({pages.length})
+        </h4>
         <ul className="pi-list pi-page-list">
           {pages.slice(0, 60).map((page) => {
             const linkedFrom = Number(page.metadata?.linked_from ?? 0);
