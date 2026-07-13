@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 
 import {
   DEFAULT_API_BASE_URL,
@@ -41,24 +41,41 @@ import type {
 import { AskWorkspace } from "./components/AskWorkspace";
 import { ActiveDownloads } from "./components/ActiveDownloads";
 import { CreateWorkspacePanel } from "./components/CreateWorkspacePanel";
-import { ModelsDetail } from "./components/ModelsDetail";
-import { ProjectIntelligence } from "./components/ProjectIntelligence";
-import { GroupView } from "./components/GroupView";
 import { CommandPalette, type PaletteItem } from "./components/CommandPalette";
 import { FileInspector } from "./components/FileInspector";
 import { RenderCrashBoundary } from "./components/RenderCrashBoundary";
 import { ModelsSummaryCard } from "./components/ModelsSummaryCard";
-import { ReportsPanel } from "./components/ReportsPanel";
 import { ActivityTimeline } from "./components/ActivityTimeline";
 import { EmptyState } from "./components/EmptyState";
 import { ErrorState } from "./components/ErrorState";
 import { LoadingState } from "./components/LoadingState";
-import { UIActionsPanel } from "./components/UIActionsPanel";
-import { SettingsPanel } from "./components/SettingsPanel";
 import { ensureAppOwnedBackendRuntime, isRunningInsideTauri, tauriBridgeDiagnostic, registerDesktopCloseGuard, closeDesktopWindow } from "./desktopRuntime";
 import { WorkspaceDashboard } from "./components/WorkspaceDashboard";
 import { WorkspaceGettingReady } from "./components/WorkspaceGettingReady";
 import { WorkspaceList } from "./components/WorkspaceList";
+
+// Screens you reach by choosing a tab, loaded when you choose it. Each is a large
+// component that most sessions never open — Models, Settings, Reports, the whole of
+// Intelligence — and bundling them into the first script meant paying for all of them
+// to look at one. Home and Ask stay eager: they are where a session begins.
+const ModelsDetail = lazy(() =>
+  import("./components/ModelsDetail").then((m) => ({ default: m.ModelsDetail })),
+);
+const ProjectIntelligence = lazy(() =>
+  import("./components/ProjectIntelligence").then((m) => ({ default: m.ProjectIntelligence })),
+);
+const GroupView = lazy(() =>
+  import("./components/GroupView").then((m) => ({ default: m.GroupView })),
+);
+const ReportsPanel = lazy(() =>
+  import("./components/ReportsPanel").then((m) => ({ default: m.ReportsPanel })),
+);
+const SettingsPanel = lazy(() =>
+  import("./components/SettingsPanel").then((m) => ({ default: m.SettingsPanel })),
+);
+const UIActionsPanel = lazy(() =>
+  import("./components/UIActionsPanel").then((m) => ({ default: m.UIActionsPanel })),
+);
 import {
   DEFAULT_FILE_INDEXING_PREFERENCES,
   normalizeFileIndexingPreferences,
@@ -1315,6 +1332,7 @@ function App() {
             onCancel={() => setShowCreateWorkspace(false)}
           />
         ) : selectedGroupId ? (
+          <Suspense fallback={<LoadingState title="Opening the group" compact />}>
           <GroupView
             key={selectedGroupId}
             groupId={selectedGroupId}
@@ -1325,6 +1343,7 @@ function App() {
             onDeleted={() => setSelectedGroupId(null)}
             onAutoRenameHandled={() => setAutoRenameGroupId(null)}
           />
+          </Suspense>
         ) : detailLoading ? (
           <LoadingState
             title="Loading workspace dashboard"
@@ -1422,6 +1441,10 @@ function App() {
               className="workspace-tab-content"
               role="tabpanel"
             >
+              {/* One boundary for every screen that is fetched on demand. The wait is
+                  a local file read, so this is a flicker, not a spinner people live
+                  with — but it must say something rather than blank the tab. */}
+              <Suspense fallback={<LoadingState title="Opening" compact />}>
               {activeTab === "overview" ? (
                 <WorkspaceDashboard
                   dashboard={detail.dashboard}
@@ -1558,6 +1581,7 @@ function App() {
                   onSkillProfileSaved={() => refreshWorkspaceReadOnlyState(detail.dashboard.workspace_id)}
                 />
               ) : null}
+              </Suspense>
             </section>
           </div>
         ) : (
