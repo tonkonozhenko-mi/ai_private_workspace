@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-13
+
+This release is about one idea: **a project is described by what it contains, not by what it lacks.** Pointed at a folder of exported documentation, the app used to answer with a list of absences — no infrastructure, no environments, no tests — every line true and the whole screen a lie. It now reads a wiki as a wiki (pages, areas, decisions, freshness), a repository as a repository, and a group of both as one project. Everything else here follows from that.
+
 ### Changed
 
 - **One role, one place to change it.** The picker lived in the header *and* in the Intelligence panel, so the same setting had two homes and you had to work out which one you were looking at. The header owns it — a role is a property of you on this project, not of a tab — and the panel now states the fact instead of offering the control: "Viewed for DevOps".
