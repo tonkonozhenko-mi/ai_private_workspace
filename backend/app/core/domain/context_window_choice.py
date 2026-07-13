@@ -93,19 +93,20 @@ def choose_context_window(
     have always used, because a machine that cannot afford that needs a smaller
     model, not a smaller memory.
     """
-    if total_ram_bytes <= 0 or kv_bytes_per_token <= 0:
-        return MIN_CONTEXT
     ceiling = min(model_max_context or MAX_CONTEXT, MAX_CONTEXT)
+    # The floor is 8192 — except for a model that cannot hold 8192. A window is a
+    # promise to the engine, and the model's own maximum outranks our default.
+    floor = min(MIN_CONTEXT, ceiling)
+    if total_ram_bytes <= 0 or kv_bytes_per_token <= 0:
+        return floor
     free_after_model = total_ram_bytes - model_file_bytes - RESERVED_BYTES
     kv_budget = min(int(total_ram_bytes * KV_SHARE_OF_RAM), free_after_model)
     if kv_budget <= 0:
-        return MIN_CONTEXT
+        return floor
     affordable = kv_budget // kv_bytes_per_token
     window = min(ceiling, affordable)
     window = (window // CONTEXT_STEP) * CONTEXT_STEP
-    if window < MIN_CONTEXT:
-        return MIN_CONTEXT
-    return min(window, MAX_CONTEXT)
+    return max(floor, min(window, MAX_CONTEXT))
 
 
 def describe_context_window(chosen: int, model_max_context: int | None) -> str:

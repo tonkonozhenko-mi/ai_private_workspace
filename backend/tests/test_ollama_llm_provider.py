@@ -22,8 +22,11 @@ def test_ollama_llm_provider_returns_generated_text() -> None:
             "model": "llama3.2",
             "prompt": "Explain the workspace.",
             "stream": False,
-            # We pin the context window so the reported window is the real one.
-            "options": {"num_ctx": 4096},
+            # We pin the window, so the one we report is the one that ran. The
+            # model below declares 8192, which is also the floor — the number is
+            # the model's, not this machine's, so the test says the same thing on
+            # every machine.
+            "options": {"num_ctx": 8192},
         }
         return httpx.Response(200, json={"response": "The workspace uses local RAG."})
 
@@ -124,14 +127,16 @@ def _provider(
     handler,
     timeout_seconds: int = 120,
 ) -> OllamaLLMProvider:
-    """A provider whose ``/api/show`` reports a roomy model, so these tests are
-    about generation. The provider asks Ollama for the model's real context
-    length before pinning ``num_ctx``; a model that supports more than we ask for
-    leaves our pinned 4096 untouched."""
+    """A provider whose model declares an 8192-token context, so these tests are
+    about generation rather than about how much RAM the machine running them has.
+
+    The provider sizes the window to the model and the machine; a model that stops
+    at 8192 pins 8192 on any machine, which keeps this test deterministic. The
+    sizing itself is tested in test_context_window_choice.py."""
 
     def routed(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/api/show":
-            return httpx.Response(200, json={"model_info": {"llama.context_length": 131072}})
+            return httpx.Response(200, json={"model_info": {"llama.context_length": 8192}})
         return handler(request)
 
     return OllamaLLMProvider(
