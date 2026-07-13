@@ -26,7 +26,7 @@ from app.core.domain.document_extraction import DIAGRAM, PRESENTATION
 _DRAWIO_MODEL = (
     "<mxGraphModel><root>"
     '<mxCell id="1" value="Ingestion layer"/>'
-    '<mxCell id="2" value="&lt;b&gt;Silver layer&lt;/b&gt;"/>'
+    '<mxCell id="2" value="&lt;b&gt;Ledger layer&lt;/b&gt;"/>'
     '<mxCell id="3" value="writes to" edge="1"/>'
     '<object id="4" label="PowerBI"/>'
     "</root></mxGraphModel>"
@@ -62,20 +62,20 @@ def _pptx(path: Path, slides: list[list[str]]) -> None:
 
 
 def test_an_attachment_is_attributed_to_the_document_it_illustrates():
-    known = {"[ADR-08]._Sequence_generation.html", "notes/Design.md"}
+    known = {"[ADR-08]._Invoice_numbering.html", "notes/Design.md"}
     assert (
-        owning_document("[ADR-08]._Sequence_generation_files/silver layer.drawio", known)
-        == "[ADR-08]._Sequence_generation.html"
+        owning_document("[ADR-08]._Invoice_numbering_files/billing flow.drawio", known)
+        == "[ADR-08]._Invoice_numbering.html"
     )
     # Not one tool's layout: Typora's ".assets", pandoc's "_media", Word's "_files".
     assert owning_document("notes/Design.assets/diagram.png", known) == "notes/Design.md"
 
 
 def test_the_attribution_is_stated_in_words_a_person_can_check():
-    known = {"[ADR-08]._Sequence_generation.html"}
-    note = origin_note("[ADR-08]._Sequence_generation_files/silver layer.drawio", known)
-    assert note == 'attachment of "[ADR-08] Sequence generation"'
-    assert document_title("[DMD-1]_Ref_Static_Data.html") == "[DMD-1] Ref Static Data"
+    known = {"[ADR-08]._Invoice_numbering.html"}
+    note = origin_note("[ADR-08]._Invoice_numbering_files/billing flow.drawio", known)
+    assert note == 'attachment of "[ADR-08] Invoice numbering"'
+    assert document_title("[CAT-1]_Ref_Price_Data.html") == "[CAT-1] Ref Price Data"
 
 
 def test_an_ordinary_project_file_has_no_such_story_to_tell():
@@ -103,12 +103,12 @@ def test_the_savers_own_stylesheets_are_not_documentation():
 
 
 def test_a_diagram_is_read_as_the_words_on_it(tmp_path: Path):
-    path = tmp_path / "silver layer.drawio"
+    path = tmp_path / "billing flow.drawio"
     _plain_drawio(path)
     document = LocalDocumentExtractor().extract(str(tmp_path), path.name, DIAGRAM)
     text = document.full_text()
     assert "Ingestion layer" in text
-    assert "Silver layer" in text  # the label is an HTML fragment; the markup is dropped
+    assert "Ledger layer" in text  # the label is an HTML fragment; the markup is dropped
     assert "writes to" in text  # arrows are labelled too, and the labels are the flow
     assert "PowerBI" in text  # some shapes carry their label on the parent <object>
     assert document.sections[0].locator == 'page "Flow"'
@@ -154,8 +154,8 @@ def test_the_scan_knows_a_documentation_folder_when_it_sees_one(tmp_path: Path):
     from app.adapters.filesystem.local_file_system import LocalFileSystem
 
     (tmp_path / "Design_files").mkdir()
-    (tmp_path / "Design.html").write_text("<h1>Design</h1><p>The silver layer.</p>")
-    _plain_drawio(tmp_path / "Design_files" / "silver layer.drawio")
+    (tmp_path / "Design.html").write_text("<h1>Design</h1><p>The ledger layer.</p>")
+    _plain_drawio(tmp_path / "Design_files" / "billing flow.drawio")
     (tmp_path / "Design_files" / "diagram.png").write_bytes(b"\x89PNG\r\n\x1a\n")
     (tmp_path / "Design_files" / "style.css").write_text("body{margin:0}")
     _pptx(tmp_path / "Review.pptx", [["Q3"]])
@@ -165,7 +165,7 @@ def test_the_scan_knows_a_documentation_folder_when_it_sees_one(tmp_path: Path):
         for file in LocalFileSystem().list_files(str(tmp_path), respect_gitignore=False)
     }
     assert types["Design.html"] == "html"
-    assert types["Design_files/silver layer.drawio"] == "diagram"
+    assert types["Design_files/billing flow.drawio"] == "diagram"
     assert types["Review.pptx"] == "presentation"
     # Known, but honestly not indexable: we cannot read a picture without OCR.
     assert types["Design_files/diagram.png"] == "image"

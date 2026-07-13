@@ -26,7 +26,7 @@ def _page(path: str, text: str = "", days_old: int = 1) -> PageSource:
 
 
 def test_a_wikis_own_naming_convention_is_its_table_of_contents():
-    assert area_of("[ADR-08] Sequence generation") == "ADR-08"
+    assert area_of("[ADR-08] Invoice numbering") == "ADR-08"
     assert area_of("[Capability] Ingestion layer") == "Capability"
     assert area_of("RFC 12: Naming") == "RFC"
     assert area_of("Just a page") is None
@@ -37,7 +37,7 @@ def test_a_wikis_own_naming_convention_is_its_table_of_contents():
 
 
 def test_a_decision_is_recognised_whatever_the_local_acronym():
-    assert is_decision("[ADR-08] Sequence generation", "adr-08.html")
+    assert is_decision("[ADR-08] Invoice numbering", "adr-08.html")
     assert is_decision("RFC 12: Naming", "rfc-12.md")
     assert is_decision("Decision: drop the cache", "notes/decision-cache.html")
     assert not is_decision("[Capability] Ingestion layer", "capability-ingestion.html")
@@ -48,37 +48,37 @@ def test_the_pages_and_the_links_between_them_are_read_from_the_folder():
         [
             _page(
                 "index.html",
-                '<title>Home</title><a href="[ADR-08]._Sequence.html">ADR 8</a>'
+                '<title>Home</title><a href="[ADR-08]._Invoice.html">ADR 8</a>'
                 '<a href="Ingestion.html">Ingestion</a>',
             ),
             _page(
-                "[ADR-08]._Sequence.html",
-                "<title>Data Platform : [ADR-08] Sequence generation</title>"
+                "[ADR-08]._Invoice.html",
+                "<title>Data Platform : [ADR-08] Invoice numbering</title>"
                 '<a href="Ingestion.html">the ingestion layer</a>',
             ),
             _page("Ingestion.html", "<h1>[Capability] Ingestion layer</h1>"),
         ],
         all_paths=[
             "index.html",
-            "[ADR-08]._Sequence.html",
+            "[ADR-08]._Invoice.html",
             "Ingestion.html",
-            "[ADR-08]._Sequence_files/flow.drawio",
+            "[ADR-08]._Invoice_files/flow.drawio",
         ],
     )
 
     titles = {document.path: document.title for document in base.documents}
     # The page's own title beats the file name the saver mangled — and the space
     # prefix an export puts in front of it is dropped.
-    assert titles["[ADR-08]._Sequence.html"] == "[ADR-08] Sequence generation"
+    assert titles["[ADR-08]._Invoice.html"] == "[ADR-08] Invoice numbering"
     assert titles["Ingestion.html"] == "[Capability] Ingestion layer"
 
     assert base.areas == {"ADR": 1, "CAPABILITY": 1}
-    assert [d.title for d in base.decisions] == ["[ADR-08] Sequence generation"]
+    assert [d.title for d in base.decisions] == ["[ADR-08] Invoice numbering"]
     # Two pages point at Ingestion; nothing points at the home page.
     assert base.inbound_links["Ingestion.html"] == 2
     # A diagram in the page's companion folder belongs to that page.
-    adr = next(d for d in base.documents if d.path == "[ADR-08]._Sequence.html")
-    assert adr.diagrams == ["[ADR-08]._Sequence_files/flow.drawio"]
+    adr = next(d for d in base.documents if d.path == "[ADR-08]._Invoice.html")
+    assert adr.diagrams == ["[ADR-08]._Invoice_files/flow.drawio"]
 
 
 def test_a_link_to_a_page_that_was_never_exported_is_not_counted():
@@ -152,16 +152,16 @@ def test_a_wiki_gets_a_map_of_its_own_and_no_wall_of_absences():
 
     base = build_knowledge_base(
         [
-            _page("index.html", '<title>Home</title><a href="[ADR-08]._Seq.html">a</a>'),
+            _page("index.html", '<title>Home</title><a href="[ADR-08]._Invoice.html">a</a>'),
             _page(
-                "[ADR-08]._Seq.html",
-                "<title>[ADR-08] Sequence generation</title>",
+                "[ADR-08]._Invoice.html",
+                "<title>[ADR-08] Invoice numbering</title>",
                 days_old=400,
             ),
-            _page("a.html", '<a href="[ADR-08]._Seq.html">x</a>'),
-            _page("b.html", '<a href="[ADR-08]._Seq.html">x</a>'),
+            _page("a.html", '<a href="[ADR-08]._Invoice.html">x</a>'),
+            _page("b.html", '<a href="[ADR-08]._Invoice.html">x</a>'),
         ],
-        all_paths=["index.html", "[ADR-08]._Seq.html", "a.html", "b.html"],
+        all_paths=["index.html", "[ADR-08]._Invoice.html", "a.html", "b.html"],
     )
     graph = build_project_graph("w", knowledge_base=base)
     view = present_project_intelligence(graph, role_lens_for("business_analyst"))
@@ -176,7 +176,7 @@ def test_a_wiki_gets_a_map_of_its_own_and_no_wall_of_absences():
     assert Section.RISKS in view["section_order"]
     assert any("has not changed in over a year" in f["title"] for f in view["risks"]["findings"])
     assert [d["name"] for d in view[Section.DOCUMENTS]["decisions"]] == [
-        "[ADR-08] Sequence generation"
+        "[ADR-08] Invoice numbering"
     ]
 
 

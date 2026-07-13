@@ -5,14 +5,14 @@ Confluence page, Word's "Save as Web Page", Notion's export, Typora, Obsidian �
 the result is the same shape: a document, and beside it a folder named after that
 document holding its diagrams, screenshots and spreadsheets.
 
-    [ADR-08]._Sequence_generation.html
-    [ADR-08]._Sequence_generation_files/
-        silver layer.drawio
-        silver layer.drawio.png
+    [ADR-08]._Invoice_numbering.html
+    [ADR-08]._Invoice_numbering_files/
+        billing flow.drawio
+        billing flow.drawio.png
         style.css                       ← the saver's own chrome, not content
 
 Read without that knowledge, the folder is a heap: a diagram is cited as
-"[ADR-08]._Sequence_generation_files/silver layer.drawio" — which never tells the
+"[ADR-08]._Invoice_numbering_files/billing flow.drawio" — which never tells the
 reader *which document* it illustrates — and the stylesheet the browser dropped in
 is indexed as though it were documentation.
 
@@ -59,7 +59,7 @@ def _strip_asset_suffix(folder_name: str) -> str | None:
 def document_title(document_path: str) -> str:
     """A human title for a document, from its file name.
 
-    "[DMD-1]_Ref_Static_Data.html" → "[DMD-1] Ref Static Data". Savers replace
+    "[CAT-1]_Ref_Price_Data.html" → "[CAT-1] Ref Price Data". Savers replace
     spaces (and often punctuation) with underscores, so undoing that is the closest
     we get to the real title without opening the file — and when we do open it, the
     document's own title wins.
@@ -110,7 +110,7 @@ def origin_note(relative_path: str, known_paths: set[str] | None = None) -> str 
     """One line of provenance for the chunk header, or None when there is nothing to say.
 
     An attachment is announced by the document it belongs to — "attachment of
-    'Sequence generation'" — because that, not the folder name, is what a person
+    'Invoice numbering'" — because that, not the folder name, is what a person
     searches for and what makes the citation checkable.
     """
     owner = owning_document(relative_path, known_paths)

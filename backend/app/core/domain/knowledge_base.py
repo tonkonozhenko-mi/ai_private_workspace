@@ -8,7 +8,7 @@ repository. Absence of facts is not a fact.
 Documentation has facts of its own, and they are as deterministic as a Terraform
 file. They are just different ones:
 
-* **Pages and areas.** Titles carry structure — "[ADR-08] Sequence generation",
+* **Pages and areas.** Titles carry structure — "[ADR-08] Invoice numbering",
   "[Capability] Ingestion layer" — and a wiki's own naming convention is the closest
   thing it has to a schema. Whatever bracket or prefix a team uses, the shape is the
   same: a tag, then a name.
@@ -36,10 +36,10 @@ from urllib.parse import unquote
 from app.core.domain.companion_assets import document_title, owning_document
 
 # A page whose title starts with a bracketed tag — "[ADR-08]", "[Capability]",
-# "[DMD-1]" — belongs to the area that tag names. Teams differ in what they put in
+# "[CAT-1]" — belongs to the area that tag names. Teams differ in what they put in
 # the brackets; the convention itself is near-universal in exported wikis.
 _AREA_TAG_RE = re.compile(r"^\s*[\[(<]\s*([^\]\)>]{1,40})\s*[\])>]")
-# The same idea without brackets: "ADR-08 - Sequence generation", "RFC 12: Naming".
+# The same idea without brackets: "ADR-08 - Invoice numbering", "RFC 12: Naming".
 _AREA_PREFIX_RE = re.compile(r"^\s*([A-Za-z]{2,12})[-_ ]?\d{1,4}\b")
 # An area tag that names a decision record, whatever the local acronym.
 _DECISION_WORDS = ("adr", "decision", "rfc", "design record")
@@ -140,7 +140,7 @@ def _looks_like_an_entry_point(document: KnowledgeDocument) -> bool:
 def area_of(title: str) -> str | None:
     """The area a page's title announces, or None when it announces none.
 
-    "[ADR-08] Sequence generation" → "ADR-08"; "RFC 12: Naming" → "RFC". The tag is
+    "[ADR-08] Invoice numbering" → "ADR-08"; "RFC 12: Naming" → "RFC". The tag is
     returned as written — we are reporting the team's own convention, not inventing a
     taxonomy for them.
     """

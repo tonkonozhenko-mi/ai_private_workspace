@@ -770,7 +770,7 @@ class IndexWorkspaceUseCase:
     ) -> list[TextChunk]:
         total = len(raw_chunks)
         # A diagram or a spreadsheet saved beside a page belongs to that page. Citing
-        # it as "Design_files/silver layer.drawio" tells the reader nothing they can
+        # it as "Design_files/billing flow.drawio" tells the reader nothing they can
         # act on; naming the document it illustrates does. Costs one path lookup and
         # is None for every ordinary project file.
         origin = origin_note(project_file.path, self._known_paths)
