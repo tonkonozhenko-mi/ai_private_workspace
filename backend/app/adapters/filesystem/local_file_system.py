@@ -5,11 +5,13 @@ from collections.abc import Callable
 from pathlib import Path
 from time import perf_counter
 
+from app.core.domain.companion_assets import is_saver_chrome
 from app.core.domain.folder_access import FolderPermissionError, is_permission_error
 from app.core.domain.gitignore_matcher import GITIGNORE_FILENAME, GitignoreMatcher
 from app.core.domain.project_scan import ProjectFile, ProjectFileList
 from app.core.domain.source_files import (
     CONFIG_EXTENSIONS,
+    IMAGE_EXTENSIONS,
     SOURCE_CODE_EXTENSIONS,
     is_build_output,
     is_env_template,
@@ -25,7 +27,18 @@ MAX_WRITTEN_FILE_SIZE_BYTES = 1024 * 1024
 # Word runbook with images easily passes 2 MB while holding only a few pages of
 # text. The extractor enforces its own ceiling (MAX_DOCUMENT_BYTES), so the scan
 # just has to stop dropping them on the floor first.
-DOCUMENT_SUFFIXES = {".docx", ".xlsx", ".pdf", ".html", ".htm", ".csv", ".tsv", ".ipynb"}
+DOCUMENT_SUFFIXES = {
+    ".docx",
+    ".xlsx",
+    ".pptx",
+    ".pdf",
+    ".html",
+    ".htm",
+    ".csv",
+    ".tsv",
+    ".ipynb",
+    ".drawio",
+}
 MAX_DOCUMENT_FILE_SIZE_BYTES = 20 * 1024 * 1024
 SKIPPED_DIRECTORIES = {
     ".git",
@@ -284,6 +297,14 @@ class LocalFileSystem:
         if is_lockfile(name) or is_secret_env_file(name) or is_build_output(relative_posix):
             return "unknown"
 
+        # The stylesheets, scripts and fonts a *saver* dropped into a document's
+        # companion folder ("Page_files/style.css"). They describe how the page
+        # looked, never what it said, and indexing them puts Confluence's CSS into
+        # the answers. Only inside a companion folder — a .css in someone's own
+        # project is theirs to keep.
+        if is_saver_chrome(relative_posix):
+            return "unknown"
+
         if relative_posix == ".gitlab-ci.yml" or relative_posix == ".gitlab-ci.yaml":
             return "gitlab_ci"
         if relative_lower.startswith(".github/workflows/") and suffix in {".yml", ".yaml"}:
@@ -336,8 +357,19 @@ class LocalFileSystem:
             return "word_document"
         if suffix == ".xlsx":
             return "excel_workbook"
+        if suffix == ".pptx":
+            return "presentation"
         if suffix == ".pdf":
             return "pdf_document"
+        # A diagram is XML, and every box on it carries its label. ".drawio.xml" is
+        # the same file under the name draw.io's desktop app gives it.
+        if suffix == ".drawio" or name_lower.endswith(".drawio.xml"):
+            return "diagram"
+        # Images: detected so they are *known* (an attachment of a page is often the
+        # answer to "where is the architecture diagram?"), never indexed — we cannot
+        # read a picture without OCR, and pretending otherwise would be a lie.
+        if suffix in IMAGE_EXTENSIONS:
+            return "image"
         if suffix in {".html", ".htm"}:
             return "html"
         if suffix in {".txt", ".rst", ".adoc"}:

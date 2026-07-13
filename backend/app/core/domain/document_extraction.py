@@ -34,9 +34,27 @@ PLAIN_TEXT = "plain_text"
 # as flat text throws both away, so they go through the extractor too.
 TABULAR_DATA = "tabular_data"
 NOTEBOOK = "notebook"
+# A draw.io diagram is XML: every box and every arrow carries its label, so the
+# architecture on the diagram can be read without looking at a single pixel.
+DIAGRAM = "diagram"
+# Slides are OOXML, like Word and Excel — one section per slide.
+PRESENTATION = "presentation"
+# Images have no text we can read without OCR. They are still worth *knowing about*
+# (a page's diagram is often the answer to "where is the architecture?"), so they
+# are detected and attributed to their page, and honestly not indexed.
+IMAGE = "image"
 
 EXTRACTABLE_DOCUMENT_TYPES: frozenset[str] = frozenset(
-    {WORD_DOCUMENT, EXCEL_WORKBOOK, PDF_DOCUMENT, HTML_DOCUMENT, TABULAR_DATA, NOTEBOOK}
+    {
+        WORD_DOCUMENT,
+        EXCEL_WORKBOOK,
+        PDF_DOCUMENT,
+        HTML_DOCUMENT,
+        TABULAR_DATA,
+        NOTEBOOK,
+        DIAGRAM,
+        PRESENTATION,
+    }
 )
 
 # Guard rails. A single monster file must not stall a scan or blow up memory; we

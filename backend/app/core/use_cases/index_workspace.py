@@ -3,6 +3,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from app.core.domain.companion_assets import origin_note
 from app.core.domain.chunking import (
     build_contextual_chunk,
     chunk_document,
@@ -10,12 +11,14 @@ from app.core.domain.chunking import (
     strip_contextual_header,
 )
 from app.core.domain.document_extraction import (
+    DIAGRAM,
     EXCEL_WORKBOOK,
     EXTRACTABLE_DOCUMENT_TYPES,
     HTML_DOCUMENT,
     NOTEBOOK,
     PDF_DOCUMENT,
     PLAIN_TEXT,
+    PRESENTATION,
     TABULAR_DATA,
     WORD_DOCUMENT,
 )
@@ -91,6 +94,10 @@ INDEXABLE_FILE_TYPES = {
     HTML_DOCUMENT,
     PLAIN_TEXT,
     TABULAR_DATA,
+    # A diagram's labels and a deck's slides are text like any other — the shape of
+    # the container is the only thing that differs.
+    DIAGRAM,
+    PRESENTATION,
     NOTEBOOK,
     # The rest of a real repository: every language that isn't Python, and the
     # config formats that aren't YAML or JSON. Without these a TypeScript project
@@ -125,6 +132,11 @@ class IndexWorkspaceCancelledError(RuntimeError):
 
 
 class IndexWorkspaceUseCase:
+    # Paths the current scan saw, used to attribute an attachment to the document it
+    # belongs to. Set per run; empty means "we know of no siblings", which makes the
+    # attribution simply not happen — never wrong.
+    _known_paths: set[str] | None = None
+
     def __init__(
         self,
         workspace_repository: WorkspaceRepositoryPort,
@@ -360,6 +372,10 @@ class IndexWorkspaceUseCase:
         current_indexable = {
             f.path: f for f in latest_scan.files if f.detected_type in INDEXABLE_FILE_TYPES
         }
+        # Every path the scan saw — not just the indexable ones. An attachment's
+        # owning document is found by looking for a real sibling file, and that check
+        # is only trustworthy against the full list.
+        self._known_paths = {f.path for f in latest_scan.files}
         new_manifest: dict[str, dict] = {}
         reindexed_docs: list[IndexedDocumentSummary] = []
         chunks_to_embed: list[TextChunk] = []
@@ -466,6 +482,7 @@ class IndexWorkspaceUseCase:
         skipped_files_count = latest_scan.skipped_files
 
         total_files = len(latest_scan.files) or 1
+        self._known_paths = {f.path for f in latest_scan.files}
         for file_index, project_file in enumerate(latest_scan.files, start=1):
             self._checkpoint(cancellation_check)
             if progress_callback is not None:
@@ -752,6 +769,11 @@ class IndexWorkspaceUseCase:
         section_labels: list[str] | None = None,
     ) -> list[TextChunk]:
         total = len(raw_chunks)
+        # A diagram or a spreadsheet saved beside a page belongs to that page. Citing
+        # it as "Design_files/silver layer.drawio" tells the reader nothing they can
+        # act on; naming the document it illustrates does. Costs one path lookup and
+        # is None for every ordinary project file.
+        origin = origin_note(project_file.path, self._known_paths)
         chunks: list[TextChunk] = []
         for chunk_index, chunk_content in enumerate(raw_chunks):
             # Prepend a deterministic "where this came from" header so retrieval
@@ -764,6 +786,7 @@ class IndexWorkspaceUseCase:
                 file_type=project_file.detected_type,
                 extension=project_file.extension,
                 section_label=section_labels[chunk_index] if section_labels else None,
+                origin=origin,
             )
             chunks.append(
                 TextChunk(
