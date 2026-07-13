@@ -3,13 +3,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from app.core.domain.companion_assets import origin_note
 from app.core.domain.chunking import (
     build_contextual_chunk,
     chunk_document,
     estimate_tokens,
     strip_contextual_header,
 )
+from app.core.domain.companion_assets import origin_note
 from app.core.domain.document_extraction import (
     DIAGRAM,
     EXCEL_WORKBOOK,

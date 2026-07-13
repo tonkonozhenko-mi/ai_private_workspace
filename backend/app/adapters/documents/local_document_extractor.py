@@ -60,6 +60,7 @@ def _plain_text(value: str) -> str:
     """One line of collapsed text — draw.io labels arrive as little HTML fragments."""
     return " ".join(re.sub(r"<[^>]+>", " ", value).split())
 
+
 # Rows per Excel chunk. The header row is repeated in every block: a chunk of bare
 # numbers means nothing to an embedder (or a reader) without its column names.
 _SHEET_ROWS_PER_SECTION = 20
@@ -390,9 +391,7 @@ class LocalDocumentExtractor:
                 # <a:t> is the text run — the only element that holds words, whether
                 # they sit in a title, a bullet, a table cell or a shape.
                 lines = [
-                    line
-                    for node in slide.iter(f"{_A}t")
-                    if (line := _plain_text(node.text or ""))
+                    line for node in slide.iter(f"{_A}t") if (line := _plain_text(node.text or ""))
                 ]
                 if lines:
                     sections.append(ExtractedSection(f"slide {number}", "\n".join(lines)))

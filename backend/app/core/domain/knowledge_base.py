@@ -134,7 +134,7 @@ def area_of(title: str) -> str | None:
 
 
 def area_family(area: str | None) -> str | None:
-    """"ADR-08" and "ADR-11" are the same family: "ADR". Used to count areas, so a
+    """ "ADR-08" and "ADR-11" are the same family: "ADR". Used to count areas, so a
     wiki with 40 numbered ADRs shows one area of 40, not 40 areas of one."""
     if not area:
         return None

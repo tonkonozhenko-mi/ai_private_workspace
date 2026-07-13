@@ -53,7 +53,7 @@ def test_the_pages_and_the_links_between_them_are_read_from_the_folder():
             ),
             _page(
                 "[ADR-08]._Sequence.html",
-                '<title>Data Platform : [ADR-08] Sequence generation</title>'
+                "<title>Data Platform : [ADR-08] Sequence generation</title>"
                 '<a href="Ingestion.html">the ingestion layer</a>',
             ),
             _page("Ingestion.html", "<h1>[Capability] Ingestion layer</h1>"),

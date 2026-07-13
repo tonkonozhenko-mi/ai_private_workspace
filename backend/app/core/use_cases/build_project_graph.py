@@ -202,9 +202,7 @@ class BuildProjectGraphUseCase:
         ownership = _facts("ownership", lambda: role_facts.ownership(facts_request))
         # A folder of documentation is not a broken repository — it is a different kind
         # of project, with facts of its own. Skipped silently when there are no pages.
-        knowledge_base = _facts(
-            "documentation", lambda: role_facts.knowledge_base(facts_request)
-        )
+        knowledge_base = _facts("documentation", lambda: role_facts.knowledge_base(facts_request))
 
         graph = build_project_graph(
             ws_id,

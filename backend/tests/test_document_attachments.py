@@ -24,12 +24,12 @@ from app.core.domain.companion_assets import (
 from app.core.domain.document_extraction import DIAGRAM, PRESENTATION
 
 _DRAWIO_MODEL = (
-    '<mxGraphModel><root>'
+    "<mxGraphModel><root>"
     '<mxCell id="1" value="Ingestion layer"/>'
     '<mxCell id="2" value="&lt;b&gt;Silver layer&lt;/b&gt;"/>'
     '<mxCell id="3" value="writes to" edge="1"/>'
     '<object id="4" label="PowerBI"/>'
-    '</root></mxGraphModel>'
+    "</root></mxGraphModel>"
 )
 
 
@@ -50,7 +50,7 @@ def _pptx(path: Path, slides: list[list[str]]) -> None:
     p = "http://schemas.openxmlformats.org/presentationml/2006/main"
     with zipfile.ZipFile(path, "w") as archive:
         for number, lines in enumerate(slides, start=1):
-            runs = "".join(f'<a:p><a:r><a:t>{escape(line)}</a:t></a:r></a:p>' for line in lines)
+            runs = "".join(f"<a:p><a:r><a:t>{escape(line)}</a:t></a:r></a:p>" for line in lines)
             archive.writestr(
                 f"ppt/slides/slide{number}.xml",
                 f'<p:sld xmlns:p="{p}" xmlns:a="{a}"><p:cSld><p:spTree>{runs}'
@@ -84,8 +84,11 @@ def test_an_ordinary_project_file_has_no_such_story_to_tell():
 
 
 def test_a_folder_that_only_looks_like_one_is_left_alone():
-    """"_files" with no document beside it was never a companion folder."""
-    assert owning_document("archive_files/report.xlsx", known_paths={"archive_files/report.xlsx"}) is None
+    """ "_files" with no document beside it was never a companion folder."""
+    assert (
+        owning_document("archive_files/report.xlsx", known_paths={"archive_files/report.xlsx"})
+        is None
+    )
 
 
 def test_the_savers_own_stylesheets_are_not_documentation():
@@ -121,8 +124,10 @@ def test_a_diagram_saved_the_way_drawio_actually_saves_it(tmp_path: Path):
 
 def test_a_diagram_with_no_labels_says_so_instead_of_pretending(tmp_path: Path):
     path = tmp_path / "blank.drawio"
-    path.write_text('<mxfile><diagram name="Empty"><mxGraphModel><root>'
-                    '<mxCell id="1"/></root></mxGraphModel></diagram></mxfile>')
+    path.write_text(
+        '<mxfile><diagram name="Empty"><mxGraphModel><root>'
+        '<mxCell id="1"/></root></mxGraphModel></diagram></mxfile>'
+    )
     document = LocalDocumentExtractor().extract(str(tmp_path), path.name, DIAGRAM)
     assert document.sections == []
     assert document.skipped_reason
