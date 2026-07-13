@@ -308,9 +308,7 @@ class LlamaRuntimeManager:
         if total_ram <= 0:
             # The OS won't say how much memory it has: keep today's behaviour
             # rather than gamble with someone else's machine.
-            return self._llm_context_size, (
-                architecture.context_length if architecture else None
-            )
+            return self._llm_context_size, (architecture.context_length if architecture else None)
         cost = kv_bytes_per_token(
             block_count=architecture.block_count if architecture else None,
             head_count_kv=architecture.head_count_kv if architecture else None,
