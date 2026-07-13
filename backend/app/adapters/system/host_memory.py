@@ -13,14 +13,21 @@ from __future__ import annotations
 
 import os
 
+# What we return when the OS won't say. Every caller reads it as "assume nothing".
+_UNKNOWN = 0
+
 
 def total_physical_ram_bytes() -> int:
     """Total installed RAM in bytes, or 0 if it cannot be determined."""
     try:
         return int(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES"))
     except (ValueError, OSError, AttributeError):
-        pass
-    # Windows has no sysconf; ask the kernel through the C API instead.
+        # No sysconf (Windows): fall through to the kernel call below.
+        return _windows_total_physical_ram_bytes()
+
+
+def _windows_total_physical_ram_bytes() -> int:
+    """Windows has no ``sysconf``; ask the kernel through the C API instead."""
     try:
         import ctypes
 
@@ -42,5 +49,5 @@ def total_physical_ram_bytes() -> int:
         if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):  # type: ignore[attr-defined]
             return int(status.ullTotalPhys)
     except Exception:  # noqa: BLE001 - not knowing the RAM must never break startup
-        pass
-    return 0
+        return _UNKNOWN
+    return _UNKNOWN

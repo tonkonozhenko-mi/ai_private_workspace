@@ -31,11 +31,14 @@ class _FussyServer:
 
 
 class _Downloads:
+    """Every model is "installed", at a path nothing ever opens — these tests are
+    about the ladder, not about reading a real GGUF."""
+
     def is_installed(self, model) -> bool:
         return True
 
     def destination_path(self, model) -> str:
-        return "/tmp/model.gguf"
+        return f"{model.id}.gguf"
 
 
 def _manager(monkeypatch, accepts: int, chosen: int):
