@@ -25,6 +25,15 @@ function formatGb(bytes: number): string {
   return gb >= 1 ? `${gb.toFixed(1)} GB` : `${Math.round(bytes / 1024 ** 2)} MB`;
 }
 
+// The window the engine actually loaded — and, when it is this computer that set
+// the limit rather than the model, which of the two did. "Measured, not promised"
+// applies to memory too.
+function describeContext(tokens: number, modelMax?: number | null): string {
+  const running = `${tokens.toLocaleString()} tokens`;
+  if (!modelMax || modelMax <= tokens) return `${running} (model maximum)`;
+  return `${running} · model supports ${modelMax.toLocaleString()} — limited by this computer's memory`;
+}
+
 // llama.cpp setup: the engine binary ships inside the app; here we download the
 // GGUF model files. The catalog reports real on-disk install state, so models
 // downloaded for one workspace already show as installed in the next one.
@@ -580,6 +589,12 @@ export function LlamaCppModelsPanel({
             <div><dt>Type</dt><dd>{model.model_type === "embedding" ? "search / embeddings" : "answers"}</dd></div>
             {model.min_ram_gb ? (
               <div><dt>Needs RAM</dt><dd>≥ {model.min_ram_gb} GB</dd></div>
+            ) : null}
+            {active && kind === "llm" && runtime?.llm_context_tokens ? (
+              <div>
+                <dt>Context</dt>
+                <dd>{describeContext(runtime.llm_context_tokens, runtime.llm_context_max_tokens)}</dd>
+              </div>
             ) : null}
           </dl>
           <div className="gr-model-detail-actions">

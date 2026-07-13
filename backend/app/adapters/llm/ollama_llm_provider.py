@@ -4,6 +4,8 @@ from time import sleep
 
 import httpx
 
+from app.adapters.system.host_memory import total_physical_ram_bytes
+from app.core.domain.context_window_choice import choose_context_window, kv_bytes_per_token
 from app.core.domain.rag_prompt import render_conversation_history
 from app.core.domain.structured_output import ollama_format_from_response_format
 
@@ -25,6 +27,18 @@ def _with_history(prompt: str, history: list[tuple[str, str]] | None) -> str:
 
 def _coerce_int(value: object) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _suffixed(info: dict, suffix: str) -> int | None:
+    """A GGUF-style metadata value by key suffix.
+
+    Ollama namespaces these keys by architecture ("llama.block_count",
+    "qwen2.block_count"), so we match the suffix rather than hard-code a family.
+    """
+    for key, value in info.items():
+        if key.endswith(suffix):
+            return _coerce_int(value)
+    return None
 
 
 def _is_thinking_unsupported(response: "httpx.Response") -> bool:
@@ -70,6 +84,8 @@ class OllamaLLMProvider:
         # running it that wide costs a lot of RAM, so we use a sane fixed window.
         self._requested_context_window = context_window
         self._context_window_cache: int | None = None
+        self._model_max_context: int | None = None
+        self._model_size_bytes: int = 0
         # Real token counts from the last generation (Ollama reports these), so the
         # UI can show exact usage instead of a character-based estimate.
         self.last_prompt_tokens: int | None = None
@@ -81,26 +97,47 @@ class OllamaLLMProvider:
 
     @property
     def context_window(self) -> int:
-        """The window this model will actually run with.
+        """The window this model will actually run with, sized to this machine.
 
         Ollama's own default (``num_ctx``) is small and invisible to us, so we pin
-        it per request — but a pinned window is a promise we must be able to keep:
-        a model whose weights only support 2048 tokens cannot be asked for 4096.
-        We therefore read the model's real ``context_length`` from ``/api/show``
-        and never claim more than the smaller of the two. Read once, cached, and
-        entirely best-effort: if Ollama can't tell us, we keep the requested value.
+        it per request. What we pin is not a guess: ``/api/show`` tells us the
+        model's shape — layers, heads, its paper context length — which says what
+        one token of context costs, and the machine says how much of that it can
+        afford. Same arithmetic as llama.cpp, same function, one answer.
+
+        Read once, cached, entirely best-effort: a silent Ollama leaves us with
+        the requested default, which is today's behaviour.
         """
         if self._context_window_cache is not None:
             return self._context_window_cache
         window = self._requested_context_window
-        declared = self._declared_model_context()
-        if declared is not None and declared > 0:
+        info = self._model_info()
+        declared = _suffixed(info, ".context_length")
+        total_ram = total_physical_ram_bytes()
+        if total_ram > 0 and declared:
+            cost = kv_bytes_per_token(
+                block_count=_suffixed(info, ".block_count"),
+                head_count_kv=_suffixed(info, ".attention.head_count_kv"),
+                embedding_length=_suffixed(info, ".embedding_length"),
+                head_count=_suffixed(info, ".attention.head_count"),
+                model_file_bytes=self._model_file_bytes(),
+            )
+            window = choose_context_window(
+                model_max_context=declared,
+                kv_bytes_per_token=cost,
+                total_ram_bytes=total_ram,
+                model_file_bytes=self._model_file_bytes(),
+            )
+        elif declared:
+            # We cannot size the window to the machine, so at least never promise
+            # more than the model can hold.
             window = min(window, declared)
         self._context_window_cache = window
+        self._model_max_context = declared
         return window
 
-    def _declared_model_context(self) -> int | None:
-        """The model's own context length from ``/api/show`` (``<arch>.context_length``)."""
+    def _model_info(self) -> dict:
+        """The model's own metadata from ``/api/show``. Empty when Ollama won't say."""
         try:
             response = self.client.post(
                 f"{self.base_url}/api/show",
@@ -108,16 +145,19 @@ class OllamaLLMProvider:
                 timeout=min(self.timeout_seconds, 10),
             )
             if response.status_code >= 400:
-                return None
-            info = response.json().get("model_info")
+                return {}
+            payload = response.json()
         except (httpx.HTTPError, ValueError, AttributeError):
-            return None
-        if not isinstance(info, dict):
-            return None
-        for key, value in info.items():
-            if key.endswith(".context_length"):
-                return _coerce_int(value)
-        return None
+            return {}
+        if not isinstance(payload, dict):
+            return {}
+        self._model_size_bytes = _coerce_int(payload.get("size")) or self._model_size_bytes
+        info = payload.get("model_info")
+        return info if isinstance(info, dict) else {}
+
+    def _model_file_bytes(self) -> int:
+        """The weights on disk, as Ollama reports them; 0 when unknown."""
+        return self._model_size_bytes or 0
 
     def _options(self, temperature: float | None) -> dict[str, object]:
         options: dict[str, object] = {"num_ctx": self.context_window}

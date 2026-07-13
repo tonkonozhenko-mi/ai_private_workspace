@@ -4,6 +4,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
+from app.adapters.system.host_memory import total_physical_ram_bytes
 from app.api.dependencies import (
     _gguf_download_use_case,
     command_repository,
@@ -469,6 +470,10 @@ class LlamaRuntimeStatusResponse(BaseModel):
     active_embedding_model: str | None = None
     llm_url: str | None = None
     embed_url: str | None = None
+    # The context window the answer engine is running with, sized to this machine,
+    # and the window the model itself could hold.
+    llm_context_tokens: int | None = None
+    llm_context_max_tokens: int | None = None
 
 
 @router.get("/llama-runtime/status", response_model=LlamaRuntimeStatusResponse)
@@ -986,10 +991,9 @@ class RuntimeMemoryResponse(BaseModel):
 
 
 def _total_physical_ram_bytes() -> int:
-    try:
-        return int(os.sysconf("SC_PAGE_SIZE")) * int(os.sysconf("SC_PHYS_PAGES"))
-    except (ValueError, OSError, AttributeError):
-        return 0
+    # One reading of the machine's memory, shared with the engine that has to
+    # decide how much of it the context window may claim.
+    return total_physical_ram_bytes()
 
 
 @router.get("/runtime-memory", response_model=RuntimeMemoryResponse)
