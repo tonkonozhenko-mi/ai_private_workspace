@@ -4,9 +4,9 @@
 
 <h1 align="center">AI Private Workspace</h1>
 
-<p align="center"><b>Understand any project in an hour — privately.</b><br>
-Point it at a folder and ask anything about the code, infrastructure, CI/CD, or docs.<br>
-Runs fully offline on a local model. Every answer cites your real files. Nothing leaves your computer.</p>
+<p align="center"><b>Understand a project you've just inherited — in an hour, fully offline.</b><br>
+Point it at a folder — code, Terraform, an exported wiki, documents — and ask anything.<br>
+Every answer cites your real files. When it doesn't know, it says so. Nothing leaves your computer.</p>
 
 <p align="center">
   <a href="https://github.com/tonkonozhenko-mi/ai_private_workspace/releases/latest"><img src="https://img.shields.io/github/v/release/tonkonozhenko-mi/ai_private_workspace?label=latest&sort=semver&style=flat-square&color=2ea44f" alt="Latest release"></a>
@@ -34,26 +34,61 @@ Runs fully offline on a local model. Every answer cites your real files. Nothing
 
 <p align="center"><sub>Real recording on a demo project: folder → scan → local engine → index → first answer with sources. ~35s, fully offline.</sub></p>
 
-## Why
+## The day you inherit a project
 
-- **Private by construction.** No cloud, no accounts, no telemetry. Once the local
-  model is downloaded it runs fully offline — safe for NDA and client projects
-  where cloud AI tools are off the table.
-- **Understands the project, not just the files.** A local scan recognizes
-  Terraform, Kubernetes, Helm, Docker, CI pipelines, docs and more, then builds an
-  evidence-backed map with role lenses for developers, DevOps, testers, BAs, and
-  managers — not only engineers.
-- **Answers you can verify.** Every reply is grounded in retrieved sources with
-  citations, a deterministic groundedness check flags unsupported claims, and the
-  model abstains honestly instead of inventing details. It reads and explains —
-  it never changes your project. Quality isn't a promise: it's tracked by a
-  [reproducible benchmark](#measured-not-promised).
+Someone hands you a repository, a Terraform monorepo, or a 200-page Confluence
+export — and expects you to be useful this week. This app is built for that day:
+
+- **Ask in your own words** — "How is this deployed, and to which environments?",
+  "Where is the orders table defined?", "What did we decide about storage, and
+  where is it implemented?" — and get an answer with the files it came from.
+- **See the map** — what the project is made of, how code reaches production,
+  how environments differ, where the risks sit — every statement backed by a
+  file, none of it written by a model.
+- **Trust the "I don't know"** — when your files don't contain the answer, it
+  says so instead of inventing one. That property is measured, not promised
+  (see the numbers below).
+
+It works on a code repository, a wiki export, a folder of documents — or a
+**group of them together**: ask "what did we decide, and where is it
+implemented?" and the answer carries the decision from the wiki and the
+implementation from the repo, each source labelled.
+
+## Why it's safe for work projects
+
+- **Private by construction.** No cloud, no accounts, no telemetry. After the
+  one-time model download it runs fully offline — usable on NDA and client
+  projects where cloud AI tools are off the table.
+- **Read-only by design.** It reads and explains; it never changes your project,
+  never runs commands on its own, and never writes a file without your explicit
+  confirmation.
+- **Verifiable.** Every reply cites sources; a deterministic groundedness check
+  flags unsupported claims in the UI instead of hiding them.
+
+## Measured, not promised
+
+A 40-question golden-set benchmark runs the real pipeline end to end
+([`backend/eval/`](backend/eval/README.md)); its deterministic parts are gated
+in CI. Current numbers with the default models (temperature 0, this repository
+as the corpus):
+
+| What is measured | Result |
+|---|---:|
+| The right file is in the sources (hit@5, questions with a known answer file) | **95%** |
+| Project questions wrongly refused | **0%** |
+| Off-topic questions correctly get no project sources | **100%** |
+| Answers carrying grounding warnings — raw model → after self-correction | **6.7% → 3.3%** |
+
+The last row is the one to read twice: when the deterministic grounding check
+flags a fresh answer, one corrective pass halves the failure rate — the safety
+net is a measured mechanism, not a claim. Reproduce it yourself:
+`python -m eval.golden --embedder nomic --with-generation` (from `backend/`).
 
 ## Install and first run
 
 1. **[Download the installer](https://github.com/tonkonozhenko-mi/ai_private_workspace/releases/latest)** and open it (drag to Applications on macOS).
-2. **Open a project folder** — create a workspace and run the quick local scan.
-3. **Pick an engine** — built-in llama.cpp (nothing to install) or Ollama — and let it fetch two small local models (~2.5 GB, then fully offline).
+2. **Open a project folder** — create a workspace, say who you are on this project (developer, DevOps, tester, manager, BA, DBA — it shapes what leads, never what is true), and run the quick local scan.
+3. **Pick an engine** — built-in llama.cpp (nothing to install) or Ollama — and let it fetch two small local models (a few GB, then fully offline).
 4. **Build context** and ask your first question.
 
 The full illustrated walkthrough lives in
@@ -81,89 +116,87 @@ needs to be signed/notarized or deployed through your organization's device
 management.
 </details>
 
-## What it does
+## What it reads
 
-- **Understands your project — including when it isn't code.** Point it at a folder; a local scan recognizes what's there — Terraform, Terragrunt, Kubernetes, Helm, Docker, Python, GitLab CI — or, when the folder is an exported wiki, reads it as one: its pages, the areas its titles announce, its decision records, and which of them are old enough to be wrong while others still rely on them. A project is described by what it contains, never by what it lacks.
-- **Reads what documentation is actually made of** — not only the files a compiler would accept. An attachment is cited by the page it illustrates ("attachment of 'Ingestion layer'"), so a diagram is findable by the document it belongs to rather than by its file name.
+Everything a real project is made of — not only the files a compiler would
+accept. A local scan recognizes Terraform, Kubernetes, CI, 30+ programming
+languages, exported wikis, Word/PDF/Excel documents, diagrams, notebooks and
+data files; a wiki's diagram is cited by the page it illustrates, and a
+project is described by what it contains, never scolded for what it lacks.
 
-  | Kind | Read as | Extensions |
-  | --- | --- | --- |
-  | Documents | text, section by section | `.docx` · `.pdf` · `.html` `.htm` · `.md` `.rst` `.txt` |
-  | Spreadsheets | sheet by sheet, cell values | `.xlsx` |
-  | Slide decks | one section per slide | `.pptx` |
-  | Diagrams | the labels on the boxes and arrows — the architecture, without a single pixel | `.drawio` |
-  | Tabular data | rows, with the header row kept on every chunk | `.csv` · `.tsv` |
-  | Notebooks | cell by cell, with cell numbers | `.ipynb` |
-  | Code | 30+ languages by extension (TypeScript, Go, Rust, Java, C/C++, C#, Ruby, PHP, Swift, Kotlin, Scala, Python…) | see [`source_files.py`](backend/app/core/domain/source_files.py) |
-  | Infrastructure & config | `.tf` `.hcl` · `.yaml` `.yml` · `.json` · `.toml` `.ini` `.cfg` · `Dockerfile` · `Makefile` · SQL | |
+<details>
+<summary><b>Full format table</b></summary>
 
-  **Images are recognised and honestly left unindexed** — a PNG of an architecture diagram has no text to read without OCR, so the app tells you it exists and attributes it to its page rather than pretending to have read it. Legacy `.doc`, `.xls` and `.vsdx` are not read. Documents up to 20 MB; nothing is sent anywhere.
-- **Searches only when you ask.** The local index is built on an explicit action and respects your `.gitignore`, so virtualenvs, build output, caches, and `.env` secrets never enter it.
-- **Answers from your files.** Responses are grounded in retrieved sources with citations — and your conversations, history, model choices, and reports stay on your computer.
-- **Knows what to ask first.** The empty Ask composer suggests starter questions built from your project's own map — one click from a fresh index to a useful answer.
-- **Groups several projects into one.** Ask, Home, and Intelligence work across a whole portfolio — including a mixed one: ask "what did we decide, and where is it implemented?" and the answer carries the decision from the wiki and the files that implement it from the repository, each source labelled with where it came from. Environments compare in a repo×environment matrix, technologies split into shared-vs-unique, risks group by pattern.
-- **Built to navigate.** A **Cmd/Ctrl-K command palette** jumps to any repository, group, section, or file; a **file inspector** shows each file's owner, change coupling, connections, and risks.
-- **Runs on two local engines.** Built-in **llama.cpp** or **Ollama**, switchable per project, with the answer and search models managed separately.
-- **Writes nothing without consent.** Ask can turn an answer into a file draft, written only after you confirm the path and exact content. Nothing else runs on its own.
+| Kind | Read as | Extensions |
+| --- | --- | --- |
+| Documents | text, section by section | `.docx` · `.pdf` · `.html` `.htm` · `.md` `.rst` `.txt` |
+| Spreadsheets | sheet by sheet, cell values | `.xlsx` |
+| Slide decks | one section per slide | `.pptx` |
+| Diagrams | the labels on the boxes and arrows — the architecture, without a single pixel | `.drawio` |
+| Tabular data | rows, with the header row kept on every chunk | `.csv` · `.tsv` |
+| Notebooks | cell by cell, with cell numbers | `.ipynb` |
+| Code | 30+ languages by extension (TypeScript, Go, Rust, Java, C/C++, C#, Ruby, PHP, Swift, Kotlin, Scala, Python…) | see [`source_files.py`](backend/app/core/domain/source_files.py) |
+| Infrastructure & config | `.tf` `.hcl` · `.yaml` `.yml` · `.json` · `.toml` `.ini` `.cfg` · `Dockerfile` · `Makefile` · SQL |  |
 
-## Project intelligence
+**Images are recognised and honestly left unindexed** — a PNG of an architecture
+diagram has no text to read without OCR, so the app tells you it exists and
+attributes it to its page rather than pretending to have read it. Legacy `.doc`,
+`.xls` and `.vsdx` are not read. Documents up to 20 MB; nothing is sent anywhere.
+The index is built on an explicit action and respects your `.gitignore`, so
+virtualenvs, build output, caches, and `.env` secrets never enter it.
+</details>
 
-Beyond search, the app builds a **map of your project** with read-only tools over
-it. The map shows the sections the project *has* — a wiki has pages and decisions,
-a repository has modules and pipelines, and neither is shown a wall of things it
-does not contain. Your role orders what leads; it never changes what is true. On
-top of that: an adaptive dashboard where every fact carries the question it raises
-(one click asks it), a CI/CD flow view, environment
-comparison, a security review (which scanners already run in CI and which
-findings matter, each backed by a file), git activity and per-file inspection,
-provable self-maintaining **project memory** with guardrails, **answer modes**
-that control how strictly a reply sticks to your files, a deterministic
-groundedness check, a dated change journal ("what changed since I last
-looked?"), incremental re-indexing by content hash, and **the Investigator** — a
-bounded ReAct loop over read-only tools whose steps stream live, so you watch
-the agent think instead of waiting for a verdict.
+## What you can do with it
 
-Every finding reads as a lead for a human, not a verdict: what was found, why it
-may matter, where, and what to check yourself. Full detail:
-[`docs/PROJECT_INTELLIGENCE.md`](docs/PROJECT_INTELLIGENCE.md).
+- **Ask and verify.** Answers come with sources from your files; starter
+  questions are built from your project's own map, so the first click already
+  asks something useful.
+- **Walk the map.** An adaptive dashboard leads with what matters for *your*
+  role; every fact carries the question it raises — one click asks it. CI/CD
+  flow, environment comparison, security review, git activity, per-file
+  inspector, a dated "what changed since I last looked" journal.
+- **Work across a portfolio.** Groups treat several projects as one — including
+  mixed code + wiki, with environments compared in a repo×environment matrix
+  and risks grouped by pattern.
+- **Let it investigate.** The Investigator is a bounded agent over read-only
+  tools whose steps stream live — you watch it think instead of waiting for a
+  verdict.
+- **Teach it your project.** Project memory keeps your corrections and feeds
+  them into future answers — stored locally, always editable, never retraining
+  anything.
+- **Move fast.** Cmd/Ctrl-K palette jumps to any repo, section, or file; Ask
+  can draft a file from an answer, written only after you confirm the path and
+  content.
 
-## How search works
+Full detail: [`docs/PROJECT_INTELLIGENCE.md`](docs/PROJECT_INTELLIGENCE.md).
 
-Answers are grounded through **hybrid retrieval** running fully on your machine:
-dense vector search for meaning, BM25 keyword search (SQLite FTS5) over chunk
-text *and* file paths for exact identifiers, a domain-synonym bridge (asking
-about "Content-Security-Policy" finds the file that spells it `csp`), Reciprocal
-Rank Fusion to merge the rankings, a path/environment boost so `dev`-specific
+## How it stays honest
+
+This is the part that makes the answers trustworthy, so it stays visible:
+
+- the relevance threshold is **calibrated per index** against the embedding
+  model's own noise floor — below it, the app abstains instead of guessing;
+- small talk is routed away from your files entirely; a small project that
+  fits the model's window is read whole, so nothing relevant is missed;
+- every answer passes a deterministic groundedness check; failures surface as
+  visible warnings, and one **corrective pass** re-searches and regenerates —
+  kept only if it's provably better.
+
+<details>
+<summary><b>Under the hood: the retrieval pipeline</b></summary>
+
+Hybrid retrieval running fully on your machine: dense vector search for
+meaning, BM25 keyword search (SQLite FTS5) over chunk text *and* file paths for
+exact identifiers, a domain-synonym bridge (asking about
+"Content-Security-Policy" finds the file that spells it `csp`), Reciprocal Rank
+Fusion to merge the rankings, a path/environment boost so `dev`-specific
 questions land on `dev` files, per-file diversity so one file can't fill the
 whole answer, and an optional cross-encoder reranker ("Sharper search"). It
 degrades gracefully to vector-only search if keyword indexing is unavailable.
-
-Around retrieval sit honesty mechanisms: the relevance threshold is **calibrated
-per index** against the embedding model's own noise floor; obvious small talk is
-routed away from your files entirely; on a small project that fits the model's
-window the app skips retrieval and reads everything; and when a first answer
-fails the deterministic grounding check, the app runs **one corrective pass** —
-a rewritten search and a regeneration, kept only if it's provably better.
-
-### Measured, not promised
-
-A 40-question golden-set benchmark runs the real pipeline end to end
-([`backend/eval/`](backend/eval/README.md)) and gates its deterministic parts in
-CI. Current numbers with the default models (nomic-embed-text + Qwen3 4B,
-temperature 0, this repository as the corpus):
-
-| What is measured | Result |
-|---|---:|
-| The right file is in the sources (hit@5, questions with a known answer file) | **95%** |
-| Project questions wrongly refused | **0%** |
-| Off-topic questions correctly get no project sources | **100%** |
-| Answers carrying grounding warnings — raw model → after self-correction | **6.7% → 3.3%** |
-
-The last row is the one to read twice: when the deterministic grounding check
-flags a fresh answer, the corrective pass halves the failure rate — the safety
-net is a measured mechanism, not a claim. Reproduce it yourself:
-`python -m eval.golden --embedder nomic --with-generation` (from `backend/`,
-with Ollama running).
+Prompts are budgeted in tokens against the model's real context window — with
+script-aware estimates, so a Ukrainian conversation is counted as honestly as
+an English one.
+</details>
 
 ## Local engines
 
