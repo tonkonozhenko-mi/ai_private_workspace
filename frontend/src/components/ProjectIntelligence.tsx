@@ -280,7 +280,16 @@ export function ProjectIntelligence({
     );
     return { scanners, findings };
   }, [graph, view]);
-  const hasSecurity = security.scanners.length > 0 || security.findings.length > 0;
+  // A security review is about pipelines, dependencies and infrastructure. A wiki has
+  // none, and offering it the tab produced a page whose only content was advice to add
+  // scanning to pipelines it does not have.
+  const hasSecurity =
+    (security.scanners.length > 0 || security.findings.length > 0) &&
+    (view?.infrastructure.components.length ?? 0) +
+      (view?.deployment.pipelines.length ?? 0) +
+      (view?.code?.applications.length ?? 0) +
+      (view?.code?.modules.length ?? 0) >
+      0;
 
   const hasCicd = Boolean(ci?.has_data);
 
@@ -396,11 +405,12 @@ export function ProjectIntelligence({
             </div>
           ) : null}
 
+          {/* The list of analyzers that found nothing is a list of things this project
+              is not. On a folder of documentation that is every analyzer we have, and
+              reading it feels like a verdict. Say what WAS analyzed instead. */}
           <p className="pi-built-meta">
             {data.snapshot ? `Last analyzed ${relativeTime(data.snapshot.created_at)}` : ""}
-            {view.analyzers_skipped.length > 0
-              ? ` · not detected: ${view.analyzers_skipped.join(", ")}`
-              : ""}
+            {view.analyzers_run.length > 0 ? ` · from: ${view.analyzers_run.join(", ")}` : ""}
           </p>
 
           {brief ? <RoleDashboardBrief brief={brief} onAskQuestion={onAskQuestion} /> : null}

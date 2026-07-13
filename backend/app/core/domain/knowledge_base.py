@@ -156,21 +156,39 @@ class PageSource:
     modified_at: datetime | None = None
 
 
-def title_of(page: PageSource) -> str:
-    """The page's own title if it states one, else the name the saver gave the file.
+# Titles a page can claim that tell the reader nothing. A wiki's own boilerplate
+# ("General Information", "Untitled") ends up in <title> or the first heading of
+# dozens of exported pages; taking it at face value produced a Documents tab that
+# was a column of the same two words, and decisions nobody could tell apart.
+_EMPTY_TITLES = {
+    "general information",
+    "untitled",
+    "untitled page",
+    "confluence",
+    "page",
+    "home",
+    "wiki",
+}
 
-    A saved page states its title twice — in <title> and in the first heading — and
-    both beat the underscored file name, which is a mangling of the real thing.
+
+def title_of(page: PageSource) -> str:
+    """The page's own title if it states a useful one, else the file name.
+
+    A saved page states its title in <title> and again in the first heading. Both beat
+    the underscored file name — but only when they say something. When the page's own
+    title is boilerplate, the file name (which the author did choose) is the more
+    honest answer, and a title shared by dozens of pages is boilerplate by definition.
     """
     for pattern in (r"<title[^>]*>(.*?)</title>", r"<h1[^>]*>(.*?)</h1>", r"^#\s+(.+)$"):
         match = re.search(pattern, page.text, re.IGNORECASE | re.DOTALL | re.MULTILINE)
-        if match:
-            title = re.sub(r"<[^>]+>", " ", match.group(1))
-            title = " ".join(title.split())
-            # Exports prefix the space name: "Data Platform : Ingestion layer".
-            title = title.split(" : ")[-1].strip()
-            if title:
-                return title
+        if not match:
+            continue
+        title = re.sub(r"<[^>]+>", " ", match.group(1))
+        title = " ".join(title.split())
+        # Exports prefix the space name: "Data Platform : Ingestion layer".
+        title = title.split(" : ")[-1].strip()
+        if title and title.lower() not in _EMPTY_TITLES:
+            return title
     return document_title(page.path)
 
 
@@ -199,10 +217,18 @@ def build_knowledge_base(
         if path.lower().endswith((".drawio", ".drawio.xml")):
             diagrams.setdefault(owner, []).append(path)
 
+    # A title several pages share is not a title, it is the export's boilerplate. The
+    # file name is then the closest thing to what the author actually called the page.
+    claimed: dict[str, int] = {}
+    for page in pages:
+        claimed[title_of(page)] = claimed.get(title_of(page), 0) + 1
+
     documents: list[KnowledgeDocument] = []
     inbound: dict[str, int] = {}
     for page in pages:
         title = title_of(page)
+        if claimed.get(title, 0) > 1:
+            title = document_title(page.path)
         area = area_of(title)
         targets = _resolve_links(page, links_from(page.text), known)
         for target in targets:

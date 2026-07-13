@@ -7,6 +7,13 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **A folder of documentation is no longer told off for not being a code repository.** Pointed at a real Confluence export, the app flagged "No test files were found" in red, asked how its dev/staging/prod environments are separated, offered a security review of pipelines it does not have, and told the Manager the scan "did not detect much yet" — about 169 pages. Only a project that has code can be missing tests for it; only something that is deployed can have environments; and a dashboard now leads with whatever the project is actually made of.
+- **Pages kept the title their author gave them.** Confluence hands dozens of exported pages the same `<title>` ("General Information"), so the Documents tab became a column of identical entries and the decisions list was unreadable. A title several pages share is boilerplate, not a title — the file name wins.
+- **A wiki page about a test is not a test.** "AWS_MSK_Connector_-_CDC_test.html" was filed under Tests because its name contains "test", and spreadsheets attached to pages were filed under Config. A file the scan already recognised as a document is a document.
+- **Commands quoted from documents are no longer presented as "How to run".** A runbook that mentions `terraform apply`, or an ADR that mentions `drop table`, describes another system — inviting someone to run those lines here was the wrong kind of helpful.
+
 ### Added
 
 - **Home says what is worth a look before you ask anything.** The map's own findings — deterministic, cited by file, no model involved — now sit on Home, in the wording of your role: a page a year old that six others still link to, a foreign key with no index, a pipeline that deploys straight to production. Each says what it costs, not what you must do; the deep analysis by a local model is still there for when you want prose.

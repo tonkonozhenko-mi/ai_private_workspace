@@ -89,7 +89,11 @@ def _team_questions(graph: ProjectGraph) -> list[dict]:
                 "reason": "pipelines detected; an approval gate was not detected",
             }
         )
-    if not envs:
+    # Only something that is deployed can have environments. Asking a folder of
+    # documentation how its dev/staging/prod are separated is not a question, it is a
+    # category error — and it was the only "question for the team" a wiki ever got.
+    deployable = bool(infra or pipelines or graph.entities_of_type(EntityType.APPLICATION))
+    if deployable and not envs:
         questions.append(
             {
                 "question": "No environments were detected from the directory structure. How are dev / staging / prod separated?",
@@ -333,8 +337,25 @@ def present_project_intelligence(graph: ProjectGraph, lens: RoleLens) -> dict:
             f"{len(environments)} environment(s): "
             + ", ".join(sorted(e.name for e in environments))
         )
+    # A folder of documentation is not a project with "no supported technologies" — it
+    # is a body of knowledge, and this line should say so before it says anything else.
+    pages = graph.entities_of_type(EntityType.DOCUMENT) + graph.entities_of_type(
+        EntityType.DECISION
+    )
+    if pages:
+        areas = graph.entities_of_type(EntityType.TOPIC)
+        decisions = graph.entities_of_type(EntityType.DECISION)
+        doc_part = f"{len(pages)} page(s) of documentation"
+        if areas:
+            doc_part += f" across {len(areas)} area(s)"
+        if decisions:
+            doc_part += f", {len(decisions)} of them decision records"
+        parts.insert(0, doc_part)
+
     description = (
-        "Detected " + "; ".join(parts) + "." if parts else "No supported technologies detected yet."
+        "Detected " + "; ".join(parts) + "."
+        if parts
+        else "Nothing the analyzers recognise yet — the files are still searchable in Ask."
     )
 
     test_suites = graph.entities_of_type(EntityType.TEST_SUITE)

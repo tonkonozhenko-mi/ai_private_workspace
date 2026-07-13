@@ -82,6 +82,10 @@ class TestFacts:
     # Modules/dirs of real code that no test file so much as mentions.
     untested_areas: list[str] = field(default_factory=list)
     ci_test_jobs: list[str] = field(default_factory=list)
+    # How many source files the project has at all. Without this we told a folder of
+    # documentation that it had "No test files" — a HIGH risk, in red, about code it
+    # does not contain. You cannot fail to test what you never wrote.
+    source_files: int = 0
 
     @property
     def test_files_count(self) -> int:
@@ -278,4 +282,5 @@ def build_test_facts(
         skipped_cases=total_skipped,
         untested_areas=untested_areas(source_paths, test_contents),
         ci_test_jobs=ci_test_jobs(ci_job_names or []),
+        source_files=len(source_paths),
     )

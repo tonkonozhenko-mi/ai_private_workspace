@@ -202,18 +202,32 @@ const GROUP_BY_DETECTED_TYPE: Record<string, FileGroupKey> = {
   pdf_document: "docs",
   html: "docs",
   tabular_data: "docs",
+  // Documents, whatever container they arrived in. Left out of this table, a
+  // spreadsheet attached to a wiki page fell through to "Config", and a page called
+  // "…CDC_test.html" was filed under Tests because its NAME contains "test".
+  excel_workbook: "docs",
+  presentation: "docs",
+  diagram: "docs",
+  image: "docs",
   yaml: "config",
   json: "config",
   config: "config",
   xml_config: "config",
 };
 
+// A file the scan already recognised as a document IS a document — no path rule may
+// overrule that. "AWS_MSK_Connector_-_CDC_test.html" is a wiki page about a test, not
+// a test; filing it under Tests is how a documentation folder ended up reporting one
+// lonely, imaginary test suite.
+const DOCUMENT_GROUPS = new Set<FileGroupKey>(["docs"]);
+
 function categorize(file: ProjectFileResponse): FileGroupKey {
   const p = file.path.toLowerCase();
-  // Tests are about *where* a file lives, not what it is written in, so this stays
-  // a path rule and runs first — a test .ts is a test, not a module.
-  if (/(^|\/)tests?\/|\.test\.|\.spec\.|__tests__|_test\.|\/spec\//.test(p)) return "tests";
   const detected = GROUP_BY_DETECTED_TYPE[file.detected_type];
+  if (detected && DOCUMENT_GROUPS.has(detected)) return detected;
+  // Tests are about *where* a file lives, not what it is written in — a test .ts is a
+  // test, not a module. But only code can be a test.
+  if (/(^|\/)tests?\/|\.test\.|\.spec\.|__tests__|_test\.|\/spec\//.test(p)) return "tests";
   if (detected) return detected;
 
   if (/dockerfile|docker-compose|\.tf(\.|$)|\/terraform\/|\/k8s\/|kubernetes|\/helm\/|\/charts\/|ansible/.test(p)) return "infra";
@@ -962,7 +976,20 @@ export function ProjectUnderstanding({
         ? `${makeup.slice(0, 4).join(" · ")}.`
         : techNames.length > 0
           ? `Built with ${techNames.slice(0, 5).join(", ")}${techNames.length > 5 ? ", and more" : ""}.`
-          : "Build the project map to see what this project is made of.";
+          : intel?.built
+            // The map exists but found nothing nameable. Say what we do know — the
+            // file count — rather than telling the person to build what they built.
+            ? `${scan.scanned_files.toLocaleString()} files, and nothing the map recognises yet.`
+            : "Build the project map to see what this project is made of.";
+
+  // A project with no code of its own cannot be "run". The commands the scan finds in
+  // a wiki are commands the DOCUMENTS mention — `terraform apply` in a runbook, a
+  // `drop table` in an ADR — and presenting them under "How to run" invites someone to
+  // run, against their own machine, a line that was only ever being described.
+  const hasOwnCode = files.some((file) => {
+    const group = categorize(file);
+    return group === "code" || group === "infra" || group === "ci";
+  });
 
   const gitAvailable = files.some((file) => file.path.toLowerCase().includes(".git"));
 
@@ -1143,7 +1170,7 @@ export function ProjectUnderstanding({
         <details className="pu-card pu-collapse">
           <summary className="pu-card-head pu-collapse-summary">
             <MetaIcon><><path d="M4 17l6-6-6-6M12 19h8" /></></MetaIcon>
-            <span>How to run</span>
+            <span>{hasOwnCode ? "How to run" : "Commands mentioned in the documents"}</span>
             <span className="pu-collapse-teaser">{understanding.run_commands.length} command(s) found</span>
           </summary>
           <div className="pu-run-list">
@@ -1154,7 +1181,11 @@ export function ProjectUnderstanding({
               </div>
             ))}
           </div>
-          <p className="pu-guide-foot">Commands found in your project files — review before running.</p>
+          <p className="pu-guide-foot">
+            {hasOwnCode
+              ? "Commands found in your project files — review before running."
+              : "Quoted from your documents — they describe another system, so they are not commands to run here."}
+          </p>
         </details>
       ) : null}
 
