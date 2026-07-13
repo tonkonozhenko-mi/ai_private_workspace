@@ -7,6 +7,13 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **A question in Ukrainian no longer overruns the model's memory.** The app budgeted the prompt as if every language cost four characters per token. That is true of English and code; Cyrillic costs about two, and CJK about one — so a Ukrainian conversation quietly spent twice the tokens the budget believed it was spending, and the model refused the prompt outright. Tokens are now counted by script, and where the engine offers a real tokenizer, by the engine itself.
+- **The question itself is now part of the budget.** Everything else that shares the context window — the instructions, the project memory, the conversation so far — was measured; the question you actually asked, and the documents attached to it, were not. They are now, and the assembled prompt is measured one final time before it is sent, because every number before that is an estimate and the chat template adds tokens no estimate sees.
+- **A prompt that doesn't fit is rebuilt, not blamed on the engine.** When llama.cpp reports that the prompt exceeded the window, the app now reads how far over it went, sends the same question with proportionally less context, and answers — usually without you ever learning it happened. If the smaller prompt still doesn't fit, it says so plainly, with the numbers ("8,869 tokens against this model's 8,192-token window"), instead of telling you to check that an engine that just answered us is running.
+- **Neither engine is asked for more memory than it has.** llama.cpp is asked what context it actually loaded; Ollama is asked what the model's weights actually support, and is never pinned above it. When neither can say, the app assumes the smallest window rather than the most convenient one — underestimating costs a little context, overestimating costs the answer.
+
 ## [0.6.0] - 2026-07-13
 
 This release is about one idea: **a project is described by what it contains, not by what it lacks.** Pointed at a folder of exported documentation, the app used to answer with a list of absences — no infrastructure, no environments, no tests — every line true and the whole screen a lie. It now reads a wiki as a wiki (pages, areas, decisions, freshness), a repository as a repository, and a group of both as one project. Everything else here follows from that.

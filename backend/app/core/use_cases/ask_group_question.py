@@ -31,7 +31,7 @@ from dataclasses import dataclass, field, replace
 from datetime import datetime
 from time import perf_counter
 
-from app.core.domain.context_budget import chunk_char_budget, fit_context_results
+from app.core.domain.context_budget import chunk_token_budget, fit_context_results_by_tokens
 from app.core.domain.group_qa import (
     GroupAnswerSource,
     GroupQuestionAnswer,
@@ -358,13 +358,17 @@ class AskGroupQuestionUseCase:
         memory_section, memory_used, facts_used = self._project_context(
             group_id, members, request.question
         )
-        budget = chunk_char_budget(
+        token_counter = getattr(llm_provider, "count_tokens", None)
+        budget = chunk_token_budget(
             getattr(llm_provider, "context_window", None),
             memory_text=memory_section,
             history=[],
-            token_counter=getattr(llm_provider, "count_tokens", None),
+            # The question shares the window with the chunks; counting it is the
+            # difference between a budget and a wish.
+            question=request.question,
+            token_counter=token_counter,
         )
-        fitted_labelled = fit_context_results(labelled_all, budget)
+        fitted_labelled = fit_context_results_by_tokens(labelled_all, budget, token_counter)
         fitted = selected[: len(fitted_labelled)]
         for member in members:
             member.chunks_used = sum(1 for t in fitted if t.workspace_id == member.workspace_id)

@@ -9,9 +9,10 @@ from app.core.domain.attached_documents import (
     build_attached_documents_section,
 )
 from app.core.domain.context_budget import (
-    chunk_char_budget,
-    fit_context_results,
+    chunk_token_budget,
+    fit_context_results_by_tokens,
     project_fits_whole_context,
+    shrink_to_window,
 )
 from app.core.domain.conversation_budget import (
     SUMMARY_TRIGGER_MIN_OLDER_TURNS,
@@ -21,6 +22,7 @@ from app.core.domain.conversation_budget import (
 )
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import ContextSearchResult
+from app.core.domain.llm_errors import ContextOverflowError, context_overflow_answer
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
 from app.core.domain.mmr import EMBEDDING_KEY, mmr_select
 from app.core.domain.parent_document import expand_to_parents
@@ -369,13 +371,22 @@ class AskWorkspaceQuestionUseCase:
         llm_provider: LLMProviderPort,
         context_results: list[ContextSearchResult],
         history: list[tuple[str, str]],
+        budget_scale: float = 1.0,
     ) -> tuple[list[ContextSearchResult], str, int, int]:
         """Build the grounded prompt, fitting the retrieved chunks to the model's
-        real context window so memory + history + chunks + answer headroom never
-        overflow it (the engine would otherwise silently truncate).
+        real context window so memory + history + question + chunks + answer
+        headroom never overflow it.
+
+        Three things guard the window, in order: the token budget (what should
+        fit), the per-chunk fitting (what does fit), and ``shrink_to_window``,
+        which measures the finished prompt and drops trailing chunks until it
+        provably fits. The last one exists because every earlier number is an
+        estimate — the chat template adds tokens we never see.
 
         ``history`` is the prompt history (recent turns + any summary) already
         computed by the caller, so it is budgeted for and not recomputed.
+        ``budget_scale`` < 1 shrinks the chunk allowance, which is how a retry
+        after a context overflow asks for the same answer with less context.
 
         Returns the (possibly trimmed) chunks actually used, the prompt, and the
         memory/facts counts — so sources and ``used_context_chunks`` reflect what
@@ -386,32 +397,90 @@ class AskWorkspaceQuestionUseCase:
         memory_section, memory_used, facts_used, context_used = self._project_context(
             request.workspace_id, self._retrieval_query(request)
         )
-        budget = chunk_char_budget(
-            getattr(llm_provider, "context_window", None),
+        # Use the engine's exact tokenizer when the provider exposes it (llama.cpp
+        # /tokenize); otherwise the script-aware estimate, which no longer assumes
+        # every language costs 4 characters per token.
+        token_counter = getattr(llm_provider, "count_tokens", None)
+        window = getattr(llm_provider, "context_window", None)
+        assistant_mode = self._assistant_mode(request.workspace_id)
+        attached_section = build_attached_documents_section(
+            request.question, request.attached_documents
+        )
+
+        def build(chunks: list[ContextSearchResult]) -> str:
+            return build_workspace_question_prompt(
+                question=request.question,
+                context_results=chunks,
+                skill_instructions=request.skill_instructions,
+                attached_section=attached_section,
+                assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+                project_memory_section=memory_section,
+                answer_mode=request.answer_mode,
+                user_style_directive=context_used.get("style_directive", ""),
+                # The person's role frames the answer — what is said first, in whose
+                # words. It is deliberately NOT part of retrieval: the same question
+                # returns the same chunks and the same citations for every role.
+                assistant_mode=assistant_mode,
+            )
+
+        budget = chunk_token_budget(
+            window,
             memory_text=memory_section,
             history=history,
-            # Use the engine's exact tokenizer when the provider exposes it
-            # (llama.cpp /tokenize); otherwise fall back to the ~4-chars estimate.
-            token_counter=getattr(llm_provider, "count_tokens", None),
-        )
-        fitted = fit_context_results(context_results, budget)
-        prompt = build_workspace_question_prompt(
+            # The question and the attached documents are part of the prompt too;
+            # forgetting them is how a long question quietly overflowed the window.
             question=request.question,
-            context_results=fitted,
-            skill_instructions=request.skill_instructions,
-            attached_section=build_attached_documents_section(
-                request.question, request.attached_documents
-            ),
-            assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
-            project_memory_section=memory_section,
-            answer_mode=request.answer_mode,
-            user_style_directive=context_used.get("style_directive", ""),
-            # The person's role frames the answer — what is said first, in whose
-            # words. It is deliberately NOT part of retrieval: the same question
-            # returns the same chunks and the same citations for every role.
-            assistant_mode=self._assistant_mode(request.workspace_id),
+            extra_text=attached_section,
+            token_counter=token_counter,
+        )
+        fitted = fit_context_results_by_tokens(
+            context_results, int(budget * budget_scale), token_counter
+        )
+        fitted, prompt = shrink_to_window(
+            fitted,
+            build,
+            window,
+            token_counter=token_counter,
+            history=history,
         )
         return fitted, prompt, memory_used, facts_used, context_used
+
+    def _retry_with_less_context(
+        self,
+        request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort,
+        context_results: list[ContextSearchResult],
+        prompt_history: list[tuple[str, str]],
+        overflow: ContextOverflowError,
+    ) -> tuple | None:
+        """Rebuild the prompt with a smaller chunk allowance and generate once more.
+
+        The engine told us exactly how far over we were, so the retry is sized to
+        that overshoot (plus 10% to spare) rather than being a blind halving.
+        Returns ``None`` if the smaller prompt overflows too — at that point the
+        person deserves to be told, not retried at forever.
+        """
+        try:
+            fitted, prompt, memory_used, facts_used, context_used = self._grounded_prompt(
+                request,
+                llm_provider,
+                context_results,
+                prompt_history,
+                budget_scale=overflow.overflow_ratio,
+            )
+            _structured_format, prompt = self._structured_citations(request, llm_provider, prompt)
+            answer, usage = self._generate_answer_with_usage(
+                llm_provider,
+                prompt,
+                request.images,
+                request.temperature,
+                request.think,
+                prompt_history,
+                _structured_format,
+            )
+        except ContextOverflowError:
+            return None
+        return fitted, prompt, memory_used, facts_used, context_used, answer, usage
 
     def _assistant_mode(self, workspace_id: str) -> str | None:
         """The workspace's role, or None when it was never chosen — which the prompt
@@ -633,6 +702,34 @@ class AskWorkspaceQuestionUseCase:
                 prompt_history,
                 structured_format,
             )
+        except ContextOverflowError as exc:
+            # The prompt didn't fit the model's memory. That is our miscount, not a
+            # broken engine — so rebuild with proportionally less context and ask
+            # once more. Most of the time the person never learns it happened.
+            retry = self._retry_with_less_context(
+                request, llm_provider, context_results, prompt_history, exc
+            )
+            if retry is None:
+                return self._record_question_event(
+                    self._diagnostic_answer(
+                        request=request,
+                        llm_provider=llm_provider,
+                        answer=context_overflow_answer(exc),
+                        diagnostic_code="context_window_exceeded",
+                        diagnostic_message=str(exc),
+                    ),
+                    request,
+                )
+            context_results, prompt, memory_used, facts_used, context_used, answer, usage = retry
+            sources = [
+                RagSource(
+                    chunk_id=result.chunk_id,
+                    source_path=result.source_path,
+                    score=result.score,
+                    preview=result.content[:200],
+                )
+                for result in context_results
+            ]
         except RuntimeError as exc:
             return self._record_question_event(
                 self._diagnostic_answer(
@@ -909,8 +1006,9 @@ class AskWorkspaceQuestionUseCase:
             return
 
         prompt_history = self._history_for_prompt(request, llm_provider)
+        retrieved = context_results
         context_results, prompt, memory_used, facts_used, context_used = self._grounded_prompt(
-            request, llm_provider, context_results, prompt_history
+            request, llm_provider, retrieved, prompt_history
         )
         # Rebuild sources from the chunks that actually fit the window.
         sources = [
@@ -922,9 +1020,53 @@ class AskWorkspaceQuestionUseCase:
             )
             for result in context_results
         ]
-        answer_text, usage, failed = yield from self._stream_generation(
-            llm_provider, prompt, request, prompt_history
-        )
+        try:
+            answer_text, usage, failed = yield from self._stream_generation(
+                llm_provider, prompt, request, prompt_history
+            )
+        except ContextOverflowError as exc:
+            # The engine refused the prompt before streaming a token: rebuild it
+            # smaller (sized to the overshoot it reported) and stream once more.
+            (
+                context_results,
+                prompt,
+                memory_used,
+                facts_used,
+                context_used,
+            ) = self._grounded_prompt(
+                request,
+                llm_provider,
+                retrieved,
+                prompt_history,
+                budget_scale=exc.overflow_ratio,
+            )
+            sources = [
+                RagSource(
+                    chunk_id=result.chunk_id,
+                    source_path=result.source_path,
+                    score=result.score,
+                    preview=result.content[:200],
+                )
+                for result in context_results
+            ]
+            try:
+                answer_text, usage, failed = yield from self._stream_generation(
+                    llm_provider, prompt, request, prompt_history
+                )
+            except ContextOverflowError as second:
+                yield AskStreamFinal(
+                    self._record_question_event(
+                        self._diagnostic_answer(
+                            request=request,
+                            llm_provider=llm_provider,
+                            answer=context_overflow_answer(second),
+                            diagnostic_code="context_window_exceeded",
+                            diagnostic_message=str(second),
+                        ),
+                        request,
+                    )
+                )
+                return
         if failed:
             yield AskStreamFinal(
                 self._record_question_event(
@@ -1020,6 +1162,12 @@ class AskWorkspaceQuestionUseCase:
                 )
                 chunks.append(answer)
                 yield AskStreamDelta(answer)
+        except ContextOverflowError:
+            # Not a runtime failure to report — a prompt we must rebuild smaller.
+            # The engine rejects an over-long prompt before it streams a single
+            # token, so nothing has reached the person yet and the caller can
+            # safely try again with less context.
+            raise
         except RuntimeError as exc:
             return "", None, str(exc) or "Model runtime error"
 

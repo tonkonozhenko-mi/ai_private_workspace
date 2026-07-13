@@ -68,7 +68,8 @@ class OllamaLLMProvider:
         # window we report is the one actually used — and consistent with
         # llama.cpp's ``-c``. The model may support a far larger context, but
         # running it that wide costs a lot of RAM, so we use a sane fixed window.
-        self.context_window = context_window
+        self._requested_context_window = context_window
+        self._context_window_cache: int | None = None
         # Real token counts from the last generation (Ollama reports these), so the
         # UI can show exact usage instead of a character-based estimate.
         self.last_prompt_tokens: int | None = None
@@ -77,6 +78,46 @@ class OllamaLLMProvider:
     @property
     def model_name(self) -> str:
         return self.model
+
+    @property
+    def context_window(self) -> int:
+        """The window this model will actually run with.
+
+        Ollama's own default (``num_ctx``) is small and invisible to us, so we pin
+        it per request — but a pinned window is a promise we must be able to keep:
+        a model whose weights only support 2048 tokens cannot be asked for 4096.
+        We therefore read the model's real ``context_length`` from ``/api/show``
+        and never claim more than the smaller of the two. Read once, cached, and
+        entirely best-effort: if Ollama can't tell us, we keep the requested value.
+        """
+        if self._context_window_cache is not None:
+            return self._context_window_cache
+        window = self._requested_context_window
+        declared = self._declared_model_context()
+        if declared is not None and declared > 0:
+            window = min(window, declared)
+        self._context_window_cache = window
+        return window
+
+    def _declared_model_context(self) -> int | None:
+        """The model's own context length from ``/api/show`` (``<arch>.context_length``)."""
+        try:
+            response = self.client.post(
+                f"{self.base_url}/api/show",
+                json={"model": self.model},
+                timeout=min(self.timeout_seconds, 10),
+            )
+            if response.status_code >= 400:
+                return None
+            info = response.json().get("model_info")
+        except (httpx.HTTPError, ValueError, AttributeError):
+            return None
+        if not isinstance(info, dict):
+            return None
+        for key, value in info.items():
+            if key.endswith(".context_length"):
+                return _coerce_int(value)
+        return None
 
     def _options(self, temperature: float | None) -> dict[str, object]:
         options: dict[str, object] = {"num_ctx": self.context_window}
