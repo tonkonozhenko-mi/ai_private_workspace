@@ -13,6 +13,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 - **A wiki is no longer credited with the system its pages describe.** An architecture decision that says "we chose Aurora" reads exactly like a repository that uses Aurora, and the summary duly announced that a folder of exported pages "uses AWS S3, RDS Aurora and Kafka" — a falsehood assembled entirely out of true sentences. When the evidence is documentation, the app says so, and the prose says what the documentation covers rather than what the project runs.
 - **The prose says who wrote it.** The one paragraph on the Intelligence page that a language model produces now names the model, the lens it was written for, and the analyzers whose facts it was given — and it was given nothing else. Switching role discards it rather than leaving one role's briefing under another's tabs.
 
+### Changed
+
+- **"Project watch" is now "Since you were here".** The block answers one question — what moved in the project while you were away — and its old name described the machinery rather than the answer.
+
 ### Fixed
 
 - **"169 pages nothing links to" was a fact about the export, not about the wiki.** A page saved from a browser keeps its links as addresses back to the original site, so on disk nothing points at anything — and every page in the folder was duly reported as unreachable. The app now checks whether the export carries a link graph at all, and when it does not it says so once, quietly, instead of accusing all 169 pages: search and Ask read them regardless.
