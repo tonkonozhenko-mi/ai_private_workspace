@@ -202,7 +202,16 @@ def get_project_intelligence_overview_text(workspace_id: str, role: str | None =
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"The local model could not generate an overview: {exc}",
         ) from exc
-    return {"overview": text, "role": resolved_role}
+    # Who wrote this, and from what. A paragraph that a machine produced should say so
+    # in the place a person reads it, not only in a release note — and naming the model
+    # is also the fastest way for a person to judge how much to trust the prose.
+    return {
+        "overview": text,
+        "role": resolved_role,
+        "role_label": lens.label,
+        "model": provider.model_name,
+        "grounded_in": list(view.get("analyzers_run", [])),
+    }
 
 
 def _watch_rebuild(workspace_id: str) -> ProjectSnapshotMeta:
