@@ -83,11 +83,25 @@ management.
 
 ## What it does
 
-- **Understands your project.** Point it at a folder; a local scan recognizes what's there — Terraform, Terragrunt, Kubernetes, Helm, Docker, Python, GitLab CI, docs, and more.
+- **Understands your project — including when it isn't code.** Point it at a folder; a local scan recognizes what's there — Terraform, Terragrunt, Kubernetes, Helm, Docker, Python, GitLab CI — or, when the folder is an exported wiki, reads it as one: its pages, the areas its titles announce, its decision records, and which of them are old enough to be wrong while others still rely on them. A project is described by what it contains, never by what it lacks.
+- **Reads what documentation is actually made of** — not only the files a compiler would accept. An attachment is cited by the page it illustrates ("attachment of 'Ingestion layer'"), so a diagram is findable by the document it belongs to rather than by its file name.
+
+  | Kind | Read as | Extensions |
+  | --- | --- | --- |
+  | Documents | text, section by section | `.docx` · `.pdf` · `.html` `.htm` · `.md` `.rst` `.txt` |
+  | Spreadsheets | sheet by sheet, cell values | `.xlsx` |
+  | Slide decks | one section per slide | `.pptx` |
+  | Diagrams | the labels on the boxes and arrows — the architecture, without a single pixel | `.drawio` |
+  | Tabular data | rows, with the header row kept on every chunk | `.csv` · `.tsv` |
+  | Notebooks | cell by cell, with cell numbers | `.ipynb` |
+  | Code | 30+ languages by extension (TypeScript, Go, Rust, Java, C/C++, C#, Ruby, PHP, Swift, Kotlin, Scala, Python…) | see [`source_files.py`](backend/app/core/domain/source_files.py) |
+  | Infrastructure & config | `.tf` `.hcl` · `.yaml` `.yml` · `.json` · `.toml` `.ini` `.cfg` · `Dockerfile` · `Makefile` · SQL | |
+
+  **Images are recognised and honestly left unindexed** — a PNG of an architecture diagram has no text to read without OCR, so the app tells you it exists and attributes it to its page rather than pretending to have read it. Legacy `.doc`, `.xls` and `.vsdx` are not read. Documents up to 20 MB; nothing is sent anywhere.
 - **Searches only when you ask.** The local index is built on an explicit action and respects your `.gitignore`, so virtualenvs, build output, caches, and `.env` secrets never enter it.
 - **Answers from your files.** Responses are grounded in retrieved sources with citations — and your conversations, history, model choices, and reports stay on your computer.
 - **Knows what to ask first.** The empty Ask composer suggests starter questions built from your project's own map — one click from a fresh index to a useful answer.
-- **Groups several repositories into one project.** Ask, Home, and Intelligence work across a whole portfolio — environments compared in a repo×environment matrix, technologies split into shared-vs-unique, risks grouped by pattern.
+- **Groups several projects into one.** Ask, Home, and Intelligence work across a whole portfolio — including a mixed one: ask "what did we decide, and where is it implemented?" and the answer carries the decision from the wiki and the files that implement it from the repository, each source labelled with where it came from. Environments compare in a repo×environment matrix, technologies split into shared-vs-unique, risks group by pattern.
 - **Built to navigate.** A **Cmd/Ctrl-K command palette** jumps to any repository, group, section, or file; a **file inspector** shows each file's owner, change coupling, connections, and risks.
 - **Runs on two local engines.** Built-in **llama.cpp** or **Ollama**, switchable per project, with the answer and search models managed separately.
 - **Writes nothing without consent.** Ask can turn an answer into a file draft, written only after you confirm the path and exact content. Nothing else runs on its own.
@@ -95,7 +109,11 @@ management.
 ## Project intelligence
 
 Beyond search, the app builds a **map of your project** with read-only tools over
-it: role lenses and an adaptive dashboard, a CI/CD flow view, environment
+it. The map shows the sections the project *has* — a wiki has pages and decisions,
+a repository has modules and pipelines, and neither is shown a wall of things it
+does not contain. Your role orders what leads; it never changes what is true. On
+top of that: an adaptive dashboard where every fact carries the question it raises
+(one click asks it), a CI/CD flow view, environment
 comparison, a security review (which scanners already run in CI and which
 findings matter, each backed by a file), git activity and per-file inspection,
 provable self-maintaining **project memory** with guardrails, **answer modes**
