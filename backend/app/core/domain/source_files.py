@@ -115,6 +115,18 @@ def is_env_template(name: str) -> bool:
     return lowered.startswith(".env") and lowered.endswith(ENV_TEMPLATE_SUFFIXES)
 
 
+# What the operating system leaves behind in every folder it has ever displayed.
+# .DS_Store is not a config file, it is Finder's memory of the icon positions — and
+# it was being counted, listed and offered to the person as part of their project.
+_OS_CLUTTER = frozenset(
+    {".ds_store", "thumbs.db", "desktop.ini", ".localized", "icon\r", ".spotlight-v100"}
+)
+
+
+def is_os_clutter(name: str) -> bool:
+    return name.lower() in _OS_CLUTTER
+
+
 def is_build_output(relative_path: str) -> bool:
     """Bundled/compiled output: minified files, source maps, and anything under a
     dist/build/out directory. .gitignore usually hides these — usually is not a

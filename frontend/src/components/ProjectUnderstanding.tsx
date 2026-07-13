@@ -148,13 +148,34 @@ function makeupOf(intel: ProjectIntelligenceResponse | null): string[] {
   if (!intel?.built || !intel.view) return [];
   const view = intel.view as unknown as Record<string, Record<string, unknown[]>>;
   const order = intel.view.section_order;
-  return MAKEUP.filter((item) => order.includes(item.section))
-    .map((item) => {
-      const count = view[item.section]?.[item.key]?.length ?? 0;
-      if (count === 0) return null;
-      return `${count.toLocaleString()} ${count === 1 ? item.singular : item.plural}`;
-    })
-    .filter((line): line is string => line !== null);
+  const lines: string[] = [];
+
+  // A decision record is a page. Counting them apart made Home say "146 pages" while
+  // the risk beside it said "169 pages nothing links to" — two true numbers that,
+  // side by side, look like a bug in the app.
+  const documents = intel.view.documents;
+  if (documents && order.includes("documents")) {
+    const pages = documents.pages.length + documents.decisions.length;
+    if (pages > 0) {
+      const decisions = documents.decisions.length;
+      lines.push(
+        decisions > 0
+          ? `${pages.toLocaleString()} pages, ${decisions} of them decision records`
+          : `${pages.toLocaleString()} ${pages === 1 ? "page" : "pages"}`,
+      );
+    }
+    if (documents.topics.length > 0) {
+      lines.push(`${documents.topics.length} ${documents.topics.length === 1 ? "area" : "areas"}`);
+    }
+  }
+
+  for (const item of MAKEUP) {
+    if (item.section === "documents" || !order.includes(item.section)) continue;
+    const count = view[item.section]?.[item.key]?.length ?? 0;
+    if (count === 0) continue;
+    lines.push(`${count.toLocaleString()} ${count === 1 ? item.singular : item.plural}`);
+  }
+  return lines;
 }
 
 type FileGroupKey = "code" | "infra" | "ci" | "tests" | "docs" | "config";
@@ -296,7 +317,11 @@ function configPurpose(path: string): string {
   return "Config";
 }
 
-function groupItems(groupKey: FileGroupKey, files: ProjectFileResponse[]): GroupItem[] {
+function groupItems(
+  groupKey: FileGroupKey,
+  files: ProjectFileResponse[],
+  titles?: Map<string, string>,
+): GroupItem[] {
   if (groupKey === "infra") {
     // Distinct "modules" (the folder each file lives in) — `acm`, `cloudfront`…
     const byDir = new Map<string, number>();
@@ -322,12 +347,18 @@ function groupItems(groupKey: FileGroupKey, files: ProjectFileResponse[]): Group
       .map((f) => ({ primary: f.path.split("/").pop() ?? f.path, secondary: configPurpose(f.path) }));
   }
   // code / tests / docs: basename + faded parent folder, easier to scan than a path.
+  // For a document the map has already read, its own title beats the underscored file
+  // name the exporter produced — "[Capability] Ingestion layer", not
+  // "[Capability]_Ingestion_layer.html".
   return [...files]
     .sort(byImportance)
     .slice(0, 6)
     .map((f) => {
+      const title = titles?.get(f.path);
       const parts = f.path.split("/");
-      return { primary: parts.pop() ?? f.path, secondary: parts.length ? parts.join("/") : undefined };
+      const file = parts.pop() ?? f.path;
+      if (title && title !== file) return { primary: title, secondary: file };
+      return { primary: file, secondary: parts.length ? parts.join("/") : undefined };
     });
 }
 
@@ -994,6 +1025,14 @@ export function ProjectUnderstanding({
   // about a folder of documentation, and "No specific technologies detected" is a
   // shrug at a project that is simply of a different kind.
   const makeup = makeupOf(intel);
+  // path → the title the map read out of the document itself.
+  const documentTitles = new Map<string, string>();
+  for (const page of [
+    ...(intel?.view?.documents?.pages ?? []),
+    ...(intel?.view?.documents?.decisions ?? []),
+  ]) {
+    if (page.source_file) documentTitles.set(page.source_file, page.name);
+  }
   const summaryLine =
     scan === null
       ? "Reading your project…"
@@ -1087,15 +1126,6 @@ export function ProjectUnderstanding({
               }${git.commits_last_7_days > 0 ? `, ${git.commits_last_7_days} this week` : ""}.`
             : ""}
         </p>
-        {makeup.length > 0 ? (
-          <div className="pu-chips pu-stack-chips">
-            {makeup.map((item) => (
-              <span className="pu-chip" key={item}>
-                {item}
-              </span>
-            ))}
-          </div>
-        ) : null}
         <div className="pu-lead-foot">
           <span className="pu-summary-foot">{lens.focus} · from your local scan</span>
           <button type="button" className="pu-lead-ask" onClick={onOpenAsk}>
@@ -1282,7 +1312,7 @@ export function ProjectUnderstanding({
                     <small>{groupFiles.length}</small>
                   </div>
                   <ul className="pu-file-list pu-file-list-rich">
-                    {groupItems(groupKey, groupFiles).map((item, i) => (
+                    {groupItems(groupKey, groupFiles, documentTitles).map((item, i) => (
                       <li key={`${item.primary}-${i}`} title={item.secondary}>
                         <span className="pu-file-primary">{item.primary}</span>
                         {item.secondary ? (

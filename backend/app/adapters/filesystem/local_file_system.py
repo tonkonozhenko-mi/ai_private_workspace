@@ -16,6 +16,7 @@ from app.core.domain.source_files import (
     is_build_output,
     is_env_template,
     is_lockfile,
+    is_os_clutter,
     is_secret_env_file,
 )
 
@@ -294,7 +295,12 @@ class LocalFileSystem:
         # bundle is JavaScript. Left as "unknown" so they never reach the index — a
         # lockfile is tens of thousands of lines nobody reads, a bundle embeds to
         # noise, and a real .env holds credentials.
-        if is_lockfile(name) or is_secret_env_file(name) or is_build_output(relative_posix):
+        if (
+            is_lockfile(name)
+            or is_secret_env_file(name)
+            or is_build_output(relative_posix)
+            or is_os_clutter(name)
+        ):
             return "unknown"
 
         # The stylesheets, scripts and fonts a *saver* dropped into a document's

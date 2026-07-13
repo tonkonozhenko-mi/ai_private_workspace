@@ -287,3 +287,18 @@ def test_the_infrastructure_project_lost_nothing_to_all_of_this():
     # And it is still asked the questions only a deployed thing can be asked. (Not the
     # dev/staging/prod one: this repo's environments were found, so that gap is closed.)
     assert any("Terraform state" in q["question"] for q in view["questions"]["questions"])
+
+
+def test_a_title_is_a_line_not_a_page():
+    """Some exported pages have an <h1> that never closes near it. Read literally, the
+    "title" became the whole document — screenfuls of prose in a list of page names."""
+    runaway = "<h1>Ops runbook " + ("blah " * 200) + "</h1>"
+    base = build_knowledge_base([_page("CIF_Data_Model.html", runaway)])
+    assert base.documents[0].title == "CIF Data Model"
+
+
+def test_html_entities_in_a_title_are_read_as_the_characters_they_are():
+    base = build_knowledge_base(
+        [_page("p.html", "<title>AWS DataSync &ndash; Docs &amp; more</title>")]
+    )
+    assert base.documents[0].title == "AWS DataSync – Docs & more"

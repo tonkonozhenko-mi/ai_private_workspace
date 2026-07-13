@@ -9,6 +9,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 
+- **A page's title is a line, not the whole page.** Some exported pages carry an `<h1>` whose closing tag is nowhere near it; read literally, the "title" became the entire document, and the Documents tab filled with screenfuls of flattened prose where the names should be. Anything that long is not a title — the file name is. HTML entities in titles (`&ndash;`, `&amp;`) are read as the characters they are.
+- **Home and the map now agree on how many pages there are.** Home said "146 pages" while the risk beside it said "169 pages nothing links to": two true numbers that, side by side, look like a bug. A decision record is a page — it is now counted as one, and named as one ("169 pages, 23 of them decision records").
+- **`.DS_Store` is not a config file.** macOS leaves one in every folder it has ever displayed; they were being scanned, counted and listed as part of the project.
+- **Home's two columns are two columns.** They were laid out with a multicolumn flow, which balances by height — so cards landed at odd offsets with holes between them. A grid puts each card where it belongs; the wide cards (watch, memory, sources) span the full width.
+- **The documents list reads like a table of contents**: page titles from the map (not underscored file names), two columns, and each page's "nothing links to it" note quietly under the title rather than running into it.
+
 - **"Rebuilding search context…" now says where it has got to.** The banner ran a scan, a re-index and an analysis behind one motionless label — for minutes, on a large project, with no way to tell work from a hang. The job already knew its own progress; it simply was not being asked. It now reads "Rebuilding search context · 2,112 of 3,232 pieces · 65%".
 
 - **A folder of documentation is no longer told off for not being a code repository.** Pointed at a real Confluence export, the app flagged "No test files were found" in red, asked how its dev/staging/prod environments are separated, offered a security review of pipelines it does not have, and told the Manager the scan "did not detect much yet" — about 169 pages. Only a project that has code can be missing tests for it; only something that is deployed can have environments; and a dashboard now leads with whatever the project is actually made of.
