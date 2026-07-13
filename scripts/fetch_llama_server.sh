@@ -6,8 +6,9 @@
 #
 # Usage: scripts/fetch_llama_server.sh <arm64|x64>
 # The OS is auto-detected: macOS, Windows (run under Git Bash on the runner), or
-# Linux. Optional env: LLAMA_CPP_VERSION (release tag, e.g. b9789; "latest"
-# tracks newest). GITHUB_TOKEN is used when present to avoid API rate limits.
+# Linux. The bundled release is pinned in scripts/llama_cpp_version.txt; the
+# LLAMA_CPP_VERSION env var overrides it ("latest" tracks newest). GITHUB_TOKEN
+# is used when present to avoid API rate limits.
 set -euo pipefail
 
 ARCH="${1:-}"
@@ -29,9 +30,13 @@ case "$(uname -s)" in
 esac
 
 REPO="ggml-org/llama.cpp"
-# Pinned for reproducible builds. Bump deliberately to update; override with the
-# LLAMA_CPP_VERSION env var, or set it to "latest" to track the newest release.
-VERSION="${LLAMA_CPP_VERSION:-b9789}"
+# Pinned for reproducible builds, in exactly one place: scripts/llama_cpp_version.txt.
+# Override with the LLAMA_CPP_VERSION env var, or set it to "latest" to track the
+# newest release (useful for testing, never for a release build).
+PIN_FILE="$(dirname "$0")/llama_cpp_version.txt"
+PINNED="$(grep -v '^[[:space:]]*#' "$PIN_FILE" | tr -d '[:space:]')"
+[ -n "$PINNED" ] || { echo "no llama.cpp version pinned in $PIN_FILE" >&2; exit 2; }
+VERSION="${LLAMA_CPP_VERSION:-$PINNED}"
 DEST="build/desktop/llama-runtime/${ARCH}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
