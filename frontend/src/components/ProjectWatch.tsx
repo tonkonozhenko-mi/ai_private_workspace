@@ -104,8 +104,11 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
     <section className="pw-card">
       <header className="pw-head">
         <div className="pw-head-text">
-          <p className="pw-eyebrow">Project watch</p>
-          <h2 className="pw-title">What changed since last time</h2>
+          {/* "Project watch" named the machinery, not the thing a person came for.
+              The block answers one question — what moved while you were away — and the
+              title now asks it in the second person, the way a colleague would. */}
+          <p className="pw-eyebrow">Since you were here</p>
+          <h2 className="pw-title">What changed while you were away</h2>
           {digest ? (
             <p className="pw-subtitle">
               Last checked {relativeTime(digest.checked_at)}

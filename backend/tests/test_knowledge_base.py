@@ -102,6 +102,28 @@ def test_the_home_page_is_not_accused_of_being_an_orphan():
     assert orphans == {"forgotten.html"}
 
 
+def test_an_export_with_no_links_is_reported_as_such_not_as_169_orphans():
+    """A browser-saved wiki keeps its links as URLs back to the original site, so
+    nothing on disk points at anything else on disk. Every page was then an orphan, and
+    Home led with "169 pages nothing links to" — a true sentence about the export
+    masquerading as a finding about the writing."""
+    from app.core.domain.project_graph_builder import from_knowledge_base
+
+    base = build_knowledge_base(
+        [
+            _page("a.html", '<a href="https://wiki.example.com/x">the other page</a>'),
+            _page("b.html", "<p>no links at all</p>"),
+        ]
+    )
+    assert not base.has_link_graph
+    assert base.orphans == []
+
+    _entities, _relations, findings = from_knowledge_base(base)
+    titles = [finding.title for finding in findings]
+    assert "These pages carry no links to each other" in titles
+    assert not any("nothing links to" in title for title in titles)
+
+
 def test_an_old_page_is_only_a_risk_when_others_still_rely_on_it():
     base = build_knowledge_base(
         [

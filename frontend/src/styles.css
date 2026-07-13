@@ -5938,6 +5938,29 @@ a {
   .project-understanding > .pu-sources {
     grid-column: 1 / -1;
   }
+  /* A closed drawer is not a tile. "AI deep analysis", "Files by area" and "Sources"
+     are single lines with a chevron until you open them — placed in the tile grid they
+     sat as tall empty boxes beside a full card, and the page read as mostly holes.
+     They are rows: full width, stacked under the cards that have something to show,
+     and free to use the whole width when opened (a file list wants it). Ordering is
+     done in the grid, not in the DOM, so each role still emits its own card order. */
+  .project-understanding > .pu-header {
+    order: -3;
+  }
+  .project-understanding > .pu-changes-banner {
+    order: -2;
+  }
+  .project-understanding > .pw-card,
+  .project-understanding > .pm-card {
+    order: 2;
+  }
+  .project-understanding > .pu-collapse {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+  .project-understanding > .pu-sources {
+    order: 4;
+  }
 }
 
 /* In-app prompt dialog (replaces native window.prompt, which is blocked in the

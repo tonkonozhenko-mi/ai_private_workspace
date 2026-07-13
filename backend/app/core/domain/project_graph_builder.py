@@ -885,6 +885,28 @@ def from_knowledge_base(
             )
         )
 
+    # No links between the pages at all — say so once, plainly, instead of accusing
+    # every page in the folder of being unreachable. A browser-saved wiki keeps its
+    # links as URLs back to the original site, so nothing on disk points at anything
+    # else on disk; that is a fact about the export, not a problem with the writing.
+    if base.documents and not base.has_link_graph:
+        findings.append(
+            ProjectFinding(
+                id="documentation:no_link_graph",
+                category=FindingCategory.DOCUMENTATION,
+                severity=Severity.INFO,
+                title="These pages carry no links to each other",
+                explanation=(
+                    "The export kept the text but not the links between pages — they "
+                    "most likely still point back at the original wiki. Nothing is "
+                    "wrong with the pages; it means this map cannot show which of them "
+                    "are central and which are forgotten. Search and Ask read all "
+                    f"{len(base.documents)} of them regardless."
+                ),
+                analyzer="documentation",
+            )
+        )
+
     orphans = base.orphans
     if orphans:
         findings.append(
