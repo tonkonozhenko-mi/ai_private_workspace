@@ -748,7 +748,12 @@ function MapRisksCard({
               </svg>
               <div>
                 <span className="pu-risk-text">{finding.title}</span>
-                <span className="pu-risk-why">{finding.explained?.what_it_means ?? finding.explanation}</span>
+                {/* The title states the fact; this says why it may matter. The backend
+                    already writes that line deterministically — use its words rather
+                    than inventing a second voice for the same finding. */}
+                <span className="pu-risk-why">
+                  {finding.explained?.why_it_may_matter ?? finding.explanation}
+                </span>
                 {file ? (
                   <button
                     type="button"
