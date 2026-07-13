@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-07-13
+
+One question, asked properly for the first time: **how much of your project can this model hold in mind at once?** The answer used to be a constant — 8,192 tokens, the same on a 64 GB workstation as on a laptop, the same for a model built to hold sixteen times that. It is now arithmetic: what a token of context costs in this model, and how much of this computer's memory we may spend on it. On a roomy machine that is four times the project it held yesterday, and every answer is grounded in that much more of your work.
+
 ### Changed
 
 - **The context window is now sized to your computer, not to a constant.** Every model ran with the same fixed 8,192-token memory — a number chosen once and never revisited. A 7B model whose weights support 131,072 tokens was being run at 6% of what it could hold, on a machine with memory to spare. The app now reads the model's own description of itself (layers, attention heads — which is what decides the cost of a single token of context), reads how much memory the computer actually has, and works out what it can afford: a quarter of the machine, and never more than what is left once the weights and a reserve for everything else are set aside. On a roomy Mac that is 32,768 tokens instead of 8,192 — four times the project the model can hold in mind at once. The same arithmetic sizes both engines, llama.cpp and Ollama, which used to disagree with each other for no reason anyone could state.
