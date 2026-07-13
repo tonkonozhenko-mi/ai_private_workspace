@@ -64,7 +64,7 @@ def test_the_group_can_add_a_wiki_and_a_repository_together():
 
 
 def test_the_names_of_ci_jobs_are_not_technologies():
-    """"Detect Changed Directories" is a thing that runs, not a thing this is built
+    """ "Detect Changed Directories" is a thing that runs, not a thing this is built
     with. A person scanning "what is this written in" learns nothing from it."""
     technologies = technologies_of(_infra_graph())
     assert technologies == ["Terraform", "Terragrunt"]

@@ -14,13 +14,13 @@ from app.core.domain.group_overview import (
     GroupOverview,
 )
 from app.core.domain.project_graph import EntityType, ProjectGraph
-from app.core.domain.risk_explanation import explain_finding
 from app.core.domain.project_makeup import (
     MAKEUP_KEYS,
     describe_project,
     makeup_counts,
     technologies_of,
 )
+from app.core.domain.risk_explanation import explain_finding
 from app.core.ports.git_history import GitHistoryPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.project_graph_repository import ProjectGraphRepositoryPort
@@ -105,8 +105,6 @@ class BuildGroupOverviewUseCase:
         )
         return member, member_risks
 
-
-
     @staticmethod
     def _risks(graph: ProjectGraph | None, workspace_id: str, workspace_name: str):
         counts: dict[str, int] = {}
@@ -164,7 +162,6 @@ class BuildGroupOverviewUseCase:
             return False
         status = self.index_status_repository.get(workspace_id)
         return status is not None and status.status != "not_indexed"
-
 
     @staticmethod
     def _totals(members: list[GroupMemberOverview], risks: list[GroupMemberRisk]) -> dict[str, int]:

@@ -113,7 +113,8 @@ def describe_project(graph: ProjectGraph | None) -> str:
             parts.append(f"{len(pipelines)} CI/CD pipeline(s)")
     if environments:
         parts.append(
-            f"{len(environments)} environment(s): " + ", ".join(sorted(e.name for e in environments))
+            f"{len(environments)} environment(s): "
+            + ", ".join(sorted(e.name for e in environments))
         )
 
     counts = makeup_counts(graph)

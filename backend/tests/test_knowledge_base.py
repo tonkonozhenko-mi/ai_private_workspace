@@ -170,7 +170,7 @@ def test_a_docs_folder_inside_a_repository_is_still_a_knowledge_base():
     """The gate is about what the collection IS, not where it sits: a genuinely
     cross-linked docs site keeps its facts even with code around it."""
     pages = [
-        _page("docs/index.md", "".join(f'[p{i}](p{i}.md)' for i in range(1, 10))),
+        _page("docs/index.md", "".join(f"[p{i}](p{i}.md)" for i in range(1, 10))),
         *[_page(f"docs/p{i}.md", f"# Page {i}\n[home](index.md)") for i in range(1, 10)],
     ]
     base = build_knowledge_base(
