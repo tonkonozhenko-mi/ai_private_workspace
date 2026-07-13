@@ -1997,6 +1997,10 @@ export interface GroupMemberRisk {
   workspace_id: string;
   workspace_name: string;
   severity: string;
+  // The softened word the single project uses ("Worth a close look"). One vocabulary
+  // for one fact: "HIGH" here and "worth a close look" there teaches a reader to trust
+  // neither.
+  attention?: string;
   title: string;
   explanation?: string;
   recommendation?: string | null;

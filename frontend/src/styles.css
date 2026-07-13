@@ -4724,6 +4724,19 @@ a.getting-ready-cta:hover {
 }
 .pi-tab-menu-item:hover { background: var(--c-surface-2); }
 
+/* The questions this particular group can answer, offered before the first one is asked. */
+.grp-ask-starters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.grp-ask-starter {
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--c-accent-border);
+  background: var(--c-accent-soft);
+  color: var(--c-accent);
+  font-size: 12px;
+  cursor: pointer;
+}
+.grp-ask-starter:hover { border-color: var(--c-accent); }
+
 .pi-working { font-size: 12.5px; color: var(--c-text-3); }
 /* The question a fact raises, offered as one click into Ask. Styled as a question,
    not as a call to action: it is the sentence you would have typed. */

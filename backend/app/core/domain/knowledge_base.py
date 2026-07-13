@@ -350,9 +350,7 @@ def build_knowledge_base(
         # An area is a wiki's own table of contents. In a repository, "[Capability]" in
         # a file name is a coincidence, not a taxonomy — so the areas stay behind the
         # same gate as everything else the wiki's convention implies.
-        areas=(
-            dict(sorted(areas.items(), key=lambda item: (-item[1], item[0]))) if is_kb else {}
-        ),
+        areas=(dict(sorted(areas.items(), key=lambda item: (-item[1], item[0]))) if is_kb else {}),
         inbound_links=inbound if is_kb else {},
         is_knowledge_base=is_kb,
     )
