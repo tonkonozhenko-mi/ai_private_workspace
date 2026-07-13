@@ -13,7 +13,7 @@ from app.core.domain.project_graph import (
     ProjectGraph,
     RelationType,
 )
-from app.core.domain.project_type import KIND_INFRASTRUCTURE, classify_project
+from app.core.domain.project_makeup import describe_project, technologies_of
 from app.core.domain.risk_explanation import explain_finding
 from app.core.domain.role_lens import RoleLens, Section
 
@@ -301,66 +301,13 @@ def present_project_intelligence(graph: ProjectGraph, lens: RoleLens) -> dict:
     modules = graph.entities_of_type(EntityType.MODULE)
     dependencies = graph.entities_of_type(EntityType.DEPENDENCY)
 
-    frameworks: set[str] = set()
-    for app in applications:
-        raw = app.metadata.get("frameworks", "")
-        frameworks |= {f.strip() for f in raw.split(",") if f.strip()}
+    # The tools, not the names of the CI jobs that run them.
+    technology_chips = technologies_of(graph)
 
-    technology_chips = sorted(
-        {e.name for e in infra}
-        | {p.name for p in pipelines}
-        | {d.name for d in dependencies}
-        | frameworks
-    )
-
-    # A purely factual one-line description that LEADS with the dominant project
-    # kind — so a Terraform repo isn't announced as "Python application" just
-    # because it has one helper script. The LLM (separately) elaborates.
-    classification = classify_project(graph)
-    parts: list[str] = []
-    if classification.kind == KIND_INFRASTRUCTURE:
-        # Infra-led: headline the infra, mention the (minor) app honestly.
-        parts.append(classification.label)
-        if applications:
-            parts.append(
-                f"with a {sorted(frameworks)[0]} component" if frameworks else "with helper scripts"
-            )
-    else:
-        # Application- or mixed-led (or unknown): headline the app when present.
-        if applications:
-            app_part = classification.label  # framework-aware, e.g. "FastAPI application"
-            if modules:
-                app_part += f", {len(modules)} module(s)"
-            parts.append(app_part)
-        if infra:
-            parts.append("infrastructure: " + ", ".join(sorted(e.name for e in infra)))
-        if pipelines:
-            parts.append(f"{len(pipelines)} CI/CD pipeline(s)")
-    if environments:
-        parts.append(
-            f"{len(environments)} environment(s): "
-            + ", ".join(sorted(e.name for e in environments))
-        )
-    # A folder of documentation is not a project with "no supported technologies" — it
-    # is a body of knowledge, and this line should say so before it says anything else.
-    pages = graph.entities_of_type(EntityType.DOCUMENT) + graph.entities_of_type(
-        EntityType.DECISION
-    )
-    if pages:
-        areas = graph.entities_of_type(EntityType.TOPIC)
-        decisions = graph.entities_of_type(EntityType.DECISION)
-        doc_part = f"{len(pages)} page(s) of documentation"
-        if areas:
-            doc_part += f" across {len(areas)} area(s)"
-        if decisions:
-            doc_part += f", {len(decisions)} of them decision records"
-        parts.insert(0, doc_part)
-
-    description = (
-        "Detected " + "; ".join(parts) + "."
-        if parts
-        else "Nothing the analyzers recognise yet — the files are still searchable in Ask."
-    )
+    # One vocabulary for "what is this?", shared with the group view — which used to
+    # read a wiki's built map for services and pipelines, find none, and announce it as
+    # "Not analyzed yet".
+    description = describe_project(graph)
 
     test_suites = graph.entities_of_type(EntityType.TEST_SUITE)
     tables = graph.entities_of_type(EntityType.TABLE)

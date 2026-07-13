@@ -217,6 +217,9 @@ class GroupMemberRisk(BaseModel):
     workspace_id: str
     workspace_name: str
     severity: str
+    # The softened word ("Worth a close look"), so the group speaks the same language
+    # as the single project rather than shouting HIGH at the same fact.
+    attention: str = ""
     title: str
     explanation: str = ""
     recommendation: str | None = None

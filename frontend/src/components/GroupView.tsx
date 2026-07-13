@@ -234,7 +234,7 @@ export function GroupView({
 
       <div className="grp-body">
         {activeTab === "home" ? <GroupHome overview={overview} groupId={groupId} /> : null}
-        {activeTab === "ask" ? <GroupAsk groupId={groupId} /> : null}
+        {activeTab === "ask" ? <GroupAsk groupId={groupId} overview={overview} /> : null}
         {activeTab === "intelligence" ? <GroupIntelligence overview={overview} /> : null}
       </div>
     </div>
@@ -555,6 +555,7 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
       string,
       {
         severity: string;
+        attention: string;
         total: number;
         repos: Map<string, number>;
         explanation: string;
@@ -565,11 +566,21 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
       if (!shownIds.has(r.workspace_id)) continue;
       const entry =
         byTitle.get(r.title) ??
-        { severity: r.severity, total: 0, repos: new Map(), explanation: "", recommendation: null };
+        {
+          severity: r.severity,
+          attention: r.attention ?? r.severity,
+          total: 0,
+          repos: new Map(),
+          explanation: "",
+          recommendation: null,
+        };
       entry.total += 1;
       entry.repos.set(r.workspace_name, (entry.repos.get(r.workspace_name) ?? 0) + 1);
       // Keep the most severe label seen for this title.
-      if (r.severity === "high") entry.severity = "high";
+      if (r.severity === "high") {
+        entry.severity = "high";
+        entry.attention = r.attention ?? "high";
+      }
       // Keep the first human-readable detail seen (all repos share the finding text).
       if (!entry.explanation && r.explanation) entry.explanation = r.explanation;
       if (!entry.recommendation && r.recommendation) entry.recommendation = r.recommendation;
@@ -737,12 +748,17 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
 
       <section className="grp-section">
         <p className="grp-shead">Risk patterns — what repeats, and where</p>
-        <p className="grp-hint">Same finding across repos is grouped, so you fix the pattern, not 20 rows.</p>
+        <p className="grp-hint">
+          Same finding across repos is grouped, so you fix the pattern, not 20 rows. These are
+          leads for a human, not verdicts.
+        </p>
         {riskGroups.length > 0 ? (
           <ul className="grp-riskgroups">
             {riskGroups.map((r) => (
               <li key={r.title} className="grp-riskgroup">
-                <span className={`grp-sev grp-sev-${r.severity}`}>{r.severity}</span>
+                {/* The same softened word the single view uses — a risk is a lead for
+                    a human, not a verdict, whichever screen it is read on. */}
+                <span className={`grp-sev grp-sev-${r.severity}`}>{r.attention}</span>
                 <span className="grp-riskgroup-title">{r.title}</span>
                 <span className="grp-riskgroup-count">{r.total}×</span>
                 <span className="grp-riskgroup-repos">
@@ -782,7 +798,35 @@ function groupSourcesByRepo(sources: GroupSource[]): [string, GroupSource[]][] {
   return Array.from(map.entries()).sort((a, b) => b[1].length - a[1].length);
 }
 
-function GroupAsk({ groupId }: { groupId: string }) {
+/** The questions a group of *these* members can answer.
+ *
+ * The composer offered "Where is the user record created and consumed?" to a group of a
+ * Terraform monorepo and a wiki — a developer's example, in a place that has no
+ * application. What a group is *for* is the question no single member can answer, so
+ * the starters are built from what the members are actually made of. */
+function groupStarters(overview: GroupOverviewResponse | null): string[] {
+  const totals = overview?.totals ?? {};
+  const questions: string[] = [];
+  const hasDocs = (totals.pages ?? 0) > 0;
+  const hasInfra = (totals.infrastructure ?? 0) > 0 || (totals.environments ?? 0) > 0;
+  if (hasDocs && (hasInfra || (totals.services ?? 0) > 0)) {
+    // The whole point of a group: a decision in one place, its implementation in another.
+    questions.push("What did we decide, and where is it implemented?");
+  }
+  if (hasInfra) questions.push("Which environments exist, and which repository deploys where?");
+  if (hasDocs) questions.push("Which decisions have been recorded, and are any of them stale?");
+  if ((totals.services ?? 0) > 0) questions.push("Which services talk to which?");
+  questions.push("What changed across these projects recently?");
+  return questions.slice(0, 4);
+}
+
+function GroupAsk({
+  groupId,
+  overview,
+}: {
+  groupId: string;
+  overview: GroupOverviewResponse | null;
+}) {
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<GroupAskResponse | null>(null);
   const [streamed, setStreamed] = useState("");
@@ -791,9 +835,14 @@ function GroupAsk({ groupId }: { groupId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [traceOpen, setTraceOpen] = useState(false);
 
-  async function submit() {
-    const trimmed = question.trim();
+  const starters = groupStarters(overview);
+
+  async function submit(text?: string) {
+    const trimmed = (text ?? question).trim();
     if (!trimmed || loading) return;
+    // The composer empties on send, as it does in the single-project Ask — the question
+    // is now in the conversation, and leaving it in the box invites sending it twice.
+    setQuestion("");
     setLoading(true);
     setError(null);
     setResult(null);
@@ -823,22 +872,31 @@ function GroupAsk({ groupId }: { groupId: string }) {
         Ask once and the answer is drawn from every repository in the group, streamed as it's
         written. Each source is labelled with the repo it came from. Nothing leaves this computer.
       </p>
+      {!result && !loading && starters.length > 0 ? (
+        <div className="grp-ask-starters">
+          {starters.map((q) => (
+            <button key={q} type="button" className="grp-ask-starter" onClick={() => void submit(q)}>
+              {q}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="grp-ask-row">
         <input
           className="grp-ask-input"
           type="text"
           value={question}
-          placeholder="e.g. Where is the user record created and consumed?"
+          placeholder={starters[0] ? `e.g. ${starters[0]}` : "Ask across every repository in this group"}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") submit();
+            if (e.key === "Enter") void submit();
           }}
           disabled={loading}
         />
         <button
           type="button"
           className="grp-button grp-button-primary"
-          onClick={submit}
+          onClick={() => void submit()}
           disabled={loading || question.trim().length === 0}
         >
           {loading ? "Asking…" : "Ask the group"}

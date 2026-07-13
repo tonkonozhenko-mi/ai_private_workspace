@@ -14,13 +14,25 @@ from app.core.domain.group_overview import (
     GroupOverview,
 )
 from app.core.domain.project_graph import EntityType, ProjectGraph
+from app.core.domain.risk_explanation import explain_finding
+from app.core.domain.project_makeup import (
+    MAKEUP_KEYS,
+    describe_project,
+    makeup_counts,
+    technologies_of,
+)
 from app.core.ports.git_history import GitHistoryPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.project_graph_repository import ProjectGraphRepositoryPort
 from app.core.ports.project_group_repository import ProjectGroupRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 
-_COUNT_KEYS = ("services", "environments", "pipelines", "infrastructure")
+# What the group counts. It used to count only the things a code repository is made
+# of, so a wiki with a fully built map contributed nothing to any total and was
+# announced as "Not analyzed yet" — the map was right there, and the aggregate was
+# reading it for services and pipelines. The vocabulary is now the same one the single
+# project uses, which is the only way the two views can ever agree.
+_COUNT_KEYS = MAKEUP_KEYS
 
 
 class BuildGroupOverviewNotFoundError(ValueError):
@@ -71,11 +83,11 @@ class BuildGroupOverviewUseCase:
     def _member(self, workspace_id, workspace):
         graph = self.project_graph_repository.get_latest_graph(workspace_id)
         built = graph is not None
-        counts = self._counts(graph)
+        counts = makeup_counts(graph)
         environments = (
             [e.name for e in graph.entities_of_type(EntityType.ENVIRONMENT)] if graph else []
         )
-        chips = self._chips(graph)
+        chips = technologies_of(graph)
         risk_counts, member_risks = self._risks(graph, workspace_id, workspace.name)
         git = self._git(workspace.project_path)
         member = GroupMemberOverview(
@@ -84,7 +96,7 @@ class BuildGroupOverviewUseCase:
             project_path=workspace.project_path,
             built=built,
             indexed=self._indexed(workspace_id),
-            description=self._describe(workspace.name, counts, environments),
+            description=describe_project(graph),
             technology_chips=chips,
             counts=counts,
             environments=environments,
@@ -93,29 +105,7 @@ class BuildGroupOverviewUseCase:
         )
         return member, member_risks
 
-    @staticmethod
-    def _counts(graph: ProjectGraph | None) -> dict[str, int]:
-        if graph is None:
-            return {k: 0 for k in _COUNT_KEYS}
-        return {
-            "services": len(graph.entities_of_type(EntityType.SERVICE)),
-            "environments": len(graph.entities_of_type(EntityType.ENVIRONMENT)),
-            "pipelines": len(graph.entities_of_type(EntityType.PIPELINE)),
-            "infrastructure": len(graph.entities_of_type(EntityType.INFRA_COMPONENT)),
-        }
 
-    @staticmethod
-    def _chips(graph: ProjectGraph | None) -> list[str]:
-        if graph is None:
-            return []
-        names: set[str] = set()
-        for entity_type in (
-            EntityType.INFRA_COMPONENT,
-            EntityType.PIPELINE,
-            EntityType.DEPENDENCY,
-        ):
-            names |= {e.name for e in graph.entities_of_type(entity_type)}
-        return sorted(names)
 
     @staticmethod
     def _risks(graph: ProjectGraph | None, workspace_id: str, workspace_name: str):
@@ -131,6 +121,9 @@ class BuildGroupOverviewUseCase:
                         workspace_id=workspace_id,
                         workspace_name=workspace_name,
                         severity=finding.severity,
+                        # The same word the single project uses. A risk does not become
+                        # a different kind of thing by being seen from a group.
+                        attention=explain_finding(finding).attention,
                         title=finding.title,
                         explanation=finding.explanation,
                         recommendation=finding.recommendation,
@@ -172,16 +165,6 @@ class BuildGroupOverviewUseCase:
         status = self.index_status_repository.get(workspace_id)
         return status is not None and status.status != "not_indexed"
 
-    @staticmethod
-    def _describe(name: str, counts: dict[str, int], environments: list[str]) -> str:
-        parts: list[str] = []
-        if counts.get("services"):
-            parts.append(f"{counts['services']} service(s)")
-        if environments:
-            parts.append(f"{len(environments)} env(s): " + ", ".join(environments))
-        if counts.get("pipelines"):
-            parts.append(f"{counts['pipelines']} pipeline(s)")
-        return "; ".join(parts) if parts else "Not analyzed yet."
 
     @staticmethod
     def _totals(members: list[GroupMemberOverview], risks: list[GroupMemberRisk]) -> dict[str, int]:

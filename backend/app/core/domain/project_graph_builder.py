@@ -10,6 +10,7 @@ This composes (does not replace) the existing analyzers in
 import json
 import os
 import re
+from dataclasses import replace
 
 from app.core.domain.analysis import (
     AnalysisFinding,
@@ -1387,16 +1388,37 @@ def build_project_graph(
     # Reflect reality: mark Terraform's remote state as managed and drop the false
     # "no backend block" finding so it doesn't read as a risk.
     if terragrunt is not None and getattr(terragrunt, "has_remote_state", False):
-        from dataclasses import replace as _replace
-
         tf_id = _entity_id(EntityType.INFRA_COMPONENT, "terraform")
         tf = entities.get(tf_id)
         if tf is not None:
-            entities[tf_id] = _replace(
+            entities[tf_id] = replace(
                 tf,
                 metadata={**tf.metadata, "remote_state": "True", "remote_state_via": "Terragrunt"},
             )
         findings = [f for f in findings if f.id != "terraform:terraform_backend_missing"]
+    elif terragrunt is not None:
+        # Terragrunt is here but we did not see its remote_state — most likely because
+        # it lives in a parent terragrunt.hcl we did not read. "No backend block found"
+        # then reads as a hole in the setup, when the truth is that Terragrunt generates
+        # those blocks. Say what we actually know, and where to look.
+        findings = [
+            (
+                replace(
+                    finding,
+                    severity=Severity.LOW,
+                    title="Terraform has no backend block of its own",
+                    explanation=(
+                        "Terragrunt is in use here, and it generates the backend block for "
+                        "each stack — so its absence from the .tf files is expected, not a "
+                        "gap. Worth confirming once: the remote_state block in terragrunt.hcl "
+                        "is where the state actually lives."
+                    ),
+                )
+                if finding.id == "terraform:terraform_backend_missing"
+                else finding
+            )
+            for finding in findings
+        ]
 
     if gitlab_ci is not None:
         absorb(from_gitlab_ci(gitlab_ci), "gitlab_ci")
@@ -1442,7 +1464,7 @@ def build_project_graph(
             ),
         )
 
-    return ProjectGraph(
+    graph = ProjectGraph(
         workspace_id=workspace_id,
         entities=list(entities.values()),
         relations=list(relations.values()),
@@ -1450,3 +1472,34 @@ def build_project_graph(
         analyzers_run=analyzers_run,
         analyzers_skipped=list(analyzers_skipped or []),
     )
+    return replace(graph, findings=_tempered_by_project_kind(graph))
+
+
+def _tempered_by_project_kind(graph: ProjectGraph) -> list[ProjectFinding]:
+    """How loudly a fact is stated depends on what kind of project it is stated about.
+
+    "No test files were found", in red, on an infrastructure monorepo: true, and wrong
+    in tone. There is no application here to unit-test; the absence is a thing to be
+    aware of, not a defect to answer for. The fact does not change — only how hard it
+    knocks.
+    """
+    from app.core.domain.project_type import KIND_INFRASTRUCTURE, classify_project
+
+    if classify_project(graph).kind != KIND_INFRASTRUCTURE:
+        return list(graph.findings)
+    return [
+        (
+            replace(
+                finding,
+                severity=Severity.INFO,
+                explanation=(
+                    "This is an infrastructure project, so there may be nothing here to "
+                    "unit-test — the checks that matter are usually plan/validate in CI. "
+                    "Worth knowing rather than worth fixing."
+                ),
+            )
+            if finding.id == "tests:no_tests_found"
+            else finding
+        )
+        for finding in graph.findings
+    ]
