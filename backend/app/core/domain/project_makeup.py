@@ -135,7 +135,9 @@ def describe_project(graph: ProjectGraph | None) -> str:
         lead = f"an infrastructure project ({tools})" if tools else "an infrastructure project"
         if applications:
             lead += (
-                f" with a {sorted(frameworks)[0]} component" if frameworks else " with helper scripts"
+                f" with a {sorted(frameworks)[0]} component"
+                if frameworks
+                else " with helper scripts"
             )
     elif applications:
         lead = f"a {classification.label}"
