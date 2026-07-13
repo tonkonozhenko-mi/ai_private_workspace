@@ -298,5 +298,7 @@ def test_a_title_is_a_line_not_a_page():
 
 
 def test_html_entities_in_a_title_are_read_as_the_characters_they_are():
-    base = build_knowledge_base([_page("p.html", "<title>AWS DataSync &ndash; Docs &amp; more</title>")])
+    base = build_knowledge_base(
+        [_page("p.html", "<title>AWS DataSync &ndash; Docs &amp; more</title>")]
+    )
     assert base.documents[0].title == "AWS DataSync – Docs & more"

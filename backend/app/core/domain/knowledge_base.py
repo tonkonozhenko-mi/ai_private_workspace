@@ -29,8 +29,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from pathlib import PurePosixPath
 from html import unescape
+from pathlib import PurePosixPath
 from urllib.parse import unquote
 
 from app.core.domain.companion_assets import document_title, owning_document
