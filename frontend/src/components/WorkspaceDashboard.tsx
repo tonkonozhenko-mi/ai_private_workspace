@@ -122,7 +122,11 @@ export function WorkspaceDashboard({
       ) : null}
 
       {fullyReady ? (
-        <>
+        // Home in the order the role reads it. A manager opening a project they have
+        // seen before does not want to be re-introduced to it — they want to know what
+        // moved since last time; everyone else wants the project first. The blocks are
+        // the same blocks: the lens changes what leads, never what is true.
+        <div className="home-stack" data-role={dashboard.assistant_mode ?? "developer"}>
           <ProjectUnderstanding
             dashboard={dashboard}
             projectPath={summary.project_path}
@@ -136,7 +140,7 @@ export function WorkspaceDashboard({
           />
           <ProjectWatch dashboard={dashboard} />
           <ProjectMemory dashboard={dashboard} />
-        </>
+        </div>
       ) : (
         <WorkspaceGettingReady
           dashboard={dashboard}

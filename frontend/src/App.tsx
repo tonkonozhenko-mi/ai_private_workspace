@@ -21,6 +21,7 @@ import {
   previewWorkspaceFileSelection,
   getWorkspaceIndexingRules,
   getWorkspaceSkillProfile,
+  updateWorkspaceAssistantMode,
   updateWorkspaceSkillProfile,
   getWorkspaceUIActions,
   setApiBaseUrl,
@@ -64,7 +65,7 @@ import {
   toFileSelectionRulesRequest,
   type FileIndexingPreferences,
 } from "./components/fileIndexingPreferences";
-import { DEFAULT_CUSTOM_SKILLS, DEFAULT_SKILL_PREFERENCES, normalizeCustomSkills, normalizeSkillPreferences, skillPreferencesFromProfile, skillPreferencesForRole, toSkillProfileRequest, type CustomSkill, type SkillPreferences } from "./components/skillLibrary";
+import { SKILL_PRESETS, DEFAULT_CUSTOM_SKILLS, DEFAULT_SKILL_PREFERENCES, normalizeCustomSkills, normalizeSkillPreferences, skillPreferencesFromProfile, skillPreferencesForRole, toSkillProfileRequest, type CustomSkill, type SkillPreferences } from "./components/skillLibrary";
 import UpdateNotice from "./components/UpdateNotice";
 import {
   ANSWER_CREATIVITY_TEMPERATURE,
@@ -176,6 +177,18 @@ function App() {
   // The workspace role and the Ask answer style are one thing: when the role is
   // changed (on Intelligence), make that role the single active skill and save
   // it, then reload so Ask, its focus panel, and the dashboard all match.
+  // Change the role from anywhere: persist it, make it the active skill, reload.
+  // The role belongs in the header because it is a property of *you on this project*,
+  // not of the Intelligence tab that happened to own the only picker.
+  const changeWorkspaceRole = async (workspaceId: string, mode: string) => {
+    try {
+      await updateWorkspaceAssistantMode(workspaceId, mode);
+    } catch {
+      // Persisting failed; the reload below will show the role that actually stuck.
+    }
+    await handleRolePersisted(workspaceId, mode);
+  };
+
   const handleRolePersisted = async (workspaceId: string, mode: string) => {
     try {
       const nextSkills = skillPreferencesForRole(mode, preferences.skillPreferences);
@@ -1370,6 +1383,30 @@ function App() {
                 />
                 <span className="ws-chip-name">{detail.dashboard.workspace_name}</span>
               </div>
+              {/* Who you are on this project, in the one place that is always on
+                  screen. It was buried in the Intelligence tab, so the lens that
+                  frames every answer was a setting you had to go and find. */}
+              <label
+                className="ws-role-chip"
+                title="Your role on this project. It re-orders what you see first and how Ask answers — it never changes the facts."
+              >
+                <span className="ws-role-chip-label">Role</span>
+                <select
+                  value={detail.dashboard.assistant_mode ?? "developer"}
+                  onChange={(event) =>
+                    void changeWorkspaceRole(
+                      detail.dashboard.workspace_id,
+                      event.target.value,
+                    )
+                  }
+                >
+                  {SKILL_PRESETS.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </header>
 
             <TabCaption tab={activeTab} />

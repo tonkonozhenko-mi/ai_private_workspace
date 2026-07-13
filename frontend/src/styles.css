@@ -4661,6 +4661,39 @@ a.getting-ready-cta:hover {
 .pi-link:hover:not(:disabled) { text-decoration: underline; }
 .pi-muted { color: var(--c-text-2); font-size: 12.5px; line-height: 1.55; margin: 0; }
 .pi-error { color: #f0a3a3; font-size: 12.5px; margin: 0; }
+/* Home, in the order the role reads it. One declarative rule per role, on the same
+   blocks: a manager returning to a project wants "what changed while you were away"
+   before being re-introduced to the project; everyone else wants the project first. */
+.home-stack { display: flex; flex-direction: column; gap: 14px; }
+.home-stack > * { order: 2; }
+.home-stack > .project-understanding { order: 1; }
+.home-stack > .pw-card { order: 2; }
+.home-stack > .pm-card { order: 3; }
+.home-stack[data-role="manager"] > .pw-card { order: 0; }
+
+/* The role, in the header: who you are on this project, always on screen. Reads as a
+   chip beside the project name, not as a form control shouting for attention. */
+.ws-role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  font-size: 12px;
+  color: var(--c-text-2);
+}
+.ws-role-chip-label { color: var(--c-text-3); }
+.ws-role-chip select {
+  border: none;
+  background: transparent;
+  color: var(--c-text);
+  font-size: 12px;
+  padding: 0 2px;
+  cursor: pointer;
+}
+
 .pi-working { font-size: 12.5px; color: var(--c-text-3); }
 /* The question a fact raises, offered as one click into Ask. Styled as a question,
    not as a call to action: it is the sentence you would have typed. */
