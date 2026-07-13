@@ -14,8 +14,18 @@ import subprocess
 import threading
 import time
 
-from app.adapters.system.llama_server_process_manager import LlamaServerProcessManager
+from app.adapters.system.gguf_metadata import read_gguf_architecture
+from app.adapters.system.host_memory import total_physical_ram_bytes
+from app.adapters.system.llama_server_process_manager import (
+    LlamaServerProcessManager,
+    LlamaServerStartError,
+)
 from app.config.settings import resolve_llama_server_binary_path
+from app.core.domain.context_window_choice import (
+    MIN_CONTEXT,
+    choose_context_window,
+    kv_bytes_per_token,
+)
 from app.core.domain.gguf_catalog import (
     GgufModel,
     default_gguf_embedding,
@@ -138,7 +148,13 @@ class LlamaRuntimeManager:
         self._llm_port = llm_port
         self._embed_port = embed_port
         self._rerank_port = rerank_port
+        # The fallback window, used only when the machine won't say how much RAM it
+        # has. Otherwise the window is chosen from the model and the machine.
         self._llm_context_size = llm_context_size
+        # What the answer engine is actually running with, and what the model could
+        # have held — both surfaced, so the number on screen is the loaded one.
+        self._llm_context_running: int | None = None
+        self._llm_context_max: int | None = None
         self._llm: LlamaServerProcessManager | None = None
         self._embed: LlamaServerProcessManager | None = None
         self._rerank: LlamaServerProcessManager | None = None
@@ -230,6 +246,11 @@ class LlamaRuntimeManager:
             "running": running,
             "active_llm_model": llm_model.id,
             "active_embedding_model": embed_model.id,
+            # The window the answer engine actually loaded, and the one the model
+            # could have held — so the Models card can say which of the two limits
+            # is doing the limiting: this machine, or the model itself.
+            "llm_context_tokens": self._llm_context_running if running else None,
+            "llm_context_max_tokens": self._llm_context_max,
             "llm_url": f"http://{self._host}:{self._llm_port}" if running else None,
             "embed_url": f"http://{self._host}:{self._embed_port}" if running else None,
             # Reranker is an optional "sharper search" precision pass (llama.cpp).
@@ -269,6 +290,78 @@ class LlamaRuntimeManager:
                 self._rerank = None
         return self.status()
 
+    def _choose_llm_context(self, model: GgufModel) -> tuple[int, int | None]:
+        """The window to run this answer model with, and the window it could hold.
+
+        Read from the model file itself (layers, heads — what a token of context
+        costs) and from the machine (how much of that we can afford). A model with
+        a 131k paper window on a 16 GB laptop gets 16k, not a shrug and a fixed
+        8192.
+        """
+        path = self._dl.destination_path(model)
+        architecture = read_gguf_architecture(path)
+        try:
+            file_bytes = os.path.getsize(path)
+        except OSError:
+            file_bytes = model.size_bytes or 0
+        total_ram = total_physical_ram_bytes()
+        if total_ram <= 0:
+            # The OS won't say how much memory it has: keep today's behaviour
+            # rather than gamble with someone else's machine.
+            return self._llm_context_size, (architecture.context_length if architecture else None)
+        cost = kv_bytes_per_token(
+            block_count=architecture.block_count if architecture else None,
+            head_count_kv=architecture.head_count_kv if architecture else None,
+            embedding_length=architecture.embedding_length if architecture else None,
+            head_count=architecture.head_count if architecture else None,
+            model_file_bytes=file_bytes,
+        )
+        model_max = (architecture.context_length if architecture else None) or 0
+        chosen = choose_context_window(
+            model_max_context=model_max,
+            kv_bytes_per_token=cost,
+            total_ram_bytes=total_ram,
+            model_file_bytes=file_bytes,
+        )
+        return chosen, (model_max or None)
+
+    def _start_llm_server(self, binary, model: GgufModel) -> LlamaServerProcessManager:
+        """Start the answer engine, stepping the window down if it won't fit.
+
+        The arithmetic says the window is affordable; the machine has the last
+        word. If llama-server won't come up (the KV cache is the usual reason),
+        halve the window and try again, down to the 8192 that has always worked.
+        Each step says why in the log, so a small window is never a mystery.
+        """
+        chosen, model_max = self._choose_llm_context(model)
+        self._llm_context_max = model_max
+        path = self._dl.destination_path(model)
+        context = chosen
+        last_error: LlamaServerStartError | None = None
+        while context >= MIN_CONTEXT:
+            server = LlamaServerProcessManager(binary, host=self._host, context_size=context)
+            try:
+                server.start(path, self._llm_port)
+            except LlamaServerStartError as exc:
+                last_error = exc
+                server.stop()
+                if context == MIN_CONTEXT:
+                    break
+                context = max(MIN_CONTEXT, context // 2)
+                print(
+                    f"[llama] {model.id} did not start with a {chosen:,}-token window "
+                    f"({exc}); retrying with {context:,}.",
+                    flush=True,
+                )
+                continue
+            self._llm_context_running = context
+            return server
+        self._llm_context_running = None
+        raise LlamaRuntimeError(
+            f"The answer engine could not start even with the smallest window "
+            f"({MIN_CONTEXT:,} tokens): {last_error}"
+        )
+
     def start(self) -> dict:
         binary = resolve_llama_server_binary_path()
         if binary is None:
@@ -291,10 +384,7 @@ class LlamaRuntimeManager:
             # otherwise the new servers fail to bind and requests hit a stale one.
             if self._llm is None and self._embed is None and self._rerank is None:
                 _reap_orphan_llama_servers(str(binary))
-            self._llm = LlamaServerProcessManager(
-                binary, host=self._host, context_size=self._llm_context_size
-            )
-            self._llm.start(self._dl.destination_path(llm_model), self._llm_port)
+            self._llm = self._start_llm_server(binary, llm_model)
             self._embed = LlamaServerProcessManager(binary, host=self._host)
             self._embed.start(
                 self._dl.destination_path(embed_model), self._embed_port, embedding=True
@@ -322,10 +412,9 @@ class LlamaRuntimeManager:
             self._llm_model = model
             if self._llm is not None:
                 self._llm.stop()
-            self._llm = LlamaServerProcessManager(
-                binary, host=self._host, context_size=self._llm_context_size
-            )
-            self._llm.start(self._dl.destination_path(model), self._llm_port)
+            # A different model has a different appetite per token, so the window is
+            # chosen again rather than inherited from the model we just stopped.
+            self._llm = self._start_llm_server(binary, model)
         return self.status()
 
     def switch_embedding(self, ref: GgufModelRef) -> dict:

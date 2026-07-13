@@ -179,6 +179,9 @@ def test_llama_server_reads_its_real_window_from_props():
 
 
 def test_ollama_never_pins_a_window_larger_than_the_model_supports():
+    """A model whose weights stop at 2048 gets 2048 — our 8192 floor is a default,
+    not a promise the model can keep."""
+
     def show(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/show"
         assert json.loads(request.content)["model"] == "phi3"

@@ -25,6 +25,119 @@ function formatGb(bytes: number): string {
   return gb >= 1 ? `${gb.toFixed(1)} GB` : `${Math.round(bytes / 1024 ** 2)} MB`;
 }
 
+// The window the engine actually loaded — and, when it is this computer that set
+// the limit rather than the model, which of the two did. "Measured, not promised"
+// applies to memory too.
+function describeContext(tokens: number, modelMax?: number | null): string {
+  const running = `${tokens.toLocaleString()} tokens`;
+  if (!modelMax || modelMax <= tokens) return `${running} (model maximum)`;
+  return `${running} · model supports ${modelMax.toLocaleString()} — limited by this computer's memory`;
+}
+
+// What an installed model is, and what can be done with it — the row's expanded
+// half. Its own component because the row above it is about state (downloading,
+// in use, available) and this is about facts and actions; mixing the two made one
+// function that did four jobs.
+function ModelDetails({
+  model,
+  kind,
+  active,
+  runtime,
+  switchingId,
+  deletingId,
+  confirmDeleteId,
+  onUse,
+  onAskDelete,
+  onCancelDelete,
+  onDelete,
+}: {
+  model: GgufCatalogItem;
+  kind: "llm" | "embedding";
+  active: boolean;
+  runtime: LlamaRuntimeStatus | null;
+  switchingId: string | null;
+  deletingId: string | null;
+  confirmDeleteId: string | null;
+  onUse: () => void;
+  onAskDelete: () => void;
+  onCancelDelete: () => void;
+  onDelete: () => void;
+}) {
+  const showContext = active && kind === "llm" && Boolean(runtime?.llm_context_tokens);
+  const confirming = confirmDeleteId === model.id;
+  return (
+    <li className="gr-model-detail-row">
+      <dl>
+        <div><dt>Repository</dt><dd>{model.repo_id}</dd></div>
+        <div><dt>File</dt><dd>{model.filename}</dd></div>
+        <div><dt>Quantization</dt><dd>{model.quantization}</dd></div>
+        <div><dt>Size</dt><dd>{formatGb(model.size_bytes)}</dd></div>
+        <div><dt>Type</dt><dd>{model.model_type === "embedding" ? "search / embeddings" : "answers"}</dd></div>
+        {model.min_ram_gb ? (
+          <div><dt>Needs RAM</dt><dd>≥ {model.min_ram_gb} GB</dd></div>
+        ) : null}
+        {showContext ? (
+          <div>
+            <dt>Context</dt>
+            <dd>
+              {describeContext(runtime!.llm_context_tokens!, runtime?.llm_context_max_tokens)}
+            </dd>
+          </div>
+        ) : null}
+      </dl>
+      <div className="gr-model-detail-actions">
+        {active ? (
+          <span className="gr-llama-note gr-llama-note--left">
+            In use — switch to another model before deleting.
+          </span>
+        ) : (
+          <>
+            {runtime?.running ? (
+              <button
+                type="button"
+                className="gr-check-use"
+                disabled={switchingId !== null}
+                onClick={onUse}
+              >
+                {switchingId === model.id ? "Switching…" : "Use this model"}
+              </button>
+            ) : null}
+            {confirming ? (
+              <>
+                <button
+                  type="button"
+                  className="gr-model-delete"
+                  disabled={deletingId !== null}
+                  onClick={onDelete}
+                >
+                  {deletingId === model.id ? "Deleting…" : "Confirm delete"}
+                </button>
+                <button
+                  type="button"
+                  className="gr-check-use"
+                  disabled={deletingId !== null}
+                  onClick={onCancelDelete}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="gr-model-delete"
+                disabled={deletingId !== null}
+                onClick={onAskDelete}
+              >
+                Delete model
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </li>
+  );
+}
+
 // llama.cpp setup: the engine binary ships inside the app; here we download the
 // GGUF model files. The catalog reports real on-disk install state, so models
 // downloaded for one workspace already show as installed in the next one.
@@ -571,69 +684,19 @@ export function LlamaCppModelsPanel({
         )}
       </li>
       {canExpand && expanded ? (
-        <li className="gr-model-detail-row">
-          <dl>
-            <div><dt>Repository</dt><dd>{model.repo_id}</dd></div>
-            <div><dt>File</dt><dd>{model.filename}</dd></div>
-            <div><dt>Quantization</dt><dd>{model.quantization}</dd></div>
-            <div><dt>Size</dt><dd>{formatGb(model.size_bytes)}</dd></div>
-            <div><dt>Type</dt><dd>{model.model_type === "embedding" ? "search / embeddings" : "answers"}</dd></div>
-            {model.min_ram_gb ? (
-              <div><dt>Needs RAM</dt><dd>≥ {model.min_ram_gb} GB</dd></div>
-            ) : null}
-          </dl>
-          <div className="gr-model-detail-actions">
-            {active ? (
-              <span className="gr-llama-note gr-llama-note--left">
-                In use — switch to another model before deleting.
-              </span>
-            ) : (
-              <>
-                {runtime?.running ? (
-                  <button
-                    type="button"
-                    className="gr-check-use"
-                    disabled={switchingId !== null}
-                    onClick={() =>
-                      void (kind === "llm" ? useModel(model) : useEmbeddingModel(model))
-                    }
-                  >
-                    {switchingId === model.id ? "Switching…" : "Use this model"}
-                  </button>
-                ) : null}
-                {confirmDeleteId === model.id ? (
-                  <>
-                    <button
-                      type="button"
-                      className="gr-model-delete"
-                      disabled={deletingId !== null}
-                      onClick={() => void removeModel(model)}
-                    >
-                      {deletingId === model.id ? "Deleting…" : "Confirm delete"}
-                    </button>
-                    <button
-                      type="button"
-                      className="gr-check-use"
-                      disabled={deletingId !== null}
-                      onClick={() => setConfirmDeleteId(null)}
-                    >
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    className="gr-model-delete"
-                    disabled={deletingId !== null}
-                    onClick={() => setConfirmDeleteId(model.id)}
-                  >
-                    Delete model
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        </li>
+        <ModelDetails
+          model={model}
+          kind={kind}
+          active={active}
+          runtime={runtime}
+          switchingId={switchingId}
+          deletingId={deletingId}
+          confirmDeleteId={confirmDeleteId}
+          onUse={() => void (kind === "llm" ? useModel(model) : useEmbeddingModel(model))}
+          onAskDelete={() => setConfirmDeleteId(model.id)}
+          onCancelDelete={() => setConfirmDeleteId(null)}
+          onDelete={() => void removeModel(model)}
+        />
       ) : null}
       </Fragment>
     );

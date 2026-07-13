@@ -143,6 +143,10 @@ export interface LlamaRuntimeStatus {
   active_embedding_model: string | null;
   llm_url: string | null;
   embed_url: string | null;
+  // The window the answer engine is actually running with (sized to this
+  // computer's memory), and the window the model itself could hold.
+  llm_context_tokens?: number | null;
+  llm_context_max_tokens?: number | null;
 }
 
 export interface RecommendedBackend {

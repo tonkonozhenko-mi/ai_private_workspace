@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **The context window is now sized to your computer, not to a constant.** Every model ran with the same fixed 8,192-token memory — a number chosen once and never revisited. A 7B model whose weights support 131,072 tokens was being run at 6% of what it could hold, on a machine with memory to spare. The app now reads the model's own description of itself (layers, attention heads — which is what decides the cost of a single token of context), reads how much memory the computer actually has, and works out what it can afford: a quarter of the machine, and never more than what is left once the weights and a reserve for everything else are set aside. On a roomy Mac that is 32,768 tokens instead of 8,192 — four times the project the model can hold in mind at once. The same arithmetic sizes both engines, llama.cpp and Ollama, which used to disagree with each other for no reason anyone could state.
+- **If the machine disagrees with the arithmetic, the machine wins.** The window we calculate is affordable on paper; only the engine knows for certain. If it will not start, the window halves and it tries again, down to the 8,192 that has always worked — and the log says which step it settled on and why, so a small window is never a mystery.
+- **The Models card says how much the model is actually holding.** "Context: 32,768 tokens · model supports 131,072 — limited by this computer's memory", or "(model maximum)" when the model itself is the limit. Which of the two is doing the limiting is the only interesting part, so it is the part that is said.
+
 ## [0.6.1] - 2026-07-13
 
 A repair release, about one sentence the app could not say honestly: **how much can this model actually hold?** It assumed every language cost the same per token — true of English and code, wrong by half for Ukrainian — never counted the question you typed, and when the model refused the over-long prompt, told you to check that an engine which had just answered us was running. It now measures the window, measures the prompt in the language the prompt is written in, and when something still doesn't fit, sends less rather than blaming the machine.
