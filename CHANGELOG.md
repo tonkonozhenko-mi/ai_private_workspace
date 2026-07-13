@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **The overview the model writes is now written for you, about what you actually have.** Every project used to be described to the model the same way — a fixed block of infrastructure, pipelines, environments and counts — and every role got the same paragraph. A folder of documentation received six lines of "none detected", so the model wrote the only paragraph those facts supported: one about absences ("no services, no CI/CD; the deployment methodology remains unclear"). Every word true, the paragraph worthless. The model is now given the sections the project *has*, ordered the way your role reads them, and asked your role's own opening questions — a tester's paragraph names what nothing covers, a DBA's names what would make a migration dangerous. And it is asked for what a list cannot give: what the facts add up to, and what to look at first.
+- **A wiki is no longer credited with the system its pages describe.** An architecture decision that says "we chose Aurora" reads exactly like a repository that uses Aurora, and the summary duly announced that a folder of exported pages "uses AWS S3, RDS Aurora and Kafka" — a falsehood assembled entirely out of true sentences. When the evidence is documentation, the app says so, and the prose says what the documentation covers rather than what the project runs.
+- **The prose says who wrote it.** The one paragraph on the Intelligence page that a language model produces now names the model, the lens it was written for, and the analyzers whose facts it was given — and it was given nothing else. Switching role discards it rather than leaving one role's briefing under another's tabs.
+
 ### Fixed
 
 - **A page's title is a line, not the whole page.** Some exported pages carry an `<h1>` whose closing tag is nowhere near it; read literally, the "title" became the entire document, and the Documents tab filled with screenfuls of flattened prose where the names should be. Anything that long is not a title — the file name is. HTML entities in titles (`&ndash;`, `&amp;`) are read as the characters they are.

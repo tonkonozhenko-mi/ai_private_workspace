@@ -16,6 +16,7 @@ import type {
   ProjectGraphFinding,
   ProjectGraphNode,
   ProjectGraphPayload,
+  ProjectIntelligenceOverviewText,
   ProjectIntelligenceResponse,
   ProjectIntelligenceView,
   ProjectReferences,
@@ -159,7 +160,10 @@ export function ProjectIntelligence({
   const [activeTab, setActiveTab] = useState<string>("summary");
   const [stale, setStale] = useState(false);
 
-  const [overview, setOverview] = useState<string | null>(null);
+  // The whole reply, not just the prose: who wrote it and from which analyzers' facts
+  // are shown under it, and the paragraph is written for one role — so switching role
+  // must throw it away rather than leave the developer's briefing under the DBA's tabs.
+  const [overview, setOverview] = useState<ProjectIntelligenceOverviewText | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [overviewError, setOverviewError] = useState<string | null>(null);
 
@@ -214,6 +218,10 @@ export function ProjectIntelligence({
   const changeRole = useCallback(
     (mode: string) => {
       setRole(mode);
+      // The paragraph was written to answer one role's questions. Under another role's
+      // tabs it is not merely stale, it is addressed to someone else.
+      setOverview(null);
+      setOverviewError(null);
       void updateWorkspaceAssistantMode(workspaceId, mode)
         .then(() => onRolePersisted?.(mode))
         .catch(() => {});
@@ -241,7 +249,7 @@ export function ProjectIntelligence({
     setOverviewError(null);
     try {
       const result = await getProjectIntelligenceOverviewText(workspaceId, role ?? undefined);
-      setOverview(result.overview);
+      setOverview(result);
     } catch (err) {
       setOverviewError(
         err instanceof Error ? err.message : "The local model could not write an overview.",

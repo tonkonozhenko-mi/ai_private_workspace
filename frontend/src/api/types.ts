@@ -1958,6 +1958,11 @@ export interface ProjectIntelligenceBuildResponse {
 export interface ProjectIntelligenceOverviewText {
   overview: string;
   role: string;
+  role_label: string;
+  // The model that wrote the paragraph, and the analyzers whose facts it was given.
+  // Both are shown under the prose: a reader deserves to know what wrote it.
+  model: string | null;
+  grounded_in: string[];
 }
 
 // --- Project groups (treat several repos as one project) ---

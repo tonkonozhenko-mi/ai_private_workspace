@@ -9,6 +9,7 @@ import type {
   ProjectGraphEntity,
   ProjectGraphFinding,
   ProjectGraphNode,
+  ProjectIntelligenceOverviewText,
   ProjectIntelligenceView,
   ProjectReferences,
   RoleBrief,
@@ -39,7 +40,7 @@ export function SummarySection({
   onInspectFile,
 }: {
   view: ProjectIntelligenceView;
-  overview: string | null;
+  overview: ProjectIntelligenceOverviewText | null;
   overviewLoading: boolean;
   overviewError: string | null;
   onGenerateOverview: () => void;
@@ -63,7 +64,22 @@ export function SummarySection({
 
       <div className="pi-overview">
         {overview ? (
-          <p className="pi-overview-text">{overview}</p>
+          <>
+            <p className="pi-overview-text">{overview.overview}</p>
+            {/* Whose paragraph this is, and what it stands on. The prose is the one
+                place in Intelligence a model speaks, so it says so — and names itself,
+                because "written by AI" is a claim a reader can only weigh if they know
+                which model, working from which analyzers. */}
+            <p className="pi-overview-note">
+              Written for the {overview.role_label} lens
+              {overview.model ? ` by ${overview.model}` : " by the local model"}, from the
+              facts on this page
+              {overview.grounded_in.length > 0
+                ? ` (${overview.grounded_in.join(", ")})`
+                : ""}
+              . It was given nothing else.
+            </p>
+          </>
         ) : overviewError ? (
           <p className="pi-muted">{overviewError}</p>
         ) : (
@@ -73,12 +89,11 @@ export function SummarySection({
             onClick={onGenerateOverview}
             disabled={overviewLoading}
           >
-            {overviewLoading ? "Writing overview…" : "Explain in plain language"}
+            {overviewLoading
+              ? "Reading the facts…"
+              : `Brief me as a ${view.role_label.toLowerCase()}`}
           </button>
         )}
-        {overview ? (
-          <p className="pi-overview-note">Written by the local model from the facts above.</p>
-        ) : null}
       </div>
 
       {important_files.files.length > 0 ? (
