@@ -133,7 +133,12 @@ def build_project_intelligence(workspace_id: str) -> dict:
         git_history=git_history,
     )
     try:
-        meta = use_case.execute(BuildProjectGraphInput(workspace_id=workspace_id))
+        # A person pressed a button. The cache exists to spare the machine work nobody
+        # asked for — not to overrule someone who asked. Skipping the rebuild because
+        # "the files have not changed" was right about the files and wrong about the
+        # request: the analyzers themselves change with every release, and after an
+        # update the map on screen was built by code that no longer exists.
+        meta = use_case.execute(BuildProjectGraphInput(workspace_id=workspace_id, force=True))
     except BuildProjectGraphWorkspaceNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except BuildProjectGraphScanRequiredError as exc:

@@ -236,13 +236,23 @@ class BuildProjectGraphUseCase:
     def _scan_signature(latest_scan) -> str:
         """Content + version fingerprint of the scan. Changes when any file's
         path/size/mtime changes, or the app version changes (so analyzer
-        improvements take effect on the next build even if files didn't change)."""
+        improvements take effect on the next build even if files didn't change).
+
+        The app version alone was not enough: a build shipped under the same version
+        number as the last one is, to the cache, the same program — so a release that
+        changed nothing but the analyzers left every existing project showing a map its
+        code no longer agrees with. ``ANALYZERS_VERSION`` is bumped whenever the
+        analyzers change what they would produce, which is the fact the cache actually
+        needs to know.
+        """
+        from app.core.domain.project_graph_builder import ANALYZERS_VERSION
+
         try:
             from app.config.settings import APP_VERSION
 
-            version = APP_VERSION
+            version = f"{APP_VERSION}+a{ANALYZERS_VERSION}"
         except Exception:  # noqa: BLE001 - version is best-effort; only busts cache
-            version = ""
+            version = f"a{ANALYZERS_VERSION}"
         parts = sorted(
             f"{f.path}:{getattr(f, 'size_bytes', '')}:{getattr(f, 'modified_at', '')}"
             for f in latest_scan.files

@@ -314,13 +314,37 @@ function GroupHome({ overview, groupId }: { overview: GroupOverviewResponse | nu
     return <p className="grp-muted">No repositories in this group yet. Add one above.</p>;
   }
   const t = overview.totals;
+  // The cards show what this group is actually made of. They used to be four fixed
+  // code-shaped numbers, so a group holding a wiki led with "0 services" and never
+  // mentioned its 169 pages. A count of zero is not worth a card.
+  const cards: { value: number; label: string; sub?: string }[] = [
+    { value: t.repos ?? overview.member_count, label: "projects" },
+  ];
+  if ((t.pages ?? 0) > 0) {
+    cards.push({
+      value: t.pages ?? 0,
+      label: "documents",
+      sub: (t.decisions ?? 0) > 0 ? `${t.decisions} decision records` : undefined,
+    });
+  }
+  if ((t.services ?? 0) > 0) cards.push({ value: t.services, label: "services" });
+  if ((t.infrastructure ?? 0) > 0) {
+    cards.push({ value: t.infrastructure, label: "infrastructure components" });
+  }
+  if ((t.environments ?? 0) > 0) {
+    cards.push({
+      value: t.environments,
+      label: "environments",
+      sub: overview.environments.join(", ") || undefined,
+    });
+  }
+  cards.push({ value: t.commits_last_7_days ?? 0, label: "commits this week" });
   return (
     <div className="grp-stack">
       <div className="grp-hero">
-        <Metric value={t.repos ?? overview.member_count} label="repositories" />
-        <Metric value={t.services ?? 0} label="services" sub="across all repos" />
-        <Metric value={t.environments ?? 0} label="environments" sub={overview.environments.join(", ") || undefined} />
-        <Metric value={t.commits_last_7_days ?? 0} label="commits this week" />
+        {cards.slice(0, 4).map((card) => (
+          <Metric key={card.label} value={card.value} label={card.label} sub={card.sub} />
+        ))}
       </div>
 
       <section className="grp-section">
