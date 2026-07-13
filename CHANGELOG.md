@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **The folder-permission hint appeared over a progress bar that was visibly moving.** It was shown for any job that paused for five seconds — including indexing, which pauses whenever it embeds a large batch. But indexing is long past the permission gate: the folder was already read. The hint now speaks only for a scan that has not yet counted a single file, which is the only moment macOS can actually be blocking.
+
 ### Changed
 
 - **The bundled inference engine is up to date again.** The app ships llama.cpp b9976 (was b9789, about a month of upstream fixes behind). The version was pinned in three separate places — the fetch script and two workflows — which is how it drifted; it now lives in one file, `scripts/llama_cpp_version.txt`, and a test fails if a second copy of it ever appears.
