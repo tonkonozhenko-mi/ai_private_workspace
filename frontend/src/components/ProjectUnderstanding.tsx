@@ -24,6 +24,7 @@ import {
 } from "../api/client";
 import type {
   GitInsightsResponse,
+  ProjectGraphFinding,
   ProjectIntelligenceResponse,
   ProjectFileResponse,
   ProjectScanResponse,
@@ -708,6 +709,69 @@ function GitActivityCard({ git, role, onInspectFile }: { git: GitInsightsRespons
   );
 }
 
+/** What the map found worth a look — before any model is asked anything.
+ *
+ * Home already offers an LLM-written analysis, but that costs a minute and a model.
+ * These are facts: a page a year old that six others still link to, a foreign key
+ * with no index, a pipeline that deploys straight to prod. Deterministic, cited by
+ * file, and — the part that matters — phrased as things to check, never as verdicts.
+ * A wiki's risks are wiki risks; a repo's are repo risks. Same card, whatever the
+ * project is made of.
+ */
+function MapRisksCard({
+  findings,
+  label,
+  onInspectFile,
+}: {
+  findings: ProjectGraphFinding[];
+  label: string;
+  onInspectFile?: (path: string) => void;
+}) {
+  if (findings.length === 0) return null;
+  const shown = findings.slice(0, 5);
+  return (
+    <div className="pu-card">
+      <div className="pu-card-head">
+        <MetaIcon>
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01" />
+        </MetaIcon>
+        <span>{label}</span>
+        <small>{findings.length}</small>
+      </div>
+      <div className="pu-analysis-risks">
+        {shown.map((finding) => {
+          const file = finding.source_file ?? finding.evidence[0] ?? null;
+          return (
+            <div className="pu-risk" key={finding.id}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01" />
+              </svg>
+              <div>
+                <span className="pu-risk-text">{finding.title}</span>
+                <span className="pu-risk-why">{finding.explained?.what_it_means ?? finding.explanation}</span>
+                {file ? (
+                  <button
+                    type="button"
+                    className="pu-risk-file"
+                    onClick={() => onInspectFile?.(file)}
+                  >
+                    {file}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {findings.length > shown.length ? (
+        <p className="pu-guide-foot">
+          Showing {shown.length} of {findings.length} — the rest are in Intelligence › Risks.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function ProjectUnderstanding({
   dashboard,
   projectPath,
@@ -1164,6 +1228,14 @@ export function ProjectUnderstanding({
           </div>
         </details>
       )}
+
+      {intel?.built && intel.view ? (
+        <MapRisksCard
+          findings={intel.view.risks.findings}
+          label={lens.risksLabel}
+          onInspectFile={onInspectFile}
+        />
+      ) : null}
 
       {git ? <GitActivityCard git={git} role={dashboard.assistant_mode} onInspectFile={onInspectFile} /> : null}
 
