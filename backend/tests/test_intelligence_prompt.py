@@ -27,17 +27,17 @@ def _wiki_prompt(role: str = "business_analyst") -> str:
         [
             PageSource(
                 "index.html",
-                '<title>Home</title><a href="[ADR-08]._Seq.html">a</a>',
+                '<title>Home</title><a href="[ADR-08]._Invoice.html">a</a>',
                 _NOW - timedelta(days=2),
             ),
             PageSource(
-                "[ADR-08]._Seq.html",
-                "<title>[ADR-08] Sequence generation</title>"
+                "[ADR-08]._Invoice.html",
+                "<title>[ADR-08] Invoice numbering</title>"
                 "<p>The platform writes to an S3 bucket and reads from Aurora.</p>",
                 _NOW - timedelta(days=30),
             ),
         ],
-        all_paths=["index.html", "[ADR-08]._Seq.html"],
+        all_paths=["index.html", "[ADR-08]._Invoice.html"],
     )
     graph = build_project_graph("w", knowledge_base=base)
     view = present_project_intelligence(graph, role_lens_for(role))
@@ -52,7 +52,7 @@ def test_a_project_is_never_described_by_what_it_does_not_contain():
     assert "ENVIRONMENTS" not in prompt
     # What it does have, it is told about.
     assert "DOCUMENTATION" in prompt
-    assert "[ADR-08] Sequence generation" in prompt
+    assert "[ADR-08] Invoice numbering" in prompt
 
 
 def test_a_wiki_is_not_credited_with_the_system_its_pages_describe():
@@ -102,7 +102,7 @@ def test_home_does_not_credit_a_wiki_with_the_cloud_its_pages_describe():
             chunk_id=path, source_path=path, content="We chose Aurora.", score=0.9, metadata={}
         )
 
-    pages = [_chunk("[ADR-08]._Seq.html"), _chunk("Ingestion.html"), _chunk("notes/Design.md")]
+    pages = [_chunk("[ADR-08]._Invoice.html"), _chunk("Ingestion.html"), _chunk("notes/Design.md")]
     code = [_chunk("src/app.py"), _chunk("main.py"), _chunk("README.md")]
 
     assert evidence_is_documentation(pages)

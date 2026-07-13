@@ -319,7 +319,7 @@ class LocalDocumentExtractor:
         """A diagram, read as the words on it.
 
         A .drawio file is XML: every box and every arrow carries a ``value`` — its
-        label. Those labels *are* the architecture ("Ingestion" → "Silver layer" →
+        label. Those labels *are* the architecture ("Ingestion" → "Ledger layer" →
         "PowerBI"), and they are exactly what someone asks about. The pixels stay
         unread; the names do not.
 

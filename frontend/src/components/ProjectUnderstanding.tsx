@@ -244,7 +244,7 @@ const GROUP_BY_DETECTED_TYPE: Record<string, FileGroupKey> = {
   tabular_data: "docs",
   // Documents, whatever container they arrived in. Left out of this table, a
   // spreadsheet attached to a wiki page fell through to "Config", and a page called
-  // "…CDC_test.html" was filed under Tests because its NAME contains "test".
+  // "…_retry_test.html" was filed under Tests because its NAME contains "test".
   excel_workbook: "docs",
   presentation: "docs",
   diagram: "docs",
@@ -256,7 +256,7 @@ const GROUP_BY_DETECTED_TYPE: Record<string, FileGroupKey> = {
 };
 
 // A file the scan already recognised as a document IS a document — no path rule may
-// overrule that. "AWS_MSK_Connector_-_CDC_test.html" is a wiki page about a test, not
+// overrule that. "Payments_Webhook_-_retry_test.html" is a wiki page about a test, not
 // a test; filing it under Tests is how a documentation folder ended up reporting one
 // lonely, imaginary test suite.
 const DOCUMENT_GROUPS = new Set<FileGroupKey>(["docs"]);
