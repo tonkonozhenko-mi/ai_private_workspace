@@ -14,6 +14,7 @@ function humanizeSelectedModel(selected: string | null): string | null {
 
 import {
   generateProjectUnderstanding,
+  getProjectIntelligence,
   getProjectUnderstanding,
   getWorkspaceGitInsights,
   getWorkspaceJob,
@@ -23,6 +24,7 @@ import {
 } from "../api/client";
 import type {
   GitInsightsResponse,
+  ProjectIntelligenceResponse,
   ProjectFileResponse,
   ProjectScanResponse,
   ProjectTodosResponse,
@@ -103,6 +105,36 @@ function humanAge(iso: string): string {
   if (months < 12) return `${months} month${months === 1 ? "" : "s"}`;
   const years = (days / 365).toFixed(days < 730 ? 1 : 0);
   return `${years} year${years === "1" ? "" : "s"}`;
+}
+
+// What a project is made of, said in its own terms. The map already knows: it has
+// pages, or modules, or tables, or pipelines — and NOT the other things. Home used to
+// announce technologies ("Built with Terraform, Python") and, when there were none,
+// "No specific technologies detected", which is how a 400-page wiki was greeted with
+// a shrug. A project is now described by what it contains.
+const MAKEUP: { section: string; key: string; singular: string; plural: string }[] = [
+  { section: "documents", key: "pages", singular: "page", plural: "pages" },
+  { section: "documents", key: "decisions", singular: "decision", plural: "decisions" },
+  { section: "code", key: "modules", singular: "module", plural: "modules" },
+  { section: "tests", key: "suites", singular: "test suite", plural: "test suites" },
+  { section: "data", key: "tables", singular: "table", plural: "tables" },
+  { section: "api", key: "endpoints", singular: "endpoint", plural: "endpoints" },
+  { section: "infrastructure", key: "components", singular: "infra component", plural: "infra components" },
+  { section: "deployment", key: "pipelines", singular: "pipeline", plural: "pipelines" },
+  { section: "environments", key: "environments", singular: "environment", plural: "environments" },
+];
+
+function makeupOf(intel: ProjectIntelligenceResponse | null): string[] {
+  if (!intel?.built || !intel.view) return [];
+  const view = intel.view as unknown as Record<string, Record<string, unknown[]>>;
+  const order = intel.view.section_order;
+  return MAKEUP.filter((item) => order.includes(item.section))
+    .map((item) => {
+      const count = view[item.section]?.[item.key]?.length ?? 0;
+      if (count === 0) return null;
+      return `${count.toLocaleString()} ${count === 1 ? item.singular : item.plural}`;
+    })
+    .filter((line): line is string => line !== null);
 }
 
 type FileGroupKey = "code" | "infra" | "ci" | "tests" | "docs" | "config";
@@ -705,6 +737,9 @@ export function ProjectUnderstanding({
   const [updating, setUpdating] = useState<string | null>(null);
   const [git, setGit] = useState<GitInsightsResponse | null>(null);
   const [todos, setTodos] = useState<ProjectTodosResponse | null>(null);
+  // The project map, when it has been built. Home does not build it — it just tells
+  // the truth about what it found, in the project's own terms.
+  const [intel, setIntel] = useState<ProjectIntelligenceResponse | null>(null);
   const autoTriedRef = useRef(false);
 
   useEffect(() => {
@@ -716,7 +751,15 @@ export function ProjectUnderstanding({
     setChanges(null);
     setGit(null);
     setTodos(null);
+    setIntel(null);
     autoTriedRef.current = false;
+    getProjectIntelligence(dashboard.workspace_id)
+      .then((result) => {
+        if (!cancelled) setIntel(result);
+      })
+      .catch(() => {
+        /* the map is optional here; Home still shows the scan */
+      });
     // Have files on disk changed since the last scan? Only after a user gesture,
     // so this never triggers a macOS folder-access prompt on a cold launch.
     if (userHasInteracted) {
@@ -838,12 +881,19 @@ export function ProjectUnderstanding({
   for (const file of files) grouped[categorize(file)].push(file);
 
   const techNames = Array.from(new Set(skills.map((skill) => skill.name)));
+  // What this project is made of — pages, modules, tables, pipelines — from the map's
+  // own facts. It leads, because "Built with Python, Terraform" says nothing at all
+  // about a folder of documentation, and "No specific technologies detected" is a
+  // shrug at a project that is simply of a different kind.
+  const makeup = makeupOf(intel);
   const summaryLine =
     scan === null
       ? "Reading your project…"
-      : techNames.length > 0
-        ? `Built with ${techNames.slice(0, 5).join(", ")}${techNames.length > 5 ? ", and more" : ""}.`
-        : "No specific technologies detected — answers come from your project files.";
+      : makeup.length > 0
+        ? `${makeup.slice(0, 4).join(" · ")}.`
+        : techNames.length > 0
+          ? `Built with ${techNames.slice(0, 5).join(", ")}${techNames.length > 5 ? ", and more" : ""}.`
+          : "Build the project map to see what this project is made of.";
 
   const gitAvailable = files.some((file) => file.path.toLowerCase().includes(".git"));
 
@@ -908,6 +958,15 @@ export function ProjectUnderstanding({
               }${git.commits_last_7_days > 0 ? `, ${git.commits_last_7_days} this week` : ""}.`
             : ""}
         </p>
+        {makeup.length > 0 ? (
+          <div className="pu-chips pu-stack-chips">
+            {makeup.map((item) => (
+              <span className="pu-chip" key={item}>
+                {item}
+              </span>
+            ))}
+          </div>
+        ) : null}
         <div className="pu-lead-foot">
           <span className="pu-summary-foot">{lens.focus} · from your local scan</span>
           <button type="button" className="pu-lead-ask" onClick={onOpenAsk}>
@@ -1073,7 +1132,13 @@ export function ProjectUnderstanding({
           ) : null}
 
           <div className="pu-grid">
-            {lens.groups.map((groupKey) => {
+            {/* The role's own areas first, then everything else the project actually
+                has. A wiki opened as a developer used to show one lonely "Docs" card,
+                because the other two the lens asked for did not exist here. */}
+            {([
+              ...lens.groups,
+              ...(Object.keys(grouped) as FileGroupKey[]).filter((k) => !lens.groups.includes(k)),
+            ] as FileGroupKey[]).map((groupKey) => {
               const groupFiles = grouped[groupKey];
               if (groupFiles.length === 0) return null;
               return (
