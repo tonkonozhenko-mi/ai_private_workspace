@@ -933,7 +933,10 @@ def from_tests(
             )
         )
 
-    if not facts.suites:
+    # Only a project that HAS code can be missing tests for it. A folder of
+    # documentation was being told, in red, that it had no test files — a true
+    # sentence about something it never claimed to be.
+    if not facts.suites and facts.source_files > 0:
         findings.append(
             ProjectFinding(
                 id="tests:no_tests_found",

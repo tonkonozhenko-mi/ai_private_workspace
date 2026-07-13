@@ -189,3 +189,43 @@ def test_every_kind_of_project_gets_the_sections_it_actually_has():
     assert Section.DOCUMENTS not in sections
     assert view[Section.TESTS]["suites"]
     assert [t["name"] for t in view[Section.DATA]["tables"]] == ["orders"]
+
+
+def test_a_wiki_is_not_told_off_for_being_a_wiki():
+    """Live review, on a real Confluence export: the app said "No test files were
+    found" (in red), asked how dev/staging/prod are separated, and told a Manager the
+    scan "did not detect much yet" — about 169 pages. Every sentence about something
+    the project never claimed to be."""
+    from app.core.domain.project_graph_builder import build_project_graph
+    from app.core.domain.project_intelligence_view import present_project_intelligence
+    from app.core.domain.role_brief import build_role_brief
+    from app.core.domain.role_lens import role_lens_for
+    from app.core.domain.test_suites import build_test_facts
+
+    base = build_knowledge_base(
+        [_page(f"[Capability]_Layer_{i}.html", f"<title>[Capability] Layer {i}</title>") for i in range(5)]
+        + [_page("[ADR-1]_Choice.html", "<title>[ADR-1] Choice</title>")],
+    )
+    # The test analyzer runs on every project — including one with no code at all.
+    tests = build_test_facts({}, source_paths=[])
+    graph = build_project_graph("w", knowledge_base=base, tests=tests)
+    view = present_project_intelligence(graph, role_lens_for("manager"))
+
+    titles = [f["title"] for f in view["risks"]["findings"]]
+    assert not any("test file" in title.lower() for title in titles)
+    assert view["questions"]["questions"] == []
+    assert "documentation" in view["summary"]["description"].lower()
+    assert "did not detect much" not in build_role_brief(graph, role_lens_for("manager")).focus
+
+
+def test_a_page_the_export_left_untitled_keeps_the_name_its_author_gave_it():
+    """Confluence hands dozens of exported pages the same <title> ("General
+    Information"). Taken at face value, the Documents tab became a column of identical
+    entries — and so did the decisions list."""
+    base = build_knowledge_base(
+        [
+            _page("Ingestion_layer.html", "<title>General Information</title>"),
+            _page("Retention_policy.html", "<title>General Information</title>"),
+        ]
+    )
+    assert sorted(d.title for d in base.documents) == ["Ingestion layer", "Retention policy"]

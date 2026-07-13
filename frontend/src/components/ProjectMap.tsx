@@ -39,6 +39,11 @@ const TYPE_LABEL: Record<string, string> = {
   test_suite: "Tests",
   api_endpoint: "Endpoint",
   domain_entity: "Entity",
+  // A wiki's map is its pages and the links between them — the map used to say
+  // "nothing to map" while holding 169 of them.
+  document: "Page",
+  decision: "Decision",
+  topic: "Area",
 };
 
 const TYPE_COLOR: Record<string, string> = {
@@ -58,6 +63,9 @@ const TYPE_COLOR: Record<string, string> = {
   test_suite: "#b8dba0",
   api_endpoint: "#efc0d6",
   domain_entity: "#d9c2ef",
+  document: "#9ec5e8",
+  decision: "#e8c39e",
+  topic: "#c9b8e8",
 };
 
 const NODE_W = 158;
@@ -228,7 +236,8 @@ export function ProjectMap({ graph }: { graph: ProjectGraphPayload }) {
   if (shown.length === 0) {
     return (
       <p className="pi-muted pi-empty-note">
-        Nothing to map yet — no infrastructure, pipelines or services were detected.
+        Nothing to map yet — the analyzers found no parts to connect. The files are still
+        searchable in Ask.
       </p>
     );
   }

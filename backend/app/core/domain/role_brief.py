@@ -34,6 +34,9 @@ _ENTITY_LABEL: dict[str, str] = {
     EntityType.REFERENCE: "References",
     # The facts the newer analyzers produce. Without labels here the tester's and
     # the DBA's own entities were counted but never named.
+    EntityType.DOCUMENT: "Pages",
+    EntityType.DECISION: "Decisions",
+    EntityType.TOPIC: "Areas",
     EntityType.TABLE: "Tables",
     EntityType.MIGRATION: "Migrations",
     EntityType.TEST_SUITE: "Test suites",
@@ -155,6 +158,28 @@ def build_role_brief(graph: ProjectGraph, lens: RoleLens, max_examples: int = 3)
         label = _ENTITY_LABEL.get(entity_type, entity_type.replace("_", " ").title())
         examples = [e.name for e in entities[:max_examples]]
         facts.append(BriefFact(label=label, count=len(entities), examples=examples))
+
+    # The role's priority list names the entities that role usually cares about — but a
+    # project may be made of something else entirely. A wiki has pages and no modules,
+    # so a Manager was told "the scan did not detect much yet" about 169 pages. When
+    # the role's own list finds nothing, lead with whatever the project IS made of.
+    if not facts:
+        counted = sorted(
+            ((t, len(graph.entities_of_type(t))) for t in _ENTITY_LABEL),
+            key=lambda item: item[1],
+            reverse=True,
+        )
+        for entity_type, count in counted[:3]:
+            if count == 0:
+                continue
+            entities = graph.entities_of_type(entity_type)
+            facts.append(
+                BriefFact(
+                    label=_ENTITY_LABEL[entity_type],
+                    count=count,
+                    examples=[e.name for e in entities[:max_examples]],
+                )
+            )
 
     # Top risks: findings in the role's highlighted categories first, then any
     # remaining, highest severity first. Already review-oriented in the UI.
