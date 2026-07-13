@@ -88,9 +88,28 @@ class KnowledgeBase:
         return [document for document in self.documents if document.is_decision]
 
     @property
+    def has_link_graph(self) -> bool:
+        """Did this export keep the links between its pages at all?
+
+        Many do not. A Confluence page saved from a browser keeps its links as absolute
+        URLs back to the wiki, so nothing on disk points at anything else on disk. Then
+        every page is an orphan, "169 pages nothing links to" is a true sentence that
+        tells you nothing about the wiki, and every conclusion drawn from the link graph
+        is drawn from an empty one. Whether a link graph exists is itself a fact, and
+        the honest thing is to know which case we are in before saying a word about it.
+        """
+        return bool(self.inbound_links)
+
+    @property
     def orphans(self) -> list[KnowledgeDocument]:
-        """Pages nothing links to. Not a defect — an entry point is an orphan by
-        definition — but the place unread pages hide."""
+        """Pages nothing links to — meaningful only when the pages link at all.
+
+        Not a defect even then: an entry point is an orphan by definition. But it is
+        where unread pages hide, and that is worth reporting when the export gives us a
+        graph to read it from.
+        """
+        if not self.has_link_graph:
+            return []
         return [
             document
             for document in self.documents
