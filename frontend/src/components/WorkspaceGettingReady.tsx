@@ -3,7 +3,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { LlamaCppModelsPanel } from "./LlamaCppModelsPanel";
 
 import { deviceNoun } from "../lib/deviceName";
-import { FOLDER_PERMISSION_HINT, NO_PROGRESS_HINT_AFTER_MS } from "../lib/folderAccess";
+import {
+  couldBeWaitingForFolderPermission,
+  FOLDER_PERMISSION_HINT,
+  NO_PROGRESS_HINT_AFTER_MS,
+} from "../lib/folderAccess";
 
 import {
   cancelLocalModelDownloadJob,
@@ -155,11 +159,12 @@ export function WorkspaceGettingReady({
   const [runningJobId, setRunningJobId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
-  // The watchdog. While a job is running and its numbers have not moved for a few
-  // seconds, we say the one thing that might actually be true — and that the person
-  // cannot see, because the system dialog is behind a notification.
+  // The watchdog. It may only speak for a job that could actually be waiting on the
+  // folder dialog (see couldBeWaitingForFolderPermission) — never over an indexing
+  // bar that is visibly moving.
   useEffect(() => {
-    if (!jobProgress) {
+    const waitingToBeLetIn = jobProgress !== null && couldBeWaitingForFolderPermission(jobProgress);
+    if (!waitingToBeLetIn) {
       setStalled(false);
       return;
     }
