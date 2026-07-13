@@ -13,18 +13,19 @@ class GroupMemberRisk:
     workspace_id: str
     workspace_name: str
     severity: str
-    # The same softened word the single project uses ("Worth a close look"), because a
-    # risk does not become a different kind of thing by being seen from a group. Two
-    # vocabularies for one fact — "HIGH" here, "worth a close look" there — is how a
-    # person learns not to trust either.
-    attention: str = ""
-    title: str = ""
+    title: str
     # Same human-readable detail a single-repo risk card carries, so a group risk
     # can be understood and acted on without opening the member project.
     explanation: str = ""
     recommendation: str | None = None
     category: str = ""
     source_file: str | None = None
+    # The same softened word the single project uses ("Worth a close look"), because a
+    # risk does not become a different kind of thing by being seen from a group. Two
+    # vocabularies for one fact — "HIGH" here, "worth a close look" there — is how a
+    # person learns to trust neither. Last, and keyword-only in practice, so the
+    # positional shape of a risk is unchanged.
+    attention: str = ""
 
 
 @dataclass(frozen=True)

@@ -111,6 +111,9 @@ def describe_project(graph: ProjectGraph | None) -> str:
             parts.append("infrastructure: " + ", ".join(sorted(e.name for e in infra)))
         if pipelines:
             parts.append(f"{len(pipelines)} CI/CD pipeline(s)")
+    services = graph.entities_of_type(EntityType.SERVICE)
+    if services:
+        parts.append(f"{len(services)} service(s)")
     if environments:
         parts.append(
             f"{len(environments)} environment(s): "
