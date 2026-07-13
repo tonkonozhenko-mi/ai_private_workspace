@@ -926,20 +926,22 @@ export function DocumentsSection({
 
       <div className="pi-block">
         <h4 className="pi-block-title">Pages ({pages.length})</h4>
-        <ul className="pi-list">
-          {pages.slice(0, 100).map((page) => {
+        <ul className="pi-list pi-page-list">
+          {pages.slice(0, 60).map((page) => {
             const linkedFrom = Number(page.metadata?.linked_from ?? 0);
             const attachments = Number(page.metadata?.attachments ?? 0);
             return (
-              <li key={page.id}>
+              <li className="pi-page-row" key={page.id}>
                 <button
                   type="button"
                   className="pi-file-link"
                   onClick={() => page.source_file && onInspectFile?.(page.source_file)}
                 >
                   {page.name}
-                </button>{" "}
-                <span className="pi-muted">
+                </button>
+                {/* On its own line, quiet: the title is what the eye is scanning for, and
+                    "nothing links to it" running into the name read like part of it. */}
+                <span className="pi-muted pi-page-meta">
                   {linkedFrom > 0
                     ? `linked from ${linkedFrom} page${linkedFrom === 1 ? "" : "s"}`
                     : "nothing links to it"}
@@ -951,6 +953,11 @@ export function DocumentsSection({
             );
           })}
         </ul>
+        {pages.length > 60 ? (
+          <p className="pi-hint">
+            Showing 60 of {pages.length} — Ask searches all of them.
+          </p>
+        ) : null}
       </div>
     </div>
   );

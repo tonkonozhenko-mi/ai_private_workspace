@@ -30,6 +30,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import PurePosixPath
+from html import unescape
 from urllib.parse import unquote
 
 from app.core.domain.companion_assets import document_title, owning_document
@@ -171,23 +172,32 @@ _EMPTY_TITLES = {
 }
 
 
+# A title is a line, not a page. Some exported pages have an <h1> whose closing tag is
+# nowhere near it, so a greedy-enough read swallowed the entire document and offered it
+# as the page's "name" — screenfuls of flattened prose in a list of titles. Anything
+# this long is not a title, whatever the markup claims.
+_MAX_TITLE_CHARS = 120
+
+
 def title_of(page: PageSource) -> str:
     """The page's own title if it states a useful one, else the file name.
 
     A saved page states its title in <title> and again in the first heading. Both beat
     the underscored file name — but only when they say something. When the page's own
-    title is boilerplate, the file name (which the author did choose) is the more
-    honest answer, and a title shared by dozens of pages is boilerplate by definition.
+    title is boilerplate, absurdly long, or shared by dozens of pages, the file name
+    (which the author did choose) is the more honest answer.
     """
     for pattern in (r"<title[^>]*>(.*?)</title>", r"<h1[^>]*>(.*?)</h1>", r"^#\s+(.+)$"):
         match = re.search(pattern, page.text, re.IGNORECASE | re.DOTALL | re.MULTILINE)
         if not match:
             continue
-        title = re.sub(r"<[^>]+>", " ", match.group(1))
+        title = unescape(re.sub(r"<[^>]+>", " ", match.group(1)))
         title = " ".join(title.split())
         # Exports prefix the space name: "Data Platform : Ingestion layer".
         title = title.split(" : ")[-1].strip()
-        if title and title.lower() not in _EMPTY_TITLES:
+        if not title or len(title) > _MAX_TITLE_CHARS:
+            continue
+        if title.lower() not in _EMPTY_TITLES:
             return title
     return document_title(page.path)
 

@@ -5919,23 +5919,24 @@ a {
 }
 
 @media (min-width: 1280px) {
-  /* Home — put the width to work instead of one narrow column with dead sides.
-     The cards are self-contained, so this is a container reflow, not a rewrite:
-     switch the stack to a balanced two-column flow with whole cards, while the
-     header and the "files changed" banner span the full width across the top. */
+  /* Home, two columns — as a grid, not a multicolumn flow.
+     `column-count` balances by HEIGHT: it cuts the stack wherever the halves weigh
+     the same, which is why the cards landed at odd offsets with holes between them.
+     A grid places each card in a row, top-aligned, so the two columns read as two
+     columns. The header, the changed-files banner and the wide cards (watch, memory)
+     span the full width, because they are timelines, not tiles. */
   .project-understanding {
-    display: block;
-    column-count: 2;
-    column-gap: 22px;
-  }
-  .project-understanding > * {
-    break-inside: avoid;
-    /* multicolumn ignores the flex `gap`, so restore vertical rhythm per card */
-    margin-bottom: 14px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 14px 22px;
   }
   .project-understanding > .pu-header,
-  .project-understanding > .pu-changes-banner {
-    column-span: all;
+  .project-understanding > .pu-changes-banner,
+  .project-understanding > .pw-card,
+  .project-understanding > .pm-card,
+  .project-understanding > .pu-sources {
+    grid-column: 1 / -1;
   }
 }
 
@@ -5986,3 +5987,10 @@ a {
   justify-content: flex-end;
   gap: 10px;
 }
+
+/* Documents: a list of 169 page titles is a table of contents, not a paragraph.
+   Two columns on a wide window, the title on its own line, its meta under it. */
+.pi-page-list { columns: 2; column-gap: 28px; }
+.pi-page-row { break-inside: avoid; margin-bottom: 8px; }
+.pi-page-meta { display: block; font-size: 11.5px; }
+@media (max-width: 1100px) { .pi-page-list { columns: 1; } }
