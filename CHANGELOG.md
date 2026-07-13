@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-07-13
+
+A repair release, about one sentence the app could not say honestly: **how much can this model actually hold?** It assumed every language cost the same per token — true of English and code, wrong by half for Ukrainian — never counted the question you typed, and when the model refused the over-long prompt, told you to check that an engine which had just answered us was running. It now measures the window, measures the prompt in the language the prompt is written in, and when something still doesn't fit, sends less rather than blaming the machine.
+
 ### Fixed
 
 - **A question in Ukrainian no longer overruns the model's memory.** The app budgeted the prompt as if every language cost four characters per token. That is true of English and code; Cyrillic costs about two, and CJK about one — so a Ukrainian conversation quietly spent twice the tokens the budget believed it was spending, and the model refused the prompt outright. Tokens are now counted by script, and where the engine offers a real tokenizer, by the engine itself.
