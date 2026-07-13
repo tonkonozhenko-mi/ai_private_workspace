@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Added
+
+- **Home says what is worth a look before you ask anything.** The map's own findings — deterministic, cited by file, no model involved — now sit on Home, in the wording of your role: a page a year old that six others still link to, a foreign key with no index, a pipeline that deploys straight to production. Each says what it costs, not what you must do; the deep analysis by a local model is still there for when you want prose.
+
 ### Changed
 
 - **Home now describes a project by what it contains.** It used to lead with the technologies it recognised — and when it recognised none, with "No specific technologies detected", which is a shrug to greet a 400-page wiki with. It now says what the map actually found: "312 pages · 41 decisions · 6 areas", or "18 modules · 3 test suites · 12 tables". And the file-area cards show every area the project really has, the role's own first, instead of only the three the lens went looking for.
