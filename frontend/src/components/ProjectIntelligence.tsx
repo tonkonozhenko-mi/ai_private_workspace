@@ -406,16 +406,13 @@ export function ProjectIntelligence({
               ))}
             </select>
           </label>
-          {data?.built ? (
-            <button
-              type="button"
-              className="pi-button"
-              onClick={handleBuild}
-              disabled={building}
-            >
-              {building ? "Rebuilding…" : "Rebuild"}
-            </button>
-          ) : null}
+          {/* Rebuild used to sit here beside the role, as though the two were a pair —
+              so changing role and pressing it looked like one action that did nothing.
+              They are unrelated: a role is a lens over the map that is already built,
+              a rebuild re-reads the files. The button now appears only when it has
+              something to do: when the files have changed (the banner below), or
+              quietly in the provenance line for a map you want re-read anyway. */}
+          {data?.built && building ? <span className="pi-working">Rebuilding…</span> : null}
         </div>
       </header>
 
@@ -470,6 +467,12 @@ export function ProjectIntelligence({
           <p className="pi-built-meta">
             {data.snapshot ? `Last analyzed ${relativeTime(data.snapshot.created_at)}` : ""}
             {view.analyzers_run.length > 0 ? ` · from: ${view.analyzers_run.join(", ")}` : ""}
+            {" · "}
+            {/* The rebuild lives here, in the line that says how old the map is —
+                next to the only fact that makes a person want it. */}
+            <button type="button" className="pi-link" onClick={handleBuild} disabled={building}>
+              {building ? "Re-reading the files…" : "Re-read the files"}
+            </button>
           </p>
 
           {brief ? <RoleDashboardBrief brief={brief} onAskQuestion={onAskQuestion} /> : null}
