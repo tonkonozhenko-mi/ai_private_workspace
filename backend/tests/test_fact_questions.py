@@ -37,7 +37,9 @@ def test_the_question_names_the_thing_the_fact_is_about():
 
 
 def test_each_kind_of_fact_asks_what_a_colleague_would_ask():
-    assert "not mentioned by any test" in question_for_finding(_finding("tests:areas_no_test_mentions"))
+    assert "not mentioned by any test" in question_for_finding(
+        _finding("tests:areas_no_test_mentions")
+    )
     assert "no primary key" in question_for_finding(_finding("sql:tables_without_primary_key"))
     assert "only one person" in question_for_finding(_finding("ownership:single_owner_files"))
     # …and every one of them is a question, not an instruction.

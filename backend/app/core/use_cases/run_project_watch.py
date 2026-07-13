@@ -75,9 +75,7 @@ class RunProjectWatchUseCase:
             except Exception:  # noqa: BLE001 - git is best-effort; never fail this
                 git_brief = None
 
-        digest = build_watch_digest(
-            diff_graphs(None, graph), None, meta, git_brief=git_brief
-        )
+        digest = build_watch_digest(diff_graphs(None, graph), None, meta, git_brief=git_brief)
         self.watch_repository.save_digest(workspace_id, digest)
         return digest
 
