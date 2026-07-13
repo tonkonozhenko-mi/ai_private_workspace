@@ -1,42 +1,25 @@
 """What a project is made of, in one line — and in one vocabulary.
 
 The single-project view learned to describe a project by what it contains: a wiki is
-"169 page(s) of documentation across 5 area(s), 23 of them decision records", an infra
-repo is "Terraform stack; 5 environment(s)". The group view never got the memo. It
-described every member in the old dialect — services, environments, pipelines — so a
-wiki with a fully built map appeared in the group as "Not analyzed yet": the map was
-there, and the aggregate was reading for things a wiki does not have.
+"169 pages of documentation across 5 areas, 23 of them decision records", an infra repo
+is "a Terraform stack across 5 environments". The group view described every member in
+the old dialect — services, environments, pipelines — so a wiki with a fully built map
+appeared in the group as "Not analyzed yet": the map was there, and the aggregate was
+reading it for things a wiki does not have.
 
-One description, one vocabulary, both places. This is the only place that decides how a
-project is announced; anything else asking the question calls it.
+One description, one vocabulary, both places. Two rules hold it honest:
+
+* **Lead with what the project mostly is.** A Terraform monorepo with 938 .tf files and
+  106 READMEs announced itself as "106 pages of documentation" — technically the pages
+  were counted first, so they went first. Documentation *in* a repository is not what
+  the repository is; it goes last, and it is called what it is: documents, not pages.
+* **One sentence, each word once.** The old line read "infrastructure project (Terraform,
+  CI/CD), 6 module(s); infrastructure: Terraform; 4 CI/CD pipeline(s)" — a train of
+  semicolons that says infrastructure twice and trusts the reader to sort it out.
 """
 
 from app.core.domain.project_graph import EntityType, ProjectGraph
 from app.core.domain.project_type import KIND_INFRASTRUCTURE, classify_project
-
-
-def makeup_counts(graph: ProjectGraph | None) -> dict[str, int]:
-    """Every kind of thing a project can be made of, counted. Zero is a real answer;
-    absence of a key would not be."""
-    if graph is None:
-        return dict.fromkeys(MAKEUP_KEYS, 0)
-    counts = {
-        "services": len(graph.entities_of_type(EntityType.SERVICE)),
-        "environments": len(graph.entities_of_type(EntityType.ENVIRONMENT)),
-        "pipelines": len(graph.entities_of_type(EntityType.PIPELINE)),
-        "infrastructure": len(graph.entities_of_type(EntityType.INFRA_COMPONENT)),
-        # A wiki's facts count too — they are what a documentation project is made of,
-        # and leaving them out of the group's arithmetic is what made one disappear.
-        "pages": len(graph.entities_of_type(EntityType.DOCUMENT))
-        + len(graph.entities_of_type(EntityType.DECISION)),
-        "decisions": len(graph.entities_of_type(EntityType.DECISION)),
-        "areas": len(graph.entities_of_type(EntityType.TOPIC)),
-        "modules": len(graph.entities_of_type(EntityType.MODULE)),
-        "tables": len(graph.entities_of_type(EntityType.TABLE)),
-        "tests": len(graph.entities_of_type(EntityType.TEST_SUITE)),
-    }
-    return counts
-
 
 MAKEUP_KEYS = (
     "services",
@@ -52,6 +35,28 @@ MAKEUP_KEYS = (
 )
 
 
+def makeup_counts(graph: ProjectGraph | None) -> dict[str, int]:
+    """Every kind of thing a project can be made of, counted. Zero is a real answer;
+    a missing key would not be."""
+    if graph is None:
+        return dict.fromkeys(MAKEUP_KEYS, 0)
+    return {
+        "services": len(graph.entities_of_type(EntityType.SERVICE)),
+        "environments": len(graph.entities_of_type(EntityType.ENVIRONMENT)),
+        "pipelines": len(graph.entities_of_type(EntityType.PIPELINE)),
+        "infrastructure": len(graph.entities_of_type(EntityType.INFRA_COMPONENT)),
+        # A wiki's facts count too — they are what a documentation project is made of,
+        # and leaving them out of the group's arithmetic is what made one disappear.
+        "pages": len(graph.entities_of_type(EntityType.DOCUMENT))
+        + len(graph.entities_of_type(EntityType.DECISION)),
+        "decisions": len(graph.entities_of_type(EntityType.DECISION)),
+        "areas": len(graph.entities_of_type(EntityType.TOPIC)),
+        "modules": len(graph.entities_of_type(EntityType.MODULE)),
+        "tables": len(graph.entities_of_type(EntityType.TABLE)),
+        "tests": len(graph.entities_of_type(EntityType.TEST_SUITE)),
+    }
+
+
 def frameworks_of(graph: ProjectGraph) -> set[str]:
     frameworks: set[str] = set()
     for app in graph.entities_of_type(EntityType.APPLICATION):
@@ -63,10 +68,9 @@ def frameworks_of(graph: ProjectGraph) -> set[str]:
 def technologies_of(graph: ProjectGraph | None) -> list[str]:
     """The tools this project is built with.
 
-    Not the names of its CI jobs. The group's technology list read "Detect Changed
-    Directories, Terragrunt Apply, Terragrunt Plan" — those are things that run, not
-    things the project is written in, and a person scanning for "what is this built
-    with" learns nothing from them. Pipelines are counted; they are not technologies.
+    Not the names of its CI jobs. The technology list read "Detect Changed Directories,
+    Terragrunt Apply, Terragrunt Plan" — those are things that run, not things the
+    project is written in. Pipelines are counted; they are not technologies.
     """
     if graph is None:
         return []
@@ -76,59 +80,100 @@ def technologies_of(graph: ProjectGraph | None) -> list[str]:
     return sorted(names)
 
 
-def describe_project(graph: ProjectGraph | None) -> str:
-    """The one-line answer to "what is this?", led by whatever the project mostly is.
+def is_documentation_project(graph: ProjectGraph | None) -> bool:
+    """Is this a body of documentation, or a project that contains some?
 
-    A Terraform repository is not announced as a Python application because it has one
-    helper script; a folder of documentation is announced as documentation before
-    anything else is said about it.
+    The difference is what the project HAS besides its pages. A wiki has pages and
+    nothing else; a Terraform monorepo has 938 .tf files and a README in every module.
     """
+    if graph is None:
+        return False
+    counts = makeup_counts(graph)
+    if not counts["pages"]:
+        return False
+    has_a_system = bool(
+        counts["infrastructure"]
+        or counts["pipelines"]
+        or counts["services"]
+        or counts["modules"]
+        or counts["tables"]
+        or graph.entities_of_type(EntityType.APPLICATION)
+    )
+    return not has_a_system
+
+
+def _plural(count: int, singular: str, plural: str | None = None) -> str:
+    word = singular if count == 1 else (plural or f"{singular}s")
+    return f"{count} {word}"
+
+
+def describe_project(graph: ProjectGraph | None) -> str:
+    """One sentence: what this project is, led by whatever it mostly is."""
     if graph is None:
         return "No map built yet — build one to see what this project is made of."
 
+    counts = makeup_counts(graph)
     applications = graph.entities_of_type(EntityType.APPLICATION)
-    modules = graph.entities_of_type(EntityType.MODULE)
     infra = graph.entities_of_type(EntityType.INFRA_COMPONENT)
-    pipelines = graph.entities_of_type(EntityType.PIPELINE)
     environments = graph.entities_of_type(EntityType.ENVIRONMENT)
     frameworks = frameworks_of(graph)
-
     classification = classify_project(graph)
-    parts: list[str] = []
-    if classification.kind == KIND_INFRASTRUCTURE:
-        parts.append(classification.label)
-        if applications:
-            parts.append(
-                f"with a {sorted(frameworks)[0]} component" if frameworks else "with helper scripts"
-            )
-    else:
-        if applications:
-            app_part = classification.label
-            if modules:
-                app_part += f", {len(modules)} module(s)"
-            parts.append(app_part)
-        if infra:
-            parts.append("infrastructure: " + ", ".join(sorted(e.name for e in infra)))
-        if pipelines:
-            parts.append(f"{len(pipelines)} CI/CD pipeline(s)")
-    services = graph.entities_of_type(EntityType.SERVICE)
-    if services:
-        parts.append(f"{len(services)} service(s)")
-    if environments:
-        parts.append(
-            f"{len(environments)} environment(s): "
-            + ", ".join(sorted(e.name for e in environments))
-        )
 
-    counts = makeup_counts(graph)
-    if counts["pages"]:
-        doc_part = f"{counts['pages']} page(s) of documentation"
+    # A folder of documentation is documentation before it is anything else.
+    if is_documentation_project(graph):
+        line = "Detected " + _plural(counts["pages"], "page") + " of documentation"
         if counts["areas"]:
-            doc_part += f" across {counts['areas']} area(s)"
+            line += " across " + _plural(counts["areas"], "area")
         if counts["decisions"]:
-            doc_part += f", {counts['decisions']} of them decision records"
-        parts.insert(0, doc_part)
+            line += f", {counts['decisions']} of them decision records"
+        return line + "."
 
-    if not parts:
-        return "Nothing the analyzers recognise yet — the files are still searchable in Ask."
-    return "Detected " + "; ".join(parts) + "."
+    # Otherwise the project leads with what it is built of. Each thing said once.
+    lead: str
+    if classification.kind == KIND_INFRASTRUCTURE:
+        tools = ", ".join(sorted(e.name for e in infra))
+        lead = f"an infrastructure project ({tools})" if tools else "an infrastructure project"
+        if applications:
+            lead += (
+                f" with a {sorted(frameworks)[0]} component"
+                if frameworks
+                else " with helper scripts"
+            )
+    elif applications:
+        lead = f"a {classification.label}"
+        if infra:
+            lead += " on " + ", ".join(sorted(e.name for e in infra))
+    elif infra:
+        lead = "an infrastructure project (" + ", ".join(sorted(e.name for e in infra)) + ")"
+    else:
+        lead = classification.label and f"a {classification.label}" or "a project"
+
+    tail: list[str] = []
+    if counts["modules"]:
+        tail.append(_plural(counts["modules"], "module"))
+    if counts["services"]:
+        tail.append(_plural(counts["services"], "service"))
+    if counts["pipelines"]:
+        tail.append(_plural(counts["pipelines"], "CI/CD pipeline"))
+    if environments:
+        tail.append(
+            _plural(len(environments), "environment")
+            + " ("
+            + ", ".join(sorted(e.name for e in environments))
+            + ")"
+        )
+    if counts["tables"]:
+        tail.append(_plural(counts["tables"], "table"))
+    if counts["tests"]:
+        tail.append(_plural(counts["tests"], "test suite"))
+    # Documentation *inside* a repository is a part of it, not the point of it — so it
+    # comes last, and it is called what it is. "106 pages" led a Terraform monorepo's
+    # description; 938 .tf files went unmentioned.
+    if counts["pages"]:
+        tail.append(_plural(counts["pages"], "document"))
+
+    if not tail:
+        return f"Detected {lead}."
+    if len(tail) == 1:
+        return f"Detected {lead} with {tail[0]}."
+    return f"Detected {lead} with {', '.join(tail[:-1])} and {tail[-1]}."

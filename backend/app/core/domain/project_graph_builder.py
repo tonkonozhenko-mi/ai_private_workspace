@@ -48,6 +48,17 @@ from app.core.domain.sql_schema import (
 )
 from app.core.domain.test_suites import TestFacts
 
+# What the analyzers would say today. The persisted map is cached against the files and
+# the app version — but a release that ships under the same version number is, to the
+# cache, the same program, so a project kept showing a map built by code that no longer
+# exists. Bump this whenever the analyzers change what they would produce; that, not the
+# marketing version, is the thing the cache needs to know.
+#
+#   1  the analyzers as of 0.5.1
+#   2  a repository is no longer read as a wiki; documents named by their folder;
+#      "no tests" spoken quietly to an infrastructure project; Terragrunt-aware backend
+ANALYZERS_VERSION = 2
+
 # One stray .ts helper in a Terraform repo is not "a TypeScript application".
 # Three files is the point where the code is the project, not a footnote.
 _MIN_SOURCE_FILES_FOR_APPLICATION = 3

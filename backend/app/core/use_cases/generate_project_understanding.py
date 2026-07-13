@@ -114,6 +114,19 @@ class GenerateProjectUnderstandingInput:
     workspace_id: str
 
 
+# Files that configure a tool rather than describe the project. A newcomer reading them
+# first learns how somebody's assistant is set up, not what the project does.
+_TOOLING_PREFIXES = (".agents/", ".claude/", ".cursor/", ".github/instructions/", ".vscode/")
+_TOOLING_NAMES = ("skill.md", "agents.md", "claude.md", ".cursorrules")
+
+
+def _is_tooling_config(path: str) -> bool:
+    lowered = path.lower().lstrip("./")
+    if lowered.startswith(_TOOLING_PREFIXES):
+        return True
+    return lowered.rsplit("/", 1)[-1] in _TOOLING_NAMES
+
+
 class GenerateProjectUnderstandingNotFoundError(ValueError):
     pass
 
@@ -325,6 +338,11 @@ class GenerateProjectUnderstandingUseCase:
             reason = entry.get("reason")
             if not isinstance(file, str) or file.strip() not in used_paths:
                 # Only keep reading-order entries that point at a real source path.
+                continue
+            if _is_tooling_config(file.strip()):
+                # ".agents/skills/jira-epics/SKILL.md" was offered to a newcomer as the
+                # fourth thing to read in a Terraform monorepo. These files configure
+                # somebody's assistant; they are not where the project begins.
                 continue
             reason_text = reason.strip() if isinstance(reason, str) else ""
             points.append(ProjectStartPoint(file=file.strip(), reason=reason_text))

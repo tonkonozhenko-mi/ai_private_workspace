@@ -159,4 +159,4 @@ def test_overview_member_git_and_description():
     api = next(m for m in ov.members if m.name == "api")
     assert api.built and api.is_repo and api.total_commits == 100
     assert api.last_commit_subject == "fix"
-    assert "service(s)" in api.description and "dev" in api.description
+    assert "service" in api.description and "dev" in api.description

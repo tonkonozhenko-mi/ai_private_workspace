@@ -150,20 +150,27 @@ function makeupOf(intel: ProjectIntelligenceResponse | null): string[] {
   const order = intel.view.section_order;
   const lines: string[] = [];
 
-  // A decision record is a page. Counting them apart made Home say "146 pages" while
-  // the risk beside it said "169 pages nothing links to" — two true numbers that,
-  // side by side, look like a bug in the app.
   const documents = intel.view.documents;
-  if (documents && order.includes("documents")) {
-    const pages = documents.pages.length + documents.decisions.length;
-    if (pages > 0) {
-      const decisions = documents.decisions.length;
-      lines.push(
-        decisions > 0
-          ? `${pages.toLocaleString()} pages, ${decisions} of them decision records`
-          : `${pages.toLocaleString()} ${pages === 1 ? "page" : "pages"}`,
-      );
-    }
+  const pages = documents ? documents.pages.length + documents.decisions.length : 0;
+  // What the project mostly is goes first. A Terraform monorepo with a README in every
+  // module led with "106 pages" and never mentioned its 938 .tf files — because pages
+  // happened to be counted first. Documentation is the headline only when there is
+  // nothing else here; inside a repository it is a part, called what it is: documents.
+  const hasASystem = MAKEUP.some(
+    (item) => item.section !== "documents" && (view[item.section]?.[item.key]?.length ?? 0) > 0,
+  );
+  const isDocumentationProject = pages > 0 && !hasASystem;
+
+  if (isDocumentationProject && documents) {
+    // A decision record is a page. Counting them apart made Home say "146 pages" while
+    // the risk beside it said "169 pages nothing links to" — two true numbers that,
+    // side by side, look like a bug in the app.
+    const decisions = documents.decisions.length;
+    lines.push(
+      decisions > 0
+        ? `${pages.toLocaleString()} pages, ${decisions} of them decision records`
+        : `${pages.toLocaleString()} ${pages === 1 ? "page" : "pages"}`,
+    );
     if (documents.topics.length > 0) {
       lines.push(`${documents.topics.length} ${documents.topics.length === 1 ? "area" : "areas"}`);
     }
@@ -174,6 +181,10 @@ function makeupOf(intel: ProjectIntelligenceResponse | null): string[] {
     const count = view[item.section]?.[item.key]?.length ?? 0;
     if (count === 0) continue;
     lines.push(`${count.toLocaleString()} ${count === 1 ? item.singular : item.plural}`);
+  }
+
+  if (!isDocumentationProject && pages > 0) {
+    lines.push(`${pages.toLocaleString()} ${pages === 1 ? "document" : "documents"}`);
   }
   return lines;
 }
@@ -794,7 +805,17 @@ function MapRisksCard({
   onAskQuestion?: (question: string) => void;
 }) {
   if (findings.length === 0) return null;
-  const shown = findings.slice(0, 5);
+  // The same finding, once per file, is one thing to look at — not three. Three cards
+  // reading "Secrets referenced" (one per workflow) ate three of the five slots on
+  // Home, so a project's five most important things were two things and an echo.
+  const byTitle = new Map<string, { finding: ProjectGraphFinding; count: number }>();
+  for (const finding of findings) {
+    const seen = byTitle.get(finding.title);
+    if (seen) seen.count += 1;
+    else byTitle.set(finding.title, { finding, count: 1 });
+  }
+  const grouped = Array.from(byTitle.values());
+  const shown = grouped.slice(0, 5);
   return (
     <div className="pu-card">
       <div className="pu-card-head">
@@ -802,10 +823,10 @@ function MapRisksCard({
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01" />
         </MetaIcon>
         <span>{label}</span>
-        <small>{findings.length}</small>
+        <small>{grouped.length}</small>
       </div>
       <div className="pu-analysis-risks">
-        {shown.map((finding) => {
+        {shown.map(({ finding, count }) => {
           const file = finding.source_file ?? finding.evidence[0] ?? null;
           return (
             <div className="pu-risk" key={finding.id}>
@@ -813,7 +834,10 @@ function MapRisksCard({
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01" />
               </svg>
               <div>
-                <span className="pu-risk-text">{finding.title}</span>
+                <span className="pu-risk-text">
+                  {finding.title}
+                  {count > 1 ? <span className="pu-risk-count"> · in {count} places</span> : null}
+                </span>
                 {/* The title states the fact; this says why it may matter. The backend
                     already writes that line deterministically — use its words rather
                     than inventing a second voice for the same finding. */}
@@ -846,9 +870,9 @@ function MapRisksCard({
           );
         })}
       </div>
-      {findings.length > shown.length ? (
+      {grouped.length > shown.length ? (
         <p className="pu-guide-foot">
-          Showing {shown.length} of {findings.length} — the rest are in Intelligence › Risks.
+          Showing {shown.length} of {grouped.length} — the rest are in Intelligence › Risks.
         </p>
       ) : null}
     </div>
@@ -1218,6 +1242,10 @@ export function ProjectUnderstanding({
           <div className="pu-card-head">
             <MetaIcon><><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /></></MetaIcon>
             <span>Architecture at a glance</span>
+            {/* Prose a model wrote, standing among deterministic facts, unlabelled —
+                the one thing this app promises never to do. Whose words these are is
+                part of what they mean. */}
+            <small>written by {understanding.model} from your files</small>
           </div>
           <p className="pu-guide-text">{understanding.architecture}</p>
         </div>

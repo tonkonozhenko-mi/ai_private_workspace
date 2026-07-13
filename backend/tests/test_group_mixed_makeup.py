@@ -46,8 +46,9 @@ def test_a_wiki_with_a_map_is_not_reported_as_unanalyzed():
     assert counts["areas"] == 5
 
     description = describe_project(_wiki_graph())
-    assert "163 page(s) of documentation" in description
+    assert "163 pages of documentation" in description
     assert "23 of them decision records" in description
+    assert "across 5 areas" in description
     assert "Not analyzed" not in description
 
 
