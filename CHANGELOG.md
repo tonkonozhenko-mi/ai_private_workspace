@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **Home now describes a project by what it contains.** It used to lead with the technologies it recognised — and when it recognised none, with "No specific technologies detected", which is a shrug to greet a 400-page wiki with. It now says what the map actually found: "312 pages · 41 decisions · 6 areas", or "18 modules · 3 test suites · 12 tables". And the file-area cards show every area the project really has, the role's own first, instead of only the three the lens went looking for.
+
 ### Fixed
 
 - **The folder-permission hint appeared over a progress bar that was visibly moving.** It was shown for any job that paused for five seconds — including indexing, which pauses whenever it embeds a large batch. But indexing is long past the permission gate: the folder was already read. The hint now speaks only for a scan that has not yet counted a single file, which is the only moment macOS can actually be blocking.
