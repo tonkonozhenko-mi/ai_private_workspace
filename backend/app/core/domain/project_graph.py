@@ -36,6 +36,11 @@ class EntityType:
     TEST_SUITE = "test_suite"  # a place tests live, with what runs them
     API_ENDPOINT = "api_endpoint"  # one route the system exposes to its users
     DOMAIN_ENTITY = "domain_entity"  # a noun the business speaks in (Order, Invoice)
+    # A folder of documentation has entities of its own. A wiki is not a broken
+    # repository — it is a different kind of project, and these are its parts.
+    DOCUMENT = "document"  # one page a person reads and links to
+    TOPIC = "topic"  # an area the wiki's own titles announce ("ADR", "Capability")
+    DECISION = "decision"  # a page that records what was chosen, and when
 
 
 class RelationType:
@@ -74,6 +79,9 @@ class FindingCategory:
     CONFIGURATION = "configuration"
     TESTING = "testing"
     OBSERVABILITY = "observability"
+    # Documentation has its own failure mode, and it is neither a bug nor an outage:
+    # a page that is confidently out of date while everyone still relies on it.
+    DOCUMENTATION = "documentation"
     GENERAL = "general"
 
 

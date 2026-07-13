@@ -32,6 +32,8 @@ import {
   CloudSection,
   DeploymentSection,
   EnvironmentsSection,
+  DocumentsSection,
+  FactsSection,
   InfrastructureSection,
   ReferencesSection,
   RisksSection,
@@ -69,6 +71,11 @@ function emptyPreviewForRole(role: string): string[] {
 
 const SECTION_LABELS: Record<string, string> = {
   summary: "Overview",
+  documents: "Documents",
+  code: "Code",
+  tests: "Tests",
+  data: "Data",
+  api: "API",
   infrastructure: "Infrastructure",
   deployment: "Deployment",
   environments: "Environments",
@@ -93,8 +100,16 @@ const HISTORY_TAB = "history";
 
 
 // Only these appear as sub-nav tabs; files/questions ride along inside Summary.
+// The backend omits any section the project has no facts for, so a code repository
+// never shows "Documents" and a wiki never shows "Infrastructure" — each project is
+// offered the tabs it can actually fill.
 const TAB_SECTIONS = new Set([
   "summary",
+  "documents",
+  "code",
+  "tests",
+  "data",
+  "api",
   "infrastructure",
   "deployment",
   "environments",
@@ -429,6 +444,10 @@ export function ProjectIntelligence({
                 onGenerateOverview={handleOverview}
                 onInspectFile={onInspectFile}
               />
+            ) : null}
+            {activeTab === "documents" ? <DocumentsSection view={view} onInspectFile={onInspectFile} /> : null}
+            {activeTab === "code" || activeTab === "tests" || activeTab === "data" || activeTab === "api" ? (
+              <FactsSection view={view} section={activeTab} onInspectFile={onInspectFile} />
             ) : null}
             {activeTab === "infrastructure" ? <InfrastructureSection view={view} /> : null}
             {activeTab === "deployment" ? (

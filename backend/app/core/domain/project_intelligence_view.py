@@ -337,7 +337,16 @@ def present_project_intelligence(graph: ProjectGraph, lens: RoleLens) -> dict:
         "Detected " + "; ".join(parts) + "." if parts else "No supported technologies detected yet."
     )
 
-    return {
+    test_suites = graph.entities_of_type(EntityType.TEST_SUITE)
+    tables = graph.entities_of_type(EntityType.TABLE)
+    migrations = graph.entities_of_type(EntityType.MIGRATION)
+    endpoints = graph.entities_of_type(EntityType.API_ENDPOINT)
+    domain_entities = graph.entities_of_type(EntityType.DOMAIN_ENTITY)
+    documents = graph.entities_of_type(EntityType.DOCUMENT)
+    decisions = graph.entities_of_type(EntityType.DECISION)
+    topics = graph.entities_of_type(EntityType.TOPIC)
+
+    view = {
         "role": lens.role,
         "role_label": lens.label,
         "section_order": list(lens.section_order),
@@ -385,7 +394,51 @@ def present_project_intelligence(graph: ProjectGraph, lens: RoleLens) -> dict:
                 {"path": e.name, "reason": e.metadata.get("reason", "")} for e in config_files
             ],
         },
+        # Each of these appears only when the project has such things. A library has
+        # modules and no pipelines; a wiki has pages and neither. The role lens orders
+        # what remains; it never conjures a section out of nothing.
+        Section.CODE: {
+            "applications": [_entity_dict(e) for e in applications],
+            "modules": [_entity_dict(e) for e in modules],
+            "dependencies": [_entity_dict(e) for e in dependencies],
+        },
+        Section.TESTS: {
+            "suites": [_entity_dict(e) for e in test_suites],
+        },
+        Section.DATA: {
+            "tables": [_entity_dict(e) for e in tables],
+            "migrations": [_entity_dict(e) for e in migrations],
+        },
+        Section.API: {
+            "endpoints": [_entity_dict(e) for e in endpoints],
+            "domain_entities": [_entity_dict(e) for e in domain_entities],
+        },
+        Section.DOCUMENTS: {
+            "topics": [_entity_dict(e) for e in topics],
+            "decisions": [_entity_dict(e) for e in decisions],
+            "pages": [_entity_dict(e) for e in documents],
+        },
         Section.QUESTIONS: {
             "questions": _team_questions(graph),
         },
     }
+
+    # A section with nothing in it is not a finding. Ten of them in a row — "no
+    # infrastructure", "no environments", "no pipelines" — are all true and together
+    # they read as a broken app rather than as a folder of documentation. Show the
+    # sections this project HAS; say what it does not have once, quietly, in the
+    # summary. Summary and Risks always stay: the first places the project, and an
+    # empty Risks list is itself the good news.
+    always = {Section.SUMMARY, Section.RISKS}
+    view["section_order"] = [
+        section
+        for section in lens.section_order
+        if section in always or _section_has_facts(view.get(section))
+    ]
+    return view
+
+
+def _section_has_facts(payload: object) -> bool:
+    if not isinstance(payload, dict):
+        return bool(payload)
+    return any(bool(value) for value in payload.values())

@@ -15,7 +15,22 @@ from app.core.domain.project_graph import EntityType, FindingCategory
 
 
 class Section:
+    """Every kind of thing a project can be made of.
+
+    This is a catalogue, not a screen. A project shows the sections it *has*: a wiki
+    has pages and no pipelines, a data project has tables and no test suites, and a
+    library has modules and neither. present_project_intelligence drops every section
+    the project has no facts for — because ten honest "not detected" lines add up to a
+    dishonest screen, one that says "this app is broken" when it should say "this is a
+    different kind of project". The role lens only decides the ORDER of what remains.
+    """
+
     SUMMARY = "summary"
+    DOCUMENTS = "documents"  # pages, areas, decisions — a folder of documentation
+    CODE = "code"  # applications, modules, the dependencies they pull in
+    TESTS = "tests"  # test suites, what runs them, what nothing covers
+    DATA = "data"  # tables, migrations — the schema the project owns
+    API = "api"  # the endpoints it exposes, and the nouns they speak in
     INFRASTRUCTURE = "infrastructure"
     DEPLOYMENT = "deployment"
     ENVIRONMENTS = "environments"
@@ -26,6 +41,11 @@ class Section:
 
 ALL_SECTIONS: list[str] = [
     Section.SUMMARY,
+    Section.DOCUMENTS,
+    Section.CODE,
+    Section.TESTS,
+    Section.DATA,
+    Section.API,
     Section.INFRASTRUCTURE,
     Section.DEPLOYMENT,
     Section.ENVIRONMENTS,
@@ -70,8 +90,13 @@ _DEVELOPER = RoleLens(
     ],
     section_order=[
         Section.SUMMARY,
-        Section.INFRASTRUCTURE,
+        Section.CODE,
+        Section.TESTS,
+        Section.DOCUMENTS,
+        Section.DATA,
+        Section.API,
         Section.IMPORTANT_FILES,
+        Section.INFRASTRUCTURE,
         Section.DEPLOYMENT,
         Section.RISKS,
         Section.ENVIRONMENTS,
@@ -100,6 +125,11 @@ _DEVOPS = RoleLens(
         Section.DEPLOYMENT,
         Section.ENVIRONMENTS,
         Section.RISKS,
+        Section.CODE,
+        Section.DOCUMENTS,
+        Section.DATA,
+        Section.TESTS,
+        Section.API,
         Section.IMPORTANT_FILES,
         Section.QUESTIONS,
     ],
@@ -125,9 +155,14 @@ _TESTER = RoleLens(
     # like the DevOps view wearing a different name.
     section_order=[
         Section.SUMMARY,
+        Section.TESTS,
         Section.RISKS,
+        Section.API,
+        Section.CODE,
         Section.DEPLOYMENT,
         Section.ENVIRONMENTS,
+        Section.DOCUMENTS,
+        Section.DATA,
         Section.INFRASTRUCTURE,
         Section.IMPORTANT_FILES,
         Section.QUESTIONS,
@@ -150,11 +185,16 @@ _BUSINESS_ANALYST = RoleLens(
     ],
     section_order=[
         Section.SUMMARY,
-        Section.ENVIRONMENTS,
+        Section.API,
+        Section.DOCUMENTS,
+        Section.DATA,
         Section.RISKS,
+        Section.ENVIRONMENTS,
+        Section.CODE,
         Section.DEPLOYMENT,
         Section.IMPORTANT_FILES,
         Section.INFRASTRUCTURE,
+        Section.TESTS,
         Section.QUESTIONS,
     ],
 )
@@ -176,8 +216,13 @@ _MANAGER = RoleLens(
     section_order=[
         Section.SUMMARY,
         Section.RISKS,
+        Section.DOCUMENTS,
+        Section.CODE,
+        Section.TESTS,
         Section.ENVIRONMENTS,
         Section.DEPLOYMENT,
+        Section.API,
+        Section.DATA,
         Section.IMPORTANT_FILES,
         Section.INFRASTRUCTURE,
         Section.QUESTIONS,
@@ -205,11 +250,16 @@ _DBA = RoleLens(
     ],
     section_order=[
         Section.SUMMARY,
+        Section.DATA,
         Section.RISKS,
+        Section.API,
+        Section.DOCUMENTS,
+        Section.CODE,
         Section.IMPORTANT_FILES,
         Section.INFRASTRUCTURE,
         Section.ENVIRONMENTS,
         Section.DEPLOYMENT,
+        Section.TESTS,
         Section.QUESTIONS,
     ],
 )

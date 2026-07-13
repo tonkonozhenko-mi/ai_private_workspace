@@ -24,6 +24,7 @@ from app.core.domain.analysis import (
 )
 from app.core.domain.api_surface import ApiSurface
 from app.core.domain.js_modules import JsFacts
+from app.core.domain.knowledge_base import KnowledgeBase, area_family
 from app.core.domain.ownership import OwnershipFacts
 from app.core.domain.project_graph import (
     Confidence,
@@ -790,6 +791,123 @@ def from_sql_schema(
     return entities, relations, findings
 
 
+def from_knowledge_base(
+    base: KnowledgeBase,
+) -> tuple[list[ProjectEntity], list[ProjectRelation], list[ProjectFinding]]:
+    """A wiki's own facts: its pages, the areas its titles announce, its decisions —
+    and the two things that quietly rot a knowledge base.
+
+    The findings are deliberately mild in tone and specific in evidence. A page nobody
+    links to is *reported*, not condemned: it may be a new page, or a leaf everyone
+    reaches from search. A page a year old is only worth mentioning when other pages
+    still point at it — that is when out-of-date stops being harmless.
+    """
+    entities: list[ProjectEntity] = []
+    relations: list[ProjectRelation] = []
+    findings: list[ProjectFinding] = []
+
+    for area, count in base.areas.items():
+        entities.append(
+            ProjectEntity(
+                id=_entity_id(EntityType.TOPIC, area),
+                type=EntityType.TOPIC,
+                name=area,
+                analyzer="documentation",
+                metadata={"pages": str(count)},
+            )
+        )
+
+    for document in base.documents:
+        entity_type = EntityType.DECISION if document.is_decision else EntityType.DOCUMENT
+        entities.append(
+            ProjectEntity(
+                id=_entity_id(entity_type, document.path),
+                type=entity_type,
+                name=document.title,
+                analyzer="documentation",
+                source_file=document.path,
+                metadata={
+                    "area": document.area or "",
+                    "linked_from": str(base.inbound_links.get(document.path, 0)),
+                    "attachments": str(len(document.attachments)),
+                    "diagrams": ", ".join(document.diagrams[:3]),
+                },
+            )
+        )
+        family = area_family(document.area)
+        if family:
+            topic_id = _entity_id(EntityType.TOPIC, family)
+            page_id = _entity_id(entity_type, document.path)
+            relations.append(
+                ProjectRelation(
+                    id=_relation_id(topic_id, RelationType.INCLUDES, page_id),
+                    source_entity_id=topic_id,
+                    target_entity_id=page_id,
+                    relation_type=RelationType.INCLUDES,
+                    analyzer="documentation",
+                    source_file=document.path,
+                )
+            )
+        for target in document.links_to:
+            target_type = (
+                EntityType.DECISION
+                if any(d.path == target and d.is_decision for d in base.documents)
+                else EntityType.DOCUMENT
+            )
+            source_id = _entity_id(entity_type, document.path)
+            target_id = _entity_id(target_type, target)
+            relations.append(
+                ProjectRelation(
+                    id=_relation_id(source_id, RelationType.REFERENCES, target_id),
+                    source_entity_id=source_id,
+                    target_entity_id=target_id,
+                    relation_type=RelationType.REFERENCES,
+                    analyzer="documentation",
+                    source_file=document.path,
+                )
+            )
+
+    for document in base.stale_but_relied_on():
+        inbound = base.inbound_links.get(document.path, 0)
+        findings.append(
+            ProjectFinding(
+                id=f"documentation:stale:{document.path}",
+                category=FindingCategory.DOCUMENTATION,
+                severity=Severity.MEDIUM,
+                title=f'"{document.title}" has not changed in over a year',
+                explanation=(
+                    f"{inbound} other pages link to it, so it is still being treated as "
+                    "the source of truth. Old is not wrong — but old and relied upon is "
+                    "worth a look."
+                ),
+                analyzer="documentation",
+                evidence=[document.path],
+            )
+        )
+
+    orphans = base.orphans
+    if orphans:
+        findings.append(
+            ProjectFinding(
+                id="documentation:orphan_pages",
+                category=FindingCategory.DOCUMENTATION,
+                severity=Severity.LOW,
+                title=f"{len(orphans)} pages nothing links to",
+                explanation=(
+                    "No other page points at them, so they are found only by searching. "
+                    "That is not a defect — an entry point is an orphan by definition — "
+                    "but it is where unread pages hide: "
+                    + ", ".join(document.title for document in orphans[:5])
+                    + ("…" if len(orphans) > 5 else "")
+                ),
+                analyzer="documentation",
+                evidence=[document.path for document in orphans[:10]],
+            )
+        )
+
+    return entities, relations, findings
+
+
 def from_tests(
     facts: TestFacts,
 ) -> tuple[list[ProjectEntity], list[ProjectRelation], list[ProjectFinding]]:
@@ -1146,6 +1264,7 @@ def role_fact_contributions(
     javascript: JsFacts | None = None,
     api_surface: ApiSurface | None = None,
     ownership: OwnershipFacts | None = None,
+    knowledge_base: KnowledgeBase | None = None,
 ) -> list[tuple[tuple[list[ProjectEntity], list[ProjectRelation], list[ProjectFinding]], str]]:
     """The facts the roles other than DevOps came for, ready to be absorbed.
 
@@ -1155,6 +1274,8 @@ def role_fact_contributions(
     of analyzers rather than a wall of guard clauses.
     """
     contributions = []
+    if knowledge_base is not None and knowledge_base.documents:
+        contributions.append((from_knowledge_base(knowledge_base), "documentation"))
     if sql_schema is not None and sql_schema.tables:
         contributions.append((from_sql_schema(sql_schema), "sql"))
     if tests is not None:
@@ -1184,6 +1305,7 @@ def build_project_graph(
     javascript: JsFacts | None = None,
     api_surface: ApiSurface | None = None,
     ownership: OwnershipFacts | None = None,
+    knowledge_base: KnowledgeBase | None = None,
     scan_paths: list[str] | None = None,
     source_paths: list[str] | None = None,
     analyzers_skipped: list[str] | None = None,
@@ -1249,6 +1371,7 @@ def build_project_graph(
         javascript=javascript,
         api_surface=api_surface,
         ownership=ownership,
+        knowledge_base=knowledge_base,
     ):
         absorb(triple, analyzer)
 
