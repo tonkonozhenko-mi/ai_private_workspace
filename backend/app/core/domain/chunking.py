@@ -237,6 +237,7 @@ def build_contextual_chunk(
     file_type: str | None = None,
     extension: str | None = None,
     section_label: str | None = None,
+    origin: str | None = None,
 ) -> str:
     """Prefix a one-line provenance header to a chunk so the model can ground and
     cite it, and the path becomes keyword-searchable. Deterministic, never raises.
@@ -255,7 +256,11 @@ def build_contextual_chunk(
     suffix = f" · part {position}/{total}" if total > 1 else ""
     keys = config_keys(content, file_type, extension)
     keys_suffix = f" · keys: {', '.join(keys)}" if keys else ""
-    return f"{_CONTEXT_HEADER_PREFIX}{where}{suffix}{keys_suffix}]\n{content}"
+    # Where the file itself came from, when the file alone is not enough to place it:
+    # a diagram in "Design_files/" means nothing until you know it illustrates the
+    # page "Design". Absent for ordinary project files.
+    origin_suffix = f" · {origin}" if origin else ""
+    return f"{_CONTEXT_HEADER_PREFIX}{where}{suffix}{origin_suffix}{keys_suffix}]\n{content}"
 
 
 def strip_contextual_header(content: str) -> str:

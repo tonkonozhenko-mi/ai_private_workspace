@@ -149,3 +149,11 @@ def dominant_source_language(paths: list[str]) -> tuple[str | None, int]:
         return None, 0
     language = sorted(counts, key=lambda name: (-counts[name], name))[0]
     return language, counts[language]
+
+
+# Pictures. We cannot read them without OCR, and we will not pretend otherwise —
+# but a project's diagrams and screenshots are worth *knowing about*, so they are
+# detected, attributed to the document they belong to, and honestly left unindexed.
+IMAGE_EXTENSIONS: frozenset[str] = frozenset(
+    {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".tif", ".tiff", ".svg"}
+)

@@ -12,14 +12,17 @@ this computer and never leave it.
 
 from __future__ import annotations
 
+import base64
 import csv
 import json
 import logging
 import re
 import zipfile
+import zlib
 from collections.abc import Callable
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import unquote
 
 # A .docx/.xlsx is XML written by someone else's tool — or by someone hostile. The
 # stdlib parser happily expands entities, which makes a "quadratic blowup" /
@@ -28,6 +31,7 @@ from pathlib import Path
 from defusedxml.ElementTree import fromstring as parse_xml
 
 from app.core.domain.document_extraction import (
+    DIAGRAM,
     EXCEL_WORKBOOK,
     HTML_DOCUMENT,
     MAX_DOCUMENT_BYTES,
@@ -35,6 +39,7 @@ from app.core.domain.document_extraction import (
     MAX_SHEET_ROWS,
     NOTEBOOK,
     PDF_DOCUMENT,
+    PRESENTATION,
     TABULAR_DATA,
     WORD_DOCUMENT,
     ExtractedDocument,
@@ -46,6 +51,14 @@ logger = logging.getLogger(__name__)
 
 _W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 _S = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
+# PowerPoint keeps its words in DrawingML text runs (<a:t>), whatever shape holds them.
+_A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+_SLIDE_RE = re.compile(r"ppt/slides/slide(\d+)\.xml")
+
+
+def _plain_text(value: str) -> str:
+    """One line of collapsed text — draw.io labels arrive as little HTML fragments."""
+    return " ".join(re.sub(r"<[^>]+>", " ", value).split())
 
 # Rows per Excel chunk. The header row is repeated in every block: a chunk of bare
 # numbers means nothing to an embedder (or a reader) without its column names.
@@ -121,6 +134,10 @@ class LocalDocumentExtractor:
                 return self._csv(path)
             if file_type == NOTEBOOK:
                 return self._notebook(path)
+            if file_type == DIAGRAM:
+                return self._drawio(path)
+            if file_type == PRESENTATION:
+                return self._pptx(path)
             return skipped(f"No extractor for '{file_type}'.")
         except zipfile.BadZipFile:
             # A .docx/.xlsx that isn't a valid OOXML container — often a renamed
@@ -295,6 +312,94 @@ class LocalDocumentExtractor:
         if not parser.sections:
             return skipped("The page contains no extractable text.")
         return ExtractedDocument(sections=parser.sections)
+
+    # ---------------------------------------------------------------- .drawio
+    def _drawio(self, path: Path) -> ExtractedDocument:
+        """A diagram, read as the words on it.
+
+        A .drawio file is XML: every box and every arrow carries a ``value`` — its
+        label. Those labels *are* the architecture ("Ingestion" → "Silver layer" →
+        "PowerBI"), and they are exactly what someone asks about. The pixels stay
+        unread; the names do not.
+
+        draw.io usually stores each page deflate-compressed inside <diagram>, so the
+        raw text looks like base64 noise. Both forms are handled.
+        """
+        raw = path.read_text(encoding="utf-8", errors="ignore")
+        try:
+            root = parse_xml(raw)
+        except Exception:  # noqa: BLE001 - a corrupt diagram is skipped, not fatal
+            return skipped("The diagram could not be read.")
+
+        pages = root.findall(".//diagram") or [root]
+        sections: list[ExtractedSection] = []
+        for index, page in enumerate(pages, start=1):
+            model = self._drawio_model(page)
+            if model is None:
+                continue
+            labels = [
+                label
+                for cell in model.iter("mxCell")
+                if (label := _plain_text(cell.get("value") or ""))
+            ]
+            # Shapes carry their label on mxCell; some stencils put it on the parent
+            # <object> element instead, where it is the "label" attribute.
+            labels += [
+                label
+                for obj in model.iter("object")
+                if (label := _plain_text(obj.get("label") or ""))
+            ]
+            if not labels:
+                continue
+            name = page.get("name") if page.tag == "diagram" else None
+            locator = f'page "{name}"' if name else f"page {index}"
+            sections.append(ExtractedSection(locator, "\n".join(dict.fromkeys(labels))))
+
+        if not sections:
+            return skipped("The diagram has no labelled shapes to read.")
+        return ExtractedDocument(sections=sections)
+
+    @staticmethod
+    def _drawio_model(page):  # noqa: ANN001, ANN205 - Element, kept untyped like the rest
+        """The <mxGraphModel> of a diagram page, decompressing it when needed."""
+        model = page.find(".//mxGraphModel")
+        if model is not None:
+            return model
+        payload = (page.text or "").strip()
+        if not payload:
+            return None
+        try:
+            # draw.io's own encoding: deflate (raw, no zlib header), base64, URL-escaped.
+            inflated = zlib.decompress(base64.b64decode(payload), -zlib.MAX_WBITS)
+            return parse_xml(unquote(inflated.decode("utf-8")))
+        except Exception:  # noqa: BLE001 - an unreadable page is skipped, not fatal
+            return None
+
+    # ------------------------------------------------------------------ .pptx
+    def _pptx(self, path: Path) -> ExtractedDocument:
+        """Slides, one section per slide — the same OOXML trick as Word and Excel."""
+        with zipfile.ZipFile(path) as archive:
+            slide_names = sorted(
+                (n for n in archive.namelist() if _SLIDE_RE.fullmatch(n)),
+                key=lambda n: int(_SLIDE_RE.fullmatch(n).group(1)),  # type: ignore[union-attr]
+            )
+            sections: list[ExtractedSection] = []
+            for name in slide_names:
+                number = int(_SLIDE_RE.fullmatch(name).group(1))  # type: ignore[union-attr]
+                slide = parse_xml(archive.read(name))
+                # <a:t> is the text run — the only element that holds words, whether
+                # they sit in a title, a bullet, a table cell or a shape.
+                lines = [
+                    line
+                    for node in slide.iter(f"{_A}t")
+                    if (line := _plain_text(node.text or ""))
+                ]
+                if lines:
+                    sections.append(ExtractedSection(f"slide {number}", "\n".join(lines)))
+
+        if not sections:
+            return skipped("The presentation contains no readable text.")
+        return ExtractedDocument(sections=sections)
 
     # ------------------------------------------------------------------- .pdf
     def _pdf(self, path: Path) -> ExtractedDocument:
