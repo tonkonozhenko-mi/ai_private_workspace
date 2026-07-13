@@ -9,6 +9,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 
+- **"Rebuilding search context…" now says where it has got to.** The banner ran a scan, a re-index and an analysis behind one motionless label — for minutes, on a large project, with no way to tell work from a hang. The job already knew its own progress; it simply was not being asked. It now reads "Rebuilding search context · 2,112 of 3,232 pieces · 65%".
+
 - **A folder of documentation is no longer told off for not being a code repository.** Pointed at a real Confluence export, the app flagged "No test files were found" in red, asked how its dev/staging/prod environments are separated, offered a security review of pipelines it does not have, and told the Manager the scan "did not detect much yet" — about 169 pages. Only a project that has code can be missing tests for it; only something that is deployed can have environments; and a dashboard now leads with whatever the project is actually made of.
 - **Pages kept the title their author gave them.** Confluence hands dozens of exported pages the same `<title>` ("General Information"), so the Documents tab became a column of identical entries and the decisions list was unreadable. A title several pages share is boilerplate, not a title — the file name wins.
 - **A wiki page about a test is not a test.** "AWS_MSK_Connector_-_CDC_test.html" was filed under Tests because its name contains "test", and spreadsheets attached to pages were filed under Config. A file the scan already recognised as a document is a document.

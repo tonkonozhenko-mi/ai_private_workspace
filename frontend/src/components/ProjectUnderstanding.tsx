@@ -49,16 +49,35 @@ if (typeof window !== "undefined") {
   window.addEventListener("keydown", mark);
 }
 
-async function pollJobDone(workspaceId: string, jobId: string): Promise<void> {
+async function pollJobDone(
+  workspaceId: string,
+  jobId: string,
+  onProgress?: (job: WorkspaceJob) => void,
+): Promise<void> {
   for (let attempt = 0; attempt < 900; attempt += 1) {
     await new Promise((resolve) => window.setTimeout(resolve, 1000));
     try {
       const job: WorkspaceJob = await getWorkspaceJob(workspaceId, jobId);
+      // The job already knows exactly where it is — it just was not being asked. The
+      // banner used to say "Rebuilding search context…" for minutes with no sign of
+      // life, which is indistinguishable from being hung.
+      onProgress?.(job);
       if (["completed", "failed", "cancelled"].includes(job.status)) return;
     } catch {
       // keep polling through transient errors
     }
   }
+}
+
+/** "2,112 of 3,232 pieces · 65%" — the job's own numbers, or its own words. */
+function jobProgressLine(job: WorkspaceJob): string {
+  const parts: string[] = [];
+  if (job.progress_current !== null && job.progress_total) {
+    parts.push(`${job.progress_current.toLocaleString()} of ${job.progress_total.toLocaleString()}`);
+  }
+  if (job.progress_percent !== null) parts.push(`${Math.round(job.progress_percent)}%`);
+  const step = job.current_step ?? job.message ?? "";
+  return [step, parts.join(" · ")].filter(Boolean).join(" · ");
 }
 
 // Some local models return the deep analysis wrapped in a ```json code block
@@ -930,17 +949,23 @@ export function ProjectUnderstanding({
     }
   }
 
-  // Re-scan → rebuild context → re-analyze, in sequence, with status text.
+  // Re-scan → rebuild context → re-analyze, in sequence — and say where it is. Each
+  // stage reports the job's own progress, so a five-minute rebuild reads as work being
+  // done rather than as an app that has stopped responding.
   async function handleUpdateProject() {
     const ws = dashboard.workspace_id;
+    const show = (stage: string) => (job: WorkspaceJob) => {
+      const line = jobProgressLine(job);
+      setUpdating(line ? `${stage} · ${line}` : stage);
+    };
     try {
       setUpdating("Re-scanning project…");
       const scanJob = (await onStartScanJob()) as WorkspaceJob | undefined;
-      if (scanJob?.job_id) await pollJobDone(ws, scanJob.job_id);
+      if (scanJob?.job_id) await pollJobDone(ws, scanJob.job_id, show("Re-scanning"));
 
       setUpdating("Rebuilding search context…");
       const indexJob = (await onStartIndexJob()) as WorkspaceJob | undefined;
-      if (indexJob?.job_id) await pollJobDone(ws, indexJob.job_id);
+      if (indexJob?.job_id) await pollJobDone(ws, indexJob.job_id, show("Rebuilding search context"));
 
       await onRefreshWorkspaceState();
       setChanges(null);
@@ -1010,15 +1035,23 @@ export function ProjectUnderstanding({
         <div className="pu-changes-banner">
           <svg className="pu-changes-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v5h-5" /></svg>
           <div className="pu-changes-text">
-            <strong>Project files changed since the last scan.</strong>
+            <strong>
+              {updating === null
+                ? "Project files changed since the last scan."
+                : "Updating this project…"}
+            </strong>
+            {/* While it works, the line says what it is doing and how far it has got —
+                the job knows both. A five-minute rebuild that says nothing is
+                indistinguishable from one that has hung. */}
             <span>
-              {[
-                changes.added_count ? `${changes.added_count} added` : null,
-                changes.modified_count ? `${changes.modified_count} changed` : null,
-                changes.removed_count ? `${changes.removed_count} removed` : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
+              {updating ??
+                [
+                  changes.added_count ? `${changes.added_count} added` : null,
+                  changes.modified_count ? `${changes.modified_count} changed` : null,
+                  changes.removed_count ? `${changes.removed_count} removed` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
             </span>
           </div>
           <button
@@ -1027,7 +1060,7 @@ export function ProjectUnderstanding({
             disabled={updating !== null}
             onClick={() => void handleUpdateProject()}
           >
-            {updating ?? "Re-scan & rebuild"}
+            {updating === null ? "Re-scan & rebuild" : "Working…"}
           </button>
           {updating === null ? (
             <button
