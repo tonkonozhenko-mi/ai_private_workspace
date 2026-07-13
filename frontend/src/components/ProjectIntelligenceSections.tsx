@@ -23,6 +23,25 @@ const REFERENCE_KIND_LABELS: Record<string, string> = {
   s3_bucket: "S3 buckets",
 };
 
+
+/** A document's title, set the way a title should be set.
+ *
+ * The list of Decisions and Documents was a wall of green monospace — the font we use
+ * for paths, commands and locators, applied to sentences people wrote. Monospace is for
+ * what a machine emitted; a title is not that. A qualified title carries both
+ * ("modules/vpc · README"), so it is set as both: the folder in mono, the name in text.
+ */
+function DocumentTitle({ name }: { name: string }) {
+  const at = name.indexOf(" · ");
+  if (at < 0) return <span className="pi-doc-title">{name}</span>;
+  return (
+    <>
+      <span className="pi-doc-where">{name.slice(0, at)}</span>
+      <span className="pi-doc-title">{name.slice(at + 3)}</span>
+    </>
+  );
+}
+
 function statusNote(entity: ProjectGraphEntity): string | null {
   if (entity.status === "inferred") return "inferred";
   if (entity.status === "needs_confirmation") return "needs confirming";
@@ -957,10 +976,10 @@ export function DocumentsSection({
               <li key={decision.id}>
                 <button
                   type="button"
-                  className="pi-file-link"
+                  className="pi-title-link"
                   onClick={() => decision.source_file && onInspectFile?.(decision.source_file)}
                 >
-                  {decision.name}
+                  <DocumentTitle name={decision.name} />
                 </button>
               </li>
             ))}
@@ -982,10 +1001,10 @@ export function DocumentsSection({
               <li className="pi-page-row" key={page.id}>
                 <button
                   type="button"
-                  className="pi-file-link"
+                  className="pi-title-link"
                   onClick={() => page.source_file && onInspectFile?.(page.source_file)}
                 >
-                  {page.name}
+                  <DocumentTitle name={page.name} />
                 </button>
                 {/* On its own line, quiet: the title is what the eye is scanning for, and
                     "nothing links to it" running into the name read like part of it. */}

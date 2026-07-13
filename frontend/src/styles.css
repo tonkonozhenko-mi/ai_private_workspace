@@ -78,14 +78,28 @@
   --sidebar-surface-selected: #2a3a44;
   --sidebar-text: #e9eef2;
   --sidebar-width: 100%;
-  --space-1: 0.25rem;
-  --space-10: 2.5rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 0.75rem;
-  --space-5: 1rem;
-  --space-6: 1.15rem;
-  --space-8: 1.5rem;
+  /* One spacing scale, and nothing outside it. 4 / 8 / 12 / 16 / 24 / 32 / 48 — the
+     ratios a person reads as rhythm rather than as accident. Two of the old steps
+     were the same number (3 and 4 were both 12px) and one was 18.4px, which is what
+     happens when spacing is decided one component at a time. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Two rules on top of the scale, so the rhythm is a decision and not a habit:
+     between one region of meaning and the next (dashboard → tabs → content) the gap
+     is a beat you can feel; inside a region it is a breath. */
+  --zone-gap: var(--space-6);
+  --stack-gap: var(--space-4);
+
+  /* Prose stops being readable somewhere past 80 characters — the eye loses the line
+     it is returning to. Explanations, findings and the model's paragraphs are capped
+     here; tables, lists and paths are not prose and are not capped. */
+  --measure: 74ch;
   --surface: #0d1815;
   --surface-elevated: #13231f;
   --surface-muted: #12211d;
@@ -6116,3 +6130,229 @@ a {
 .pi-page-row { break-inside: avoid; margin-bottom: 8px; }
 .pi-page-meta { display: block; font-size: 11.5px; }
 @media (max-width: 1100px) { .pi-page-list { columns: 1; } }
+
+/* =====================================================================
+   Rhythm — the pass that adds nothing and changes everything.
+
+   Between one region of meaning and the next, a beat you can feel; inside a
+   region, a breath. The Intelligence dashboard was a stack with no pauses —
+   chips, attention, questions and tabs arrived as one paragraph of furniture,
+   so the eye had to do the work the layout should have done.
+   ===================================================================== */
+.pi-card {
+  gap: var(--stack-gap);
+}
+/* Dashboard → tabs → content are three regions, not three rows. */
+.pi-brief {
+  margin: var(--space-5) 0 0;
+  padding: var(--space-4) var(--space-5);
+  gap: var(--space-3);
+}
+.pi-tabs {
+  margin-top: var(--zone-gap);
+  padding-bottom: var(--space-1);
+  gap: var(--space-1);
+}
+.pi-section {
+  padding-top: var(--space-4);
+}
+.pi-brief-questions {
+  margin-top: var(--space-2);
+  gap: var(--space-2);
+}
+.pi-brief-risks {
+  margin-top: var(--space-1);
+}
+
+/* Prose keeps its measure. A finding's explanation, the model's paragraph, the
+   hint under a heading — all of them are read, so none of them run the width of a
+   27-inch display. Lists, tables and paths are not prose and are not capped. */
+.pi-overview-text,
+.pi-summary-desc,
+.pi-hint,
+.pi-finding-explain,
+.pi-finding-why,
+.pu-lead-line,
+.pu-analysis-summary,
+.pu-guide-text,
+.grp-hint {
+  max-width: var(--measure);
+}
+
+/* =====================================================================
+   Type roles — monospace for what a machine emitted, text for what a person wrote.
+
+   The Decisions list was a wall of green monospace: page titles, written by people in
+   sentences, set in the font we reserve for paths and commands. A title is not a
+   locator. Where a title carries its folder with it ("modules/vpc · README"), the
+   folder stays mono and quiet; the name is text.
+   ===================================================================== */
+.pi-title-link {
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--c-text);
+}
+.pi-title-link:hover .pi-doc-title { text-decoration: underline; }
+.pi-doc-where {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11.5px;
+  color: var(--c-text-3);
+}
+.pi-doc-where::after { content: " · "; }
+.pi-doc-title { color: var(--c-text); }
+
+/* One uppercase micro-label, one size, one tracking — they were drifting apart. */
+.pu-eyebrow,
+.pi-eyebrow,
+.pi-brief-eyebrow,
+.grp-shead,
+.pi-finding-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* =====================================================================
+   Air, not boxes.
+
+   A card inside a panel inside a page: three borders to say one thing. The outer
+   container earns its edge because it separates the content from the app; the ones
+   inside it were separating content from content, which space already does. Where
+   two things genuinely run together, a hairline — not a frame.
+   ===================================================================== */
+.pi-brief,
+.pi-finding,
+.pu-analysis-risks .pu-risk,
+.grp-riskgroup {
+  border: none;
+  background: transparent;
+}
+.pi-brief {
+  border-left: 2px solid var(--c-accent-border);
+  padding-left: var(--space-4);
+  border-radius: 0;
+}
+.pi-findings > .pi-finding + .pi-finding,
+.grp-riskgroups > .grp-riskgroup + .grp-riskgroup {
+  border-top: 1px solid var(--c-border-soft, rgba(255, 255, 255, 0.08));
+  padding-top: var(--space-4);
+  margin-top: var(--space-4);
+}
+/* Rows answer the pointer with light, not with an outline. */
+.pi-page-row:hover .pi-doc-title,
+.pi-file-list li:hover {
+  color: var(--c-text);
+}
+.pi-finding:hover,
+.grp-riskgroup:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--r-md);
+}
+
+/* =====================================================================
+   Motion — four tokens, and not one more.
+
+   Everything moves the same way or the app feels assembled from parts. Only opacity
+   and transform are ever animated (anything else asks the browser to re-do layout on
+   every frame), and everything stops dead for someone who asked for less motion.
+   ===================================================================== */
+:root {
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --dur-1: 120ms; /* a hover: acknowledgement, not an animation */
+  --dur-2: 180ms; /* content arriving: a tab, a source list */
+  --dur-3: 240ms; /* a whole view re-framing: the role change */
+}
+
+.pi-section {
+  animation: view-enter var(--dur-2) var(--ease-standard) both;
+}
+@keyframes view-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The role change is the moment this app is judged on: the same facts, re-framed for
+   who you are. It used to snap. It now settles. */
+.pi-brief,
+.pi-summary {
+  animation: lens-settle var(--dur-3) var(--ease-standard) both;
+}
+@keyframes lens-settle {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.pi-tab,
+.pi-chip,
+.pi-brief-qchip,
+.pi-finding-ask,
+.pu-risk-ask,
+.grp-ask-starter,
+.pi-title-link,
+.pi-file-link {
+  transition: color var(--dur-1) var(--ease-standard),
+    background-color var(--dur-1) var(--ease-standard),
+    border-color var(--dur-1) var(--ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pi-section,
+  .pi-brief,
+  .pi-summary {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* =====================================================================
+   Colour, given meanings.
+
+   One green was doing five jobs: the action you take, the link you follow, the engine
+   that is running, the chip that is a fact, and the tab you are on. When everything is
+   the accent, nothing is — the eye has no hierarchy left to read, and the screen only
+   works because you already know where things are.
+
+   Five meanings, five tokens. The hues stay in the same family, so nothing shouts; the
+   difference is doing a job, not being decorative. The test is a greyscale screenshot:
+   the hierarchy must survive without any colour at all.
+   ===================================================================== */
+:root {
+  /* --c-accent stays as it is: the thing you can DO (primary buttons, the active tab). */
+  --c-link: rgba(52, 194, 126, 0.82);       /* somewhere to GO: a path, a file, a page */
+  --c-success: #5fd08a;                      /* a state that is GOOD: engine running, in use */
+  --c-attention: #f0c79a;                    /* worth a look — warm, never alarming */
+  --c-attention-soft: rgba(224, 168, 90, 0.16);
+  --c-info: #a8c3d6;                         /* for awareness — cool, quiet, not a warning */
+  --c-info-soft: rgba(120, 160, 190, 0.12);
+}
+
+/* Links are the accent hue held back: a path is somewhere to go, not something to do. */
+.pi-file-link,
+.pu-risk-file,
+.pi-source {
+  color: var(--c-link);
+}
+.pi-file-link:hover,
+.pu-risk-file:hover {
+  color: var(--c-accent);
+}
+
+/* Attention and awareness are two different things and used to look alike. */
+.pi-severity-medium {
+  background: var(--c-attention-soft);
+  color: var(--c-attention);
+}
+.pi-severity-info,
+.grp-sev-info {
+  background: var(--c-info-soft);
+  color: var(--c-info);
+}
