@@ -91,9 +91,10 @@ function rebuildNote(
   const counts =
     `${after.entity_count} things${delta(after.entity_count, before?.entity_count)}, ` +
     `${after.finding_count} risks${delta(after.finding_count, before?.finding_count)}`;
-  return same
-    ? `Map rebuilt — nothing changed: the same ${counts}, because the files have not changed.`
-    : `Map rebuilt — ${counts}.`;
+  // The analyzers really did run again, so "because the files have not changed" was a
+  // cause we did not know: the totals can match while a finding's words have changed.
+  // Report what came back and claim nothing about why.
+  return same ? `Map rebuilt — same totals: ${counts}.` : `Map rebuilt — ${counts}.`;
 }
 
 /** The analyzers, in the words of the things they read.

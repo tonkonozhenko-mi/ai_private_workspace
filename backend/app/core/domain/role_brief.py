@@ -257,12 +257,19 @@ def suggested_questions(graph: ProjectGraph, lens: RoleLens, limit: int = 5) -> 
     role_slots = max(0, limit - len(general))
     chosen = (role_general + typed_ordered)[:role_slots] + general
 
+    # A folder of documentation is not a repository, and asking someone where to start
+    # reading "this repo" in a wiki is the same small lie as telling it it has no tests.
+    from app.core.domain.project_makeup import is_documentation_project
+
+    subject = "this documentation" if is_documentation_project(graph) else "this repo"
+
     seen: set[str] = set()
     out: list[str] = []
     for cand in chosen:
-        if cand.question not in seen:
-            seen.add(cand.question)
-            out.append(cand.question)
+        question = cand.question.replace("this repo", subject)
+        if question not in seen:
+            seen.add(question)
+            out.append(question)
         if len(out) >= limit:
             break
     return out
