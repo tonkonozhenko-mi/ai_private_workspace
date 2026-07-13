@@ -9,9 +9,10 @@ from app.core.domain.attached_documents import (
     build_attached_documents_section,
 )
 from app.core.domain.context_budget import (
-    chunk_char_budget,
-    fit_context_results,
+    chunk_token_budget,
+    fit_context_results_by_tokens,
     project_fits_whole_context,
+    shrink_to_window,
 )
 from app.core.domain.conversation_budget import (
     SUMMARY_TRIGGER_MIN_OLDER_TURNS,
@@ -21,6 +22,7 @@ from app.core.domain.conversation_budget import (
 )
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import ContextSearchResult
+from app.core.domain.llm_errors import ContextOverflowError, context_overflow_answer
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
 from app.core.domain.mmr import EMBEDDING_KEY, mmr_select
 from app.core.domain.parent_document import expand_to_parents
@@ -151,6 +153,29 @@ _MMR_POOL = 24
 # Off by default to keep time-to-first-token low; opt in via this env var, the
 # same "available but not forced" stance as the reranker.
 QUERY_REWRITE_ENV_VAR = "AI_WORKSPACE_ASK_QUERY_REWRITE"
+
+
+def _best_score(results: list[ContextSearchResult] | None) -> float:
+    """The best score in a retrieval, or zero when it returned nothing."""
+    return max((result.score for result in results or []), default=0.0)
+
+
+def _sources_of(results: list[ContextSearchResult]) -> list[RagSource]:
+    """The chunks the model was actually given, as the sources the person is shown.
+
+    Built in one place because every path that changes the context — corrective
+    retrieval, window fitting, a retry with less context — must change the shown
+    sources with it. A source list that outlives the context it describes is a lie.
+    """
+    return [
+        RagSource(
+            chunk_id=result.chunk_id,
+            source_path=result.source_path,
+            score=result.score,
+            preview=result.content[:200],
+        )
+        for result in results
+    ]
 
 
 def _strip_embeddings(results: list[ContextSearchResult]) -> list[ContextSearchResult]:
@@ -369,13 +394,22 @@ class AskWorkspaceQuestionUseCase:
         llm_provider: LLMProviderPort,
         context_results: list[ContextSearchResult],
         history: list[tuple[str, str]],
+        budget_scale: float = 1.0,
     ) -> tuple[list[ContextSearchResult], str, int, int]:
         """Build the grounded prompt, fitting the retrieved chunks to the model's
-        real context window so memory + history + chunks + answer headroom never
-        overflow it (the engine would otherwise silently truncate).
+        real context window so memory + history + question + chunks + answer
+        headroom never overflow it.
+
+        Three things guard the window, in order: the token budget (what should
+        fit), the per-chunk fitting (what does fit), and ``shrink_to_window``,
+        which measures the finished prompt and drops trailing chunks until it
+        provably fits. The last one exists because every earlier number is an
+        estimate — the chat template adds tokens we never see.
 
         ``history`` is the prompt history (recent turns + any summary) already
         computed by the caller, so it is budgeted for and not recomputed.
+        ``budget_scale`` < 1 shrinks the chunk allowance, which is how a retry
+        after a context overflow asks for the same answer with less context.
 
         Returns the (possibly trimmed) chunks actually used, the prompt, and the
         memory/facts counts — so sources and ``used_context_chunks`` reflect what
@@ -386,32 +420,129 @@ class AskWorkspaceQuestionUseCase:
         memory_section, memory_used, facts_used, context_used = self._project_context(
             request.workspace_id, self._retrieval_query(request)
         )
-        budget = chunk_char_budget(
-            getattr(llm_provider, "context_window", None),
+        # Use the engine's exact tokenizer when the provider exposes it (llama.cpp
+        # /tokenize); otherwise the script-aware estimate, which no longer assumes
+        # every language costs 4 characters per token.
+        token_counter = getattr(llm_provider, "count_tokens", None)
+        window = getattr(llm_provider, "context_window", None)
+        assistant_mode = self._assistant_mode(request.workspace_id)
+        attached_section = build_attached_documents_section(
+            request.question, request.attached_documents
+        )
+
+        def build(chunks: list[ContextSearchResult]) -> str:
+            return build_workspace_question_prompt(
+                question=request.question,
+                context_results=chunks,
+                skill_instructions=request.skill_instructions,
+                attached_section=attached_section,
+                assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+                project_memory_section=memory_section,
+                answer_mode=request.answer_mode,
+                user_style_directive=context_used.get("style_directive", ""),
+                # The person's role frames the answer — what is said first, in whose
+                # words. It is deliberately NOT part of retrieval: the same question
+                # returns the same chunks and the same citations for every role.
+                assistant_mode=assistant_mode,
+            )
+
+        budget = chunk_token_budget(
+            window,
             memory_text=memory_section,
             history=history,
-            # Use the engine's exact tokenizer when the provider exposes it
-            # (llama.cpp /tokenize); otherwise fall back to the ~4-chars estimate.
-            token_counter=getattr(llm_provider, "count_tokens", None),
-        )
-        fitted = fit_context_results(context_results, budget)
-        prompt = build_workspace_question_prompt(
+            # The question and the attached documents are part of the prompt too;
+            # forgetting them is how a long question quietly overflowed the window.
             question=request.question,
-            context_results=fitted,
-            skill_instructions=request.skill_instructions,
-            attached_section=build_attached_documents_section(
-                request.question, request.attached_documents
-            ),
-            assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
-            project_memory_section=memory_section,
-            answer_mode=request.answer_mode,
-            user_style_directive=context_used.get("style_directive", ""),
-            # The person's role frames the answer — what is said first, in whose
-            # words. It is deliberately NOT part of retrieval: the same question
-            # returns the same chunks and the same citations for every role.
-            assistant_mode=self._assistant_mode(request.workspace_id),
+            extra_text=attached_section,
+            token_counter=token_counter,
+        )
+        fitted = fit_context_results_by_tokens(
+            context_results, int(budget * budget_scale), token_counter
+        )
+        fitted, prompt = shrink_to_window(
+            fitted,
+            build,
+            window,
+            token_counter=token_counter,
+            history=history,
         )
         return fitted, prompt, memory_used, facts_used, context_used
+
+    def _grounded_generation(
+        self,
+        request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort,
+        context_results: list[ContextSearchResult],
+        prompt_history: list[tuple[str, str]],
+    ) -> tuple:
+        """Build the grounded prompt and generate, surviving one context overflow.
+
+        Returns ``(grounded, answer, usage, overflow)``. ``overflow`` is set only
+        when even the smaller retry did not fit — the one case the person hears
+        about. Engine failures propagate as ``RuntimeError``, which is a different
+        thing entirely and deserves a different sentence.
+        """
+        grounded = self._grounded_prompt(request, llm_provider, context_results, prompt_history)
+        structured_format, prompt = self._structured_citations(request, llm_provider, grounded[1])
+        try:
+            answer, usage = self._generate_answer_with_usage(
+                llm_provider,
+                prompt,
+                request.images,
+                request.temperature,
+                request.think,
+                prompt_history,
+                structured_format,
+            )
+        except ContextOverflowError as exc:
+            # The prompt didn't fit the model's memory. That is our miscount, not a
+            # broken engine — so rebuild with proportionally less context and ask
+            # once more. Most of the time the person never learns it happened.
+            retry = self._retry_with_less_context(
+                request, llm_provider, context_results, prompt_history, exc
+            )
+            if retry is None:
+                return grounded, "", None, exc
+            *smaller, answer, usage = retry
+            return tuple(smaller), answer, usage, None
+        return grounded, answer, usage, None
+
+    def _retry_with_less_context(
+        self,
+        request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort,
+        context_results: list[ContextSearchResult],
+        prompt_history: list[tuple[str, str]],
+        overflow: ContextOverflowError,
+    ) -> tuple | None:
+        """Rebuild the prompt with a smaller chunk allowance and generate once more.
+
+        The engine told us exactly how far over we were, so the retry is sized to
+        that overshoot (plus 10% to spare) rather than being a blind halving.
+        Returns ``None`` if the smaller prompt overflows too — at that point the
+        person deserves to be told, not retried at forever.
+        """
+        try:
+            fitted, prompt, memory_used, facts_used, context_used = self._grounded_prompt(
+                request,
+                llm_provider,
+                context_results,
+                prompt_history,
+                budget_scale=overflow.overflow_ratio,
+            )
+            _structured_format, prompt = self._structured_citations(request, llm_provider, prompt)
+            answer, usage = self._generate_answer_with_usage(
+                llm_provider,
+                prompt,
+                request.images,
+                request.temperature,
+                request.think,
+                prompt_history,
+                _structured_format,
+            )
+        except ContextOverflowError:
+            return None
+        return fitted, prompt, memory_used, facts_used, context_used, answer, usage
 
     def _assistant_mode(self, workspace_id: str) -> str | None:
         """The workspace's role, or None when it was never chosen — which the prompt
@@ -555,15 +686,7 @@ class AskWorkspaceQuestionUseCase:
                 ),
                 request,
             )
-        sources = [
-            RagSource(
-                chunk_id=result.chunk_id,
-                source_path=result.source_path,
-                score=result.score,
-                preview=result.content[:200],
-            )
-            for result in context_results
-        ]
+        sources = _sources_of(context_results)
 
         if not context_results:
             # No project context available (empty/stale index, or nothing
@@ -586,18 +709,10 @@ class AskWorkspaceQuestionUseCase:
             # CRAG-lite trigger (a): about to abstain on a project-looking question —
             # try one corrective retrieval (forced query rewrite) before giving up.
             corrected = self._corrective_retrieval(request, llm_provider)
-            corrected_best = max((r.score for r in corrected), default=0.0) if corrected else 0.0
+            corrected_best = _best_score(corrected)
             if corrected and corrected_best >= threshold:
                 context_results = corrected
-                sources = [
-                    RagSource(
-                        chunk_id=result.chunk_id,
-                        source_path=result.source_path,
-                        score=result.score,
-                        preview=result.content[:200],
-                    )
-                    for result in context_results
-                ]
+                sources = _sources_of(context_results)
                 best_score = corrected_best
                 corrected_retrieval = True
             else:
@@ -609,42 +724,25 @@ class AskWorkspaceQuestionUseCase:
                 )
 
         prompt_history = self._history_for_prompt(request, llm_provider)
-        context_results, prompt, memory_used, facts_used, context_used = self._grounded_prompt(
-            request, llm_provider, context_results, prompt_history
-        )
-        # Rebuild sources from the chunks that actually fit the window.
-        sources = [
-            RagSource(
-                chunk_id=result.chunk_id,
-                source_path=result.source_path,
-                score=result.score,
-                preview=result.content[:200],
-            )
-            for result in context_results
-        ]
-        structured_format, prompt = self._structured_citations(request, llm_provider, prompt)
         try:
-            answer, usage = self._generate_answer_with_usage(
-                llm_provider,
-                prompt,
-                request.images,
-                request.temperature,
-                request.think,
-                prompt_history,
-                structured_format,
+            grounded, answer, usage, overflow = self._grounded_generation(
+                request, llm_provider, context_results, prompt_history
             )
         except RuntimeError as exc:
+            return self._record_question_event(
+                self._runtime_unavailable(request, llm_provider, str(exc)), request
+            )
+        context_results, _prompt, memory_used, facts_used, context_used = grounded
+        # Sources reflect the chunks that actually fit the window.
+        sources = _sources_of(context_results)
+        if overflow is not None:
             return self._record_question_event(
                 self._diagnostic_answer(
                     request=request,
                     llm_provider=llm_provider,
-                    answer=(
-                        "The selected local model could not answer right now. "
-                        "Check that the local model engine is running and that this "
-                        "model is installed, or choose another ready model in Models."
-                    ),
-                    diagnostic_code="selected_llm_runtime_unavailable",
-                    diagnostic_message=str(exc),
+                    answer=context_overflow_answer(overflow),
+                    diagnostic_code="context_window_exceeded",
+                    diagnostic_message=str(overflow),
                 ),
                 request,
             )
@@ -736,58 +834,8 @@ class AskWorkspaceQuestionUseCase:
         # early route as execute()), streamed. No project_context_missing note — the
         # user wasn't asking about the project.
         if looks_general_chat(request.question):
-            prompt = build_general_chat_prompt(
-                question=request.question,
-                skill_instructions=request.skill_instructions,
-                current_time=datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z"),
-                attached_section=build_attached_documents_section(
-                    request.question, request.attached_documents
-                ),
-                assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
-                project_context_missing=False,
-                user_style_directive=self._user_style_directive(),
-            )
-            answer_text, usage, failed = yield from self._stream_generation(
-                llm_provider, prompt, request, self._conversation_history(request)
-            )
-            if failed:
-                yield AskStreamFinal(
-                    self._record_question_event(
-                        self._diagnostic_answer(
-                            request=request,
-                            llm_provider=llm_provider,
-                            answer=(
-                                "The selected local model could not answer right now. "
-                                "Check that the local model engine is running and that "
-                                "this model is installed, or choose another ready model "
-                                "in Models."
-                            ),
-                            diagnostic_code="selected_llm_runtime_unavailable",
-                            diagnostic_message=failed,
-                        ),
-                        request,
-                    )
-                )
-                return
-            yield AskStreamFinal(
-                self._record_question_event(
-                    WorkspaceQuestionAnswer(
-                        workspace_id=request.workspace_id,
-                        question=request.question,
-                        answer=answer_text,
-                        sources=[],
-                        used_context_chunks=0,
-                        llm_provider=llm_provider.provider_name,
-                        llm_model=llm_provider.model_name,
-                        diagnostic_code=GENERAL_CHAT_DIAGNOSTIC_CODE,
-                        diagnostic_message=GENERAL_CHAT_DIAGNOSTIC_MESSAGE,
-                        quality_warnings=[*request.additional_quality_warnings],
-                        usage=usage,
-                        skill_profile=self._skill_profile_audit(request),
-                        conversation_id=request.conversation_id,
-                    ),
-                    request,
-                )
+            yield from self._stream_general_chat(
+                request, llm_provider, project_context_missing=False, warnings=[]
             )
             return
 
@@ -807,15 +855,7 @@ class AskWorkspaceQuestionUseCase:
                 )
             )
             return
-        sources = [
-            RagSource(
-                chunk_id=result.chunk_id,
-                source_path=result.source_path,
-                score=result.score,
-                preview=result.content[:200],
-            )
-            for result in context_results
-        ]
+        sources = _sources_of(context_results)
 
         # No project context (empty/stale index, or nothing relevant): fall
         # through to a normal general-chat answer with a non-blocking note, so a
@@ -831,116 +871,45 @@ class AskWorkspaceQuestionUseCase:
             # (Streaming applies only the pre-generation correction; a post-answer
             # regenerate — trigger (b) — can't rewind tokens already streamed.)
             corrected = self._corrective_retrieval(request, llm_provider)
-            corrected_best = max((r.score for r in corrected), default=0.0) if corrected else 0.0
+            corrected_best = _best_score(corrected)
             if corrected and corrected_best >= threshold:
                 context_results = corrected
-                sources = [
-                    RagSource(
-                        chunk_id=result.chunk_id,
-                        source_path=result.source_path,
-                        score=result.score,
-                        preview=result.content[:200],
-                    )
-                    for result in context_results
-                ]
+                sources = _sources_of(context_results)
                 best_score = corrected_best
         if not context_results or best_score < threshold:
-            prompt = build_general_chat_prompt(
-                question=request.question,
-                skill_instructions=request.skill_instructions,
-                current_time=datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z"),
-                attached_section=build_attached_documents_section(
-                    request.question, request.attached_documents
-                ),
-                assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+            yield from self._stream_general_chat(
+                request,
+                llm_provider,
                 project_context_missing=True,
-                user_style_directive=self._user_style_directive(),
-            )
-            answer_text, usage, failed = yield from self._stream_generation(
-                llm_provider, prompt, request, self._conversation_history(request)
-            )
-            if failed:
-                yield AskStreamFinal(
-                    self._record_question_event(
-                        self._diagnostic_answer(
-                            request=request,
-                            llm_provider=llm_provider,
-                            answer=(
-                                "The selected local model could not answer right now. "
-                                "Check that the local model engine is running and that "
-                                "this model is installed, or choose another ready model "
-                                "in Models."
-                            ),
-                            diagnostic_code="selected_llm_runtime_unavailable",
-                            diagnostic_message=failed,
-                        ),
-                        request,
-                    )
-                )
-                return
-            yield AskStreamFinal(
-                self._record_question_event(
-                    WorkspaceQuestionAnswer(
-                        workspace_id=request.workspace_id,
-                        question=request.question,
-                        answer=answer_text,
-                        sources=[],
-                        used_context_chunks=0,
-                        llm_provider=llm_provider.provider_name,
-                        llm_model=llm_provider.model_name,
-                        diagnostic_code=GENERAL_CHAT_DIAGNOSTIC_CODE,
-                        diagnostic_message=GENERAL_CHAT_DIAGNOSTIC_MESSAGE,
-                        quality_warnings=[
-                            *empty_context_warnings,
-                            *(
-                                [PROJECT_NOT_FOUND_WARNING]
-                                if looks_project_specific(request.question)
-                                else []
-                            ),
-                            *request.additional_quality_warnings,
-                        ],
-                        usage=usage,
-                        skill_profile=self._skill_profile_audit(request),
-                        conversation_id=request.conversation_id,
-                    ),
-                    request,
-                )
+                warnings=empty_context_warnings,
             )
             return
 
         prompt_history = self._history_for_prompt(request, llm_provider)
-        context_results, prompt, memory_used, facts_used, context_used = self._grounded_prompt(
+        grounded, answer_text, usage, failed, overflow = yield from self._stream_grounded_answer(
             request, llm_provider, context_results, prompt_history
         )
-        # Rebuild sources from the chunks that actually fit the window.
-        sources = [
-            RagSource(
-                chunk_id=result.chunk_id,
-                source_path=result.source_path,
-                score=result.score,
-                preview=result.content[:200],
-            )
-            for result in context_results
-        ]
-        answer_text, usage, failed = yield from self._stream_generation(
-            llm_provider, prompt, request, prompt_history
-        )
-        if failed:
+        context_results, _prompt, memory_used, facts_used, context_used = grounded
+        # Sources reflect the chunks that actually fit the window.
+        sources = _sources_of(context_results)
+        if overflow is not None:
             yield AskStreamFinal(
                 self._record_question_event(
                     self._diagnostic_answer(
                         request=request,
                         llm_provider=llm_provider,
-                        answer=(
-                            "The selected local model could not answer right now. "
-                            "Check that the local model engine is running and that "
-                            "this model is installed, or choose another ready model "
-                            "in Models."
-                        ),
-                        diagnostic_code="selected_llm_runtime_unavailable",
-                        diagnostic_message=failed,
+                        answer=context_overflow_answer(overflow),
+                        diagnostic_code="context_window_exceeded",
+                        diagnostic_message=str(overflow),
                     ),
                     request,
+                )
+            )
+            return
+        if failed:
+            yield AskStreamFinal(
+                self._record_question_event(
+                    self._runtime_unavailable(request, llm_provider, failed), request
                 )
             )
             return
@@ -981,6 +950,133 @@ class AskWorkspaceQuestionUseCase:
             )
         )
 
+    def _runtime_unavailable(
+        self,
+        request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort,
+        failed: str,
+    ) -> WorkspaceQuestionAnswer:
+        """The one thing to say when the engine itself could not answer — and the
+        only place we say it, so it can never be given for a failure it doesn't
+        describe (an over-long prompt, for one, has its own message)."""
+        return self._diagnostic_answer(
+            request=request,
+            llm_provider=llm_provider,
+            answer=(
+                "The selected local model could not answer right now. "
+                "Check that the local model engine is running and that this "
+                "model is installed, or choose another ready model in Models."
+            ),
+            diagnostic_code="selected_llm_runtime_unavailable",
+            diagnostic_message=failed,
+        )
+
+    def _stream_general_chat(
+        self,
+        request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort,
+        *,
+        project_context_missing: bool,
+        warnings: list[RagQualityWarning],
+    ) -> Iterator[AskStreamEvent]:
+        """Stream an ungrounded answer: either the question was chit-chat, or the
+        project had nothing relevant to say about it.
+
+        Both cases are the same act — answer from the model's own knowledge, with
+        no sources — and differ only in whether the person is told the project was
+        searched and came back empty.
+        """
+        prompt = build_general_chat_prompt(
+            question=request.question,
+            skill_instructions=request.skill_instructions,
+            current_time=datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z"),
+            attached_section=build_attached_documents_section(
+                request.question, request.attached_documents
+            ),
+            assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
+            project_context_missing=project_context_missing,
+            user_style_directive=self._user_style_directive(),
+        )
+        answer_text, usage, failed = yield from self._stream_generation(
+            llm_provider, prompt, request, self._conversation_history(request)
+        )
+        if failed:
+            yield AskStreamFinal(
+                self._record_question_event(
+                    self._runtime_unavailable(request, llm_provider, failed), request
+                )
+            )
+            return
+        # A project-shaped question answered without project context earns a note:
+        # this came from the model's general knowledge, not from your files.
+        not_grounded = (
+            [PROJECT_NOT_FOUND_WARNING]
+            if project_context_missing and looks_project_specific(request.question)
+            else []
+        )
+        yield AskStreamFinal(
+            self._record_question_event(
+                WorkspaceQuestionAnswer(
+                    workspace_id=request.workspace_id,
+                    question=request.question,
+                    answer=answer_text,
+                    sources=[],
+                    used_context_chunks=0,
+                    llm_provider=llm_provider.provider_name,
+                    llm_model=llm_provider.model_name,
+                    diagnostic_code=GENERAL_CHAT_DIAGNOSTIC_CODE,
+                    diagnostic_message=GENERAL_CHAT_DIAGNOSTIC_MESSAGE,
+                    quality_warnings=[
+                        *warnings,
+                        *not_grounded,
+                        *request.additional_quality_warnings,
+                    ],
+                    usage=usage,
+                    skill_profile=self._skill_profile_audit(request),
+                    conversation_id=request.conversation_id,
+                ),
+                request,
+            )
+        )
+
+    def _stream_grounded_answer(
+        self,
+        request: AskWorkspaceQuestionInput,
+        llm_provider: LLMProviderPort,
+        retrieved: list[ContextSearchResult],
+        prompt_history: list[tuple[str, str]],
+    ) -> Iterator[AskStreamEvent]:
+        """Stream the grounded answer, surviving one context overflow.
+
+        The engine rejects an over-long prompt before it streams a single token,
+        so a refusal costs the person nothing: we rebuild the prompt with
+        proportionally less context (sized to the overshoot the engine reported)
+        and stream again. Returns ``(grounded, answer, usage, failed, overflow)``
+        — ``overflow`` set only when even the smaller prompt did not fit, which is
+        the one case worth telling the person about.
+        """
+        grounded = self._grounded_prompt(request, llm_provider, retrieved, prompt_history)
+        try:
+            answer, usage, failed = yield from self._stream_generation(
+                llm_provider, grounded[1], request, prompt_history
+            )
+            return grounded, answer, usage, failed, None
+        except ContextOverflowError as first:
+            grounded = self._grounded_prompt(
+                request,
+                llm_provider,
+                retrieved,
+                prompt_history,
+                budget_scale=first.overflow_ratio,
+            )
+        try:
+            answer, usage, failed = yield from self._stream_generation(
+                llm_provider, grounded[1], request, prompt_history
+            )
+        except ContextOverflowError as second:
+            return grounded, "", None, None, second
+        return grounded, answer, usage, failed, None
+
     def _stream_generation(
         self,
         llm_provider: LLMProviderPort,
@@ -1020,6 +1116,12 @@ class AskWorkspaceQuestionUseCase:
                 )
                 chunks.append(answer)
                 yield AskStreamDelta(answer)
+        except ContextOverflowError:
+            # Not a runtime failure to report — a prompt we must rebuild smaller.
+            # The engine rejects an over-long prompt before it streams a single
+            # token, so nothing has reached the person yet and the caller can
+            # safely try again with less context.
+            raise
         except RuntimeError as exc:
             return "", None, str(exc) or "Model runtime error"
 
@@ -1382,7 +1484,7 @@ class AskWorkspaceQuestionUseCase:
         if not hard:
             return None
         corrected = self._corrective_retrieval(request, llm_provider)
-        corrected_best = max((r.score for r in corrected), default=0.0) if corrected else 0.0
+        corrected_best = _best_score(corrected)
         if not corrected or corrected_best <= current_best_score:
             return None
         context_results, prompt, memory_used, facts_used, context_used = self._grounded_prompt(
@@ -1399,15 +1501,7 @@ class AskWorkspaceQuestionUseCase:
             )
         except RuntimeError:
             return None
-        sources = [
-            RagSource(
-                chunk_id=result.chunk_id,
-                source_path=result.source_path,
-                score=result.score,
-                preview=result.content[:200],
-            )
-            for result in context_results
-        ]
+        sources = _sources_of(context_results)
         warnings = evaluate_rag_answer(
             question=request.question,
             answer=answer,

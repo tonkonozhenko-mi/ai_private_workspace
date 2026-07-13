@@ -54,11 +54,20 @@ class _Response:
 
 
 class _RecordingClient:
+    """Records generation payloads only.
+
+    The provider also asks ``/api/show`` for the model's real context length
+    before it pins ``num_ctx``; that housekeeping call is answered here and kept
+    out of ``payloads``, so these tests stay about structured output.
+    """
+
     def __init__(self, responder):
         self.responder = responder
         self.payloads = []
 
     def post(self, url, json=None, timeout=None):
+        if url.endswith("/api/show"):
+            return _Response({"model_info": {"llama.context_length": 32768}})
         self.payloads.append(json)
         return self.responder(json)
 

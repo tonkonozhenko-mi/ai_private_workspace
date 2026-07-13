@@ -124,9 +124,19 @@ def _provider(
     handler,
     timeout_seconds: int = 120,
 ) -> OllamaLLMProvider:
+    """A provider whose ``/api/show`` reports a roomy model, so these tests are
+    about generation. The provider asks Ollama for the model's real context
+    length before pinning ``num_ctx``; a model that supports more than we ask for
+    leaves our pinned 4096 untouched."""
+
+    def routed(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/show":
+            return httpx.Response(200, json={"model_info": {"llama.context_length": 131072}})
+        return handler(request)
+
     return OllamaLLMProvider(
         base_url="http://ollama.test",
         model="llama3.2",
         timeout_seconds=timeout_seconds,
-        client=httpx.Client(transport=httpx.MockTransport(handler)),
+        client=httpx.Client(transport=httpx.MockTransport(routed)),
     )

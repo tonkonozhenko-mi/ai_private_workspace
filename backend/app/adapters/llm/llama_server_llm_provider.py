@@ -17,6 +17,9 @@ from collections.abc import Iterator
 
 import httpx
 
+from app.core.domain.context_budget import estimate_tokens
+from app.core.domain.llm_errors import ContextOverflowError
+
 # Chat-template control tokens (Llama 3 / Qwen / ChatML …). A model occasionally
 # emits these into the text; we ask the server to stop on them and, as a safety
 # net, cut the answer at the first one — everything after a ``<|`` marker is
@@ -31,6 +34,38 @@ def _clean(text: str) -> str:
 
 class LlamaServerLLMProviderError(RuntimeError):
     pass
+
+
+def _context_overflow(status_code: int, body: str) -> ContextOverflowError | None:
+    """Recognise llama-server's "the prompt didn't fit" 400.
+
+    The body is ``{"error": {"type": "exceed_context_size_error", "message": "…",
+    "n_prompt_tokens": 8869, "n_ctx": 8192}}``. Those two numbers are the truth
+    about the window — worth carrying, because the caller can retry with less
+    context and, failing that, tell the person exactly what didn't fit.
+    """
+    if status_code != 400 or "exceed_context_size_error" not in body:
+        return None
+    prompt_tokens: int | None = None
+    window: int | None = None
+    message = "The prompt was longer than the model's context window."
+    try:
+        error = json.loads(body).get("error")
+    except ValueError:
+        error = None
+    if isinstance(error, dict):
+        for key in ("n_prompt_tokens", "n_prompt_tokens_total"):
+            value = error.get(key)
+            if isinstance(value, int) and not isinstance(value, bool):
+                prompt_tokens = value
+                break
+        n_ctx = error.get("n_ctx")
+        if isinstance(n_ctx, int) and not isinstance(n_ctx, bool):
+            window = n_ctx
+        text = error.get("message")
+        if isinstance(text, str) and text.strip():
+            message = text.strip()
+    return ContextOverflowError(message, prompt_tokens=prompt_tokens, context_window=window)
 
 
 class LlamaServerLLMProvider:
@@ -188,7 +223,8 @@ class LlamaServerLLMProvider:
                     return len(tokens)
         except (httpx.HTTPError, ValueError, KeyError, TypeError):
             pass
-        return max(1, len(text) // 4)
+        # Script-aware estimate: a Cyrillic question costs ~2 chars/token, not 4.
+        return max(1, estimate_tokens(text))
 
     def generate(
         self,
@@ -220,9 +256,12 @@ class LlamaServerLLMProvider:
             ) from exc
 
         if response.status_code >= 400:
-            body = response.text.strip()[:300]
+            body = response.text.strip()
+            overflow = _context_overflow(response.status_code, body)
+            if overflow is not None:
+                raise overflow
             raise LlamaServerLLMProviderError(
-                f"llama-server returned HTTP {response.status_code}: {body}"
+                f"llama-server returned HTTP {response.status_code}: {body[:300]}"
             )
 
         try:
@@ -266,9 +305,12 @@ class LlamaServerLLMProvider:
                 timeout=self.timeout_seconds,
             ) as response:
                 if response.status_code >= 400:
-                    body = response.read().decode("utf-8", "replace").strip()[:300]
+                    body = response.read().decode("utf-8", "replace").strip()
+                    overflow = _context_overflow(response.status_code, body)
+                    if overflow is not None:
+                        raise overflow
                     raise LlamaServerLLMProviderError(
-                        f"llama-server returned HTTP {response.status_code}: {body}"
+                        f"llama-server returned HTTP {response.status_code}: {body[:300]}"
                     )
                 for line in response.iter_lines():
                     if not line or not line.startswith("data:"):
