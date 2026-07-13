@@ -49,7 +49,7 @@ _CHROME_SUFFIXES = frozenset(
 
 
 def _strip_asset_suffix(folder_name: str) -> str | None:
-    """"Page_files" → "Page"; None when the folder is not a companion folder."""
+    """ "Page_files" → "Page"; None when the folder is not a companion folder."""
     for suffix in _ASSET_FOLDER_SUFFIXES:
         if folder_name.endswith(suffix) and len(folder_name) > len(suffix):
             return folder_name[: -len(suffix)]

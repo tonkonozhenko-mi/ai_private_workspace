@@ -862,3 +862,172 @@ export async function checkStale(
     return false;
   }
 }
+
+/** A folder of documentation, as itself.
+ *
+ * Pointed at an exported wiki, this app used to answer with a list of things it had
+ * not found — no infrastructure, no environments, no pipelines. Every line true, and
+ * the screen as a whole a lie: a wiki is not a broken repository. These are the facts
+ * it does carry: the areas its own titles announce, the decisions it records, and the
+ * pages themselves — with the two numbers that matter for a page, how many others
+ * point at it and whether it still has attachments to look at.
+ */
+export function DocumentsSection({
+  view,
+  onInspectFile,
+}: {
+  view: ProjectIntelligenceView;
+  onInspectFile?: (path: string) => void;
+}) {
+  const documents = view.documents;
+  if (!documents) return null;
+
+  const pages = [...documents.pages, ...documents.decisions].sort(
+    (a, b) => Number(b.metadata?.linked_from ?? 0) - Number(a.metadata?.linked_from ?? 0),
+  );
+
+  return (
+    <div className="pi-stack">
+      {documents.topics.length > 0 ? (
+        <div className="pi-block">
+          <h4 className="pi-block-title">Areas</h4>
+          <p className="pi-hint">
+            Taken from the pages' own titles — a wiki's naming convention is the closest thing
+            it has to a schema.
+          </p>
+          <div className="pi-chips">
+            {documents.topics.map((topic) => (
+              <span className="pi-chip" key={topic.id}>
+                {topic.name} · {topic.metadata?.pages ?? "0"}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {documents.decisions.length > 0 ? (
+        <div className="pi-block">
+          <h4 className="pi-block-title">Decisions</h4>
+          <ul className="pi-list">
+            {documents.decisions.map((decision) => (
+              <li key={decision.id}>
+                <button
+                  type="button"
+                  className="pi-file-link"
+                  onClick={() => decision.source_file && onInspectFile?.(decision.source_file)}
+                >
+                  {decision.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <div className="pi-block">
+        <h4 className="pi-block-title">Pages ({pages.length})</h4>
+        <ul className="pi-list">
+          {pages.slice(0, 100).map((page) => {
+            const linkedFrom = Number(page.metadata?.linked_from ?? 0);
+            const attachments = Number(page.metadata?.attachments ?? 0);
+            return (
+              <li key={page.id}>
+                <button
+                  type="button"
+                  className="pi-file-link"
+                  onClick={() => page.source_file && onInspectFile?.(page.source_file)}
+                >
+                  {page.name}
+                </button>{" "}
+                <span className="pi-muted">
+                  {linkedFrom > 0
+                    ? `linked from ${linkedFrom} page${linkedFrom === 1 ? "" : "s"}`
+                    : "nothing links to it"}
+                  {attachments > 0
+                    ? ` · ${attachments} attachment${attachments === 1 ? "" : "s"}`
+                    : ""}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+/** The sections a project earns by having the things in them.
+ *
+ * Code, tests, data, API: four kinds of fact, one renderer, because they differ only
+ * in which lists they carry. A project shows the ones it has — a library has modules
+ * and no schema, a wiki has neither — and the role decides which comes first. The old
+ * screen showed all of them to everyone and wrote "not detected" under most, which is
+ * how a perfectly healthy project came to look broken.
+ */
+const FACT_GROUPS: Record<string, { key: string; label: string }[]> = {
+  code: [
+    { key: "applications", label: "Applications" },
+    { key: "modules", label: "Modules" },
+    { key: "dependencies", label: "Dependencies" },
+  ],
+  tests: [{ key: "suites", label: "Test suites" }],
+  data: [
+    { key: "tables", label: "Tables" },
+    { key: "migrations", label: "Migrations, in the order they apply" },
+  ],
+  api: [
+    { key: "endpoints", label: "Endpoints" },
+    { key: "domain_entities", label: "Things the system speaks in" },
+  ],
+};
+
+export function FactsSection({
+  view,
+  section,
+  onInspectFile,
+}: {
+  view: ProjectIntelligenceView;
+  section: string;
+  onInspectFile?: (path: string) => void;
+}) {
+  const payload = (view as unknown as Record<string, Record<string, ProjectGraphEntity[]>>)[
+    section
+  ];
+  const groups = FACT_GROUPS[section];
+  if (!payload || !groups) return null;
+
+  return (
+    <div className="pi-stack">
+      {groups.map(({ key, label }) => {
+        const items = payload[key] ?? [];
+        if (items.length === 0) return null;
+        return (
+          <div className="pi-block" key={key}>
+            <h4 className="pi-block-title">
+              {label} ({items.length})
+            </h4>
+            <ul className="pi-list">
+              {items.slice(0, 100).map((item) => (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    className="pi-file-link"
+                    onClick={() => item.source_file && onInspectFile?.(item.source_file)}
+                  >
+                    {item.name}
+                  </button>
+                  {item.metadata?.run_with ? (
+                    <span className="pi-muted"> · run with {item.metadata.run_with}</span>
+                  ) : null}
+                  {item.metadata?.test_cases ? (
+                    <span className="pi-muted"> · {item.metadata.test_cases} cases</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

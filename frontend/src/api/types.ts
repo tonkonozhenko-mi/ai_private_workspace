@@ -1653,6 +1653,22 @@ export interface ProjectIntelligenceView {
   risks: { findings: ProjectGraphFinding[]; highlighted_categories: string[] };
   important_files: { files: { path: string; reason: string }[] };
   questions: { questions: ProjectIntelligenceQuestion[] };
+  // A folder of documentation has a section of its own. Optional because the backend
+  // omits every section a project has no facts for — a code repository has no pages,
+  // and printing "no pages found" would be the very noise this replaced.
+  documents?: {
+    topics: ProjectGraphEntity[];
+    decisions: ProjectGraphEntity[];
+    pages: ProjectGraphEntity[];
+  };
+  code?: {
+    applications: ProjectGraphEntity[];
+    modules: ProjectGraphEntity[];
+    dependencies: ProjectGraphEntity[];
+  };
+  tests?: { suites: ProjectGraphEntity[] };
+  data?: { tables: ProjectGraphEntity[]; migrations: ProjectGraphEntity[] };
+  api?: { endpoints: ProjectGraphEntity[]; domain_entities: ProjectGraphEntity[] };
 }
 
 export interface ProjectGraphNode {

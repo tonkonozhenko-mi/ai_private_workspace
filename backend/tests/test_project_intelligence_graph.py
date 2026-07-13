@@ -177,10 +177,15 @@ def test_role_lens_fallback_and_distinct_orders():
     assert role_lens_for("tester").role == "tester"
     assert role_lens_for(None).role == "developer"  # default
     assert role_lens_for("unknown-role").role == "developer"
-    # DevOps leads with infrastructure; a tester leads with what might break, not
-    # with how it ships (opening on Deployment was the DevOps view in disguise).
+    # Every role leads with its own facts, and the sections a project has nothing to
+    # put in are dropped before the screen is drawn — so what is pinned here is the
+    # ORDER each role asks for, not what any one project happens to contain.
     assert role_lens_for("devops").section_order[1] == "infrastructure"
-    assert role_lens_for("tester").section_order[1] == "risks"
+    assert role_lens_for("tester").section_order[1] == "tests"
+    assert role_lens_for("developer").section_order[1] == "code"
+    assert role_lens_for("dba").section_order[1] == "data"
+    assert role_lens_for("business_analyst").section_order[1] == "api"
+    assert role_lens_for("manager").section_order[1] == "risks"
 
 
 def test_presenter_projects_sections_with_role_order_and_facts():
