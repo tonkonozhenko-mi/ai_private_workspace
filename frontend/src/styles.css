@@ -6356,3 +6356,10 @@ a {
   background: var(--c-info-soft);
   color: var(--c-info);
 }
+
+/* The lens this panel is read through — a fact, not a control. The control is in the
+   header, where the role belongs; two homes for one setting is one too many. */
+.pi-role-note {
+  font-size: 12px;
+  color: var(--c-text-3);
+}

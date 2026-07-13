@@ -5,6 +5,15 @@ import { formatModelLabel } from "../lib/modelLabel";
 
 // models_summary.selected_llm is a provider-qualified id like
 // "llamacpp/Org/Repo-GGUF/file.Q4_K_M.gguf" — unreadable in body copy.
+/** The name a person would use, with the machine's own name a hover away.
+ *
+ * The catalogue label carries the quantisation ("Mistral-7B-Instruct-v0.3 · Q4_K_M") —
+ * true, and not what a reader is asking when they want to know who wrote a paragraph. */
+function modelDisplayName(model: string | null): string {
+  const label = humanizeSelectedModel(model) ?? model ?? "the local model";
+  return label.split(" · ")[0];
+}
+
 function humanizeSelectedModel(selected: string | null): string | null {
   if (!selected) return null;
   const [provider, ...rest] = selected.split("/");
@@ -1245,11 +1254,11 @@ export function ProjectUnderstanding({
             {/* Prose a model wrote, standing among deterministic facts, unlabelled —
                 the one thing this app promises never to do. Whose words these are is
                 part of what they mean. */}
-            {/* "llamacpp/MaziyarPanahi/Mistral-7B-Instruct-v0.3-GGUF/…Q4_K_M.gguf" is a
-                path, not a name. The catalogue already knows what to call it. */}
-            <small>
-              written by {humanizeSelectedModel(understanding.model) ?? understanding.model} from
-              your files
+            {/* "llamacpp/MaziyarPanahi/…Q4_K_M.gguf" is a path, not a name. The
+                catalogue knows what to call it — and the quantisation, true but not what
+                a reader came for, waits in the tooltip for whoever wants it. */}
+            <small title={understanding.model}>
+              written by {modelDisplayName(understanding.model)} from your files
             </small>
           </div>
           <p className="pu-guide-text">{understanding.architecture}</p>

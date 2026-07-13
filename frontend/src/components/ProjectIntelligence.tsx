@@ -5,7 +5,6 @@ import {
   getProjectIntelligence,
   getProjectIntelligenceOverviewText,
   getWorkspaceLatestScan,
-  updateWorkspaceAssistantMode,
 } from "../api/client";
 import type {
   ProjectCi,
@@ -276,31 +275,15 @@ export function ProjectIntelligence({
     setRole(dashboard.assistant_mode || "developer");
   }, [dashboard.assistant_mode]);
 
-  // Change the workspace's role: re-frame the map immediately (the load effect
-  // reacts to `role`), persist it to the workspace, and tell the app so Ask
-  // follows. Persisting failing shouldn't block the local re-frame.
-  const changeRole = useCallback(
-    (mode: string) => {
-      setRole(mode);
-      // The paragraph was written to answer one role's questions. Under another role's
-      // tabs it is not merely stale, it is addressed to someone else.
-      setOverview(null);
-      setOverviewError(null);
-      // A lens changes what leads, never what is true — so on a project whose facts are
-      // all of one kind (a wiki has pages and nothing else) switching role moves very
-      // little, and the screen looked broken. Saying what a lens does, and does not do,
-      // costs one line.
-      setNote(
-        `Re-framed for ${ROLE_OPTIONS.find((o) => o.value === mode)?.label ?? mode}. ` +
-          "A lens re-orders what you see first and which risks are highlighted — it never " +
-          "changes the facts, and the project map itself does not need rebuilding.",
-      );
-      void updateWorkspaceAssistantMode(workspaceId, mode)
-        .then(() => onRolePersisted?.(mode))
-        .catch(() => {});
-    },
-    [workspaceId, onRolePersisted],
-  );
+  // The role is changed in the header now, and this panel follows it: the effect above
+  // syncs `role` from the workspace, and the load effect re-frames the map. The panel
+  // no longer owns a copy of the setting — one setting, one home.
+  useEffect(() => {
+    // A paragraph written for one role is not stale under another, it is addressed to
+    // someone else. Drop it when the lens changes.
+    setOverview(null);
+    setOverviewError(null);
+  }, [role]);
 
   const handleBuild = useCallback(async () => {
     setBuilding(true);
@@ -443,20 +426,14 @@ export function ProjectIntelligence({
           </p>
         </div>
         <div className="pi-head-controls">
-          <label className="pi-role" title="The workspace role. Re-frames the map and Ask, and is saved for this project. Applies instantly — no rebuild needed.">
-            <span>Role</span>
-            <select
-              value={role}
-              onChange={(e) => changeRole(e.target.value)}
-              disabled={building || loading}
-            >
-              {ROLE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {/* One role, one place to change it. The picker lived here as well as in the
+              header, so the same setting had two homes and a person had to learn which
+              one they were looking at. The header owns it — the role is a property of
+              you on this project, not of this tab. What belongs here is only the fact
+              of it: which lens you are reading through. */}
+          <span className="pi-role-note" title="Change your role in the header, next to the project name.">
+            Viewed for {ROLE_OPTIONS.find((o) => o.value === role)?.label ?? role}
+          </span>
           {/* Rebuild used to sit here beside the role, as though the two were a pair —
               so changing role and pressing it looked like one action that did nothing.
               They are unrelated: a role is a lens over the map that is already built,
