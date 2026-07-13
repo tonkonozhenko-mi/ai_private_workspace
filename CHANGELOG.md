@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **The bundled inference engine is up to date again.** The app ships llama.cpp b9976 (was b9789, about a month of upstream fixes behind). The version was pinned in three separate places — the fetch script and two workflows — which is how it drifted; it now lives in one file, `scripts/llama_cpp_version.txt`, and a test fails if a second copy of it ever appears.
+
 ### Added
 
 - **Every role now has facts of its own — not the same facts in different words.** The project map was built by six DevOps analyzers, one Python analyzer, and nothing else. So a tester's "lens" led with pipelines, an analyst's with services, a manager's with environments: the same infrastructure, relabelled. Five new deterministic analyzers read the files the other roles actually care about, and each lens now leads with what its own analyzer found.

@@ -1,0 +1,8 @@
+# The llama.cpp release the app bundles. One line, one tag — the fetch script and
+# every workflow read this file, so the pin cannot drift between them (it used to
+# live in three places, and two of them were quietly a month apart).
+#
+# Bump deliberately: the tag decides which llama-server ships inside the app, and
+# with it the inference behaviour people actually see. After bumping, run a
+# release build and ask a question end-to-end before tagging.
+b9976

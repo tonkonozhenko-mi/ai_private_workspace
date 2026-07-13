@@ -12,9 +12,9 @@ on:
   workflow_dispatch: # adds a "Run workflow" button in the Actions tab
     inputs:
       llama_cpp_version:
-        description: "llama.cpp release tag to bundle"
+        description: "llama.cpp release tag to bundle (blank = the pin in scripts/llama_cpp_version.txt)"
         required: false
-        default: "b9789"
+        default: ""
 
 permissions:
   contents: read
