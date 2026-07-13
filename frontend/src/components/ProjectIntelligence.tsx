@@ -18,6 +18,7 @@ import type {
   ProjectGraphPayload,
   ProjectIntelligenceOverviewText,
   ProjectIntelligenceResponse,
+  ProjectIntelligenceSnapshot,
   ProjectIntelligenceView,
   ProjectReferences,
   RoleBrief,
@@ -68,6 +69,31 @@ const EMPTY_PREVIEW_BY_ROLE: Record<string, string[]> = {
 
 function emptyPreviewForRole(role: string): string[] {
   return EMPTY_PREVIEW_BY_ROLE[role] ?? EMPTY_PREVIEW_BY_ROLE.developer;
+}
+
+/** What a rebuild actually did, in one line.
+ *
+ * The map is rebuilt from the files, so on files that have not changed it comes back
+ * identical — which is right, and which is why the button looked dead. A rebuild that
+ * found nothing new should say so as plainly as one that found something. */
+function rebuildNote(
+  before: ProjectIntelligenceSnapshot | null | undefined,
+  after: ProjectIntelligenceSnapshot,
+): string {
+  const delta = (now: number, then: number | undefined) =>
+    then === undefined || now === then ? "" : now > then ? ` (+${now - then})` : ` (${now - then})`;
+  const same =
+    before !== null &&
+    before !== undefined &&
+    before.entity_count === after.entity_count &&
+    before.relation_count === after.relation_count &&
+    before.finding_count === after.finding_count;
+  const counts =
+    `${after.entity_count} things${delta(after.entity_count, before?.entity_count)}, ` +
+    `${after.finding_count} risks${delta(after.finding_count, before?.finding_count)}`;
+  return same
+    ? `Map rebuilt — nothing changed: the same ${counts}, because the files have not changed.`
+    : `Map rebuilt — ${counts}.`;
 }
 
 const SECTION_LABELS: Record<string, string> = {
@@ -159,6 +185,10 @@ export function ProjectIntelligence({
   const [role, setRole] = useState<string>(dashboard.assistant_mode || "developer");
   const [activeTab, setActiveTab] = useState<string>("summary");
   const [stale, setStale] = useState(false);
+  // What the last action actually did. Rebuilding an unchanged project produces an
+  // identical map — the correct answer, and one that looked exactly like a button
+  // that does nothing.
+  const [note, setNote] = useState<string | null>(null);
 
   // The whole reply, not just the prose: who wrote it and from which analyzers' facts
   // are shown under it, and the paragraph is written for one role — so switching role
@@ -222,6 +252,15 @@ export function ProjectIntelligence({
       // tabs it is not merely stale, it is addressed to someone else.
       setOverview(null);
       setOverviewError(null);
+      // A lens changes what leads, never what is true — so on a project whose facts are
+      // all of one kind (a wiki has pages and nothing else) switching role moves very
+      // little, and the screen looked broken. Saying what a lens does, and does not do,
+      // costs one line.
+      setNote(
+        `Re-framed for ${ROLE_OPTIONS.find((o) => o.value === mode)?.label ?? mode}. ` +
+          "A lens re-orders what you see first and which risks are highlighted — it never " +
+          "changes the facts, and the project map itself does not need rebuilding.",
+      );
       void updateWorkspaceAssistantMode(workspaceId, mode)
         .then(() => onRolePersisted?.(mode))
         .catch(() => {});
@@ -232,17 +271,24 @@ export function ProjectIntelligence({
   const handleBuild = useCallback(async () => {
     setBuilding(true);
     setError(null);
+    setNote(null);
     setOverview(null);
     setOverviewError(null);
+    const before = data?.snapshot ?? null;
     try {
-      await buildProjectIntelligence(workspaceId);
+      const built = await buildProjectIntelligence(workspaceId);
       await load(role);
+      // Rebuilding a map that has not changed produces the same map — which is the
+      // right answer and looked exactly like a dead button. Say what came back, and
+      // say plainly when nothing moved: a silent success is indistinguishable from
+      // a silent failure.
+      setNote(rebuildNote(before, built.snapshot));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not build the project map.");
     } finally {
       setBuilding(false);
     }
-  }, [workspaceId, role, load]);
+  }, [workspaceId, role, load, data?.snapshot]);
 
   const handleOverview = useCallback(async () => {
     setOverviewLoading(true);
@@ -374,6 +420,11 @@ export function ProjectIntelligence({
       </header>
 
       {error ? <p className="pi-error">{error}</p> : null}
+      {note && !error ? (
+        <p className="pi-note" role="status">
+          {note}
+        </p>
+      ) : null}
 
       {loading && !data ? (
         <p className="pi-muted">Loading…</p>
