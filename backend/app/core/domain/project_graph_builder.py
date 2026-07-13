@@ -801,10 +801,18 @@ def from_knowledge_base(
     links to is *reported*, not condemned: it may be a new page, or a leaf everyone
     reaches from search. A page a year old is only worth mentioning when other pages
     still point at it — that is when out-of-date stops being harmless.
+
+    None of that is true of a repository's documents. A hundred READMEs in an
+    infrastructure monorepo do not link to one another and were never meant to; telling
+    their author that "nothing links to" each of them is the mirror image of telling a
+    wiki it has no tests. So when the collection is not a knowledge base
+    (``base.is_knowledge_base``), the documents are listed and nothing more is claimed
+    about them.
     """
     entities: list[ProjectEntity] = []
     relations: list[ProjectRelation] = []
     findings: list[ProjectFinding] = []
+    knowledge = base.is_knowledge_base
 
     for area, count in base.areas.items():
         entities.append(
@@ -828,7 +836,14 @@ def from_knowledge_base(
                 source_file=document.path,
                 metadata={
                     "area": document.area or "",
-                    "linked_from": str(base.inbound_links.get(document.path, 0)),
+                    # Only a knowledge base has a link graph worth reading. In a
+                    # repository this number would be zero for every document and would
+                    # be read as an accusation.
+                    **(
+                        {"linked_from": str(base.inbound_links.get(document.path, 0))}
+                        if knowledge
+                        else {}
+                    ),
                     "attachments": str(len(document.attachments)),
                     "diagrams": ", ".join(document.diagrams[:3]),
                 },
@@ -866,6 +881,11 @@ def from_knowledge_base(
                     source_file=document.path,
                 )
             )
+
+    if not knowledge:
+        # A repository's documents are listed, and that is all. Everything below reads
+        # a wiki's link graph, which this collection does not have and never had.
+        return entities, relations, findings
 
     for document in base.stale_but_relied_on():
         inbound = base.inbound_links.get(document.path, 0)

@@ -96,6 +96,35 @@ function rebuildNote(
     : `Map rebuilt — ${counts}.`;
 }
 
+/** The analyzers, in the words of the things they read.
+ *
+ * The line under the map used to be "from: terraform, github_actions, python,
+ * references, documentation, tests, javascript, api, ownership" — nine machine names,
+ * addressed to a person. What a reader wants to know is which of their own files were
+ * read, so that is what it says. */
+const ANALYZER_SOURCES: Record<string, string> = {
+  terraform: "Terraform files",
+  terragrunt: "Terragrunt files",
+  kubernetes: "Kubernetes manifests",
+  helm: "Helm charts",
+  github_actions: "GitHub Actions workflows",
+  gitlab_ci: "GitLab CI files",
+  python: "Python code",
+  javascript: "JavaScript and TypeScript code",
+  sql: "SQL files",
+  tests: "tests",
+  api: "API definitions",
+  documentation: "documents",
+  references: "links and references",
+  ownership: "git history",
+};
+
+function readFrom(analyzers: string[]): string {
+  const sources = [...new Set(analyzers.map((a) => ANALYZER_SOURCES[a] ?? a.replace(/_/g, " ")))];
+  if (sources.length <= 2) return sources.join(" and ");
+  return `${sources.slice(0, -1).join(", ")} and ${sources[sources.length - 1]}`;
+}
+
 const SECTION_LABELS: Record<string, string> = {
   summary: "Overview",
   documents: "Documents",
@@ -116,6 +145,10 @@ const SECTION_LABELS: Record<string, string> = {
   cicd: "CI/CD flow",
   history: "History",
 };
+
+// How many tabs a person can take in at a glance. Beyond this the row wraps, and a
+// wrapped row of tabs is a wall. The lens decides which six; the rest go behind "More".
+const TAB_LIMIT = 6;
 
 const MAP_TAB = "map";
 const CLOUD_TAB = "cloud";
@@ -366,6 +399,23 @@ export function ProjectIntelligence({
     if (tabs.length > 0 && !tabs.includes(activeTab)) setActiveTab(tabs[0]);
   }, [tabs, activeTab]);
 
+  // The first few tabs are the ones this role opens on; the rest live behind "More".
+  // The active tab is always among the visible ones, even when it was chosen from the
+  // drawer — a tab you are reading must not be hidden behind a menu.
+  const moreRef = useRef<HTMLDetailsElement | null>(null);
+  const { visibleTabs, overflowTabs } = useMemo(() => {
+    if (tabs.length <= TAB_LIMIT + 1) return { visibleTabs: tabs, overflowTabs: [] as string[] };
+    const head = tabs.slice(0, TAB_LIMIT);
+    const tail = tabs.slice(TAB_LIMIT);
+    if (tail.includes(activeTab)) {
+      return {
+        visibleTabs: [...head.slice(0, TAB_LIMIT - 1), activeTab],
+        overflowTabs: tabs.filter((t) => !head.slice(0, TAB_LIMIT - 1).includes(t) && t !== activeTab),
+      };
+    }
+    return { visibleTabs: head, overflowTabs: tail };
+  }, [tabs, activeTab]);
+
   // When the role changes, land on the tab that role cares about most — the
   // first section its lens prioritises (after the overview). Switching role then
   // visibly takes you somewhere relevant, not just reshuffles the tab row. Only
@@ -466,7 +516,7 @@ export function ProjectIntelligence({
               reading it feels like a verdict. Say what WAS analyzed instead. */}
           <p className="pi-built-meta">
             {data.snapshot ? `Last analyzed ${relativeTime(data.snapshot.created_at)}` : ""}
-            {view.analyzers_run.length > 0 ? ` · from: ${view.analyzers_run.join(", ")}` : ""}
+            {view.analyzers_run.length > 0 ? ` · read from your ${readFrom(view.analyzers_run)}` : ""}
             {" · "}
             {/* The rebuild lives here, in the line that says how old the map is —
                 next to the only fact that makes a person want it. */}
@@ -489,8 +539,13 @@ export function ProjectIntelligence({
             </div>
           ) : null}
 
+          {/* A rich repository has fourteen sections, and fourteen tabs wrap onto two
+              rows — at which point a row of tabs stops being a place and becomes a
+              wall. The lens already knows which come first; the rest are one click
+              away and not one section is lost. The tab you are on is always visible,
+              even when it came from the drawer. */}
           <nav className="pi-tabs" role="tablist">
-            {tabs.map((tab) => (
+            {visibleTabs.map((tab) => (
               <button
                 key={tab}
                 type="button"
@@ -502,6 +557,26 @@ export function ProjectIntelligence({
                 {SECTION_LABELS[tab] ?? tab}
               </button>
             ))}
+            {overflowTabs.length > 0 ? (
+              <details className="pi-tab-more" ref={moreRef}>
+                <summary className="pi-tab">More ({overflowTabs.length})</summary>
+                <div className="pi-tab-menu">
+                  {overflowTabs.map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      className="pi-tab-menu-item"
+                      onClick={() => {
+                        setActiveTab(tab);
+                        moreRef.current?.removeAttribute("open");
+                      }}
+                    >
+                      {SECTION_LABELS[tab] ?? tab}
+                    </button>
+                  ))}
+                </div>
+              </details>
+            ) : null}
           </nav>
 
           {/* key={activeTab} remounts the panel so the enter fade plays on every

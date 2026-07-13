@@ -140,6 +140,47 @@ def test_an_old_page_is_only_a_risk_when_others_still_rely_on_it():
     assert stale == ["old-and-loved.html"]
 
 
+def test_a_repository_is_not_told_it_is_a_wiki():
+    """The mirror of the bug we fixed yesterday. An infrastructure monorepo has a
+    hundred READMEs among a thousand files: they do not link to one another, were never
+    meant to, and "nothing links to it" under each of them is the same category error
+    as telling a wiki it has no tests — only pointing the other way."""
+    from app.core.domain.project_graph_builder import from_knowledge_base
+
+    pages = [_page(f"modules/m{i}/README.md", "# README\n") for i in range(20)]
+    code = [f"modules/m{i}/main.tf" for i in range(240)]
+    base = build_knowledge_base(pages, all_paths=[p.path for p in pages] + code)
+
+    assert not base.is_knowledge_base
+    assert base.areas == {}
+    assert base.inbound_links == {}
+    assert base.orphans == []
+
+    entities, _relations, findings = from_knowledge_base(base)
+    # The documents are still listed — a person looking for the docs finds them…
+    assert len([e for e in entities if e.type == "document"]) == 20
+    # …and told apart by where they live, because "README" names none of them.
+    assert any(e.name == "modules/m3 · README" for e in entities)
+    # …but not one word of a wiki's facts is claimed about them.
+    assert findings == []
+    assert all("linked_from" not in e.metadata for e in entities)
+
+
+def test_a_docs_folder_inside_a_repository_is_still_a_knowledge_base():
+    """The gate is about what the collection IS, not where it sits: a genuinely
+    cross-linked docs site keeps its facts even with code around it."""
+    pages = [
+        _page("docs/index.md", "".join(f'[p{i}](p{i}.md)' for i in range(1, 10))),
+        *[_page(f"docs/p{i}.md", f"# Page {i}\n[home](index.md)") for i in range(1, 10)],
+    ]
+    base = build_knowledge_base(
+        pages,
+        all_paths=[p.path for p in pages] + [f"src/mod{i}.py" for i in range(40)],
+    )
+    assert base.is_knowledge_base
+    assert base.has_link_graph
+
+
 # --------------------------------------------------------------- the whole screen
 
 
