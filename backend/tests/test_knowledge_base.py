@@ -203,7 +203,10 @@ def test_a_wiki_is_not_told_off_for_being_a_wiki():
     from app.core.domain.test_suites import build_test_facts
 
     base = build_knowledge_base(
-        [_page(f"[Capability]_Layer_{i}.html", f"<title>[Capability] Layer {i}</title>") for i in range(5)]
+        [
+            _page(f"[Capability]_Layer_{i}.html", f"<title>[Capability] Layer {i}</title>")
+            for i in range(5)
+        ]
         + [_page("[ADR-1]_Choice.html", "<title>[ADR-1] Choice</title>")],
     )
     # The test analyzer runs on every project — including one with no code at all.
