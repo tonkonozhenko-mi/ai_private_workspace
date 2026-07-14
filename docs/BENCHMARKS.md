@@ -80,7 +80,25 @@ indexes, which the CLI harness does not drive yet. Until it does: create a
 group of `wiki-export` + `fastapi-template` in the app, ask the five
 cross-source questions listed in
 [`eval/golden_set_wiki.py`](../backend/eval/golden_set_wiki.py) footnotes, and
-record whether each answer cites at least one source from *each* member.
+record whether each answer cites at least one source from *each* member. An
+explicit, correct "the code has no such thing" counts for the code side —
+absence cannot be cited.
+
+**Run of 2026-07-14 (same config as the tables above): 4 of 5 pass.**
+
+| Question | Verdict | Notes |
+| --- | --- | --- |
+| report storage | pass | ADR cited; honest "not configured in the backend". But the answer presented the *superseded* ADR-05 as current — the trap the corpus carries by design; the page's own "Superseded by ADR-08" status was in context and ignored (finding 1). |
+| queue decision vs. code | pass | ADR-03 cited; honest "no queue code" — correct for this template. |
+| tenant isolation | pass | Best of the five: RLS/`tenant_id` from the wiki, SQLAlchemy note from `backend/README` — both members in one answer. |
+| onboarding starting point | pass | Wiki onboarding page cited; "start at `main.py`" for the code side. |
+| retention rules in code | **half** | Wiki cited, but audit-event retention (seven years) was merged into the logs' 30 days — a compression error of exactly the kind the halluc metric counts — and the code side hedged ("needs investigating") instead of an honest negative (finding 2). |
+
+Both findings are generation-layer, not retrieval (the right pages were on the
+table): (1) a source marked superseded should be flagged as such and its
+successor preferred; (2) a hedge is worse than an honest "not implemented
+here". Queued as prompt-layer work; the answers above are reported as they
+came.
 
 ### Results (v2, 2026-07-14)
 
