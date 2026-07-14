@@ -77,7 +77,7 @@ def test_the_prompt_names_the_superseded_source_and_says_what_to_do():
 
 
 def test_a_prompt_with_no_stale_sources_carries_no_status_section():
-    assert build_source_status_section([_result("main.tf", "resource \"aws_s3_bucket\" {}")]) == ""
+    assert build_source_status_section([_result("main.tf", 'resource "aws_s3_bucket" {}')]) == ""
 
 
 def test_the_grounded_prompt_carries_the_warning_above_the_context():
