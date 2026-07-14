@@ -57,8 +57,15 @@ from app.core.use_cases.ask_workspace_question import (
     AskWorkspaceQuestionUseCase,
     _hard_grounding_warnings,
 )
+from eval.corpora import CORPORA, ensure_corpus
 from eval.golden_set import golden_set
 from eval.golden_set_acme import ACME_REPO_RELATIVE, golden_set_acme
+from eval.golden_set_external import (
+    golden_set_boutique,
+    golden_set_fastapi_tmpl,
+    golden_set_tf_vpc,
+)
+from eval.golden_set_wiki import golden_set_wiki
 from eval.harness import (
     QuestionOutcome,
     compute_report,
@@ -75,6 +82,19 @@ QUESTION_SETS = {
     "app": (golden_set, None),
     "acme": (golden_set_acme, ACME_REPO_RELATIVE),
 }
+
+# External corpora: public repositories pinned by commit (eval/corpora.py) plus
+# the generated wiki export, each with its pre-registered question set. The
+# corpus checkout is resolved (cloned/generated if missing) at run time; the
+# question sets live in eval/golden_set_external.py and golden_set_wiki.py and
+# are never edited to fit results.
+EXTERNAL_SETS = {
+    "tf-aws-vpc": golden_set_tf_vpc,
+    "online-boutique": golden_set_boutique,
+    "fastapi-template": golden_set_fastapi_tmpl,
+    "wiki-export": golden_set_wiki,
+}
+assert set(EXTERNAL_SETS) <= set(CORPORA)
 
 # --embedder alias -> (Ollama model tag, human label)
 EMBEDDERS = {
@@ -94,7 +114,24 @@ _EXT_TYPE = {
     ".tfvars": "terraform",
     ".hcl": "terragrunt",
     ".sh": "shell",
+    # The kinds the app's indexer learned in #196/#200 — the external corpora
+    # (C#, Java, Go, protos, SQL migrations, TOML configs) are made of them, so
+    # the eval corpus must match what the product actually indexes.
+    ".sql": "source_code",
+    ".cs": "source_code",
+    ".java": "source_code",
+    ".go": "source_code",
+    ".js": "source_code",
+    ".ts": "source_code",
+    ".tsx": "source_code",
+    ".jsx": "source_code",
+    ".proto": "source_code",
+    ".toml": "config",
+    ".ini": "config",
 }
+# Tabular data goes through the product's own extractor (row blocks with the
+# header repeated), not through the plain text chunker — same as the app.
+_EXTRACTOR_SUFFIXES = {".csv", ".tsv"}
 _SKIP_DIRS = {
     ".git",
     "node_modules",
@@ -168,6 +205,11 @@ def _iter_files(root: Path):
         posix = rel.as_posix()
         if any(fragment in posix for fragment in _SKIP_PATH_FRAGMENTS):
             continue
+        if path.suffix.lower() in _EXTRACTOR_SUFFIXES:
+            text = _extract_tabular(path)
+            if text:
+                yield path.relative_to(root).as_posix(), "tabular_data", "csv", text
+            continue
         file_type = _detect_type(path)
         if file_type is None:
             continue
@@ -179,6 +221,23 @@ def _iter_files(root: Path):
             continue
         if text.strip():
             yield path.relative_to(root).as_posix(), file_type, path.suffix.lstrip("."), text
+
+
+def _extract_tabular(path: Path) -> str | None:
+    """Read a CSV/TSV through the product's document extractor so the eval
+    corpus carries the same row-block text (header repeated per block) the app
+    indexes — not a raw comma dump the app would never produce."""
+    try:
+        from app.adapters.documents.local_document_extractor import LocalDocumentExtractor
+
+        extracted = LocalDocumentExtractor().extract(str(path.parent), path.name, "tabular_data")
+        if extracted.skipped_reason or extracted.is_empty:
+            return None
+        return "\n\n".join(
+            f"[{section.locator}]\n{section.text}" for section in extracted.sections
+        )
+    except Exception:  # noqa: BLE001 - one odd file must not kill the corpus build
+        return None
 
 
 def _build_embedder(model_tag: str, backend: str, ollama_url: str, llama_embed_url: str):
@@ -272,6 +331,8 @@ def _run_embedder(
     llama_embed_url: str = "http://127.0.0.1:8081",
     save_answers: bool = False,
     repeats: int = 1,
+    baseline: bool = False,
+    role: str | None = None,
 ):
     cases_all = list(question_set())
     model_tag = EMBEDDERS[alias]
@@ -282,6 +343,10 @@ def _run_embedder(
     label = alias if backend == "ollama" else f"{alias}-llamacpp"
     if set_name != "app":
         label = f"{label}-{set_name}"
+    if baseline:
+        label = f"{label}-baseline"
+    if role:
+        label = f"{label}-{role}"
     print(f"[{label}] backend={backend} model={model_tag} repo={repo}", flush=True)
     embedder = _build_embedder(model_tag, backend, base_url, llama_embed_url)
 
@@ -304,7 +369,13 @@ def _run_embedder(
             relevance_floor=floor,
             relevance_probe_ceiling=probe_ceiling_value,
         )
-        workspace = SimpleNamespace(id=workspace_id, project_path=str(repo))
+        # ``assistant_mode`` mirrors the workspace role preference: --role runs the
+        # same questions with the role's lens hint in the prompt. The invariant
+        # under test: retrieval metrics must NOT move (the role lives in the
+        # prose, never in the search).
+        workspace = SimpleNamespace(
+            id=workspace_id, project_path=str(repo), assistant_mode=role
+        )
         uc = AskWorkspaceQuestionUseCase(
             workspace_repository=SimpleNamespace(get=lambda _wid: workspace),
             embedding_provider=embedder,
@@ -312,7 +383,13 @@ def _run_embedder(
             llm_provider_factory=None,
             index_status_repository=SimpleNamespace(get=lambda _wid: status),
         )
-        threshold = uc._relevance_threshold(status, None)
+        # Baseline mode measures what a naive local RAG would do on the same
+        # index: plain dense top-k, a fixed 0.30 threshold instead of the
+        # calibrated floor, no small-talk router, and (under --with-generation)
+        # no corrective pass. Same questions, same chunks, same embedder — the
+        # difference between the two reports is the pipeline's measured value.
+        BASELINE_THRESHOLD = 0.30
+        threshold = BASELINE_THRESHOLD if baseline else uc._relevance_threshold(status, None)
         ceiling_str = f"{probe_ceiling_value:.3f}" if probe_ceiling_value is not None else "n/a"
         print(
             f"  calibrated floor={floor} probe_ceiling={ceiling_str} → threshold={threshold:.3f}",
@@ -331,16 +408,33 @@ def _run_embedder(
             # eval still runs retrieval so best_score/source_paths stay available as
             # diagnostics for the threshold layer, but `abstained` reflects what the
             # app would actually do.
-            routed = looks_general_chat(case.question)
+            if baseline:
+                # Naive path: no router, no synonym bridge, no BM25/RRF, no MMR,
+                # no parent-document expansion — the question embedding straight
+                # into the vector store.
+                routed = False
+                query_embedding = embedder.embed_texts([case.question])[0]
+                results = store.search(
+                    workspace_id,
+                    query_embedding,
+                    limit=k,
+                    embedding_provider=embedder.provider_name,
+                    embedding_model=embedder.model_name,
+                    embedding_dimension=len(query_embedding),
+                )
+            else:
+                routed = looks_general_chat(case.question)
+                results = uc._search_context(request, None)
             routed_count += routed
-            results = uc._search_context(request, None)
             best = max((r.score for r in results), default=0.0)
             abstained = routed or (not results) or best < threshold
             paths = tuple(dict.fromkeys(r.source_path for r in results))
 
             gen = None
             if llm is not None and not abstained:
-                gen = _generate_outcome(uc, request, results, best, llm, repeats)
+                gen = _generate_outcome(
+                    uc, request, results, best, llm, repeats, corrective=not baseline
+                )
 
             outcomes.append(
                 QuestionOutcome(
@@ -389,7 +483,7 @@ def _evaluate_answer(uc, request, context_results, answer):
     )
 
 
-def _one_generation(uc, request, results, best_score, llm) -> dict | None:
+def _one_generation(uc, request, results, best_score, llm, corrective: bool = True) -> dict | None:
     """Generate one answer through the REAL product path — first the grounded
     answer, then the app's corrective regeneration pass (the same one that fires in
     production on hard grounding warnings). Returns raw vs. product warnings so the
@@ -413,7 +507,11 @@ def _one_generation(uc, request, results, best_score, llm) -> dict | None:
         # CRAG trigger (b): exactly what production runs when the answer carries hard
         # grounding warnings — one corrective retrieval + regeneration, kept only if
         # it strictly improves grounding. Measuring the product, not the raw model.
-        regen = uc._corrective_regeneration(request, llm, [], raw_warnings, best_score)
+        regen = (
+            uc._corrective_regeneration(request, llm, [], raw_warnings, best_score)
+            if corrective
+            else None
+        )
         if regen is not None:
             product_answer = regen["answer"]
             product_warnings = regen["warnings"]
@@ -429,7 +527,9 @@ def _one_generation(uc, request, results, best_score, llm) -> dict | None:
         return None
 
 
-def _generate_outcome(uc, request, results, best_score, llm, repeats: int) -> dict | None:
+def _generate_outcome(
+    uc, request, results, best_score, llm, repeats: int, corrective: bool = True
+) -> dict | None:
     """Generate ``repeats`` times and fold into one outcome. The boolean flags are a
     majority vote across runs (ties count as flagged — conservative), which gives a
     stable label under generation non-determinism; the last run's answer/codes are
@@ -437,7 +537,8 @@ def _generate_outcome(uc, request, results, best_score, llm, repeats: int) -> di
     runs = [
         r
         for r in (
-            _one_generation(uc, request, results, best_score, llm) for _ in range(max(1, repeats))
+            _one_generation(uc, request, results, best_score, llm, corrective=corrective)
+            for _ in range(max(1, repeats))
         )
         if r
     ]
@@ -527,12 +628,31 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--set",
         dest="question_set",
-        choices=sorted(QUESTION_SETS),
+        choices=sorted(QUESTION_SETS) + sorted(EXTERNAL_SETS),
         default="app",
-        help="which labelled question set to run: 'app' (this repository, default) or "
-        "'acme' (the external payments/infra demo under build/demo-project). The 'acme' "
-        "set defaults --repo to that demo unless you pass --repo explicitly. The report "
-        "is suffixed with the set name so app and acme runs sit side by side.",
+        help="which labelled question set to run: 'app' (this repository, default), "
+        "'acme' (the demo under build/demo-project), or an external corpus "
+        f"({', '.join(sorted(EXTERNAL_SETS))}) — external corpora are cloned/generated "
+        "on first use under build/eval-corpora at a pinned commit (see eval/corpora.py). "
+        "The report is suffixed with the set name so runs sit side by side.",
+    )
+    parser.add_argument(
+        "--baseline",
+        action="store_true",
+        help="run the same questions as a NAIVE local RAG on the same index: plain "
+        "dense top-k, fixed 0.30 threshold instead of the calibrated floor, no "
+        "keyword search / synonym bridge / RRF / MMR / parent expansion, no small-talk "
+        "router, and no corrective pass under --with-generation. The report is "
+        "suffixed '-baseline'; the delta against the ordinary run is the pipeline's "
+        "measured value on that corpus.",
+    )
+    parser.add_argument(
+        "--role",
+        choices=("developer", "devops", "tester", "business_analyst", "manager", "dba"),
+        default=None,
+        help="run with this workspace role's lens hint in the generation prompt. "
+        "Retrieval metrics must not move (the role lives in the prose, not the "
+        "search) — this flag exists to prove exactly that.",
     )
     parser.add_argument(
         "--repo",
@@ -584,16 +704,21 @@ def main(argv=None) -> int:
     if (args.save_answers or args.repeats != 1) and not args.with_generation:
         parser.error("--save-answers and --repeats require --with-generation")
 
-    question_set, set_repo_relative = QUESTION_SETS[args.question_set]
     project_root = Path(__file__).resolve().parents[2]
     # --repo wins; otherwise use the repo the chosen set is written against (the app
-    # set → this repository; the acme set → build/demo-project).
-    if args.repo:
-        repo = Path(args.repo).resolve()
-    elif set_repo_relative:
-        repo = (project_root / set_repo_relative).resolve()
+    # set → this repository; the acme set → build/demo-project; an external set →
+    # its pinned checkout under build/eval-corpora, cloned/generated on demand).
+    if args.question_set in EXTERNAL_SETS:
+        question_set = EXTERNAL_SETS[args.question_set]
+        repo = Path(args.repo).resolve() if args.repo else ensure_corpus(args.question_set)
     else:
-        repo = project_root
+        question_set, set_repo_relative = QUESTION_SETS[args.question_set]
+        if args.repo:
+            repo = Path(args.repo).resolve()
+        elif set_repo_relative:
+            repo = (project_root / set_repo_relative).resolve()
+        else:
+            repo = project_root
     if not repo.is_dir():
         parser.error(f"target repo not found: {repo}")
 
@@ -611,6 +736,8 @@ def main(argv=None) -> int:
             llama_embed_url=args.llama_embed_url,
             save_answers=args.save_answers,
             repeats=max(1, args.repeats),
+            baseline=args.baseline,
+            role=args.role,
         )
     return 0
 

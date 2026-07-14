@@ -184,6 +184,15 @@ GOLDEN_SET: tuple[QuestionCase, ...] = (
         "pb-privacy", "What makes this project local-first and private?", CLASS_PROJECT_BROAD
     ),
     QuestionCase("pb-changed", "What changed recently in the project?", CLASS_PROJECT_BROAD),
+    # Cyrillic case (added 2026-07-13): an English codebase asked about in
+    # Ukrainian. Guards the cross-language retrieval path and the script-aware
+    # token budgeting from #234 in one question.
+    QuestionCase(
+        "pp-cyrillic-floor",
+        "Як калібрується поріг відмови (relevance floor) до шуму embedding-моделі?",
+        CLASS_PROJECT_PRECISE,
+        ("core/domain/relevance_calibration.py",),
+    ),
     # --- should_abstain (NOT about the project) -------------------------
     QuestionCase("sa-time", "What time is it?", CLASS_SHOULD_ABSTAIN),
     QuestionCase("sa-weather", "What's the weather like today?", CLASS_SHOULD_ABSTAIN),
