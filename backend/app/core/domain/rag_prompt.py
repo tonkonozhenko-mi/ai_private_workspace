@@ -117,6 +117,85 @@ def render_conversation_history(conversation_history: list[tuple[str, str]] | No
     return "\n".join(lines) + "\n"
 
 
+# A decision that has been overruled says so, at the top, in one line: "Superseded
+# by [ADR-08]". The page is then a historical record, not an answer — and a small
+# model, handed the whole tiny page, reads straight past that line and reports the
+# dead decision as the live one (observed 2026-07-14: a question about where
+# reports are stored was answered with the local disk that ADR-05 chose, three
+# months after ADR-08 moved them to object storage).
+#
+# So the app reads the marker itself and says so in the prompt, instead of hoping.
+_SUPERSEDED_MARKERS = (
+    "superseded by",
+    "superseded",
+    "deprecated",
+    "obsolete",
+    "no longer valid",
+    "no longer current",
+    "historical record",
+    "status: historical",
+)
+# The marker must be near the top — that is where a status line lives. A body
+# paragraph mentioning that some API is deprecated is not a claim about this page.
+_STATUS_HEADER_LINES = 6
+_STATUS_LINE_MAX_CHARS = 200
+# And it must be the page speaking about itself, not the code remarking on
+# something else: "# We used to call the deprecated v1 endpoint here" is a comment
+# about an endpoint, and a file full of such remarks would otherwise be declared
+# obsolete on the strength of one of them. So comment lines don't count — a status
+# is written as a statement ("**Superseded by [ADR-08]**", "Status: Deprecated"),
+# and a page that only announces its death in a code comment is not a page.
+# ("* " and "*/" are the continuation lines of a C block comment; "**Superseded**"
+# is Markdown bold, and is exactly the line we are looking for.)
+_COMMENT_OPENERS = ("//", "#", "/*", "* ", "*/", "--", ";", "<!--")
+
+
+def _status_line(content: str) -> str | None:
+    """The line at the top of a source that declares the source itself out of date."""
+    for line in content.splitlines()[:_STATUS_HEADER_LINES]:
+        stripped = line.strip()
+        if not stripped or len(stripped) > _STATUS_LINE_MAX_CHARS:
+            continue
+        if stripped.startswith(_COMMENT_OPENERS):
+            continue
+        lowered = stripped.lower()
+        if any(marker in lowered for marker in _SUPERSEDED_MARKERS):
+            return stripped
+    return None
+
+
+def superseded_sources(context_results: list[ContextSearchResult]) -> list[tuple[str, str]]:
+    """The retrieved sources that declare themselves out of date, with the line
+    that says so. Pure, so it can be tested without a model."""
+    found: list[tuple[str, str]] = []
+    for result in context_results:
+        line = _status_line(result.content)
+        if line is not None:
+            found.append((display_source_path(result.source_path), line))
+    return found
+
+
+def build_source_status_section(context_results: list[ContextSearchResult]) -> str:
+    """Name the out-of-date sources before the model reads them.
+
+    The instruction alone is not enough — it asks the model to notice something,
+    and noticing is exactly what it failed at. Naming the file and quoting its own
+    status line turns "notice this" into "you have been told".
+    """
+    superseded = superseded_sources(context_results)
+    if not superseded:
+        return ""
+    lines = "\n".join(f"- `{path}` says: {line}" for path, line in superseded)
+    return (
+        "Status of retrieved sources — these ones declare themselves out of date:\n"
+        f"{lines}\n"
+        "Do not present their content as the current state of the project. Say that "
+        "the source is superseded or deprecated, and answer from the source that "
+        "replaced it if it is among the files below; if the replacement is not here, "
+        "say which one to look for.\n\n"
+    )
+
+
 def build_workspace_question_prompt(
     question: str,
     context_results: list[ContextSearchResult],
@@ -184,6 +263,7 @@ def build_workspace_question_prompt(
         f"{mode_section}"
         f"{attached_section}"
         f"{(project_memory_section + chr(10) + chr(10)) if project_memory_section else ''}"
+        f"{build_source_status_section(context_results)}"
         f"Context chunks:\n{context}\n\n"
         f"Available source paths: {source_paths}\n\n"
         f"{skill_section}"
@@ -203,6 +283,14 @@ def build_workspace_question_prompt(
         "- Do NOT write the literal label 'source_path:' and do NOT append a list "
         "of source paths at the end — the app shows the sources separately.\n"
         "- Do not say something is absent if any provided context contains it.\n"
+        "- If a source is marked Superseded, Deprecated, Historical or similar, do "
+        "not report its content as the current state. Name the marker, and prefer "
+        "the source that replaced it if it is among the files above.\n"
+        "- If the answer is no, say no. When the files do not contain the thing "
+        "asked about, write plainly that it is not present in them and name what "
+        "you looked at. Never hedge with 'it may be implemented elsewhere', 'this "
+        "would need further investigation' or similar — a hedge sounds like "
+        "knowledge without being knowledge.\n"
         "- If the context is insufficient or you are unsure, say so clearly.\n"
         "General requirements:\n"
         "- If the user asks you to create, edit, delete, or run files/commands, "
