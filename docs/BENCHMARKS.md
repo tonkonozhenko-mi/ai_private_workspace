@@ -73,6 +73,18 @@ python -m eval.golden --embedder nomic --set tf-aws-vpc --with-generation --base
 # …repeat per corpus; reports land in build/notes/eval/ suffixed by set/mode
 ```
 
+The app ships two engines, so the benchmark runs on both. The tables above were
+generated on Ollama; to reproduce them on llama.cpp, start the app's engine (or
+`llama-server` on your answer model) and add `--gen-backend llamacpp`:
+
+```bash
+python -m eval.golden --embedder nomic --set tf-aws-vpc --with-generation \
+  --gen-backend llamacpp --llama-gen-url http://127.0.0.1:8080
+# report: golden_nomic-llamacpp-gen-tf-aws-vpc_<date>.md — beside the Ollama one,
+# never over it. Both runs record how long each answer took (median and worst),
+# so "one question is slow" is a number rather than a shrug.
+```
+
 ### Mixed-group protocol (manual for now)
 
 The group union ("what did we decide, and where is it implemented?") spans two
