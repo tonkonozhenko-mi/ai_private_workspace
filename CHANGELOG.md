@@ -7,6 +7,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **A question about a share price, a poem or a film is small talk, whatever it scores.** The app decides whether a question is about your project by measuring how strongly it matches your files — but a repository written by Google carries the word "Google" in every copyright header, so "What is Google's stock price today?" matched it by a thousandth of a point and was answered from source code. Prices, headlines, poems, film recommendations and sign-offs ("thanks, that's all") are now recognised for what they are before any of that arithmetic runs. The guard holds: "write a poem about this repository" is still a question about your repository.
+
 ### Fixed
 
 - **"What is Google's stock price today?" no longer gets answered from your source files.** The app measures, on your own project, how high a neutral question that has nothing to do with it can score — and answers only above that line. But the line was being applied as a discount and never as a raise: on one repository it sat at 0.50 while off-topic questions were reaching 0.559, and so they were answered, with citations, from files that had nothing to say about them. The measured ceiling now sets the bar in both directions. On projects where the two agreed, nothing changes at all.

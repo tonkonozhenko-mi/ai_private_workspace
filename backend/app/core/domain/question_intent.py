@@ -48,11 +48,32 @@ def looks_project_specific(question: str) -> bool:
 # So patterns are specific, and any project signal wins outright (guard below).
 _CHAT_SIGNAL = re.compile(
     r"\bhow are you\b|\bhow'?s it going\b|\bnice to meet you\b"
+    r"|\bhow (?:is|was) your day\b|\bhow'?s your day\b"
     r"|\bthat was (?:helpful|great|useful|awesome|nice)\b"
     r"|\bwhat time is it\b|\bwhat'?s? (?:is )?the (?:time|weather|date)\b|\bthe weather\b"
+    r"|\bwhat year is it\b|\bwhat'?s? (?:is )?today'?s date\b"
     r"|\b(?:tell|hear) (?:me )?a joke\b|\bmake me laugh\b"
     r"|\bcapital of\b|\bworld cup\b|\bwho won\b|\bolympics?\b|\bpopulation of\b"
     r"|\bpresident of\b|\bprime minister of\b|\bin general\b"
+    # Written for someone, not for a machine: a poem, a story, a song. The project
+    # guard below keeps "write a poem about this repo" a project question.
+    r"|\b(?:write|compose|make|create|generate)\s+(?:me\s+)?(?:a|an|some|another)?\s*"
+    r"(?:short\s+|funny\s+|nice\s+)?"
+    r"(?:poem|story|song|joke|haiku|limerick|sonnet|rhyme|rap|essay about)\b"
+    # The outside world, priced or dated: markets, rates, headlines. A repository
+    # written by Google contains the word Google in every copyright header, so
+    # "What is Google's stock price today?" scores against it — no threshold can
+    # tell those apart, and none should have to. A question about a share price is
+    # not a question about the code, whatever it scores.
+    r"|\bstock price\b|\bshare price\b|\bstock market\b|\bexchange rate\b"
+    r"|\bprice of (?:bitcoin|gold|oil|eth(?:ereum)?)\b|\bcrypto(?:currency)? price\b"
+    r"|\bnews (?:today|headlines)\b|\btoday'?s news\b|\bin the news\b"
+    # The end of a conversation is not a question about the project.
+    r"|\bthat'?s (?:all|it)(?:\s+for now)?\b|\bnothing else for now\b"
+    # A recommendation for the evening, not for the architecture. Same guard.
+    r"|\b(?:recommend|suggest)\s+(?:me\s+)?(?:a|an|some|any)?\s*(?:good\s+)?"
+    r"(?:[\w-]+\s+)?(?:movie|film|book|novel|restaurant|show|series|album|"
+    r"song|game|holiday|destination)\b"
     r"|\b(?:carbonara|recipe|pizza|pasta|omelette|risotto|espresso|cappuccino|smoothie)\b",
     re.IGNORECASE,
 )
