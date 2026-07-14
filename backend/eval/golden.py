@@ -52,6 +52,7 @@ from app.core.domain.relevance_calibration import (
     calibrate_from_embeddings,
     probe_ceiling,
 )
+from app.core.domain.source_files import is_generated_source
 from app.core.use_cases.ask_workspace_question import (
     AskWorkspaceQuestionInput,
     AskWorkspaceQuestionUseCase,
@@ -218,6 +219,12 @@ def _iter_files(root: Path):
                 continue
             text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
+            continue
+        # The product refuses machine-written source (a generator's header, or one
+        # absurdly long line) at index time. The harness must refuse it too, or the
+        # benchmark measures a product nobody ships: protobuf stubs crowding out the
+        # .proto file a person actually wrote.
+        if file_type == "source_code" and is_generated_source(text):
             continue
         if text.strip():
             yield path.relative_to(root).as_posix(), file_type, path.suffix.lstrip("."), text

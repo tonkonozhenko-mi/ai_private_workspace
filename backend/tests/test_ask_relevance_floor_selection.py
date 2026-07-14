@@ -92,12 +92,19 @@ def test_probe_ceiling_lowers_the_threshold_when_below_floor_margin():
     assert round(_threshold(_real_self(), _status(0.60, probe_ceiling=0.396)), 3) == 0.426
 
 
-def test_probe_ceiling_does_not_raise_the_threshold_above_floor_margin():
-    # When the ceiling sits ABOVE floor−0.10, min() keeps floor−0.10 unchanged, so
-    # the bar can only ever fall, never rise (Fable's nomic×acme / app cases).
+def test_probe_ceiling_raises_the_threshold_when_the_floor_would_admit_chit_chat():
+    # This test used to pin the opposite — that min() kept the bar at floor−0.10
+    # even when the ceiling sat above it, on the belief that the bar "can only ever
+    # fall". The first external eval run disproved it: on online-boutique the floor
+    # clamped to 0.60 (bar 0.50) while neutral, off-topic questions scored up to
+    # 0.559, so "What is Google's stock price today?" was answered from the
+    # project's source files. The ceiling is what chit-chat actually reaches
+    # against THIS corpus; a bar beneath it admits chit-chat by construction, so
+    # the ceiling now sets the bar in both directions.
     _clear_env()
-    assert round(_threshold(_real_self(), _status(0.60, probe_ceiling=0.497)), 3) == 0.50
-    assert round(_threshold(_real_self(), _status(0.60, probe_ceiling=0.90)), 3) == 0.50
+    assert round(_threshold(_real_self(), _status(0.60, probe_ceiling=0.497)), 3) == 0.527
+    # The clamp still caps how high the bar can go, whatever the ceiling says.
+    assert round(_threshold(_real_self(), _status(0.60, probe_ceiling=0.90)), 3) == 0.60
 
 
 def test_probe_ceiling_never_drops_below_the_minimum_band():
