@@ -154,7 +154,12 @@ _GENERATED_MARKERS = (
 # — prose in a README saying "do not edit this section" is not a generator's
 # signature — and in the header, not somewhere in the middle of the file.
 _COMMENT_OPENERS = ("//", "#", "/*", "*", "--", "<!--", ";")
-_GENERATED_HEADER_LINES = 10
+# The header is the leading run of comment/blank lines, NOT a fixed number of
+# lines: Google's genproto stubs carry a 14-line Apache licence above the
+# "Code generated" stamp (line 15 — observed on online-boutique, 2026-07-14,
+# where a 10-line window missed all 8 stubs). The cap only bounds the scan on
+# degenerate files that are one huge comment.
+_GENERATED_HEADER_SCAN_LINES = 100
 
 
 def _is_generated_marker(line: str) -> bool:
@@ -163,6 +168,19 @@ def _is_generated_marker(line: str) -> bool:
         return False
     lowered = stripped.lower()
     return any(marker in lowered for marker in _GENERATED_MARKERS)
+
+
+def _header_comment_lines(lines: list[str]):
+    """The file's leading comment block: consecutive comment or blank lines from
+    the top, ending at the first line of actual code. A marker below that point
+    is quotation, not a generator's signature."""
+    for line in lines[:_GENERATED_HEADER_SCAN_LINES]:
+        stripped = line.lstrip()
+        if not stripped:
+            continue  # blank lines separate licence from stamp; still the header
+        if not stripped.startswith(_COMMENT_OPENERS):
+            return
+        yield line
 
 
 def is_generated_source(content: str) -> bool:
@@ -176,7 +194,7 @@ def is_generated_source(content: str) -> bool:
     lines = content.splitlines()
     if any(len(line) > MAX_SOURCE_LINE_LENGTH for line in lines):
         return True
-    return any(_is_generated_marker(line) for line in lines[:_GENERATED_HEADER_LINES])
+    return any(_is_generated_marker(line) for line in _header_comment_lines(lines))
 
 
 def source_language(extension: str | None) -> str | None:
