@@ -50,4 +50,4 @@ def test_a_minified_bundle_is_still_refused():
 
 
 def test_ordinary_source_is_left_alone():
-    assert not is_generated_source("package main\n\nfunc main() {\n\tprintln(\"hi\")\n}\n")
+    assert not is_generated_source('package main\n\nfunc main() {\n\tprintln("hi")\n}\n')
