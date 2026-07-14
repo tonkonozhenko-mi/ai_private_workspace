@@ -1216,22 +1216,33 @@ class AskWorkspaceQuestionUseCase:
         # the two where the old flat 0.38 cap could not. Falls back to the hardcoded
         # default for indexes built before calibration existed, or too small to
         # sample a trustworthy floor.
-        if index_status is not None and index_status.relevance_floor is not None:
+        probe_ceiling = (
+            getattr(index_status, "relevance_probe_ceiling", None)
+            if index_status is not None
+            else None
+        )
+        if probe_ceiling is not None:
+            # The chit-chat ceiling is the honest anchor: it is how high neutral,
+            # off-topic questions actually score against *this* corpus. The bar
+            # sits just above it — below it, small talk is admitted by
+            # construction. It used to be applied through min(), on the assumption
+            # that the floor was always the stricter of the two; a corpus where the
+            # floor clamped to 0.6 (bar 0.5) while chit-chat reached 0.559 proved
+            # that assumption false and let "What is Google's stock price today?"
+            # be answered from the project's files. An anchor that can only ever
+            # lower the bar is not an anchor.
+            base = max(
+                RELEVANCE_FLOOR_MIN,
+                min(RELEVANCE_FLOOR_MAX, probe_ceiling + RELEVANCE_PROBE_MARGIN),
+            )
+        elif index_status is not None and index_status.relevance_floor is not None:
+            # No ceiling measured (an index built before probes existed, or too
+            # small to sample): fall back to the noise floor, sitting just below it
+            # — real matches beat the background, unrelated text sits within it.
             base = max(
                 RELEVANCE_FLOOR_MIN,
                 min(RELEVANCE_FLOOR_MAX, index_status.relevance_floor - RELEVANCE_FLOOR_MARGIN),
             )
-            # Second calibration anchor: never sit above the empirical chit-chat
-            # ceiling (+ a hair). This only ever lowers the bar — min() guarantees the
-            # threshold can't exceed floor−margin — so over-blocking on a small,
-            # homogeneous index falls while off-topic protection is preserved (the
-            # router cuts small talk earlier, and the ceiling holds the background).
-            probe_ceiling = getattr(index_status, "relevance_probe_ceiling", None)
-            if probe_ceiling is not None:
-                base = max(
-                    RELEVANCE_FLOOR_MIN,
-                    min(base, probe_ceiling + RELEVANCE_PROBE_MARGIN),
-                )
         else:
             base = DEFAULT_RELEVANCE_THRESHOLD
         # The answer mode scales strictness: Only-from-sources raises the floor so it

@@ -7,6 +7,11 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **"What is Google's stock price today?" no longer gets answered from your source files.** The app measures, on your own project, how high a neutral question that has nothing to do with it can score — and answers only above that line. But the line was being applied as a discount and never as a raise: on one repository it sat at 0.50 while off-topic questions were reaching 0.559, and so they were answered, with citations, from files that had nothing to say about them. The measured ceiling now sets the bar in both directions. On projects where the two agreed, nothing changes at all.
+- **Machine-written code no longer crowds out the file a person wrote.** Asked where its gRPC API was defined, a repository of Go services answered with three generated protobuf stubs instead of the `.proto` file the API is actually declared in. Every generator stamps its output — "Code generated … DO NOT EDIT." — and the app now reads that line and declines to index the file, exactly as it already declined minified bundles. The rule is narrow on purpose: the marker must be in a comment, in the file's opening lines, so a README that says "do not edit this section" is still a document like any other.
+
 ## [0.6.2] - 2026-07-13
 
 One question, asked properly for the first time: **how much of your project can this model hold in mind at once?** The answer used to be a constant — 8,192 tokens, the same on a 64 GB workstation as on a laptop, the same for a model built to hold sixteen times that. It is now arithmetic: what a token of context costs in this model, and how much of this computer's memory we may spend on it. On a roomy machine that is four times the project it held yesterday, and every answer is grounded in that much more of your work.
