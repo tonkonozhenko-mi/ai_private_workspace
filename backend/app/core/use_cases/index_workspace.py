@@ -41,6 +41,7 @@ from app.core.domain.relevance_calibration import (
 from app.core.domain.source_files import (
     CONFIG,
     GENERATED_SOURCE_REASON,
+    GENERATED_CHECKED_TYPES,
     MAKEFILE,
     SOURCE_CODE,
     SQL,
@@ -701,8 +702,11 @@ class IndexWorkspaceUseCase:
         # A minified bundle or a generated blob survives every name-based check and
         # then floods the index: one 300 KB line embeds to a vector that means
         # nothing and cites a place no one can read. Refuse it here, where we have
-        # the content, and say why.
-        if project_file.detected_type == SOURCE_CODE and is_generated_source(content):
+        # the content, and say why. Not just SOURCE_CODE: generators stamp Python
+        # stubs, Terragrunt-written .tf and migration SQL the same way, and a
+        # detected_type of "python" was enough for demo_pb2_grpc.py to slip past
+        # this check and into answers (online-boutique, 2026-07-14).
+        if project_file.detected_type in GENERATED_CHECKED_TYPES and is_generated_source(content):
             logger.info(
                 "index.source skipped path=%s reason=%s", project_file.path, GENERATED_SOURCE_REASON
             )

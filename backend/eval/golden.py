@@ -52,7 +52,7 @@ from app.core.domain.relevance_calibration import (
     calibrate_from_embeddings,
     probe_ceiling,
 )
-from app.core.domain.source_files import is_generated_source
+from app.core.domain.source_files import GENERATED_CHECKED_TYPES, is_generated_source
 from app.core.use_cases.ask_workspace_question import (
     AskWorkspaceQuestionInput,
     AskWorkspaceQuestionUseCase,
@@ -223,8 +223,10 @@ def _iter_files(root: Path):
         # The product refuses machine-written source (a generator's header, or one
         # absurdly long line) at index time. The harness must refuse it too, or the
         # benchmark measures a product nobody ships: protobuf stubs crowding out the
-        # .proto file a person actually wrote.
-        if file_type == "source_code" and is_generated_source(text):
+        # .proto file a person actually wrote. The shared type set matters: a bare
+        # "source_code" check let demo_pb2_grpc.py (detected as "python") back into
+        # the top-5 on the very question the filter was written for.
+        if file_type in GENERATED_CHECKED_TYPES and is_generated_source(text):
             continue
         if text.strip():
             yield path.relative_to(root).as_posix(), file_type, path.suffix.lstrip("."), text
