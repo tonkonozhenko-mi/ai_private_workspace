@@ -40,8 +40,8 @@ from app.core.domain.relevance_calibration import (
 )
 from app.core.domain.source_files import (
     CONFIG,
-    GENERATED_SOURCE_REASON,
     GENERATED_CHECKED_TYPES,
+    GENERATED_SOURCE_REASON,
     MAKEFILE,
     SOURCE_CODE,
     SQL,
