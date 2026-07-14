@@ -261,6 +261,24 @@ def _build_llm(base_url: str, model: str):
     return OllamaLLMProvider(base_url=base_url, model=model, timeout_seconds=180)
 
 
+def _warmup_llm(llm, attempts: int = 2) -> None:
+    """Ping the answer model before the question loop so the FIRST real question
+    never pays the cold-start bill. Observed twice on 2026-07-14 (vpc-pp-endpoints,
+    shop-pp-single-manifest): Ollama's default keep_alive unloads the model during a
+    long indexing phase, the first generate then times out and that question's
+    generation is silently skipped. A failed warmup still helps — Ollama keeps
+    loading in the background, so the retry (or the first question) hits a warm
+    model. Never raises: the eval must not die on a warmup."""
+    for attempt in range(1, attempts + 1):
+        try:
+            llm.generate("Reply with exactly: OK", temperature=0.0, think=False)
+            print("  llm warmed up", flush=True)
+            return
+        except Exception as error:  # noqa: BLE001
+            print(f"  (llm warmup attempt {attempt}/{attempts} failed: {error})", flush=True)
+    print("  (llm warmup failed; first generation may be slow)", flush=True)
+
+
 def _index_repo(workspace_id, repo, embedder, vector_store):
     """Chunk + embed every indexable file into the vector store. Returns
     (chunks_count, relevance_floor, relevance_probe_ceiling)."""
@@ -393,6 +411,8 @@ def _run_embedder(
         )
 
         llm = _build_llm(base_url, llm_model) if llm_model else None
+        if llm is not None:
+            _warmup_llm(llm)
         outcomes: list[QuestionOutcome] = []
         routed_count = 0
         for case in cases_all:
