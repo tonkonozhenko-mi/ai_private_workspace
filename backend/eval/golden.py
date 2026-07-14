@@ -258,7 +258,30 @@ def _build_embedder(model_tag: str, backend: str, ollama_url: str, llama_embed_u
 def _build_llm(base_url: str, model: str):
     from app.adapters.llm.ollama_llm_provider import OllamaLLMProvider
 
-    return OllamaLLMProvider(base_url=base_url, model=model, timeout_seconds=180)
+    # 360s, not the app's default: vpc-pp-endpoints timed out at 180s even on a
+    # WARM model (2026-07-14, post-warmup rerun) — dense Terraform context makes
+    # one qwen3:4b generation legitimately slow. The eval is offline and would
+    # rather wait than report a coverage hole; the app's interactive timeout is
+    # a UX decision and stays where it is.
+    return OllamaLLMProvider(base_url=base_url, model=model, timeout_seconds=360)
+
+
+def _warmup_llm(llm, attempts: int = 2) -> None:
+    """Ping the answer model before the question loop so the FIRST real question
+    never pays the cold-start bill. Observed twice on 2026-07-14 (vpc-pp-endpoints,
+    shop-pp-single-manifest): Ollama's default keep_alive unloads the model during a
+    long indexing phase, the first generate then times out and that question's
+    generation is silently skipped. A failed warmup still helps — Ollama keeps
+    loading in the background, so the retry (or the first question) hits a warm
+    model. Never raises: the eval must not die on a warmup."""
+    for attempt in range(1, attempts + 1):
+        try:
+            llm.generate("Reply with exactly: OK", temperature=0.0, think=False)
+            print("  llm warmed up", flush=True)
+            return
+        except Exception as error:  # noqa: BLE001
+            print(f"  (llm warmup attempt {attempt}/{attempts} failed: {error})", flush=True)
+    print("  (llm warmup failed; first generation may be slow)", flush=True)
 
 
 def _index_repo(workspace_id, repo, embedder, vector_store):
@@ -393,6 +416,8 @@ def _run_embedder(
         )
 
         llm = _build_llm(base_url, llm_model) if llm_model else None
+        if llm is not None:
+            _warmup_llm(llm)
         outcomes: list[QuestionOutcome] = []
         routed_count = 0
         for case in cases_all:
