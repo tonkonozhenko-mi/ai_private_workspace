@@ -233,9 +233,7 @@ def _extract_tabular(path: Path) -> str | None:
         extracted = LocalDocumentExtractor().extract(str(path.parent), path.name, "tabular_data")
         if extracted.skipped_reason or extracted.is_empty:
             return None
-        return "\n\n".join(
-            f"[{section.locator}]\n{section.text}" for section in extracted.sections
-        )
+        return "\n\n".join(f"[{section.locator}]\n{section.text}" for section in extracted.sections)
     except Exception:  # noqa: BLE001 - one odd file must not kill the corpus build
         return None
 
@@ -373,9 +371,7 @@ def _run_embedder(
         # same questions with the role's lens hint in the prompt. The invariant
         # under test: retrieval metrics must NOT move (the role lives in the
         # prose, never in the search).
-        workspace = SimpleNamespace(
-            id=workspace_id, project_path=str(repo), assistant_mode=role
-        )
+        workspace = SimpleNamespace(id=workspace_id, project_path=str(repo), assistant_mode=role)
         uc = AskWorkspaceQuestionUseCase(
             workspace_repository=SimpleNamespace(get=lambda _wid: workspace),
             embedding_provider=embedder,

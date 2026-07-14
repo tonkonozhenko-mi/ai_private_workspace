@@ -76,8 +76,12 @@ GOLDEN_SET_TF_VPC: tuple[QuestionCase, ...] = (
         CLASS_PROJECT_PRECISE,
         ("examples/secondary-cidr-blocks/main.tf", "main.tf"),
     ),
-    QuestionCase("vpc-pb-what", "What is this repository and what does it provide?", CLASS_PROJECT_BROAD),
-    QuestionCase("vpc-pb-examples", "What example configurations ship with this module?", CLASS_PROJECT_BROAD),
+    QuestionCase(
+        "vpc-pb-what", "What is this repository and what does it provide?", CLASS_PROJECT_BROAD
+    ),
+    QuestionCase(
+        "vpc-pb-examples", "What example configurations ship with this module?", CLASS_PROJECT_BROAD
+    ),
     QuestionCase("vpc-sa-borscht", "What is a good recipe for borscht?", CLASS_SHOULD_ABSTAIN),
     QuestionCase("vpc-sa-weather", "What's the weather like tomorrow?", CLASS_SHOULD_ABSTAIN),
     QuestionCase("vpc-sa-hello", "Hi! How is your day going?", CLASS_SHOULD_ABSTAIN),
@@ -217,7 +221,9 @@ GOLDEN_SET_FASTAPI_TMPL: tuple[QuestionCase, ...] = (
         ("deployment.md",),
     ),
     QuestionCase("fst-pb-what", "What is this project about?", CLASS_PROJECT_BROAD),
-    QuestionCase("fst-pb-stack", "What is the technology stack, front to back?", CLASS_PROJECT_BROAD),
+    QuestionCase(
+        "fst-pb-stack", "What is the technology stack, front to back?", CLASS_PROJECT_BROAD
+    ),
     QuestionCase("fst-sa-movie", "Recommend me a good sci-fi movie.", CLASS_SHOULD_ABSTAIN),
     QuestionCase("fst-sa-time", "What time is it in Kyiv right now?", CLASS_SHOULD_ABSTAIN),
     QuestionCase("fst-sa-js", "Is JavaScript better than Python in general?", CLASS_SHOULD_ABSTAIN),
