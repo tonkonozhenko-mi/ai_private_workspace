@@ -7,6 +7,11 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **A decision that was overruled is no longer reported as the one in force.** An architecture decision record says so in its first line — "Superseded by [ADR-08]" — and the model read straight past it, answering that monthly reports are stored on the application server's local disk, three months after that was replaced by object storage. The app now reads the status line itself, names the file in the prompt and quotes the line back, and asks for the record that replaced it. Noticing is not something to leave to a small model on a good day.
+- **When the answer is no, it is now said as no.** Asked whether anything in the code enforced a retention period — nothing did — the answer was that it "may be implemented and would require further investigation". That is a hedge, and a hedge sounds like knowledge without being knowledge. The app now asks for the plain negative and names the hedges it will not accept.
+
 ### Changed
 
 - **A question about a share price, a poem or a film is small talk, whatever it scores.** The app decides whether a question is about your project by measuring how strongly it matches your files — but a repository written by Google carries the word "Google" in every copyright header, so "What is Google's stock price today?" matched it by a thousandth of a point and was answered from source code. Prices, headlines, poems, film recommendations and sign-offs ("thanks, that's all") are now recognised for what they are before any of that arithmetic runs. The guard holds: "write a poem about this repository" is still a question about your repository.
