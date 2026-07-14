@@ -33,10 +33,10 @@ import argparse
 import json
 import sys
 import tempfile
-from time import perf_counter
 from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
+from time import perf_counter
 from types import SimpleNamespace
 
 from app.core.domain.chunking import (
@@ -468,9 +468,7 @@ def _run_embedder(
             flush=True,
         )
 
-        llm = (
-            _build_llm(base_url, llm_model, gen_backend, llama_gen_url) if llm_model else None
-        )
+        llm = _build_llm(base_url, llm_model, gen_backend, llama_gen_url) if llm_model else None
         if llm is not None:
             _warmup_llm(llm)
         outcomes: list[QuestionOutcome] = []
