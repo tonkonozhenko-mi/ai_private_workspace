@@ -258,7 +258,12 @@ def _build_embedder(model_tag: str, backend: str, ollama_url: str, llama_embed_u
 def _build_llm(base_url: str, model: str):
     from app.adapters.llm.ollama_llm_provider import OllamaLLMProvider
 
-    return OllamaLLMProvider(base_url=base_url, model=model, timeout_seconds=180)
+    # 360s, not the app's default: vpc-pp-endpoints timed out at 180s even on a
+    # WARM model (2026-07-14, post-warmup rerun) — dense Terraform context makes
+    # one qwen3:4b generation legitimately slow. The eval is offline and would
+    # rather wait than report a coverage hole; the app's interactive timeout is
+    # a UX decision and stays where it is.
+    return OllamaLLMProvider(base_url=base_url, model=model, timeout_seconds=360)
 
 
 def _warmup_llm(llm, attempts: int = 2) -> None:
