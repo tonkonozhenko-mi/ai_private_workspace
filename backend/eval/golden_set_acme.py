@@ -110,6 +110,47 @@ GOLDEN_SET_ACME: tuple[QuestionCase, ...] = (
         CLASS_PROJECT_PRECISE,
         ("docker-compose.yml",),
     ),
+    # --- project_precise: the file kinds the indexer learned later (SQL
+    # migrations, tests, Makefile targets, tabular data) — added 2026-07-13,
+    # pre-registered before the first scored run that included them.
+    QuestionCase(
+        "acme-pp-orders-table",
+        "Where is the orders table defined?",
+        CLASS_PROJECT_PRECISE,
+        ("db/migrations/V2__create_orders.sql",),
+    ),
+    QuestionCase(
+        "acme-pp-order-status",
+        "How was the order status column added to the schema?",
+        CLASS_PROJECT_PRECISE,
+        ("db/migrations/V10__add_order_status.sql",),
+    ),
+    QuestionCase(
+        "acme-pp-run-tests",
+        "How do I run the tests for this project?",
+        CLASS_PROJECT_PRECISE,
+        ("Makefile", ".github/workflows/tests.yml"),
+    ),
+    QuestionCase(
+        "acme-pp-ledger-test",
+        "Which test covers the ledger worker's amount validation?",
+        CLASS_PROJECT_PRECISE,
+        ("tests/test_ledger.py",),
+    ),
+    QuestionCase(
+        "acme-pp-costs",
+        "What monthly infrastructure costs are recorded, and where?",
+        CLASS_PROJECT_PRECISE,
+        ("finance/costs.csv",),
+    ),
+    # Cyrillic case: the retrieval corpus is English; the user asks in Ukrainian.
+    # Script-aware token budgeting (#234) made this class measurable end to end.
+    QuestionCase(
+        "acme-pp-cyrillic-backend",
+        "Де налаштований Terraform backend і що зберігає стейт?",
+        CLASS_PROJECT_PRECISE,
+        ("terraform/backend.tf",),
+    ),
     # --- project_broad --------------------------------------------------
     QuestionCase("acme-pb-what", "What is this project about?", CLASS_PROJECT_BROAD),
     QuestionCase(
