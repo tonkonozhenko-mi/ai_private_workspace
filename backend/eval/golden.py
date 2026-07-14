@@ -13,10 +13,12 @@ Usage (from the ``backend/`` directory, with Ollama running):
     python -m eval.golden --all                 # all three, one after another
     python -m eval.golden --embedder nomic --repo /path/to/other/repo --with-generation
     python -m eval.golden --embedder nomic --with-generation --save-answers --repeats 3
+    python -m eval.golden --embedder nomic --with-generation --gen-backend llamacpp
 
 Retrieval metrics (hit@k, overblock, should-abstain) need only the embedder.
-``--with-generation`` additionally generates answers with the Ollama LLM (default
-qwen3:4b, the app's recommended answer model) and measures the grounding-warning
+``--with-generation`` additionally generates answers with the local LLM (default
+qwen3:4b on Ollama; ``--gen-backend llamacpp`` runs the same questions through a
+running llama-server instead, so a reader on either engine can reproduce the table) and measures the grounding-warning
 rate twice: on the raw first answer and again after the app's corrective
 regeneration pass — so the report shows the corrective sieve as a working
 mechanism, not decoration. ``--save-answers`` records each answer + its warning
@@ -34,6 +36,7 @@ import tempfile
 from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
+from time import perf_counter
 from types import SimpleNamespace
 
 from app.core.domain.chunking import (
@@ -264,15 +267,50 @@ def _build_embedder(model_tag: str, backend: str, ollama_url: str, llama_embed_u
     return OllamaEmbeddingProvider(base_url=ollama_url, model=model_tag, timeout_seconds=120)
 
 
-def _build_llm(base_url: str, model: str):
+# 360s, not the app's default: vpc-pp-endpoints timed out at 180s even on a WARM
+# model (2026-07-14, post-warmup rerun) — dense Terraform context makes one
+# generation legitimately slow. The eval is offline and would rather wait than
+# report a coverage hole; the app's interactive timeout is a UX decision and stays
+# where it is. Both engines get the same budget, or the comparison means nothing.
+_GENERATION_TIMEOUT_SECONDS = 360
+
+
+class LlamaServerNotRunning(RuntimeError):
+    pass
+
+
+def _build_llm(base_url: str, model: str, gen_backend: str, llama_gen_url: str):
+    """The answer model for the chosen generation engine.
+
+    The app ships two engines; until now the benchmark measured one, so a reader
+    running llama.cpp could not reproduce the published table — and "run it
+    yourself" is the whole claim. Ollama picks the model by tag; llama-server
+    serves whatever GGUF it was started with, so the tag there is only a label.
+    """
+    if gen_backend == "llamacpp":
+        import httpx
+
+        from app.adapters.llm.llama_server_llm_provider import LlamaServerLLMProvider
+
+        try:
+            httpx.get(f"{llama_gen_url.rstrip('/')}/health", timeout=5)
+        except httpx.HTTPError as error:
+            raise LlamaServerNotRunning(
+                f"No llama-server answering at {llama_gen_url} ({error}). Start the "
+                "app's llama.cpp engine (or run llama-server on your answer model) "
+                "and pass --llama-gen-url if it is not on the default port."
+            ) from error
+        return LlamaServerLLMProvider(
+            base_url=llama_gen_url,
+            model=model,
+            timeout_seconds=_GENERATION_TIMEOUT_SECONDS,
+        )
+
     from app.adapters.llm.ollama_llm_provider import OllamaLLMProvider
 
-    # 360s, not the app's default: vpc-pp-endpoints timed out at 180s even on a
-    # WARM model (2026-07-14, post-warmup rerun) — dense Terraform context makes
-    # one qwen3:4b generation legitimately slow. The eval is offline and would
-    # rather wait than report a coverage hole; the app's interactive timeout is
-    # a UX decision and stays where it is.
-    return OllamaLLMProvider(base_url=base_url, model=model, timeout_seconds=360)
+    return OllamaLLMProvider(
+        base_url=base_url, model=model, timeout_seconds=_GENERATION_TIMEOUT_SECONDS
+    )
 
 
 def _warmup_llm(llm, attempts: int = 2) -> None:
@@ -359,6 +397,8 @@ def _run_embedder(
     set_name: str = "app",
     backend: str = "ollama",
     llama_embed_url: str = "http://127.0.0.1:8081",
+    gen_backend: str = "ollama",
+    llama_gen_url: str = "http://127.0.0.1:8080",
     save_answers: bool = False,
     repeats: int = 1,
     baseline: bool = False,
@@ -371,6 +411,10 @@ def _run_embedder(
     # legible at a glance. The app set keeps its bare alias for backwards-compatible
     # report filenames; other sets are suffixed.
     label = alias if backend == "ollama" else f"{alias}-llamacpp"
+    # The generation engine gets its own suffix so a llama.cpp run never overwrites
+    # the published Ollama report — it is a second column, not a replacement.
+    if gen_backend == "llamacpp" and llm_model:
+        label = f"{label}-llamacpp-gen"
     if set_name != "app":
         label = f"{label}-{set_name}"
     if baseline:
@@ -424,7 +468,7 @@ def _run_embedder(
             flush=True,
         )
 
-        llm = _build_llm(base_url, llm_model) if llm_model else None
+        llm = _build_llm(base_url, llm_model, gen_backend, llama_gen_url) if llm_model else None
         if llm is not None:
             _warmup_llm(llm)
         outcomes: list[QuestionOutcome] = []
@@ -476,6 +520,7 @@ def _run_embedder(
                     raw_hallucinated=gen["raw_hallucinated"] if gen else None,
                     warning_codes=tuple(gen["warning_codes"]) if gen else (),
                     answer=(gen["answer"] if (gen and save_answers) else None),
+                    generation_seconds=(gen["seconds"] if gen else None),
                 )
             )
 
@@ -528,6 +573,7 @@ def _one_generation(uc, request, results, best_score, llm, corrective: bool = Tr
         # thought, and the provider transparently retries without the flag on
         # models that can't think.
         request = replace(request, temperature=0.0, think=False)
+        started = perf_counter()
         context_results, prompt, _m, _f, _u = uc._grounded_prompt(request, llm, results, [])
         answer, _usage = uc._generate_answer_with_usage(llm, prompt, [], 0.0, False, [])
         raw_warnings = _evaluate_answer(uc, request, context_results, answer)
@@ -545,12 +591,16 @@ def _one_generation(uc, request, results, best_score, llm, corrective: bool = Tr
         if regen is not None:
             product_answer = regen["answer"]
             product_warnings = regen["warnings"]
+        # Everything the person waits for after the question is asked: the prompt
+        # build, the model call, and the corrective pass when it fires.
+        seconds = perf_counter() - started
 
         return {
             "raw_hallucinated": bool(_hard_grounding_warnings(raw_warnings)),
             "hallucinated": bool(_hard_grounding_warnings(product_warnings)),
             "warning_codes": [w.code for w in product_warnings],
             "answer": product_answer,
+            "seconds": seconds,
         }
     except Exception as error:  # noqa: BLE001
         print(f"    (generation skipped for {request.question[:40]!r}: {error})", flush=True)
@@ -578,11 +628,13 @@ def _generate_outcome(
     raw_votes = sum(1 for r in runs if r["raw_hallucinated"])
     prod_votes = sum(1 for r in runs if r["hallucinated"])
     last = runs[-1]
+    seconds = sorted(r["seconds"] for r in runs)[n // 2]
     return {
         "raw_hallucinated": raw_votes * 2 >= n,
         "hallucinated": prod_votes * 2 >= n,
         "warning_codes": last["warning_codes"],
         "answer": last["answer"],
+        "seconds": seconds,
     }
 
 
@@ -715,6 +767,21 @@ def main(argv=None) -> int:
         "app's recommended answer model — if the flag is given without a value)",
     )
     parser.add_argument(
+        "--gen-backend",
+        choices=("ollama", "llamacpp"),
+        default="ollama",
+        help="which engine GENERATES the answers (default ollama). The app ships two "
+        "engines; a benchmark that measures only one cannot be reproduced by half our "
+        "readers. 'llamacpp' talks to a running llama-server (see --llama-gen-url); the "
+        "report is suffixed '-llamacpp-gen' so it sits beside the Ollama one rather "
+        "than replacing it. Needs --with-generation.",
+    )
+    parser.add_argument(
+        "--llama-gen-url",
+        default="http://127.0.0.1:8080",
+        help="llama-server answer endpoint (used only with --gen-backend llamacpp)",
+    )
+    parser.add_argument(
         "--save-answers",
         action="store_true",
         help="record each generated answer + its warning codes in the JSON report, so "
@@ -733,6 +800,8 @@ def main(argv=None) -> int:
         parser.error("pass --embedder <name> or --all")
     if (args.save_answers or args.repeats != 1) and not args.with_generation:
         parser.error("--save-answers and --repeats require --with-generation")
+    if args.gen_backend == "llamacpp" and not args.with_generation:
+        parser.error("--gen-backend only applies with --with-generation")
 
     project_root = Path(__file__).resolve().parents[2]
     # --repo wins; otherwise use the repo the chosen set is written against (the app
@@ -754,21 +823,28 @@ def main(argv=None) -> int:
 
     aliases = sorted(EMBEDDERS) if args.all else [args.embedder]
     for alias in aliases:
-        _run_embedder(
-            alias,
-            repo,
-            args.k,
-            args.ollama_url,
-            args.with_generation,
-            question_set=question_set,
-            set_name=args.question_set,
-            backend=args.backend,
-            llama_embed_url=args.llama_embed_url,
-            save_answers=args.save_answers,
-            repeats=max(1, args.repeats),
-            baseline=args.baseline,
-            role=args.role,
-        )
+        try:
+            _run_embedder(
+                alias,
+                repo,
+                args.k,
+                args.ollama_url,
+                args.with_generation,
+                question_set=question_set,
+                set_name=args.question_set,
+                backend=args.backend,
+                llama_embed_url=args.llama_embed_url,
+                gen_backend=args.gen_backend,
+                llama_gen_url=args.llama_gen_url,
+                save_answers=args.save_answers,
+                repeats=max(1, args.repeats),
+                baseline=args.baseline,
+                role=args.role,
+            )
+        except LlamaServerNotRunning as error:
+            # A missing engine is a setup mistake, not a bug. Say what to start.
+            print(f"error: {error}", file=sys.stderr)
+            return 2
     return 0
 
 

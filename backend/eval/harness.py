@@ -40,6 +40,11 @@ class QuestionOutcome:
     raw_hallucinated: bool | None = None
     warning_codes: tuple[str, ...] = ()
     answer: str | None = None
+    # Wall-clock seconds spent generating this answer (the model call and the app's
+    # corrective pass around it — nothing else). Published because one question on
+    # the Terraform corpus took long enough to look like a bug, and "it is slow" is
+    # not an answer: the number is, and it is the same number on both engines.
+    generation_seconds: float | None = None
 
 
 @dataclass(frozen=True)
@@ -64,6 +69,11 @@ class EvalReport:
     overall_should_abstain_accuracy: float | None = None
     overall_hallucination_rate: float | None = None
     overall_raw_hallucination_rate: float | None = None
+    # How long an answer took: the median and the worst. The median says what the
+    # thing costs; the maximum says whether one question is an outlier or the whole
+    # corpus is slow — the two conclusions call for different fixes.
+    generation_seconds_p50: float | None = None
+    generation_seconds_max: float | None = None
 
 
 def case_is_hit(case: QuestionCase, outcome: QuestionOutcome) -> bool:
@@ -80,6 +90,16 @@ def case_is_hit(case: QuestionCase, outcome: QuestionOutcome) -> bool:
 
 def _mean(values: list[float]) -> float | None:
     return round(sum(values) / len(values), 4) if values else None
+
+
+def _median(values: list[float]) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    middle = len(ordered) // 2
+    if len(ordered) % 2:
+        return round(ordered[middle], 2)
+    return round((ordered[middle - 1] + ordered[middle]) / 2, 2)
 
 
 def compute_report(
@@ -138,6 +158,7 @@ def compute_report(
     project_raw_hallu = [
         by_id[c.id].raw_hallucinated for c in project if by_id[c.id].raw_hallucinated is not None
     ]
+    timings = [o.generation_seconds for o in outcomes if o.generation_seconds is not None]
 
     return EvalReport(
         embedder=embedder,
@@ -153,6 +174,8 @@ def compute_report(
         ),
         overall_hallucination_rate=_mean([1.0 if h else 0.0 for h in project_hallu]),
         overall_raw_hallucination_rate=_mean([1.0 if h else 0.0 for h in project_raw_hallu]),
+        generation_seconds_p50=_median(timings),
+        generation_seconds_max=(round(max(timings), 2) if timings else None),
     )
 
 
@@ -191,6 +214,11 @@ def render_markdown(
             lines.append(
                 f"- Hallucination rate (generation): **{_pct(report.overall_hallucination_rate)}**"
             )
+    if report.generation_seconds_p50 is not None:
+        lines.append(
+            "- Generation seconds — median / worst: "
+            f"**{report.generation_seconds_p50:.1f}s / {report.generation_seconds_max:.1f}s**"
+        )
     lines.append("")
     lines.append("## By class")
     lines.append("")
@@ -247,6 +275,8 @@ def report_to_dict(
             "should_abstain_accuracy": report.overall_should_abstain_accuracy,
             "hallucination_rate": report.overall_hallucination_rate,
             "raw_hallucination_rate": report.overall_raw_hallucination_rate,
+            "generation_seconds_p50": report.generation_seconds_p50,
+            "generation_seconds_max": report.generation_seconds_max,
         },
         "per_class": [
             {
@@ -269,6 +299,11 @@ def report_to_dict(
                 "source_paths": list(o.source_paths),
                 "hallucinated": o.hallucinated,
                 "raw_hallucinated": o.raw_hallucinated,
+                **(
+                    {"generation_seconds": round(o.generation_seconds, 2)}
+                    if o.generation_seconds is not None
+                    else {}
+                ),
                 # Warning codes + answer text are only populated under --save-answers,
                 # so flagged cases can be read by hand rather than trusted blind.
                 **({"warning_codes": list(o.warning_codes)} if o.warning_codes else {}),
