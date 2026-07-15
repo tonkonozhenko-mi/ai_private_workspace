@@ -137,6 +137,18 @@ sources, names ADR-05 as superseded, and gives an honest negative for the
 code side. wiki-export after these fixes: hit@5 100%, off-topic refusal 100%,
 hallucination-warning rate 0%→0% at `--repeats 3`.
 
+**Adversarial first run (2026-07-15, evening).** The four pre-registered traps
+(protocol point 6) went in and the whole 18-question wiki set was re-run at
+`--repeats 3`: **100% hit@5, 0% wrongly refused, 100% should-abstain, 0%→0%
+hallucination warnings.** The false premise was corrected in words ("We did
+not choose Kafka; we chose RabbitMQ…"), the stale premise was corrected
+through the supersession pointer (the successor ADR is what got cited), and
+both unanswerable questions received explicit honest negatives — which the
+first scoring pass counted as failures, until reading the answers showed the
+metric, not the model, was wrong; the honest-negative rule in point 6 is the
+result. Traps that only ever catch the subject are decoration; these have now
+caught the model, the prompt, the detector and the scoring — once each.
+
 ### Results (v2, 2026-07-14)
 
 Config: `nomic-embed-text` + `qwen3:4b` (temperature 0), k=5, Ollama, consumer
