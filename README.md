@@ -65,53 +65,68 @@ implementation from the repo, each source labelled.
 - **Verifiable.** Every reply cites sources; a deterministic groundedness check
   flags unsupported claims in the UI instead of hiding them.
 
-## Measured, not promised
+## Benchmarks
 
-Every number below is reproducible from this repository with local models —
-the full protocol, pre-registered question sets and per-corpus reports live in
-[`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
+**Measured, not promised.** Every number below is reproducible from this
+repository with local models; the protocol — questions written *before* the
+first run, projects pinned to exact commits, both columns published when a bug
+is found and fixed — lives in [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
 
-**On projects we didn't write.** Four public corpora pinned to exact commits,
-each asked the same pre-registered questions twice: once through a **naive
-local RAG** (plain vector search, same models, same index) and once through
-this app's pipeline. Each cell is *naive → this app*:
+**The comparison.** The same two small local models, run twice over the same
+projects and the same questions. First as a **plain local RAG** — a language
+model plus vector search, which is what most "chat with your files" tools are.
+Then as **this app** — same models, same index, plus everything the pipeline
+adds: hybrid search, a calibrated refusal threshold, filtering of
+machine-generated code, handling of superseded decisions, and a
+self-correction pass over every answer.
 
-| Corpus (what it is) | Right file in sources | Off-topic refused | Answers flagged ungrounded |
+Four real projects, none of them written by us:
+
+- [**terraform-aws-vpc**](https://github.com/terraform-aws-modules/terraform-aws-vpc) — the AWS networking module thousands of teams deploy
+- [**microservices-demo**](https://github.com/GoogleCloudPlatform/microservices-demo) — Google's Kubernetes demo: 11 services in 5 languages
+- [**full-stack-fastapi-template**](https://github.com/fastapi/full-stack-fastapi-template) — the official FastAPI + React starter
+- **wiki-export** — a company knowledge base with decision records (generated: real ones live under NDA — which is rather the point of this app)
+
+| | Plain local RAG | This app |
+|---|---:|---:|
+| **Answers that cite the right file** | 70% | **86%** |
+| **Off-topic questions honestly refused** — "what's a good borscht recipe?" must not get an answer "from" a Terraform module | 0 of 12 | **12 of 12** |
+| **Answers still carrying unsupported claims** | 8–36% per project, and nothing corrects them | **0%**¹ |
+
+<sub>¹ The published v2 run measured 9% on the wiki project; the follow-up
+fixes it motivated brought it to 0% at `--repeats 3` — the whole chain is in
+[BENCHMARKS](docs/BENCHMARKS.md), including the two times our benchmark caught
+our own tooling.</sub>
+
+<details>
+<summary><b>Per-project numbers</b> (each cell: plain RAG → this app)</summary>
+
+| Project | Right file cited | Off-topic refused | Unsupported claims |
 |---|---:|---:|---:|
-| [terraform-aws-vpc](https://github.com/terraform-aws-modules/terraform-aws-vpc) (Terraform) | 67% → **89%** | 0% → **100%** | 10% → **0%** |
-| [microservices-demo](https://github.com/GoogleCloudPlatform/microservices-demo) (K8s, 5 languages) | 56% → 56% | 0% → **100%** | 9% → **0%** |
-| [fastapi-template](https://github.com/fastapi/full-stack-fastapi-template) (Python+React) | 60% → **100%** | 0% → **100%** | 8% → **0%** |
-| wiki-export (knowledge base) | 100% → 100% | 0% → **100%** | 36% → **0%**¹ |
+| terraform-aws-vpc | 67% → **89%** | 0% → **100%** | 10% → **0%** |
+| microservices-demo | 56% → 56% | 0% → **100%** | 9% → **0%** |
+| full-stack-fastapi-template | 60% → **100%** | 0% → **100%** | 8% → **0%** |
+| wiki-export | 100% → 100% | 0% → **100%** | 36% → **0%**¹ |
 
-¹ The published v2 run measured 9% here; the follow-up fixes it motivated
-(supersession handling, grounding checks judging the visible answer) brought
-it to 0% at `--repeats 3` — the chain is documented in
-[BENCHMARKS](docs/BENCHMARKS.md), including the two times the trap caught our
-own tooling.
+Commands, dates and the found-and-fixed history for every row:
+[docs/BENCHMARKS.md](docs/BENCHMARKS.md#results-v2-2026-07-14).
+</details>
 
-Two rows to read twice. The naive RAG **never once refused an off-topic
-question** — ask it for a borscht recipe and it cites a Terraform module; this
-app refused all twelve. And its hallucination warnings stay where they are,
-because nothing corrects them — here, a deterministic groundedness check plus
-one corrective pass takes every corpus to zero.
+**Both engines, one truth.** The app ships two local engines — llama.cpp
+(built in) and Ollama — and the benchmark runs on both. Every quality metric
+agrees digit for digit; the only difference is speed (seconds per generated
+answer, Terraform project, consumer laptop):
 
-**Both engines, same truth.** The app ships llama.cpp and Ollama; the benchmark
-runs on both (`--gen-backend`). Retrieval metrics agree digit for digit — the
-difference is speed (terraform-aws-vpc, generation per answer, consumer
-laptop):
-
-| Engine | median | worst |
+| Engine | typical answer | slowest answer |
 |---|---:|---:|
 | llama.cpp (built-in) | **25.5 s** | **43.2 s** |
 | Ollama | 41.3 s | 126.2 s |
 
-**On its own code**, the 40-question in-repo suite holds 95% hit@5, 100%
-off-topic refusal, and 3.3% → **0%** grounding warnings after the corrective
-pass. When the first external run found bugs (it found three), they were fixed
-and everything re-run — [both columns are published](docs/BENCHMARKS.md#results-v2-2026-07-14),
-because "found and fixed" is the claim, not first-try perfection.
+**On its own code**, the 40-question in-repo suite holds 95% correct-file
+citations, 100% off-topic refusal, and 3.3% → **0%** unsupported claims after
+the self-correction pass.
 
-Reproduce any row: `python -m eval.golden --embedder nomic --set <corpus>
+Reproduce any row: `python -m eval.golden --embedder nomic --set <project>
 --with-generation [--baseline]` (from `backend/`).
 
 ## Install and first run
