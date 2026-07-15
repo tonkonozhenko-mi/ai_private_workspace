@@ -222,8 +222,16 @@ Follow-up with the timing instrumentation (2026-07-15, same machine, same
 models): the timeout did not reproduce on either engine — the question
 completed in ordinary time, so the tail was engine state, not the question.
 Steady-state generation on this corpus: Ollama median 41.3 s, worst 126.2 s;
-llama.cpp median 25.5 s, worst 43.2 s. Retrieval metrics were identical across
-both engines, digit for digit. At `--repeats 1` the hallucination flag showed
+llama.cpp median 25.5 s, worst 43.2 s. One attribution matters: each engine ran
+the answer model it ships with on the test machine — qwen3:4b behind Ollama,
+Mistral 7B behind llama-server — so these are engine+model pairs, the same
+choice a user makes in the app, not a bare-engine race. Retrieval metrics were
+identical across both, digit for digit — retrieval does not involve the answer
+model. A later cross-check on the wiki corpus (2026-07-15) held the pattern
+even across the different models: identical retrieval, 0% corrected
+hallucination warnings on both, and the pair-speed gap wider still on short
+answers (llama.cpp+Mistral median 2.2 s vs Ollama+qwen3 48.7 s, much of the
+Ollama time being qwen3's inline deliberation). At `--repeats 1` the hallucination flag showed
 run-to-run variance of ±1 question (a different single answer flagged per
 engine) — the `--repeats N` majority vote exists for exactly this; the tables
 above are single runs and say so.
