@@ -63,7 +63,27 @@ content hash so it can never drift under its questions.
    this". Both count as should-abstain success; an answer counts only when it
    carries no fabrication signals (invented files or terms). It is not
    penalised for citing nothing — an honest negative has nothing to cite.
-7. **The harness is stricter than the product on broad questions.** The app
+   *Honest ≠ correct*, and the class design keeps them apart structurally: an
+   honest "not found" on a question whose answer IS in the corpus lands in the
+   precise class and scores as a miss; honest-negative credit exists only in
+   the abstain class, where absence is guaranteed by pre-registration.
+7. **The scoring is guarded against itself.** A leakage audit checks that no
+   pre-registered question appears in the product's runtime strings; it found
+   (and this file records) one real coupling — three should-abstain questions
+   were near-verbatim copies of the product's own calibration probes, i.e. the
+   abstention threshold was being tested on its calibration input. All three
+   were retired and replaced (2026-07-15) with questions from unrelated router
+   categories; the coupling had been inert in the published numbers (every
+   affected question was routed before the threshold), but inert is not the
+   same as absent. And the fabrication detector is mutation-tested: grounded
+   citations are programmatically corrupted (typos, plurals, wrong extensions,
+   phantom versions, cross-corpus files) and the suite gates on **100%
+   fabrication recall together with 0% false positives on the originals** — a
+   change that buys one at the other's expense fails CI. Shared *phrasing*
+   between the benchmark and the app's starter-question suggestions is
+   deliberate and harmless: the benchmark asks what the product invites users
+   to ask, and a UI suggestion string cannot raise a retrieval score.
+8. **The harness is stricter than the product on broad questions.** The app
    builds a handbook pseudo-document at scan time and answers "what is this
    project about?" from it; the harness indexes only the repository's own
    files, so a broad question must clear the abstention bar on raw retrieval
@@ -174,7 +194,7 @@ Each cell is baseline → pipeline. Three readings the table supports:
   wiki corpus from 18.2% to 9.1% and every code corpus to 0%.
 - ¹ The two wrongly-refused questions are both "what is this project about?" —
   the broad class the product answers from its scan-time handbook, which the
-  harness deliberately does not build (protocol point 6). The strictness is
+  harness deliberately does not build (protocol point 8). The strictness is
   reported, not special-cased.
 
 **What the first run found (v1 → v2).** The v1 run of this benchmark found

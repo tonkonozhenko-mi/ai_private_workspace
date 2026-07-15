@@ -225,7 +225,11 @@ GOLDEN_SET_FASTAPI_TMPL: tuple[QuestionCase, ...] = (
         "fst-pb-stack", "What is the technology stack, front to back?", CLASS_PROJECT_BROAD
     ),
     QuestionCase("fst-sa-movie", "Recommend me a good sci-fi movie.", CLASS_SHOULD_ABSTAIN),
-    QuestionCase("fst-sa-time", "What time is it in Kyiv right now?", CLASS_SHOULD_ABSTAIN),
+    # fst-sa-time retired 2026-07-15: word-for-word superset of a calibration probe
+    # ("what time is it right now") — see golden_set.py sa-worldcup for the rule.
+    QuestionCase(
+        "fst-sa-population", "What is the population of Japan?", CLASS_SHOULD_ABSTAIN
+    ),
     QuestionCase("fst-sa-js", "Is JavaScript better than Python in general?", CLASS_SHOULD_ABSTAIN),
 )
 

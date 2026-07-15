@@ -164,7 +164,10 @@ GOLDEN_SET_ACME: tuple[QuestionCase, ...] = (
     QuestionCase("acme-pb-arch", "Give me an overview of the architecture.", CLASS_PROJECT_BROAD),
     # --- should_abstain (NOT about the project) -------------------------
     QuestionCase("acme-sa-time", "What time is it?", CLASS_SHOULD_ABSTAIN),
-    QuestionCase("acme-sa-capital", "What is the capital of France?", CLASS_SHOULD_ABSTAIN),
+    # acme-sa-capital retired 2026-07-15: verbatim calibration probe (see golden_set.py).
+    QuestionCase(
+        "acme-sa-president", "Who is the president of Brazil?", CLASS_SHOULD_ABSTAIN
+    ),
     QuestionCase("acme-sa-hello", "Hello, how are you doing?", CLASS_SHOULD_ABSTAIN),
     QuestionCase("acme-sa-math", "What is 17 times 23?", CLASS_SHOULD_ABSTAIN),
 )
