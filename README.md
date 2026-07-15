@@ -67,22 +67,46 @@ implementation from the repo, each source labelled.
 
 ## Measured, not promised
 
-A 40-question golden-set benchmark runs the real pipeline end to end
-([`backend/eval/`](backend/eval/README.md)); its deterministic parts are gated
-in CI. Current numbers with the default models (temperature 0, this repository
-as the corpus):
+Every number below is reproducible from this repository with local models —
+the full protocol, pre-registered question sets and per-corpus reports live in
+[`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
 
-| What is measured | Result |
-|---|---:|
-| The right file is in the sources (hit@5, questions with a known answer file) | **95%** |
-| Project questions wrongly refused | **0%** |
-| Off-topic questions correctly get no project sources | **100%** |
-| Answers carrying grounding warnings — raw model → after self-correction | **6.7% → 3.3%** |
+**On projects we didn't write.** Four public corpora pinned to exact commits,
+each asked the same pre-registered questions twice: once through a **naive
+local RAG** (plain vector search, same models, same index) and once through
+this app's pipeline. Each cell is *naive → this app*:
 
-The last row is the one to read twice: when the deterministic grounding check
-flags a fresh answer, one corrective pass halves the failure rate — the safety
-net is a measured mechanism, not a claim. Reproduce it yourself:
-`python -m eval.golden --embedder nomic --with-generation` (from `backend/`).
+| Corpus (what it is) | Right file in sources | Off-topic refused | Answers flagged ungrounded |
+|---|---:|---:|---:|
+| [terraform-aws-vpc](https://github.com/terraform-aws-modules/terraform-aws-vpc) (Terraform) | 67% → **89%** | 0% → **100%** | 10% → **0%** |
+| [microservices-demo](https://github.com/GoogleCloudPlatform/microservices-demo) (K8s, 5 languages) | 56% → 56% | 0% → **100%** | 9% → **0%** |
+| [fastapi-template](https://github.com/fastapi/full-stack-fastapi-template) (Python+React) | 60% → **100%** | 0% → **100%** | 8% → **0%** |
+| wiki-export (knowledge base) | 100% → 100% | 0% → **100%** | 36% → **0%** |
+
+Two rows to read twice. The naive RAG **never once refused an off-topic
+question** — ask it for a borscht recipe and it cites a Terraform module; this
+app refused all twelve. And its hallucination warnings stay where they are,
+because nothing corrects them — here, a deterministic groundedness check plus
+one corrective pass takes every corpus to zero.
+
+**Both engines, same truth.** The app ships llama.cpp and Ollama; the benchmark
+runs on both (`--gen-backend`). Retrieval metrics agree digit for digit — the
+difference is speed (terraform-aws-vpc, generation per answer, consumer
+laptop):
+
+| Engine | median | worst |
+|---|---:|---:|
+| llama.cpp (built-in) | **25.5 s** | **43.2 s** |
+| Ollama | 41.3 s | 126.2 s |
+
+**On its own code**, the 40-question in-repo suite holds 95% hit@5, 100%
+off-topic refusal, and 3.3% → **0%** grounding warnings after the corrective
+pass. When the first external run found bugs (it found three), they were fixed
+and everything re-run — [both columns are published](docs/BENCHMARKS.md#results-v2-2026-07-14),
+because "found and fixed" is the claim, not first-try perfection.
+
+Reproduce any row: `python -m eval.golden --embedder nomic --set <corpus>
+--with-generation [--baseline]` (from `backend/`).
 
 ## Install and first run
 

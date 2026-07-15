@@ -83,6 +83,51 @@ GOLDEN_SET_WIKI: tuple[QuestionCase, ...] = (
     QuestionCase("wiki-sa-pasta", "How do I cook pasta carbonara?", CLASS_SHOULD_ABSTAIN),
     QuestionCase("wiki-sa-year", "What year is it?", CLASS_SHOULD_ABSTAIN),
     QuestionCase("wiki-sa-joke", "Tell me a joke about programmers.", CLASS_SHOULD_ABSTAIN),
+    # --- Adversarial cases (pre-registered 2026-07-15, before any scored run
+    # that includes them). The superseded-ADR trap paid for itself six times
+    # over; these extend the same idea: questions designed to be answered
+    # WRONGLY by a system that pattern-matches instead of reading.
+    #
+    # A question with a FALSE PREMISE. The corpus chose RabbitMQ; a system that
+    # completes the premise instead of correcting it will explain a decision
+    # that was never made. Retrieval is measured here (ADR-03 is where the
+    # truth lives); what the generated answer does with the premise is judged
+    # by the grounding checks and by eyeball via --save-answers.
+    QuestionCase(
+        "wiki-adv-false-premise",
+        "Why did we choose Kafka for the message queue?",
+        CLASS_PROJECT_PRECISE,
+        ("[ADR-03]_Queue_technology.md",),
+    ),
+    # A PREMISE FROM A DEAD DECISION, phrased as if it were current. ADR-05
+    # (local disk) is superseded by ADR-08 (object storage); the honest answer
+    # corrects the premise. Expected path is the SUCCESSOR: plain similarity
+    # ranks the dead page first, so this case passes only if the supersession
+    # pointer actually hands the live decision over.
+    QuestionCase(
+        "wiki-adv-stale-premise",
+        "In which directory on the application server's local disk are monthly statements kept?",
+        CLASS_PROJECT_PRECISE,
+        ("[ADR-08]_Report_storage_v2.md",),
+    ),
+    # A technology the corpus NEVER MENTIONS, asked in-domain and in fluent
+    # jargon. There is no Kubernetes anywhere in this wiki; the only honest
+    # outcome is abstention, and any confident answer is fabrication by
+    # construction.
+    QuestionCase(
+        "wiki-adv-absent-tech",
+        "How is Kubernetes autoscaling configured for the ledger service?",
+        CLASS_SHOULD_ABSTAIN,
+    ),
+    # ENTITIES FROM TWO REAL PAGES fused into one plausible-sounding fake: the
+    # drain script belongs to the poison-message runbook, sandbox tenants to a
+    # notes page, and no page connects them. Nothing in the corpus answers
+    # this; abstention is the only grounded outcome.
+    QuestionCase(
+        "wiki-adv-chimera",
+        "What does the drain script do when a sandbox tenant expires?",
+        CLASS_SHOULD_ABSTAIN,
+    ),
 )
 
 

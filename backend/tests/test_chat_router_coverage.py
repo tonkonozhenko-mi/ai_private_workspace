@@ -34,14 +34,35 @@ ALL_SETS = {
 }
 
 
-def test_every_off_topic_question_is_routed_to_general_chat():
+def test_every_small_talk_question_is_routed_to_general_chat():
+    # Should-abstain now has two subclasses with OPPOSITE routing expectations,
+    # told apart by id convention. "-sa-" is small talk (borscht, jokes, stock
+    # prices): the router must catch it before retrieval. "-adv-" is adversarial
+    # (a project-flavoured question the corpus cannot answer — absent tech, a
+    # chimera of real entities): routing it to general chat would hand it to the
+    # model's imagination, which is the exact failure it exists to probe. It must
+    # REACH retrieval and abstain at the threshold.
     missed = [
         (name, case.id, case.question)
         for name, cases in ALL_SETS.items()
         for case in cases
-        if case.cls == CLASS_SHOULD_ABSTAIN and not looks_general_chat(case.question)
+        if case.cls == CLASS_SHOULD_ABSTAIN
+        and "-adv-" not in case.id
+        and not looks_general_chat(case.question)
     ]
     assert missed == []
+
+
+def test_adversarial_abstain_questions_are_never_routed_away_from_retrieval():
+    routed = [
+        (name, case.id, case.question)
+        for name, cases in ALL_SETS.items()
+        for case in cases
+        if case.cls == CLASS_SHOULD_ABSTAIN
+        and "-adv-" in case.id
+        and looks_general_chat(case.question)
+    ]
+    assert routed == []
 
 
 def test_no_project_question_is_ever_routed_away_from_retrieval():
