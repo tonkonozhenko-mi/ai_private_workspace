@@ -53,7 +53,17 @@ content hash so it can never drift under its questions.
 5. **Role invariance.** `--role tester` (etc.) re-runs generation with that
    role's lens hint in the prompt. Retrieval metrics must not move; the flag
    exists to prove the invariant "the role lives in the prose, not the search".
-6. **The harness is stricter than the product on broad questions.** The app
+6. **Adversarial cases, and what "abstain" means for them.** The wiki set
+   carries pre-registered traps: a question with a false premise ("why did we
+   choose Kafka?" — RabbitMQ was chosen), a premise from a superseded decision,
+   a technology the corpus never mentions, and a chimera fusing entities from
+   two unrelated pages. For the last two the correct outcome is *no
+   fabrication* — and there are two honest ways to deliver it: refuse at the
+   retrieval threshold, or answer with an explicit "the files do not contain
+   this". Both count as should-abstain success; an answer counts only when it
+   carries no fabrication signals (invented files or terms). It is not
+   penalised for citing nothing — an honest negative has nothing to cite.
+7. **The harness is stricter than the product on broad questions.** The app
    builds a handbook pseudo-document at scan time and answers "what is this
    project about?" from it; the harness indexes only the repository's own
    files, so a broad question must clear the abstention bar on raw retrieval

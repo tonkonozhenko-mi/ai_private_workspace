@@ -62,7 +62,7 @@ from app.core.use_cases.ask_workspace_question import (
     _hard_grounding_warnings,
 )
 from eval.corpora import CORPORA, ensure_corpus
-from eval.golden_set import golden_set
+from eval.golden_set import CLASS_SHOULD_ABSTAIN, golden_set
 from eval.golden_set_acme import ACME_REPO_RELATIVE, golden_set_acme
 from eval.golden_set_external import (
     golden_set_boutique,
@@ -72,6 +72,7 @@ from eval.golden_set_external import (
 from eval.golden_set_wiki import golden_set_wiki
 from eval.harness import (
     QuestionOutcome,
+    answer_is_honest_negative,
     compute_report,
     render_markdown,
     report_to_dict,
@@ -99,6 +100,11 @@ EXTERNAL_SETS = {
     "wiki-export": golden_set_wiki,
 }
 assert set(EXTERNAL_SETS) <= set(CORPORA)
+
+# The warning codes that mean the answer INVENTED something (files or terms).
+# answer_missing_source_paths is deliberately absent: an honest "not in these
+# files" has nothing to cite and trips that code by construction.
+_FABRICATION_CODES = frozenset({"answer_cited_unknown_source", "answer_term_not_in_context"})
 
 # --embedder alias -> (Ollama model tag, human label)
 EMBEDDERS = {
@@ -510,6 +516,24 @@ def _run_embedder(
                     uc, request, results, best, llm, repeats, corrective=not baseline
                 )
 
+            # A should-abstain question that cleared the threshold (adversarial
+            # cases legitimately do — their entities are real) can still succeed:
+            # by answering, plainly and cleanly, that the files do not contain it.
+            # "Clean" means no FABRICATION signals. It deliberately does not mean
+            # "cites a source path": an honest "not in these files" has no file to
+            # cite, and answer_missing_source_paths fires on it by construction —
+            # disqualifying it for that would punish the exact behaviour the class
+            # rewards (observed 2026-07-15: both adversarial honest negatives
+            # carried only that code).
+            fabrication = _FABRICATION_CODES & set(gen["warning_codes"]) if gen else set()
+            honest_negative = bool(
+                case.cls == CLASS_SHOULD_ABSTAIN
+                and not abstained
+                and gen
+                and not fabrication
+                and answer_is_honest_negative(gen["answer"])
+            )
+
             outcomes.append(
                 QuestionOutcome(
                     question_id=case.id,
@@ -521,6 +545,7 @@ def _run_embedder(
                     warning_codes=tuple(gen["warning_codes"]) if gen else (),
                     answer=(gen["answer"] if (gen and save_answers) else None),
                     generation_seconds=(gen["seconds"] if gen else None),
+                    honest_negative=honest_negative,
                 )
             )
 

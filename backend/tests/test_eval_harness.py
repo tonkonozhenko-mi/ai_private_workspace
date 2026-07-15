@@ -138,3 +138,41 @@ def test_golden_set_is_wellformed():
             assert c.should_abstain
     # Fable's live regression is present
     assert any("time" in c.question.lower() and c.cls == CLASS_SHOULD_ABSTAIN for c in gs)
+
+
+def test_an_honest_negative_counts_for_the_abstain_class():
+    # The adversarial cases forced the distinction: a project-flavoured question
+    # about a technology the corpus never mentions legitimately clears the
+    # retrieval threshold (its entities are real), and the honest "the files do
+    # not contain this" it then receives is the class passed, not failed — no
+    # fabrication happened and the person learned more than a refusal would say.
+    cases = [
+        QuestionCase("sa-r", "off topic?", CLASS_SHOULD_ABSTAIN),
+        QuestionCase("sa-h", "absent tech?", CLASS_SHOULD_ABSTAIN),
+        QuestionCase("sa-f", "absent tech 2?", CLASS_SHOULD_ABSTAIN),
+    ]
+    outcomes = [
+        QuestionOutcome("sa-r", True, (), 0.1),
+        QuestionOutcome("sa-h", False, ("a.md",), 0.6, honest_negative=True),
+        QuestionOutcome("sa-f", False, ("a.md",), 0.6),  # answered, no honest no
+    ]
+    report = compute_report("nomic", 5, cases, outcomes)
+    assert report.overall_should_abstain_accuracy == 0.6667
+    md = render_markdown(report, cases, outcomes)
+    assert "refused, or an explicit honest negative" in md
+    assert report_to_dict(report, cases, outcomes)["questions"][1]["honest_negative"] is True
+
+
+def test_answer_is_honest_negative_reads_the_visible_answer():
+    from eval.harness import answer_is_honest_negative
+
+    assert answer_is_honest_negative(
+        "The provided context does not contain information about Kubernetes."
+    )
+    # The phrase inside the model's inline draft does not count; the visible
+    # answer is what is judged.
+    assert not answer_is_honest_negative(
+        "maybe it is not mentioned... let me check</think>Autoscaling is set in k8s/hpa.yaml."
+    )
+    assert not answer_is_honest_negative("Autoscaling is configured in k8s/hpa.yaml.")
+    assert not answer_is_honest_negative(None)
