@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from app.core.domain.handbook_source import display_source_path, mask_handbook_token
 from app.core.domain.indexing import ContextSearchResult
+from app.core.domain.supersession import resolve_successor_path, supersession_target
 
 
 @dataclass(frozen=True)
@@ -150,6 +151,12 @@ _STATUS_LINE_MAX_CHARS = 200
 _COMMENT_OPENERS = ("//", "#", "/*", "* ", "*/", "--", ";", "<!--")
 
 
+def source_status_line(content: str) -> str | None:
+    """The line at the top of a source that declares the source itself out of date,
+    or ``None``. Public because the Ask path follows the pointer inside it."""
+    return _status_line(content)
+
+
 def _status_line(content: str) -> str | None:
     """The line at the top of a source that declares the source itself out of date."""
     for line in content.splitlines()[:_STATUS_HEADER_LINES]:
@@ -181,18 +188,46 @@ def build_source_status_section(context_results: list[ContextSearchResult]) -> s
     The instruction alone is not enough — it asks the model to notice something,
     and noticing is exactly what it failed at. Naming the file and quoting its own
     status line turns "notice this" into "you have been told".
+
+    Each line then says whether the replacement is here. That distinction is the
+    whole point: told a decision was superseded and shown nothing else, a model
+    will describe the replacement it has never read (observed 2026-07-15 — it
+    reported "stored in S3" from a page that was not in the context). So when the
+    successor is present it is named as the answer; when it is absent, the
+    prohibition is explicit, because a half-told story invites the model to
+    finish it.
     """
     superseded = superseded_sources(context_results)
     if not superseded:
         return ""
-    lines = "\n".join(f"- `{path}` says: {line}" for path, line in superseded)
+    present = [result.source_path for result in context_results]
+    lines: list[str] = []
+    any_missing = False
+    for path, line in superseded:
+        target = supersession_target(line)
+        successor = resolve_successor_path(target, present) if target else None
+        if successor:
+            note = f" — its replacement `{display_source_path(successor)}` is included below"
+        else:
+            note = ""
+            any_missing = True
+        lines.append(f"- `{path}` says: {line}{note}")
+    missing_clause = (
+        "\nWhere the replacement is NOT included above, you have not read it: name "
+        "the document to look for and stop. Do not describe what it decides, do not "
+        "guess its contents, do not name a technology it might use — you have not "
+        "seen it."
+        if any_missing
+        else ""
+    )
     return (
         "Status of retrieved sources — these ones declare themselves out of date:\n"
-        f"{lines}\n"
-        "Do not present their content as the current state of the project. Say that "
+        + "\n".join(lines)
+        + "\nDo not present their content as the current state of the project. Say that "
         "the source is superseded or deprecated, and answer from the source that "
-        "replaced it if it is among the files below; if the replacement is not here, "
-        "say which one to look for.\n\n"
+        "replaced it where that source is included below."
+        + missing_clause
+        + "\n\n"
     )
 
 
