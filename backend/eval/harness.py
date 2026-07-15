@@ -45,6 +45,15 @@ class QuestionOutcome:
     # the Terraform corpus took long enough to look like a bug, and "it is slow" is
     # not an answer: the number is, and it is the same number on both engines.
     generation_seconds: float | None = None
+    # For should-abstain questions that cleared the retrieval threshold and were
+    # answered anyway: True when the answer is an explicit, clean "the files do
+    # not contain this". The adversarial cases forced the distinction — a
+    # project-flavoured question about a technology the corpus never mentions can
+    # legitimately score above the threshold (its entities are real), and the
+    # honest negative it then gets is not a failure of the class, it is the class
+    # passed by other means: no fabrication happened, and the person learned more
+    # than a refusal would have told them.
+    honest_negative: bool = False
 
 
 @dataclass(frozen=True)
@@ -74,6 +83,19 @@ class EvalReport:
     # corpus is slow — the two conclusions call for different fixes.
     generation_seconds_p50: float | None = None
     generation_seconds_max: float | None = None
+
+
+def answer_is_honest_negative(answer: str | None) -> bool:
+    """An explicit, plain "the files do not contain this" — the phrases are the
+    product's own (``ABSENCE_PHRASES``), checked against the answer the person
+    reads. Pure; the runner combines it with "and no hard grounding warnings"
+    so an answer that says 'not found' while also inventing things never counts."""
+    if not answer:
+        return False
+    from app.core.domain.rag_answer_evaluator import ABSENCE_PHRASES, visible_answer_text
+
+    visible = visible_answer_text(answer).casefold()
+    return any(phrase in visible for phrase in ABSENCE_PHRASES)
 
 
 def case_is_hit(case: QuestionCase, outcome: QuestionOutcome) -> bool:
@@ -126,9 +148,10 @@ def compute_report(
         overblock = (
             _mean([1.0 if o.abstained else 0.0 for o in outs]) if cls in PROJECT_CLASSES else None
         )
-        # For the abstain class, abstaining is the correct behaviour.
+        # For the abstain class, refusing is correct — and so is answering with an
+        # explicit honest negative (see QuestionOutcome.honest_negative).
         abstain_correct = (
-            _mean([1.0 if o.abstained else 0.0 for o in outs])
+            _mean([1.0 if (o.abstained or o.honest_negative) else 0.0 for o in outs])
             if cls == CLASS_SHOULD_ABSTAIN
             else None
         )
@@ -170,7 +193,10 @@ def compute_report(
         ),
         overall_overblock_rate=_mean([1.0 if by_id[c.id].abstained else 0.0 for c in project]),
         overall_should_abstain_accuracy=_mean(
-            [1.0 if by_id[c.id].abstained else 0.0 for c in abstain]
+            [
+                1.0 if (by_id[c.id].abstained or by_id[c.id].honest_negative) else 0.0
+                for c in abstain
+            ]
         ),
         overall_hallucination_rate=_mean([1.0 if h else 0.0 for h in project_hallu]),
         overall_raw_hallucination_rate=_mean([1.0 if h else 0.0 for h in project_raw_hallu]),
@@ -199,7 +225,10 @@ def render_markdown(
     lines.append(
         f"- Overblock rate (project qs wrongly abstained): **{_pct(report.overall_overblock_rate)}**"
     )
-    lines.append(f"- Should-abstain accuracy: **{_pct(report.overall_should_abstain_accuracy)}**")
+    lines.append(
+        "- Should-abstain accuracy (refused, or an explicit honest negative): "
+        f"**{_pct(report.overall_should_abstain_accuracy)}**"
+    )
     if report.overall_hallucination_rate is not None:
         # The honest pair: the raw model's grounding-warning rate, then what
         # survives the app's corrective regeneration pass. The drop is the sieve
@@ -251,7 +280,12 @@ def render_markdown(
         if not bad:
             continue
         any_fail = True
-        note = "abstained" if o.abstained else f"sources={list(o.source_paths)[:3]}"
+        if o.abstained:
+            note = "abstained"
+        elif o.honest_negative:
+            note = "honest negative (answered: not in the files)"
+        else:
+            note = f"sources={list(o.source_paths)[:3]}"
         lines.append(f"- `{c.id}` ({c.cls}, score={o.best_score:.3f}): {note} — {c.question}")
     if not any_fail:
         lines.append("_None — clean run._")
@@ -295,6 +329,7 @@ def report_to_dict(
                 "id": o.question_id,
                 "cls": by_case[o.question_id].cls if o.question_id in by_case else "?",
                 "abstained": o.abstained,
+                "honest_negative": o.honest_negative,
                 "best_score": round(o.best_score, 4),
                 "source_paths": list(o.source_paths),
                 "hallucinated": o.hallucinated,
