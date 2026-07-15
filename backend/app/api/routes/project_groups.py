@@ -17,6 +17,7 @@ from app.api.dependencies import (
     build_reranker,
     embedding_provider,
     git_history,
+    index_manifest_repository,
     index_status_repository,
     llm_provider_factory,
     project_context_composer,
@@ -444,6 +445,7 @@ def _build_ask_use_case() -> AskGroupQuestionUseCase:
         vector_store=vector_store,
         llm_provider_factory=llm_provider_factory,
         index_status_repository=index_status_repository,
+        index_manifest_repository=index_manifest_repository,
         project_context_provider=project_context_composer,
         reranker=build_reranker(),
     )

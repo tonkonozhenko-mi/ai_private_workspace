@@ -43,7 +43,6 @@ from app.core.domain.rag_prompt import (
     build_general_chat_prompt,
     build_workspace_question_prompt,
     source_status_line,
-    superseded_sources,
 )
 from app.core.domain.rag_query_rewrite import (
     build_corrective_query_rewrite_prompt,
@@ -58,7 +57,7 @@ from app.core.domain.rag_structured_answer import (
     structured_answer_text,
 )
 from app.core.domain.retrieval_diversity import limit_per_source
-from app.core.domain.supersession import resolve_successor_path, supersession_target
+from app.core.domain.supersession import follow_supersession
 from app.core.ports.conversation_repository import ConversationRepositoryPort
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
@@ -165,11 +164,6 @@ def _hard_grounding_warnings(
 # they don't fit), and how wide a candidate pool to draw them from for MMR.
 _ANSWER_CHUNK_TARGET = 8
 _MMR_POOL = 24
-
-# A page fetched because another page pointed at it did not match the question, it
-# was addressed. It ranks below everything retrieval found on merit, and above
-# nothing — the score exists so the ordering is explicit rather than accidental.
-_SUCCESSOR_SCORE = 0.0
 
 # Optional LLM query rewrite before retrieval (one extra model call per ask).
 # Off by default to keep time-to-first-token low; opt in via this env var, the
@@ -1423,18 +1417,19 @@ class AskWorkspaceQuestionUseCase:
             return []
 
     def _chunks_of(self, workspace_id: str, source_path: str) -> list[ContextSearchResult]:
+        """One file's chunks as context, ready to be placed. The score is a
+        placeholder — ``follow_supersession`` replaces it with the score of the
+        page that pointed here, so the successor ranks where its predecessor did."""
         try:
             chunks = self.vector_store.get_source_chunks(workspace_id, source_path)
         except Exception:  # noqa: BLE001 — a file we can't read is a file we don't add
             return []
-        # Scored just under the retrieved set: this file earned its place by being
-        # pointed at, not by matching the question, and the ranking should say so.
         return [
             ContextSearchResult(
                 chunk_id=chunk.chunk_id,
                 source_path=source_path,
                 content=chunk.content,
-                score=_SUCCESSOR_SCORE,
+                score=0.0,
                 metadata={},
             )
             for chunk in chunks
@@ -1461,50 +1456,12 @@ class AskWorkspaceQuestionUseCase:
         its own status line will say so the next time it is retrieved — chasing a
         chain is how a context window fills with history.
         """
-        pointers = superseded_sources(context_results)
-        if not pointers:
-            return context_results
-        indexed = self._indexed_paths(workspace_id)
-        if not indexed:
-            return context_results
-
-        present = {result.source_path for result in context_results}
-        # Which retrieved page points where. The status line is quoted from the
-        # chunk, so the lookup is by the same display path superseded_sources used.
-        successor_of: dict[str, list[ContextSearchResult]] = {}
-        for result in context_results:
-            line = source_status_line(result.content)
-            if line is None or result.source_path in successor_of:
-                continue
-            target = supersession_target(line)
-            successor = resolve_successor_path(target, indexed) if target else None
-            if not successor or successor in present:
-                continue
-            chunks = self._chunks_of(workspace_id, successor)
-            if chunks:
-                successor_of[result.source_path] = chunks
-                present.add(successor)
-
-        if not successor_of:
-            return context_results
-
-        # The successor takes the place of the page that pointed at it, and the
-        # dead page goes to the back. Not cosmetics: the window budget keeps what
-        # comes first and drops what comes last, so this decides which of the two
-        # survives when only one fits. The live decision is the answer; the
-        # superseded one is worth showing only to say that it was superseded.
-        ordered: list[ContextSearchResult] = []
-        evicted_first: list[ContextSearchResult] = []
-        for result in context_results:
-            chunks = successor_of.pop(result.source_path, None)
-            if chunks is not None:
-                ordered.extend(chunks)
-                evicted_first.append(result)
-            elif result.source_path in {r.source_path for r in evicted_first}:
-                evicted_first.append(result)
-            else:
-                ordered.append(result)
-        return [*ordered, *evicted_first]
+        return follow_supersession(
+            context_results,
+            self._indexed_paths(workspace_id),
+            lambda path: self._chunks_of(workspace_id, path),
+            source_status_line,
+        )
 
     def _full_project_context(self, workspace_id: str) -> list[ContextSearchResult]:
         """Every indexed chunk of every file, ordered by file then position — the

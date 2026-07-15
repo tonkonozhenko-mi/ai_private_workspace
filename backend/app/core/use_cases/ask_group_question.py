@@ -49,6 +49,7 @@ from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.rag_prompt import (
     build_general_chat_prompt,
     build_workspace_question_prompt,
+    source_status_line,
 )
 from app.core.domain.rag_query_rewrite import (
     build_corrective_query_rewrite_prompt,
@@ -57,6 +58,7 @@ from app.core.domain.rag_query_rewrite import (
     parse_rewritten_query,
 )
 from app.core.domain.retrieval_diversity import limit_per_source
+from app.core.domain.supersession import follow_supersession
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
 from app.core.ports.llm_provider import LLMProviderPort
@@ -190,6 +192,7 @@ class AskGroupQuestionUseCase:
         vector_store: VectorStorePort,
         llm_provider_factory: LLMProviderFactoryPort,
         index_status_repository: IndexStatusRepositoryPort | None = None,
+        index_manifest_repository=None,
         project_context_provider=None,
         reranker: RerankerPort | None = None,
         rerank_candidates: int = 30,
@@ -201,6 +204,10 @@ class AskGroupQuestionUseCase:
         self.vector_store = vector_store
         self.llm_provider_factory = llm_provider_factory
         self.index_status_repository = index_status_repository
+        # What each member has indexed (path -> hash). Needed to follow a
+        # "Superseded by X" pointer to the file it names, in the index of the member
+        # that carried the pointer. None = the jump is off and retrieval is unchanged.
+        self.index_manifest_repository = index_manifest_repository
         # Optional shared project-context provider (handbook + memory + graph
         # facts) with compose_with_stats(scope_id, query). None = no context.
         self.project_context_provider = project_context_provider
@@ -461,7 +468,45 @@ class AskGroupQuestionUseCase:
             )
             candidates = limit_per_source(candidates)
             picked = mmr_select(query_embedding, candidates, cap)
-        return _strip_embeddings(self._expand_parents(workspace_id, picked))
+        expanded = self._expand_parents(workspace_id, picked)
+        # Follow "Superseded by X" per member, in that member's own index: a group
+        # is several projects, and a wiki's pointer addresses a page in the wiki,
+        # not in whatever repository happens to sit beside it. Done here rather
+        # than after the merge for exactly that reason — after the merge there is
+        # no member left to ask.
+        return _strip_embeddings(self._follow_supersession(workspace_id, expanded))
+
+    def _follow_supersession(
+        self, workspace_id: str, results: list[ContextSearchResult]
+    ) -> list[ContextSearchResult]:
+        if not results or self.index_manifest_repository is None:
+            return results
+        try:
+            indexed = sorted(self.index_manifest_repository.get(workspace_id) or {})
+        except Exception:  # noqa: BLE001 — a missing manifest disables the jump, nothing more
+            return results
+        return follow_supersession(
+            results,
+            indexed,
+            lambda path: self._chunks_of(workspace_id, path),
+            source_status_line,
+        )
+
+    def _chunks_of(self, workspace_id: str, source_path: str) -> list[ContextSearchResult]:
+        try:
+            chunks = self.vector_store.get_source_chunks(workspace_id, source_path)
+        except Exception:  # noqa: BLE001 — a file we can't read is a file we don't add
+            return []
+        return [
+            ContextSearchResult(
+                chunk_id=chunk.chunk_id,
+                source_path=source_path,
+                content=chunk.content,
+                score=0.0,
+                metadata={},
+            )
+            for chunk in chunks
+        ]
 
     def _expand_parents(
         self, workspace_id: str, results: list[ContextSearchResult]

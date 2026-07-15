@@ -123,7 +123,7 @@ def _use_case() -> AskWorkspaceQuestionUseCase:
     return use_case
 
 
-def test_the_successor_is_fetched_and_outranks_the_page_that_named_it():
+def test_the_successor_is_fetched_and_placed_ahead_of_the_page_that_named_it():
     retrieved = [
         _result("wiki/[ADR-05]_Report_storage.md", ADR_05, score=0.8),
         _result("wiki/[Policy]_Data_retention.md", "## Retention\nSeven years.", score=0.5),
@@ -133,12 +133,14 @@ def test_the_successor_is_fetched_and_outranks_the_page_that_named_it():
 
     paths = [r.source_path for r in followed]
     assert "wiki/[ADR-08]_Report_storage_v2.md" in paths
-    # The replacement takes the dead page's place; the dead page goes last, so a
-    # tight budget keeps the live decision and drops the history.
+    # Ahead of the dead page, so a tight window keeps the live decision.
     assert paths.index("wiki/[ADR-08]_Report_storage_v2.md") < paths.index(
         "wiki/[ADR-05]_Report_storage.md"
     )
-    assert paths[-1] == "wiki/[ADR-05]_Report_storage.md"
+    # And carrying its predecessor's score, so the group path — which re-sorts
+    # everything by score across repositories — cannot demote it to the tail.
+    successor = next(r for r in followed if r.source_path.endswith("v2.md"))
+    assert successor.score == 0.8
 
 
 def test_a_successor_already_retrieved_is_not_fetched_twice():
