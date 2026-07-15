@@ -13,10 +13,12 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from app.api.routes._conversation_persistence import ensure_conversation, persist_turn
 from app.api.dependencies import (
     build_reranker,
     embedding_provider,
     git_history,
+    conversation_repository,
     index_manifest_repository,
     index_status_repository,
     llm_provider_factory,
@@ -385,6 +387,10 @@ class GroupAskRequest(BaseModel):
     llm_model: str | None = None
     temperature: float | None = None
     think: bool | None = None
+    # The thread this question belongs to. Omit it to start a new one — the first
+    # question creates the conversation, exactly as a single project's does.
+    conversation_id: str | None = None
+    answer_mode: str | None = None
 
 
 class GroupAskSource(BaseModel):
@@ -405,6 +411,7 @@ class GroupAskContribution(BaseModel):
 
 class GroupAskResponse(BaseModel):
     group_id: str
+    conversation_id: str | None = None
     question: str
     answer: str
     sources: list[GroupAskSource]
@@ -419,9 +426,12 @@ class GroupAskResponse(BaseModel):
     usage: LLMUsageMetricsResponse | None = None
 
 
-def _ask_response(answer: GroupQuestionAnswer) -> GroupAskResponse:
+def _ask_response(
+    answer: GroupQuestionAnswer, conversation_id: str | None = None
+) -> GroupAskResponse:
     return GroupAskResponse(
         group_id=answer.group_id,
+        conversation_id=conversation_id,
         question=answer.question,
         answer=answer.answer,
         sources=[GroupAskSource(**vars(s)) for s in answer.sources],
@@ -446,12 +456,15 @@ def _build_ask_use_case() -> AskGroupQuestionUseCase:
         llm_provider_factory=llm_provider_factory,
         index_status_repository=index_status_repository,
         index_manifest_repository=index_manifest_repository,
+        conversation_repository=conversation_repository,
         project_context_provider=project_context_composer,
         reranker=build_reranker(),
     )
 
 
-def _ask_input(group_id: str, request: GroupAskRequest) -> AskGroupQuestionInput:
+def _ask_input(
+    group_id: str, request: GroupAskRequest, conversation_id: str | None = None
+) -> AskGroupQuestionInput:
     return AskGroupQuestionInput(
         group_id=group_id,
         question=request.question,
@@ -461,6 +474,8 @@ def _ask_input(group_id: str, request: GroupAskRequest) -> AskGroupQuestionInput
         llm_model_override=request.llm_model,
         temperature=request.temperature,
         think=request.think,
+        conversation_id=conversation_id,
+        answer_mode=request.answer_mode,
     )
 
 
@@ -468,21 +483,50 @@ def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
+def _group_conversation(group_id: str, conversation_id: str | None):
+    """The thread this question belongs to, created on the first question. A group
+    conversation is scoped by the group id — the same scope its memory uses."""
+    conversation = ensure_conversation(
+        conversation_repository, group_id, conversation_id, title=None
+    )
+    if conversation is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Conversation not found")
+    return conversation
+
+
+def _persist_group_turn(group_id: str, conversation_id: str, answer: GroupQuestionAnswer) -> None:
+    persist_turn(
+        conversation_repository,
+        group_id,
+        conversation_id,
+        answer.question,
+        answer.answer,
+        sources_count=len(answer.sources),
+        used_context_chunks=answer.used_context_chunks,
+        llm_provider=answer.llm_provider,
+        llm_model=answer.llm_model,
+        usage=answer.usage,
+    )
+
+
 @router.post("/{group_id}/ask", response_model=GroupAskResponse)
 def ask_group(group_id: str, request: GroupAskRequest) -> GroupAskResponse:
+    conversation = _group_conversation(group_id, request.conversation_id)
     try:
-        answer = _build_ask_use_case().execute(_ask_input(group_id, request))
+        answer = _build_ask_use_case().execute(_ask_input(group_id, request, conversation.id))
     except AskGroupQuestionNotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
     except AskGroupQuestionValidationError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
-    return _ask_response(answer)
+    _persist_group_turn(group_id, conversation.id, answer)
+    return _ask_response(answer, conversation.id)
 
 
 @router.post("/{group_id}/ask/stream")
 def ask_group_stream(group_id: str, request: GroupAskRequest) -> StreamingResponse:
     use_case = _build_ask_use_case()
-    ask_input = _ask_input(group_id, request)
+    conversation = _group_conversation(group_id, request.conversation_id)
+    ask_input = _ask_input(group_id, request, conversation.id)
 
     def event_stream():
         try:
@@ -490,7 +534,11 @@ def ask_group_stream(group_id: str, request: GroupAskRequest) -> StreamingRespon
                 if isinstance(event, GroupAskStreamDelta):
                     yield _sse("token", {"text": event.text})
                 elif isinstance(event, GroupAskStreamFinal):
-                    yield _sse("final", _ask_response(event.answer).model_dump(mode="json"))
+                    _persist_group_turn(group_id, conversation.id, event.answer)
+                    yield _sse(
+                        "final",
+                        _ask_response(event.answer, conversation.id).model_dump(mode="json"),
+                    )
         except (AskGroupQuestionNotFoundError, AskGroupQuestionValidationError) as exc:
             # Our own domain errors carry safe, user-facing messages.
             yield _sse("error", {"detail": str(exc)})

@@ -38,6 +38,7 @@ from app.core.domain.group_qa import (
     GroupRepoContribution,
 )
 from app.core.domain.indexing import ContextSearchResult
+from app.core.domain.conversation_budget import build_summary_prompt
 from app.core.domain.llm_usage import build_llm_usage_metrics
 from app.core.domain.mmr import mmr_select
 from app.core.domain.parent_document import expand_to_parents
@@ -47,6 +48,7 @@ from app.core.domain.rag import RagQualityWarning, RagSource
 from app.core.domain.rag_answer_cleanup import strip_source_path_echo
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.rag_prompt import (
+    answer_mode_tuning,
     build_general_chat_prompt,
     build_workspace_question_prompt,
     source_status_line,
@@ -70,6 +72,12 @@ from app.core.ports.project_group_repository import ProjectGroupRepositoryPort
 from app.core.ports.reranker import RerankerPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
+from app.core.use_cases.conversation_thread import (
+    conversation_turns,
+    history_for_prompt,
+    recent_turns,
+    retrieval_query_with_history,
+)
 from app.core.use_cases.ask_workspace_question import (
     DEFAULT_RELEVANCE_THRESHOLD,
     FAKE_EMBEDDING_RELEVANCE_THRESHOLD,
@@ -124,6 +132,16 @@ class AskGroupQuestionInput:
     llm_model_override: str | None = None
     temperature: float | None = None
     think: bool | None = None
+    # The thread this question belongs to. A group's conversation is scoped by the
+    # group id, the same way its memory already is — "and where is that
+    # configured?" is the question a group exists to answer, and it needs the turn
+    # before it to mean anything.
+    conversation_id: str | None = None
+    # How hard to lean on the retrieved files vs. the model's own knowledge. Same
+    # modes and the same multipliers as the single Ask; in a group the threshold
+    # scale applies to every member equally, so the mode changes strictness, never
+    # which repositories are consulted.
+    answer_mode: str | None = None
 
 
 @dataclass(frozen=True)
@@ -181,6 +199,10 @@ class _Generation:
     facts_used: int = 0
     best_score: float = 0.0
     corrected_retrieval: bool = False
+    # The conversation so far, sent to the model as prior turns (not pasted into
+    # the prompt text — the engines render it themselves, llama.cpp as real chat
+    # messages). Empty for a first question and for chit-chat.
+    history: list[tuple[str, str]] = field(default_factory=list)
 
 
 class AskGroupQuestionUseCase:
@@ -193,6 +215,7 @@ class AskGroupQuestionUseCase:
         llm_provider_factory: LLMProviderFactoryPort,
         index_status_repository: IndexStatusRepositoryPort | None = None,
         index_manifest_repository=None,
+        conversation_repository=None,
         project_context_provider=None,
         reranker: RerankerPort | None = None,
         rerank_candidates: int = 30,
@@ -208,6 +231,9 @@ class AskGroupQuestionUseCase:
         # "Superseded by X" pointer to the file it names, in the index of the member
         # that carried the pointer. None = the jump is off and retrieval is unchanged.
         self.index_manifest_repository = index_manifest_repository
+        # The group's own conversation thread, read for follow-ups. Optional: with
+        # no repository the group answers one question at a time, as it always did.
+        self.conversation_repository = conversation_repository
         # Optional shared project-context provider (handbook + memory + graph
         # facts) with compose_with_stats(scope_id, query). None = no context.
         self.project_context_provider = project_context_provider
@@ -316,7 +342,7 @@ class AskGroupQuestionUseCase:
 
         merged = sorted(pool, key=lambda t: t.result.score, reverse=True)
         best_score = merged[0].result.score
-        threshold = self._group_threshold(members)
+        threshold = self._group_threshold(members, request.answer_mode)
         corrected = False
         if best_score < threshold:
             # CRAG-lite trigger (a): one corrective retrieval (forced, differentiated
@@ -365,13 +391,14 @@ class AskGroupQuestionUseCase:
         memory_section, memory_used, facts_used = self._project_context(
             group_id, members, request.question
         )
+        history = self._history_for_prompt(request, llm_provider)
         token_counter = getattr(llm_provider, "count_tokens", None)
         budget = chunk_token_budget(
             getattr(llm_provider, "context_window", None),
             memory_text=memory_section,
-            history=[],
-            # The question shares the window with the chunks; counting it is the
-            # difference between a budget and a wish.
+            # The conversation shares the window with the chunks, and so does the
+            # question. Counting them is the difference between a budget and a wish.
+            history=history,
             question=request.question,
             token_counter=token_counter,
         )
@@ -384,6 +411,7 @@ class AskGroupQuestionUseCase:
             context_results=fitted_labelled,
             assistant_identity=f"{llm_provider.provider_name}/{llm_provider.model_name}",
             project_memory_section=memory_section,
+            answer_mode=request.answer_mode,
         )
         return _Generation(
             llm_provider=llm_provider,
@@ -396,6 +424,7 @@ class AskGroupQuestionUseCase:
             facts_used=facts_used,
             best_score=best_score,
             corrected_retrieval=corrected,
+            history=history,
         )
 
     def _gather(
@@ -405,13 +434,22 @@ class AskGroupQuestionUseCase:
         llm_provider: LLMProviderPort | None,
         force_rewrite: bool,
     ) -> list[_Tagged]:
-        retrieval_query = expand_query_synonyms(request.question)
+        # A follow-up carries no subject of its own: "and where is that configured?"
+        # searches for nothing. The previous questions hold the terms, so they steer
+        # the search — and only the search. What the model is asked is unchanged.
+        retrieval_query = expand_query_synonyms(
+            retrieval_query_with_history(request.question, recent_turns(self._all_turns(request)))
+        )
         if llm_provider is not None and (self.enable_query_rewrite or force_rewrite):
             retrieval_query = self._rewrite_query(
                 request.question, retrieval_query, llm_provider, corrective=force_rewrite
             )
         query_embedding = self.embedding_provider.embed_text(retrieval_query)
-        cap = max(1, request.per_repo_cap)
+        # Deep dive asks each member for more, Only-from-sources for the usual —
+        # the same multiplier the single Ask uses, applied to every member alike so
+        # a mode never changes which repositories are heard.
+        chunk_scale = answer_mode_tuning(request.answer_mode).chunk_scale
+        cap = max(1, round(request.per_repo_cap * chunk_scale))
         pool: list[_Tagged] = []
         for member in members:
             if not member.indexed:
@@ -536,7 +574,7 @@ class AskGroupQuestionUseCase:
             return base_query
         return merge_queries(base_query, parse_rewritten_query(raw, question))
 
-    def _group_threshold(self, members: list[_Member]) -> float:
+    def _group_threshold(self, members: list[_Member], answer_mode: str | None = None) -> float:
         """The abstention floor for the group: the strictest of its indexed members'
         calibrated thresholds (all members share one embedding model, so their score
         scales are comparable)."""
@@ -549,24 +587,65 @@ class AskGroupQuestionUseCase:
         if getattr(self.embedding_provider, "provider_name", "") == "fake":
             return FAKE_EMBEDDING_RELEVANCE_THRESHOLD
         thresholds = [self._member_threshold(m.workspace_id) for m in members if m.indexed]
-        return max(thresholds) if thresholds else DEFAULT_RELEVANCE_THRESHOLD
+        base = max(thresholds) if thresholds else DEFAULT_RELEVANCE_THRESHOLD
+        # The answer mode scales strictness, and it scales every member's bar by the
+        # same factor — a mode decides how hard to lean on the files, never which
+        # repositories are consulted.
+        scaled = base * answer_mode_tuning(answer_mode).threshold_scale
+        return max(0.05, min(0.9, scaled))
 
     def _member_threshold(self, workspace_id: str) -> float:
+        """One member's abstention floor — the same two anchors, in the same order,
+        as the single Ask.
+
+        This carried the bug #248 fixed there and did not fix here: the chit-chat
+        ceiling was applied through min(), so it could only ever lower a member's
+        bar. A ceiling that cannot raise the bar is not a ceiling — it is how a
+        question about a share price got answered from a repository's source code.
+        The ceiling is how high off-topic questions actually score against THIS
+        member, so where it is known it sets the bar in both directions; the floor
+        is the fallback for a member indexed before probes existed.
+        """
         floor = None
         probe_ceiling = None
         if self.index_status_repository is not None:
             status = self.index_status_repository.get(workspace_id)
             floor = getattr(status, "relevance_floor", None)
             probe_ceiling = getattr(status, "relevance_probe_ceiling", None)
+        if probe_ceiling is not None:
+            return max(
+                RELEVANCE_FLOOR_MIN,
+                min(RELEVANCE_FLOOR_MAX, probe_ceiling + RELEVANCE_PROBE_MARGIN),
+            )
         if floor is None:
             return DEFAULT_RELEVANCE_THRESHOLD
-        base = max(RELEVANCE_FLOOR_MIN, min(RELEVANCE_FLOOR_MAX, floor - RELEVANCE_FLOOR_MARGIN))
-        # Same second anchor as single-project Ask: cap the bar just above the
-        # empirical chit-chat ceiling. min() means it can only lower a member's
-        # threshold, never raise it.
-        if probe_ceiling is not None:
-            base = max(RELEVANCE_FLOOR_MIN, min(base, probe_ceiling + RELEVANCE_PROBE_MARGIN))
-        return base
+        return max(RELEVANCE_FLOOR_MIN, min(RELEVANCE_FLOOR_MAX, floor - RELEVANCE_FLOOR_MARGIN))
+
+    def _all_turns(self, request: AskGroupQuestionInput) -> list[tuple[str, str]]:
+        """The group's conversation, scoped by group id — the same scope its memory
+        and handbook already use."""
+        return conversation_turns(
+            self.conversation_repository, request.group_id, request.conversation_id
+        )
+
+    def _history_for_prompt(
+        self, request: AskGroupQuestionInput, llm_provider: LLMProviderPort
+    ) -> list[tuple[str, str]]:
+        return history_for_prompt(
+            self._all_turns(request),
+            getattr(llm_provider, "context_window", None),
+            lambda older: self._summarize_history(older, llm_provider),
+        )
+
+    def _summarize_history(self, older_turns, llm_provider) -> str:
+        """Fold the turns that no longer fit into a few sentences. Best-effort: on
+        any failure the thread degrades to its recent turns, which is what it was
+        before summaries existed."""
+        try:
+            text = llm_provider.generate(build_summary_prompt(older_turns), None, 0.0, False, None)
+        except Exception:  # noqa: BLE001 - a summary must never fail an answer
+            return ""
+        return " ".join((text or "").split())[:800]
 
     # --- Generation ---
 
@@ -575,7 +654,7 @@ class AskGroupQuestionUseCase:
     ) -> tuple[str, object | None]:
         started_at = perf_counter()
         raw = prepared.llm_provider.generate(
-            prepared.prompt, None, request.temperature, request.think, None
+            prepared.prompt, None, request.temperature, request.think, prepared.history or None
         )
         answer = strip_source_path_echo(raw)
         usage = build_llm_usage_metrics(
@@ -599,7 +678,11 @@ class AskGroupQuestionUseCase:
         try:
             if callable(stream):
                 for delta in stream(
-                    prepared.prompt, None, request.temperature, request.think, None
+                    prepared.prompt,
+                    None,
+                    request.temperature,
+                    request.think,
+                    prepared.history or None,
                 ):
                     if not delta:
                         continue
@@ -607,7 +690,11 @@ class AskGroupQuestionUseCase:
                     yield GroupAskStreamDelta(delta)
             else:
                 text = prepared.llm_provider.generate(
-                    prepared.prompt, None, request.temperature, request.think, None
+                    prepared.prompt,
+                    None,
+                    request.temperature,
+                    request.think,
+                    prepared.history or None,
                 )
                 chunks.append(text)
                 yield GroupAskStreamDelta(text)

@@ -14,12 +14,7 @@ from app.core.domain.context_budget import (
     project_fits_whole_context,
     shrink_to_window,
 )
-from app.core.domain.conversation_budget import (
-    SUMMARY_TRIGGER_MIN_OLDER_TURNS,
-    build_summary_prompt,
-    history_token_budget,
-    split_history_by_budget,
-)
+from app.core.domain.conversation_budget import build_summary_prompt
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.llm_errors import ContextOverflowError, context_overflow_answer
@@ -73,6 +68,12 @@ from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.use_cases.add_timeline_event import (
     AddTimelineEventInput,
     AddTimelineEventUseCase,
+)
+from app.core.use_cases.conversation_thread import (
+    conversation_turns,
+    history_for_prompt,
+    recent_turns,
+    retrieval_query_with_history,
 )
 
 WORKSPACE_NOT_INDEXED_ANSWER = (
@@ -574,61 +575,26 @@ class AskWorkspaceQuestionUseCase:
         return getattr(workspace, "assistant_mode", None) if workspace else None
 
     def _all_turns(self, request: AskWorkspaceQuestionInput) -> list[tuple[str, str]]:
-        """Every (role, content) user/assistant turn of this conversation.
-
-        Best-effort: missing repo/conversation, or any error, yields no history so
-        answering never depends on it.
-        """
-        if self.conversation_repository is None or not request.conversation_id:
-            return []
-        try:
-            conversation = self.conversation_repository.get_conversation(
-                request.workspace_id, request.conversation_id
-            )
-        except Exception:  # noqa: BLE001 - history is optional, never fail the ask
-            return []
-        if conversation is None:
-            return []
-        return [
-            (message.role, message.content)
-            for message in conversation.messages
-            if message.role in ("user", "assistant") and message.content.strip()
-        ]
+        return conversation_turns(
+            self.conversation_repository, request.workspace_id, request.conversation_id
+        )
 
     def _conversation_history(self, request: AskWorkspaceQuestionInput) -> list[tuple[str, str]]:
-        """Recent turns that fit a token budget (used to steer retrieval). Token-
-        budgeted rather than a fixed turn count, so long turns don't overflow and
-        short ones don't waste room."""
-        turns = self._all_turns(request)
-        _older, recent = split_history_by_budget(turns, history_token_budget(None))
-        return recent
+        """Recent turns that fit a token budget (used to steer retrieval)."""
+        return recent_turns(self._all_turns(request))
 
     def _history_for_prompt(
         self,
         request: AskWorkspaceQuestionInput,
         llm_provider: LLMProviderPort,
     ) -> list[tuple[str, str]]:
-        """The history actually sent to the model: recent turns that fit the
-        window's history budget, with the older evicted turns folded into one
-        short summary so the thread isn't lost after a few exchanges.
-
-        Summarization is best-effort and only runs when enough older turns were
-        evicted; any failure falls back to just the recent turns.
-        """
-        turns = self._all_turns(request)
-        if not turns:
-            return []
-        budget = history_token_budget(getattr(llm_provider, "context_window", None))
-        older, recent = split_history_by_budget(turns, budget)
-        if len(older) < SUMMARY_TRIGGER_MIN_OLDER_TURNS:
-            return recent
-        summary = self._summarize_history(older, llm_provider)
-        if not summary:
-            return recent
-        preface = (
-            f"[Summary of the earlier conversation — context only, not a new question]\n{summary}"
+        """The history actually sent to the model, budgeted to this model's window
+        and summarised past it."""
+        return history_for_prompt(
+            self._all_turns(request),
+            getattr(llm_provider, "context_window", None),
+            lambda older: self._summarize_history(older, llm_provider),
         )
-        return [("user", preface), *recent]
 
     def _summarize_history(
         self,
@@ -654,13 +620,9 @@ class AskWorkspaceQuestionUseCase:
         files. The question shown to the model is unchanged — this only steers
         retrieval. With no history it is exactly the current question.
         """
-        history = self._conversation_history(request)
-        prior_user_questions = [
-            content for role, content in history if role == "user" and content.strip()
-        ][-2:]
-        if not prior_user_questions:
-            return request.question
-        return "\n".join([*prior_user_questions, request.question])
+        return retrieval_query_with_history(
+            request.question, self._conversation_history(request)
+        )
 
     def execute(
         self,

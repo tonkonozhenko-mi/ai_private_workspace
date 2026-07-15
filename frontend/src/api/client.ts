@@ -2076,6 +2076,8 @@ export async function askProjectGroupStream(
   options: {
     think?: boolean | null;
     temperature?: number | null;
+    conversationId?: string | null;
+    answerMode?: string | null;
     signal?: AbortSignal;
     onToken?: (text: string) => void;
   } = {},
@@ -2087,6 +2089,10 @@ export async function askProjectGroupStream(
       question,
       think: options.think ?? null,
       temperature: options.temperature ?? null,
+      // Omitted on the first question of a thread: the backend creates the
+      // conversation and returns its id with the answer.
+      conversation_id: options.conversationId ?? null,
+      answer_mode: options.answerMode ?? null,
     }),
     signal: options.signal,
   });
