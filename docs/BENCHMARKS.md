@@ -160,3 +160,13 @@ Footnote on coverage: one terraform-aws-vpc answer (`vpc-pp-endpoints`)
 exceeded the runner's 360 s generation timeout on the test machine in both v1
 and v2; its retrieval metrics are counted, its generation is not. Reported
 rather than retried until it fit.
+
+Follow-up with the timing instrumentation (2026-07-15, same machine, same
+models): the timeout did not reproduce on either engine — the question
+completed in ordinary time, so the tail was engine state, not the question.
+Steady-state generation on this corpus: Ollama median 41.3 s, worst 126.2 s;
+llama.cpp median 25.5 s, worst 43.2 s. Retrieval metrics were identical across
+both engines, digit for digit. At `--repeats 1` the hallucination flag showed
+run-to-run variance of ±1 question (a different single answer flagged per
+engine) — the `--repeats N` majority vote exists for exactly this; the tables
+above are single runs and say so.
