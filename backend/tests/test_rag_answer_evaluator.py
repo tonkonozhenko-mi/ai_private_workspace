@@ -262,7 +262,9 @@ def test_grounding_judges_the_answer_the_person_reads_not_the_draft() -> None:
     # answer. The draft echoes the prompt's citation placeholder and quotes chunks
     # loosely — judging it flagged three clean wiki answers (2026-07-15).
     draft = 'We check `path/to/file.py`... the text says "something loosely quoted here"...'
-    final = "Isolation uses a mandatory `tenant_id` on every table (wiki/[ADR-04]_Tenant_isolation.md)."
+    final = (
+        "Isolation uses a mandatory `tenant_id` on every table (wiki/[ADR-04]_Tenant_isolation.md)."
+    )
     warnings = evaluate_rag_answer(
         question="How is isolation enforced?",
         answer=f"{draft}</think>{final}",
