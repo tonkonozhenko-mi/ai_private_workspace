@@ -32,13 +32,13 @@ from datetime import datetime
 from time import perf_counter
 
 from app.core.domain.context_budget import chunk_token_budget, fit_context_results_by_tokens
+from app.core.domain.conversation_budget import build_summary_prompt
 from app.core.domain.group_qa import (
     GroupAnswerSource,
     GroupQuestionAnswer,
     GroupRepoContribution,
 )
 from app.core.domain.indexing import ContextSearchResult
-from app.core.domain.conversation_budget import build_summary_prompt
 from app.core.domain.llm_usage import build_llm_usage_metrics
 from app.core.domain.mmr import mmr_select
 from app.core.domain.parent_document import expand_to_parents
@@ -72,12 +72,6 @@ from app.core.ports.project_group_repository import ProjectGroupRepositoryPort
 from app.core.ports.reranker import RerankerPort
 from app.core.ports.vector_store import VectorStorePort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
-from app.core.use_cases.conversation_thread import (
-    conversation_turns,
-    history_for_prompt,
-    recent_turns,
-    retrieval_query_with_history,
-)
 from app.core.use_cases.ask_workspace_question import (
     DEFAULT_RELEVANCE_THRESHOLD,
     FAKE_EMBEDDING_RELEVANCE_THRESHOLD,
@@ -91,6 +85,12 @@ from app.core.use_cases.ask_workspace_question import (
     _hard_grounding_warnings,
     _strip_embeddings,
     _usage_kwargs,
+)
+from app.core.use_cases.conversation_thread import (
+    conversation_turns,
+    history_for_prompt,
+    recent_turns,
+    retrieval_query_with_history,
 )
 
 NO_MEMBERS_ANSWER = (

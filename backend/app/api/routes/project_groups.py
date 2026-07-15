@@ -13,12 +13,11 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.api.routes._conversation_persistence import ensure_conversation, persist_turn
 from app.api.dependencies import (
     build_reranker,
+    conversation_repository,
     embedding_provider,
     git_history,
-    conversation_repository,
     index_manifest_repository,
     index_status_repository,
     llm_provider_factory,
@@ -29,6 +28,7 @@ from app.api.dependencies import (
     vector_store,
     workspace_repository,
 )
+from app.api.routes._conversation_persistence import ensure_conversation, persist_turn
 from app.api.schemas.rag_schemas import (
     LLMUsageMetricsResponse,
     RagQualityWarningResponse,

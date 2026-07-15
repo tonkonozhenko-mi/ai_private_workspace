@@ -620,9 +620,7 @@ class AskWorkspaceQuestionUseCase:
         files. The question shown to the model is unchanged — this only steers
         retrieval. With no history it is exactly the current question.
         """
-        return retrieval_query_with_history(
-            request.question, self._conversation_history(request)
-        )
+        return retrieval_query_with_history(request.question, self._conversation_history(request))
 
     def execute(
         self,

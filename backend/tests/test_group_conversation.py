@@ -181,7 +181,7 @@ def test_the_model_is_given_the_turns_that_came_before():
 
 
 def test_a_follow_up_searches_for_what_it_is_about():
-    """"Where is that configured?" has no subject. The previous question holds the
+    """ "Where is that configured?" has no subject. The previous question holds the
     terms, so it steers the search — and only the search."""
     use_case, conversations, _store, embedder, _factory = _build()
     conversation = conversations.add_conversation(create_workspace_conversation(GROUP))
