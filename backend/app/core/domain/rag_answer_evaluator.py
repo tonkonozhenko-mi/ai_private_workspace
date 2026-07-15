@@ -70,16 +70,18 @@ def evaluate_rag_answer(
             )
         )
 
-    unsupported = find_unsupported_citations(answer, [source.source_path for source in sources])
+    unsupported = find_unsupported_citations(
+        answer, [source.source_path for source in sources], source_contents
+    )
     if unsupported:
         warnings.append(
             RagQualityWarning(
                 code="answer_cited_unknown_source",
                 message=(
-                    "The answer referenced files that were not in the retrieved "
-                    "context — verify these before trusting them."
+                    "The answer named files that appear nowhere in the retrieved "
+                    "context — they may not exist."
                 ),
-                severity="review",
+                severity="high",
                 evidence=unsupported,
             )
         )
@@ -149,16 +151,47 @@ def evaluate_rag_answer(
 _BACKTICK_TOKEN_RE = re.compile(r"`([^`\n]+)`")
 # Looks like a file reference: has a path separator or a short file extension.
 _FILE_EXT_RE = re.compile(r"\.[A-Za-z0-9]{1,6}$")
+# The same claim, made in prose: "configuration is in the main.tf file in the
+# Terraform directory". Backticks are what the prompt ASKS for, not what a model
+# does when it is inventing — the answer that named a Terraform file in a project
+# with no Terraform in it wrote the name plainly, and sailed past a check that
+# only reads between backticks (mixed-group run, 2026-07-15). The extensions are
+# an explicit list rather than "any dot-something", so ordinary prose ("version
+# 2.0", "e.g.") is not mistaken for a filename.
+_PROSE_FILE_RE = re.compile(
+    r"\b([\w][\w./-]*\.(?:py|ts|tsx|js|jsx|go|rs|java|rb|php|cs|c|cpp|h|"
+    r"tf|tfvars|hcl|ya?ml|json|toml|ini|cfg|conf|sh|bash|sql|md|rst|txt|"
+    r"proto|gradle|lock|env|dockerfile|tfstate))\b",
+    re.IGNORECASE,
+)
 
 
-def find_unsupported_citations(answer: str, source_paths: list[str]) -> list[str]:
-    """File-like references the answer cites that are NOT among the retrieved
-    source paths — i.e. likely hallucinated citations.
+def _cited_file_tokens(answer: str) -> list[str]:
+    """Every file-looking name the answer commits to, backticked or plain."""
+    tokens: list[str] = []
+    for raw in _BACKTICK_TOKEN_RE.findall(answer):
+        token = raw.strip()
+        if token and ("/" in token or _FILE_EXT_RE.search(token)):
+            tokens.append(token)
+    tokens.extend(match.strip() for match in _PROSE_FILE_RE.findall(answer))
+    return tokens
 
-    Only backtick-quoted tokens that look like files (a path separator or a file
-    extension) are considered, so prose and bare identifiers don't trip it. Both
-    the full path and its basename count as a match, so citing `backend.tf` for
-    `infra/backend.tf` is fine. Read-only: it flags, it never edits the answer.
+
+def find_unsupported_citations(
+    answer: str,
+    source_paths: list[str],
+    source_contents: list[str] | None = None,
+) -> list[str]:
+    """File-like references the answer names that appear NOWHERE in the evidence —
+    neither as a retrieved path nor inside any retrieved file.
+
+    Naming a file is a claim, and this is the cheapest way to check one. Both the
+    full path and its basename count as a match, so citing `backend.tf` for
+    `infra/backend.tf` is fine, and a file merely *mentioned* by a retrieved
+    document counts too — the model read it somewhere, which is the opposite of
+    inventing it. What is left is a name the model produced from nothing.
+
+    Read-only: it flags, it never edits the answer.
     """
     if not answer or not source_paths:
         return []
@@ -168,15 +201,13 @@ def find_unsupported_citations(answer: str, source_paths: list[str]) -> list[str
         if clean:
             valid.add(clean)
             valid.add(clean.split("/")[-1])
+    evidence = "\n".join(source_contents or []).casefold()
     unsupported: list[str] = []
-    for raw in _BACKTICK_TOKEN_RE.findall(answer):
-        token = raw.strip()
-        if not token or token in valid:
+    for token in _cited_file_tokens(answer):
+        if token in valid or token.split("/")[-1] in valid:
             continue
-        looks_like_file = "/" in token or bool(_FILE_EXT_RE.search(token))
-        if not looks_like_file:
-            continue
-        if token.split("/")[-1] in valid:
+        # A file the retrieved documents talk about was read, not invented.
+        if evidence and token.casefold() in evidence:
             continue
         unsupported.append(token)
     # De-duplicate, keep order, cap.

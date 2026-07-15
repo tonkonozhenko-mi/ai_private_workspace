@@ -42,6 +42,8 @@ from app.core.domain.rag_prompt import (
     answer_mode_tuning,
     build_general_chat_prompt,
     build_workspace_question_prompt,
+    source_status_line,
+    superseded_sources,
 )
 from app.core.domain.rag_query_rewrite import (
     build_corrective_query_rewrite_prompt,
@@ -56,6 +58,7 @@ from app.core.domain.rag_structured_answer import (
     structured_answer_text,
 )
 from app.core.domain.retrieval_diversity import limit_per_source
+from app.core.domain.supersession import resolve_successor_path, supersession_target
 from app.core.ports.conversation_repository import ConversationRepositoryPort
 from app.core.ports.embedding_provider import EmbeddingProviderPort
 from app.core.ports.index_status_repository import IndexStatusRepositoryPort
@@ -131,11 +134,25 @@ PROJECT_NOT_FOUND_WARNING = RagQualityWarning(
     evidence=[],
 )
 
-# Grounding warnings strong enough to justify one CRAG-lite corrective pass:
-# the answer either cited no retrieved file, or asserted a project term that isn't
-# in the retrieved content. Softer signals (absence-phrase conflicts, quote
-# mismatches) don't trigger a costly regeneration.
-_HARD_GROUNDING_CODES = frozenset({"answer_missing_source_paths", "answer_term_not_in_context"})
+# Grounding warnings strong enough to justify one CRAG-lite corrective pass: the
+# answer cited no retrieved file, asserted a project term that isn't in the
+# retrieved content, or named a file that exists nowhere in the evidence. Softer
+# signals (absence-phrase conflicts, quote mismatches) don't trigger a costly
+# regeneration.
+#
+# ``answer_cited_unknown_source`` joined this set on 2026-07-15: an answer that
+# located a project's storage configuration in "main.tf in the Terraform
+# directory" — a file, and a directory, that do not exist in that project — was
+# flagged and shipped anyway, because a warning nobody acts on is a warning
+# nobody reads. Naming a file that is not there is not a nuance; it is the
+# hallucination this app exists to refuse.
+_HARD_GROUNDING_CODES = frozenset(
+    {
+        "answer_missing_source_paths",
+        "answer_term_not_in_context",
+        "answer_cited_unknown_source",
+    }
+)
 
 
 def _hard_grounding_warnings(
@@ -148,6 +165,11 @@ def _hard_grounding_warnings(
 # they don't fit), and how wide a candidate pool to draw them from for MMR.
 _ANSWER_CHUNK_TARGET = 8
 _MMR_POOL = 24
+
+# A page fetched because another page pointed at it did not match the question, it
+# was addressed. It ranks below everything retrieval found on merit, and above
+# nothing — the score exists so the ordering is explicit rather than accidental.
+_SUCCESSOR_SCORE = 0.0
 
 # Optional LLM query rewrite before retrieval (one extra model call per ask).
 # Off by default to keep time-to-first-token low; opt in via this env var, the
@@ -420,6 +442,10 @@ class AskWorkspaceQuestionUseCase:
         memory_section, memory_used, facts_used, context_used = self._project_context(
             request.workspace_id, self._retrieval_query(request)
         )
+        # A retrieved page that says "Superseded by X" is holding an address. Follow
+        # it now, before the budget is spent: the replacement is the answer, and the
+        # page that names it is only evidence that it was replaced.
+        context_results = self._follow_supersession(request.workspace_id, context_results)
         # Use the engine's exact tokenizer when the provider exposes it (llama.cpp
         # /tokenize); otherwise the script-aware estimate, which no longer assumes
         # every language costs 4 characters per token.
@@ -1385,6 +1411,100 @@ class AskWorkspaceQuestionUseCase:
             return base_query
         rewritten = parse_rewritten_query(raw, request.question)
         return merge_queries(base_query, rewritten)
+
+    def _indexed_paths(self, workspace_id: str) -> list[str]:
+        """Every file currently indexed for the workspace, from the manifest."""
+        repo = self.index_manifest_repository
+        if repo is None:
+            return []
+        try:
+            return sorted(repo.get(workspace_id) or {})
+        except Exception:  # noqa: BLE001 — a missing manifest disables the jump, nothing more
+            return []
+
+    def _chunks_of(self, workspace_id: str, source_path: str) -> list[ContextSearchResult]:
+        try:
+            chunks = self.vector_store.get_source_chunks(workspace_id, source_path)
+        except Exception:  # noqa: BLE001 — a file we can't read is a file we don't add
+            return []
+        # Scored just under the retrieved set: this file earned its place by being
+        # pointed at, not by matching the question, and the ranking should say so.
+        return [
+            ContextSearchResult(
+                chunk_id=chunk.chunk_id,
+                source_path=source_path,
+                content=chunk.content,
+                score=_SUCCESSOR_SCORE,
+                metadata={},
+            )
+            for chunk in chunks
+        ]
+
+    def _follow_supersession(
+        self,
+        workspace_id: str,
+        context_results: list[ContextSearchResult],
+    ) -> list[ContextSearchResult]:
+        """Add the successor of any retrieved page that declares itself replaced.
+
+        The page names its own replacement — "Superseded by [[ADR-08] …]" is an
+        address, and the file it addresses is sitting in the same index. Fetching
+        it is a lookup, not a guess: no embeddings, no model.
+
+        This is not a nicety. Telling a model a decision was superseded while
+        showing it only the dead page is worse than saying nothing: on 2026-07-15
+        it answered with a storage technology that appeared in none of its sources,
+        having been told a replacement existed and left to imagine it. The cure is
+        to hand over the replacement.
+
+        One hop, only where the page points. If the successor is itself superseded,
+        its own status line will say so the next time it is retrieved — chasing a
+        chain is how a context window fills with history.
+        """
+        pointers = superseded_sources(context_results)
+        if not pointers:
+            return context_results
+        indexed = self._indexed_paths(workspace_id)
+        if not indexed:
+            return context_results
+
+        present = {result.source_path for result in context_results}
+        # Which retrieved page points where. The status line is quoted from the
+        # chunk, so the lookup is by the same display path superseded_sources used.
+        successor_of: dict[str, list[ContextSearchResult]] = {}
+        for result in context_results:
+            line = source_status_line(result.content)
+            if line is None or result.source_path in successor_of:
+                continue
+            target = supersession_target(line)
+            successor = resolve_successor_path(target, indexed) if target else None
+            if not successor or successor in present:
+                continue
+            chunks = self._chunks_of(workspace_id, successor)
+            if chunks:
+                successor_of[result.source_path] = chunks
+                present.add(successor)
+
+        if not successor_of:
+            return context_results
+
+        # The successor takes the place of the page that pointed at it, and the
+        # dead page goes to the back. Not cosmetics: the window budget keeps what
+        # comes first and drops what comes last, so this decides which of the two
+        # survives when only one fits. The live decision is the answer; the
+        # superseded one is worth showing only to say that it was superseded.
+        ordered: list[ContextSearchResult] = []
+        evicted_first: list[ContextSearchResult] = []
+        for result in context_results:
+            chunks = successor_of.pop(result.source_path, None)
+            if chunks is not None:
+                ordered.extend(chunks)
+                evicted_first.append(result)
+            elif result.source_path in {r.source_path for r in evicted_first}:
+                evicted_first.append(result)
+            else:
+                ordered.append(result)
+        return [*ordered, *evicted_first]
 
     def _full_project_context(self, workspace_id: str) -> list[ContextSearchResult]:
         """Every indexed chunk of every file, ordered by file then position — the
