@@ -81,7 +81,13 @@ this app's pipeline. Each cell is *naive → this app*:
 | [terraform-aws-vpc](https://github.com/terraform-aws-modules/terraform-aws-vpc) (Terraform) | 67% → **89%** | 0% → **100%** | 10% → **0%** |
 | [microservices-demo](https://github.com/GoogleCloudPlatform/microservices-demo) (K8s, 5 languages) | 56% → 56% | 0% → **100%** | 9% → **0%** |
 | [fastapi-template](https://github.com/fastapi/full-stack-fastapi-template) (Python+React) | 60% → **100%** | 0% → **100%** | 8% → **0%** |
-| wiki-export (knowledge base) | 100% → 100% | 0% → **100%** | 36% → **0%** |
+| wiki-export (knowledge base) | 100% → 100% | 0% → **100%** | 36% → **0%**¹ |
+
+¹ The published v2 run measured 9% here; the follow-up fixes it motivated
+(supersession handling, grounding checks judging the visible answer) brought
+it to 0% at `--repeats 3` — the chain is documented in
+[BENCHMARKS](docs/BENCHMARKS.md), including the two times the trap caught our
+own tooling.
 
 Two rows to read twice. The naive RAG **never once refused an off-topic
 question** — ask it for a borscht recipe and it cites a Terraform module; this
