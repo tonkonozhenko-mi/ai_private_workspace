@@ -225,9 +225,7 @@ def build_source_status_section(context_results: list[ContextSearchResult]) -> s
         + "\n".join(lines)
         + "\nDo not present their content as the current state of the project. Say that "
         "the source is superseded or deprecated, and answer from the source that "
-        "replaced it where that source is included below."
-        + missing_clause
-        + "\n\n"
+        "replaced it where that source is included below." + missing_clause + "\n\n"
     )
 
 

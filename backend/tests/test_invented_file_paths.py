@@ -64,7 +64,12 @@ def test_a_file_the_evidence_mentions_was_read_not_invented():
 
 def test_citing_a_retrieved_file_by_its_bare_name_is_fine():
     sources = [RagSource(chunk_id="1", source_path="infra/prod/main.tf", score=0.7, preview="")]
-    assert find_unsupported_citations("The backend is set in `main.tf`.", [s.source_path for s in sources]) == []
+    assert (
+        find_unsupported_citations(
+            "The backend is set in `main.tf`.", [s.source_path for s in sources]
+        )
+        == []
+    )
 
 
 def test_ordinary_prose_is_not_mistaken_for_a_filename():
