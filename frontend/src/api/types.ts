@@ -2060,6 +2060,9 @@ export interface GroupAskContribution {
 
 export interface GroupAskResponse {
   group_id: string;
+  // The thread this answer belongs to. Send it back with the next question and
+  // the group understands "and where is that configured?".
+  conversation_id?: string | null;
   question: string;
   answer: string;
   sources: GroupAskSource[];

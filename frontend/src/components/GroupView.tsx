@@ -861,6 +861,11 @@ function groupStarters(overview: GroupOverviewResponse | null): string[] {
   return questions.slice(0, 4);
 }
 
+/** One exchange in a group thread: the question as it was asked, beside the
+ * answer it produced. Kept together because the composer is empty by the time
+ * the answer arrives, and a thumbs-up needs to save the pair. */
+type GroupTurn = { question: string; result: GroupAskResponse };
+
 function GroupAsk({
   groupId,
   overview,
@@ -869,12 +874,18 @@ function GroupAsk({
   overview: GroupOverviewResponse | null;
 }) {
   const [question, setQuestion] = useState("");
-  const [result, setResult] = useState<GroupAskResponse | null>(null);
+  // The thread, oldest first. A group exists to answer "what did we decide, and
+  // where is it implemented?" — which is two questions, and the second one only
+  // means something if the first is still on screen.
+  const [turns, setTurns] = useState<GroupTurn[]>([]);
+  const [asked, setAsked] = useState<string | null>(null);
   const [streamed, setStreamed] = useState("");
   const [loading, setLoading] = useState(false);
   const [think, setThink] = useState(false);
+  const [answerMode, setAnswerMode] = useState("safe");
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [traceOpen, setTraceOpen] = useState(false);
+  const [traceFor, setTraceFor] = useState<string | null>(null);
 
   const starters = groupStarters(overview);
 
@@ -884,36 +895,71 @@ function GroupAsk({
     // The composer empties on send, as it does in the single-project Ask — the question
     // is now in the conversation, and leaving it in the box invites sending it twice.
     setQuestion("");
+    setAsked(trimmed);
     setLoading(true);
     setError(null);
-    setResult(null);
     setStreamed("");
     try {
       const final = await askProjectGroupStream(groupId, trimmed, {
         think,
+        conversationId,
+        answerMode: answerMode === "safe" ? null : answerMode,
         onToken: (text) => setStreamed((prev) => prev + text),
       });
-      setResult(final);
+      // The question is kept beside its own answer: the composer is empty by now,
+      // and a thumbs-up that saved "Q: <nothing>" was saving noise.
+      setTurns((prev) => [...prev, { question: trimmed, result: final }]);
+      setConversationId(final.conversation_id ?? conversationId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "The group could not answer.");
     } finally {
+      setAsked(null);
+      setStreamed("");
       setLoading(false);
     }
   }
 
-  const answerText = result?.answer ?? streamed;
-  const memoryNote =
-    result && (result.memory_used > 0 || result.facts_used > 0)
-      ? `Used ${result.memory_used} memory note(s) and ${result.facts_used} map fact(s) from across the group.`
-      : null;
-
+  function startNewThread() {
+    // A new thread, not an erasure: the old conversation keeps its turns on the
+    // backend, and the next question starts a new one. Same as "+ New chat".
+    setTurns([]);
+    setConversationId(null);
+    setStreamed("");
+    setAsked(null);
+    setError(null);
+  }
   return (
     <div className="grp-ask">
       <p className="grp-hint">
         Ask once and the answer is drawn from every repository in the group, streamed as it's
         written. Each source is labelled with the repo it came from. Nothing leaves this computer.
       </p>
-      {!result && !loading && starters.length > 0 ? (
+
+      <div className="grp-ask-toolbar">
+        <button
+          type="button"
+          className="grp-button"
+          onClick={startNewThread}
+          disabled={loading || (turns.length === 0 && !asked)}
+        >
+          + New chat
+        </button>
+        <label className="grp-mode">
+          Answer style
+          <select
+            value={answerMode}
+            onChange={(e) => setAnswerMode(e.target.value)}
+            disabled={loading}
+          >
+            <option value="safe">Balanced</option>
+            <option value="sources_only">Only from sources</option>
+            <option value="deep">Deep dive</option>
+            <option value="explain">Explain with sources</option>
+          </select>
+        </label>
+      </div>
+
+      {turns.length === 0 && !asked && starters.length > 0 ? (
         <div className="grp-ask-starters">
           {starters.map((q) => (
             <button key={q} type="button" className="grp-ask-starter" onClick={() => void submit(q)}>
@@ -922,12 +968,44 @@ function GroupAsk({
           ))}
         </div>
       ) : null}
+
+      {turns.map((turn, index) => (
+        <GroupTurnCard
+          key={`${turn.result.conversation_id ?? "t"}-${index}`}
+          groupId={groupId}
+          question={turn.question}
+          result={turn.result}
+          traceOpen={traceFor === `${index}`}
+          onOpenTrace={() => setTraceFor(`${index}`)}
+          onCloseTrace={() => setTraceFor(null)}
+        />
+      ))}
+
+      {asked ? (
+        <div className="grp-turn">
+          <p className="grp-turn-question">{asked}</p>
+          <div className="grp-answer">
+            <p className="grp-answer-eyebrow">Answer · across all repos</p>
+            <div className="grp-answer-body">
+              <MarkdownAnswer content={streamed} />
+              <span className="grp-caret" />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="grp-ask-row">
         <input
           className="grp-ask-input"
           type="text"
           value={question}
-          placeholder={starters[0] ? `e.g. ${starters[0]}` : "Ask across every repository in this group"}
+          placeholder={
+            turns.length > 0
+              ? "Ask a follow-up — “and where is that configured?”"
+              : starters[0]
+                ? `e.g. ${starters[0]}`
+                : "Ask across every repository in this group"
+          }
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") void submit();
@@ -949,98 +1027,125 @@ function GroupAsk({
       </label>
 
       {error ? <p className="grp-muted">{error}</p> : null}
-
-      {answerText || loading ? (
-        <div className="grp-answer">
-          <p className="grp-answer-eyebrow">Answer · across {result ? result.contributions.length : "all"} repos</p>
-          <div className="grp-answer-body">
-            <MarkdownAnswer content={answerText} />
-            {loading && !result ? <span className="grp-caret" /> : null}
-          </div>
-
-          {result && (result.quality_warnings ?? []).some((w) => w.severity === "high") ? (
-            <div className="ask-trust-notice" role="alert">
-              {(result.quality_warnings ?? [])
-                .filter((w) => w.severity === "high")
-                .map((warning, index) => (
-                  <p key={`${warning.code}-${index}`}>{warning.message}</p>
-                ))}
-            </div>
-          ) : null}
-
-          {result && result.contributions.length > 0 ? (
-            <div className="grp-contrib-bar">
-              {result.contributions.map((c) => (
-                <span
-                  key={c.workspace_name}
-                  className={`grp-contrib-chip${c.indexed ? "" : " is-empty"}`}
-                  title={c.indexed ? `${c.chunks_used} chunk(s) used` : "not indexed"}
-                >
-                  <span className="grp-contrib-dot" />
-                  {c.workspace_name}
-                  <span className="grp-contrib-n">{c.indexed ? c.chunks_used : "—"}</span>
-                </span>
-              ))}
-            </div>
-          ) : null}
-          {result &&
-          (result.memory_used > 0 || result.facts_used > 0 || result.sources.length > 0) ? (
-            <>
-              <button type="button" className="why-answer-btn" onClick={() => setTraceOpen(true)}>
-                <span className="wab-icon" aria-hidden="true">?</span>
-                How did the AI reach this?
-                <span className="wab-meta">
-                  {result.memory_used} note{result.memory_used === 1 ? "" : "s"} · {result.facts_used} map
-                  fact{result.facts_used === 1 ? "" : "s"} · {result.contributions.length} repo
-                  {result.contributions.length === 1 ? "" : "s"}
-                </span>
-              </button>
-              {traceOpen ? (
-                <AnswerTracePanel
-                  scope="group"
-                  memoryUsed={result.memory_used}
-                  factsUsed={result.facts_used}
-                  chunks={result.used_context_chunks}
-                  files={result.sources.map((source) => ({
-                    source_path: source.source_path,
-                    repo: source.workspace_name,
-                    chunk_id: source.chunk_id,
-                    score: source.score,
-                  }))}
-                  onClose={() => setTraceOpen(false)}
-                />
-              ) : null}
-            </>
-          ) : memoryNote ? (
-            <p className="grp-memory-note">{memoryNote}</p>
-          ) : null}
-
-          {result && result.sources.length > 0 ? (
-            <div className="grp-sources">
-              <p className="grp-shead">Sources by repository</p>
-              {groupSourcesByRepo(result.sources).map(([repo, items]) => (
-                <div className="grp-source-group" key={repo}>
-                  <p className="grp-source-grouphead">{repo}<span className="grp-source-groupn">{items.length}</span></p>
-                  <ul>
-                    {items.map((s) => (
-                      <li key={s.chunk_id} title={s.preview}>
-                        <code>{formatSourceLabel(s.source_path)}</code>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          ) : null}
-          {result ? (
-            <AnswerFeedback
-              question={question}
-              answer={result.answer}
-              onSave={(text, k) => addGroupMemory(groupId, text, k)}
-            />
-          ) : null}
-        </div>
-      ) : null}
     </div>
   );
 }
+
+/** One exchange: what was asked, what came back, and everything that stands
+ * behind it — the contributions, the trace, the sources, the feedback. Its own
+ * component because a thread is a list of these, and the composer above is a
+ * different job. */
+function GroupTurnCard({
+  groupId,
+  question,
+  result,
+  traceOpen,
+  onOpenTrace,
+  onCloseTrace,
+}: {
+  groupId: string;
+  question: string;
+  result: GroupAskResponse;
+  traceOpen: boolean;
+  onOpenTrace: () => void;
+  onCloseTrace: () => void;
+}) {
+  const memoryNote =
+    result.memory_used > 0 || result.facts_used > 0
+      ? `Used ${result.memory_used} memory note(s) and ${result.facts_used} map fact(s) from across the group.`
+      : null;
+
+  return (
+    <div className="grp-turn">
+      <p className="grp-turn-question">{question}</p>
+      <div className="grp-answer">
+        <p className="grp-answer-eyebrow">Answer · across {result.contributions.length} repos</p>
+        <div className="grp-answer-body">
+          <MarkdownAnswer content={result.answer} />
+        </div>
+
+        {(result.quality_warnings ?? []).some((w) => w.severity === "high") ? (
+          <div className="ask-trust-notice" role="alert">
+            {(result.quality_warnings ?? [])
+              .filter((w) => w.severity === "high")
+              .map((warning, index) => (
+                <p key={`${warning.code}-${index}`}>{warning.message}</p>
+              ))}
+          </div>
+        ) : null}
+
+        {result.contributions.length > 0 ? (
+          <div className="grp-contrib-bar">
+            {result.contributions.map((c) => (
+              <span
+                key={c.workspace_name}
+                className={`grp-contrib-chip${c.indexed ? "" : " is-empty"}`}
+                title={c.indexed ? `${c.chunks_used} chunk(s) used` : "not indexed"}
+              >
+                <span className="grp-contrib-dot" />
+                {c.workspace_name}
+                <span className="grp-contrib-n">{c.indexed ? c.chunks_used : "—"}</span>
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        {result.memory_used > 0 || result.facts_used > 0 || result.sources.length > 0 ? (
+          <>
+            <button type="button" className="why-answer-btn" onClick={onOpenTrace}>
+              <span className="wab-icon" aria-hidden="true">?</span>
+              How did the AI reach this?
+              <span className="wab-meta">
+                {result.memory_used} note{result.memory_used === 1 ? "" : "s"} · {result.facts_used} map
+                fact{result.facts_used === 1 ? "" : "s"} · {result.contributions.length} repo
+                {result.contributions.length === 1 ? "" : "s"}
+              </span>
+            </button>
+            {traceOpen ? (
+              <AnswerTracePanel
+                scope="group"
+                memoryUsed={result.memory_used}
+                factsUsed={result.facts_used}
+                chunks={result.used_context_chunks}
+                files={result.sources.map((source) => ({
+                  source_path: source.source_path,
+                  repo: source.workspace_name,
+                  chunk_id: source.chunk_id,
+                  score: source.score,
+                }))}
+                onClose={onCloseTrace}
+              />
+            ) : null}
+          </>
+        ) : memoryNote ? (
+          <p className="grp-memory-note">{memoryNote}</p>
+        ) : null}
+
+        {result.sources.length > 0 ? (
+          <div className="grp-sources">
+            <p className="grp-shead">Sources by repository</p>
+            {groupSourcesByRepo(result.sources).map(([repo, items]) => (
+              <div className="grp-source-group" key={repo}>
+                <p className="grp-source-grouphead">{repo}<span className="grp-source-groupn">{items.length}</span></p>
+                <ul>
+                  {items.map((s) => (
+                    <li key={s.chunk_id} title={s.preview}>
+                      <code>{formatSourceLabel(s.source_path)}</code>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        <AnswerFeedback
+          question={question}
+          answer={result.answer}
+          onSave={(text, k) => addGroupMemory(groupId, text, k)}
+        />
+      </div>
+    </div>
+  );
+}
+
