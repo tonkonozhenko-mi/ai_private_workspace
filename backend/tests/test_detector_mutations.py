@@ -23,8 +23,6 @@ documented rather than tested against.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from app.core.domain.rag_answer_evaluator import (
@@ -53,10 +51,10 @@ def _mutants(path: str) -> list[str]:
     stem, ext = path.rsplit(".", 1)
     return [
         stem[:-2] + "x" + stem[-2:] + "." + ext,  # typo inside the stem
-        stem + "s." + ext,                        # pluralised
-        stem + ".txt",                            # wrong extension
-        stem + "_v9." + ext,                      # phantom version
-        "infra/prod/main.tf",                     # another corpus's file
+        stem + "s." + ext,  # pluralised
+        stem + ".txt",  # wrong extension
+        stem + "_v9." + ext,  # phantom version
+        "infra/prod/main.tf",  # another corpus's file
     ]
 
 
@@ -113,7 +111,9 @@ def test_full_recall_on_mutated_citations(corpus):
 def test_the_prompts_example_is_immune_but_its_mutants_are_not(corpus):
     path, content = next(iter(corpus.items()))
     # The placeholder itself: read, not invented.
-    assert find_unsupported_citations(f"Cite like `{CITATION_EXAMPLE_PATH}`.", [path], [content]) == []
+    assert (
+        find_unsupported_citations(f"Cite like `{CITATION_EXAMPLE_PATH}`.", [path], [content]) == []
+    )
     # A near-placeholder is NOT covered by the exemption — it is a fabrication.
     near = CITATION_EXAMPLE_PATH.replace("file", "config")
     bad = find_unsupported_citations(f"The value is set in `{near}`.", [path], [content])
