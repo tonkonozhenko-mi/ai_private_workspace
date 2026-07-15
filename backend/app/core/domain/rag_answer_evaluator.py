@@ -17,6 +17,25 @@ ABSENCE_PHRASES = (
 )
 
 
+_THINK_CLOSE = "</think>"
+
+
+def visible_answer_text(answer: str) -> str:
+    """What the person actually reads. A thinking model sometimes emits its
+    deliberation inline, closing with ``</think>`` before the real answer; the
+    deliberation is a draft, and judging it judged text the user never sees —
+    the draft echoes the prompt's own citation example, quotes chunks loosely,
+    and lists paths mid-thought, all of which lit up the grounding checks
+    (observed 2026-07-15: three of three flagged wiki answers had a clean final
+    answer under a noisy draft). Falls back to the full text when stripping
+    would leave nothing to judge."""
+    if _THINK_CLOSE in answer:
+        tail = answer.rsplit(_THINK_CLOSE, 1)[1].strip()
+        if tail:
+            return tail
+    return answer
+
+
 def evaluate_rag_answer(
     question: str,
     answer: str,
@@ -26,6 +45,7 @@ def evaluate_rag_answer(
     if not sources:
         return []
 
+    answer = visible_answer_text(answer)
     warnings: list[RagQualityWarning] = []
     normalized_answer = answer.casefold()
 
@@ -90,7 +110,12 @@ def evaluate_rag_answer(
     # fact (backticked identifiers/values: env names, config keys, services) that
     # do not appear anywhere in the retrieved file text. These are the small-model
     # fabrications the citation check above (paths only) misses.
-    ungrounded = find_ungrounded_terms(answer, source_contents, already_flagged=unsupported)
+    ungrounded = find_ungrounded_terms(
+        answer,
+        source_contents,
+        already_flagged=unsupported,
+        source_paths=[source.source_path for source in sources],
+    )
     if ungrounded:
         warnings.append(
             RagQualityWarning(
@@ -198,6 +223,13 @@ def _cited_file_tokens(answer: str) -> list[str]:
     tokens: list[str] = []
     for raw in _BACKTICK_TOKEN_RE.findall(answer):
         token = raw.strip()
+        # `(wiki/[Onboarding]_Start_here.md)` — the model wraps the citation-style
+        # parentheses INSIDE the backticks (observed 2026-07-15); the parens are
+        # punctuation around the name, not part of it. Square brackets stay: they
+        # are literally part of wiki filenames.
+        while len(token) > 2 and token.startswith("(") and token.endswith(")"):
+            token = token[1:-1].strip()
+        token = token.rstrip(".,;:")
         if not token or " " in token or token.endswith("/"):
             continue
         if _FILE_EXT_RE.search(token.split("/")[-1]) or "/" in token:
@@ -267,6 +299,7 @@ def find_ungrounded_terms(
     answer: str,
     source_contents: list[str],
     already_flagged: list[str] = (),
+    source_paths: list[str] = (),
 ) -> list[str]:
     """Backticked, concrete project-specific terms the answer asserts as fact that
     appear nowhere in the retrieved file text — likely fabrications.
@@ -275,16 +308,28 @@ def find_ungrounded_terms(
     against the retrieved source list): this checks *identifiers and values*
     (env names, config keys, service names) against the retrieved *content*.
     Backticked prose, short words and terms already flagged as bad citations are
-    skipped to keep false positives low. Read-only — it flags, never edits.
+    skipped to keep false positives low. So are the retrieved source paths
+    themselves and the prompt's citation placeholder: citing `wiki/[Onboarding]_
+    Start_here.md` is exactly what the prompt asks for, and a page does not
+    contain its own filename — flagging the citation as an ungrounded "term"
+    punished obedience (observed 2026-07-15). Read-only — it flags, never edits.
     """
     if not answer or not source_contents:
         return []
     blob = "\n".join(source_contents).casefold()
     already = set(already_flagged)
+    grounded_paths: set[str] = {CITATION_EXAMPLE_PATH.casefold()}
+    for path in source_paths:
+        clean = path.strip().casefold()
+        if clean:
+            grounded_paths.add(clean)
+            grounded_paths.add(clean.split("/")[-1])
     out: list[str] = []
     for raw in _BACKTICK_TOKEN_RE.findall(answer):
         token = raw.strip()
         if not token or token in already or " " in token or len(token) < 3:
+            continue
+        if token.casefold() in grounded_paths:
             continue
         concrete = (
             bool(_CONCRETE_SEP_RE.search(token))
