@@ -257,6 +257,43 @@ def test_a_fuller_address_for_a_page_the_evidence_links_is_not_invented() -> Non
     assert not any(w.code == "answer_cited_unknown_source" for w in warnings)
 
 
+def test_grounding_judges_the_answer_the_person_reads_not_the_draft() -> None:
+    # qwen3-style output: inline deliberation closed by </think>, then the real
+    # answer. The draft echoes the prompt's citation placeholder and quotes chunks
+    # loosely — judging it flagged three clean wiki answers (2026-07-15).
+    draft = 'We check `path/to/file.py`... the text says "something loosely quoted here"...'
+    final = "Isolation uses a mandatory `tenant_id` on every table (wiki/[ADR-04]_Tenant_isolation.md)."
+    warnings = evaluate_rag_answer(
+        question="How is isolation enforced?",
+        answer=f"{draft}</think>{final}",
+        sources=[_source("wiki/[ADR-04]_Tenant_isolation.md")],
+        source_contents=["Row-level isolation with a mandatory tenant_id on every table."],
+    )
+    assert warnings == []
+
+
+def test_citing_a_retrieved_source_path_is_not_an_ungrounded_term() -> None:
+    # A page does not contain its own filename; flagging the citation the prompt
+    # asked for as a fabricated "term" punished obedience.
+    warnings = evaluate_rag_answer(
+        question="What should I read first?",
+        answer="Start with `wiki/[Onboarding]_Start_here.md`.",
+        sources=[_source("wiki/[Onboarding]_Start_here.md")],
+        source_contents=["Read ADR-01 first."],
+    )
+    assert not any(w.code == "answer_term_not_in_context" for w in warnings)
+
+
+def test_parentheses_inside_backticks_are_punctuation_not_part_of_the_name() -> None:
+    warnings = evaluate_rag_answer(
+        question="Where do I start?",
+        answer="See `(wiki/[Onboarding]_Start_here.md)` for the reading order.",
+        sources=[_source("wiki/[Onboarding]_Start_here.md")],
+        source_contents=["Read ADR-01 first."],
+    )
+    assert not any(w.code == "answer_cited_unknown_source" for w in warnings)
+
+
 def _source(source_path: str) -> RagSource:
     return RagSource(
         chunk_id=f"{source_path}-1",
