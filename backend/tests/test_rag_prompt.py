@@ -47,7 +47,14 @@ def test_rag_prompt_requires_grounded_source_aware_answer() -> None:
     assert "If multiple files contain relevant configuration, compare them" in prompt
     assert "Available source paths: main.tf" in prompt
     assert "Do not cite only numeric references such as [1] or [2]" in prompt
-    assert "S3 backend is configured (main.tf)" in prompt
+    # The citation example is a deliberate placeholder, never a plausible
+    # filename: models echo the example into answers, and the old `main.tf`
+    # seeded a real fabrication (group run, 2026-07-15). Built from the same
+    # constant the evaluator ignores, so the two cannot drift apart.
+    from app.core.domain.rag_answer_evaluator import CITATION_EXAMPLE_PATH
+
+    assert f"the setting is defined ({CITATION_EXAMPLE_PATH})" in prompt
+    assert "main.tf`" not in prompt.split("Available source paths")[1]
     assert "Do not say something is absent if any provided context contains it" in prompt
     assert "If the context is insufficient or you are unsure" in prompt
     assert "Answer requirements:" in prompt

@@ -187,18 +187,20 @@ _PROSE_FILE_RE = re.compile(
 def _cited_file_tokens(answer: str) -> list[str]:
     """Every file-looking name the answer commits to, backticked or plain.
 
-    A filename claim has a shape: no spaces, and a basename with an extension.
-    Models put whole sentences and bare directories in backticks too — "`Row-level
-    isolation … (wiki/[ADR-04]_Tenant_isolation.md)`", "`wiki/`" (both observed
-    2026-07-15) — and neither is a claim that a file exists, so neither belongs to
-    this check. The quote and term checks read those.
+    A filename claim has a shape: no spaces, and either a basename with an
+    extension or a multi-segment path (`k8s/overlays/prod` claims a place exists
+    just as `main.tf` does). Models put whole sentences and TRAILING-slash
+    directory mentions in backticks too — "`Row-level isolation …
+    (wiki/[ADR-04]_Tenant_isolation.md)`", "`wiki/`" (both observed 2026-07-15) —
+    and neither is a claim about a specific file, so neither belongs to this
+    check. The quote and term checks read those.
     """
     tokens: list[str] = []
     for raw in _BACKTICK_TOKEN_RE.findall(answer):
         token = raw.strip()
-        if not token or " " in token:
+        if not token or " " in token or token.endswith("/"):
             continue
-        if _FILE_EXT_RE.search(token.split("/")[-1]):
+        if _FILE_EXT_RE.search(token.split("/")[-1]) or "/" in token:
             tokens.append(token)
     tokens.extend(match.strip() for match in _PROSE_FILE_RE.findall(answer))
     return tokens
