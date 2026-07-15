@@ -91,7 +91,7 @@ Four real projects, none of them written by us:
 |---|---:|---:|
 | **Answers that cite the right file** | 70% | **86%** |
 | **Off-topic questions honestly refused** — "what's a good borscht recipe?" must not get an answer "from" a Terraform module | 0 of 12 | **12 of 12** |
-| **Answers still carrying unsupported claims** | 8–36% per project, and nothing corrects them | **0%**¹ |
+| **Answers still carrying unsupported claims** | 8–36% per project, and nothing corrects them | **0%**<sup>1</sup> |
 
 <sub>¹ The published v2 run measured 9% on the wiki project; the follow-up
 fixes it motivated brought it to 0% at `--repeats 3` — the whole chain is in
@@ -106,7 +106,7 @@ our own tooling.</sub>
 | terraform-aws-vpc | 67% → **89%** | 0% → **100%** | 10% → **0%** |
 | microservices-demo | 56% → 56% | 0% → **100%** | 9% → **0%** |
 | full-stack-fastapi-template | 60% → **100%** | 0% → **100%** | 8% → **0%** |
-| wiki-export | 100% → 100% | 0% → **100%** | 36% → **0%**¹ |
+| wiki-export | 100% → 100% | 0% → **100%** | 36% → **0%**<sup>1</sup> |
 
 Commands, dates and the found-and-fixed history for every row:
 [docs/BENCHMARKS.md](docs/BENCHMARKS.md#results-v2-2026-07-14).
