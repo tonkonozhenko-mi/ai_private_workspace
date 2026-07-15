@@ -112,6 +112,21 @@ successor preferred; (2) a hedge is worse than an honest "not implemented
 here". Queued as prompt-layer work; the answers above are reported as they
 came.
 
+**Follow-up (2026-07-15).** Both findings were fixed and re-verified live, and
+the chain of fixes the trap set off is itself part of the record: marking a
+superseded source in the prompt made the model invent its successor's content,
+so the app now *fetches* the successor deterministically (the page names it) —
+in single workspaces and per group member; the invented-file detector that
+episode motivated then flagged honest wiki answers, because it truncated
+bracketed filenames, treated the prompt's own `main.tf` example — which had
+seeded the one real fabrication — as an invention, and judged the model's
+inline draft instead of the answer the person reads. The citation example is
+now an obvious placeholder, and every grounding check runs on the visible
+answer only. Re-asking the trap question: the answer cites ADR-08 from
+sources, names ADR-05 as superseded, and gives an honest negative for the
+code side. wiki-export after these fixes: hit@5 100%, off-topic refusal 100%,
+hallucination-warning rate 0%→0% at `--repeats 3`.
+
 ### Results (v2, 2026-07-14)
 
 Config: `nomic-embed-text` + `qwen3:4b` (temperature 0), k=5, Ollama, consumer
