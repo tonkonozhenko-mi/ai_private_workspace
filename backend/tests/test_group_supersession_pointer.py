@@ -135,9 +135,7 @@ class _LLMFactory:
 def _build(manifest=_Manifest()):
     groups = InMemoryProjectGroupRepository()
     groups.add(
-        ProjectGroup(
-            id="g1", name="Platform", workspace_ids=(WIKI, CODE), created_at="2026-07-15"
-        )
+        ProjectGroup(id="g1", name="Platform", workspace_ids=(WIKI, CODE), created_at="2026-07-15")
     )
     store = _VectorStore()
     factory = _LLMFactory()
