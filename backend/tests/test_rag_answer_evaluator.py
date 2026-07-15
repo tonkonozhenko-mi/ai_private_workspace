@@ -189,6 +189,74 @@ def test_invented_prose_filenames_are_still_flagged_after_the_bracket_fix() -> N
     assert "backend/.env" in evidence and "docker-compose.yml" in evidence
 
 
+def test_the_prompts_citation_example_is_the_evaluators_placeholder() -> None:
+    # The prompt used to demonstrate citing with `main.tf`; small models echoed
+    # the example into answers, one invented "main.tf in the Terraform directory"
+    # for a project with no Terraform — seeded by our own instruction. The example
+    # is now an obvious placeholder, the evaluator ignores exactly it, and the
+    # prompt is built FROM the constant so the two cannot drift apart.
+    from app.core.domain.rag_answer_evaluator import CITATION_EXAMPLE_PATH
+    from app.core.domain.rag_prompt import build_workspace_question_prompt
+
+    prompt = build_workspace_question_prompt("q?", [])
+    assert CITATION_EXAMPLE_PATH in prompt
+    warnings = evaluate_rag_answer(
+        question="q?",
+        answer=f"Cite files like `{CITATION_EXAMPLE_PATH}` (README.md).",
+        sources=[_source("README.md")],
+        source_contents=["# Readme"],
+    )
+    assert not any(w.code == "answer_cited_unknown_source" for w in warnings)
+
+
+def test_a_backticked_sentence_is_not_a_filename_claim() -> None:
+    warnings = evaluate_rag_answer(
+        question="How is isolation enforced?",
+        answer=(
+            "`Row-level isolation with a mandatory tenant_id "
+            "(wiki/[ADR-04]_Tenant_isolation.md)` (wiki/[ADR-04]_Tenant_isolation.md)"
+        ),
+        sources=[_source("wiki/[ADR-04]_Tenant_isolation.md")],
+        source_contents=["Row-level isolation with a mandatory tenant_id."],
+    )
+    assert not any(w.code == "answer_cited_unknown_source" for w in warnings)
+
+
+def test_a_bare_directory_in_backticks_is_not_a_filename_claim() -> None:
+    warnings = evaluate_rag_answer(
+        question="Where do the pages live?",
+        answer="Pages live under `wiki/` (MANIFEST.md).",
+        sources=[_source("MANIFEST.md")],
+        source_contents=["# wiki-export corpus"],
+    )
+    assert not any(w.code == "answer_cited_unknown_source" for w in warnings)
+
+
+def test_a_name_broken_at_a_space_anchors_to_the_retrieved_path() -> None:
+    # "[ADR-01] Service split.md" — the model writes the page TITLE plus .md; the
+    # tokenizer keeps the tail "split.md". A retrieved path ending with that tail
+    # is what the model was reaching for, not an invention.
+    warnings = evaluate_rag_answer(
+        question="What should I read first?",
+        answer="Read [ADR-01] Service split.md first (wiki/[ADR-01]_Service_split.md).",
+        sources=[_source("wiki/[ADR-01]_Service_split.md")],
+        source_contents=["# [ADR-01] Service split"],
+    )
+    assert not any(w.code == "answer_cited_unknown_source" for w in warnings)
+
+
+def test_a_fuller_address_for_a_page_the_evidence_links_is_not_invented() -> None:
+    # The retrieved page links "([ADR-01]_Service_split.md)"; the model answers
+    # with "wiki/[ADR-01]_Service_split.md" — same file, fuller address.
+    warnings = evaluate_rag_answer(
+        question="What should I read first?",
+        answer="Start with wiki/[ADR-01]_Service_split.md ([Onboarding]_Start_here.md).",
+        sources=[_source("wiki/[Onboarding]_Start_here.md")],
+        source_contents=["Read [[ADR-01] Service split]([ADR-01]_Service_split.md) first."],
+    )
+    assert not any(w.code == "answer_cited_unknown_source" for w in warnings)
+
+
 def _source(source_path: str) -> RagSource:
     return RagSource(
         chunk_id=f"{source_path}-1",

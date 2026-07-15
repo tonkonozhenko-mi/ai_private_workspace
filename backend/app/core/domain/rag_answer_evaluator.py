@@ -146,8 +146,17 @@ def evaluate_rag_answer(
     return warnings
 
 
+# The citation-format example the prompt shows the model. It must be an obvious
+# placeholder, not a plausible filename: the prompt used to demonstrate with
+# `main.tf`, small models echoed the example into their answers — and one invented
+# "main.tf in the Terraform directory" for a project with no Terraform at all,
+# seeded by our own instruction (group run, 2026-07-15). The evaluator ignores
+# exactly this token; rag_prompt builds the instruction from it so the two can
+# never drift apart.
+CITATION_EXAMPLE_PATH = "path/to/file.py"
+
 # A backtick-quoted token, the form the prompt asks the model to cite source
-# paths in (e.g. `main.tf`, `infra/prod/backend.tf`).
+# paths in (e.g. `app/main.py`, `infra/prod/backend.tf`).
 _BACKTICK_TOKEN_RE = re.compile(r"`([^`\n]+)`")
 # Looks like a file reference: has a path separator or a short file extension.
 _FILE_EXT_RE = re.compile(r"\.[A-Za-z0-9]{1,6}$")
@@ -176,11 +185,20 @@ _PROSE_FILE_RE = re.compile(
 
 
 def _cited_file_tokens(answer: str) -> list[str]:
-    """Every file-looking name the answer commits to, backticked or plain."""
+    """Every file-looking name the answer commits to, backticked or plain.
+
+    A filename claim has a shape: no spaces, and a basename with an extension.
+    Models put whole sentences and bare directories in backticks too — "`Row-level
+    isolation … (wiki/[ADR-04]_Tenant_isolation.md)`", "`wiki/`" (both observed
+    2026-07-15) — and neither is a claim that a file exists, so neither belongs to
+    this check. The quote and term checks read those.
+    """
     tokens: list[str] = []
     for raw in _BACKTICK_TOKEN_RE.findall(answer):
         token = raw.strip()
-        if token and ("/" in token or _FILE_EXT_RE.search(token)):
+        if not token or " " in token:
+            continue
+        if _FILE_EXT_RE.search(token.split("/")[-1]):
             tokens.append(token)
     tokens.extend(match.strip() for match in _PROSE_FILE_RE.findall(answer))
     return tokens
@@ -211,12 +229,25 @@ def find_unsupported_citations(
             valid.add(clean)
             valid.add(clean.split("/")[-1])
     evidence = "\n".join(source_contents or []).casefold()
+    valid_folded = {v.casefold() for v in valid}
     unsupported: list[str] = []
     for token in _cited_file_tokens(answer):
+        if token == CITATION_EXAMPLE_PATH:
+            continue  # the prompt's own format example, echoed — read, not invented
         if token in valid or token.split("/")[-1] in valid:
             continue
-        # A file the retrieved documents talk about was read, not invented.
-        if evidence and token.casefold() in evidence:
+        # A file the retrieved documents talk about was read, not invented. The
+        # basename counts here too: a wiki page links "([ADR-01]_Service_split.md)"
+        # and the model reasonably writes it back as "wiki/[ADR-01]_Service_split.md"
+        # — same file, fuller address (observed 2026-07-15).
+        folded_base = token.split("/")[-1].casefold()
+        if evidence and (token.casefold() in evidence or folded_base in evidence):
+            continue
+        # A name broken at a space — "[ADR-01] Service split.md" — leaves a tail
+        # like "split.md". If a retrieved path ends with the tail, the model was
+        # reaching for that file, clumsily; a fabricated name has no such anchor.
+        folded = token.casefold()
+        if len(folded) >= 6 and any(v.endswith(folded) for v in valid_folded):
             continue
         unsupported.append(token)
     # De-duplicate, keep order, cap.

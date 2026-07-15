@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from app.core.domain.handbook_source import display_source_path, mask_handbook_token
 from app.core.domain.indexing import ContextSearchResult
+from app.core.domain.rag_answer_evaluator import CITATION_EXAMPLE_PATH
 from app.core.domain.supersession import resolve_successor_path, supersession_target
 
 
@@ -304,11 +305,11 @@ def build_workspace_question_prompt(
         "- Start with a direct answer and keep it concise.\n"
         "When (and only when) you answer from the project files:\n"
         "- When making any technical claim, name the file it comes from by putting "
-        "its path in backticks, for example `main.tf` or `terragrunt.hcl`.\n"
+        f"its path in backticks, for example `{CITATION_EXAMPLE_PATH}`.\n"
         "- Do not cite only numeric references such as [1] or [2]; numeric "
         "references are not enough without the explicit file path.\n"
         "- Include a bullet list of relevant findings with the file path in "
-        "parentheses, for example: `S3 backend is configured (main.tf)`.\n"
+        f"parentheses, for example: `the setting is defined ({CITATION_EXAMPLE_PATH})`.\n"
         "- If multiple files contain relevant configuration, compare them and "
         "name each file.\n"
         "- If the context contains conflicting or multiple configurations, say "
