@@ -197,7 +197,13 @@ GOLDEN_SET: tuple[QuestionCase, ...] = (
     QuestionCase("sa-time", "What time is it?", CLASS_SHOULD_ABSTAIN),
     QuestionCase("sa-weather", "What's the weather like today?", CLASS_SHOULD_ABSTAIN),
     QuestionCase("sa-hello", "Hello, how are you doing?", CLASS_SHOULD_ABSTAIN),
-    QuestionCase("sa-capital", "What is the capital of France?", CLASS_SHOULD_ABSTAIN),
+    # sa-capital retired 2026-07-15: its text was verbatim one of the product's
+    # calibration probes (relevance_calibration.PROBE_QUERIES), so the abstention
+    # threshold was being tested on its own calibration input. Replaced with a
+    # question from a different router category that shares no probe phrasing.
+    QuestionCase(
+        "sa-nobel", "Who won the Nobel Prize in Literature in 2020?", CLASS_SHOULD_ABSTAIN
+    ),
     QuestionCase("sa-worldcup", "Who won the last football World Cup?", CLASS_SHOULD_ABSTAIN),
     QuestionCase("sa-joke", "Tell me a joke.", CLASS_SHOULD_ABSTAIN),
     QuestionCase("sa-math", "What is 17 times 23?", CLASS_SHOULD_ABSTAIN),
