@@ -148,6 +148,47 @@ def test_howto_non_shell_block_is_still_verified() -> None:
     assert any(w.code == "quote_not_in_sources" for w in warnings)
 
 
+def test_bracketed_wiki_filenames_are_read_whole_not_truncated() -> None:
+    # Wiki exports name pages "[ADR-02]_Invoice_numbering.md" — brackets are part
+    # of the filename. The first prose-pattern excluded them and truncated the
+    # token to "_Invoice_numbering.md", which matched nothing, so every honest
+    # wiki answer citing its own page was flagged as inventing a file
+    # (2026-07-15: wiki-export halluc 9.1% → 54.5% from this alone).
+    warnings = evaluate_rag_answer(
+        question="How are invoice numbers issued?",
+        answer=(
+            "From a per-tenant sequence — see "
+            "[[ADR-02] Invoice numbering]([ADR-02]_Invoice_numbering.md)."
+        ),
+        sources=[_source("wiki/[ADR-02]_Invoice_numbering.md")],
+        source_contents=["# [ADR-02] Invoice numbering\n\nPer-tenant sequence."],
+    )
+    assert not any(w.code == "answer_cited_unknown_source" for w in warnings)
+
+
+def test_a_cross_linked_wiki_page_counts_as_read_not_invented() -> None:
+    warnings = evaluate_rag_answer(
+        question="Where are implementation notes?",
+        answer="In [[Capability] Invoicing]([Capability]_Invoicing.md).",
+        sources=[_source("wiki/[ADR-02]_Invoice_numbering.md")],
+        source_contents=[
+            "Implementation notes live in [[Capability] Invoicing]([Capability]_Invoicing.md)."
+        ],
+    )
+    assert not any(w.code == "answer_cited_unknown_source" for w in warnings)
+
+
+def test_invented_prose_filenames_are_still_flagged_after_the_bracket_fix() -> None:
+    warnings = evaluate_rag_answer(
+        question="Where is storage configured?",
+        answer="Storage is configured in backend/.env and docker-compose.yml.",
+        sources=[_source("wiki/[ADR-08]_Report_storage_v2.md")],
+        source_contents=["Statements are stored in object storage."],
+    )
+    evidence = _warning_by_code(warnings, "answer_cited_unknown_source").evidence
+    assert "backend/.env" in evidence and "docker-compose.yml" in evidence
+
+
 def _source(source_path: str) -> RagSource:
     return RagSource(
         chunk_id=f"{source_path}-1",

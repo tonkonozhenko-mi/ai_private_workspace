@@ -158,8 +158,17 @@ _FILE_EXT_RE = re.compile(r"\.[A-Za-z0-9]{1,6}$")
 # only reads between backticks (mixed-group run, 2026-07-15). The extensions are
 # an explicit list rather than "any dot-something", so ordinary prose ("version
 # 2.0", "e.g.") is not mistaken for a filename.
+#
+# Square brackets are part of the name in wiki exports ("[ADR-02]_Invoice
+# numbering.md" is a real Confluence-style filename). The first version of this
+# pattern excluded them, so it TRUNCATED such names to "_Invoice_numbering.md" —
+# a token that matches neither the source path nor the page text — and every
+# correct wiki answer that cited its own page in prose was flagged as inventing
+# a file (observed 2026-07-15: wiki-export halluc 9.1% → 54.5% overnight, six
+# honest answers flagged). A detector with false positives is not stricter, it
+# is noisier.
 _PROSE_FILE_RE = re.compile(
-    r"\b([\w][\w./-]*\.(?:py|ts|tsx|js|jsx|go|rs|java|rb|php|cs|c|cpp|h|"
+    r"(?<![\w.\[/-])([\w\[][\w.\[\]/-]*\.(?:py|ts|tsx|js|jsx|go|rs|java|rb|php|cs|c|cpp|h|"
     r"tf|tfvars|hcl|ya?ml|json|toml|ini|cfg|conf|sh|bash|sql|md|rst|txt|"
     r"proto|gradle|lock|env|dockerfile|tfstate))\b",
     re.IGNORECASE,
