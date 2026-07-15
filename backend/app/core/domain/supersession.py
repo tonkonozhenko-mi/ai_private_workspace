@@ -21,6 +21,10 @@ paths that exist. The fetching lives in the use case.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
+from dataclasses import replace
+
+from app.core.domain.indexing import ContextSearchResult
 
 # "Superseded by [[ADR-08] Report storage v2]([ADR-08]_Report_storage_v2.md)" — a
 # Markdown link. Only the parenthesised half is matched: the label before it is a
@@ -118,3 +122,45 @@ def resolve_successor_path(target: str, candidate_paths: list[str]) -> str | Non
         if _slug(path.split("/")[-1]) == wanted_slug:
             return path
     return None
+
+
+def follow_supersession(
+    results: list[ContextSearchResult],
+    indexed_paths: list[str],
+    fetch_chunks: Callable[[str], list[ContextSearchResult]],
+    status_line_of: Callable[[str], str | None],
+) -> list[ContextSearchResult]:
+    """Add the successor of every retrieved page that declares itself replaced.
+
+    ``fetch_chunks`` maps a source_path to that file's chunks (typically the
+    vector store bound to one workspace) and ``status_line_of`` reads a chunk's
+    status line — both injected, the way ``expand_to_parents`` takes its fetcher,
+    so this stays testable without a store.
+
+    The successor is placed immediately BEFORE the page that named it and given
+    that page's score. Both halves of that matter, because the two Ask paths order
+    their context differently: the single workspace keeps the list order it is
+    handed, while a group re-sorts everything by score across repositories. An
+    inherited score survives the sort; the position survives the ordering. Either
+    way the live decision is ahead of the dead one, which is what the window
+    budget reads when it decides what to drop.
+
+    One hop. If the successor is itself superseded, its own status line will say
+    so the next time it is retrieved — chasing a chain is how a context window
+    fills with history.
+    """
+    if not results or not indexed_paths:
+        return results
+    present = {result.source_path for result in results}
+    out: list[ContextSearchResult] = []
+    for result in results:
+        line = status_line_of(result.content)
+        target = supersession_target(line) if line else None
+        successor = resolve_successor_path(target, indexed_paths) if target else None
+        if successor and successor not in present:
+            chunks = fetch_chunks(successor)
+            if chunks:
+                out.extend(replace(chunk, score=result.score) for chunk in chunks)
+                present.add(successor)
+        out.append(result)
+    return out
