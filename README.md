@@ -113,9 +113,13 @@ Commands, dates and the found-and-fixed history for every row:
 </details>
 
 **Both engines, one truth.** The app ships two local engines — llama.cpp
-(built in) and Ollama — and the benchmark runs on both. Every quality metric
-agrees digit for digit; the only difference is speed (seconds per generated
-answer, Terraform project, consumer laptop):
+(built in) and Ollama — and the benchmark runs on both, each with the answer
+model that engine ships with on the test machine (qwen3:4b on Ollama,
+Mistral 7B on llama.cpp). Every quality metric still agreed digit for digit:
+retrieval is independent of the answer model by construction, and the
+correction pass held on both. The speed column compares those engine+model
+pairs — the choice a user actually makes in the app — not bare engines
+(seconds per generated answer, Terraform project, consumer laptop):
 
 | Engine | typical answer | slowest answer |
 |---|---:|---:|
