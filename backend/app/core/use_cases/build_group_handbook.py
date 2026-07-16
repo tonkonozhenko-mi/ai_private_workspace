@@ -73,9 +73,12 @@ class BuildGroupHandbookUseCase:
                 source=MemorySource.AUTO,
                 created_at=datetime.now(timezone.utc).isoformat(),
                 pinned=True,
-                grounding=format_index_snapshot(current_index_marks(
-                    self.group_repository, self.index_status_repository, group_id
-                )) or None,
+                grounding=format_index_snapshot(
+                    current_index_marks(
+                        self.group_repository, self.index_status_repository, group_id
+                    )
+                )
+                or None,
             )
         )
         return text

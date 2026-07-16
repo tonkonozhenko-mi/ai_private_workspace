@@ -47,9 +47,7 @@ class _Workspace:
 
 class _WorkspaceRepo:
     def get(self, workspace_id):
-        return {WIKI: _Workspace(WIKI, "Wiki"), CODE: _Workspace(CODE, "Backend")}.get(
-            workspace_id
-        )
+        return {WIKI: _Workspace(WIKI, "Wiki"), CODE: _Workspace(CODE, "Backend")}.get(workspace_id)
 
 
 class _Status:
