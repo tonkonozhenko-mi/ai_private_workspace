@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -224,13 +225,18 @@ export function GroupView({
         ))}
       </nav>
 
-      <MemberBar
-        detail={detail}
-        addable={addable}
-        busyMember={busyMember}
-        onAdd={handleAdd}
-        onRemove={handleRemove}
-      />
+      {/* Membership belongs where the group is managed. On Ask and Intelligence it
+          was a second row of chips that looked exactly like that tab's own filter
+          and did something else entirely — twins that are not twins. */}
+      {activeTab === "home" ? (
+        <MemberBar
+          detail={detail}
+          addable={addable}
+          busyMember={busyMember}
+          onAdd={handleAdd}
+          onRemove={handleRemove}
+        />
+      ) : null}
 
       <div className="grp-body">
         {activeTab === "home" ? <GroupHome overview={overview} groupId={groupId} /> : null}
@@ -298,6 +304,30 @@ function MemberBar({
   );
 }
 
+/** A section heading: a short CAPS name, and — if it needs one — a plain-text
+ * line saying what the section is. The name was carrying the explanation inside
+ * the uppercase ("ENVIRONMENTS — WHICH REPO DEPLOYS WHERE"), which is a label
+ * shouting a sentence. One pattern, every section. */
+function SectionHead({
+  name,
+  sub,
+  action,
+}: {
+  name: string;
+  sub?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="grp-sechead">
+      <div className="grp-sechead-text">
+        <p className="grp-shead">{name}</p>
+        {sub ? <p className="grp-subhead">{sub}</p> : null}
+      </div>
+      {action ? <div className="grp-sechead-act">{action}</div> : null}
+    </div>
+  );
+}
+
 function Metric({ value, label, sub }: { value: string | number; label: string; sub?: string }) {
   return (
     <div className="grp-metric">
@@ -306,6 +336,21 @@ function Metric({ value, label, sub }: { value: string | number; label: string; 
       {sub ? <span className="grp-metric-sub">{sub}</span> : null}
     </div>
   );
+}
+
+/** What a repository row can honestly say about its git history.
+ *
+ * "0 commits · 0 contributors · 0 this week" is three facts that are one fact —
+ * and for a folder that was never a repository, it is not even that: it is the
+ * shape of an answer with no answer in it. Say the one true thing instead. */
+function repoMeta(m: GroupOverviewResponse["members"][number]): string {
+  if (!m.is_repo) return "Not a git repository";
+  const parts: string[] = [];
+  if (m.total_commits > 0) parts.push(`${m.total_commits.toLocaleString()} commits`);
+  if (m.contributors_count > 0) parts.push(`${m.contributors_count} contributors`);
+  if (m.commits_last_7_days > 0) parts.push(`${m.commits_last_7_days} this week`);
+  if (m.last_commit_subject) parts.push(`latest: ${m.last_commit_subject}`);
+  return parts.length > 0 ? parts.join(" · ") : "No commits yet";
 }
 
 function GroupHome({ overview, groupId }: { overview: GroupOverviewResponse | null; groupId: string }) {
@@ -318,14 +363,11 @@ function GroupHome({ overview, groupId }: { overview: GroupOverviewResponse | nu
   // code-shaped numbers, so a group holding a wiki led with "0 services" and never
   // mentioned its 169 pages. A count of zero is not worth a card.
   // "1 infrastructure components" is a number and a word that disagree with it.
+  // Nor is a count the page already carries: "2 projects" was said by the header,
+  // the chips and the list below it — one fact, one place.
   const plural = (count: number, singular: string, many?: string) =>
     count === 1 ? singular : (many ?? `${singular}s`);
-  const cards: { value: number; label: string; sub?: string }[] = [
-    {
-      value: t.repos ?? overview.member_count,
-      label: plural(t.repos ?? overview.member_count, "project"),
-    },
-  ];
+  const cards: { value: number; label: string; sub?: string }[] = [];
   if ((t.pages ?? 0) > 0) {
     cards.push({
       value: t.pages ?? 0,
@@ -352,35 +394,41 @@ function GroupHome({ overview, groupId }: { overview: GroupOverviewResponse | nu
       sub: overview.environments.join(", ") || undefined,
     });
   }
-  cards.push({
-    value: t.commits_last_7_days ?? 0,
-    label: `${plural(t.commits_last_7_days ?? 0, "commit")} this week`,
-  });
+  // Week activity is a property of the repositories, so it is a badge on the
+  // repositories — not a card of its own competing with what the group holds.
+  const commitsThisWeek = t.commits_last_7_days ?? 0;
+  const shown = cards.slice(0, 4);
   return (
     <div className="grp-stack">
-      <div className="grp-hero">
-        {cards.slice(0, 4).map((card) => (
-          <Metric key={card.label} value={card.value} label={card.label} sub={card.sub} />
-        ))}
-      </div>
+      {shown.length > 0 ? (
+        <div className="grp-hero">
+          {shown.map((card) => (
+            <Metric key={card.label} value={card.value} label={card.label} sub={card.sub} />
+          ))}
+        </div>
+      ) : null}
 
       <section className="grp-section">
-        <p className="grp-shead">Repositories</p>
+        <SectionHead
+          name="Repositories"
+          action={
+            commitsThisWeek > 0 ? (
+              <span className="grp-badge">
+                {commitsThisWeek} {plural(commitsThisWeek, "commit")} this week
+              </span>
+            ) : null
+          }
+        />
         <ul className="grp-repo-list">
           {overview.members.map((m) => (
             <li key={m.workspace_id} className="grp-repo">
               <div className="grp-repo-top">
                 <span className="grp-repo-name">{m.name}</span>
                 {m.branch ? <span className="grp-repo-branch">{m.branch}</span> : null}
-                {!m.built ? <span className="grp-repo-tag">not analyzed</span> : null}
+                {!m.built ? <span className="grp-badge">Not analyzed</span> : null}
               </div>
               <p className="grp-repo-desc">{m.description}</p>
-              <p className="grp-repo-meta">
-                {m.is_repo
-                  ? `${m.total_commits.toLocaleString()} commits · ${m.contributors_count} contributors · ${m.commits_last_7_days} this week`
-                  : "Not a git repository"}
-                {m.last_commit_subject ? ` · latest: ${m.last_commit_subject}` : ""}
-              </p>
+              <p className="grp-repo-meta">{repoMeta(m)}</p>
             </li>
           ))}
         </ul>
@@ -447,12 +495,33 @@ function GroupMemory({ groupId }: { groupId: string }) {
 
   return (
     <section className="grp-section">
-      <p className="grp-shead">Notes &amp; handbook</p>
-      <p className="grp-hint">
-        What you tell the group here is remembered and fed into every group answer — so the AI
-        gets better at this project over time.
-      </p>
-      <div className="grp-ask-row">
+      {/* One explanation, and the handbook button next to the heading it belongs
+          to — the section was two paragraphs saying the same thing on either
+          side of a list, with the button stranded at the bottom. */}
+      <SectionHead
+        name="Notes & handbook"
+        sub="What you tell the group here is fed into every group answer."
+        action={
+          <span className="grp-handbook-row">
+            {handbook ? <span className="pm-handbook-badge">In use</span> : null}
+            {handbook ? (
+              <button type="button" className="grp-link" onClick={() => setShowHandbook((v) => !v)}>
+                {showHandbook ? "Hide handbook" : "View handbook"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="grp-button grp-button-small"
+              onClick={regenerate}
+              disabled={busy}
+              title="A short summary across all member repositories, used as background in every group answer."
+            >
+              {handbook ? "Regenerate handbook" : "Generate handbook"}
+            </button>
+          </span>
+        }
+      />
+      <div className="grp-ask-row grp-note-row">
         <input
           className="grp-ask-input"
           type="text"
@@ -490,22 +559,6 @@ function GroupMemory({ groupId }: { groupId: string }) {
         <p className="grp-muted">No notes yet.</p>
       )}
 
-      <p className="grp-hint">
-        {handbook
-          ? "Group handbook is generated from all member repos and fed into every group answer as background — nothing to do with it, it just keeps answers grounded."
-          : "Generate a group handbook — a short summary across all repos that's automatically used as background in every group answer."}
-      </p>
-      <div className="grp-handbook-row">
-        <button type="button" className="grp-button" onClick={regenerate} disabled={busy}>
-          {handbook ? "Regenerate handbook" : "Generate handbook"}
-        </button>
-        {handbook ? <span className="pm-handbook-badge">In use</span> : null}
-        {handbook ? (
-          <button type="button" className="grp-link" onClick={() => setShowHandbook((v) => !v)}>
-            {showHandbook ? "Hide handbook" : "View handbook"}
-          </button>
-        ) : null}
-      </div>
       {handbook && showHandbook ? <pre className="grp-handbook">{handbook}</pre> : null}
     </section>
   );
@@ -637,6 +690,35 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
     return <p className="grp-muted">No repositories in this group yet.</p>;
   }
 
+  // Nothing has been analyzed yet, so there is nothing to compare. Five sections
+  // each saying "nothing detected" is five ways of saying the page is empty —
+  // and none of them says what to do about it. One invitation, one button per
+  // member, and the sections come back the moment there is anything in them.
+  if (!drillId && members.every((m) => !m.built)) {
+    return (
+      <div className="grp-stack">
+        <section className="grp-empty-card">
+          <p className="grp-empty-title">Build the project maps to see environments, technologies and risks</p>
+          <p className="grp-empty-sub">
+            Each repository is analyzed on its own; this tab compares what comes back.
+          </p>
+          <div className="grp-empty-actions">
+            {members.map((m) => (
+              <button
+                key={m.workspace_id}
+                type="button"
+                className="grp-button"
+                onClick={() => setDrillId(m.workspace_id)}
+              >
+                Analyze {m.name}
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   // Drilled into one repo: show its full single-project Intelligence, same
   // component and depth as opening that project on its own.
   if (drillId) {
@@ -669,34 +751,41 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
 
   return (
     <div className="grp-stack">
+      {/* This row used to be the membership chips' identical twin — same pill, same
+          place, one removes a repository from the group and the other hides it from
+          a table. Membership now lives on Home; what is left here is a filter, and
+          it looks like one: a checkbox that shows its own state. */}
       {members.length > 1 ? (
-        <div className="grp-filter">
-          <span className="grp-filter-label">Show</span>
+        <div className="grp-filter" role="group" aria-label="Compare repositories">
+          <span className="grp-filter-label">Compare</span>
           {members.map((m) => {
             const on = active === null || active.has(m.workspace_id);
             return (
               <button
                 key={m.workspace_id}
                 type="button"
-                className={`grp-filter-chip${on ? " is-on" : ""}`}
+                className={`grp-filter-toggle${on ? " is-on" : ""}`}
                 onClick={() => toggle(m.workspace_id)}
                 aria-pressed={on}
               >
+                <span className="grp-filter-box" aria-hidden="true">{on ? "✓" : ""}</span>
                 {m.name}
               </button>
             );
           })}
           {active !== null ? (
             <button type="button" className="grp-link" onClick={() => setActive(null)}>
-              All repos
+              All repositories
             </button>
           ) : null}
         </div>
       ) : null}
 
       <section className="grp-section">
-        <p className="grp-shead">Per repository — open the full project view</p>
-        <p className="grp-hint">Compare across repos above; open any one for its complete Intelligence.</p>
+        <SectionHead
+          name="Per repository"
+          sub="Compare across repositories below; open any one for its complete Intelligence."
+        />
         <ul className="grp-memberlist">
           {shown.map((m) => (
             <li key={m.workspace_id} className="grp-memberrow">
@@ -704,13 +793,15 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
                 <span className="grp-memberrow-name">{m.name}</span>
                 <span className="grp-memberrow-desc">{m.description}</span>
               </div>
+              {/* A card that said "Not analyzed yet — build one" and offered no way
+                  to build one was a sign, not a control. */}
+              {m.built ? null : <span className="grp-badge">Not analyzed</span>}
               <button
                 type="button"
-                className="grp-link"
+                className={m.built ? "grp-link" : "grp-button grp-button-small"}
                 onClick={() => setDrillId(m.workspace_id)}
-                disabled={!m.built}
               >
-                {m.built ? "Open full intelligence →" : "Not analyzed yet"}
+                {m.built ? "Open full intelligence →" : "Analyze"}
               </button>
             </li>
           ))}
@@ -718,8 +809,7 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
       </section>
 
       <section className="grp-section">
-        <p className="grp-shead">Environments — which repo deploys where</p>
-        <p className="grp-hint">A ✓ means that repo defines that environment.</p>
+        <SectionHead name="Environments" sub="Which repository deploys where — a ✓ means it defines that environment." />
         {envMatrix.length > 0 && shown.length > 0 ? (
           <div className="grp-matrix-wrap">
             <table className="grp-matrix">
@@ -747,19 +837,19 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
             </table>
           </div>
         ) : (
-          <p className="grp-muted">No environments detected in the selected repos.</p>
+          <p className="grp-muted">No environments detected in the selected repositories.</p>
         )}
       </section>
 
       <section className="grp-section">
-        <p className="grp-shead">Technologies — shared vs specific</p>
+        <SectionHead name="Technologies" sub="What every repository shares, and what belongs to only one." />
         {techGroups.common.length === 0 && techGroups.partial.length === 0 && techGroups.uniqueByRepo.size === 0 ? (
-          <p className="grp-muted">No technologies detected in the selected repos.</p>
+          <p className="grp-muted">No technologies detected in the selected repositories.</p>
         ) : (
           <div className="grp-tech-groups">
             {techGroups.common.length > 0 ? (
               <div className="grp-tech-group">
-                <p className="grp-tech-label">Common to all {techGroups.total} repos</p>
+                <p className="grp-tech-label">Common to all {techGroups.total} repositories</p>
                 <div className="grp-chips">
                   {techGroups.common.map((t) => <span key={t} className="grp-chip is-common">{t}</span>)}
                 </div>
@@ -788,11 +878,10 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
       </section>
 
       <section className="grp-section">
-        <p className="grp-shead">Risk patterns — what repeats, and where</p>
-        <p className="grp-hint">
-          Same finding across repos is grouped, so you fix the pattern, not 20 rows. These are
-          leads for a human, not verdicts.
-        </p>
+        <SectionHead
+          name="Risk patterns"
+          sub="The same finding across repositories is grouped, so you fix the pattern, not 20 rows. These are leads for a human, not verdicts."
+        />
         {riskGroups.length > 0 ? (
           <ul className="grp-riskgroups">
             {riskGroups.map((r) => (
@@ -820,7 +909,7 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
             ))}
           </ul>
         ) : (
-          <p className="grp-muted">Nothing risky flagged across the selected repos.</p>
+          <p className="grp-muted">Nothing risky flagged across the selected repositories.</p>
         )}
       </section>
     </div>
@@ -928,19 +1017,25 @@ function GroupAsk({
     setAsked(null);
     setError(null);
   }
+  const empty = turns.length === 0 && !asked;
   return (
     <div className="grp-ask">
-      <p className="grp-hint">
-        Ask once and the answer is drawn from every repository in the group, streamed as it's
-        written. Each source is labelled with the repo it came from. Nothing leaves this computer.
-      </p>
+      {/* An invitation is for someone who has not come in yet. After the first
+          answer it is a paragraph explaining the thing you are looking at. */}
+      {empty ? (
+        <p className="grp-hint">
+          Ask once and the answer is drawn from every repository in the group, streamed as it's
+          written. Each source is labelled with the repository it came from. Nothing leaves this
+          computer.
+        </p>
+      ) : null}
 
       <div className="grp-ask-toolbar">
         <button
           type="button"
           className="grp-button"
           onClick={startNewThread}
-          disabled={loading || (turns.length === 0 && !asked)}
+          disabled={loading || empty}
         >
           + New chat
         </button>
@@ -959,7 +1054,7 @@ function GroupAsk({
         </label>
       </div>
 
-      {turns.length === 0 && !asked && starters.length > 0 ? (
+      {empty && starters.length > 0 ? (
         <div className="grp-ask-starters">
           {starters.map((q) => (
             <button key={q} type="button" className="grp-ask-starter" onClick={() => void submit(q)}>
@@ -975,6 +1070,7 @@ function GroupAsk({
           groupId={groupId}
           question={turn.question}
           result={turn.result}
+          isLast={index === turns.length - 1 && !asked}
           traceOpen={traceFor === `${index}`}
           onOpenTrace={() => setTraceFor(`${index}`)}
           onCloseTrace={() => setTraceFor(null)}
@@ -983,7 +1079,7 @@ function GroupAsk({
 
       {asked ? (
         <div className="grp-turn">
-          <p className="grp-turn-question">{asked}</p>
+          <GroupQuestion text={asked} />
           <div className="grp-answer">
             <p className="grp-answer-eyebrow">Answer · across all repos</p>
             <div className="grp-answer-body">
@@ -1031,6 +1127,17 @@ function GroupAsk({
   );
 }
 
+/** The user's turn, in the same clothes it wears in a single project's Ask: its
+ * own block, right-aligned, tinted. It was a grey caption prefixed "You asked ·",
+ * which reads as a footnote about a question rather than the question. */
+function GroupQuestion({ text }: { text: string }) {
+  return (
+    <article className="ask-message-row is-user">
+      <div className="ask-message-bubble user-bubble">{text}</div>
+    </article>
+  );
+}
+
 /** One exchange: what was asked, what came back, and everything that stands
  * behind it — the contributions, the trace, the sources, the feedback. Its own
  * component because a thread is a list of these, and the composer above is a
@@ -1039,6 +1146,7 @@ function GroupTurnCard({
   groupId,
   question,
   result,
+  isLast,
   traceOpen,
   onOpenTrace,
   onCloseTrace,
@@ -1046,31 +1154,43 @@ function GroupTurnCard({
   groupId: string;
   question: string;
   result: GroupAskResponse;
+  isLast: boolean;
   traceOpen: boolean;
   onOpenTrace: () => void;
   onCloseTrace: () => void;
 }) {
+  // The tail — how it was reached, where it came from, was it any good — is the
+  // whole apparatus of trust, and it is three of them per turn. On a thread of
+  // four questions that is twelve panels between you and the answer you are
+  // reading. So an older turn folds its tail into one line and unfolds on ask.
+  const [open, setOpen] = useState(isLast);
+  // A new question arrives, so this turn is no longer the one being read: it folds.
+  useEffect(() => {
+    setOpen(isLast);
+  }, [isLast]);
   const memoryNote =
     result.memory_used > 0 || result.facts_used > 0
       ? `Used ${result.memory_used} memory note(s) and ${result.facts_used} map fact(s) from across the group.`
       : null;
+  const hasTrace = result.memory_used > 0 || result.facts_used > 0 || result.sources.length > 0;
+  const warnings = (result.quality_warnings ?? []).filter((w) => w.severity === "high");
+  const repos = new Set(result.sources.map((s) => s.workspace_name)).size;
 
   return (
     <div className="grp-turn">
-      <p className="grp-turn-question">{question}</p>
+      <GroupQuestion text={question} />
       <div className="grp-answer">
-        <p className="grp-answer-eyebrow">Answer · across {result.contributions.length} repos</p>
+        <p className="grp-answer-eyebrow">Answer · across {result.contributions.length} repositories</p>
         <div className="grp-answer-body">
           <MarkdownAnswer content={result.answer} />
         </div>
 
-        {(result.quality_warnings ?? []).some((w) => w.severity === "high") ? (
+        {/* Never inside the fold: a warning you have to ask for is not a warning. */}
+        {warnings.length > 0 ? (
           <div className="ask-trust-notice" role="alert">
-            {(result.quality_warnings ?? [])
-              .filter((w) => w.severity === "high")
-              .map((warning, index) => (
-                <p key={`${warning.code}-${index}`}>{warning.message}</p>
-              ))}
+            {warnings.map((warning, index) => (
+              <p key={`${warning.code}-${index}`}>{warning.message}</p>
+            ))}
           </div>
         ) : null}
 
@@ -1090,62 +1210,78 @@ function GroupTurnCard({
           </div>
         ) : null}
 
-        {result.memory_used > 0 || result.facts_used > 0 || result.sources.length > 0 ? (
+        {!open ? (
+          <button type="button" className="grp-turn-tail" onClick={() => setOpen(true)}>
+            {result.sources.length > 0
+              ? `${result.sources.length} source${result.sources.length === 1 ? "" : "s"} · ${repos} repo${repos === 1 ? "" : "s"} · helpful?`
+              : "How it was reached · helpful?"}
+            <span className="grp-turn-tail-chevron" aria-hidden="true">⌄</span>
+          </button>
+        ) : (
           <>
-            <button type="button" className="why-answer-btn" onClick={onOpenTrace}>
-              <span className="wab-icon" aria-hidden="true">?</span>
-              How did the AI reach this?
-              <span className="wab-meta">
-                {result.memory_used} note{result.memory_used === 1 ? "" : "s"} · {result.facts_used} map
-                fact{result.facts_used === 1 ? "" : "s"} · {result.contributions.length} repo
-                {result.contributions.length === 1 ? "" : "s"}
-              </span>
-            </button>
-            {traceOpen ? (
-              <AnswerTracePanel
-                scope="group"
-                memoryUsed={result.memory_used}
-                factsUsed={result.facts_used}
-                chunks={result.used_context_chunks}
-                files={result.sources.map((source) => ({
-                  source_path: source.source_path,
-                  repo: source.workspace_name,
-                  chunk_id: source.chunk_id,
-                  score: source.score,
-                }))}
-                onClose={onCloseTrace}
-              />
+            {hasTrace ? (
+              <>
+                <button type="button" className="why-answer-btn" onClick={onOpenTrace}>
+                  <span className="wab-icon" aria-hidden="true">?</span>
+                  How did the AI reach this?
+                  <span className="wab-meta">
+                    {result.memory_used} note{result.memory_used === 1 ? "" : "s"} · {result.facts_used} map
+                    fact{result.facts_used === 1 ? "" : "s"} · {result.contributions.length} repo
+                    {result.contributions.length === 1 ? "" : "s"}
+                  </span>
+                </button>
+                {traceOpen ? (
+                  <AnswerTracePanel
+                    scope="group"
+                    memoryUsed={result.memory_used}
+                    factsUsed={result.facts_used}
+                    chunks={result.used_context_chunks}
+                    files={result.sources.map((source) => ({
+                      source_path: source.source_path,
+                      repo: source.workspace_name,
+                      chunk_id: source.chunk_id,
+                      score: source.score,
+                    }))}
+                    onClose={onCloseTrace}
+                  />
+                ) : null}
+              </>
+            ) : memoryNote ? (
+              <p className="grp-memory-note">{memoryNote}</p>
+            ) : null}
+
+            {/* Every source keeps the repository it came from, in every state. */}
+            {result.sources.length > 0 ? (
+              <div className="grp-sources">
+                <p className="grp-shead">Sources by repository</p>
+                {groupSourcesByRepo(result.sources).map(([repo, items]) => (
+                  <div className="grp-source-group" key={repo}>
+                    <p className="grp-source-grouphead">{repo}<span className="grp-source-groupn">{items.length}</span></p>
+                    <ul>
+                      {items.map((s) => (
+                        <li key={s.chunk_id} title={s.preview}>
+                          <code>{formatSourceLabel(s.source_path)}</code>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            <AnswerFeedback
+              question={question}
+              answer={result.answer}
+              onSave={(text, k) => addGroupMemory(groupId, text, k)}
+            />
+            {!isLast ? (
+              <button type="button" className="grp-link grp-turn-fold" onClick={() => setOpen(false)}>
+                Fold this turn
+              </button>
             ) : null}
           </>
-        ) : memoryNote ? (
-          <p className="grp-memory-note">{memoryNote}</p>
-        ) : null}
-
-        {result.sources.length > 0 ? (
-          <div className="grp-sources">
-            <p className="grp-shead">Sources by repository</p>
-            {groupSourcesByRepo(result.sources).map(([repo, items]) => (
-              <div className="grp-source-group" key={repo}>
-                <p className="grp-source-grouphead">{repo}<span className="grp-source-groupn">{items.length}</span></p>
-                <ul>
-                  {items.map((s) => (
-                    <li key={s.chunk_id} title={s.preview}>
-                      <code>{formatSourceLabel(s.source_path)}</code>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        <AnswerFeedback
-          question={question}
-          answer={result.answer}
-          onSave={(text, k) => addGroupMemory(groupId, text, k)}
-        />
+        )}
       </div>
     </div>
   );
 }
-
