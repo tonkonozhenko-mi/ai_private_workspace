@@ -5740,7 +5740,11 @@ a.getting-ready-cta:hover {
    loses its place in. Capped at the measure the single project's Ask uses — the
    group should feel like its brother, and this is where that stops being a
    slogan. Not width-conditional, so it lives with the rest of .grp-ask. */
-.grp-ask { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 940px; margin: 0 auto; }
+/* Capped, but not centred inside the band: the band is already centred, and
+   centring the thread within it put the first word of every question 120px to
+   the right of the title and the tabs. The left edge is the axis you read down;
+   empty space to the right of a paragraph is just paper. */
+.grp-ask { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 940px; }
 .grp-ask-row { display: flex; gap: 8px; }
 /* The thread's own furniture: a reset and a mode, on one line above the feed —
    the same two controls, in the same order, as a single project's Ask. */
