@@ -27,7 +27,11 @@ import type {
   WorkspaceDashboard,
 } from "../api/types";
 import { useProjectRefresh } from "../hooks/useProjectRefresh";
-import { memberChangeBadge, memberChangeDetail } from "../lib/groupStaleness";
+import {
+  memberChangeBadge,
+  memberChangeDetail,
+  staleRepositoryNames,
+} from "../lib/groupStaleness";
 import { formatSourceLabel } from "../lib/sourceLabel";
 import { hasUserInteracted } from "../lib/userInteraction";
 import { AnswerFeedback } from "./AnswerFeedback";
@@ -78,6 +82,10 @@ export function GroupView({
   const [renaming, setRenaming] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [draftName, setDraftName] = useState(groupName);
+  // Asked once for the whole group view, not once per tab: the walk that answers
+  // it is the expensive part, and Home's badge and Ask's source note are the same
+  // question. Two answers to one question is how two screens start disagreeing.
+  const { changes, recheck } = useMemberChanges(overview?.members ?? []);
 
   // A freshly created group lands in rename mode so it can be named immediately.
   useEffect(() => {
@@ -244,8 +252,12 @@ export function GroupView({
       ) : null}
 
       <div className="grp-body">
-        {activeTab === "home" ? <GroupHome overview={overview} groupId={groupId} /> : null}
-        {activeTab === "ask" ? <GroupAsk groupId={groupId} overview={overview} /> : null}
+        {activeTab === "home"
+          ? <GroupHome overview={overview} groupId={groupId} changes={changes} onRecheck={recheck} />
+          : null}
+        {activeTab === "ask"
+          ? <GroupAsk groupId={groupId} overview={overview} changes={changes} />
+          : null}
         {activeTab === "intelligence" ? <GroupIntelligence overview={overview} /> : null}
       </div>
     </div>
@@ -438,40 +450,37 @@ function MemberFreshness({
   );
 }
 
-function GroupHome({ overview, groupId }: { overview: GroupOverviewResponse | null; groupId: string }) {
-  const { changes, recheck } = useMemberChanges(overview?.members ?? []);
-  if (!overview) return <p className="grp-muted">Loading…</p>;
-  if (overview.member_count === 0) {
-    return <p className="grp-muted">No repositories in this group yet. Add one above.</p>;
-  }
+const plural = (count: number, singular: string, many?: string) =>
+  count === 1 ? singular : (many ?? `${singular}s`);
+
+interface HomeCard {
+  value: number;
+  label: string;
+  sub?: string;
+}
+
+/** What this group is actually made of, in the counts worth a card.
+ *
+ * These used to be four fixed code-shaped numbers, so a group holding a wiki led
+ * with "0 services" and never mentioned its 169 pages. A count of zero is not
+ * worth a card; nor is a count the page already carries — "2 projects" was said
+ * by the header, the chips and the list below it.
+ * ("1 infrastructure components" is a number and a word that disagree.) */
+function homeCards(overview: GroupOverviewResponse): HomeCard[] {
   const t = overview.totals;
-  // The cards show what this group is actually made of. They used to be four fixed
-  // code-shaped numbers, so a group holding a wiki led with "0 services" and never
-  // mentioned its 169 pages. A count of zero is not worth a card.
-  // "1 infrastructure components" is a number and a word that disagree with it.
-  // Nor is a count the page already carries: "2 projects" was said by the header,
-  // the chips and the list below it — one fact, one place.
-  const plural = (count: number, singular: string, many?: string) =>
-    count === 1 ? singular : (many ?? `${singular}s`);
-  const cards: { value: number; label: string; sub?: string }[] = [];
+  const cards: HomeCard[] = [];
   if ((t.pages ?? 0) > 0) {
     cards.push({
       value: t.pages ?? 0,
       label: plural(t.pages ?? 0, "document"),
-      sub:
-        (t.decisions ?? 0) > 0
-          ? `${t.decisions} ${plural(t.decisions, "decision record")}`
-          : undefined,
+      sub: (t.decisions ?? 0) > 0 ? `${t.decisions} ${plural(t.decisions, "decision record")}` : undefined,
     });
   }
   if ((t.services ?? 0) > 0) {
     cards.push({ value: t.services, label: plural(t.services, "service") });
   }
   if ((t.infrastructure ?? 0) > 0) {
-    cards.push({
-      value: t.infrastructure,
-      label: plural(t.infrastructure, "infrastructure component"),
-    });
+    cards.push({ value: t.infrastructure, label: plural(t.infrastructure, "infrastructure component") });
   }
   if ((t.environments ?? 0) > 0) {
     cards.push({
@@ -480,51 +489,87 @@ function GroupHome({ overview, groupId }: { overview: GroupOverviewResponse | nu
       sub: overview.environments.join(", ") || undefined,
     });
   }
-  // Week activity is a property of the repositories, so it is a badge on the
-  // repositories — not a card of its own competing with what the group holds.
-  const commitsThisWeek = t.commits_last_7_days ?? 0;
-  const shown = cards.slice(0, 4);
+  return cards.slice(0, 4);
+}
+
+function RepositoryList({
+  members,
+  commitsThisWeek,
+  changes,
+  onRecheck,
+}: {
+  members: GroupOverviewResponse["members"];
+  commitsThisWeek: number;
+  changes: Record<string, ScanChanges>;
+  onRecheck: (workspaceId: string) => void;
+}) {
+  return (
+    <section className="grp-section">
+      {/* Week activity is a property of the repositories, so it is a badge on the
+          repositories — not a card of its own competing with what the group holds. */}
+      <SectionHead
+        name="Repositories"
+        action={
+          commitsThisWeek > 0 ? (
+            <span className="grp-badge">
+              {commitsThisWeek} {plural(commitsThisWeek, "commit")} this week
+            </span>
+          ) : null
+        }
+      />
+      <ul className="grp-repo-list">
+        {members.map((m) => (
+          <li key={m.workspace_id} className="grp-repo">
+            <div className="grp-repo-top">
+              <span className="grp-repo-name">{m.name}</span>
+              {m.branch ? <span className="grp-repo-branch">{m.branch}</span> : null}
+              {!m.built ? <span className="grp-badge">Not analyzed</span> : null}
+              <MemberFreshness
+                workspaceId={m.workspace_id}
+                changes={changes[m.workspace_id]}
+                onRescanned={() => onRecheck(m.workspace_id)}
+              />
+            </div>
+            <p className="grp-repo-desc">{m.description}</p>
+            <p className="grp-repo-meta">{repoMeta(m)}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function GroupHome({
+  overview,
+  groupId,
+  changes,
+  onRecheck,
+}: {
+  overview: GroupOverviewResponse | null;
+  groupId: string;
+  changes: Record<string, ScanChanges>;
+  onRecheck: (workspaceId: string) => void;
+}) {
+  if (!overview) return <p className="grp-muted">Loading…</p>;
+  if (overview.member_count === 0) {
+    return <p className="grp-muted">No repositories in this group yet. Add one above.</p>;
+  }
+  const cards = homeCards(overview);
   return (
     <div className="grp-stack">
-      {shown.length > 0 ? (
+      {cards.length > 0 ? (
         <div className="grp-hero">
-          {shown.map((card) => (
+          {cards.map((card) => (
             <Metric key={card.label} value={card.value} label={card.label} sub={card.sub} />
           ))}
         </div>
       ) : null}
-
-      <section className="grp-section">
-        <SectionHead
-          name="Repositories"
-          action={
-            commitsThisWeek > 0 ? (
-              <span className="grp-badge">
-                {commitsThisWeek} {plural(commitsThisWeek, "commit")} this week
-              </span>
-            ) : null
-          }
-        />
-        <ul className="grp-repo-list">
-          {overview.members.map((m) => (
-            <li key={m.workspace_id} className="grp-repo">
-              <div className="grp-repo-top">
-                <span className="grp-repo-name">{m.name}</span>
-                {m.branch ? <span className="grp-repo-branch">{m.branch}</span> : null}
-                {!m.built ? <span className="grp-badge">Not analyzed</span> : null}
-                <MemberFreshness
-                  workspaceId={m.workspace_id}
-                  changes={changes[m.workspace_id]}
-                  onRescanned={() => recheck(m.workspace_id)}
-                />
-              </div>
-              <p className="grp-repo-desc">{m.description}</p>
-              <p className="grp-repo-meta">{repoMeta(m)}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
+      <RepositoryList
+        members={overview.members}
+        commitsThisWeek={overview.totals.commits_last_7_days ?? 0}
+        changes={changes}
+        onRecheck={onRecheck}
+      />
       <GroupMemory groupId={groupId} />
     </div>
   );
@@ -638,7 +683,7 @@ function GroupMemory({ groupId }: { groupId: string }) {
   };
 
   return (
-    <section className="grp-section">
+    <section className="grp-section grp-notes">
       {/* One explanation, and the handbook button next to the heading it belongs
           to — the section was two paragraphs saying the same thing on either
           side of a list, with the button stranded at the bottom. */}
@@ -713,47 +758,175 @@ function GroupMemory({ groupId }: { groupId: string }) {
 // repos rather than dumping a flat union: which repo has which environment,
 // what tech is shared vs unique, and which risk patterns repeat where. A repo
 // filter keeps the repo dimension first-class and lets you isolate one repo.
-function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | null }) {
-  const [active, setActive] = useState<Set<string> | null>(null); // null = all repos
-  // Drill-down: open one member's FULL single-project Intelligence in place, so the
-  // group view is comparison on top + the same per-project depth on demand.
-  const [drillId, setDrillId] = useState<string | null>(null);
-  const [drillDashboard, setDrillDashboard] = useState<WorkspaceDashboard | null>(null);
-  const [drillLoading, setDrillLoading] = useState(false);
-  const [drillError, setDrillError] = useState<string | null>(null);
+//
+// Each section below owns the comparison it draws. They were one function of
+// three hundred lines holding four unrelated derivations and a fetch, which is
+// four things nobody can read at once and one thing nobody can change safely.
 
-  const members = overview?.members ?? [];
-  const drillMember = members.find((m) => m.workspace_id === drillId) ?? null;
+type GroupMember = GroupOverviewResponse["members"][number];
+
+/** Nothing built yet: one invitation, one button per member — instead of five
+ *  sections each finding a different way to say the page is empty, and none of
+ *  them saying what to do about it. */
+function IntelligenceEmptyState({
+  members,
+  onAnalyze,
+}: {
+  members: GroupMember[];
+  onAnalyze: (workspaceId: string) => void;
+}) {
+  return (
+    <div className="grp-stack">
+      <section className="grp-empty-card">
+        <p className="grp-empty-title">Build the project maps to see environments, technologies and risks</p>
+        <p className="grp-empty-sub">
+          Each repository is analyzed on its own; this tab compares what comes back.
+        </p>
+        <div className="grp-empty-actions">
+          {members.map((m) => (
+            <button key={m.workspace_id} type="button" className="grp-button" onClick={() => onAnalyze(m.workspace_id)}>
+              Analyze {m.name}
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/** One member's FULL single-project Intelligence, in place: the group view is
+ *  comparison on top and the same per-project depth on demand. It fetches its
+ *  own dashboard, because the thing that shows it is the thing that needs it. */
+function MemberDrillDown({
+  workspaceId,
+  name,
+  onBack,
+}: {
+  workspaceId: string;
+  name: string;
+  onBack: () => void;
+}) {
+  const [dashboard, setDashboard] = useState<WorkspaceDashboard | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!drillId) {
-      setDrillDashboard(null);
-      setDrillError(null);
-      return;
-    }
     let cancelled = false;
-    setDrillLoading(true);
-    setDrillError(null);
-    getWorkspaceDashboard(drillId)
+    setLoading(true);
+    setError(null);
+    getWorkspaceDashboard(workspaceId)
       .then((d) => {
-        if (!cancelled) setDrillDashboard(d);
+        if (!cancelled) setDashboard(d);
       })
       .catch((err) => {
-        if (!cancelled)
-          setDrillError(err instanceof Error ? err.message : "Could not load this project.");
+        if (!cancelled) setError(err instanceof Error ? err.message : "Could not load this project.");
       })
       .finally(() => {
-        if (!cancelled) setDrillLoading(false);
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [drillId]);
-  const shown = useMemo(
-    () => members.filter((m) => active === null || active.has(m.workspace_id)),
-    [members, active],
-  );
+  }, [workspaceId]);
 
+  return (
+    <div className="grp-stack">
+      <div className="grp-drill-bar">
+        <button type="button" className="grp-link" onClick={onBack}>
+          ← Back to comparison
+        </button>
+        <span className="grp-drill-title">{name} · full intelligence</span>
+      </div>
+      {loading ? <p className="grp-muted">Loading…</p> : null}
+      {error ? <p className="grp-error">{error}</p> : null}
+      {dashboard ? <ProjectIntelligence dashboard={dashboard} /> : null}
+    </div>
+  );
+}
+
+/** Which repositories the comparison below is about.
+ *
+ * This row used to be the membership chips' identical twin — same pill, same
+ * place, one removes a repository from the group and the other hides it from a
+ * table. Membership now lives on Home; what is left here is a filter, and it
+ * looks like one: a checkbox that shows its own state. */
+function RepositoryFilter({
+  members,
+  active,
+  onToggle,
+  onAll,
+}: {
+  members: GroupMember[];
+  active: Set<string> | null;
+  onToggle: (workspaceId: string) => void;
+  onAll: () => void;
+}) {
+  if (members.length <= 1) return null;
+  return (
+    <div className="grp-filter" role="group" aria-label="Compare repositories">
+      <span className="grp-filter-label">Compare</span>
+      {members.map((m) => {
+        const on = active === null || active.has(m.workspace_id);
+        return (
+          <button
+            key={m.workspace_id}
+            type="button"
+            className={`grp-filter-toggle${on ? " is-on" : ""}`}
+            onClick={() => onToggle(m.workspace_id)}
+            aria-pressed={on}
+          >
+            <span className="grp-filter-box" aria-hidden="true">{on ? "✓" : ""}</span>
+            {m.name}
+          </button>
+        );
+      })}
+      {active !== null ? (
+        <button type="button" className="grp-link" onClick={onAll}>
+          All repositories
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function PerRepositorySection({
+  shown,
+  onOpen,
+}: {
+  shown: GroupMember[];
+  onOpen: (workspaceId: string) => void;
+}) {
+  return (
+    <section className="grp-section">
+      <SectionHead
+        name="Per repository"
+        sub="Compare across repositories below; open any one for its complete Intelligence."
+      />
+      <ul className="grp-memberlist">
+        {shown.map((m) => (
+          <li key={m.workspace_id} className="grp-memberrow">
+            <div className="grp-memberrow-main">
+              <span className="grp-memberrow-name">{m.name}</span>
+              <span className="grp-memberrow-desc">{m.description}</span>
+            </div>
+            {/* A card that said "Not analyzed yet — build one" and offered no way
+                to build one was a sign, not a control. */}
+            {m.built ? null : <span className="grp-badge">Not analyzed</span>}
+            <button
+              type="button"
+              className={m.built ? "grp-link" : "grp-button grp-button-small"}
+              onClick={() => onOpen(m.workspace_id)}
+            >
+              {m.built ? "Open full intelligence →" : "Analyze"}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function EnvironmentsSection({ shown }: { shown: GroupMember[] }) {
   const envMatrix = useMemo(() => {
     const envs = Array.from(new Set(shown.flatMap((m) => m.environments))).sort();
     return envs.map((env) => ({
@@ -762,127 +935,217 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
     }));
   }, [shown]);
 
-  const techGroups = useMemo(() => {
-    const techToRepos = new Map<string, string[]>();
-    for (const m of shown) {
-      for (const tech of m.technology_chips) {
-        const list = techToRepos.get(tech) ?? [];
-        if (!list.includes(m.name)) list.push(m.name);
-        techToRepos.set(tech, list);
-      }
-    }
-    const total = shown.length;
-    const common: string[] = [];
-    const partial: { tech: string; count: number }[] = [];
-    const uniqueByRepo = new Map<string, string[]>();
-    for (const [tech, repos] of techToRepos) {
-      if (total > 1 && repos.length === total) common.push(tech);
-      else if (repos.length === 1) {
-        const list = uniqueByRepo.get(repos[0]) ?? [];
-        list.push(tech);
-        uniqueByRepo.set(repos[0], list);
-      } else partial.push({ tech, count: repos.length });
-    }
-    common.sort();
-    partial.sort((a, b) => b.count - a.count || a.tech.localeCompare(b.tech));
-    return { common, partial, uniqueByRepo, total };
-  }, [shown]);
-
-  const riskGroups = useMemo(() => {
-    const shownIds = new Set(shown.map((m) => m.workspace_id));
-    const byTitle = new Map<
-      string,
-      {
-        severity: string;
-        attention: string;
-        total: number;
-        repos: Map<string, number>;
-        explanation: string;
-        recommendation: string | null;
-      }
-    >();
-    for (const r of overview?.risks ?? []) {
-      if (!shownIds.has(r.workspace_id)) continue;
-      const entry =
-        byTitle.get(r.title) ??
-        {
-          severity: r.severity,
-          attention: r.attention ?? r.severity,
-          total: 0,
-          repos: new Map(),
-          explanation: "",
-          recommendation: null,
-        };
-      entry.total += 1;
-      entry.repos.set(r.workspace_name, (entry.repos.get(r.workspace_name) ?? 0) + 1);
-      // Keep the most severe label seen for this title.
-      if (r.severity === "high") {
-        entry.severity = "high";
-        entry.attention = r.attention ?? "high";
-      }
-      // Keep the first human-readable detail seen (all repos share the finding text).
-      if (!entry.explanation && r.explanation) entry.explanation = r.explanation;
-      if (!entry.recommendation && r.recommendation) entry.recommendation = r.recommendation;
-      byTitle.set(r.title, entry);
-    }
-    return Array.from(byTitle.entries())
-      .map(([title, v]) => ({ title, ...v }))
-      .sort((a, b) => (a.severity === b.severity ? b.total - a.total : a.severity === "high" ? -1 : 1));
-  }, [overview, shown]);
-
-  if (!overview) return <p className="grp-muted">Loading…</p>;
-  if (overview.member_count === 0) {
-    return <p className="grp-muted">No repositories in this group yet.</p>;
-  }
-
-  // Nothing has been analyzed yet, so there is nothing to compare. Five sections
-  // each saying "nothing detected" is five ways of saying the page is empty —
-  // and none of them says what to do about it. One invitation, one button per
-  // member, and the sections come back the moment there is anything in them.
-  if (!drillId && members.every((m) => !m.built)) {
-    return (
-      <div className="grp-stack">
-        <section className="grp-empty-card">
-          <p className="grp-empty-title">Build the project maps to see environments, technologies and risks</p>
-          <p className="grp-empty-sub">
-            Each repository is analyzed on its own; this tab compares what comes back.
-          </p>
-          <div className="grp-empty-actions">
-            {members.map((m) => (
-              <button
-                key={m.workspace_id}
-                type="button"
-                className="grp-button"
-                onClick={() => setDrillId(m.workspace_id)}
-              >
-                Analyze {m.name}
-              </button>
-            ))}
-          </div>
-        </section>
-      </div>
-    );
-  }
-
-  // Drilled into one repo: show its full single-project Intelligence, same
-  // component and depth as opening that project on its own.
-  if (drillId) {
-    return (
-      <div className="grp-stack">
-        <div className="grp-drill-bar">
-          <button type="button" className="grp-link" onClick={() => setDrillId(null)}>
-            ← Back to comparison
-          </button>
-          <span className="grp-drill-title">
-            {drillMember?.name ?? "Project"} · full intelligence
-          </span>
+  return (
+    <section className="grp-section">
+      <SectionHead name="Environments" sub="Which repository deploys where — a ✓ means it defines that environment." />
+      {envMatrix.length > 0 && shown.length > 0 ? (
+        <div className="grp-matrix-wrap">
+          <table className="grp-matrix">
+            <thead>
+              <tr>
+                <th />
+                {shown.map((m) => (
+                  <th key={m.workspace_id} title={m.name}>{m.name}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {envMatrix.map((row) => (
+                <tr key={row.env}>
+                  <td className="grp-matrix-row-h">
+                    {row.env}
+                    {row.env.toLowerCase().includes("prod") ? <span className="grp-prod-dot" title="production" /> : null}
+                  </td>
+                  {row.repos.map((c, i) => (
+                    <td key={i} className={c.has ? "is-yes" : "is-no"}>{c.has ? "✓" : "·"}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        {drillLoading ? <p className="grp-muted">Loading…</p> : null}
-        {drillError ? <p className="grp-error">{drillError}</p> : null}
-        {drillDashboard ? <ProjectIntelligence dashboard={drillDashboard} /> : null}
-      </div>
-    );
+      ) : (
+        <p className="grp-muted">No environments detected in the selected repositories.</p>
+      )}
+    </section>
+  );
+}
+
+/** Shared by all, shared by some, or nobody else's — the three things worth
+ *  knowing about a technology when you are holding several repositories. */
+function technologyGroups(shown: GroupMember[]) {
+  const techToRepos = new Map<string, string[]>();
+  for (const m of shown) {
+    for (const tech of m.technology_chips) {
+      const list = techToRepos.get(tech) ?? [];
+      if (!list.includes(m.name)) list.push(m.name);
+      techToRepos.set(tech, list);
+    }
   }
+  const total = shown.length;
+  const common: string[] = [];
+  const partial: { tech: string; count: number }[] = [];
+  const uniqueByRepo = new Map<string, string[]>();
+  for (const [tech, repos] of techToRepos) {
+    if (total > 1 && repos.length === total) common.push(tech);
+    else if (repos.length === 1) {
+      const list = uniqueByRepo.get(repos[0]) ?? [];
+      list.push(tech);
+      uniqueByRepo.set(repos[0], list);
+    } else partial.push({ tech, count: repos.length });
+  }
+  common.sort();
+  partial.sort((a, b) => b.count - a.count || a.tech.localeCompare(b.tech));
+  return { common, partial, uniqueByRepo, total };
+}
+
+function TechnologiesSection({ shown }: { shown: GroupMember[] }) {
+  const techGroups = useMemo(() => technologyGroups(shown), [shown]);
+  const empty =
+    techGroups.common.length === 0 &&
+    techGroups.partial.length === 0 &&
+    techGroups.uniqueByRepo.size === 0;
+
+  return (
+    <section className="grp-section">
+      <SectionHead name="Technologies" sub="What every repository shares, and what belongs to only one." />
+      {empty ? (
+        <p className="grp-muted">No technologies detected in the selected repositories.</p>
+      ) : (
+        <div className="grp-tech-groups">
+          {techGroups.common.length > 0 ? (
+            <div className="grp-tech-group">
+              <p className="grp-tech-label">Common to all {techGroups.total} repositories</p>
+              <div className="grp-chips">
+                {techGroups.common.map((t) => <span key={t} className="grp-chip is-common">{t}</span>)}
+              </div>
+            </div>
+          ) : null}
+          {techGroups.partial.length > 0 ? (
+            <div className="grp-tech-group">
+              <p className="grp-tech-label">Shared by some</p>
+              <div className="grp-chips">
+                {techGroups.partial.map((p) => (
+                  <span key={p.tech} className="grp-chip">{p.tech}<span className="grp-chip-count">{p.count}/{techGroups.total}</span></span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {Array.from(techGroups.uniqueByRepo.entries()).map(([repo, techs]) => (
+            <div className="grp-tech-group" key={repo}>
+              <p className="grp-tech-label">Only in {repo}</p>
+              <div className="grp-chips">
+                {techs.sort().map((t) => <span key={t} className="grp-chip">{t}</span>)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+interface RiskPattern {
+  title: string;
+  severity: string;
+  attention: string;
+  total: number;
+  repos: Map<string, number>;
+  explanation: string;
+  recommendation: string | null;
+}
+
+/** The same finding in four repositories is one pattern, not four rows. */
+function riskPatterns(
+  risks: GroupOverviewResponse["risks"],
+  shown: GroupMember[],
+): RiskPattern[] {
+  const shownIds = new Set(shown.map((m) => m.workspace_id));
+  const byTitle = new Map<string, Omit<RiskPattern, "title">>();
+  for (const r of risks) {
+    if (!shownIds.has(r.workspace_id)) continue;
+    const entry =
+      byTitle.get(r.title) ??
+      {
+        severity: r.severity,
+        attention: r.attention ?? r.severity,
+        total: 0,
+        repos: new Map<string, number>(),
+        explanation: "",
+        recommendation: null,
+      };
+    entry.total += 1;
+    entry.repos.set(r.workspace_name, (entry.repos.get(r.workspace_name) ?? 0) + 1);
+    // Keep the most severe label seen for this title.
+    if (r.severity === "high") {
+      entry.severity = "high";
+      entry.attention = r.attention ?? "high";
+    }
+    // Keep the first human-readable detail seen (all repos share the finding text).
+    if (!entry.explanation && r.explanation) entry.explanation = r.explanation;
+    if (!entry.recommendation && r.recommendation) entry.recommendation = r.recommendation;
+    byTitle.set(r.title, entry);
+  }
+  return Array.from(byTitle.entries())
+    .map(([title, v]) => ({ title, ...v }))
+    .sort((a, b) => (a.severity === b.severity ? b.total - a.total : a.severity === "high" ? -1 : 1));
+}
+
+function RiskPatternsSection({
+  risks,
+  shown,
+}: {
+  risks: GroupOverviewResponse["risks"];
+  shown: GroupMember[];
+}) {
+  const groups = useMemo(() => riskPatterns(risks, shown), [risks, shown]);
+
+  return (
+    <section className="grp-section">
+      <SectionHead
+        name="Risk patterns"
+        sub="The same finding across repositories is grouped, so you fix the pattern, not 20 rows. These are leads for a human, not verdicts."
+      />
+      {groups.length > 0 ? (
+        <ul className="grp-riskgroups">
+          {groups.map((r) => (
+            <li key={r.title} className="grp-riskgroup">
+              {/* The same softened word the single view uses — a risk is a lead for
+                  a human, not a verdict, whichever screen it is read on. */}
+              <span className={`grp-sev grp-sev-${r.severity}`}>{r.attention}</span>
+              <span className="grp-riskgroup-title">{r.title}</span>
+              <span className="grp-riskgroup-count">{r.total}×</span>
+              <span className="grp-riskgroup-repos">
+                {Array.from(r.repos.entries())
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([name, n]) => `${name} ×${n}`)
+                  .join(" · ")}
+              </span>
+              {r.explanation ? <p className="grp-riskgroup-why">{r.explanation}</p> : null}
+              {r.recommendation ? (
+                <p className="grp-riskgroup-fix">
+                  <span className="grp-riskgroup-fix-label">Fix</span> {r.recommendation}
+                </p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="grp-muted">Nothing risky flagged across the selected repositories.</p>
+      )}
+    </section>
+  );
+}
+
+function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | null }) {
+  const [active, setActive] = useState<Set<string> | null>(null); // null = all repos
+  const [drillId, setDrillId] = useState<string | null>(null);
+
+  const members = useMemo(() => overview?.members ?? [], [overview]);
+  const shown = useMemo(
+    () => members.filter((m) => active === null || active.has(m.workspace_id)),
+    [members, active],
+  );
 
   const toggle = (id: string) =>
     setActive((prev) => {
@@ -894,169 +1157,41 @@ function GroupIntelligence({ overview }: { overview: GroupOverviewResponse | nul
       return next;
     });
 
+  if (!overview) return <p className="grp-muted">Loading…</p>;
+  if (overview.member_count === 0) {
+    return <p className="grp-muted">No repositories in this group yet.</p>;
+  }
+
+  if (drillId) {
+    const member = members.find((m) => m.workspace_id === drillId);
+    return (
+      <MemberDrillDown
+        workspaceId={drillId}
+        name={member?.name ?? "Project"}
+        onBack={() => setDrillId(null)}
+      />
+    );
+  }
+
+  // Nothing analyzed yet, so there is nothing to compare — and a comparison of
+  // nothing is five empty sections. The sections come back the moment any one
+  // member has something in it.
+  if (members.every((m) => !m.built)) {
+    return <IntelligenceEmptyState members={members} onAnalyze={setDrillId} />;
+  }
+
   return (
     <div className="grp-stack">
-      {/* This row used to be the membership chips' identical twin — same pill, same
-          place, one removes a repository from the group and the other hides it from
-          a table. Membership now lives on Home; what is left here is a filter, and
-          it looks like one: a checkbox that shows its own state. */}
-      {members.length > 1 ? (
-        <div className="grp-filter" role="group" aria-label="Compare repositories">
-          <span className="grp-filter-label">Compare</span>
-          {members.map((m) => {
-            const on = active === null || active.has(m.workspace_id);
-            return (
-              <button
-                key={m.workspace_id}
-                type="button"
-                className={`grp-filter-toggle${on ? " is-on" : ""}`}
-                onClick={() => toggle(m.workspace_id)}
-                aria-pressed={on}
-              >
-                <span className="grp-filter-box" aria-hidden="true">{on ? "✓" : ""}</span>
-                {m.name}
-              </button>
-            );
-          })}
-          {active !== null ? (
-            <button type="button" className="grp-link" onClick={() => setActive(null)}>
-              All repositories
-            </button>
-          ) : null}
-        </div>
-      ) : null}
-
-      <section className="grp-section">
-        <SectionHead
-          name="Per repository"
-          sub="Compare across repositories below; open any one for its complete Intelligence."
-        />
-        <ul className="grp-memberlist">
-          {shown.map((m) => (
-            <li key={m.workspace_id} className="grp-memberrow">
-              <div className="grp-memberrow-main">
-                <span className="grp-memberrow-name">{m.name}</span>
-                <span className="grp-memberrow-desc">{m.description}</span>
-              </div>
-              {/* A card that said "Not analyzed yet — build one" and offered no way
-                  to build one was a sign, not a control. */}
-              {m.built ? null : <span className="grp-badge">Not analyzed</span>}
-              <button
-                type="button"
-                className={m.built ? "grp-link" : "grp-button grp-button-small"}
-                onClick={() => setDrillId(m.workspace_id)}
-              >
-                {m.built ? "Open full intelligence →" : "Analyze"}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="grp-section">
-        <SectionHead name="Environments" sub="Which repository deploys where — a ✓ means it defines that environment." />
-        {envMatrix.length > 0 && shown.length > 0 ? (
-          <div className="grp-matrix-wrap">
-            <table className="grp-matrix">
-              <thead>
-                <tr>
-                  <th />
-                  {shown.map((m) => (
-                    <th key={m.workspace_id} title={m.name}>{m.name}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {envMatrix.map((row) => (
-                  <tr key={row.env}>
-                    <td className="grp-matrix-row-h">
-                      {row.env}
-                      {row.env.toLowerCase().includes("prod") ? <span className="grp-prod-dot" title="production" /> : null}
-                    </td>
-                    {row.repos.map((c, i) => (
-                      <td key={i} className={c.has ? "is-yes" : "is-no"}>{c.has ? "✓" : "·"}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="grp-muted">No environments detected in the selected repositories.</p>
-        )}
-      </section>
-
-      <section className="grp-section">
-        <SectionHead name="Technologies" sub="What every repository shares, and what belongs to only one." />
-        {techGroups.common.length === 0 && techGroups.partial.length === 0 && techGroups.uniqueByRepo.size === 0 ? (
-          <p className="grp-muted">No technologies detected in the selected repositories.</p>
-        ) : (
-          <div className="grp-tech-groups">
-            {techGroups.common.length > 0 ? (
-              <div className="grp-tech-group">
-                <p className="grp-tech-label">Common to all {techGroups.total} repositories</p>
-                <div className="grp-chips">
-                  {techGroups.common.map((t) => <span key={t} className="grp-chip is-common">{t}</span>)}
-                </div>
-              </div>
-            ) : null}
-            {techGroups.partial.length > 0 ? (
-              <div className="grp-tech-group">
-                <p className="grp-tech-label">Shared by some</p>
-                <div className="grp-chips">
-                  {techGroups.partial.map((p) => (
-                    <span key={p.tech} className="grp-chip">{p.tech}<span className="grp-chip-count">{p.count}/{techGroups.total}</span></span>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            {Array.from(techGroups.uniqueByRepo.entries()).map(([repo, techs]) => (
-              <div className="grp-tech-group" key={repo}>
-                <p className="grp-tech-label">Only in {repo}</p>
-                <div className="grp-chips">
-                  {techs.sort().map((t) => <span key={t} className="grp-chip">{t}</span>)}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="grp-section">
-        <SectionHead
-          name="Risk patterns"
-          sub="The same finding across repositories is grouped, so you fix the pattern, not 20 rows. These are leads for a human, not verdicts."
-        />
-        {riskGroups.length > 0 ? (
-          <ul className="grp-riskgroups">
-            {riskGroups.map((r) => (
-              <li key={r.title} className="grp-riskgroup">
-                {/* The same softened word the single view uses — a risk is a lead for
-                    a human, not a verdict, whichever screen it is read on. */}
-                <span className={`grp-sev grp-sev-${r.severity}`}>{r.attention}</span>
-                <span className="grp-riskgroup-title">{r.title}</span>
-                <span className="grp-riskgroup-count">{r.total}×</span>
-                <span className="grp-riskgroup-repos">
-                  {Array.from(r.repos.entries())
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([name, n]) => `${name} ×${n}`)
-                    .join(" · ")}
-                </span>
-                {r.explanation ? (
-                  <p className="grp-riskgroup-why">{r.explanation}</p>
-                ) : null}
-                {r.recommendation ? (
-                  <p className="grp-riskgroup-fix">
-                    <span className="grp-riskgroup-fix-label">Fix</span> {r.recommendation}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="grp-muted">Nothing risky flagged across the selected repositories.</p>
-        )}
-      </section>
+      <RepositoryFilter
+        members={members}
+        active={active}
+        onToggle={toggle}
+        onAll={() => setActive(null)}
+      />
+      <PerRepositorySection shown={shown} onOpen={setDrillId} />
+      <EnvironmentsSection shown={shown} />
+      <TechnologiesSection shown={shown} />
+      <RiskPatternsSection risks={overview.risks} shown={shown} />
     </div>
   );
 }
@@ -1103,10 +1238,13 @@ type GroupTurn = { question: string; result: GroupAskResponse };
 function GroupAsk({
   groupId,
   overview,
+  changes,
 }: {
   groupId: string;
   overview: GroupOverviewResponse | null;
+  changes: Record<string, ScanChanges>;
 }) {
+  const staleRepos = staleRepositoryNames(overview?.members ?? [], changes);
   const [question, setQuestion] = useState("");
   // The thread, oldest first. A group exists to answer "what did we decide, and
   // where is it implemented?" — which is two questions, and the second one only
@@ -1217,6 +1355,7 @@ function GroupAsk({
           groupId={groupId}
           question={turn.question}
           result={turn.result}
+          staleRepos={staleRepos}
           isLast={index === turns.length - 1 && !asked}
           traceOpen={traceFor === `${index}`}
           onOpenTrace={() => setTraceFor(`${index}`)}
@@ -1285,7 +1424,131 @@ function GroupQuestion({ text }: { text: string }) {
   );
 }
 
-/** One exchange: what was asked, what came back, and everything that stands
+/** Which repositories contributed, and how much of each. */
+function ContributionBar({ contributions }: { contributions: GroupAskResponse["contributions"] }) {
+  if (contributions.length === 0) return null;
+  return (
+    <div className="grp-contrib-bar">
+      {contributions.map((c) => (
+        <span
+          key={c.workspace_name}
+          className={`grp-contrib-chip${c.indexed ? "" : " is-empty"}`}
+          title={c.indexed ? `${c.chunks_used} chunk(s) used` : "not indexed"}
+        >
+          <span className="grp-contrib-dot" />
+          {c.workspace_name}
+          <span className="grp-contrib-n">{c.indexed ? c.chunks_used : "—"}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Where the answer came from, grouped by the repository it came from — the
+ *  label a group answer cannot be read without, in every state. */
+function SourcesByRepository({
+  sources,
+  staleRepos,
+}: {
+  sources: GroupSource[];
+  staleRepos: Set<string>;
+}) {
+  if (sources.length === 0) return null;
+  return (
+    <div className="grp-sources">
+      <p className="grp-shead">Sources by repository</p>
+      {groupSourcesByRepo(sources).map(([repo, items]) => (
+        <div className="grp-source-group" key={repo}>
+          <p className="grp-source-grouphead">
+            {repo}
+            <span className="grp-source-groupn">{items.length}</span>
+            {/* Not a warning and not a banner: the answer is as good as what was
+                indexed, and this says how old that reading is. A person who knows
+                they changed those files can weigh it; one who did not, need not. */}
+            {staleRepos.has(repo) ? (
+              <span className="grp-source-stale">index older than latest file changes</span>
+            ) : null}
+          </p>
+          <ul>
+            {items.map((s) => (
+              <li key={s.chunk_id} title={s.preview}>
+                <code>{formatSourceLabel(s.source_path)}</code>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** How the answer was reached — the panel, and the button that opens it. */
+function AnswerTrace({
+  result,
+  traceOpen,
+  onOpenTrace,
+  onCloseTrace,
+}: {
+  result: GroupAskResponse;
+  traceOpen: boolean;
+  onOpenTrace: () => void;
+  onCloseTrace: () => void;
+}) {
+  const memoryNote =
+    result.memory_used > 0 || result.facts_used > 0
+      ? `Used ${result.memory_used} memory note(s) and ${result.facts_used} map fact(s) from across the group.`
+      : null;
+  const hasTrace = result.memory_used > 0 || result.facts_used > 0 || result.sources.length > 0;
+
+  if (!hasTrace) {
+    return memoryNote ? <p className="grp-memory-note">{memoryNote}</p> : null;
+  }
+  return (
+    <>
+      <button type="button" className="why-answer-btn" onClick={onOpenTrace}>
+        <span className="wab-icon" aria-hidden="true">?</span>
+        How did the AI reach this?
+        <span className="wab-meta">
+          {result.memory_used} note{result.memory_used === 1 ? "" : "s"} · {result.facts_used} map
+          fact{result.facts_used === 1 ? "" : "s"} · {result.contributions.length} repo
+          {result.contributions.length === 1 ? "" : "s"}
+        </span>
+      </button>
+      {traceOpen ? (
+        <AnswerTracePanel
+          scope="group"
+          memoryUsed={result.memory_used}
+          factsUsed={result.facts_used}
+          chunks={result.used_context_chunks}
+          files={result.sources.map((source) => ({
+            source_path: source.source_path,
+            repo: source.workspace_name,
+            chunk_id: source.chunk_id,
+            score: source.score,
+          }))}
+          onClose={onCloseTrace}
+        />
+      ) : null}
+    </>
+  );
+}
+
+/** The tail of an older turn, folded into the one line that says what is in it. */
+function FoldedTail({ result, onOpen }: { result: GroupAskResponse; onOpen: () => void }) {
+  const repos = new Set(result.sources.map((s) => s.workspace_name)).size;
+  const label =
+    result.sources.length > 0
+      ? `${result.sources.length} source${result.sources.length === 1 ? "" : "s"} · ${repos} repo${repos === 1 ? "" : "s"} · helpful?`
+      : "How it was reached · helpful?";
+  return (
+    <button type="button" className="grp-turn-tail" onClick={onOpen}>
+      {label}
+      <span className="grp-turn-tail-chevron" aria-hidden="true">⌄</span>
+    </button>
+  );
+}
+
+/** One exchange: what was asked/** One exchange: what was asked, what came back, and everything that stands
  * behind it — the contributions, the trace, the sources, the feedback. Its own
  * component because a thread is a list of these, and the composer above is a
  * different job. */
@@ -1293,6 +1556,7 @@ function GroupTurnCard({
   groupId,
   question,
   result,
+  staleRepos,
   isLast,
   traceOpen,
   onOpenTrace,
@@ -1301,13 +1565,14 @@ function GroupTurnCard({
   groupId: string;
   question: string;
   result: GroupAskResponse;
+  staleRepos: Set<string>;
   isLast: boolean;
   traceOpen: boolean;
   onOpenTrace: () => void;
   onCloseTrace: () => void;
 }) {
   // The tail — how it was reached, where it came from, was it any good — is the
-  // whole apparatus of trust, and it is three of them per turn. On a thread of
+  // whole apparatus of trust, and it is three panels per turn. On a thread of
   // four questions that is twelve panels between you and the answer you are
   // reading. So an older turn folds its tail into one line and unfolds on ask.
   const [open, setOpen] = useState(isLast);
@@ -1315,13 +1580,7 @@ function GroupTurnCard({
   useEffect(() => {
     setOpen(isLast);
   }, [isLast]);
-  const memoryNote =
-    result.memory_used > 0 || result.facts_used > 0
-      ? `Used ${result.memory_used} memory note(s) and ${result.facts_used} map fact(s) from across the group.`
-      : null;
-  const hasTrace = result.memory_used > 0 || result.facts_used > 0 || result.sources.length > 0;
   const warnings = (result.quality_warnings ?? []).filter((w) => w.severity === "high");
-  const repos = new Set(result.sources.map((s) => s.workspace_name)).size;
 
   return (
     <div className="grp-turn">
@@ -1341,81 +1600,19 @@ function GroupTurnCard({
           </div>
         ) : null}
 
-        {result.contributions.length > 0 ? (
-          <div className="grp-contrib-bar">
-            {result.contributions.map((c) => (
-              <span
-                key={c.workspace_name}
-                className={`grp-contrib-chip${c.indexed ? "" : " is-empty"}`}
-                title={c.indexed ? `${c.chunks_used} chunk(s) used` : "not indexed"}
-              >
-                <span className="grp-contrib-dot" />
-                {c.workspace_name}
-                <span className="grp-contrib-n">{c.indexed ? c.chunks_used : "—"}</span>
-              </span>
-            ))}
-          </div>
-        ) : null}
+        <ContributionBar contributions={result.contributions} />
 
         {!open ? (
-          <button type="button" className="grp-turn-tail" onClick={() => setOpen(true)}>
-            {result.sources.length > 0
-              ? `${result.sources.length} source${result.sources.length === 1 ? "" : "s"} · ${repos} repo${repos === 1 ? "" : "s"} · helpful?`
-              : "How it was reached · helpful?"}
-            <span className="grp-turn-tail-chevron" aria-hidden="true">⌄</span>
-          </button>
+          <FoldedTail result={result} onOpen={() => setOpen(true)} />
         ) : (
           <>
-            {hasTrace ? (
-              <>
-                <button type="button" className="why-answer-btn" onClick={onOpenTrace}>
-                  <span className="wab-icon" aria-hidden="true">?</span>
-                  How did the AI reach this?
-                  <span className="wab-meta">
-                    {result.memory_used} note{result.memory_used === 1 ? "" : "s"} · {result.facts_used} map
-                    fact{result.facts_used === 1 ? "" : "s"} · {result.contributions.length} repo
-                    {result.contributions.length === 1 ? "" : "s"}
-                  </span>
-                </button>
-                {traceOpen ? (
-                  <AnswerTracePanel
-                    scope="group"
-                    memoryUsed={result.memory_used}
-                    factsUsed={result.facts_used}
-                    chunks={result.used_context_chunks}
-                    files={result.sources.map((source) => ({
-                      source_path: source.source_path,
-                      repo: source.workspace_name,
-                      chunk_id: source.chunk_id,
-                      score: source.score,
-                    }))}
-                    onClose={onCloseTrace}
-                  />
-                ) : null}
-              </>
-            ) : memoryNote ? (
-              <p className="grp-memory-note">{memoryNote}</p>
-            ) : null}
-
-            {/* Every source keeps the repository it came from, in every state. */}
-            {result.sources.length > 0 ? (
-              <div className="grp-sources">
-                <p className="grp-shead">Sources by repository</p>
-                {groupSourcesByRepo(result.sources).map(([repo, items]) => (
-                  <div className="grp-source-group" key={repo}>
-                    <p className="grp-source-grouphead">{repo}<span className="grp-source-groupn">{items.length}</span></p>
-                    <ul>
-                      {items.map((s) => (
-                        <li key={s.chunk_id} title={s.preview}>
-                          <code>{formatSourceLabel(s.source_path)}</code>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-
+            <AnswerTrace
+              result={result}
+              traceOpen={traceOpen}
+              onOpenTrace={onOpenTrace}
+              onCloseTrace={onCloseTrace}
+            />
+            <SourcesByRepository sources={result.sources} staleRepos={staleRepos} />
             <AnswerFeedback
               question={question}
               answer={result.answer}

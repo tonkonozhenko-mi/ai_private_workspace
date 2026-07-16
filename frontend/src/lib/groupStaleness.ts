@@ -40,3 +40,23 @@ export function memberChangeDetail(changes: ScanChanges | null | undefined): str
   ].filter((part): part is string => part !== null);
   return parts.join(" · ");
 }
+
+/**
+ * Which repositories, by the name the sources are labelled with, have files
+ * newer than their index right now.
+ *
+ * Same arithmetic as the badge, asked from the other end: the badge asks "what
+ * should this card say about this member?", this asks "of the repositories that
+ * answered a question, which ones answered from an older reading of themselves?"
+ * One rule, so a repository cannot be stale on Home and current in Ask.
+ */
+export function staleRepositoryNames(
+  members: { workspace_id: string; name: string }[],
+  changes: Record<string, ScanChanges | undefined>,
+): Set<string> {
+  const stale = new Set<string>();
+  for (const member of members) {
+    if (memberChangeBadge(changes[member.workspace_id])) stale.add(member.name);
+  }
+  return stale;
+}
