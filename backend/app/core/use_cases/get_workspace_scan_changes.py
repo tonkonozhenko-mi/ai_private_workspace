@@ -5,13 +5,16 @@ from app.core.ports.file_system import FileSystemPort
 from app.core.ports.project_scan_repository import ProjectScanRepositoryPort
 from app.core.ports.workspace_repository import WorkspaceRepositoryPort
 from app.core.use_cases.scan_project import ScanProjectInput, ScanProjectUseCase
+from app.core.use_cases.scan_workspace_project import resolve_scan_rules
 
 
 @dataclass(frozen=True)
 class GetWorkspaceScanChangesInput:
     workspace_id: str
-    include_patterns: tuple[str, ...] = ()
-    exclude_patterns: tuple[str, ...] = ()
+    # None = "this workspace's own rules" — the same sentence the scan uses, so
+    # the two sides of the diff cannot describe different projects.
+    include_patterns: tuple[str, ...] | None = None
+    exclude_patterns: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -44,10 +47,12 @@ class GetWorkspaceScanChangesUseCase:
         workspace_repository: WorkspaceRepositoryPort,
         project_scan_repository: ProjectScanRepositoryPort,
         file_system: FileSystemPort,
+        indexing_rules_repository=None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.project_scan_repository = project_scan_repository
         self.file_system = file_system
+        self.indexing_rules_repository = indexing_rules_repository
 
     def execute(self, request: GetWorkspaceScanChangesInput) -> ScanChanges:
         workspace = self.workspace_repository.get(request.workspace_id)
@@ -66,11 +71,17 @@ class GetWorkspaceScanChangesUseCase:
                 previous_file_count=0,
             )
 
+        include_patterns, exclude_patterns = resolve_scan_rules(
+            self.indexing_rules_repository,
+            request.workspace_id,
+            request.include_patterns,
+            request.exclude_patterns,
+        )
         current_scan = ScanProjectUseCase(file_system=self.file_system).execute(
             ScanProjectInput(
                 project_path=workspace.project_path,
-                include_patterns=request.include_patterns,
-                exclude_patterns=request.exclude_patterns,
+                include_patterns=include_patterns,
+                exclude_patterns=exclude_patterns,
             )
         )
 

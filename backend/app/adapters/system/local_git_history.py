@@ -49,8 +49,14 @@ class LocalGitHistory:
         if not root.exists() or not root.is_dir():
             return GitInsights.not_a_repo()
 
+        # These two are different answers and were the same one. `_run` returns
+        # None when git could not be asked — a timeout, a missing binary, a
+        # folder macOS has not granted us yet — and that is "unknown". Only git
+        # itself saying something other than "true" means "not a repository".
         inside = self._run(root, ["rev-parse", "--is-inside-work-tree"])
-        if inside is None or inside.strip() != "true":
+        if inside is None:
+            return GitInsights.unknown()
+        if inside.strip() != "true":
             return GitInsights.not_a_repo()
 
         # If this workspace is a subfolder of a bigger repo, limit every query to

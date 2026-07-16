@@ -360,7 +360,11 @@ function Metric({ value, label, sub }: { value: string | number; label: string; 
  * "0 commits · 0 contributors · 0 this week" is three facts that are one fact —
  * and for a folder that was never a repository, it is not even that: it is the
  * shape of an answer with no answer in it. Say the one true thing instead. */
-function repoMeta(m: GroupOverviewResponse["members"][number]): string {
+function repoMeta(m: GroupOverviewResponse["members"][number]): string | null {
+  // git could not be asked — a timeout, a folder macOS has not granted yet. It
+  // once said "Not a git repository" about a repository with 1,390 commits,
+  // which is what a boolean does when it holds two facts. Say nothing.
+  if (m.git_known === false) return null;
   if (!m.is_repo) return "Not a git repository";
   const parts: string[] = [];
   if (m.total_commits > 0) parts.push(`${m.total_commits.toLocaleString()} commits`);
@@ -531,7 +535,7 @@ function RepositoryList({
               />
             </div>
             <p className="grp-repo-desc">{m.description}</p>
-            <p className="grp-repo-meta">{repoMeta(m)}</p>
+            {repoMeta(m) ? <p className="grp-repo-meta">{repoMeta(m)}</p> : null}
           </li>
         ))}
       </ul>

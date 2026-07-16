@@ -135,7 +135,10 @@ class BuildGroupOverviewUseCase:
         try:
             insights = self.git_history.read_insights(project_path)
         except Exception:  # noqa: BLE001 - git is best-effort, never fatal
+            # The call blew up, so we know nothing — which is not the same as
+            # knowing this is not a repository.
             return {
+                "git_known": False,
                 "is_repo": False,
                 "branch": None,
                 "total_commits": 0,
@@ -149,6 +152,7 @@ class BuildGroupOverviewUseCase:
             insights.branch_strategy.default_branch if insights.branch_strategy else None
         )
         return {
+            "git_known": insights.known,
             "is_repo": insights.is_repo,
             "branch": default_branch or insights.branch,
             "total_commits": insights.total_commits,

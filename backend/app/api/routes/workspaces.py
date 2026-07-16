@@ -1296,21 +1296,15 @@ def get_workspace_latest_scan(workspace_id: str) -> ProjectScanResponse:
 
 @router.get("/{workspace_id}/scan/changes", response_model=ScanChangesResponse)
 def get_workspace_scan_changes(workspace_id: str) -> ScanChangesResponse:
-    resolved_rules = _resolve_file_rules(workspace_id, None)
     use_case = GetWorkspaceScanChangesUseCase(
         workspace_repository=workspace_repository,
         project_scan_repository=project_scan_repository,
         file_system=file_system,
+        indexing_rules_repository=indexing_rules_repository,
     )
 
     try:
-        result = use_case.execute(
-            GetWorkspaceScanChangesInput(
-                workspace_id=workspace_id,
-                include_patterns=resolved_rules.include_patterns,
-                exclude_patterns=resolved_rules.exclude_patterns,
-            )
-        )
+        result = use_case.execute(GetWorkspaceScanChangesInput(workspace_id=workspace_id))
     except WorkspaceScanChangesWorkspaceNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

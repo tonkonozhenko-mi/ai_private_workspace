@@ -40,7 +40,10 @@ class GroupMemberOverview:
     counts: dict[str, int] = field(default_factory=dict)
     environments: list[str] = field(default_factory=list)
     risk_counts: dict[str, int] = field(default_factory=dict)
-    # git
+    # git. `git_known` False = the question could not be asked (a timeout, a
+    # permission dialog), so is_repo and the counts below mean nothing and the
+    # card says nothing. Not knowing is not the same as knowing there is nothing.
+    git_known: bool = True
     is_repo: bool = False
     branch: str | None = None
     total_commits: int = 0
