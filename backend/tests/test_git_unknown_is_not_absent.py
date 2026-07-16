@@ -88,9 +88,7 @@ class _GroupRepo:
     def get(self, group_id):
         from app.core.domain.project_group import ProjectGroup
 
-        return ProjectGroup(
-            id=group_id, name="G", workspace_ids=("ws-1",), created_at="2026-07-16"
-        )
+        return ProjectGroup(id=group_id, name="G", workspace_ids=("ws-1",), created_at="2026-07-16")
 
 
 class _GraphRepo:
