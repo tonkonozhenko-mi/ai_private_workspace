@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getProjectWatch, summarizeProjectWatch } from "../api/client";
 import type { ProjectWatchDigest, WorkspaceDashboard } from "../api/types";
 import { useProjectRefresh } from "../hooks/useProjectRefresh";
+import { MAP_UNCHANGED_NOTE } from "../lib/refreshNotes";
 import { AreaChip } from "./AreaChip";
 
 const REFRESH_PHASE_LABEL: Record<string, string> = {
@@ -230,7 +231,7 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
               ) : null}
 
               {!hasGitWork && riskHighlights.length === 0 && !digest.baseline ? (
-                <p className="pw-muted">Nothing new to report.</p>
+                <p className="pw-muted">{MAP_UNCHANGED_NOTE}</p>
               ) : null}
             </>
           );

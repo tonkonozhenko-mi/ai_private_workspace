@@ -7,6 +7,27 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-07-16
+
+Small things a full walk through 0.7.0 turned up. No new capability: a document
+that was printing its own source code, two true sentences that read as a
+contradiction, and a screen that knew something and waited to be asked.
+
+### Fixed
+
+- **The group handbook is a document again, not its own source code.** It was rendered in a monospace block, so the `#` and `**` it is written with showed through as themselves — the app printing its notes instead of reading them out. It uses the same renderer as every answer now.
+
+- **"Search index updated: 1 file re-indexed." and "Nothing new to report." no longer look like an argument.** Both were true and they sat one above the other: a file had changed and been re-read, and the project map that file feeds turned out identical. Neither line said which of the two it was talking about. They do now — one names the search index, the other names the map — so they stack instead of contradicting.
+
+- **A group notices a change made while you are looking at it.** The check ran when you opened the group and never again, so editing a file with the group on screen showed nothing until you navigated away and came back. It now re-checks when you return to the window. It is not a poll: every check walks each repository's folder, so it waits for a deliberate return and does no more than one sweep every thirty seconds.
+
+### Changed
+
+- **When a group's repositories have not been analyzed, the handbook says why it is thin.** With no maps to read, the handbook is a list of "not analyzed yet" and a generic "where to start" — which is it telling the truth about what it had to work with, while looking like a feature that does not work. A quiet line beside the button now says how many repositories are unanalyzed and where the button to fix that is. It does not block generating one, and it never starts an analysis on your behalf: that is minutes of your computer's time, so it is your call.
+
+- **Sources under a group answer are folded, with their count on the lid.** "7 sources from 2 repositories ›" — the same convention a single project's Ask has always used; the group had them open, which was two answers to one question about the same app. Which repositories answered is still said without asking, by the chips above the fold, and every source still carries the repository it came from.
+
+
 ## [0.7.0] - 2026-07-16
 
 A group of repositories stops being an annex and becomes a project. It can hold

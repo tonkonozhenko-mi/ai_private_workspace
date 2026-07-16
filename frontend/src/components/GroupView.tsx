@@ -374,6 +374,10 @@ function repoMeta(m: GroupOverviewResponse["members"][number]): string | null {
   return parts.length > 0 ? parts.join(" · ") : "No commits yet";
 }
 
+/** How long after one check we refuse to run another on a window focus. Focus
+ *  fires on every alt-tab back, and each check walks every member's folder. */
+const RECHECK_COOLDOWN_MS = 30_000;
+
 /** Asks each member what has changed on disk since it was last indexed.
  *
  * The group holds no change log of its own: it calls the member's own endpoint,
@@ -401,10 +405,40 @@ function useMemberChanges(members: { workspace_id: string }[]): {
       });
   }, []);
 
-  useEffect(() => {
+  const checkAll = useCallback(() => {
     if (!hasUserInteracted() || ids === "") return;
     for (const workspaceId of ids.split(",")) void check(workspaceId);
   }, [ids, check]);
+
+  useEffect(() => {
+    checkAll();
+  }, [checkAll]);
+
+  // Coming back to the window is the moment a person expects the screen to be
+  // current: they left, they changed something, they returned. Until now the
+  // check only ran on entering the group, so an edit made while the group was
+  // open stayed invisible until you navigated away and back — the app knowing
+  // something and not saying it, which is the thing this feature exists against.
+  //
+  // Not a poll: it costs a folder walk per member, so it is tied to a deliberate
+  // return and rate-limited. The same interaction gate applies, so a cold launch
+  // that happens to focus a window still asks macOS for nothing.
+  const lastCheckedAt = useRef(0);
+  useEffect(() => {
+    const onFocus = () => {
+      if (document.visibilityState === "hidden") return;
+      const now = Date.now();
+      if (now - lastCheckedAt.current < RECHECK_COOLDOWN_MS) return;
+      lastCheckedAt.current = now;
+      checkAll();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [checkAll]);
 
   return { changes, recheck: check };
 }
@@ -574,8 +608,29 @@ function GroupHome({
         changes={changes}
         onRecheck={onRecheck}
       />
-      <GroupMemory groupId={groupId} />
+      <GroupMemory groupId={groupId} members={overview.members} />
     </div>
+  );
+}
+
+/** The handbook is a summary of the members' maps, so with no maps it is a list
+ * of apologies: "fastapi-template — not analyzed yet", three times, and a generic
+ * "Where to start". That is not a bug in the handbook, it is the handbook telling
+ * the truth about what it had to read — but the app never said so, and left the
+ * person to conclude the feature was thin.
+ *
+ * One quiet line, then. Not a blocker: generating a poor handbook is a person's
+ * right, and analysing a repository is a job that costs minutes, so it is offered
+ * and never started on their behalf. The button to do it is already on the
+ * Intelligence card, so this points there rather than growing a second one. */
+function HandbookDepthHint({ members }: { members: GroupOverviewResponse["members"] }) {
+  const unanalyzed = members.filter((m) => !m.built).length;
+  if (unanalyzed === 0 || members.length === 0) return null;
+  return (
+    <p className="grp-hint">
+      {unanalyzed} of {members.length} {members.length === 1 ? "repository is" : "repositories are"} not
+      analyzed — the handbook will be richer after Analyze, on the Intelligence tab.
+    </p>
   );
 }
 
@@ -632,7 +687,13 @@ function HandbookLag({ groupId, onRegenerated }: { groupId: string; onRegenerate
   );
 }
 
-function GroupMemory({ groupId }: { groupId: string }) {
+function GroupMemory({
+  groupId,
+  members,
+}: {
+  groupId: string;
+  members: GroupOverviewResponse["members"];
+}) {
   const [items, setItems] = useState<GroupMemoryItem[]>([]);
   const [draft, setDraft] = useState("");
   const [handbook, setHandbook] = useState<string | null>(null);
@@ -714,6 +775,7 @@ function GroupMemory({ groupId }: { groupId: string }) {
           </span>
         }
       />
+      <HandbookDepthHint members={members} />
       <div className="grp-ask-row grp-note-row">
         <input
           className="grp-ask-input"
@@ -753,7 +815,14 @@ function GroupMemory({ groupId }: { groupId: string }) {
       )}
 
       <HandbookLag groupId={groupId} onRegenerated={() => void load()} />
-      {handbook && showHandbook ? <pre className="grp-handbook">{handbook}</pre> : null}
+      {/* A document, not a dump. It was rendered in a monospace <pre>, so its
+          own markdown showed through as literal # and ** — the app printing its
+          source instead of its writing. Same renderer as every answer. */}
+      {handbook && showHandbook ? (
+        <div className="grp-handbook">
+          <MarkdownAnswer content={handbook} />
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -1448,8 +1517,17 @@ function ContributionBar({ contributions }: { contributions: GroupAskResponse["c
   );
 }
 
-/** Where the answer came from, grouped by the repository it came from — the
- *  label a group answer cannot be read without, in every state. */
+/** Where the answer came from, grouped by the repository it came from.
+ *
+ * Closed by default, with its count on the lid — the same convention the single
+ * project's Ask uses. It was open here and closed there, which is two answers to
+ * one question about the same app. Not deliberate: what a group must show is
+ * "several repositories answered this", and the contribution chips above say
+ * that, in every state, without being asked. The file list is the detail behind
+ * that claim, and detail is what a person opens when they want it.
+ *
+ * The repository label travels with every source, open or closed — a group
+ * answer cannot be read without knowing which project each line came from. */
 function SourcesByRepository({
   sources,
   staleRepos,
@@ -1457,10 +1535,24 @@ function SourcesByRepository({
   sources: GroupSource[];
   staleRepos: Set<string>;
 }) {
+  const [open, setOpen] = useState(false);
   if (sources.length === 0) return null;
+  const repos = groupSourcesByRepo(sources).length;
+  if (!open) {
+    return (
+      <button type="button" className="grp-sources-toggle" onClick={() => setOpen(true)}>
+        {sources.length} {sources.length === 1 ? "source" : "sources"} from {repos}{" "}
+        {repos === 1 ? "repository" : "repositories"}
+        <span aria-hidden="true"> ›</span>
+      </button>
+    );
+  }
   return (
     <div className="grp-sources">
-      <p className="grp-shead">Sources by repository</p>
+      <button type="button" className="grp-sources-toggle is-open" onClick={() => setOpen(false)}>
+        <span className="grp-shead">Sources by repository</span>
+        <span aria-hidden="true"> ⌄</span>
+      </button>
       {groupSourcesByRepo(sources).map(([repo, items]) => (
         <div className="grp-source-group" key={repo}>
           <p className="grp-source-grouphead">

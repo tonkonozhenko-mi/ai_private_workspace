@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { reindexChangedWorkspace, runProjectWatch } from "../api/client";
 import type { ProjectWatchDigest } from "../api/types";
+import { reindexNote } from "../lib/refreshNotes";
 
 /**
  * Drives the Home "Refresh" action, with state kept in a **module-level store**
@@ -79,14 +80,9 @@ async function startRefresh(workspaceId: string): Promise<void> {
     // 2) AI knowledge: re-embed only changed files. Best-effort.
     try {
       const idx = await reindexChangedWorkspace(workspaceId);
-      const parts: string[] = [];
-      if (idx.reindexed_files) parts.push(`${idx.reindexed_files} re-indexed`);
-      if (idx.removed_files) parts.push(`${idx.removed_files} removed`);
-      setState(workspaceId, {
-        knowledgeNote: parts.length
-          ? `AI knowledge updated: ${parts.join(", ")}.`
-          : "AI knowledge already up to date.",
-      });
+      // "AI knowledge updated: 1 re-indexed." sat directly above the map's
+      // "Nothing new to report." — two levels, two truths, read as one lie.
+      setState(workspaceId, { knowledgeNote: reindexNote(idx) });
     } catch {
       /* reindex is best-effort within a refresh */
     }
