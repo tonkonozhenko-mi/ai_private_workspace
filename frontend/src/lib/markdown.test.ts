@@ -8,7 +8,7 @@
 //
 // Written in the vitest `describe/it/expect` style so it drops straight into a
 // vitest runner once one is configured. The logic here is also exercised now via a
-// standalone transpile harness (scripts/run-markdown-tests.mjs).
+// standalone transpile harness (scripts/run-lib-tests.mjs).
 
 import { describe, expect, it } from "vitest";
 

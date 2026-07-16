@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { formatModelLabel } from "../lib/modelLabel";
+import { hasUserInteracted } from "../lib/userInteraction";
 
 // models_summary.selected_llm is a provider-qualified id like
 // "llamacpp/Org/Repo-GGUF/file.Q4_K_M.gguf" — unreadable in body copy.
@@ -43,20 +44,6 @@ import type {
   WorkspaceDashboard,
   WorkspaceJob,
 } from "../api/types";
-
-// The on-disk change check walks the project folder, which makes macOS prompt
-// for folder access. We only run it AFTER the user has interacted with the app,
-// so the prompt is tied to deliberate use — never to a silent cold launch.
-let userHasInteracted = false;
-if (typeof window !== "undefined") {
-  const mark = () => {
-    userHasInteracted = true;
-    window.removeEventListener("pointerdown", mark);
-    window.removeEventListener("keydown", mark);
-  };
-  window.addEventListener("pointerdown", mark);
-  window.addEventListener("keydown", mark);
-}
 
 async function pollJobDone(
   workspaceId: string,
@@ -945,7 +932,7 @@ export function ProjectUnderstanding({
       });
     // Have files on disk changed since the last scan? Only after a user gesture,
     // so this never triggers a macOS folder-access prompt on a cold launch.
-    if (userHasInteracted) {
+    if (hasUserInteracted()) {
       getWorkspaceScanChanges(dashboard.workspace_id)
         .then((result) => {
           if (!cancelled && result.changed) setChanges(result);

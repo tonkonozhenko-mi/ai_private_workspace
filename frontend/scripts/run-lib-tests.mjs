@@ -1,14 +1,18 @@
-// Standalone runner for src/lib/markdown.test.ts, so the markdown parser's
-// snapshot + fuzz corpus can be executed without a full vitest install.
+// Standalone runner for every src/lib/*.test.ts, so the pure helpers can be
+// tested without a full vitest install.
 //
-//   node scripts/run-markdown-tests.mjs
+//   node scripts/run-lib-tests.mjs
 //
-// It transpiles the module + its test with the local TypeScript, provides a tiny
-// vitest-compatible `describe/it/expect` shim, runs the suite, and exits non-zero
-// on any failure (so CI can gate on it before a vitest runner exists). When vitest
-// is added, the same markdown.test.ts runs there unchanged.
+// It transpiles each test and every module in src/lib with the local TypeScript,
+// provides a tiny vitest-compatible `describe/it/expect` shim, runs the suites,
+// and exits non-zero on any failure (so CI can gate on it before a vitest runner
+// exists). When vitest is added, the same *.test.ts files run there unchanged.
+//
+// It used to name markdown.ts in three places, which meant the second pure module
+// worth testing needed the harness edited rather than a file added. It now finds
+// the tests instead of being told about them.
 
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -24,20 +28,33 @@ function transpile(tsSource) {
   }).outputText;
 }
 
-const work = mkdtempSync(join(tmpdir(), "md-tests-"));
+const work = mkdtempSync(join(tmpdir(), "lib-tests-"));
+const files = readdirSync(libDir).filter((name) => name.endsWith(".ts"));
+const tests = files.filter((name) => name.endsWith(".test.ts"));
 
-// 1) Transpile the module under test.
-const moduleJs = transpile(readFileSync(join(libDir, "markdown.ts"), "utf8"));
-writeFileSync(join(work, "markdown.js"), moduleJs);
+// 1) Transpile every module in src/lib, so a test can import any of them (and so
+//    a module can import its neighbour). Type-only imports vanish in transpile,
+//    which is why importing ../api/types costs nothing here.
+for (const name of files.filter((n) => !n.endsWith(".test.ts"))) {
+  writeFileSync(
+    join(work, name.replace(/\.ts$/, ".js")),
+    transpile(readFileSync(join(libDir, name), "utf8")),
+  );
+}
 
-// 2) Transpile the test, and point its imports at the shim + transpiled module.
-let testJs = transpile(readFileSync(join(libDir, "markdown.test.ts"), "utf8"));
-testJs = testJs
-  .replace(/from ["']vitest["']/g, `from ${JSON.stringify(join(work, "vitest-shim.js"))}`)
-  .replace(/from ["']\.\/markdown["']/g, `from ${JSON.stringify(join(work, "markdown.js"))}`);
-writeFileSync(join(work, "markdown.test.js"), testJs);
+// 2) Transpile each test, and point its imports at the shim + the transpiled
+//    modules beside it.
+for (const name of tests) {
+  let testJs = transpile(readFileSync(join(libDir, name), "utf8"));
+  testJs = testJs
+    .replace(/from ["']vitest["']/g, `from ${JSON.stringify(join(work, "vitest-shim.js"))}`)
+    .replace(/from ["']\.\/([\w-]+)["']/g, (_m, mod) =>
+      `from ${JSON.stringify(join(work, `${mod}.js`))}`,
+    );
+  writeFileSync(join(work, name.replace(/\.ts$/, ".js")), testJs);
+}
 
-// 3) Minimal vitest-compatible shim (only the matchers this corpus uses).
+// 3) Minimal vitest-compatible shim (only the matchers these corpora use).
 const results = { pass: 0, fail: 0, failures: [] };
 const stack = [];
 
@@ -118,11 +135,13 @@ writeFileSync(
     "export const expect = globalThis.expect;\n",
 );
 
-await import(pathToFileURL(join(work, "markdown.test.js")).href);
+for (const name of tests) {
+  await import(pathToFileURL(join(work, name.replace(/\.ts$/, ".js"))).href);
+}
 
 if (results.failures.length) {
   console.error(`\n✗ ${results.fail} failed, ${results.pass} passed\n`);
   for (const f of results.failures) console.error("  ✗ " + f);
   process.exit(1);
 }
-console.log(`✓ all ${results.pass} markdown tests passed`);
+console.log(`✓ all ${results.pass} tests passed (${tests.length} files)`);
