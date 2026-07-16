@@ -50,6 +50,7 @@ from app.core.use_cases.ask_group_question import (
 from app.core.use_cases.build_group_handbook import (
     BuildGroupHandbookNotFoundError,
     BuildGroupHandbookUseCase,
+    GroupHandbookFreshnessUseCase,
 )
 from app.core.use_cases.build_group_overview import (
     BuildGroupOverviewNotFoundError,
@@ -359,6 +360,8 @@ def build_group_handbook_endpoint(group_id: str) -> dict:
             index_status_repository=index_status_repository,
         ),
         project_memory_repository,
+        group_repository=project_group_repository,
+        index_status_repository=index_status_repository,
     )
     try:
         text = use_case.execute(group_id)
@@ -373,7 +376,20 @@ def get_group_handbook(group_id: str) -> dict:
     handbook = next((i for i in items if i.kind == MemoryKind.HANDBOOK), None)
     if handbook is None:
         return {"has_handbook": False}
-    return {"has_handbook": True, "handbook": handbook.text, "created_at": handbook.created_at}
+    # Whether it is behind is arithmetic on index timestamps — cheap enough to
+    # answer on every read, and a fact the person should not have to ask for.
+    freshness = GroupHandbookFreshnessUseCase(
+        memory_repository=project_memory_repository,
+        group_repository=project_group_repository,
+        workspace_repository=workspace_repository,
+        index_status_repository=index_status_repository,
+    ).execute(group_id)
+    return {
+        "has_handbook": True,
+        "handbook": handbook.text,
+        "created_at": handbook.created_at,
+        "stale_members": list(freshness.stale_members),
+    }
 
 
 # --- Ask across the group ---

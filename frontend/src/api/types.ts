@@ -2094,6 +2094,10 @@ export interface GroupHandbookResponse {
   has_handbook: boolean;
   handbook?: string;
   created_at?: string;
+  /** Members whose index has moved on since this handbook was built, by name.
+   *  Empty when it is current — or when it was built before it kept a record of
+   *  what it read, in which case the app says nothing rather than guess. */
+  stale_members?: string[];
 }
 
 // --- Answer ratings & nudges ---

@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   addGroupMemory,
+  getWorkspaceScanChanges,
   addProjectGroupMember,
   askProjectGroupStream,
   buildGroupHandbook,
@@ -22,9 +23,13 @@ import type {
   GroupMemoryItem,
   GroupOverviewResponse,
   ProjectGroupDetail,
+  ScanChanges,
   WorkspaceDashboard,
 } from "../api/types";
+import { useProjectRefresh } from "../hooks/useProjectRefresh";
+import { memberChangeBadge, memberChangeDetail } from "../lib/groupStaleness";
 import { formatSourceLabel } from "../lib/sourceLabel";
+import { hasUserInteracted } from "../lib/userInteraction";
 import { AnswerFeedback } from "./AnswerFeedback";
 import { AnswerTracePanel } from "./AnswerTracePanel";
 import { MarkdownAnswer } from "./AskWorkspace";
@@ -353,7 +358,88 @@ function repoMeta(m: GroupOverviewResponse["members"][number]): string {
   return parts.length > 0 ? parts.join(" · ") : "No commits yet";
 }
 
+/** Asks each member what has changed on disk since it was last indexed.
+ *
+ * The group holds no change log of its own: it calls the member's own endpoint,
+ * the same one that member's Home calls, and keeps the answers only for as long
+ * as this screen is open. Which is why opening the project on its own shows the
+ * same thing — the answer was never copied anywhere to go stale.
+ *
+ * Gated on a real interaction, because the check walks the folder and macOS asks
+ * for permission when it does.
+ */
+function useMemberChanges(members: { workspace_id: string }[]): {
+  changes: Record<string, ScanChanges>;
+  recheck: (workspaceId: string) => void;
+} {
+  const [changes, setChanges] = useState<Record<string, ScanChanges>>({});
+  const ids = members.map((m) => m.workspace_id).join(",");
+
+  const check = useCallback((workspaceId: string) => {
+    return getWorkspaceScanChanges(workspaceId)
+      .then((result) => {
+        setChanges((prev) => ({ ...prev, [workspaceId]: result }));
+      })
+      .catch(() => {
+        /* no badge if the check fails — silence is the safe default here */
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!hasUserInteracted() || ids === "") return;
+    for (const workspaceId of ids.split(",")) void check(workspaceId);
+  }, [ids, check]);
+
+  return { changes, recheck: check };
+}
+
+/** One member's "N files changed" badge and the button that acts on it.
+ *
+ * Rescan is the workspace's own refresh, called by the workspace's own hook —
+ * not a group wrapper around it. Everything it writes (scan history, the change
+ * journal, the index) is written where it always was, by the code that always
+ * wrote it. The hook's state is keyed by workspace id and lives above the
+ * component, so a rescan started here is still running, and still visible, when
+ * you open that project on its own.
+ */
+function MemberFreshness({
+  workspaceId,
+  changes,
+  onRescanned,
+}: {
+  workspaceId: string;
+  changes: ScanChanges | undefined;
+  onRescanned: () => void;
+}) {
+  const refresh = useProjectRefresh(workspaceId);
+  const badge = memberChangeBadge(changes);
+  const wasRunning = useRef(false);
+
+  useEffect(() => {
+    if (wasRunning.current && !refresh.running) onRescanned();
+    wasRunning.current = refresh.running;
+  }, [refresh.running, onRescanned]);
+
+  if (refresh.running) {
+    return <span className="grp-badge">Rescanning…</span>;
+  }
+  // Nothing changed, so nothing is said. An "up to date" badge on every card is
+  // a row of green ticks nobody reads and one real warning nobody sees.
+  if (!badge) return null;
+  return (
+    <>
+      <span className="grp-badge" title={memberChangeDetail(changes) ?? undefined}>
+        {badge}
+      </span>
+      <button type="button" className="grp-link" onClick={refresh.refresh}>
+        Rescan
+      </button>
+    </>
+  );
+}
+
 function GroupHome({ overview, groupId }: { overview: GroupOverviewResponse | null; groupId: string }) {
+  const { changes, recheck } = useMemberChanges(overview?.members ?? []);
   if (!overview) return <p className="grp-muted">Loading…</p>;
   if (overview.member_count === 0) {
     return <p className="grp-muted">No repositories in this group yet. Add one above.</p>;
@@ -426,6 +512,11 @@ function GroupHome({ overview, groupId }: { overview: GroupOverviewResponse | nu
                 <span className="grp-repo-name">{m.name}</span>
                 {m.branch ? <span className="grp-repo-branch">{m.branch}</span> : null}
                 {!m.built ? <span className="grp-badge">Not analyzed</span> : null}
+                <MemberFreshness
+                  workspaceId={m.workspace_id}
+                  changes={changes[m.workspace_id]}
+                  onRescanned={() => recheck(m.workspace_id)}
+                />
               </div>
               <p className="grp-repo-desc">{m.description}</p>
               <p className="grp-repo-meta">{repoMeta(m)}</p>
@@ -436,6 +527,59 @@ function GroupHome({ overview, groupId }: { overview: GroupOverviewResponse | nu
 
       <GroupMemory groupId={groupId} />
     </div>
+  );
+}
+
+/** "This handbook was written before <member> last changed."
+ *
+ * An offer, never an action: rebuilding a handbook costs real time on a model,
+ * so the app tells you and you decide. The stale handbook stays in every answer
+ * meanwhile — an old summary is worth more than none, as long as nobody is
+ * pretending it is current.
+ *
+ * The same component on Home and in Ask, reading the same endpoint: the group
+ * keeps no second copy of this fact, and so the two can never disagree.
+ */
+function HandbookLag({ groupId, onRegenerated }: { groupId: string; onRegenerated?: () => void }) {
+  const [stale, setStale] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const handbook = await getGroupHandbook(groupId);
+      setStale(handbook.has_handbook ? (handbook.stale_members ?? []) : []);
+    } catch {
+      setStale([]);
+    }
+  }, [groupId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (stale.length === 0 || busy) {
+    return busy ? <p className="grp-hint">Rebuilding the group handbook…</p> : null;
+  }
+  return (
+    <p className="grp-lag">
+      <span>Built before the latest changes in {stale.join(", ")}.</span>
+      <button
+        type="button"
+        className="grp-link"
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await buildGroupHandbook(groupId);
+            await load();
+            onRegenerated?.();
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        Regenerate?
+      </button>
+    </p>
   );
 }
 
@@ -559,6 +703,7 @@ function GroupMemory({ groupId }: { groupId: string }) {
         <p className="grp-muted">No notes yet.</p>
       )}
 
+      <HandbookLag groupId={groupId} onRegenerated={() => void load()} />
       {handbook && showHandbook ? <pre className="grp-handbook">{handbook}</pre> : null}
     </section>
   );
@@ -1029,6 +1174,8 @@ function GroupAsk({
           computer.
         </p>
       ) : null}
+
+      <HandbookLag groupId={groupId} />
 
       <div className="grp-ask-toolbar">
         <button
