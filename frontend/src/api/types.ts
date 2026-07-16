@@ -2023,6 +2023,9 @@ export interface GroupMemberOverview {
   counts: Record<string, number>;
   environments: string[];
   risk_counts: Record<string, number>;
+  /** Whether git could be asked at all. False = a timeout or a permission
+   *  dialog got in the way, so is_repo and the counts below mean nothing. */
+  git_known?: boolean;
   is_repo: boolean;
   branch: string | null;
   total_commits: number;

@@ -296,12 +296,20 @@ def summarize_merges(merge_subjects: list[str], all_subjects: list[str]) -> GitM
 class GitInsights:
     """A small, read-only snapshot of a project's git history.
 
-    Everything here comes from read-only ``git`` queries. When the project is
-    not a git repository (or git is unavailable), ``is_repo`` is ``False`` and
-    the remaining fields stay at their empty defaults.
+    Everything here comes from read-only ``git`` queries.
+
+    ``is_repo`` says what git answered; ``known`` says whether git answered at
+    all. They used to be one field, and the docstring admitted it — "not a git
+    repository (or git is unavailable)" is two different facts wearing one name.
+    A git call that times out (a macOS folder-access dialog is enough) then
+    reported a repository with 1,390 commits as "Not a git repository". Not
+    knowing is not the same as knowing there is nothing: when ``known`` is
+    ``False``, every other field here is an empty default and means nothing —
+    say nothing rather than say no.
     """
 
     is_repo: bool
+    known: bool = True
     branch: str | None = None
     last_commit: GitCommit | None = None
     total_commits: int = 0
@@ -323,4 +331,11 @@ class GitInsights:
 
     @staticmethod
     def not_a_repo() -> "GitInsights":
+        """git answered, and the answer is no."""
         return GitInsights(is_repo=False)
+
+    @staticmethod
+    def unknown() -> "GitInsights":
+        """git could not be asked — it timed out, is missing, or the folder is
+        not readable right now. We do not know, and we do not pretend to."""
+        return GitInsights(is_repo=False, known=False)

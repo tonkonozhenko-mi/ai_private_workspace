@@ -242,6 +242,7 @@ class GroupMemberOverview(BaseModel):
     counts: dict[str, int]
     environments: list[str]
     risk_counts: dict[str, int]
+    git_known: bool = True
     is_repo: bool
     branch: str | None
     total_commits: int

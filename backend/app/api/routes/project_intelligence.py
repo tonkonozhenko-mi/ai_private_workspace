@@ -17,6 +17,7 @@ from app.api.dependencies import (
     embedding_provider,
     file_system,
     git_history,
+    indexing_rules_repository,
     llm_provider_factory,
     project_context_composer,
     project_graph_repository,
@@ -222,9 +223,14 @@ def get_project_intelligence_overview_text(workspace_id: str, role: str | None =
 def _watch_rebuild(workspace_id: str) -> ProjectSnapshotMeta:
     """Re-scan the project from disk, then rebuild the graph — so the watcher
     compares against the current files, not a stale scan."""
-    ScanWorkspaceProjectUseCase(workspace_repository, file_system, project_scan_repository).execute(
-        ScanWorkspaceProjectInput(workspace_id=workspace_id)
-    )
+    # No rules named = this workspace's own rules. Naming none used to mean
+    # exactly that — none — and this scan is what the change check reads back.
+    ScanWorkspaceProjectUseCase(
+        workspace_repository,
+        file_system,
+        project_scan_repository,
+        indexing_rules_repository=indexing_rules_repository,
+    ).execute(ScanWorkspaceProjectInput(workspace_id=workspace_id))
     return BuildProjectGraphUseCase(
         workspace_repository=workspace_repository,
         project_scan_repository=project_scan_repository,
