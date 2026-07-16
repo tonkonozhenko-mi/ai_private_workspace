@@ -8,6 +8,9 @@
   --app-bg-gradient: radial-gradient(circle at 18% 0%, rgba(84, 116, 136, 0.22), transparent 30rem),
       linear-gradient(135deg, #0b1117 0%, #101821 48%, #0c1218 100%);
   --app-gap: 18px;
+  /* How wide a screenful of this app is allowed to get. It was declared here and
+     used nowhere, while .dashboard-layout hardcoded the same 1180 an inch away
+     and the group view used nothing at all. One band, named once, used by both. */
   --app-max-readable-width: 1180px;
   --app-radius-lg: 24px;
   --app-radius-md: 18px;
@@ -2693,7 +2696,7 @@ a.getting-ready-cta:visited { color: var(--c-accent-ink); }
   display: flex;
   flex-direction: column;
   gap: var(--s-5);
-  max-width: 1180px;
+  max-width: var(--app-max-readable-width);
   margin: 0 auto;
 }
 
@@ -5584,7 +5587,14 @@ a.getting-ready-cta:hover {
 .cmdk-foot { display: flex; gap: 16px; padding: 8px 14px; border-top: 1px solid var(--c-border); font-size: 11px; color: var(--c-text-3); }
 .cmdk-foot kbd { font-family: inherit; background: var(--c-surface-3); border-radius: 4px; padding: 0 5px; margin-right: 3px; }
 
-.grp { display: flex; flex-direction: column; gap: 16px; }
+/* A band, not a wall. A group is a project too, and it was the one project view
+   that ran to the edges of whatever monitor it found itself on. Framing it was
+   not enough: that moved the right edge in by 88px and left the rest of the
+   problem where it was — the title at one end of the room and its actions at the
+   other. It sits in the same band as the single project's dashboard now, so the
+   title, the tabs, the cards, the notes and the thread line up on one axis and
+   end at one edge, and "the badge beside the heading" is beside the heading. */
+.grp { display: flex; flex-direction: column; gap: 16px; max-width: var(--app-max-readable-width); margin: 0 auto; }
 .grp-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .grp-eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-text-3); margin: 0; }
 .grp-title { font-size: 22px; font-weight: 650; color: var(--c-text); margin: 4px 0 2px; letter-spacing: -0.01em; }
@@ -6087,35 +6097,18 @@ a {
     --trace-rail-w: 420px;
     padding-inline: clamp(24px, 3vw, 88px);
   }
-  /* A group is a project too. It was never framed, so on a wide display its
-     header ran to one edge and its actions to the other, with a metre of nothing
-     between them — the same dead zone this rule was written to remove. Same
-     frame, same clamp, because the two are the same kind of screen. */
-  .grp {
-    padding-inline: clamp(24px, 3vw, 88px);
-  }
 }
 
-/* =====================================================================
-   The group at width — give the width work, as the single project does.
-   ===================================================================== */
 @media (min-width: 1280px) {
-  /* More width is more repositories per row, not wider repositories. auto-fill
-     rather than a fixed two, because a group of six should use a wide screen and
-     a group of two should not be stretched across it. */
+  /* More width is more repositories per row, not wider repositories. auto-FIT,
+     not auto-fill: auto-fill keeps the tracks it makes, so two repositories sat
+     in the leftmost two of six and the rest of the row was a hole. auto-fit
+     collapses what nothing occupies, and the cards share the band. */
   .grp-repo-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
     align-items: start;
   }
-}
-
-/* Notes: heading, its action and the field it belongs to, in one band. "Generate
-   handbook, beside the section heading" is only true if the two are near each
-   other; on a wide screen a right-aligned action was a hundred centimetres from
-   the words it belongs to. */
-.grp-notes {
-  max-width: 940px;
 }
 
 @media (min-width: 1280px) {
