@@ -6,7 +6,11 @@
 
 import { describe, expect, it } from "vitest";
 
-import { memberChangeBadge, memberChangeDetail } from "./groupStaleness";
+import {
+  memberChangeBadge,
+  memberChangeDetail,
+  staleRepositoryNames,
+} from "./groupStaleness";
 
 const baseline = {
   has_baseline: true,
@@ -69,5 +73,31 @@ describe("memberChangeDetail", () => {
 
   it("has nothing to spell out when there is no badge", () => {
     expect(memberChangeDetail(baseline)).toBeNull();
+  });
+});
+
+describe("staleRepositoryNames", () => {
+  const members = [
+    { workspace_id: "ws-wiki", name: "Wiki" },
+    { workspace_id: "ws-code", name: "Backend" },
+  ];
+
+  it("names only the repositories whose files moved past their index", () => {
+    const stale = staleRepositoryNames(members, {
+      "ws-wiki": { ...baseline, changed: true, modified_count: 2 },
+      "ws-code": baseline,
+    });
+    expect(Array.from(stale)).toEqual(["Wiki"]);
+  });
+
+  it("names none when nothing has been checked", () => {
+    expect(staleRepositoryNames(members, {}).size).toBe(0);
+  });
+
+  it("uses the same rule as the badge, so the two can never disagree", () => {
+    // No baseline → no badge → not stale. Home and Ask say the same thing.
+    const changes = { "ws-wiki": { ...baseline, has_baseline: false, changed: true } };
+    expect(memberChangeBadge(changes["ws-wiki"])).toBeNull();
+    expect(staleRepositoryNames(members, changes).size).toBe(0);
   });
 });

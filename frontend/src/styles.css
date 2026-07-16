@@ -5723,6 +5723,7 @@ a.getting-ready-cta:hover {
 .grp-contrib-n { color: var(--c-text-3); font-variant-numeric: tabular-nums; }
 .grp-source-group { margin-top: 8px; }
 .grp-source-grouphead { font-size: 11px; color: var(--c-text-2); margin: 0 0 4px; display: flex; align-items: center; gap: 7px; }
+.grp-source-stale { font-size: 10.5px; color: var(--c-text-3); font-style: italic; }
 .grp-source-groupn { font-size: 10px; color: var(--c-text-3); background: var(--c-surface-3); border-radius: var(--r-pill); padding: 0 7px; }
 
 .grp-ask { display: flex; flex-direction: column; gap: 12px; }
@@ -6082,6 +6083,45 @@ a {
     --trace-rail-w: 420px;
     padding-inline: clamp(24px, 3vw, 88px);
   }
+  /* A group is a project too. It was never framed, so on a wide display its
+     header ran to one edge and its actions to the other, with a metre of nothing
+     between them — the same dead zone this rule was written to remove. Same
+     frame, same clamp, because the two are the same kind of screen. */
+  .grp {
+    padding-inline: clamp(24px, 3vw, 88px);
+  }
+}
+
+/* =====================================================================
+   The group at width — give the width work, as the single project does.
+   ===================================================================== */
+@media (min-width: 1280px) {
+  /* More width is more repositories per row, not wider repositories. auto-fill
+     rather than a fixed two, because a group of six should use a wide screen and
+     a group of two should not be stretched across it. */
+  .grp-repo-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    align-items: start;
+  }
+}
+
+/* A thread is a thread at any width: an answer 2,000 pixels wide is one your eye
+   loses its place in. Capped and centred, at the same measure the single
+   project's Ask uses — the group should feel like its brother, and this is where
+   that stops being a slogan. */
+.grp-ask {
+  width: 100%;
+  max-width: 940px;
+  margin: 0 auto;
+}
+
+/* Notes: heading, its action and the field it belongs to, in one band. "Generate
+   handbook, beside the section heading" is only true if the two are near each
+   other; on a wide screen a right-aligned action was a hundred centimetres from
+   the words it belongs to. */
+.grp-notes {
+  max-width: 940px;
 }
 
 @media (min-width: 1280px) {

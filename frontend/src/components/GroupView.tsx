@@ -27,7 +27,11 @@ import type {
   WorkspaceDashboard,
 } from "../api/types";
 import { useProjectRefresh } from "../hooks/useProjectRefresh";
-import { memberChangeBadge, memberChangeDetail } from "../lib/groupStaleness";
+import {
+  memberChangeBadge,
+  memberChangeDetail,
+  staleRepositoryNames,
+} from "../lib/groupStaleness";
 import { formatSourceLabel } from "../lib/sourceLabel";
 import { hasUserInteracted } from "../lib/userInteraction";
 import { AnswerFeedback } from "./AnswerFeedback";
@@ -78,6 +82,10 @@ export function GroupView({
   const [renaming, setRenaming] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [draftName, setDraftName] = useState(groupName);
+  // Asked once for the whole group view, not once per tab: the walk that answers
+  // it is the expensive part, and Home's badge and Ask's source note are the same
+  // question. Two answers to one question is how two screens start disagreeing.
+  const { changes, recheck } = useMemberChanges(overview?.members ?? []);
 
   // A freshly created group lands in rename mode so it can be named immediately.
   useEffect(() => {
@@ -244,8 +252,12 @@ export function GroupView({
       ) : null}
 
       <div className="grp-body">
-        {activeTab === "home" ? <GroupHome overview={overview} groupId={groupId} /> : null}
-        {activeTab === "ask" ? <GroupAsk groupId={groupId} overview={overview} /> : null}
+        {activeTab === "home"
+          ? <GroupHome overview={overview} groupId={groupId} changes={changes} onRecheck={recheck} />
+          : null}
+        {activeTab === "ask"
+          ? <GroupAsk groupId={groupId} overview={overview} changes={changes} />
+          : null}
         {activeTab === "intelligence" ? <GroupIntelligence overview={overview} /> : null}
       </div>
     </div>
@@ -438,8 +450,17 @@ function MemberFreshness({
   );
 }
 
-function GroupHome({ overview, groupId }: { overview: GroupOverviewResponse | null; groupId: string }) {
-  const { changes, recheck } = useMemberChanges(overview?.members ?? []);
+function GroupHome({
+  overview,
+  groupId,
+  changes,
+  onRecheck,
+}: {
+  overview: GroupOverviewResponse | null;
+  groupId: string;
+  changes: Record<string, ScanChanges>;
+  onRecheck: (workspaceId: string) => void;
+}) {
   if (!overview) return <p className="grp-muted">Loading…</p>;
   if (overview.member_count === 0) {
     return <p className="grp-muted">No repositories in this group yet. Add one above.</p>;
@@ -515,7 +536,7 @@ function GroupHome({ overview, groupId }: { overview: GroupOverviewResponse | nu
                 <MemberFreshness
                   workspaceId={m.workspace_id}
                   changes={changes[m.workspace_id]}
-                  onRescanned={() => recheck(m.workspace_id)}
+                  onRescanned={() => onRecheck(m.workspace_id)}
                 />
               </div>
               <p className="grp-repo-desc">{m.description}</p>
@@ -638,7 +659,7 @@ function GroupMemory({ groupId }: { groupId: string }) {
   };
 
   return (
-    <section className="grp-section">
+    <section className="grp-section grp-notes">
       {/* One explanation, and the handbook button next to the heading it belongs
           to — the section was two paragraphs saying the same thing on either
           side of a list, with the button stranded at the bottom. */}
@@ -1103,10 +1124,13 @@ type GroupTurn = { question: string; result: GroupAskResponse };
 function GroupAsk({
   groupId,
   overview,
+  changes,
 }: {
   groupId: string;
   overview: GroupOverviewResponse | null;
+  changes: Record<string, ScanChanges>;
 }) {
+  const staleRepos = staleRepositoryNames(overview?.members ?? [], changes);
   const [question, setQuestion] = useState("");
   // The thread, oldest first. A group exists to answer "what did we decide, and
   // where is it implemented?" — which is two questions, and the second one only
@@ -1217,6 +1241,7 @@ function GroupAsk({
           groupId={groupId}
           question={turn.question}
           result={turn.result}
+          staleRepos={staleRepos}
           isLast={index === turns.length - 1 && !asked}
           traceOpen={traceFor === `${index}`}
           onOpenTrace={() => setTraceFor(`${index}`)}
@@ -1293,6 +1318,7 @@ function GroupTurnCard({
   groupId,
   question,
   result,
+  staleRepos,
   isLast,
   traceOpen,
   onOpenTrace,
@@ -1301,6 +1327,7 @@ function GroupTurnCard({
   groupId: string;
   question: string;
   result: GroupAskResponse;
+  staleRepos: Set<string>;
   isLast: boolean;
   traceOpen: boolean;
   onOpenTrace: () => void;
@@ -1403,7 +1430,17 @@ function GroupTurnCard({
                 <p className="grp-shead">Sources by repository</p>
                 {groupSourcesByRepo(result.sources).map(([repo, items]) => (
                   <div className="grp-source-group" key={repo}>
-                    <p className="grp-source-grouphead">{repo}<span className="grp-source-groupn">{items.length}</span></p>
+                    <p className="grp-source-grouphead">
+                      {repo}
+                      <span className="grp-source-groupn">{items.length}</span>
+                      {/* Not a warning and not a banner: the answer is as good as
+                          what was indexed, and this says how old that reading is.
+                          A person who knows they changed those files can weigh it;
+                          one who did not, need not care. */}
+                      {staleRepos.has(repo) ? (
+                        <span className="grp-source-stale">index older than latest file changes</span>
+                      ) : null}
+                    </p>
                     <ul>
                       {items.map((s) => (
                         <li key={s.chunk_id} title={s.preview}>
