@@ -5726,7 +5726,11 @@ a.getting-ready-cta:hover {
 .grp-source-stale { font-size: 10.5px; color: var(--c-text-3); font-style: italic; }
 .grp-source-groupn { font-size: 10px; color: var(--c-text-3); background: var(--c-surface-3); border-radius: var(--r-pill); padding: 0 7px; }
 
-.grp-ask { display: flex; flex-direction: column; gap: 12px; }
+/* A thread is a thread at any width: an answer 2,000 pixels wide is one your eye
+   loses its place in. Capped at the measure the single project's Ask uses — the
+   group should feel like its brother, and this is where that stops being a
+   slogan. Not width-conditional, so it lives with the rest of .grp-ask. */
+.grp-ask { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 940px; margin: 0 auto; }
 .grp-ask-row { display: flex; gap: 8px; }
 /* The thread's own furniture: a reset and a mode, on one line above the feed —
    the same two controls, in the same order, as a single project's Ask. */
@@ -6104,16 +6108,6 @@ a {
     grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
     align-items: start;
   }
-}
-
-/* A thread is a thread at any width: an answer 2,000 pixels wide is one your eye
-   loses its place in. Capped and centred, at the same measure the single
-   project's Ask uses — the group should feel like its brother, and this is where
-   that stops being a slogan. */
-.grp-ask {
-  width: 100%;
-  max-width: 940px;
-  margin: 0 auto;
 }
 
 /* Notes: heading, its action and the field it belongs to, in one band. "Generate
