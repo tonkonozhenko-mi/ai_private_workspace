@@ -76,7 +76,10 @@ def test_the_two_factories_say_different_things():
 class _Workspace:
     id = "ws-1"
     name = "Backend"
-    project_path = "/tmp/backend"
+    # Never opened: the git below is a fake, and what it is asked about is not
+    # what these tests are about. The real adapter gets a real temporary
+    # directory above, where a real path is the point.
+    project_path = "backend-project"
 
 
 class _WorkspaceRepo:

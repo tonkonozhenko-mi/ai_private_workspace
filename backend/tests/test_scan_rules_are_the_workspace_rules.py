@@ -44,7 +44,10 @@ ON_DISK = [
 class _Workspace:
     id = WS
     name = "Wiki"
-    project_path = "/tmp/wiki"
+    # Not a path anyone opens: the file system below is a fake and never leaves
+    # this process. Writing "/tmp/wiki" implied a real place and named one that
+    # any other process can also write to — true of nothing here.
+    project_path = "wiki-project"
 
 
 class _WorkspaceRepo:
