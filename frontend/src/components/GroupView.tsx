@@ -683,7 +683,7 @@ function GroupMemory({ groupId }: { groupId: string }) {
   };
 
   return (
-    <section className="grp-section grp-notes">
+    <section className="grp-section">
       {/* One explanation, and the handbook button next to the heading it belongs
           to — the section was two paragraphs saying the same thing on either
           side of a list, with the button stranded at the bottom. */}
