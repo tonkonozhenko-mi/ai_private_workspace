@@ -22,7 +22,13 @@ function fakeWindow() {
       listeners.get(type)?.delete(fn);
     },
     fire(type: string) {
-      for (const fn of [...(listeners.get(type) ?? [])]) fn();
+      // Snapshot before dispatch, deliberately: the listener under test removes
+      // itself (and its twin) the moment it runs, so the set mutates mid-loop.
+      // A real DOM dispatch copies the listener list for the same reason, and a
+      // fake that iterates the live set would be a fake with different rules
+      // from the thing it stands in for.
+      const dispatching = [...(listeners.get(type) ?? [])];
+      for (const fn of dispatching) fn();
     },
   };
 }
