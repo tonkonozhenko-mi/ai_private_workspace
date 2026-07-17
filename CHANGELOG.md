@@ -7,6 +7,15 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-07-16
+
+One wrong label, and the release note that belonged with it.
+
+### Fixed
+
+- **A file called `constructor` no longer displays as `function Object() { [native code] }`.** The label under every answer looked its path up in a table, and a plain table in JavaScript also answers for names it inherited — so a source called `constructor`, `toString`, `valueOf` or `__proto__` came back with a piece of the language instead of its own name. It looks up only what it was actually given now. A page called "toString" is not a hypothetical in a wiki about JavaScript.
+
+
 ## [0.7.1] - 2026-07-16
 
 Small things a full walk through 0.7.0 turned up. No new capability: a document
@@ -14,8 +23,6 @@ that was printing its own source code, two true sentences that read as a
 contradiction, and a screen that knew something and waited to be asked.
 
 ### Fixed
-
-- **A file called `constructor` no longer displays as `function Object() { [native code] }`.** The label under every answer looked its path up in a table, and a plain table in JavaScript also answers for names it inherited — so a source called `constructor`, `toString`, `valueOf` or `__proto__` came back with a piece of the language instead of its own name. It looks up only what it was actually given now. A page called "toString" is not a hypothetical in a wiki about JavaScript.
 
 - **The group handbook is a document again, not its own source code.** It was rendered in a monospace block, so the `#` and `**` it is written with showed through as themselves — the app printing its notes instead of reading them out. It uses the same renderer as every answer now.
 
