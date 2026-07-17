@@ -15,6 +15,8 @@ contradiction, and a screen that knew something and waited to be asked.
 
 ### Fixed
 
+- **A file called `constructor` no longer displays as `function Object() { [native code] }`.** The label under every answer looked its path up in a table, and a plain table in JavaScript also answers for names it inherited — so a source called `constructor`, `toString`, `valueOf` or `__proto__` came back with a piece of the language instead of its own name. It looks up only what it was actually given now. A page called "toString" is not a hypothetical in a wiki about JavaScript.
+
 - **The group handbook is a document again, not its own source code.** It was rendered in a monospace block, so the `#` and `**` it is written with showed through as themselves — the app printing its notes instead of reading them out. It uses the same renderer as every answer now.
 
 - **"Search index updated: 1 file re-indexed." and "Nothing new to report." no longer look like an argument.** Both were true and they sat one above the other: a file had changed and been re-read, and the project map that file feeds turned out identical. Neither line said which of the two it was talking about. They do now — one names the search index, the other names the map — so they stack instead of contradicting.
