@@ -50,6 +50,16 @@ for (const name of tests) {
     .replace(/from ["']vitest["']/g, `from ${JSON.stringify(join(work, "vitest-shim.js"))}`)
     .replace(/from ["']\.\/([\w-]+)["']/g, (_m, mod) =>
       `from ${JSON.stringify(join(work, `${mod}.js`))}`,
+    )
+    // Dynamic imports too — a test that needs a module's top-level code to run
+    // more than once (module state set up at import time) can only get that from
+    // import(), and it deserves the same rewrite the static ones get. The query
+    // string is kept: it is what makes the second import a second instance.
+    .replace(/import\(\s*`\.\/([\w-]+)(\?[^`]*)`\s*\)/g, (_m, mod, query) =>
+      `import(${JSON.stringify(join(work, `${mod}.js`))} + \`${query}\`)`,
+    )
+    .replace(/import\(\s*["']\.\/([\w-]+)(\?[^"']*)?["']\s*\)/g, (_m, mod, query) =>
+      `import(${JSON.stringify(join(work, `${mod}.js`) + (query ?? ""))})`,
     );
   writeFileSync(join(work, name.replace(/\.ts$/, ".js")), testJs);
 }
@@ -115,15 +125,18 @@ globalThis.describe = (name, fn) => {
   fn();
   stack.pop();
 };
+// Registered, then run one at a time — the way a test runner does it.
+//
+// This shim used to call each `it` the moment it was declared and count it passed
+// as soon as the call returned. For a synchronous test that is the same thing;
+// for an async one it is a lie twice over — the assertions had not run yet, and a
+// rejection landed on nobody. Then, once awaited but started together, five async
+// tests raced each other through the same globals.
+//
+// So: collect, then run in order, awaiting each. Slower by nothing that matters.
+const queue = [];
 globalThis.it = (name, fn) => {
-  const label = [...stack, name].join(" › ");
-  try {
-    fn();
-    results.pass += 1;
-  } catch (err) {
-    results.fail += 1;
-    results.failures.push(`${label}\n    ${err.message}`);
-  }
+  queue.push({ label: [...stack, name].join(" › "), fn });
 };
 globalThis.expect = makeExpect;
 
@@ -137,6 +150,16 @@ writeFileSync(
 
 for (const name of tests) {
   await import(pathToFileURL(join(work, name.replace(/\.ts$/, ".js"))).href);
+}
+
+for (const { label, fn } of queue) {
+  try {
+    await fn();
+    results.pass += 1;
+  } catch (err) {
+    results.fail += 1;
+    results.failures.push(`${label}\n    ${err?.message ?? err}`);
+  }
 }
 
 if (results.failures.length) {
