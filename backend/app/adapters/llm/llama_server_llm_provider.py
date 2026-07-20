@@ -17,7 +17,9 @@ from collections.abc import Iterator
 
 import httpx
 
+from app.core.domain.chat_turns import turns_before_user_message
 from app.core.domain.context_budget import estimate_tokens
+from app.core.domain.degenerate_output import looping_paragraph
 from app.core.domain.llm_errors import ContextOverflowError
 
 # Chat-template control tokens (Llama 3 / Qwen / ChatML …). A model occasionally
@@ -144,16 +146,18 @@ class LlamaServerLLMProvider:
     def _history_messages(history: list[tuple[str, str]] | None) -> list[dict]:
         """Prior turns as real chat messages so the model keeps conversational
         context (resolves "it"/"that", follows up) the way ChatGPT/Claude do —
-        instead of us flattening the dialogue into one text blob."""
-        if not history:
-            return []
-        messages: list[dict] = []
-        for role, content in history:
-            normalized = "assistant" if role == "assistant" else "user"
-            text = content.strip()
-            if text:
-                messages.append({"role": normalized, "content": text})
-        return messages
+        instead of us flattening the dialogue into one text blob.
+
+        Shaped to what a chat template will accept, because several of them
+        (Mistral's included) raise rather than cope, and a raised template costs
+        the whole answer. The prompt below is a user message, so the history must
+        not end with one either — see chat_turns for what that costs us and why
+        nothing is thrown away to achieve it.
+        """
+        return [
+            {"role": role, "content": content}
+            for role, content in turns_before_user_message(history)
+        ]
 
     def _build_messages(
         self,
@@ -190,6 +194,15 @@ class LlamaServerLLMProvider:
             # conversation (system + context + requirements are kept stable and the
             # volatile question is last), so multi-turn answers start faster.
             "cache_prompt": True,
+            # Ask the engine not to loop. We were sending nothing here, and
+            # llama.cpp's default barely penalises repetition — which is how a
+            # good answer turned into the same paragraph ten times over. 1.1 over
+            # the last 256 tokens is the conservative end of the usual range: it
+            # discourages a cycle without pushing the model off vocabulary it
+            # legitimately needs (a file path repeated in three sentences is not
+            # a loop, and this must not make it one).
+            "repeat_penalty": 1.1,
+            "repeat_last_n": 256,
         }
         if response_format is not None:
             # Constrain generation to a JSON Schema / object so the model cannot
@@ -288,6 +301,7 @@ class LlamaServerLLMProvider:
         response_format: dict | None = None,
     ) -> Iterator[str]:
         """Yield answer text deltas via the OpenAI-compatible SSE stream."""
+        streamed: list[str] = []
         self.last_prompt_tokens = None
         self.last_completion_tokens = None
         try:
@@ -337,6 +351,14 @@ class LlamaServerLLMProvider:
                                 yield delta[:index]
                             break
                         yield delta
+                        # A model that has begun repeating itself will keep
+                        # going until the token limit — minutes of the person's
+                        # machine spent printing one paragraph, which they then
+                        # have to interrupt themselves. Checked on the text that
+                        # actually arrived, not on what we hoped for.
+                        streamed.append(delta)
+                        if looping_paragraph("".join(streamed)) is not None:
+                            break
         except httpx.HTTPError as exc:
             raise LlamaServerLLMProviderError(
                 f"Could not stream from llama-server at {self.base_url}: {exc}"

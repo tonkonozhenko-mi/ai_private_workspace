@@ -7,6 +7,17 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **An answer that starts repeating itself now stops, instead of looping until you interrupt it.** A local model wrote a good answer and then printed the same paragraph about ten times; the only way out was pressing Stop, which threw the good part away with the rest. Two things were missing. The app was sending no repetition penalty at all — llama.cpp barely applies one by default, which is precisely the setting that lets greedy decoding fall into a cycle it has no reason to leave. And nothing was watching the text as it arrived. Both are fixed, and the watching is deliberately blunt: only a substantial paragraph, seen three times, counts as a loop. Answers repeat headings, file paths and short confirmations all the time, and truncating something you wanted would be the worse mistake.
+
+- **A local model that refused with "roles must alternate" is answered around, not passed on.** Some chat templates — Mistral's among them — raise rather than cope unless the conversation strictly alternates and opens with your turn, and a template that raises costs the whole answer: you get "the selected local model could not answer", which is true and explains nothing. Three places in the app were free to produce a sequence they hate — a summary added in front of a history that already starts with you, a history trimmed to fit that begins at a reply, and blank messages being dropped so their neighbours became adjacent. The conversation is now shaped once, on the way out, and nothing anyone said is thrown away to do it: messages of the same speaker in a row are joined rather than deleted.
+
+### Added
+
+- **While an answer is being written, the app says what holding the model costs.** "Running locally on your CPU" told you the work was local and not what it was spending: a 7B model at the window we picked holds about 5.4 GB, and the only figure shown was the one measured after you had already waited. The estimate is arithmetic on two facts read from the model file — its size and what a token of context costs — the same two numbers the app already uses to choose the window. It is silent when it cannot know: on Ollama, and on an engine this app did not start, the number is not ours to give, and an invented one would be worse than none.
+
+
 ## [0.7.2] - 2026-07-16
 
 One wrong label, and the release note that belonged with it.

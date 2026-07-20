@@ -24,6 +24,7 @@ from app.config.settings import resolve_llama_server_binary_path
 from app.core.domain.context_window_choice import (
     MIN_CONTEXT,
     choose_context_window,
+    expected_memory_bytes,
     kv_bytes_per_token,
 )
 from app.core.domain.gguf_catalog import (
@@ -154,6 +155,8 @@ class LlamaRuntimeManager:
         # What the answer engine is actually running with, and what the model could
         # have held — both surfaced, so the number on screen is the loaded one.
         self._llm_context_running: int | None = None
+        # Estimated resident cost of the answer model at the window we chose.
+        self._llm_expected_bytes: int = 0
         self._llm_context_max: int | None = None
         self._llm: LlamaServerProcessManager | None = None
         self._embed: LlamaServerProcessManager | None = None
@@ -250,6 +253,7 @@ class LlamaRuntimeManager:
             # could have held — so the Models card can say which of the two limits
             # is doing the limiting: this machine, or the model itself.
             "llm_context_tokens": self._llm_context_running if running else None,
+            "llm_expected_bytes": self._llm_expected_bytes if running else 0,
             "llm_context_max_tokens": self._llm_context_max,
             "llm_url": f"http://{self._host}:{self._llm_port}" if running else None,
             "embed_url": f"http://{self._host}:{self._embed_port}" if running else None,
@@ -322,6 +326,14 @@ class LlamaRuntimeManager:
             kv_bytes_per_token=cost,
             total_ram_bytes=total_ram,
             model_file_bytes=file_bytes,
+        )
+        # What this choice costs in memory, kept so the app can say it before a
+        # person waits rather than only measuring it once they have. Same two
+        # numbers the choice was made from; no second source to disagree with.
+        self._llm_expected_bytes = expected_memory_bytes(
+            model_file_bytes=file_bytes,
+            kv_bytes_per_token=cost,
+            context_window=chosen,
         )
         return chosen, (model_max or None)
 

@@ -350,6 +350,9 @@ export interface RuntimeMemoryModelInfo {
 }
 
 export interface RuntimeMemory {
+  /** What the answer engine expects to hold (weights + KV cache) at the window
+   *  it chose. 0 = unknown, which is not the same as free. */
+  expected_bytes?: number;
   runtime_reachable: boolean;
   total_ram_bytes: number;
   loaded_bytes: number;

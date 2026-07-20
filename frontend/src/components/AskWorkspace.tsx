@@ -1451,6 +1451,41 @@ function formatGb(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
 }
 
+/** "It needs about 5.4 GB of your 16 GB." — the price of the wait, in the place
+ *  where the waiting happens.
+ *
+ * Silent when the engine cannot tell us: on Ollama, and on a llama-server this
+ * app did not start, the estimate is not ours to give. A number invented to fill
+ * a gap is worse than the gap. */
+function MemoryCostNote() {
+  const [memory, setMemory] = useState<RuntimeMemory | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getRuntimeMemory()
+      .then((next) => {
+        if (!cancelled) setMemory(next);
+      })
+      .catch(() => {
+        /* no estimate is a fine outcome; it just says nothing */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const expected = memory?.expected_bytes ?? 0;
+  const total = memory?.total_ram_bytes ?? 0;
+  if (expected <= 0) return null;
+  return (
+    <>
+      {" "}
+      It holds about {formatGb(expected)}
+      {total > 0 ? ` of your ${formatGb(total)}` : ""} in memory while it works.
+    </>
+  );
+}
+
 function RuntimeMemoryBar({ active }: { active: boolean }) {
   const [memory, setMemory] = useState<RuntimeMemory | null>(null);
 
@@ -1535,6 +1570,10 @@ function ThinkingIndicator() {
         <span className="ask-thinking-note">
           Running locally on your CPU, so this can take a while —
           the answer appears here when it's ready. Press Stop to cancel.
+          {/* What it costs, said while the person is paying it. The bar beside
+              this measures what is held now; this is what the model needs, and
+              until now the app said neither before the wait began. */}
+          <MemoryCostNote />
         </span>
       ) : null}
     </div>
