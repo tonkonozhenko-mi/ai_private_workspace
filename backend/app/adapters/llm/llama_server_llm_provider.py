@@ -19,6 +19,7 @@ import httpx
 
 from app.core.domain.chat_turns import turns_before_user_message
 from app.core.domain.context_budget import estimate_tokens
+from app.core.domain.degenerate_output import looping_paragraph
 from app.core.domain.llm_errors import ContextOverflowError
 
 # Chat-template control tokens (Llama 3 / Qwen / ChatML …). A model occasionally
@@ -193,6 +194,15 @@ class LlamaServerLLMProvider:
             # conversation (system + context + requirements are kept stable and the
             # volatile question is last), so multi-turn answers start faster.
             "cache_prompt": True,
+            # Ask the engine not to loop. We were sending nothing here, and
+            # llama.cpp's default barely penalises repetition — which is how a
+            # good answer turned into the same paragraph ten times over. 1.1 over
+            # the last 256 tokens is the conservative end of the usual range: it
+            # discourages a cycle without pushing the model off vocabulary it
+            # legitimately needs (a file path repeated in three sentences is not
+            # a loop, and this must not make it one).
+            "repeat_penalty": 1.1,
+            "repeat_last_n": 256,
         }
         if response_format is not None:
             # Constrain generation to a JSON Schema / object so the model cannot
@@ -291,6 +301,7 @@ class LlamaServerLLMProvider:
         response_format: dict | None = None,
     ) -> Iterator[str]:
         """Yield answer text deltas via the OpenAI-compatible SSE stream."""
+        streamed: list[str] = []
         self.last_prompt_tokens = None
         self.last_completion_tokens = None
         try:
@@ -340,6 +351,14 @@ class LlamaServerLLMProvider:
                                 yield delta[:index]
                             break
                         yield delta
+                        # A model that has begun repeating itself will keep
+                        # going until the token limit — minutes of the person's
+                        # machine spent printing one paragraph, which they then
+                        # have to interrupt themselves. Checked on the text that
+                        # actually arrived, not on what we hoped for.
+                        streamed.append(delta)
+                        if looping_paragraph("".join(streamed)) is not None:
+                            break
         except httpx.HTTPError as exc:
             raise LlamaServerLLMProviderError(
                 f"Could not stream from llama-server at {self.base_url}: {exc}"
