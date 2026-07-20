@@ -17,6 +17,7 @@ from collections.abc import Iterator
 
 import httpx
 
+from app.core.domain.chat_turns import turns_before_user_message
 from app.core.domain.context_budget import estimate_tokens
 from app.core.domain.llm_errors import ContextOverflowError
 
@@ -144,16 +145,18 @@ class LlamaServerLLMProvider:
     def _history_messages(history: list[tuple[str, str]] | None) -> list[dict]:
         """Prior turns as real chat messages so the model keeps conversational
         context (resolves "it"/"that", follows up) the way ChatGPT/Claude do —
-        instead of us flattening the dialogue into one text blob."""
-        if not history:
-            return []
-        messages: list[dict] = []
-        for role, content in history:
-            normalized = "assistant" if role == "assistant" else "user"
-            text = content.strip()
-            if text:
-                messages.append({"role": normalized, "content": text})
-        return messages
+        instead of us flattening the dialogue into one text blob.
+
+        Shaped to what a chat template will accept, because several of them
+        (Mistral's included) raise rather than cope, and a raised template costs
+        the whole answer. The prompt below is a user message, so the history must
+        not end with one either — see chat_turns for what that costs us and why
+        nothing is thrown away to achieve it.
+        """
+        return [
+            {"role": role, "content": content}
+            for role, content in turns_before_user_message(history)
+        ]
 
     def _build_messages(
         self,

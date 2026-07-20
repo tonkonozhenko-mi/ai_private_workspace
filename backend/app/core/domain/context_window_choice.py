@@ -122,3 +122,26 @@ def describe_context_window(chosen: int, model_max_context: int | None) -> str:
         f"Context: {tokens} · model supports {model_max_context:,} — "
         "limited by this computer's memory"
     )
+
+
+def expected_memory_bytes(
+    *,
+    model_file_bytes: int,
+    kv_bytes_per_token: int,
+    context_window: int,
+) -> int:
+    """What holding this model in memory costs while it answers.
+
+    The same arithmetic that chooses the window, read in the other direction:
+    the weights are resident, and the KV cache grows with the window we picked.
+    It is the number a person deserves *before* pressing Ask — "running locally
+    on your CPU" says the work is local and not what it costs, and the live
+    figure only appears once the cost has already been paid.
+
+    Deliberately not padded with a safety margin: an estimate that quietly
+    inflates itself is not an estimate, and this one is arithmetic on two facts
+    we read from the model file.
+    """
+    weights = max(0, model_file_bytes)
+    cache = max(0, kv_bytes_per_token) * max(0, context_window)
+    return weights + cache

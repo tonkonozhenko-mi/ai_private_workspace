@@ -985,6 +985,9 @@ class RuntimeMemoryResponse(BaseModel):
     runtime_reachable: bool
     total_ram_bytes: int
     loaded_bytes: int
+    # What the answer engine expects to hold at the window it chose — weights
+    # plus KV cache. 0 when unknown, which is not the same as zero cost.
+    expected_bytes: int = 0
     models: list[RuntimeMemoryModelInfo]
 
 
@@ -1046,10 +1049,20 @@ def get_runtime_memory() -> RuntimeMemoryResponse:
     except Exception:  # noqa: BLE001 - memory reporting must never break Ask
         pass
 
+    # What the engine expects to hold, as opposed to what it is holding: the
+    # first can be said before a person waits, the second only after. 0 means we
+    # do not know — a guess dressed as an estimate is worse than no number.
+    expected = 0
+    try:
+        expected = int(llama_runtime_manager.status().get("llm_expected_bytes") or 0)
+    except Exception:  # noqa: BLE001 - a missing estimate must never break Ask
+        expected = 0
+
     return RuntimeMemoryResponse(
         runtime_reachable=reachable,
         total_ram_bytes=_total_physical_ram_bytes(),
         loaded_bytes=sum(model.size_bytes for model in models),
+        expected_bytes=expected,
         models=models,
     )
 
