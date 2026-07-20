@@ -15,7 +15,8 @@ from app.core.domain.instruction_split import (
     split_instructions_from_request,
 )
 
-RULES = """
+RULES = (
+    """
 NDA, confidentiality, and anonymization requirements
 The analyzed documentation is confidential and protected by NDA.
 Do not expose any real project-specific names in the response.
@@ -36,7 +37,9 @@ Before including a command:
 Final confidentiality verification
 End the response with:
 Confidentiality Check
-""" * 3
+"""
+    * 3
+)
 
 ASK = "составь онбординг документацию для нового девопса в команде"
 

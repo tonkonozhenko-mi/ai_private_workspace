@@ -35,12 +35,12 @@ MIN_CHARS_TO_SPLIT = 1200
 # A line that tells the assistant how to behave: a bullet, a heading, or a
 # sentence in the imperative about form rather than about the project.
 _RULE_LINE = re.compile(
-    r"^\s*(?:[-*•]|\d+[.)])\s"                       # a bullet or numbered item
-    r"|^\s*\[[A-Z_]+\]"                              # a placeholder, [PROJECT_NAME]
+    r"^\s*(?:[-*•]|\d+[.)])\s"  # a bullet or numbered item
+    r"|^\s*\[[A-Z_]+\]"  # a placeholder, [PROJECT_NAME]
     r"|^\s*(?:do not|don't|never|always|use |replace |preserve |verify|ensure|"
     r"avoid|report |end the response|before |when |if complete|anonymi[sz]e)"
     r"|^\s*(?:не |никогда|всегда|используй|замени|убедись|проверь)"
-    r"|^[A-Z][A-Za-z ,/]{2,60}:?\s*$",               # a bare heading line
+    r"|^[A-Z][A-Za-z ,/]{2,60}:?\s*$",  # a bare heading line
     re.IGNORECASE,
 )
 

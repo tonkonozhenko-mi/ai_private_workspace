@@ -38,8 +38,8 @@ from app.core.domain.group_qa import (
     GroupQuestionAnswer,
     GroupRepoContribution,
 )
-from app.core.domain.instruction_split import retrieval_text
 from app.core.domain.indexing import ContextSearchResult
+from app.core.domain.instruction_split import retrieval_text
 from app.core.domain.llm_usage import build_llm_usage_metrics
 from app.core.domain.mmr import mmr_select
 from app.core.domain.parent_document import expand_to_parents

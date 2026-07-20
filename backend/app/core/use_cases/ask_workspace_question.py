@@ -17,12 +17,12 @@ from app.core.domain.context_budget import (
 from app.core.domain.conversation_budget import build_summary_prompt
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import ContextSearchResult
+from app.core.domain.instruction_split import retrieval_text
 from app.core.domain.llm_errors import ContextOverflowError, context_overflow_answer
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
 from app.core.domain.mmr import EMBEDDING_KEY, mmr_select
 from app.core.domain.parent_document import expand_to_parents
 from app.core.domain.query_synonyms import expand_query_synonyms
-from app.core.domain.instruction_split import retrieval_text
 from app.core.domain.question_intent import looks_general_chat, looks_project_specific
 from app.core.domain.rag import (
     RagQualityWarning,
