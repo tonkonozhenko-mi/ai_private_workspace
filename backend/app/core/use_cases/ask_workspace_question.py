@@ -17,6 +17,7 @@ from app.core.domain.context_budget import (
 from app.core.domain.conversation_budget import build_summary_prompt
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import ContextSearchResult
+from app.core.domain.instruction_split import retrieval_text
 from app.core.domain.llm_errors import ContextOverflowError, context_overflow_answer
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
 from app.core.domain.mmr import EMBEDDING_KEY, mmr_select
@@ -622,8 +623,18 @@ class AskWorkspaceQuestionUseCase:
         e.g. "ecs", "<project name>", "dev") so dense + keyword search lands on the right
         files. The question shown to the model is unchanged — this only steers
         retrieval. With no history it is exactly the current question.
+
+        Standing instructions are stripped first. A message can be a page of
+        rules wrapped around one short request ("write the onboarding docs" plus
+        1,800 tokens of NDA and anonymisation policy); searching with all of it
+        finds documents about confidentiality rather than about onboarding, and
+        spends a quarter of the window doing it. The rules still reach the model
+        in full — they are instructions and must be obeyed. They just stop
+        pretending to be a search query.
         """
-        return retrieval_query_with_history(request.question, self._conversation_history(request))
+        return retrieval_query_with_history(
+            retrieval_text(request.question), self._conversation_history(request)
+        )
 
     def execute(
         self,

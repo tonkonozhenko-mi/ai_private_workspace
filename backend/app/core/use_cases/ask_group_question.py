@@ -39,6 +39,7 @@ from app.core.domain.group_qa import (
     GroupRepoContribution,
 )
 from app.core.domain.indexing import ContextSearchResult
+from app.core.domain.instruction_split import retrieval_text
 from app.core.domain.llm_usage import build_llm_usage_metrics
 from app.core.domain.mmr import mmr_select
 from app.core.domain.parent_document import expand_to_parents
@@ -438,7 +439,13 @@ class AskGroupQuestionUseCase:
         # searches for nothing. The previous questions hold the terms, so they steer
         # the search — and only the search. What the model is asked is unchanged.
         retrieval_query = expand_query_synonyms(
-            retrieval_query_with_history(request.question, recent_turns(self._all_turns(request)))
+            retrieval_query_with_history(
+                # Same rule as the single Ask: a page of standing instructions is
+                # not a search query. The group has spent three releases missing
+                # fixes the single path got; this one arrives on the same day.
+                retrieval_text(request.question),
+                recent_turns(self._all_turns(request)),
+            )
         )
         if llm_provider is not None and (self.enable_query_rewrite or force_rewrite):
             retrieval_query = self._rewrite_query(
