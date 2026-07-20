@@ -125,6 +125,4 @@ def test_the_expected_cost_is_the_weights_plus_the_cache_we_chose():
 def test_an_unknown_model_costs_nothing_it_can_claim():
     from app.core.domain.context_window_choice import expected_memory_bytes
 
-    assert expected_memory_bytes(
-        model_file_bytes=0, kv_bytes_per_token=0, context_window=0
-    ) == 0
+    assert expected_memory_bytes(model_file_bytes=0, kv_bytes_per_token=0, context_window=0) == 0

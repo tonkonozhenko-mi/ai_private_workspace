@@ -22,9 +22,9 @@ from app.adapters.system.llama_server_process_manager import (
 )
 from app.config.settings import resolve_llama_server_binary_path
 from app.core.domain.context_window_choice import (
-    expected_memory_bytes,
     MIN_CONTEXT,
     choose_context_window,
+    expected_memory_bytes,
     kv_bytes_per_token,
 )
 from app.core.domain.gguf_catalog import (
