@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from app.core.domain.answer_language import answer_language_directive
 from app.core.domain.handbook_source import display_source_path, mask_handbook_token
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.rag_answer_evaluator import CITATION_EXAMPLE_PATH
@@ -333,7 +334,10 @@ def build_workspace_question_prompt(
         "short approval note saying the app must ask before applying changes.\n"
         "- Do not invent facts."
         f"{identity_clause}\n\n"
-        f"{(user_style_directive + chr(10) + chr(10)) if user_style_directive else ''}"
+        # Language last, beside the question itself: a 7B remembers the end of a
+        # prompt best, and this is the instruction a person notices immediately
+        # when it is ignored.
+        f"{(answer_language_directive(question, user_style_directive) + chr(10) + chr(10)) if answer_language_directive(question, user_style_directive) else ''}"
         f"Now answer this question:\n{question}"
     )
 
@@ -573,7 +577,7 @@ def build_general_chat_prompt(
         "you are telling the user nothing was found.\n"
         "- If you genuinely do not know, say so briefly.\n"
         "- Do not invent facts."
-        f"{(chr(10) + chr(10) + user_style_directive) if user_style_directive else ''}"
+        f"{(chr(10) + chr(10) + answer_language_directive(question, user_style_directive)) if answer_language_directive(question, user_style_directive) else ''}"
     )
 
 
