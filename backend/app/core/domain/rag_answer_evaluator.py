@@ -90,6 +90,19 @@ def evaluate_rag_answer(
             )
         )
 
+    if cites_nothing_at_length(answer, [source.source_path for source in sources]):
+        warnings.append(
+            RagQualityWarning(
+                code="answer_grounded_in_nothing",
+                message=(
+                    "This is a long answer that does not point at a single file "
+                    "in your project — it may be describing the subject in "
+                    "general rather than what you have."
+                ),
+                severity="high",
+            )
+        )
+
     unsupported = find_unsupported_citations(
         answer, [source.source_path for source in sources], source_contents
     )
@@ -448,3 +461,42 @@ def _find_conflicting_question_keywords(
     keywords = {word.casefold() for word in re.findall(r"[A-Za-z0-9_]+", question) if len(word) > 4}
     combined_source_contents = "\n".join(source_contents).casefold()
     return sorted(keyword for keyword in keywords if keyword in combined_source_contents)
+
+
+# --- length without grounding ---------------------------------------------------
+
+# Below this an answer is a sentence or two, and naming a file for each is
+# pedantry. Above it, the answer is a document, and a document about someone's
+# project that never names anything in it is a document about the subject in
+# general.
+_SUBSTANTIAL_ANSWER_CHARS = 700
+
+
+def cites_nothing_at_length(answer: str, source_paths: list[str] | None) -> bool:
+    """A long answer that mentions no file, no path, nothing from the context.
+
+    Live, 16.07: asked to write onboarding documentation from the project's own
+    docs, the model produced a page of "Terraform is a tool for infrastructure as
+    code" and "Kubernetes is an open-source orchestration system". Every word
+    true, none of it from his wiki, and the invented-path check could not see it
+    — that check looks for files that do not exist, and this answer named no
+    files at all. Fluent, plausible, and about the subject rather than about the
+    project: the polite form of a hallucination.
+
+    Deliberately narrow. It only fires when the answer is long AND names nothing,
+    which is a shape a grounded answer almost never has: a real answer about
+    someone's project mentions a path, a service, a file — something you could go
+    and look at.
+    """
+    text = (answer or "").strip()
+    if len(text) < _SUBSTANTIAL_ANSWER_CHARS:
+        return False
+    if _cited_file_tokens(text):
+        return False
+    # A source named in prose without being a path ("as described in the
+    # onboarding guide") still counts as pointing somewhere.
+    for path in source_paths or []:
+        stem = path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        if len(stem) >= 4 and stem.lower() in text.lower():
+            return False
+    return True

@@ -151,6 +151,9 @@ _HARD_GROUNDING_CODES = frozenset(
         "answer_missing_source_paths",
         "answer_term_not_in_context",
         "answer_cited_unknown_source",
+        # A page of true statements about Terraform is not an answer about this
+        # project. Worth one more attempt with the sources named again.
+        "answer_grounded_in_nothing",
     }
 )
 
