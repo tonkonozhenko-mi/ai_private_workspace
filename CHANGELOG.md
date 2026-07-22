@@ -7,6 +7,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-07-22
+
 ### Added
 
 - **Your project now says which files it could not read.** A repository built on Azure was scanned, indexed, and answering questions while every `.bicep` and `.ps1` in it was invisible: the files were found, counted in the totals, filed as "unknown", and quietly dropped before the index — the infrastructure and the automation, which is to say the two things a deployment question is actually about. Two changes. The app now reads Bicep, PowerShell, Groovy, F#, Visual Basic, Elixir, Erlang, and the `.csproj`/`.sln` files that say what a .NET service depends on. And whatever it still cannot read says so, on Home and in each group member's card, as a plain line — "14 files I can't read yet: .bicep ×12, .ps1 ×2" — because there will always be a next extension and the index should not be the last to mention it. Files you excluded yourself are not counted: not asking for something is not the same as being unable to read it. When nothing was skipped the line is not there at all.
@@ -14,6 +16,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 - **The model is told what it was not shown.** An answer cannot notice an absence — files that were never indexed leave no gap in what the model is handed, so it answers confidently from whatever happened to be there. When files were skipped, the prompt now names their extensions and asks the model to say so if your question might depend on them.
 
 - **Open data folder, in Settings.** One button opens the folder where everything is kept, so backing up is copying it. Deliberately not an export: an export makes a second copy in a format of our own devising that then has to stay correct forever, while the folder is already the real thing — yours to copy, move, or hand to whatever backup you already trust. Your notes and chats are the irreplaceable part; the search index rebuilds itself from your own files.
+
+- **While an answer is being written, the app says what holding the model costs.** "Running locally on your CPU" told you the work was local and not what it was spending: a 7B model at the window we picked holds about 5.4 GB, and the only figure shown was the one measured after you had already waited. The estimate is arithmetic on two facts read from the model file — its size and what a token of context costs — the same two numbers the app already uses to choose the window. It is silent when it cannot know: on Ollama, and on an engine this app did not start, the number is not ours to give, and an invented one would be worse than none.
 
 ### Fixed
 
@@ -26,10 +30,6 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 - **An answer that starts repeating itself now stops, instead of looping until you interrupt it.** A local model wrote a good answer and then printed the same paragraph about ten times; the only way out was pressing Stop, which threw the good part away with the rest. Two things were missing. The app was sending no repetition penalty at all — llama.cpp barely applies one by default, which is precisely the setting that lets greedy decoding fall into a cycle it has no reason to leave. And nothing was watching the text as it arrived. Both are fixed, and the watching is deliberately blunt: only a substantial paragraph, seen three times, counts as a loop. Answers repeat headings, file paths and short confirmations all the time, and truncating something you wanted would be the worse mistake.
 
 - **A local model that refused with "roles must alternate" is answered around, not passed on.** Some chat templates — Mistral's among them — raise rather than cope unless the conversation strictly alternates and opens with your turn, and a template that raises costs the whole answer: you get "the selected local model could not answer", which is true and explains nothing. Three places in the app were free to produce a sequence they hate — a summary added in front of a history that already starts with you, a history trimmed to fit that begins at a reply, and blank messages being dropped so their neighbours became adjacent. The conversation is now shaped once, on the way out, and nothing anyone said is thrown away to do it: messages of the same speaker in a row are joined rather than deleted.
-
-### Added
-
-- **While an answer is being written, the app says what holding the model costs.** "Running locally on your CPU" told you the work was local and not what it was spending: a 7B model at the window we picked holds about 5.4 GB, and the only figure shown was the one measured after you had already waited. The estimate is arithmetic on two facts read from the model file — its size and what a token of context costs — the same two numbers the app already uses to choose the window. It is silent when it cannot know: on Ollama, and on an engine this app did not start, the number is not ours to give, and an invented one would be worse than none.
 
 
 ## [0.7.2] - 2026-07-16
@@ -1367,9 +1367,53 @@ model setup, safe model-download drafts, Agent/MCP planning UX, and the macOS +
 Tauri packaging foundation. See
 [docs/V01_RELEASE_NOTES.md](docs/V01_RELEASE_NOTES.md) for the full list.
 
-[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.3...HEAD
+[0.7.3]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.2...v0.7.3
+[0.7.2]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.1...v0.7.2
+[0.7.1]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.0...v0.7.1
+[0.7.0]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.6.2...v0.7.0
+[0.6.2]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.6.1...v0.6.2
+[0.6.1]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.5.1...v0.6.0
+[0.5.1]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.4.1...v0.5.1
+[0.4.1]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.2.3...v0.3.0
+[0.2.3]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.99...v0.2.0
+[0.2.0]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.178...v0.2.0
+[0.1.178]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.177...v0.1.178
+[0.1.177]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.139...v0.1.177
+[0.1.139]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.138...v0.1.139
+[0.1.138]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.137...v0.1.138
+[0.1.137]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.136...v0.1.137
+[0.1.136]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.135...v0.1.136
+[0.1.135]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.134...v0.1.135
+[0.1.134]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.133...v0.1.134
+[0.1.133]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.132...v0.1.133
+[0.1.132]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.131...v0.1.132
+[0.1.131]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.130...v0.1.131
+[0.1.130]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.129...v0.1.130
+[0.1.129]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.128...v0.1.129
+[0.1.128]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.127...v0.1.128
+[0.1.127]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.126...v0.1.127
+[0.1.126]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.125...v0.1.126
+[0.1.125]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.124...v0.1.125
+[0.1.124]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.123...v0.1.124
+[0.1.123]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.122...v0.1.123
+[0.1.122]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.121...v0.1.122
+[0.1.121]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.120...v0.1.121
+[0.1.120]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.119...v0.1.120
+[0.1.119]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.118...v0.1.119
+[0.1.118]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.116...v0.1.118
+[0.1.116]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.112...v0.1.116
+[0.1.112]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.111...v0.1.112
+[0.1.111]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.103...v0.1.111
+[0.1.103]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.102...v0.1.103
+[0.1.102]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.101...v0.1.102
+[0.1.101]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.100...v0.1.101
+[0.1.100]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.99...v0.1.100
 [0.1.99]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.96...v0.1.99
 [0.1.96]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.95...v0.1.96
 [0.1.95]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.1.0...v0.1.95
