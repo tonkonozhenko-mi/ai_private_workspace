@@ -164,6 +164,50 @@ export interface DataFolder {
   error: string;
 }
 
+/** One downloadable build of a model, with what choosing it costs. */
+export interface GgufCandidate {
+  filename: string;
+  quantization: string;
+  trade_off: string;
+  size_bytes: number;
+  recommended: boolean;
+  /** null when the size or this machine's memory is unknown — shown as nothing
+   *  at all, never as reassurance. */
+  fit?: string | null;
+  fit_label?: string | null;
+}
+
+export interface ResolvedGguf {
+  repo_id: string;
+  filename: string;
+  name: string;
+  candidates?: GgufCandidate[];
+}
+
+export interface ModelSearchResultItem {
+  repo_id: string;
+  owner: string;
+  model_name: string;
+  downloads: number;
+  likes: number;
+}
+
+export interface ModelSearchResponse {
+  results: ModelSearchResultItem[];
+  /** Empty on success; otherwise why there is nothing to show. */
+  message: string;
+}
+
+/** Downloading an Ollama model through the local daemon. */
+export interface OllamaPullJob {
+  id: string;
+  model: string;
+  status: "queued" | "running" | "succeeded" | "failed" | "cancelled" | string;
+  progress_percent: number;
+  progress_message: string;
+  error?: string | null;
+}
+
 export interface ProjectScanResponse {
   project_path: string;
   total_files: number;

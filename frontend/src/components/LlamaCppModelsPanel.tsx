@@ -15,8 +15,15 @@ import {
   switchLlamaRuntimeLlm,
   switchLlamaRuntimeEmbedding,
   updateWorkspaceModelSelection,
+  searchModels,
 } from "../api/client";
-import type { GgufCatalogItem, GgufDownloadJob, LlamaRuntimeStatus } from "../api/types";
+import type {
+  GgufCandidate,
+  GgufCatalogItem,
+  GgufDownloadJob,
+  LlamaRuntimeStatus,
+  ModelSearchResultItem,
+} from "../api/types";
 import { chooseGgufFile, isRunningInsideTauri } from "../desktopRuntime";
 
 function formatGb(bytes: number): string {
@@ -167,6 +174,16 @@ export function LlamaCppModelsPanel({
   const [switchingId, setSwitchingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [customRepo, setCustomRepo] = useState("");
+  // Search by name. The paste-a-repository field stays underneath: it works
+  // offline, and it is the escape hatch when a search does not find the thing.
+  const [searchWords, setSearchWords] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<ModelSearchResultItem[]>([]);
+  const [searchMessage, setSearchMessage] = useState("");
+  // What a chosen repository actually offers, and which build we will take.
+  const [candidates, setCandidates] = useState<GgufCandidate[]>([]);
+  const [chosenFile, setChosenFile] = useState("");
+  const [inspecting, setInspecting] = useState("");
   const [customFile, setCustomFile] = useState("");
   const [customBusy, setCustomBusy] = useState(false);
   const [customJobKey, setCustomJobKey] = useState<string | null>(null);
@@ -484,6 +501,48 @@ export function LlamaCppModelsPanel({
     }
   }
 
+  // Search by name, so nobody has to know that "Qwen3 8B" lives at
+  // bartowski/Qwen3-8B-GGUF. Failure is never fatal: the paste-a-repo field
+  // below keeps working, including with no internet at all.
+  async function runSearch() {
+    const words = searchWords.trim();
+    if (!words) return;
+    setSearching(true);
+    setSearchMessage("");
+    setError(null);
+    try {
+      const found = await searchModels(words);
+      setSearchResults(found.results);
+      setSearchMessage(found.message);
+    } catch {
+      setSearchResults([]);
+      setSearchMessage("Could not search right now. You can still paste a repository below.");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  // Show what a repository actually offers before anything is downloaded: each
+  // build, its size, and whether it fits this machine. The old flow picked one
+  // silently, which is fine until it picks wrong and there was no way to tell
+  // there had been a choice.
+  async function inspectRepo(repoId: string) {
+    setCustomRepo(repoId);
+    setCandidates([]);
+    setChosenFile("");
+    setError(null);
+    setInspecting(repoId);
+    try {
+      const resolved = await resolveGgufModel(repoId);
+      setCandidates(resolved.candidates ?? []);
+      setChosenFile(resolved.filename);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not read that repository.");
+    } finally {
+      setInspecting("");
+    }
+  }
+
   // Download a custom Hugging Face GGUF by repo + filename, then run the engine
   // on it. Works end-to-end: the engine starts the downloaded file directly.
   async function addCustomModel() {
@@ -497,7 +556,7 @@ export function LlamaCppModelsPanel({
     try {
       // The user only needs the repo — pick a good GGUF file automatically
       // (a specific filename can still be given to override).
-      let file = customFile.trim();
+      let file = customFile.trim() || chosenFile.trim();
       if (!file) {
         const resolved = await resolveGgufModel(repo);
         file = resolved.filename;
@@ -805,9 +864,98 @@ export function LlamaCppModelsPanel({
       <div className="gr-llama-custom">
         <p className="gr-llama-custom-title">Add your own model</p>
         <p className="gr-llama-note gr-llama-note--left">
-          Paste a Hugging Face GGUF repo — the app picks a good build for this
-          machine and switches the engine to it.
+          Search for a model by name, or paste a Hugging Face repository if you
+          already know it.
         </p>
+
+        <div className="gr-llama-custom-fields">
+          <input
+            type="search"
+            value={searchWords}
+            placeholder="Search models — e.g. qwen3 8b"
+            disabled={customBusy}
+            onChange={(e) => setSearchWords(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void runSearch();
+            }}
+          />
+          <button
+            type="button"
+            className="gr-check-use"
+            disabled={searching || customBusy || !searchWords.trim()}
+            onClick={() => void runSearch()}
+          >
+            {searching ? "Searching…" : "Search"}
+          </button>
+        </div>
+
+        {searchMessage ? <p className="gr-llama-note gr-llama-note--left">{searchMessage}</p> : null}
+
+        {searchResults.length > 0 ? (
+          <ul className="gr-model-search">
+            {searchResults.map((result) => (
+              <li key={result.repo_id} className="gr-model-search-row">
+                <div className="gr-model-search-name">
+                  <strong>{result.model_name}</strong>
+                  <small>by {result.owner}</small>
+                </div>
+                <button
+                  type="button"
+                  className="gr-check-use"
+                  disabled={customBusy || inspecting === result.repo_id}
+                  onClick={() => void inspectRepo(result.repo_id)}
+                >
+                  {inspecting === result.repo_id ? "Reading…" : "Choose"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        {candidates.length > 0 ? (
+          <div className="gr-model-builds">
+            <p className="gr-llama-subhead">{customRepo}</p>
+            <p className="gr-llama-note gr-llama-note--left">
+              The same model, built at different sizes. The first one is what we
+              would pick.
+            </p>
+            <ul className="gr-model-search">
+              {candidates.map((candidate) => (
+                <li
+                  key={candidate.filename}
+                  className={`gr-model-search-row${
+                    chosenFile === candidate.filename ? " is-chosen" : ""
+                  }`}
+                >
+                  <label className="gr-model-build">
+                    <input
+                      type="radio"
+                      name="gguf-build"
+                      checked={chosenFile === candidate.filename}
+                      onChange={() => setChosenFile(candidate.filename)}
+                    />
+                    <span>
+                      <strong>
+                        {candidate.quantization || candidate.filename}
+                        {candidate.recommended ? " · recommended" : ""}
+                      </strong>
+                      {candidate.trade_off ? <small>{candidate.trade_off}</small> : null}
+                      <small>
+                        {candidate.size_bytes > 0
+                          ? `${(candidate.size_bytes / 1024 ** 3).toFixed(1)} GB`
+                          : "size unknown"}
+                        {/* No verdict when we could not measure. Silence beats a
+                            reassuring guess that starts a 5 GB download. */}
+                        {candidate.fit_label ? ` · ${candidate.fit_label}` : ""}
+                      </small>
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
         <div className="gr-llama-custom-fields">
           <input
             type="text"

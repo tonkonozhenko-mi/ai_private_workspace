@@ -49,6 +49,9 @@ import type {
   UpdateSavedWorkspaceReportRequest,
   RuntimeMemory,
   DataFolder,
+  ResolvedGguf,
+  OllamaPullJob,
+  ModelSearchResponse,
   FirstLaunchReadiness,
   AgentCapabilityCatalog,
   AgentPlanningPreview,
@@ -540,11 +543,42 @@ export function resetLlamaRuntimeSelection(): Promise<{
 
 // Auto-pick a usable GGUF filename from a Hugging Face repo (so the user only
 // needs to paste the repo id, like llama.cpp's -hf shorthand).
+/** Find models by name, so nobody needs to know a Hugging Face repository id.
+ *  Never throws for being offline — the response carries a message instead, and
+ *  the paste-a-repository field below it keeps working. */
+export function searchModels(query: string, limit = 20): Promise<ModelSearchResponse> {
+  return requestJson<ModelSearchResponse>(`/models/model-search`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ query, limit }),
+  });
+}
+
+/** Download any Ollama model through the local daemon. No shell, no catalog. */
+export function startOllamaPull(modelName: string): Promise<OllamaPullJob> {
+  return requestJson<OllamaPullJob>(`/models/ollama-pulls`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ model_name: modelName }),
+  });
+}
+
+export function getOllamaPull(jobId: string): Promise<OllamaPullJob> {
+  return getJson<OllamaPullJob>(`/models/ollama-pulls/${encodeURIComponent(jobId)}`);
+}
+
+export function cancelOllamaPull(jobId: string): Promise<OllamaPullJob> {
+  return requestJson<OllamaPullJob>(
+    `/models/ollama-pulls/${encodeURIComponent(jobId)}/cancel`,
+    { method: "POST", headers: { Accept: "application/json" } },
+  );
+}
+
 export function resolveGgufModel(
   repoId: string,
   quant?: string,
-): Promise<{ repo_id: string; filename: string; name: string }> {
-  return requestJson<{ repo_id: string; filename: string; name: string }>(
+): Promise<ResolvedGguf> {
+  return requestJson<ResolvedGguf>(
     `/models/gguf-resolve`,
     {
       method: "POST",
