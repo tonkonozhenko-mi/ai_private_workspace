@@ -99,10 +99,15 @@ def test_the_readme_quotes_the_same_two_numbers():
     reader deciding whether this app fits their laptop should not have to open a
     second document. Repeating a number is fine; repeating it *unchecked* is how
     two records of one fact drift, which this project has already lived through.
+
+    The figures live in the "under the hood" block. The plain-language version
+    above it deliberately carries no numbers — a reader who is not building the
+    thing needs to know that the app works out what fits before it sends, not
+    what the constants are.
     """
     readme = re.sub(r"\s+", " ", README.read_text(encoding="utf-8"))
 
-    assert f"{RESPONSE_RESERVE_TOKENS} tokens so the model has room" in readme
-    assert f"{PROMPT_SCAFFOLD_TOKENS} for the fixed instruction scaffold" in readme
+    assert f"{RESPONSE_RESERVE_TOKENS} tokens are held back for the answer" in readme
+    assert f"{PROMPT_SCAFFOLD_TOKENS} for the standing instructions" in readme
     # And it points at the fuller explanation rather than growing its own table.
     assert "ARCHITECTURE.md#context-budget" in readme

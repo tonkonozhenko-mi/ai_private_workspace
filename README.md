@@ -229,7 +229,13 @@ This is the part that makes the answers trustworthy, so it stays visible:
   fits the model's window is read whole, so nothing relevant is missed;
 - every answer passes a deterministic groundedness check; failures surface as
   visible warnings, and one **corrective pass** re-searches and regenerates —
-  kept only if it's provably better.
+  kept only if it's provably better;
+- a local model can only hold so much text at once, so the app works out what
+  fits **before** it sends anything — room for the answer first, then your
+  question and what it remembers, and the rest filled with the pieces of your
+  files it found. It counts other alphabets correctly too: Ukrainian and Russian
+  cost roughly twice as much room as English, and pretending otherwise used to
+  mean sending half of what it thought it was sending.
 
 <details>
 <summary><b>Under the hood: the retrieval pipeline</b></summary>
@@ -242,14 +248,11 @@ Fusion to merge the rankings, a path/environment boost so `dev`-specific
 questions land on `dev` files, per-file diversity so one file can't fill the
 whole answer, and an optional cross-encoder reranker ("Sharper search"). It
 degrades gracefully to vector-only search if keyword indexing is unavailable.
-Prompts are budgeted in tokens against the model's real context window. Two
-things are reserved outright — 768 tokens so the model has room to write its
-answer, and 900 for the fixed instruction scaffold — and everything else is
-measured rather than reserved: memory, handbook, history and the question are
-counted at their real size, and the retrieved chunks get what is left. Counting
-is script-aware, so a Ukrainian conversation is budgeted as honestly as an
-English one instead of at half its true cost. Full breakdown, including why
-there are no per-category percentages, in
+Prompts are budgeted in tokens against the model's real context window: 768
+tokens are held back for the answer and 900 for the standing instructions, while
+memory, history and the question are counted at their true size and the
+retrieved chunks take what remains. Token counting is script-aware. The full
+breakdown, and why there are no per-category percentages, is in
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#context-budget).
 </details>
 
