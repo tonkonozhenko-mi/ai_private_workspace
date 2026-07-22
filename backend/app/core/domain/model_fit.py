@@ -45,6 +45,26 @@ def parse_size_gb(estimated_size: str | None) -> float | None:
     return value * factors.get(unit, 1.0)
 
 
+def assess_model_fit_bytes(
+    size_bytes: int | None,
+    total_ram_bytes: int | None,
+) -> tuple[str | None, str | None]:
+    """The same verdict, for callers that have exact bytes rather than a label.
+
+    The guided setup reads sizes out of our own catalog, where they are written
+    as "4.7 GB" for people to read. A model found on Hugging Face reports its
+    size in bytes. Both paths must reach the same answer — a model that the
+    catalog calls comfortable cannot become "too big" because it arrived by a
+    different route — so this converts and delegates rather than re-deciding.
+    """
+    if not size_bytes or size_bytes <= 0 or not total_ram_bytes or total_ram_bytes <= 0:
+        return (None, None)
+    return assess_model_fit(
+        f"{size_bytes / 1024**3:.2f} GB",
+        total_ram_bytes / 1024**3,
+    )
+
+
 def assess_model_fit(
     estimated_size: str | None,
     total_ram_gb: float | None,
