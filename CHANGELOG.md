@@ -9,6 +9,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Added
 
+- **Models can be found by name now, instead of by exact address.** Adding your own model used to mean knowing that "Qwen3 8B" lives at `bartowski/Qwen3-8B-GGUF` — the `-GGUF` suffix, and the username of whoever converted it. If you knew the model but not that, the field could not help you. Type what you want instead, and pick from what comes back. Pasting a repository still works and still works offline, so nothing that worked before stopped working.
+
+- **You can see what a download will cost before starting it.** Choosing a model showed a name and nothing else; the app quietly picked one of the fifteen builds in the repository and you found out how big it was while it downloaded. Now every build is listed with its size, what its compression costs in answer quality, and whether it fits this computer — using the same judgement the guided setup has always used, so a model cannot be "comfortable" on one screen and "too big" on another. When the size or the machine's memory cannot be measured, no verdict is shown at all rather than a reassuring guess.
+
 - **Ollama models can be installed from inside the app again — any of them.** Adding a model through Ollama used to be limited to the handful in the app's own catalog, and in a default build it was switched off entirely, so `llama3.3` or anything else meant dropping to a terminal. Meanwhile the built-in engine would happily download gigabytes from Hugging Face on request. The stricter path was the safer-*looking* one, not the safer one: the setting that governed both exists because one of them runs a shell command, and asking the Ollama daemon to fetch a model over HTTP does not. Those are now separate. Fetching a model needs no special permission, the same as it never has for the built-in engine; running a shell command still needs the setting and still only works for models the app already knows.
 
 ### Changed

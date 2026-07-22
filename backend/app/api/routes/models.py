@@ -120,6 +120,12 @@ from app.core.domain.local_model_install_status import (
 from app.core.domain.model_catalog_registry import build_custom_ollama_model_definition
 from app.core.domain.model_experiment_run import ModelExperimentCandidateRequest
 from app.core.domain.model_fit import assess_model_fit_bytes
+from app.core.domain.model_search import (
+    ModelSearchResult,
+    build_search_query,
+    no_results_message,
+    rank_search_results,
+)
 from app.core.domain.ollama_model_recommendations import (
     build_ollama_model_recommendation_guide,
 )
@@ -369,6 +375,81 @@ class ResolveGgufResponse(BaseModel):
     filename: str
     name: str
     candidates: list[GgufCandidateResponse] = []
+
+
+class ModelSearchRequest(BaseModel):
+    query: str
+    limit: int = 20
+
+
+class ModelSearchResultResponse(BaseModel):
+    repo_id: str
+    owner: str
+    model_name: str
+    downloads: int = 0
+    likes: int = 0
+
+
+class ModelSearchResponse(BaseModel):
+    results: list[ModelSearchResultResponse] = []
+    # Empty on success. When the search found nothing, or could not run at all,
+    # this says which — so the panel can show a sentence instead of an empty box
+    # that looks identical to "still loading".
+    message: str = ""
+
+
+@router.post("/model-search", response_model=ModelSearchResponse)
+def search_models(request: ModelSearchRequest) -> ModelSearchResponse:
+    """Find downloadable models by name, so nobody has to know a repository id.
+
+    Failure here is never fatal: the panel keeps its paste-a-repository field,
+    which works offline and has always worked. A search that cannot reach the
+    internet says so and gets out of the way.
+    """
+    query = build_search_query(request.query)
+    if not query:
+        return ModelSearchResponse(results=[], message=no_results_message(request.query))
+    try:
+        response = httpx.get(
+            "https://huggingface.co/api/models",
+            params={"search": query, "limit": max(1, min(100, request.limit * 3)), "sort": "downloads", "direction": -1},
+            timeout=15,
+            follow_redirects=True,
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except (httpx.HTTPError, ValueError):
+        return ModelSearchResponse(
+            results=[],
+            message=(
+                "Could not reach Hugging Face to search. You can still paste a "
+                "repository name below, or try again when you are online."
+            ),
+        )
+
+    found = [
+        ModelSearchResult(
+            repo_id=str(item.get("id") or item.get("modelId") or ""),
+            downloads=int(item.get("downloads") or 0),
+            likes=int(item.get("likes") or 0),
+        )
+        for item in (payload if isinstance(payload, list) else [])
+        if isinstance(item, dict) and (item.get("id") or item.get("modelId"))
+    ]
+    ranked = rank_search_results(found, request.query, limit=request.limit)
+    return ModelSearchResponse(
+        results=[
+            ModelSearchResultResponse(
+                repo_id=r.repo_id,
+                owner=r.owner,
+                model_name=r.model_name,
+                downloads=r.downloads,
+                likes=r.likes,
+            )
+            for r in ranked
+        ],
+        message="" if ranked else no_results_message(request.query),
+    )
 
 
 @router.post("/gguf-resolve", response_model=ResolveGgufResponse)
