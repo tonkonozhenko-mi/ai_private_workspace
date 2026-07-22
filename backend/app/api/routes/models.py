@@ -104,6 +104,7 @@ from app.core.domain.agent_capability import (
     build_agent_planning_preview,
 )
 from app.core.domain.attached_documents import AttachedDocument
+from app.core.domain.gguf_file_choice import rank_candidates, unusable_reason
 from app.core.domain.local_model_download_execution import (
     build_local_model_download_execution_capability,
 )
@@ -117,6 +118,7 @@ from app.core.domain.local_model_install_status import (
 )
 from app.core.domain.model_catalog_registry import build_custom_ollama_model_definition
 from app.core.domain.model_experiment_run import ModelExperimentCandidateRequest
+from app.core.domain.model_fit import assess_model_fit_bytes
 from app.core.domain.ollama_model_recommendations import (
     build_ollama_model_recommendation_guide,
 )
@@ -349,21 +351,34 @@ class ResolveGgufRequest(BaseModel):
     quant: str | None = None
 
 
+class GgufCandidateResponse(BaseModel):
+    filename: str
+    quantization: str
+    trade_off: str
+    size_bytes: int = 0
+    recommended: bool = False
+    # None when the size or the machine's memory is unknown — a missing verdict
+    # is shown as nothing at all, never as reassurance.
+    fit: str | None = None
+    fit_label: str | None = None
+
+
 class ResolveGgufResponse(BaseModel):
     repo_id: str
     filename: str
     name: str
-
-
-# Preferred quantizations, best size/quality first. Used to auto-pick a file so
-# the user only needs to paste a Hugging Face repo (like llama.cpp's -hf).
-_QUANT_PREFERENCE = ("q4_k_m", "q4_k_s", "q5_k_m", "q4_0", "q5_k_s", "q8_0", "q6_k")
+    candidates: list[GgufCandidateResponse] = []
 
 
 @router.post("/gguf-resolve", response_model=ResolveGgufResponse)
 def resolve_gguf(request: ResolveGgufRequest) -> ResolveGgufResponse:
-    """Pick a usable GGUF file from a Hugging Face repo, so the user only needs to
-    paste the repo id (the app chooses a good quant automatically)."""
+    """List the usable model files in a Hugging Face repo, best default first.
+
+    The choosing rules are not here: they are pure, they belong in the domain,
+    and while they lived in this function they could not be tested without a
+    network — which is how "avoid repos tagged npu/mobilint" ended up printed in
+    the interface as a rule for the person to remember.
+    """
     repo = request.repo_id.strip().strip("/")
     try:
         response = httpx.get(
@@ -388,34 +403,38 @@ def resolve_gguf(request: ResolveGgufRequest) -> ResolveGgufResponse:
         )
 
     siblings = response.json().get("siblings", []) if response.text else []
+    # `size` is only present when the caller asked for blobs; absent is normal
+    # and must not stop anyone choosing, so it degrades to 0 = unknown.
     files = [
-        s.get("rfilename", "")
+        (s.get("rfilename", ""), int(s.get("size") or 0))
         for s in siblings
-        if isinstance(s, dict) and s.get("rfilename", "").lower().endswith(".gguf")
+        if isinstance(s, dict) and s.get("rfilename")
     ]
-    # Exclude non-model GGUFs: vocab-only, multimodal projectors, and multi-part
-    # shards (our downloader fetches a single file).
-    files = [
-        f
-        for f in files
-        if "vocab" not in f.lower() and "mmproj" not in f.lower() and "-of-" not in f.lower()
-    ]
-    if not files:
+    candidates = rank_candidates(files, preferred_quantization=request.quant or "")
+    if not candidates:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=(
-                f"No single-file GGUF model found in {repo}. This repo may be "
-                "for special hardware (e.g. NPU) or sharded — try another repo."
-            ),
+            detail=unusable_reason([name for name, _ in files]),
         )
 
-    preferred = (request.quant or "").strip().lower()
-    order = (preferred, *_QUANT_PREFERENCE) if preferred else _QUANT_PREFERENCE
-    chosen = next(
-        (f for quant in order for f in files if quant and quant in f.lower()),
-        files[0],
+    total_ram = _total_physical_ram_bytes()
+    return ResolveGgufResponse(
+        repo_id=repo,
+        filename=candidates[0].filename,
+        name=candidates[0].filename,
+        candidates=[
+            GgufCandidateResponse(
+                filename=c.filename,
+                quantization=c.quantization,
+                trade_off=c.trade_off,
+                size_bytes=c.size_bytes,
+                recommended=c.recommended,
+                fit=assess_model_fit_bytes(c.size_bytes, total_ram)[0],
+                fit_label=assess_model_fit_bytes(c.size_bytes, total_ram)[1],
+            )
+            for c in candidates
+        ],
     )
-    return ResolveGgufResponse(repo_id=repo, filename=chosen, name=chosen)
 
 
 @router.post("/gguf-downloads", response_model=GgufDownloadJobResponse)

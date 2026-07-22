@@ -805,8 +805,8 @@ export function LlamaCppModelsPanel({
       <div className="gr-llama-custom">
         <p className="gr-llama-custom-title">Add your own model</p>
         <p className="gr-llama-note gr-llama-note--left">
-          Paste a Hugging Face GGUF repo — the app picks a good quant and switches
-          the engine to it. (Avoid repos tagged npu/mobilint or vocab-only files.)
+          Paste a Hugging Face GGUF repo — the app picks a good build for this
+          machine and switches the engine to it.
         </p>
         <div className="gr-llama-custom-fields">
           <input
