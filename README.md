@@ -242,9 +242,15 @@ Fusion to merge the rankings, a path/environment boost so `dev`-specific
 questions land on `dev` files, per-file diversity so one file can't fill the
 whole answer, and an optional cross-encoder reranker ("Sharper search"). It
 degrades gracefully to vector-only search if keyword indexing is unavailable.
-Prompts are budgeted in tokens against the model's real context window — with
-script-aware estimates, so a Ukrainian conversation is counted as honestly as
-an English one.
+Prompts are budgeted in tokens against the model's real context window. Two
+things are reserved outright — 768 tokens so the model has room to write its
+answer, and 900 for the fixed instruction scaffold — and everything else is
+measured rather than reserved: memory, handbook, history and the question are
+counted at their real size, and the retrieved chunks get what is left. Counting
+is script-aware, so a Ukrainian conversation is budgeted as honestly as an
+English one instead of at half its true cost. Full breakdown, including why
+there are no per-category percentages, in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#context-budget).
 </details>
 
 ## Local engines

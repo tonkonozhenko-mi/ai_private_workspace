@@ -142,7 +142,7 @@ PY
 cat > "$MANIFEST" <<EOF
 {
   "name": "AI Private Workspace frozen backend runtime",
-  "status": "pyinstaller_poc_built",
+  "status": "built",
   "created_at": $(json_escape "$CREATED_AT"),
   "runtime_dir": $(json_escape "$OUTPUT_DIR"),
   "builder": "PyInstaller",

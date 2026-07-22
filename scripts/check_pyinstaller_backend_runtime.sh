@@ -30,7 +30,7 @@ if [ -f "$BUILD_SCRIPT" ]; then
   done
 fi
 if [ -f "$MANIFEST" ]; then
-  grep -q 'pyinstaller_poc_built' "$MANIFEST" && ok "frozen runtime manifest was generated" || fail "frozen runtime manifest has unexpected status"
+  grep -q '"status": "built"' "$MANIFEST" && ok "frozen runtime manifest was generated" || fail "frozen runtime manifest has unexpected status"
 else
   review "frozen runtime manifest not present yet; run scripts/build_pyinstaller_backend_runtime.sh in a packaging venv"
 fi

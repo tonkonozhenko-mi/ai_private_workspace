@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **The context budget is written down.** How the model's window is divided was only ever visible by reading the code: two fixed reserves — 768 tokens of headroom so the answer has room to be written, 900 for the instruction scaffold — and everything else measured at its real size rather than reserved by category, with the retrieved files taking whatever remains. `docs/ARCHITECTURE.md` now explains it, including why there are no per-category percentages and what a page of pasted instructions costs in practice. A test compares the documented figures against the constants, so the explanation cannot quietly stop being true.
+
+- **Build artifacts no longer describe themselves as a proof of concept.** The manifest packaged inside the macOS app reported `"status": "pyinstaller_poc_built"`, a label left over from the first packaging spike and shipped ever since to anyone who opened the bundle.
+
 ### Fixed
 
 - **The files it learned to read, it can now actually find.** 0.7.3 taught the app Bicep, PowerShell and twenty-odd other formats — and only where they sat under `src/`. The walk that feeds the classifier had its own, older list of places and extensions to look at, and nobody updated it, so `infra/appservice.bicep` and `scripts/deploy.ps1` were cut before the app could tell what they were. Which is exactly where infrastructure and automation live in real repositories; moving the same two files into `src/` made everything work, which is why this got through review. Thirty extensions now reach the walk, including JSON, `.pptx`, `.drawio` and `.hcl`, which had never been reachable at a project's root either. A test now holds the two lists together so they cannot drift apart a third time.
