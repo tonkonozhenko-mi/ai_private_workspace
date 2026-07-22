@@ -13,7 +13,7 @@ from app.core.domain.group_overview import (
     GroupMemberRisk,
     GroupOverview,
 )
-from app.core.domain.indexing_blind_spots import unread_files
+from app.core.domain.indexing_blind_spots import unread_files_in_scan
 from app.core.domain.project_graph import EntityType, ProjectGraph
 from app.core.domain.project_makeup import (
     MAKEUP_KEYS,
@@ -120,7 +120,7 @@ class BuildGroupOverviewUseCase:
             # A member whose scan cannot be read is a member with nothing to say
             # about its blind spots — not a member with none.
             return {}
-        return unread_files(scan.files).summary() if scan else {}
+        return unread_files_in_scan(scan).summary()
 
     @staticmethod
     def _risks(graph: ProjectGraph | None, workspace_id: str, workspace_name: str):

@@ -24,6 +24,10 @@ class ScanProjectInput:
     respect_gitignore: bool = True
     cancellation_check: Callable[[], bool] | None = None
     progress_callback: Callable[[int, int, str], None] | None = None
+    # True when `include_patterns` are ours rather than the person's. Only then
+    # is a file they cut something we failed to see; when the person wrote the
+    # rules, a file outside them is simply not what they asked for.
+    include_patterns_are_default: bool = False
 
 
 class ProjectScanError(ValueError):
@@ -85,7 +89,7 @@ class ScanProjectUseCase:
         )
         gitignore_ms = (perf_counter() - gitignore_started) * 1000
         filter_started = perf_counter()
-        files = self._apply_file_rules(
+        files, unseen_files = self._apply_file_rules(
             files=list(discovered_files),
             include_patterns=request.include_patterns,
             exclude_patterns=request.exclude_patterns,
@@ -93,6 +97,8 @@ class ScanProjectUseCase:
             cancellation_check=request.cancellation_check,
             progress_callback=request.progress_callback,
         )
+        if not request.include_patterns_are_default:
+            unseen_files = []
         filter_ms = (perf_counter() - filter_started) * 1000
         if request.progress_callback is not None:
             request.progress_callback(
@@ -133,6 +139,7 @@ class ScanProjectUseCase:
             total_size_bytes=total_size_bytes,
             detected_skills=detected_skills,
             files=list(files),
+            unseen_files=list(unseen_files),
         )
 
     def _build_gitignore_matcher(
@@ -171,20 +178,26 @@ class ScanProjectUseCase:
         exclude_rules = self._normalize_patterns(exclude_patterns)
         matcher = gitignore_matcher or GitignoreMatcher.empty()
         selected_files = []
+        # Cut by the include rules ALONE. Excluded files and gitignored files are
+        # not in here: those are refusals with a reason, and a reason is not a
+        # blind spot. What is left is "the walk was never pointed at this".
+        unseen_files = []
         total = len(files) or 1
 
         for index, project_file in enumerate(files, start=1):
             self._checkpoint(cancellation_check)
-            if (
-                self._is_included(project_file.path, include_rules)
-                and not self._is_excluded(project_file.path, exclude_rules)
-                and not matcher.is_ignored(project_file.path)
-            ):
-                selected_files.append(project_file)
+            refused = self._is_excluded(project_file.path, exclude_rules) or matcher.is_ignored(
+                project_file.path
+            )
+            if self._is_included(project_file.path, include_rules):
+                if not refused:
+                    selected_files.append(project_file)
+            elif not refused:
+                unseen_files.append(project_file)
             if progress_callback is not None:
                 progress_callback(index, total, f"Scanning files: {index}/{total}")
 
-        return selected_files
+        return selected_files, unseen_files
 
     @staticmethod
     def _checkpoint(cancellation_check: Callable[[], bool] | None) -> None:

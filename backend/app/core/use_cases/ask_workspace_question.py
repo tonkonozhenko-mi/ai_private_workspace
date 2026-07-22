@@ -17,7 +17,10 @@ from app.core.domain.context_budget import (
 from app.core.domain.conversation_budget import build_summary_prompt
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import ContextSearchResult
-from app.core.domain.indexing_blind_spots import unread_files, unread_files_prompt_note
+from app.core.domain.indexing_blind_spots import (
+    unread_files_in_scan,
+    unread_files_prompt_note,
+)
 from app.core.domain.instruction_split import retrieval_text
 from app.core.domain.llm_errors import ContextOverflowError, context_overflow_answer
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
@@ -376,9 +379,7 @@ class AskWorkspaceQuestionUseCase:
         except Exception:
             # A missing or unreadable scan must never cost the person an answer.
             return ""
-        if scan is None:
-            return ""
-        return unread_files_prompt_note(unread_files(scan.files))
+        return unread_files_prompt_note(unread_files_in_scan(scan))
 
     def _project_memory_section(self, workspace_id: str, query: str) -> str:
         section, _, _, _ = self._project_context(workspace_id, query)

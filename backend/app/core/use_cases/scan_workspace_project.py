@@ -1,7 +1,10 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from app.core.domain.indexing_rules import default_indexing_rules
+from app.core.domain.indexing_rules import (
+    DEFAULT_INCLUDE_PATTERNS,
+    default_indexing_rules,
+)
 from app.core.domain.project_scan import ProjectScanResult
 from app.core.domain.skill_registry import SkillRegistry
 from app.core.ports.file_system import FileSystemPort
@@ -75,6 +78,11 @@ class ScanWorkspaceProjectUseCase:
                 project_path=workspace.project_path,
                 include_patterns=include_patterns,
                 exclude_patterns=exclude_patterns,
+                # Whether these rules are ours or the person's decides what a
+                # cut file means: something we failed to see, or something they
+                # did not ask for. Comparing the tuples is enough — rules that
+                # happen to equal the defaults *are* the defaults.
+                include_patterns_are_default=include_patterns == DEFAULT_INCLUDE_PATTERNS,
                 cancellation_check=request.cancellation_check,
                 progress_callback=request.progress_callback,
             )

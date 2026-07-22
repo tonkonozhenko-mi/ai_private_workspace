@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 DEFAULT_INDEXING_RULES_PROFILE = "balanced"
+# Room for every default plus a generous amount of the person's own.
+MAX_PATTERNS = 300
 DEFAULT_INCLUDE_PATTERNS: tuple[str, ...] = (
     "src/**",
     "app/**",
@@ -79,6 +81,56 @@ DEFAULT_INCLUDE_PATTERNS: tuple[str, ...] = (
     ".env.example",
     ".env.sample",
     ".env.template",
+    # The rest of what the classifier can name.
+    #
+    # This list and SOURCE_CODE_LANGUAGES are two records of one piece of
+    # knowledge, and they drifted: 0.7.3 taught the classifier Bicep and
+    # PowerShell without telling the walk, so `infra/appservice.bicep` was cut
+    # before the dictionary ever saw it — and, being cut by a rule, it did not
+    # even reach the "files I can't read" line. Doubly invisible. The irony is
+    # exact: infrastructure lives in `infra/` and automation in `scripts/`, not
+    # in `src/`, which is the only reason it worked in testing.
+    #
+    # test_indexing_rules_parity keeps the two in step from here on.
+    "*.bicep",
+    "*.ps1",
+    "*.psm1",
+    "*.groovy",
+    "*.vb",
+    "*.fs",
+    "*.fsx",
+    "*.ex",
+    "*.exs",
+    "*.erl",
+    "*.cc",
+    "*.cxx",
+    "*.m",
+    "*.pl",
+    "*.r",
+    "*.gradle",
+    "*.kts",
+    "*.gql",
+    # .NET project and solution files: what a service depends on, and which
+    # projects a solution contains.
+    "*.csproj",
+    "*.vbproj",
+    "*.fsproj",
+    "*.sln",
+    "*.props",
+    "*.targets",
+    # A star, not the bare name: fnmatch's '*' spans '/', so this reaches both
+    # the root `.editorconfig` and one nested in a subproject. The literal name
+    # matched only the root — which is the same shape of bug as the one this
+    # branch is fixing, one directory deep.
+    "*.editorconfig",
+    # Not in the brief's list of 25, found by the parity check itself. JSON is
+    # the loudest of them: package.json, tsconfig.json and every service config
+    # at a repository root matched nothing at all unless it sat under src/.
+    "*.json",
+    "*.pptx",
+    "*.drawio",
+    "*.hcl",
+    "*.dockerfile",
 )
 DEFAULT_EXCLUDE_PATTERNS: tuple[str, ...] = (
     ".git/**",
@@ -167,4 +219,9 @@ def normalize_patterns(patterns: tuple[str, ...] | list[str]) -> tuple[str, ...]
         value = pattern.strip()
         if value and value not in normalized:
             normalized.append(value)
-    return tuple(normalized[:80])
+    # The ceiling exists so a pasted wall of text cannot become the rules. It was
+    # 80, and the default include list is now 100 — so opening the rules editor
+    # and pressing Save, changing nothing, silently dropped the last twenty
+    # patterns and re-broke exactly what this release repairs. A limit that cuts
+    # the defaults is not a guard, it is a bug with a rationale.
+    return tuple(normalized[:MAX_PATTERNS])

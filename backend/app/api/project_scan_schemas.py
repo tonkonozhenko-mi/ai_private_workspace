@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from app.core.domain.indexing_blind_spots import unread_files
+from app.core.domain.indexing_blind_spots import unread_files_in_scan
 from app.core.domain.project_scan import ProjectFile, ProjectScanResult
 from app.core.domain.skill import SkillMatch
 
@@ -119,10 +119,11 @@ class ProjectScanResponse(BaseModel):
     total_size_bytes: int
     detected_skills: list[DetectedSkillResponse]
     files: list[ProjectFileResponse]
-    # What the scan found and could not recognise, by extension: {".bicep": 12}.
-    # Derived rather than stored — it is a pure function of the files above, so a
-    # scan saved before this field existed still reports correctly, and the number
-    # can never drift from the list it describes.
+    # What the scan could not read, by extension: {".bicep": 12}. Counts two
+    # groups the person has no reason to distinguish: files that reached the
+    # classifier and came back unnamed, and files the default rules cut before it
+    # could look. Derived on the way out rather than stored, so it cannot drift
+    # from the scan it describes.
     unreadable_by_extension: dict[str, int] = {}
 
 
@@ -154,5 +155,5 @@ def to_project_scan_response(result: ProjectScanResult) -> ProjectScanResponse:
         total_size_bytes=result.total_size_bytes,
         detected_skills=[to_detected_skill_response(skill) for skill in result.detected_skills],
         files=[to_project_file_response(project_file) for project_file in result.files],
-        unreadable_by_extension=unread_files(result.files).summary(),
+        unreadable_by_extension=unread_files_in_scan(result).summary(),
     )

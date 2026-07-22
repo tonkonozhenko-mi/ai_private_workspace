@@ -7,6 +7,14 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **The files it learned to read, it can now actually find.** 0.7.3 taught the app Bicep, PowerShell and twenty-odd other formats — and only where they sat under `src/`. The walk that feeds the classifier had its own, older list of places and extensions to look at, and nobody updated it, so `infra/appservice.bicep` and `scripts/deploy.ps1` were cut before the app could tell what they were. Which is exactly where infrastructure and automation live in real repositories; moving the same two files into `src/` made everything work, which is why this got through review. Thirty extensions now reach the walk, including JSON, `.pptx`, `.drawio` and `.hcl`, which had never been reachable at a project's root either. A test now holds the two lists together so they cannot drift apart a third time.
+
+- **Something skipped by rules you never wrote is a blind spot, not a preference.** The same gap made those files invisible twice over: not indexed, and not counted in the "files I can't read yet" line either, because a rule had removed them and rules are supposed to mean "not asked for". That reading only holds for rules you wrote. Files cut by our own defaults are now counted and named, wherever they are in the project. Your own include and exclude rules are unchanged and still silent — declining to index something is a decision, and we do not report your decisions back to you as our limitations.
+
+- **Saving your file rules no longer quietly drops some of them.** The rules editor capped the list at eighty patterns, a guard against pasting a wall of text into it. The defaults are now a hundred, so opening the editor and pressing Save — changing nothing — discarded the last twenty and re-broke the above. The ceiling is now well clear of the defaults.
+
 ## [0.7.3] - 2026-07-22
 
 ### Added
