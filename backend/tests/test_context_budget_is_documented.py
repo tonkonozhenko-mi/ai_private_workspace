@@ -16,13 +16,13 @@ import re
 from pathlib import Path
 
 from app.core.domain.context_budget import (
+    _DEFAULT_CONTEXT_WINDOW,
     CHARS_PER_TOKEN,
     CJK_CHARS_PER_TOKEN,
     CYRILLIC_CHARS_PER_TOKEN,
     MIN_CHUNK_CHARS,
     PROMPT_SCAFFOLD_TOKENS,
     RESPONSE_RESERVE_TOKENS,
-    _DEFAULT_CONTEXT_WINDOW,
 )
 
 ARCHITECTURE = Path(__file__).parents[2] / "docs" / "ARCHITECTURE.md"
