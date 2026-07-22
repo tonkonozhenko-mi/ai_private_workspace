@@ -41,7 +41,16 @@ QUANT_PREFERENCE: tuple[str, ...] = (
 # - "-of-": one shard of a split model; the downloader fetches a single file.
 # - npu / mobilint / rknn / hexagon: builds for accelerators llama.cpp cannot
 #   load. These used to reach the user as a warning to avoid them by hand.
-_NOT_A_RUNNABLE_MODEL = ("vocab", "tokenizer", "mmproj", "-of-", "npu", "mobilint", "rknn", "hexagon")
+_NOT_A_RUNNABLE_MODEL = (
+    "vocab",
+    "tokenizer",
+    "mmproj",
+    "-of-",
+    "npu",
+    "mobilint",
+    "rknn",
+    "hexagon",
+)
 
 # The quantization tag inside a filename: Qwen3-8B-Q4_K_M.gguf → Q4_K_M.
 # `i?q` covers both families — Q4_K_M and the newer IQ3_XXS. Written as `iq?`
@@ -59,7 +68,9 @@ _TRADE_OFF: dict[str, str] = {
     "6": "Better answers, meaningfully more memory.",
     "8": "Near-original quality, about twice the memory of the usual choice.",
 }
-_FULL_PRECISION = "The original, unquantized weights. Best quality, far more memory than most laptops have."
+_FULL_PRECISION = (
+    "The original, unquantized weights. Best quality, far more memory than most laptops have."
+)
 
 
 @dataclass(frozen=True)
