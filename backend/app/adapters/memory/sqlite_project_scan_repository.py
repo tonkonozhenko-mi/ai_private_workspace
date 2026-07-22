@@ -75,16 +75,8 @@ class SQLiteProjectScanRepository:
                 }
                 for skill in scan_result.detected_skills
             ],
-            "files": [
-                {
-                    "path": project_file.path,
-                    "extension": project_file.extension,
-                    "size_bytes": project_file.size_bytes,
-                    "detected_type": project_file.detected_type,
-                    "modified_at": project_file.modified_at,
-                }
-                for project_file in scan_result.files
-            ],
+            "files": [_file_dict(f) for f in scan_result.files],
+            "unseen_files": [_file_dict(f) for f in scan_result.unseen_files],
         }
 
     @staticmethod
@@ -104,14 +96,28 @@ class SQLiteProjectScanRepository:
                 )
                 for skill in data["detected_skills"]
             ],
-            files=[
-                ProjectFile(
-                    path=project_file["path"],
-                    extension=project_file["extension"],
-                    size_bytes=project_file["size_bytes"],
-                    detected_type=project_file["detected_type"],
-                    modified_at=project_file.get("modified_at"),
-                )
-                for project_file in data["files"]
-            ],
+            files=[_project_file(f) for f in data["files"]],
+            # Absent in scans saved before this field existed. Empty then, which
+            # is the truthful reading: that scan did not record what it skipped.
+            unseen_files=[_project_file(f) for f in data.get("unseen_files", [])],
         )
+
+
+def _file_dict(project_file: ProjectFile) -> dict:
+    return {
+        "path": project_file.path,
+        "extension": project_file.extension,
+        "size_bytes": project_file.size_bytes,
+        "detected_type": project_file.detected_type,
+        "modified_at": project_file.modified_at,
+    }
+
+
+def _project_file(data: dict) -> ProjectFile:
+    return ProjectFile(
+        path=data["path"],
+        extension=data["extension"],
+        size_bytes=data["size_bytes"],
+        detected_type=data["detected_type"],
+        modified_at=data.get("modified_at"),
+    )

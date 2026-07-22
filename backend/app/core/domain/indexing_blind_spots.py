@@ -116,6 +116,23 @@ def unread_files(files) -> UnreadFiles:
     return UnreadFiles(total=sum(counts.values()), by_extension=ordered)
 
 
+def unread_files_in_scan(scan) -> UnreadFiles:
+    """Everything a scan could not read: what it took in and could not name, plus
+    what the default rules cut before it could look.
+
+    Two sources, one number, because to the person they are one fact. The split
+    is ours: a file under `src/` reached the classifier and came back "unknown",
+    while the same file under `infra/` never got that far — but both are files
+    the app cannot answer questions from, and reporting only the first is how
+    `infra/appservice.bicep` was invisible twice over.
+
+    ``scan`` may be None, or predate the field; both mean nothing to report.
+    """
+    if scan is None:
+        return EMPTY
+    return unread_files([*scan.files, *getattr(scan, "unseen_files", ())])
+
+
 def _extension_phrases(unread: UnreadFiles) -> list[str]:
     shown = unread.by_extension[:_NAMED_EXTENSIONS]
     named = [f"{extension} ×{count}" for extension, count in shown]
