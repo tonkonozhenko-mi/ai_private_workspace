@@ -119,4 +119,6 @@ def is_valid_ollama_model_name(name: str) -> bool:
     # No path traversal, no scheme, no shell metacharacters. None of these can
     # occur in a real tag, and all of them suggest the value came from somewhere
     # it should not have.
-    return not any(token in candidate for token in ("..", "://", "\\", ";", "|", "&", "$", "`", "\n"))
+    return not any(
+        token in candidate for token in ("..", "://", "\\", ";", "|", "&", "$", "`", "\n")
+    )

@@ -148,8 +148,7 @@ class OllamaPullJobRunner:
                 job_id,
                 status="failed",
                 error=(
-                    f"Could not reach Ollama to download {model_name}. Is Ollama "
-                    f"running? ({exc})"
+                    f"Could not reach Ollama to download {model_name}. Is Ollama running? ({exc})"
                 ),
                 progress_message="",
             )
@@ -196,9 +195,7 @@ class OllamaPullJobRunner:
                 elif last_percent < 0 and data.get("status"):
                     # Ollama reports "pulling manifest" and similar before any
                     # bytes move. Showing that beats showing 0% for a minute.
-                    self._update(
-                        job_id, status="running", progress_message=f"{data['status']}…"
-                    )
+                    self._update(job_id, status="running", progress_message=f"{data['status']}…")
         if cancel.is_set():
             return
         self._update(

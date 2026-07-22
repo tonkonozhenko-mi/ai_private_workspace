@@ -412,7 +412,12 @@ def search_models(request: ModelSearchRequest) -> ModelSearchResponse:
     try:
         response = httpx.get(
             "https://huggingface.co/api/models",
-            params={"search": query, "limit": max(1, min(100, request.limit * 3)), "sort": "downloads", "direction": -1},
+            params={
+                "search": query,
+                "limit": max(1, min(100, request.limit * 3)),
+                "sort": "downloads",
+                "direction": -1,
+            },
             timeout=15,
             follow_redirects=True,
         )

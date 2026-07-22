@@ -10,8 +10,8 @@ from app.adapters.llm.llama_server_reranker import LlamaServerReranker
 from app.adapters.system.gguf_download_job_runner import GgufDownloadJobRunner
 from app.adapters.system.huggingface_gguf_downloader import HuggingFaceGgufDownloader
 from app.adapters.system.llama_runtime_manager import LlamaRuntimeManager
-from app.adapters.system.ollama_pull_job_runner import OllamaPullJobRunner
 from app.adapters.system.local_git_history import LocalGitHistory
+from app.adapters.system.ollama_pull_job_runner import OllamaPullJobRunner
 from app.adapters.system.runtime_state_store import RuntimeStateStore
 from app.api._container_factories import (
     build_agent_workflow_repository,
