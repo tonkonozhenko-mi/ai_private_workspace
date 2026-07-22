@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import sqlite3
+import subprocess
 import sys
 from pathlib import Path
 
 from fastapi import APIRouter
 
 from app.api.schemas.local_data_safety_schemas import (
+    DataFolderResponse,
     DesktopStartupCommandResponse,
     FirstLaunchChecklistItemResponse,
     FirstLaunchReadinessResponse,
@@ -169,3 +171,52 @@ def get_first_launch_readiness() -> FirstLaunchReadinessResponse:
         ],
         safety_note="This post-launch checklist is read-only. It never installs models, starts scans, rebuilds indexes, executes MCP tools, or runs shell commands from the frontend. Startup instructions live outside the UI in docs/START_HERE.md until the real desktop package exists.",
     )
+
+
+def _open_in_file_manager(path: Path) -> str:
+    """Show a folder in Finder/Explorer/the desktop's file manager.
+
+    Returns "" on success, or a sentence explaining what stopped it. The path is
+    this app's own data directory and never comes from a request, so there is
+    nothing user-supplied to inject; the argument list form is used regardless.
+    """
+    if sys.platform == "darwin":
+        command = ["/usr/bin/open", str(path)]
+    elif sys.platform.startswith("win"):
+        command = ["explorer", str(path)]
+    else:
+        command = ["xdg-open", str(path)]
+    try:
+        subprocess.run(command, check=True, timeout=10)  # noqa: S603
+    except FileNotFoundError:
+        return "This system has no file manager we know how to call."
+    except (subprocess.SubprocessError, OSError) as exc:
+        return f"Could not open the folder: {exc}"
+    return ""
+
+
+@router.get("/data-folder", response_model=DataFolderResponse)
+def get_data_folder() -> DataFolderResponse:
+    path = get_settings().app_data_dir.expanduser()
+    return DataFolderResponse(path=str(path), exists=path.exists())
+
+
+@router.post("/data-folder/open", response_model=DataFolderResponse)
+def open_data_folder() -> DataFolderResponse:
+    """Open the data folder in the desktop's file manager.
+
+    Deliberately not an export. An export would produce a second copy in a format
+    of our own devising, which then has to be kept correct forever; the folder is
+    already the real thing, and a person who can see it can copy it, move it to
+    another machine, or put it in whatever backup they already trust.
+    """
+    path = get_settings().app_data_dir.expanduser()
+    if not path.exists():
+        return DataFolderResponse(
+            path=str(path),
+            exists=False,
+            opened=False,
+            error="The data folder does not exist yet — it is created the first time you save something.",
+        )
+    error = _open_in_file_manager(path)
+    return DataFolderResponse(path=str(path), exists=True, opened=not error, error=error)

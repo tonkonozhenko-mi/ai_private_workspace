@@ -13,6 +13,7 @@ from app.core.domain.source_files import (
     CONFIG_EXTENSIONS,
     IMAGE_EXTENSIONS,
     SOURCE_CODE_EXTENSIONS,
+    XML_CONFIG_EXTENSIONS,
     is_build_output,
     is_env_template,
     is_lockfile,
@@ -348,7 +349,7 @@ class LocalFileSystem:
             return "source_code"
         if suffix in CONFIG_EXTENSIONS or is_env_template(name):
             return "config"
-        if suffix == ".xml":
+        if suffix in XML_CONFIG_EXTENSIONS:
             return "xml_config"
         if name_lower in {"makefile", "gnumakefile"} or suffix == ".mk":
             return "makefile"

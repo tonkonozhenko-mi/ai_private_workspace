@@ -13,6 +13,7 @@ from app.core.domain.group_overview import (
     GroupMemberRisk,
     GroupOverview,
 )
+from app.core.domain.indexing_blind_spots import unread_files
 from app.core.domain.project_graph import EntityType, ProjectGraph
 from app.core.domain.project_makeup import (
     MAKEUP_KEYS,
@@ -47,12 +48,16 @@ class BuildGroupOverviewUseCase:
         project_graph_repository: ProjectGraphRepositoryPort,
         git_history: GitHistoryPort,
         index_status_repository: IndexStatusRepositoryPort | None = None,
+        project_scan_repository=None,
     ) -> None:
         self.group_repository = group_repository
         self.workspace_repository = workspace_repository
         self.project_graph_repository = project_graph_repository
         self.git_history = git_history
         self.index_status_repository = index_status_repository
+        # Optional: read-only, used only to name the extensions a member could not
+        # read. None leaves the member card exactly as it was.
+        self.project_scan_repository = project_scan_repository
 
     def execute(self, group_id: str) -> GroupOverview:
         group = self.group_repository.get(group_id)
@@ -101,9 +106,21 @@ class BuildGroupOverviewUseCase:
             counts=counts,
             environments=environments,
             risk_counts=risk_counts,
+            unreadable_by_extension=self._unreadable(workspace_id),
             **git,
         )
         return member, member_risks
+
+    def _unreadable(self, workspace_id: str) -> dict[str, int]:
+        if self.project_scan_repository is None:
+            return {}
+        try:
+            scan = self.project_scan_repository.get_latest_scan(workspace_id)
+        except Exception:
+            # A member whose scan cannot be read is a member with nothing to say
+            # about its blind spots — not a member with none.
+            return {}
+        return unread_files(scan.files).summary() if scan else {}
 
     @staticmethod
     def _risks(graph: ProjectGraph | None, workspace_id: str, workspace_name: str):

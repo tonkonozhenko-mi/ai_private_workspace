@@ -1,17 +1,20 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { UpdateIndexSection } from "./UpdateIndexSection";
 import { UserProfileSettings } from "./UserProfileSettings";
 import type { WorkbenchPreferences } from "../App";
 import {
   deleteWorkspace,
+  getDataFolder,
   getWorkspacesOverview,
+  openDataFolder,
   previewWorkspaceFileSelection,
   resetLlamaRuntimeSelection,
   updateWorkspaceIndexingRules,
   updateWorkspaceSkillProfile,
 } from "../api/client";
 import type {
+  DataFolder,
   WorkspaceDashboard as WorkspaceDashboardData,
   WorkspaceModelsDashboardSummary,
   FileSelectionPreview,
@@ -85,6 +88,30 @@ export function SettingsPanel({
   const [confirmingReset, setConfirmingReset] = useState<null | "settings" | "workspaces">(null);
   const [resetting, setResetting] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
+  // The data folder is read once, on open: the path does not change while the app
+  // runs, and asking for it repeatedly would be asking a settled question.
+  const [dataFolder, setDataFolder] = useState<DataFolder | null>(null);
+  const [dataFolderMessage, setDataFolderMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    getDataFolder()
+      .then(setDataFolder)
+      .catch(() => {
+        /* the section simply shows no path — better than a path we did not read */
+      });
+  }, []);
+
+  const revealDataFolder = () => {
+    setDataFolderMessage(null);
+    openDataFolder()
+      .then((result) => {
+        setDataFolder(result);
+        // Success is the folder appearing on screen; saying so as well would be
+        // the app congratulating itself. Only a failure needs words.
+        if (result.error) setDataFolderMessage(result.error);
+      })
+      .catch(() => setDataFolderMessage("Could not open the folder."));
+  };
 
   // Reset settings only: restores every app preference (theme, developer mode,
   // accent, skills, file rules, …) to defaults. Projects and their index stay.
@@ -536,6 +563,34 @@ export function SettingsPanel({
       </section>
 
       <UserProfileSettings />
+
+      <section className="panel settings-clean-card">
+        <div className="panel-heading compact-heading">
+          <div>
+            <p className="eyebrow">Your data</p>
+            <h3>Where everything is kept</h3>
+            <p className="panel-helper">
+              One folder holds your projects, notes, chats and the search index. To
+              back it up, copy the folder — there is nothing to export, because the
+              folder is already the real thing. Your notes and chats are the only
+              part that cannot be recreated; the search index rebuilds itself from
+              your own files.
+            </p>
+          </div>
+        </div>
+        <div className="settings-data-folder">
+          <code className="settings-data-path">{dataFolder?.path ?? "…"}</code>
+          <button
+            className="secondary-action"
+            type="button"
+            onClick={revealDataFolder}
+            disabled={!dataFolder}
+          >
+            Open data folder
+          </button>
+        </div>
+        {dataFolderMessage ? <p className="settings-message">{dataFolderMessage}</p> : null}
+      </section>
 
       <section className="panel settings-clean-card settings-danger-card">
         <div className="panel-heading compact-heading">

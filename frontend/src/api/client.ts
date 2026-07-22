@@ -48,6 +48,7 @@ import type {
   SavedWorkspaceReport,
   UpdateSavedWorkspaceReportRequest,
   RuntimeMemory,
+  DataFolder,
   FirstLaunchReadiness,
   AgentCapabilityCatalog,
   AgentPlanningPreview,
@@ -158,6 +159,15 @@ export function getFirstLaunchReadiness(): Promise<FirstLaunchReadiness> {
   return getJson<FirstLaunchReadiness>("/runtime/first-launch-readiness");
 }
 
+
+/** Where this app keeps everything it knows. Backing up means copying it. */
+export function getDataFolder(): Promise<DataFolder> {
+  return getJson<DataFolder>("/runtime/data-folder");
+}
+
+export function openDataFolder(): Promise<DataFolder> {
+  return requestJson<DataFolder>("/runtime/data-folder/open", { method: "POST" });
+}
 
 export function getWorkspacesOverview(
   options: { includeArchived?: boolean } = {},
