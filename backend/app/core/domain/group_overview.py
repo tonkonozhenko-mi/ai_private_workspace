@@ -50,6 +50,11 @@ class GroupMemberOverview:
     contributors_count: int = 0
     commits_last_7_days: int = 0
     last_commit_subject: str | None = None
+    # Extensions this member's scan found and could not read: {".bicep": 12}. The
+    # group is a view over its members, so this is the member's own number shown
+    # in the member's own card — never summed across the group, where ".ps1 ×40"
+    # would say nothing about which repository to go and look at.
+    unreadable_by_extension: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

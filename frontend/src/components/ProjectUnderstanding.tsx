@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { formatModelLabel } from "../lib/modelLabel";
+import { unreadFilesNote } from "../lib/unreadFiles";
 import { hasUserInteracted } from "../lib/userInteraction";
 
 // models_summary.selected_llm is a provider-qualified id like
@@ -1094,6 +1095,11 @@ export function ProjectUnderstanding({
 
   const gitAvailable = files.some((file) => file.path.toLowerCase().includes(".git"));
 
+  // Extensions the scan found and could not read. "" when there are none, and ""
+  // is rendered as nothing at all — see unreadFilesNote for why silence is the
+  // correct empty state here.
+  const unreadNote = unreadFilesNote(scan?.unreadable_by_extension);
+
   return (
     <section className="project-understanding">
       <header className="pu-header">
@@ -1163,6 +1169,10 @@ export function ProjectUnderstanding({
               }${git.commits_last_7_days > 0 ? `, ${git.commits_last_7_days} this week` : ""}.`
             : ""}
         </p>
+        {/* What the scan walked past. A line, not a banner — the same register as
+            the rest of the honest negatives here. Absent entirely when nothing was
+            skipped, so its presence is the signal. */}
+        {unreadNote ? <p className="pu-unread-note">{unreadNote}</p> : null}
         <div className="pu-lead-foot">
           <span className="pu-summary-foot">{lens.focus} · from your local scan</span>
           <button type="button" className="pu-lead-ask" onClick={onOpenAsk}>

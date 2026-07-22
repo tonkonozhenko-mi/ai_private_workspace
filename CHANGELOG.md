@@ -7,6 +7,14 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Added
+
+- **Your project now says which files it could not read.** A repository built on Azure was scanned, indexed, and answering questions while every `.bicep` and `.ps1` in it was invisible: the files were found, counted in the totals, filed as "unknown", and quietly dropped before the index — the infrastructure and the automation, which is to say the two things a deployment question is actually about. Two changes. The app now reads Bicep, PowerShell, Groovy, F#, Visual Basic, Elixir, Erlang, and the `.csproj`/`.sln` files that say what a .NET service depends on. And whatever it still cannot read says so, on Home and in each group member's card, as a plain line — "14 files I can't read yet: .bicep ×12, .ps1 ×2" — because there will always be a next extension and the index should not be the last to mention it. Files you excluded yourself are not counted: not asking for something is not the same as being unable to read it. When nothing was skipped the line is not there at all.
+
+- **The model is told what it was not shown.** An answer cannot notice an absence — files that were never indexed leave no gap in what the model is handed, so it answers confidently from whatever happened to be there. When files were skipped, the prompt now names their extensions and asks the model to say so if your question might depend on them.
+
+- **Open data folder, in Settings.** One button opens the folder where everything is kept, so backing up is copying it. Deliberately not an export: an export makes a second copy in a format of our own devising that then has to stay correct forever, while the folder is already the real thing — yours to copy, move, or hand to whatever backup you already trust. Your notes and chats are the irreplaceable part; the search index rebuilds itself from your own files.
+
 ### Fixed
 
 - **Paste a page of standing instructions with your request, and the app now searches for the request.** A message can be one short ask wrapped in a policy — "write the onboarding docs", plus two thousand words of NDA and anonymisation rules. All of it used to go to the search, so the app looked for documents resembling a confidentiality policy and found them; the pages about deployment never came close. The rules also took a quarter of the model's working memory on the way in. The request is now what the project is searched with, while the rules still reach the model in full — they are instructions and must be obeyed, they simply stop pretending to be a search query. Nothing is dropped or rewritten, and a message that is just a long question is left exactly as it was.

@@ -25,6 +25,7 @@ from app.api.dependencies import (
     project_graph_repository,
     project_group_repository,
     project_memory_repository,
+    project_scan_repository,
     vector_store,
     workspace_repository,
 )
@@ -249,6 +250,7 @@ class GroupMemberOverview(BaseModel):
     contributors_count: int
     commits_last_7_days: int
     last_commit_subject: str | None
+    unreadable_by_extension: dict[str, int] = {}
 
 
 class GroupOverviewResponse(BaseModel):
@@ -283,6 +285,7 @@ def group_overview(group_id: str) -> GroupOverviewResponse:
         project_graph_repository=project_graph_repository,
         git_history=git_history,
         index_status_repository=index_status_repository,
+        project_scan_repository=project_scan_repository,
     )
     try:
         return _overview_response(use_case.execute(group_id))

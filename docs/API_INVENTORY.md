@@ -12,6 +12,8 @@ filesystem, provider, or command-runner activity outside SQLite repositories.
 | `GET /runtime/health` | Report configured Qdrant, Ollama, and command-runner health. | No | No | Lightweight Qdrant/Ollama checks when configured | Runtime status |
 | `GET /runtime/troubleshooting` | Build a read-only troubleshooting plan for Ollama, Qdrant, fake providers, memory vector store, and safe restart commands. | No | No | Runtime health checks only | Settings troubleshooting assistant |
 | `GET /runtime/first-launch-readiness` | Return read-only desktop post-launch checklist for backend, workspace data, local models, search store, and macOS launcher readiness. | No | No | Read-only runtime settings and SQLite diagnostics | Models desktop setup |
+| `GET /runtime/data-folder` | Return the path of the folder holding all local data. Read-only; opens nothing. | No | No | Read-only settings | Settings → Where everything is kept |
+| `POST /runtime/data-folder/open` | Show that folder in the desktop file manager. Reveals only; never reads, writes or exports its contents. | No | No | Read-only settings | Settings → Where everything is kept |
 | `POST /runtime/setup-guide` | Compare recommended onboarding runtime with active runtime health. | No | No | Lightweight Qdrant/Ollama checks when configured | Setup wizard |
 
 ## Onboarding And Assistant Profiles

@@ -33,6 +33,7 @@ import {
   staleRepositoryNames,
 } from "../lib/groupStaleness";
 import { formatSourceLabel } from "../lib/sourceLabel";
+import { unreadFilesNote } from "../lib/unreadFiles";
 import { hasUserInteracted } from "../lib/userInteraction";
 import { AnswerFeedback } from "./AnswerFeedback";
 import { AnswerTracePanel } from "./AnswerTracePanel";
@@ -570,6 +571,11 @@ function RepositoryList({
             </div>
             <p className="grp-repo-desc">{m.description}</p>
             {repoMeta(m) ? <p className="grp-repo-meta">{repoMeta(m)}</p> : null}
+            {/* This member's own blind spots, in this member's own card. Nothing
+                when there are none — see unreadFilesNote. */}
+            {unreadFilesNote(m.unreadable_by_extension) ? (
+              <p className="grp-repo-meta">{unreadFilesNote(m.unreadable_by_extension)}</p>
+            ) : null}
           </li>
         ))}
       </ul>

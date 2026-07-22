@@ -2017,6 +2017,10 @@ def ask_workspace_question(
         conversation_repository=conversation_repository,
         project_context_provider=project_context_composer,
         index_manifest_repository=index_manifest_repository,
+        # Read-only: the scan is used to name the extensions we could not read, so
+        # the model can say "that may live in a file I never saw" instead of
+        # answering confidently from what happened to be indexed.
+        project_scan_repository=project_scan_repository,
     )
 
     try:
@@ -2106,6 +2110,10 @@ def ask_workspace_question_with_selected_llm(
         conversation_repository=conversation_repository,
         project_context_provider=project_context_composer,
         index_manifest_repository=index_manifest_repository,
+        # Read-only: the scan is used to name the extensions we could not read, so
+        # the model can say "that may live in a file I never saw" instead of
+        # answering confidently from what happened to be indexed.
+        project_scan_repository=project_scan_repository,
     )
     use_case = AskWorkspaceQuestionWithSelectedLLMUseCase(
         workspace_repository=workspace_repository,
@@ -2363,6 +2371,10 @@ def ask_workspace_question_with_selected_llm_stream(
         conversation_repository=conversation_repository,
         project_context_provider=project_context_composer,
         index_manifest_repository=index_manifest_repository,
+        # Read-only: the scan is used to name the extensions we could not read, so
+        # the model can say "that may live in a file I never saw" instead of
+        # answering confidently from what happened to be indexed.
+        project_scan_repository=project_scan_repository,
     )
     use_case = AskWorkspaceQuestionWithSelectedLLMUseCase(
         workspace_repository=workspace_repository,

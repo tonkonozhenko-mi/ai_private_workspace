@@ -241,6 +241,7 @@ def build_workspace_question_prompt(
     answer_mode: str | None = None,
     user_style_directive: str = "",
     assistant_mode: str | None = None,
+    unread_files_note: str = "",
 ) -> str:
     # Present a human-facing label for each source. Real files show their path
     # unchanged; the internal handbook pseudo-path shows as "Project handbook" so
@@ -299,6 +300,11 @@ def build_workspace_question_prompt(
         f"{attached_section}"
         f"{(project_memory_section + chr(10) + chr(10)) if project_memory_section else ''}"
         f"{build_source_status_section(context_results)}"
+        # What is *not* in the context. A model cannot notice an absence — files
+        # that were never indexed leave no hole in what it is handed — so if the
+        # answer might live in an unread .bicep, only this sentence can make it
+        # say so. Empty string when nothing was skipped: no line, no reassurance.
+        f"{(unread_files_note + chr(10) + chr(10)) if unread_files_note else ''}"
         f"Context chunks:\n{context}\n\n"
         f"Available source paths: {source_paths}\n\n"
         f"{skill_section}"

@@ -30,6 +30,7 @@ from app.core.domain.rag import (
     SkillProfileAudit,
     WorkspaceQuestionAnswer,
 )
+from app.core.domain.indexing_blind_spots import unread_files, unread_files_prompt_note
 from app.core.domain.rag_answer_cleanup import strip_source_path_echo
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.rag_prompt import (
@@ -319,6 +320,7 @@ class AskWorkspaceQuestionUseCase:
         project_context_provider=None,
         enable_query_rewrite: bool | None = None,
         index_manifest_repository=None,
+        project_scan_repository=None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.embedding_provider = embedding_provider
@@ -360,6 +362,23 @@ class AskWorkspaceQuestionUseCase:
         # if the whole project provably fits the window we skip retrieval and feed
         # all files. None = feature disabled (plain retrieval, as before).
         self.index_manifest_repository = index_manifest_repository
+        # Optional latest scan, read only to tell the model which extensions it
+        # never saw. None = the sentence is simply absent, which is also what
+        # happens when nothing was skipped — an unknown blind spot and no blind
+        # spot look the same here on purpose: we only ever claim what we counted.
+        self.project_scan_repository = project_scan_repository
+
+    def _unread_files_note(self, workspace_id: str) -> str:
+        if self.project_scan_repository is None:
+            return ""
+        try:
+            scan = self.project_scan_repository.get_latest_scan(workspace_id)
+        except Exception:
+            # A missing or unreadable scan must never cost the person an answer.
+            return ""
+        if scan is None:
+            return ""
+        return unread_files_prompt_note(unread_files(scan.files))
 
     def _project_memory_section(self, workspace_id: str, query: str) -> str:
         section, _, _, _ = self._project_context(workspace_id, query)
@@ -454,6 +473,7 @@ class AskWorkspaceQuestionUseCase:
         attached_section = build_attached_documents_section(
             request.question, request.attached_documents
         )
+        unread_note = self._unread_files_note(request.workspace_id)
 
         def build(chunks: list[ContextSearchResult]) -> str:
             return build_workspace_question_prompt(
@@ -469,6 +489,7 @@ class AskWorkspaceQuestionUseCase:
                 # words. It is deliberately NOT part of retrieval: the same question
                 # returns the same chunks and the same citations for every role.
                 assistant_mode=assistant_mode,
+                unread_files_note=unread_note,
             )
 
         budget = chunk_token_budget(

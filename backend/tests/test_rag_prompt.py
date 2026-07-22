@@ -98,3 +98,35 @@ def test_rag_prompt_includes_skill_context_as_guidance_not_evidence() -> None:
     assert "- DevOps: Pay attention to Jenkins pipelines and deployment risks." in prompt
     assert "not project evidence" in prompt
     assert "Project claims must still come only from the provided context chunks" in prompt
+
+
+def test_the_prompt_states_what_was_never_indexed_when_something_was() -> None:
+    """A model cannot notice an absence: unindexed files leave no gap in what it
+    is handed. Only this sentence can make it say "that may live in a file I
+    never saw" instead of answering confidently from what happened to be there."""
+    note = (
+        "Note: 14 files with extensions .bicep, .ps1 were not indexed and are "
+        "invisible to you; say so if the question may depend on them."
+    )
+
+    prompt = build_workspace_question_prompt(
+        question="How is the API deployed?",
+        context_results=[_context(chunk_id="c1", source_path="README.md", content="Docs.")],
+        unread_files_note=note,
+    )
+
+    assert note in prompt
+    # Before the context, not after: it frames what follows rather than trailing it.
+    assert prompt.index(note) < prompt.index("Context chunks:")
+
+
+def test_the_prompt_says_nothing_when_nothing_was_skipped() -> None:
+    """Empty state is silence. A prompt that carries "0 files were skipped" spends
+    tokens telling the model that nothing happened."""
+    prompt = build_workspace_question_prompt(
+        question="How is the API deployed?",
+        context_results=[_context(chunk_id="c1", source_path="README.md", content="Docs.")],
+    )
+
+    assert "were not indexed" not in prompt
+    assert "invisible to you" not in prompt

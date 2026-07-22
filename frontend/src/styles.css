@@ -1709,6 +1709,9 @@ details.onboarding-guide-panel[open] > summary {
 .pu-summary-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-md); padding: 16px 18px; }
 .pu-summary-card p { margin: 6px 0 0; font-size: 15px; line-height: 1.6; color: var(--c-text); }
 .pu-summary-foot { font-size: 12px; color: var(--c-text-3); }
+/* The unread-files line. Quiet on purpose: it is a fact about coverage, not a
+   problem to fix, and colouring it amber would make every Azure repo look broken. */
+.pu-summary-card .pu-unread-note { font-size: 13px; color: var(--c-text-3); margin-top: 10px; }
 .pu-summary-card .pu-lead-line { font-size: 16px; line-height: 1.55; }
 .pu-lead-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
 .pu-lead-ask { background: none; border: 1px solid var(--c-accent); color: var(--c-accent); border-radius: 999px; padding: 6px 14px; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
@@ -6450,4 +6453,14 @@ a {
 .pi-role-note {
   font-size: 12px;
   color: var(--c-text-3);
+}
+
+/* Where everything is kept. The path is the point, so it gets the room; the
+   button is secondary because looking is the common case and opening is not. */
+.settings-data-folder { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.settings-data-path {
+  flex: 1 1 320px; min-width: 0; overflow-wrap: anywhere;
+  font-size: 12.5px; color: var(--c-text-2);
+  background: var(--c-surface-2); border: 1px solid var(--c-border);
+  border-radius: var(--r-sm); padding: 8px 10px;
 }

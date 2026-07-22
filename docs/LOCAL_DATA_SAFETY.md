@@ -43,6 +43,17 @@ pytest.ini
 
 They should not include `backend/.ai-workbench/`, virtual environments, frontend dependencies, build output, or SQLite databases.
 
+## Backing up: copy the folder
+
+Everything the app knows lives in one folder — projects, notes, chats and the
+search index — and **Settings → Where everything is kept → Open data folder**
+shows you exactly which one. To back it up, copy that folder; there is nothing to
+export, because the folder is already the real thing.
+
+Your notes and chats are the only part that cannot be recreated. The search index
+rebuilds itself from your own files whenever it is missing, so a backup that
+somehow lost it would cost you a rescan and nothing else.
+
 ## Backup before large updates
 
 ```bash

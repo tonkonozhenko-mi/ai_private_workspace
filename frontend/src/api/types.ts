@@ -156,6 +156,14 @@ export interface RecommendedBackend {
   ollama_reachable: boolean;
 }
 
+/** The one folder that holds everything this app knows about you. */
+export interface DataFolder {
+  path: string;
+  exists: boolean;
+  opened: boolean;
+  error: string;
+}
+
 export interface ProjectScanResponse {
   project_path: string;
   total_files: number;
@@ -164,6 +172,10 @@ export interface ProjectScanResponse {
   total_size_bytes: number;
   detected_skills: DetectedSkillResponse[];
   files: ProjectFileResponse[];
+  // Extensions the scan found and could not recognise: {".bicep": 12}. Absent on
+  // a response from an older backend, which is why it is optional rather than
+  // defaulted — no data is not the same as no skipped files.
+  unreadable_by_extension?: Record<string, number>;
 }
 
 export interface GitCommitResponse {
@@ -2035,6 +2047,9 @@ export interface GroupMemberOverview {
   contributors_count: number;
   commits_last_7_days: number;
   last_commit_subject: string | null;
+  /** Extensions this member's scan could not read: {".bicep": 12}. Per member,
+   *  never summed across the group — ".ps1 ×40" would not say where to look. */
+  unreadable_by_extension?: Record<string, number>;
 }
 
 export interface GroupOverviewResponse {
