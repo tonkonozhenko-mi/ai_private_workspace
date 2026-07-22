@@ -103,7 +103,7 @@ def test_the_microsoft_and_beam_extensions_are_read_now():
         _touch(root, "legacy/Form1.vb", "Public Class Form1")
         # .NET project files: XML that says what a service depends on, and the
         # solution manifest that says which projects exist.
-        _touch(root, "src/Api.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\" />")
+        _touch(root, "src/Api.csproj", '<Project Sdk="Microsoft.NET.Sdk" />')
         _touch(root, "App.sln", "Microsoft Visual Studio Solution File")
         _touch(root, "notes/thing.xyz", "who knows")
 
@@ -152,11 +152,34 @@ def test_only_images_are_known_but_unindexable():
 
     _ = _FS  # imported for symmetry with the module under test
     produced = {
-        "gitlab_ci", "github_actions", "terraform", "terragrunt", "python", "docker",
-        "helm", "kubernetes", "markdown", "yaml", "json", "shell", "sql", "source_code",
-        "config", "xml_config", "makefile", "tabular_data", "notebook", "word_document",
-        "excel_workbook", "presentation", "pdf_document", "diagram", "image", "html",
-        "plain_text", "unknown",
+        "gitlab_ci",
+        "github_actions",
+        "terraform",
+        "terragrunt",
+        "python",
+        "docker",
+        "helm",
+        "kubernetes",
+        "markdown",
+        "yaml",
+        "json",
+        "shell",
+        "sql",
+        "source_code",
+        "config",
+        "xml_config",
+        "makefile",
+        "tabular_data",
+        "notebook",
+        "word_document",
+        "excel_workbook",
+        "presentation",
+        "pdf_document",
+        "diagram",
+        "image",
+        "html",
+        "plain_text",
+        "unknown",
     }
     assert produced - set(INDEXABLE_FILE_TYPES) == {"image", "unknown"}
 

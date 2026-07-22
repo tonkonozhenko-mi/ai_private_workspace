@@ -17,6 +17,7 @@ from app.core.domain.context_budget import (
 from app.core.domain.conversation_budget import build_summary_prompt
 from app.core.domain.index_status import WorkspaceIndexStatus
 from app.core.domain.indexing import ContextSearchResult
+from app.core.domain.indexing_blind_spots import unread_files, unread_files_prompt_note
 from app.core.domain.instruction_split import retrieval_text
 from app.core.domain.llm_errors import ContextOverflowError, context_overflow_answer
 from app.core.domain.llm_usage import LLMUsageMetrics, build_llm_usage_metrics
@@ -30,7 +31,6 @@ from app.core.domain.rag import (
     SkillProfileAudit,
     WorkspaceQuestionAnswer,
 )
-from app.core.domain.indexing_blind_spots import unread_files, unread_files_prompt_note
 from app.core.domain.rag_answer_cleanup import strip_source_path_echo
 from app.core.domain.rag_answer_evaluator import evaluate_rag_answer
 from app.core.domain.rag_prompt import (
