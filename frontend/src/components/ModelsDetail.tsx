@@ -20,6 +20,8 @@ import {
   getLocalModelInstallGuide,
   getOllamaModelRecommendations,
   getLocalModelInstallStatus,
+  getOllamaPull,
+  startOllamaPull,
   deleteInstalledModel,
   getLocalModelDownloadWorkerPlan,
   getLocalModelDownloadExecutionCapability,
@@ -2483,6 +2485,43 @@ function GuidedModelSetupPanel({
           `${provider}/${model} is selected, installed, and ready for ${modelType === "llm" ? "Ask" : "context building"}.`,
         );
         return;
+      }
+
+      // Ask the Ollama daemon directly. No shell command, so this needs no
+      // execution permission and is not limited to the app's own catalog — the
+      // restriction that used to send people to a terminal for anything else.
+      // Only if the daemon cannot be reached do we fall back to the older
+      // command-proposal path, which still exists for the shell case.
+      try {
+        let pull = await startOllamaPull(model);
+        setInstallPercent(pull.progress_percent ?? 0);
+        setMessage(`Downloading ${provider}/${model}…`);
+        for (
+          let attempt = 0;
+          attempt < 2400 && !["succeeded", "failed", "cancelled"].includes(pull.status);
+          attempt += 1
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          try {
+            pull = await getOllamaPull(pull.id);
+          } catch {
+            break;
+          }
+          setInstallPercent(pull.progress_percent ?? null);
+          setMessage(pull.progress_message || `Downloading ${provider}/${model}…`);
+        }
+        if (pull.status === "succeeded") {
+          setMessage(
+            `${provider}/${model} installed and selected — ready for ${modelType === "llm" ? "Ask" : "context building"}.`,
+          );
+          return;
+        }
+        if (pull.status === "failed" && pull.error) {
+          setError(pull.error);
+          return;
+        }
+      } catch {
+        // Fall through to the older path below.
       }
 
       const draft = await createLocalModelInstallDraft({
