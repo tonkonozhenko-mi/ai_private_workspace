@@ -10,6 +10,7 @@ from app.adapters.llm.llama_server_reranker import LlamaServerReranker
 from app.adapters.system.gguf_download_job_runner import GgufDownloadJobRunner
 from app.adapters.system.huggingface_gguf_downloader import HuggingFaceGgufDownloader
 from app.adapters.system.llama_runtime_manager import LlamaRuntimeManager
+from app.adapters.system.ollama_pull_job_runner import OllamaPullJobRunner
 from app.adapters.system.local_git_history import LocalGitHistory
 from app.adapters.system.runtime_state_store import RuntimeStateStore
 from app.api._container_factories import (
@@ -147,6 +148,9 @@ _gguf_download_use_case = DownloadGgufModelUseCase(
     HuggingFaceGgufDownloader(), get_settings().app_data_dir
 )
 gguf_download_job_runner = GgufDownloadJobRunner(_gguf_download_use_case)
+# Downloading through the Ollama daemon: an HTTP fetch, deliberately not routed
+# through the shell-command machinery. See domain/model_download_boundary.py.
+ollama_pull_job_runner = OllamaPullJobRunner(base_url=get_settings().ollama_base_url)
 llama_runtime_manager = LlamaRuntimeManager(
     _gguf_download_use_case,
     host=get_settings().LLAMA_SERVER_HOST,
