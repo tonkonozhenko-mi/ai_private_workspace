@@ -95,6 +95,48 @@ boost → per-file caps → MMR diversity → optional cross-encoder rerank →
 parent-document expansion (±1 neighbours, budget-aware). It degrades to
 vector-only search if FTS is unavailable.
 
+## Context budget
+
+A local model has a fixed window — typically 8192 tokens on a laptop — and every
+part of the prompt competes for it. The allocation is deliberately *not* a set of
+per-category percentages, because a share reserved for project memory is spent
+even when there is no memory to put in it, and on an 8k window that is expensive.
+
+Only two things are reserved outright:
+
+| Reserved | Tokens | Why |
+| --- | ---: | --- |
+| Answer headroom | 768 | The model must have room to write. Discovering it does not, mid-sentence, is a truncated answer. |
+| Prompt scaffold | 900 | The fixed instructions and the per-chunk framing (`[n] source_path: …`). Constant regardless of the question. |
+
+Everything else is **measured, not reserved**: the project memory and handbook
+section, the conversation history, the question itself, and the role hint are
+counted at their real size. Whatever remains of the window goes to the retrieved
+chunks — with a floor of 600 characters, so a tiny window still gets *some*
+context rather than none.
+
+Two consequences worth knowing:
+
+- **A bloated section silently eats the answer's evidence.** Measured live: a
+  page of pasted standing instructions consumed 1,792 of 6,516 available tokens
+  — 28% of the window — and the retrieved chunks arrived shortened. This is why
+  `instruction_split` searches with the request rather than the whole message.
+- **Token counts are script-aware.** A Latin-trained tokenizer spends roughly one
+  token per 4 ASCII characters, but about one per 2 Cyrillic and one per CJK
+  character. Budgeting Ukrainian at 4 chars/token meant spending double what the
+  budget believed. The conversion back to a character budget uses the ratio
+  measured on the text actually in play, and where the engine exposes a real
+  tokenizer (llama.cpp `/tokenize`) that is preferred over the estimate.
+
+When no engine could report its window at all, the fallback is 4096 — the
+smallest any local model ships with, because under-estimating means sending less
+than fits, while over-estimating is the overflow this module exists to prevent.
+
+The numbers above are asserted against the constants in
+`backend/app/core/domain/context_budget.py` by
+`backend/tests/test_context_budget_is_documented.py`, so this table cannot
+quietly drift away from the code.
+
 ## Answer honesty
 
 Grounded answering is wrapped in deterministic honesty mechanisms:
