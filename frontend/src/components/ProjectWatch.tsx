@@ -4,6 +4,7 @@ import { getProjectWatch, summarizeProjectWatch } from "../api/client";
 import type { ProjectWatchDigest, WorkspaceDashboard } from "../api/types";
 import { useProjectRefresh } from "../hooks/useProjectRefresh";
 import { MAP_UNCHANGED_NOTE } from "../lib/refreshNotes";
+import { rescanLabel } from "../lib/rescanLabels";
 import { AreaChip } from "./AreaChip";
 
 const REFRESH_PHASE_LABEL: Record<string, string> = {
@@ -125,7 +126,7 @@ export function ProjectWatch({ dashboard }: { dashboard: WorkspaceDashboard }) {
           )}
         </div>
         <button type="button" className="pw-button" onClick={refresh} disabled={running}>
-          {running ? "Refreshing…" : "Refresh"}
+          {rescanLabel(running)}
         </button>
       </header>
 

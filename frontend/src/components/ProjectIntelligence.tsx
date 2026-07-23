@@ -23,6 +23,8 @@ import type {
   RoleBrief,
   WorkspaceDashboard,
 } from "../api/types";
+import { analyzersThatFound, readFromClause } from "../lib/analyzerSources";
+import { rescanLabel } from "../lib/rescanLabels";
 import { ProjectHandbook } from "./ProjectHandbook";
 import { ProjectMap } from "./ProjectMap";
 import { ProjectWatchHistory } from "./ProjectWatchHistory";
@@ -96,34 +98,9 @@ function rebuildNote(
   return same ? `Map rebuilt — same totals: ${counts}.` : `Map rebuilt — ${counts}.`;
 }
 
-/** The analyzers, in the words of the things they read.
- *
- * The line under the map used to be "from: terraform, github_actions, python,
- * references, documentation, tests, javascript, api, ownership" — nine machine names,
- * addressed to a person. What a reader wants to know is which of their own files were
- * read, so that is what it says. */
-const ANALYZER_SOURCES: Record<string, string> = {
-  terraform: "Terraform files",
-  terragrunt: "Terragrunt files",
-  kubernetes: "Kubernetes manifests",
-  helm: "Helm charts",
-  github_actions: "GitHub Actions workflows",
-  gitlab_ci: "GitLab CI files",
-  python: "Python code",
-  javascript: "JavaScript and TypeScript code",
-  sql: "SQL files",
-  tests: "tests",
-  api: "API definitions",
-  documentation: "documents",
-  references: "links and references",
-  ownership: "git history",
-};
-
-function readFrom(analyzers: string[]): string {
-  const sources = [...new Set(analyzers.map((a) => ANALYZER_SOURCES[a] ?? a.replace(/_/g, " ")))];
-  if (sources.length <= 2) return sources.join(" and ");
-  return `${sources.slice(0, -1).join(", ")} and ${sources[sources.length - 1]}`;
-}
+// The "read from your …" clause now lives in lib/analyzerSources.ts, and lists
+// the analyzers that FOUND something rather than the ones that ran — see the bug
+// it fixes there.
 
 const SECTION_LABELS: Record<string, string> = {
   summary: "Overview",
@@ -218,6 +195,10 @@ export function ProjectIntelligence({
   const [role, setRole] = useState<string>(dashboard.assistant_mode || "developer");
   const [activeTab, setActiveTab] = useState<string>("summary");
   const [stale, setStale] = useState(false);
+  // The paths in the current scan, so a risk pointing at a file that has moved
+  // out from under it can be marked rather than left asserting a stale path.
+  // null until loaded — an unloaded scan is not evidence a file is gone.
+  const [livePaths, setLivePaths] = useState<ReadonlySet<string> | null>(null);
   // What the last action actually did. Rebuilding an unchanged project produces an
   // identical map — the correct answer, and one that looked exactly like a button
   // that does nothing.
@@ -269,6 +250,23 @@ export function ProjectIntelligence({
     load(role);
     return () => abortRef.current?.abort();
   }, [load, role]);
+
+  // The current scan's file paths, so a finding whose file has moved can be
+  // marked. Best-effort: a failure just leaves livePaths null, which reads as
+  // "unknown" everywhere and marks nothing.
+  useEffect(() => {
+    let cancelled = false;
+    getWorkspaceLatestScan(workspaceId)
+      .then((scan) => {
+        if (!cancelled) setLivePaths(new Set((scan?.files ?? []).map((f) => f.path)));
+      })
+      .catch(() => {
+        if (!cancelled) setLivePaths(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId, data]);
 
   // Keep in sync if the role is changed elsewhere (e.g. Settings).
   useEffect(() => {
@@ -335,6 +333,11 @@ export function ProjectIntelligence({
   const hasMap = Boolean(graph && graph.nodes.length > 0);
   const hasCloud = Boolean(cloud && cloud.total_services > 0);
   const hasReferences = Boolean(references && references.total > 0);
+
+  // "read from your …" must name the analyzers that FOUND something, not the
+  // ones that ran — every analyzer runs on every project. Derived from the graph
+  // nodes, which each carry the analyzer that produced them.
+  const readFromFound = readFromClause(analyzersThatFound(graph?.nodes));
 
   const security = useMemo(() => {
     const scanners = graph
@@ -494,12 +497,12 @@ export function ProjectIntelligence({
               reading it feels like a verdict. Say what WAS analyzed instead. */}
           <p className="pi-built-meta">
             {data.snapshot ? `Last analyzed ${relativeTime(data.snapshot.created_at)}` : ""}
-            {view.analyzers_run.length > 0 ? ` · read from your ${readFrom(view.analyzers_run)}` : ""}
+            {readFromFound ? ` · read from your ${readFromFound}` : ""}
             {" · "}
             {/* The rebuild lives here, in the line that says how old the map is —
                 next to the only fact that makes a person want it. */}
             <button type="button" className="pi-link" onClick={handleBuild} disabled={building}>
-              {building ? "Re-reading the files…" : "Re-read the files"}
+              {rescanLabel(building)}
             </button>
           </p>
 
@@ -584,6 +587,7 @@ export function ProjectIntelligence({
             {activeTab === "risks" ? (
               <RisksSection
                 view={view}
+                livePaths={livePaths}
                 onInspectFile={onInspectFile}
                 onAskQuestion={onAskQuestion}
               />

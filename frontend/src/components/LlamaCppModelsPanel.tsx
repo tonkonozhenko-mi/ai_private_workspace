@@ -891,8 +891,11 @@ export function LlamaCppModelsPanel({
 
         {searchMessage ? <p className="gr-llama-note gr-llama-note--left">{searchMessage}</p> : null}
 
+        {/* Results scroll inside a fixed height instead of pushing the whole
+            page down — a search for "qwen3 0.6b" used to unroll twenty rows and
+            bury the download button below them. */}
         {searchResults.length > 0 ? (
-          <ul className="gr-model-search">
+          <ul className="gr-model-search gr-model-scroll">
             {searchResults.map((result) => (
               <li key={result.repo_id} className="gr-model-search-row">
                 <div className="gr-model-search-name">
@@ -919,7 +922,7 @@ export function LlamaCppModelsPanel({
               The same model, built at different sizes. The first one is what we
               would pick.
             </p>
-            <ul className="gr-model-search">
+            <ul className="gr-model-search gr-model-scroll">
               {candidates.map((candidate) => (
                 <li
                   key={candidate.filename}
@@ -953,6 +956,29 @@ export function LlamaCppModelsPanel({
                 </li>
               ))}
             </ul>
+            {/* The chosen build and the download button, together, pinned under
+                the list — so the size you picked and the button you press are
+                never separated by a scroll. */}
+            {chosenFile ? (
+              <div className="gr-model-chosen">
+                <span className="gr-model-chosen-name">
+                  {(() => {
+                    const c = candidates.find((x) => x.filename === chosenFile);
+                    if (!c) return chosenFile;
+                    const size = c.size_bytes > 0 ? ` · ${(c.size_bytes / 1024 ** 3).toFixed(1)} GB` : "";
+                    return `${c.quantization || c.filename}${size}`;
+                  })()}
+                </span>
+                <button
+                  type="button"
+                  className="gr-check-use"
+                  disabled={customBusy}
+                  onClick={() => void addCustomModel()}
+                >
+                  {customBusy ? "Working…" : "Download & use"}
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
 

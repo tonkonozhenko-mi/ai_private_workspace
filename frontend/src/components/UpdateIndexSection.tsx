@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { previewChangedWorkspace, reindexChangedWorkspace } from "../api/client";
 import type { WorkspaceIndexChangePreviewResponse } from "../api/types";
+import { rescanLabel } from "../lib/rescanLabels";
 
 function dayKey(): string {
   const d = new Date();
@@ -133,7 +134,7 @@ export function UpdateIndexSection({ workspaceId }: { workspaceId: string }) {
       ) : null}
       <div className="settings-clean-actions">
         <button className="primary-button" type="button" disabled={busy} onClick={() => void update()}>
-          {busy ? "Updating…" : "Update index (changed files)"}
+          {rescanLabel(busy)}
         </button>
       </div>
       <label className="settings-inline-check">
