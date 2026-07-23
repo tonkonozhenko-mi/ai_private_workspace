@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { deviceNoun } from "../lib/deviceName";
 import { formatModelLabel } from "../lib/modelLabel";
+import { recheckEngineLabel } from "../lib/rescanLabels";
 
 import {
   archiveAgentWorkflow,
@@ -934,7 +935,7 @@ function RuntimeNextActionPanel({
             disabled={actionBusy !== null}
             onClick={() => void recheckRuntime()}
           >
-            {actionBusy === "recheck" ? "Checking…" : "Re-check runtime"}
+            {recheckEngineLabel(actionBusy === "recheck")}
           </button>
         </div>
         {actionMessage ? <p className="model-selection-message">{actionMessage}</p> : null}
@@ -969,7 +970,7 @@ function RuntimeNextActionPanel({
             {isRunning ? "Building context…" : isDone ? "Context built" : "Build context now"}
           </button>
           <button className="secondary-action" type="button" onClick={() => void recheckRuntime()}>
-            Re-check runtime
+            {recheckEngineLabel(false)}
           </button>
         </div>
         {contextBuildJob?.message ? (
@@ -990,7 +991,7 @@ function RuntimeNextActionPanel({
           Ready — answers use your local project context.
         </span>
         <button className="runtime-ready-recheck" type="button" onClick={() => void recheckRuntime()}>
-          {actionBusy === "recheck" ? "Checking…" : "Re-check"}
+          {recheckEngineLabel(actionBusy === "recheck")}
         </button>
         {actionMessage ? <p className="model-selection-message">{actionMessage}</p> : null}
         {actionError ? <p className="model-selection-error">{actionError}</p> : null}
@@ -1027,7 +1028,7 @@ function RuntimeNextActionPanel({
           </button>
         ) : null}
         <button className="secondary-action" type="button" onClick={() => void recheckRuntime()}>
-          Re-check runtime
+          {recheckEngineLabel(false)}
         </button>
       </div>
       {actionMessage ? <p className="model-selection-message">{actionMessage}</p> : null}

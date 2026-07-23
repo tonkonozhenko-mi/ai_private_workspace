@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { formatModelLabel } from "../lib/modelLabel";
 import { unreadFilesNote } from "../lib/unreadFiles";
+import { projectSummaryLine } from "../lib/projectSummaryLine";
 import { hasUserInteracted } from "../lib/userInteraction";
 
 // models_summary.selected_llm is a provider-qualified id like
@@ -1160,14 +1161,11 @@ export function ProjectUnderstanding({
       <div className="pu-summary-card">
         <span className="pu-eyebrow">What this project is</span>
         <p className="pu-lead-line">
-          {summaryLine}
-          {git
-            ? ` ${git.total_commits.toLocaleString()} ${
-                git.total_commits === 1 ? "commit" : "commits"
-              } by ${git.contributors_count} ${
-                git.contributors_count === 1 ? "person" : "people"
-              }${git.commits_last_7_days > 0 ? `, ${git.commits_last_7_days} this week` : ""}.`
-            : ""}
+          {/* The git clause is joined here rather than concatenated inline: on a
+              four-file project with no commits, the old code printed "0 commits
+              by 0 people", three zeros that are the shape of a sentence with
+              nothing in it. gitSummaryClause drops the whole clause instead. */}
+          {projectSummaryLine(summaryLine, git)}
         </p>
         {/* What the scan walked past. A line, not a banner — the same register as
             the rest of the honest negatives here. Absent entirely when nothing was

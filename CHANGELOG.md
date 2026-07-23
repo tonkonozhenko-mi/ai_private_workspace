@@ -7,6 +7,22 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **Adding a model is now a form, not a scroll.** Search results and the list of a model's builds each scroll inside a fixed height instead of unrolling down the page, and the build you picked sits pinned next to the download button with its size — so "Q4_K_M · 378 MB → Download & use" is one glance, not a hunt below twenty rows.
+
+- **One word for "make it current", not four.** Four buttons across the app said the same idea four ways — Refresh, Re-check, "Update index (changed files)", "Re-read the files". They are now two, each naming what it acts on: **Re-check engine** for the engine probe, **Rescan changed files** for re-reading your project. Nobody has to remember which word meant which.
+
+### Fixed
+
+- **The map no longer claims to have read files it never saw.** On a project with no JavaScript, the Intelligence header could still say it "read from your JavaScript and TypeScript code" — it was listing the analyzers that ran, and an analyzer runs on every project. It now lists only the ones that actually found something.
+
+- **"0 commits by 0 people" is gone.** A folder that was never a git repository, or a fresh one with no history, no longer shows a row of zeros where a commit summary would be. When there is no git story, the app says nothing rather than inventing the absence of one.
+
+- **A risk that points at a moved file admits it.** When a file moves — say from `src/` to `infra/` — a risk built before the move used to keep naming the old path, so the risk panel and the file map disagreed about the same project. Such a finding is now dimmed and marked "file moved" until the next rescan rebuilds the map.
+
+- **On a small project, Home no longer leaves a lonely card beside a void.** The right column was sized for a large project; on a four-file one it held a single Architecture card and empty space. The grid now collapses the empty track, so one card takes the width.
+
 ## [0.7.4] - 2026-07-22
 
 ### Added

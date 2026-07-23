@@ -14,6 +14,7 @@ import type {
   ProjectReferences,
   RoleBrief,
 } from "../api/types";
+import { findingFileState, type FindingFileState } from "../lib/findingFileState";
 import { SCANNER_RE } from "./projectIntelligenceShared";
 
 const REFERENCE_KIND_LABELS: Record<string, string> = {
@@ -597,10 +598,15 @@ export function RoleDashboardBrief({
 
 export function RisksSection({
   view,
+  livePaths,
   onInspectFile,
   onAskQuestion,
 }: {
   view: ProjectIntelligenceView;
+  // Paths in the current scan. A finding whose file is not here has moved or
+  // been removed since the map was built, and is marked rather than left
+  // asserting a stale path. null = scan not loaded, so nothing is marked.
+  livePaths?: ReadonlySet<string> | null;
   onInspectFile?: (path: string) => void;
   onAskQuestion?: (question: string) => void;
 }) {
@@ -627,6 +633,7 @@ export function RisksSection({
             key={f.id}
             finding={f}
             roleRelevant={highlighted.has(f.category)}
+            fileState={findingFileState(f.source_file, livePaths)}
             onInspectFile={onInspectFile}
             onAskQuestion={onAskQuestion}
           />
@@ -641,11 +648,13 @@ export function RisksSection({
 function FindingItem({
   finding,
   roleRelevant = false,
+  fileState = "present",
   onInspectFile,
   onAskQuestion,
 }: {
   finding: ProjectGraphFinding;
   roleRelevant?: boolean;
+  fileState?: FindingFileState;
   onInspectFile?: (path: string) => void;
   onAskQuestion?: (question: string) => void;
 }) {
@@ -653,14 +662,23 @@ function FindingItem({
   const hasEvidence = finding.evidence.length > 0 || Boolean(finding.source_file);
   const ex = finding.explained;
   const where = ex?.where ?? finding.source_file;
+  // The file this finding named has moved or gone since the map was built. Dim
+  // the finding and say so, rather than let it assert a path the project no
+  // longer has — the map and the risk panel telling one story about the project.
+  const moved = fileState === "gone";
   return (
-    <li className={`pi-finding${roleRelevant ? " is-role-relevant" : ""}`}>
+    <li className={`pi-finding${roleRelevant ? " is-role-relevant" : ""}${moved ? " is-moved" : ""}`}>
       <div className="pi-finding-head">
         <span className={`pi-severity pi-severity-${finding.severity}`}>
           {ex?.attention ?? finding.severity}
         </span>
         <span className="pi-finding-title">{finding.title}</span>
         {roleRelevant ? <span className="pi-finding-roletag">For your role</span> : null}
+        {moved ? (
+          <span className="pi-finding-moved" title="This file has moved or been removed since the map was built. Rescan to refresh.">
+            file moved
+          </span>
+        ) : null}
       </div>
 
       <p className="pi-finding-explain">{ex?.what || finding.explanation}</p>
