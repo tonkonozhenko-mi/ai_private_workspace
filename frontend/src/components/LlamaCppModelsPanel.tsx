@@ -582,12 +582,32 @@ export function LlamaCppModelsPanel({
         setError("Download did not finish. Check the repo and filename, then retry.");
         return;
       }
-      const status = await switchLlamaRuntimeLlm({ repo_id: repo, filename: file });
-      setRuntime(status);
-      await applyWorkspaceSelection(key);
+      // "Download & use" must actually use it: switch through the SAME path as
+      // the "Use this model" button, so the two can never drift. Pull the fresh
+      // catalog, find the model we just downloaded, and hand it to useModel —
+      // that switches by the real catalog id and notifies the parent, which the
+      // old inline switch (a synthetic repo/file key) did not, so the workspace
+      // stayed on the previous answer model. If the switch fails, useModel
+      // surfaces the error in words and leaves the model Downloaded — nothing
+      // is rolled back.
+      const catalog = (await getGgufCatalog()).filter(
+        (m) => m.model_type !== "reranker",
+      );
+      setModels(catalog);
+      const downloaded =
+        catalog.find((m) => m.repo_id === repo && m.filename === file) ??
+        catalog.find((m) => m.id === key);
       setCustomRepo("");
       setCustomFile("");
-      await refreshCatalog();
+      if (downloaded) {
+        await useModel(downloaded);
+      } else {
+        // Not in the catalog yet (should not happen after a success): fall back
+        // to the direct switch so the click still does something honest.
+        const status = await switchLlamaRuntimeLlm({ repo_id: repo, filename: file });
+        setRuntime(status);
+        await applyWorkspaceSelection(key);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not add that model.");
     } finally {
