@@ -469,7 +469,12 @@ def resolve_gguf(request: ResolveGgufRequest) -> ResolveGgufResponse:
     repo = request.repo_id.strip().strip("/")
     try:
         response = httpx.get(
-            f"https://huggingface.co/api/models/{repo}",
+            # blobs=true is what makes Hugging Face include per-file sizes in
+            # `siblings`. Without it every quantization row said "size unknown",
+            # which defeats the whole point of choosing a size before paying the
+            # download. (Found live on 0.7.4: unsloth/Qwen3-0.6B-GGUF listed 20+
+            # quants, all unknown; with the parameter each one has exact bytes.)
+            f"https://huggingface.co/api/models/{repo}?blobs=true",
             timeout=20,
             follow_redirects=True,
         )
