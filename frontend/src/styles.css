@@ -6496,8 +6496,13 @@ a {
 }
 
 /* Search results and build lists scroll inside about five rows, so choosing a
-   model does not unroll the whole page and bury the download button. */
-.gr-model-scroll { max-height: 232px; overflow-y: auto; }
+   model does not unroll the whole page and bury the download button. Five rows
+   (not three) means a typical result set fits without scrolling at all, so the
+   wheel lands on the page under the cursor instead of being eaten by a short
+   inner list. overscroll-behavior is deliberately left unset: the default lets
+   the page keep scrolling once the inner list reaches its edge; `contain` would
+   trap the wheel inside the list, which is the opposite of what we want. */
+.gr-model-scroll { max-height: 300px; overflow-y: auto; }
 /* The chosen build + Download, pinned under the list. Sticky so it stays in
    view while the list above scrolls. */
 .gr-model-chosen {

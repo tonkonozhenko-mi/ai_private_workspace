@@ -7,6 +7,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.7.5] - 2026-07-23
+
 ### Changed
 
 - **Adding a model is now a form, not a scroll.** Search results and the list of a model's builds each scroll inside a fixed height instead of unrolling down the page, and the build you picked sits pinned next to the download button with its size — so "Q4_K_M · 378 MB → Download & use" is one glance, not a hunt below twenty rows.
@@ -14,6 +16,10 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 - **One word for "make it current", not four.** Four buttons across the app said the same idea four ways — Refresh, Re-check, "Update index (changed files)", "Re-read the files". They are now two, each naming what it acts on: **Re-check engine** for the engine probe, **Rescan changed files** for re-reading your project. Nobody has to remember which word meant which.
 
 ### Fixed
+
+- **"Download & use" now uses the model, not just downloads it.** Finding a model by name, picking a build, and pressing "Download & use" fetched the file and restarted the engine — on the model you already had. The new one arrived in your list marked "Downloaded", one more click short of what the button had promised. It now switches the workspace to the model you just chose, along the same path the "Use this model" button takes, so the two can never disagree about what "use" means. If the engine cannot come up on the new model, it stays downloaded and the reason is shown in words — nothing is silently undone.
+
+- **The build list no longer swallows the wheel.** A model's list of builds was short enough that scrolling landed inside it while the page under the cursor stood still. It now shows about five builds at once, so a typical repository's builds fit without scrolling at all and the wheel reaches the page.
 
 - **The map no longer claims to have read files it never saw.** On a project with no JavaScript, the Intelligence header could still say it "read from your JavaScript and TypeScript code" — it was listing the analyzers that ran, and an analyzer runs on every project. It now lists only the ones that actually found something.
 
@@ -1410,7 +1416,8 @@ model setup, safe model-download drafts, Agent/MCP planning UX, and the macOS +
 Tauri packaging foundation. See
 [docs/V01_RELEASE_NOTES.md](docs/V01_RELEASE_NOTES.md) for the full list.
 
-[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.4...HEAD
+[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.5...HEAD
+[0.7.5]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.4...v0.7.5
 [0.7.4]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.1...v0.7.2
