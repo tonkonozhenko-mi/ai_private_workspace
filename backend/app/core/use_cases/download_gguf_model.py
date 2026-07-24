@@ -34,19 +34,51 @@ class GgufModelNotResolvedError(ValueError):
     pass
 
 
+def _split_custom_model_id(model_id: str) -> tuple[str, str] | None:
+    """A custom model's id is ``f"{repo_id}/{filename}"`` (see below), e.g.
+    ``unsloth/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q4_K_M.gguf``. Split it back into
+    (repo_id, filename) so a custom model referenced by id alone can be
+    re-resolved — the workspace selection stores only this one string, and the
+    engine-start path passes it as ``model_id``. Without this, a custom answer
+    model chosen in a workspace could not be resolved on re-activation (it is not
+    in the static catalog), so ``set_llm_ref`` silently failed and the engine
+    fell back to the recommended default. The filename is the last path segment
+    and always ends in ``.gguf``; the repo_id ("owner/name") is everything before
+    it. Catalog ids ("qwen3-4b", "qwen2.5-coder:7b") never end in ``.gguf``, so
+    this cannot mistake one for a custom model.
+    """
+    stripped = (model_id or "").strip()
+    if "/" not in stripped or not stripped.lower().endswith(".gguf"):
+        return None
+    repo_id, _, filename = stripped.rpartition("/")
+    if not repo_id or not filename:
+        return None
+    return repo_id, filename
+
+
 def resolve_gguf_model(ref: GgufModelRef) -> GgufModel:
+    repo_id = ref.repo_id
+    filename = ref.filename
     if ref.model_id:
         model = find_gguf_model(ref.model_id)
         if model is not None:
             return model
-    if ref.repo_id and ref.filename:
-        # Custom model pasted by an advanced user: build a one-off entry.
+        # Not a catalog id — it may be a custom model's composite id. Recover the
+        # repo/file so the one-off entry below can rebuild it (unless an explicit
+        # repo_id/filename was already given, which wins).
+        if not (repo_id and filename):
+            split = _split_custom_model_id(ref.model_id)
+            if split is not None:
+                repo_id, filename = split
+    if repo_id and filename:
+        # Custom model (pasted, searched by name, or persisted per-workspace):
+        # build a one-off entry.
         return GgufModel(
-            id=f"{ref.repo_id}/{ref.filename}",
-            name=ref.filename,
+            id=f"{repo_id}/{filename}",
+            name=filename,
             model_type="llm",
-            repo_id=ref.repo_id,
-            filename=ref.filename,
+            repo_id=repo_id,
+            filename=filename,
             quantization="custom",
             size_bytes=0,
         )
