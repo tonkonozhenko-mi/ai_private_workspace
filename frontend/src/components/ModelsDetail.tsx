@@ -67,6 +67,7 @@ import type {
   GuidedModelSetupSection,
   LocalAIActivationGuide,
   LocalModelInstallDraft,
+  LlamaRuntimeStatus,
   LocalModelInstallGuide,
   LocalModelStatusItem,
   OllamaModelRecommendationGuide,
