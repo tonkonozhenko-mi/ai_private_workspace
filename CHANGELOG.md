@@ -7,6 +7,14 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.7.6] - 2026-07-24
+
+### Fixed
+
+- **Switching your answer model now actually switches it.** Choosing a model by name and pressing "Use this model" (or "Download & use") updated the workspace's setting but left the engine answering with the previous model — so three places disagreed: the setup card named the model you picked, while the "In use" badge and the answers themselves still came from the old one. The cause was that a model found by search or pasted from Hugging Face is remembered by its full address (`owner/repo/file.gguf`), and the code that starts the engine could not turn that address back into a model to load, so it quietly fell back to the recommended default. It can now, so the engine comes up on the model you chose, and switching is a single action with no manual "Start engine" in the middle.
+
+- **The "Models used by this workspace" card tells the truth.** It read the saved setting, which is a statement of intent, not of fact. It now reflects what the built-in engine is actually holding while it runs, so it can never claim a model the engine has not switched to.
+
 ## [0.7.5] - 2026-07-23
 
 ### Changed
@@ -1416,7 +1424,8 @@ model setup, safe model-download drafts, Agent/MCP planning UX, and the macOS +
 Tauri packaging foundation. See
 [docs/V01_RELEASE_NOTES.md](docs/V01_RELEASE_NOTES.md) for the full list.
 
-[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.5...HEAD
+[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.6...HEAD
+[0.7.6]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.5...v0.7.6
 [0.7.5]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.4...v0.7.5
 [0.7.4]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.2...v0.7.3

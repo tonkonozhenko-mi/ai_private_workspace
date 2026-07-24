@@ -17,6 +17,7 @@ import {
   getAgentWorkflowExecutionReadiness,
   getFirstLaunchReadiness,
   getGgufCatalog,
+  getLlamaRuntimeStatus,
   getGuidedModelSetup,
   getLocalModelInstallGuide,
   getOllamaModelRecommendations,
@@ -129,6 +130,26 @@ export function ModelsDetail({
   onGetWorkspaceJob,
 }: ModelsDetailProps) {
   const usage = dashboard.usage_plan;
+  // The dashboard's "active" model is a configuration string; the only truth
+  // about which answer/search model the built-in engine is actually holding is
+  // the live runtime status. Read it so CURRENT SETUP reports what is really
+  // running, not what the config believes — the two can disagree while a switch
+  // is settling, and the card must not claim a model the engine isn't serving.
+  const [llamaRuntime, setLlamaRuntime] = useState<LlamaRuntimeStatus | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void getLlamaRuntimeStatus()
+      .then((status) => {
+        if (!cancelled) setLlamaRuntime(status);
+      })
+      .catch(() => {
+        if (!cancelled) setLlamaRuntime(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Re-read whenever the dashboard is refreshed (e.g. after a model switch).
+  }, [dashboard]);
   const llmOptions = useMemo(
     () =>
       buildModelOptions({
@@ -310,6 +331,32 @@ export function ModelsDetail({
     await onSelectionUpdated();
   }
 
+  // What CURRENT SETUP shows: the live engine's model when the built-in engine
+  // is actually running and this workspace uses it — that is the model really
+  // answering — otherwise the saved selection (or the config's active model).
+  // This keeps the card from claiming a model the engine has not switched to.
+  const engineIsLive = Boolean(llamaRuntime?.running);
+  const workspaceUsesLlamaLlm =
+    dashboard.selected_llm_provider === "llamacpp" ||
+    (!dashboard.selected_llm_provider && usage.active_llm_provider === "llamacpp");
+  const workspaceUsesLlamaEmbed =
+    dashboard.selected_embedding_provider === "llamacpp" ||
+    (!dashboard.selected_embedding_provider && usage.active_embedding_provider === "llamacpp");
+  const liveAnswerModel =
+    engineIsLive && workspaceUsesLlamaLlm && llamaRuntime?.active_llm_model
+      ? { provider: "llamacpp", model: llamaRuntime.active_llm_model }
+      : {
+          provider: dashboard.selected_llm_provider ?? usage.active_llm_provider,
+          model: dashboard.selected_llm_model ?? usage.active_llm_model,
+        };
+  const liveSearchModel =
+    engineIsLive && workspaceUsesLlamaEmbed && llamaRuntime?.active_embedding_model
+      ? { provider: "llamacpp", model: llamaRuntime.active_embedding_model }
+      : {
+          provider: dashboard.selected_embedding_provider ?? usage.active_embedding_provider,
+          model: dashboard.selected_embedding_model ?? usage.active_embedding_model,
+        };
+
   return (
     <div className="models-detail models-detail-simple">
       <div className="models-overview-top">
@@ -322,15 +369,15 @@ export function ModelsDetail({
         <div className="models-simple-grid">
           <SimpleModelCard
             label="AI answer model"
-            provider={dashboard.selected_llm_provider ?? usage.active_llm_provider}
-            model={dashboard.selected_llm_model ?? usage.active_llm_model}
+            provider={liveAnswerModel.provider}
+            model={liveAnswerModel.model}
             description="Used when you ask questions."
             status={usage.can_ask_with_selected_llm ? "Ready" : "Needs setup"}
           />
           <SimpleModelCard
             label="Search context model"
-            provider={dashboard.selected_embedding_provider ?? usage.active_embedding_provider}
-            model={dashboard.selected_embedding_model ?? usage.active_embedding_model}
+            provider={liveSearchModel.provider}
+            model={liveSearchModel.model}
             description="Used to build and search local project context."
             status={getSearchContextStatusLabel(dashboard)}
           />
