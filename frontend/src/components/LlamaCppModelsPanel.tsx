@@ -197,6 +197,10 @@ export function LlamaCppModelsPanel({
   // never send the request — so the confirm lives in the UI instead.
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const pollers = useRef<Record<string, number>>({});
+  // True while an action (switch/start/add) is optimistically updating the
+  // engine status, so the background refresh below never clobbers it mid-flight.
+  const runtimeBusyRef = useRef(false);
+  runtimeBusyRef.current = starting || switchingId !== null || customBusy;
 
   // The setup flow advances only when the user clicks "Continue" below — never
   // automatically on mount — so picking "llama" shows this panel instead of
@@ -230,6 +234,25 @@ export function LlamaCppModelsPanel({
       cancelled = true;
       Object.values(active).forEach((id) => window.clearInterval(id));
     };
+  }, []);
+
+  // Keep the engine status honest without an action. The mount fetch above can
+  // race the backend's own async engine activation (opening a workspace brings
+  // the engine up in the background), so the first read may say "stopped" and
+  // then never correct — the panel showed "Start engine" for a running engine
+  // until you clicked something. A light background refresh heals that; it is
+  // skipped while an action is optimistically updating the status so it never
+  // clobbers an in-flight switch/start.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (runtimeBusyRef.current) return;
+      getLlamaRuntimeStatus()
+        .then((status) => setRuntime(status))
+        .catch(() => {
+          /* transient; the next tick tries again */
+        });
+    }, 4000);
+    return () => window.clearInterval(id);
   }, []);
 
   const poll = useCallback(

@@ -7,6 +7,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.7.8] - 2026-07-24
+
+### Fixed
+
+- **The setup panel no longer shows a stale "Start engine" for a running engine.** Its engine status was read once when the panel opened, which could race the background engine start that happens when you open a workspace — so the panel said "Start engine" while the top card correctly reported the engine as running, until you clicked something. The panel now refreshes its own status and corrects within a few seconds.
+
 ## [0.7.7] - 2026-07-24
 
 ### Fixed
@@ -1432,7 +1438,8 @@ model setup, safe model-download drafts, Agent/MCP planning UX, and the macOS +
 Tauri packaging foundation. See
 [docs/V01_RELEASE_NOTES.md](docs/V01_RELEASE_NOTES.md) for the full list.
 
-[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.7...HEAD
+[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.8...HEAD
+[0.7.8]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.7...v0.7.8
 [0.7.7]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.6...v0.7.7
 [0.7.6]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.5...v0.7.6
 [0.7.5]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.4...v0.7.5
