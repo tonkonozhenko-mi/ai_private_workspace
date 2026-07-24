@@ -338,9 +338,7 @@ class LlamaRuntimeManager:
         # is a lie the process never loaded — so the badge, the setup card and the
         # answer signature must all read from the running model, never the ref.
         active_llm = (self._llm_running_model or llm_model).id if running else llm_model.id
-        active_embed = (
-            (self._embed_running_model or embed_model).id if running else embed_model.id
-        )
+        active_embed = (self._embed_running_model or embed_model).id if running else embed_model.id
         return {
             "binary_available": binary is not None,
             "binary_path": str(binary) if binary is not None else None,
@@ -550,9 +548,7 @@ class LlamaRuntimeManager:
                         self._llm_running_model = previous_model
                     except (LlamaRuntimeError, LlamaServerStartError):
                         self._llm = None  # previous also failed; engine honestly down
-                raise LlamaRuntimeError(
-                    f"Could not start {model.name}: {exc}"
-                ) from exc
+                raise LlamaRuntimeError(f"Could not start {model.name}: {exc}") from exc
             self._llm_model = model
             self._llm_running_model = model
             # Special case: "Use this model" on a stopped engine. The answer
