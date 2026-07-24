@@ -25,6 +25,7 @@ import type {
   ModelSearchResultItem,
 } from "../api/types";
 import { chooseGgufFile, isRunningInsideTauri } from "../desktopRuntime";
+import { modelSwitchErrorMessage } from "../lib/modelSwitchError";
 
 function formatGb(bytes: number): string {
   if (!bytes) return "";
@@ -432,6 +433,9 @@ export function LlamaCppModelsPanel({
       if (status.running) {
         await applyWorkspaceSelection(effectiveLlm?.id ?? status.active_llm_model ?? "");
         await refreshCatalog();
+        // Let the parent refresh its dashboard so CURRENT SETUP reflects the
+        // now-running model instead of a stale one.
+        await onSelectionUpdated?.();
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not start the engine.");
@@ -467,7 +471,7 @@ export function LlamaCppModelsPanel({
       await refreshCatalog();
       await onSelectionUpdated?.();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not switch the answer model.");
+      setError(modelSwitchErrorMessage(e, "answer"));
     } finally {
       setSwitchingId(null);
     }
@@ -495,7 +499,7 @@ export function LlamaCppModelsPanel({
       await onSelectionUpdated?.();
       setNotice(`${model.name} is now your search model. Rebuild the project's search context to use it.`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not switch the search model.");
+      setError(modelSwitchErrorMessage(e, "search"));
     } finally {
       setSwitchingId(null);
     }
@@ -694,6 +698,16 @@ export function LlamaCppModelsPanel({
     // delete action.
     const canExpand = interactive && installed;
     const expanded = expandedId === model.id;
+    // Answer models can be picked even when the engine is stopped (the click
+    // brings the engine up on this model); search models need it running.
+    const engineRunning = Boolean(runtime?.running);
+    const canUseThisModel = interactive && (engineRunning || kind === "llm");
+    const useButtonLabel =
+      switchingId !== model.id
+        ? "Use this model"
+        : kind === "llm" && !engineRunning
+          ? "Starting…"
+          : "Switching…";
     const nameContent = (
       <>
         {model.name}
@@ -735,7 +749,7 @@ export function LlamaCppModelsPanel({
         ) : active ? (
           <span className="gr-check-state gr-check-state--on">In use</span>
         ) : installed ? (
-          interactive && runtime?.running ? (
+          canUseThisModel ? (
             <button
               type="button"
               className="gr-check-use"
@@ -744,7 +758,7 @@ export function LlamaCppModelsPanel({
                 void (kind === "llm" ? useModel(model) : useEmbeddingModel(model))
               }
             >
-              {switchingId === model.id ? "Switching…" : "Use this model"}
+              {useButtonLabel}
             </button>
           ) : (
             <span className="gr-check-state">Downloaded</span>

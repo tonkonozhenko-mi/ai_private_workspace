@@ -7,7 +7,15 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
-## [0.7.6] - 2026-07-24
+## [0.7.7] - 2026-07-24
+
+### Fixed
+
+- **Switching the answer model is now one honest action.** "Use this model" (and "Download & use") could stop the engine and leave it down: no autostart, no error on screen, and a manual "Start engine" would then bring back a *different* model than the one picked. The switch is now atomic — stop, then start on the chosen model — and if the new model fails to come up, the engine returns to the exact model it was running before and says why in words ("Could not start X: …") instead of failing silently. A stale llama-server left holding the port by an earlier crash is cleared first (scoped to the answer port, so the search engine is untouched), which is what left the new one unable to start.
+
+- **"In use", the setup card and the answer all name the same model.** They used to read three different sources — the running process, the saved setting, and the config — so they could disagree. There is now one source of truth: the model the live process is actually holding. While the engine is stopped, nothing is shown as "in use" (the saved choice is an intention, not a fact).
+
+- **"Use this model" works on a stopped engine too.** Picking an answer model while the engine is off now brings the whole engine up on it — search included — in a single click, instead of doing nothing until you press "Start engine" first.
 
 ### Fixed
 
@@ -1424,7 +1432,8 @@ model setup, safe model-download drafts, Agent/MCP planning UX, and the macOS +
 Tauri packaging foundation. See
 [docs/V01_RELEASE_NOTES.md](docs/V01_RELEASE_NOTES.md) for the full list.
 
-[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.6...HEAD
+[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.7...HEAD
+[0.7.7]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.6...v0.7.7
 [0.7.6]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.5...v0.7.6
 [0.7.5]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.4...v0.7.5
 [0.7.4]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.3...v0.7.4
