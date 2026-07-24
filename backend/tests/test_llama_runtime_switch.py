@@ -14,6 +14,7 @@ one that was picked. Three sources disagreed. These tests pin the contract:
 The process/binary layers are faked, so no real llama-server is needed.
 """
 
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -38,16 +39,19 @@ class _FakeProc:
         self._alive = False
 
 
-class _FakeDownload:
-    """Every model is 'installed' and maps to a throwaway path."""
+_TMP = Path(tempfile.gettempdir())
 
-    app_data_dir = Path("/tmp/does-not-matter")
+
+class _FakeDownload:
+    """Every model is 'installed' and maps to a throwaway path (never opened)."""
+
+    app_data_dir = _TMP / "does-not-matter"
 
     def is_installed(self, model) -> bool:  # noqa: ANN001
         return True
 
     def destination_path(self, model):  # noqa: ANN001
-        return Path(f"/tmp/{model.id.replace('/', '__')}.gguf")
+        return _TMP / f"{model.id.replace('/', '__')}.gguf"
 
 
 @pytest.fixture

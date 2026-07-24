@@ -698,6 +698,16 @@ export function LlamaCppModelsPanel({
     // delete action.
     const canExpand = interactive && installed;
     const expanded = expandedId === model.id;
+    // Answer models can be picked even when the engine is stopped (the click
+    // brings the engine up on this model); search models need it running.
+    const engineRunning = Boolean(runtime?.running);
+    const canUseThisModel = interactive && (engineRunning || kind === "llm");
+    const useButtonLabel =
+      switchingId !== model.id
+        ? "Use this model"
+        : kind === "llm" && !engineRunning
+          ? "Starting…"
+          : "Switching…";
     const nameContent = (
       <>
         {model.name}
@@ -739,11 +749,7 @@ export function LlamaCppModelsPanel({
         ) : active ? (
           <span className="gr-check-state gr-check-state--on">In use</span>
         ) : installed ? (
-          // Answer models can be picked even when the engine is stopped — the
-          // click brings the engine up ON this model (backend starts search too),
-          // so there is no "press Start engine first" dance. Search models still
-          // need a running engine to swap into.
-          interactive && (runtime?.running || kind === "llm") ? (
+          canUseThisModel ? (
             <button
               type="button"
               className="gr-check-use"
@@ -752,11 +758,7 @@ export function LlamaCppModelsPanel({
                 void (kind === "llm" ? useModel(model) : useEmbeddingModel(model))
               }
             >
-              {switchingId === model.id
-                ? kind === "llm" && !runtime?.running
-                  ? "Starting…"
-                  : "Switching…"
-                : "Use this model"}
+              {useButtonLabel}
             </button>
           ) : (
             <span className="gr-check-state">Downloaded</span>
