@@ -25,6 +25,7 @@ import type {
   ModelSearchResultItem,
 } from "../api/types";
 import { chooseGgufFile, isRunningInsideTauri } from "../desktopRuntime";
+import { modelSwitchErrorMessage } from "../lib/modelSwitchError";
 
 function formatGb(bytes: number): string {
   if (!bytes) return "";
@@ -432,6 +433,9 @@ export function LlamaCppModelsPanel({
       if (status.running) {
         await applyWorkspaceSelection(effectiveLlm?.id ?? status.active_llm_model ?? "");
         await refreshCatalog();
+        // Let the parent refresh its dashboard so CURRENT SETUP reflects the
+        // now-running model instead of a stale one.
+        await onSelectionUpdated?.();
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not start the engine.");
@@ -467,7 +471,7 @@ export function LlamaCppModelsPanel({
       await refreshCatalog();
       await onSelectionUpdated?.();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not switch the answer model.");
+      setError(modelSwitchErrorMessage(e, "answer"));
     } finally {
       setSwitchingId(null);
     }
@@ -495,7 +499,7 @@ export function LlamaCppModelsPanel({
       await onSelectionUpdated?.();
       setNotice(`${model.name} is now your search model. Rebuild the project's search context to use it.`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not switch the search model.");
+      setError(modelSwitchErrorMessage(e, "search"));
     } finally {
       setSwitchingId(null);
     }
@@ -735,7 +739,11 @@ export function LlamaCppModelsPanel({
         ) : active ? (
           <span className="gr-check-state gr-check-state--on">In use</span>
         ) : installed ? (
-          interactive && runtime?.running ? (
+          // Answer models can be picked even when the engine is stopped — the
+          // click brings the engine up ON this model (backend starts search too),
+          // so there is no "press Start engine first" dance. Search models still
+          // need a running engine to swap into.
+          interactive && (runtime?.running || kind === "llm") ? (
             <button
               type="button"
               className="gr-check-use"
@@ -744,7 +752,11 @@ export function LlamaCppModelsPanel({
                 void (kind === "llm" ? useModel(model) : useEmbeddingModel(model))
               }
             >
-              {switchingId === model.id ? "Switching…" : "Use this model"}
+              {switchingId === model.id
+                ? kind === "llm" && !runtime?.running
+                  ? "Starting…"
+                  : "Switching…"
+                : "Use this model"}
             </button>
           ) : (
             <span className="gr-check-state">Downloaded</span>

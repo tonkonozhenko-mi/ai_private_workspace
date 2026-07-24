@@ -113,6 +113,86 @@ def _reap_orphan_llama_servers_windows(binary_path: str) -> None:
         return
 
 
+def _reap_llama_server_on_port(binary_path: str, port: int) -> None:
+    """Kill a llama-server that is still bound to exactly ``port``.
+
+    Used before a switch rebinds the answer (or search) port: ``stop()`` waits
+    for the model we own to exit, but a crash from a previous attempt can leave a
+    llama-server holding the port, and then the new server can't listen and times
+    out on its health check (the "engine stopped, press Start" symptom). Unlike
+    the blanket orphan reaper, this matches BOTH our exact binary AND the exact
+    ``--port <port>`` argument, so the sibling server on the other port (answers
+    vs search) is never touched. Best-effort: any failure is ignored.
+    """
+    if os.name == "nt":
+        _reap_llama_server_on_port_windows(binary_path, port)
+    else:
+        _reap_llama_server_on_port_unix(binary_path, port)
+
+
+def _reap_llama_server_on_port_unix(binary_path: str, port: int) -> None:
+    try:
+        found = subprocess.run(
+            ["pgrep", "-f", binary_path], capture_output=True, text=True, timeout=3
+        )
+    except (OSError, subprocess.SubprocessError):
+        return
+    own_pid = os.getpid()
+    port_tokens = (f"--port {port}", f"--port={port}")
+    victims: list[int] = []
+    for line in found.stdout.split():
+        if not line.isdigit():
+            continue
+        pid = int(line)
+        if pid == own_pid:
+            continue
+        try:
+            cmd = subprocess.run(
+                ["ps", "-o", "command=", "-p", str(pid)],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            ).stdout
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if any(token in cmd for token in port_tokens):
+            victims.append(pid)
+    for pid in victims:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            pass
+    if victims:
+        time.sleep(0.5)
+        for pid in victims:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except OSError:
+                pass
+
+
+def _reap_llama_server_on_port_windows(binary_path: str, port: int) -> None:
+    own_pid = os.getpid()
+    safe_path = binary_path.replace("'", "''")
+    # Match our exact executable AND the --port argument on the command line.
+    script = (
+        "Get-CimInstance Win32_Process | Where-Object { "
+        f"$_.ExecutablePath -eq '{safe_path}' -and $_.ProcessId -ne {own_pid} "
+        f"-and $_.CommandLine -like '*--port {port}*' "
+        "} | ForEach-Object { Stop-Process -Id $_.ProcessId -Force "
+        "-ErrorAction SilentlyContinue }"
+    )
+    try:
+        subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+            capture_output=True,
+            text=True,
+            timeout=8,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return
+
+
 def _process_rss_bytes(pid: int) -> int:
     """Resident set size of a process in bytes, via ``ps`` (KB → bytes).
 
@@ -161,8 +241,18 @@ class LlamaRuntimeManager:
         self._llm: LlamaServerProcessManager | None = None
         self._embed: LlamaServerProcessManager | None = None
         self._rerank: LlamaServerProcessManager | None = None
+        # The chosen (intended) models — a statement of intent that survives a
+        # failed start, so a retry knows what to aim for.
         self._llm_model: GgufModel | None = None
         self._embed_model: GgufModel | None = None
+        # The models the LIVE processes were actually started with. Set only after
+        # a confirmed-running start, cleared when the process is stopped or its
+        # start fails. This — not the intended ref above — is the single source of
+        # truth for "what is the engine really answering with", so the badge, the
+        # setup card and the answer signature can never show a model the process
+        # is not holding.
+        self._llm_running_model: GgufModel | None = None
+        self._embed_running_model: GgufModel | None = None
         self._lock = threading.Lock()
 
     def _running(self) -> bool:
@@ -242,13 +332,22 @@ class LlamaRuntimeManager:
         rerank_model = default_gguf_reranker()
         running = self._running()
         rerank_running = self._rerank_running()
+        # Single source of truth: while running, report the model the live process
+        # was actually started with, not the intended selection. The two match on
+        # a clean switch, but if a switch failed and rolled back, the intended ref
+        # is a lie the process never loaded — so the badge, the setup card and the
+        # answer signature must all read from the running model, never the ref.
+        active_llm = (self._llm_running_model or llm_model).id if running else llm_model.id
+        active_embed = (
+            (self._embed_running_model or embed_model).id if running else embed_model.id
+        )
         return {
             "binary_available": binary is not None,
             "binary_path": str(binary) if binary is not None else None,
             "models_ready": self._dl.is_installed(llm_model) and self._dl.is_installed(embed_model),
             "running": running,
-            "active_llm_model": llm_model.id,
-            "active_embedding_model": embed_model.id,
+            "active_llm_model": active_llm,
+            "active_embedding_model": active_embed,
             # The window the answer engine actually loaded, and the one the model
             # could have held — so the Models card can say which of the two limits
             # is doing the limiting: this machine, or the model itself.
@@ -397,10 +496,12 @@ class LlamaRuntimeManager:
             if self._llm is None and self._embed is None and self._rerank is None:
                 _reap_orphan_llama_servers(str(binary))
             self._llm = self._start_llm_server(binary, llm_model)
+            self._llm_running_model = llm_model
             self._embed = LlamaServerProcessManager(binary, host=self._host)
             self._embed.start(
                 self._dl.destination_path(embed_model), self._embed_port, embedding=True
             )
+            self._embed_running_model = embed_model
         return self.status()
 
     def switch_llm(self, ref: GgufModelRef) -> dict:
@@ -421,13 +522,61 @@ class LlamaRuntimeManager:
             raise LlamaRuntimeError("The llama.cpp engine is not bundled in this build.")
 
         with self._lock:
-            self._llm_model = model
+            previous_model = self._llm_running_model or self._llm_model
             if self._llm is not None:
                 self._llm.stop()
+                self._llm = None
+                self._llm_running_model = None
+            # After stop() has waited for the old process to exit, clear any
+            # llama-server still holding the answer port (a crash from a previous
+            # attempt can leave one bound, so the new server can't listen). Scoped
+            # to the answer port so the running embedding server is never touched.
+            _reap_llama_server_on_port(str(binary), self._llm_port)
             # A different model has a different appetite per token, so the window is
             # chosen again rather than inherited from the model we just stopped.
-            self._llm = self._start_llm_server(binary, model)
+            try:
+                self._llm = self._start_llm_server(binary, model)
+            except (LlamaRuntimeError, LlamaServerStartError) as exc:
+                # The new model did not come up. Do NOT leave the engine stopped
+                # (that stranded the user at a manual "Start engine" that then
+                # revived some third model): bring the previous model back so the
+                # engine returns to the exact working state it was in, and raise a
+                # worded error the UI shows. Nothing is left half-switched.
+                self._llm_model = previous_model
+                self._llm_running_model = None
+                if previous_model is not None:
+                    try:
+                        self._llm = self._start_llm_server(binary, previous_model)
+                        self._llm_running_model = previous_model
+                    except (LlamaRuntimeError, LlamaServerStartError):
+                        self._llm = None  # previous also failed; engine honestly down
+                raise LlamaRuntimeError(
+                    f"Could not start {model.name}: {exc}"
+                ) from exc
+            self._llm_model = model
+            self._llm_running_model = model
+            # Special case: "Use this model" on a stopped engine. The answer
+            # process is up now; make sure the search process is up too, so the
+            # one click brings the whole engine to "running" on the chosen model
+            # instead of leaving it half-up (answers yes, search no).
+            self._ensure_embed_running(binary)
         return self.status()
+
+    def _ensure_embed_running(self, binary) -> None:
+        """Start the search/embedding server if it isn't already running.
+
+        Best-effort: if its model isn't downloaded there is nothing to start it
+        with, so the engine stays answer-only rather than failing the switch.
+        Assumes the caller holds ``self._lock``.
+        """
+        if self._embed is not None and self._embed.is_running():
+            return
+        embed_model = self._resolve_embed_model()
+        if not self._dl.is_installed(embed_model):
+            return
+        self._embed = LlamaServerProcessManager(binary, host=self._host)
+        self._embed.start(self._dl.destination_path(embed_model), self._embed_port, embedding=True)
+        self._embed_running_model = embed_model
 
     def switch_embedding(self, ref: GgufModelRef) -> dict:
         """Restart only the search/embedding engine on a different (already
@@ -447,11 +596,34 @@ class LlamaRuntimeManager:
             raise LlamaRuntimeError("The llama.cpp engine is not bundled in this build.")
 
         with self._lock:
-            self._embed_model = model
+            previous_model = self._embed_running_model or self._embed_model
             if self._embed is not None:
                 self._embed.stop()
-            self._embed = LlamaServerProcessManager(binary, host=self._host)
-            self._embed.start(self._dl.destination_path(model), self._embed_port, embedding=True)
+                self._embed = None
+                self._embed_running_model = None
+            _reap_llama_server_on_port(str(binary), self._embed_port)
+
+            def _start_embed(m: GgufModel) -> LlamaServerProcessManager:
+                server = LlamaServerProcessManager(binary, host=self._host)
+                server.start(self._dl.destination_path(m), self._embed_port, embedding=True)
+                return server
+
+            try:
+                self._embed = _start_embed(model)
+            except (LlamaRuntimeError, LlamaServerStartError) as exc:
+                # Roll back to the previous search model so the engine is not left
+                # without an embedder, and say what failed in words.
+                self._embed_model = previous_model
+                self._embed_running_model = None
+                if previous_model is not None:
+                    try:
+                        self._embed = _start_embed(previous_model)
+                        self._embed_running_model = previous_model
+                    except (LlamaRuntimeError, LlamaServerStartError):
+                        self._embed = None
+                raise LlamaRuntimeError(f"Could not start {model.name}: {exc}") from exc
+            self._embed_model = model
+            self._embed_running_model = model
         return self.status()
 
     def memory(self) -> list[dict]:
@@ -484,4 +656,8 @@ class LlamaRuntimeManager:
             if self._rerank is not None:
                 self._rerank.stop()
                 self._rerank = None
+            # No process is holding a model any more; the running-model truth is
+            # now "nothing", so status() cannot report a loaded model while down.
+            self._llm_running_model = None
+            self._embed_running_model = None
         return self.status()

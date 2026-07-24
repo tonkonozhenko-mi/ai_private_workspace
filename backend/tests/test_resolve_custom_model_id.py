@@ -10,9 +10,12 @@ showed the chosen model (from config) while the badge and the actual answers cam
 from the previous/default model.
 """
 
+import pytest
+
 from app.adapters.system.llama_runtime_manager import LlamaRuntimeManager
 from app.core.domain.gguf_catalog import default_gguf_llm
 from app.core.use_cases.download_gguf_model import (
+    GgufModelNotResolvedError,
     GgufModelRef,
     resolve_gguf_model,
 )
@@ -50,6 +53,15 @@ def test_catalog_ids_still_win_and_are_never_treated_as_custom():
     assert model.quantization != "custom"
     # A colon-tagged catalog id does not end in .gguf, so it is not mis-split.
     assert resolve_gguf_model(GgufModelRef(model_id="qwen2.5-coder:7b")).id == "qwen2.5-coder:7b"
+
+
+def test_bare_filename_id_without_a_slash_fails_loudly_not_silently():
+    # A lone "*.gguf" with no repo cannot name a real download (custom models are
+    # stored under a repo dir). It must raise a clear error rather than resolve to
+    # something wrong or fall back to the default — the caller turns that error
+    # into a visible message, never a silent swap to another model.
+    with pytest.raises(GgufModelNotResolvedError):
+        resolve_gguf_model(GgufModelRef(model_id="Qwen3-0.6B-Q4_K_M.gguf"))
 
 
 def test_explicit_repo_and_filename_still_win_over_a_bare_id():
