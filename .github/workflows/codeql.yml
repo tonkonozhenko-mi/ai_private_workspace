@@ -36,21 +36,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
+      # Every github/codeql-action/* step MUST be pinned to the SAME SHA. Dependabot
+      # bumped init (and scorecard's upload-sarif) to this version but left analyze
+      # behind, so init wrote a config for the newer action while analyze ran the
+      # older one ("Loaded a configuration file for version 4.37.3, but running
+      # version 4.37.1"). Keep them in lockstep.
       - name: Initialize CodeQL
         uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v3
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
-          # Use the CodeQL bundle linked to this pinned action version for the
-          # whole job. Without this, `init` picks up whatever newer CodeQL the
-          # runner's toolcache ships (e.g. 4.37.3) and writes a config for it,
-          # while `analyze` runs the action's own linked version (4.37.1) — and
-          # the two disagree ("Loaded a configuration file for version X, but
-          # running version Y"). Pinning to `linked` keeps both on one version.
-          # (Durable fix: bump the pinned action SHA; v3 is being deprecated.)
-          tools: linked
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@7188fc363630916deb702c7fdcf4e481b751f97a # v3
+        uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v3
         with:
           category: "/language:${{ matrix.language }}"
