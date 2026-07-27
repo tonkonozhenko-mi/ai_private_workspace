@@ -41,6 +41,14 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+          # Use the CodeQL bundle linked to this pinned action version for the
+          # whole job. Without this, `init` picks up whatever newer CodeQL the
+          # runner's toolcache ships (e.g. 4.37.3) and writes a config for it,
+          # while `analyze` runs the action's own linked version (4.37.1) — and
+          # the two disagree ("Loaded a configuration file for version X, but
+          # running version Y"). Pinning to `linked` keeps both on one version.
+          # (Durable fix: bump the pinned action SHA; v3 is being deprecated.)
+          tools: linked
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@7188fc363630916deb702c7fdcf4e481b751f97a # v3
