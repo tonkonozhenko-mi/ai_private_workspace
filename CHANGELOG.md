@@ -7,7 +7,11 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.7.9] - 2026-08-03
+
 ### Fixed
+
+- **The backend could not start.** A cleanup commit had rewritten 52 exception handlers across 33 files into a form Python has not accepted since version 2. A file written that way cannot be loaded at all, and the list included the settings the app reads on startup and the code that runs the local AI engine — so the program was, quite literally, unable to run. It reached the main branch because nothing checked that the code so much as parses: the test suite would have caught it, but only after a long dependency install, and the change landed after the last run that passed. Every file is repaired, and the very first thing the build now does is confirm the whole backend parses — seconds, no setup required.
 
 - **84 tests had stopped running, and nothing said so.** The runner for the pure-helper suite reached into a file inside the TypeScript package that was never a published entry point; a newer TypeScript removed it, so the suite could not start at all. It went unnoticed because the build pipeline only ever checked types and built the app — it never ran these tests, so they were passing by not being asked. The runner no longer needs TypeScript at all, and the suite now runs on every change like everything else.
 
@@ -1450,7 +1454,8 @@ model setup, safe model-download drafts, Agent/MCP planning UX, and the macOS +
 Tauri packaging foundation. See
 [docs/V01_RELEASE_NOTES.md](docs/V01_RELEASE_NOTES.md) for the full list.
 
-[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.8...HEAD
+[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.9...HEAD
+[0.7.9]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.8...v0.7.9
 [0.7.8]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.7...v0.7.8
 [0.7.7]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.6...v0.7.7
 [0.7.6]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.5...v0.7.6
