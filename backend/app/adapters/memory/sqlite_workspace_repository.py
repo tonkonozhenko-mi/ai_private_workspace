@@ -10,7 +10,7 @@ from app.core.domain.workspace import Workspace
 def _persistence_from_row(row: "sqlite3.Row") -> str:
     try:
         value = row["persistence"]
-    except (IndexError, KeyError):
+    except IndexError, KeyError:
         return "saved"
     return value or "saved"
 

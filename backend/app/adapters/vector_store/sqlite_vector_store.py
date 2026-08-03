@@ -50,7 +50,7 @@ def _row_blob(row: sqlite3.Row) -> bytes | None:
     """The float32 blob for a row, or None for a legacy JSON-only row."""
     try:
         blob = row["embedding_blob"]
-    except (IndexError, KeyError):
+    except IndexError, KeyError:
         return None
     return blob if blob else None
 

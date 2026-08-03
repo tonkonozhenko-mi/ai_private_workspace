@@ -474,7 +474,7 @@ def _pull_percent(completed: object, total: object) -> int | None:
     try:
         completed_value = float(completed)  # type: ignore[arg-type]
         total_value = float(total)  # type: ignore[arg-type]
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
     if total_value <= 0:
         return None

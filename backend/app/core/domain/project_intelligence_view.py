@@ -199,7 +199,7 @@ def present_ci(graph: ProjectGraph) -> dict:
     for pipeline in pipelines:
         try:
             rules = json.loads(pipeline.metadata.get("triggers_json", "[]"))
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             rules = []
         hits: set[str] = set()
         cron_notes: list[str] = []

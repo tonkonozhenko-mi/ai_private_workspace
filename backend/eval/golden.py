@@ -227,7 +227,7 @@ def _iter_files(root: Path):
             if path.stat().st_size > _MAX_FILE_BYTES:
                 continue
             text = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
+        except OSError, UnicodeDecodeError:
             continue
         # The product refuses machine-written source (a generator's header, or one
         # absurdly long line) at index time. The harness must refuse it too, or the

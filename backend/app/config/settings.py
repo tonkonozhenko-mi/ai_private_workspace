@@ -80,7 +80,7 @@ def llama_server_binary_candidates() -> list[Path]:
             candidates.append(base / res_rel)
             candidates.append(base / "Resources" / res_rel)
             candidates.append(base / build_rel)
-    except (OSError, ValueError):
+    except OSError, ValueError:
         pass
 
     # De-dupe while preserving order.

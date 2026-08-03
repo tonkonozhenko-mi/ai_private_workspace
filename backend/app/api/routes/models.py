@@ -423,7 +423,7 @@ def search_models(request: ModelSearchRequest) -> ModelSearchResponse:
         )
         response.raise_for_status()
         payload = response.json()
-    except (httpx.HTTPError, ValueError):
+    except httpx.HTTPError, ValueError:
         return ModelSearchResponse(
             results=[],
             message=(
@@ -743,7 +743,7 @@ def set_reranker(request: RerankerToggleRequest) -> RerankerStatusResponse:
     if request.enabled:
         try:
             llama_runtime_manager.enable_rerank()
-        except (LlamaRuntimeError, LlamaServerStartError):
+        except LlamaRuntimeError, LlamaServerStartError:
             pass  # model not ready / failed to start; the status reflects it
     else:
         llama_runtime_manager.disable_rerank()
@@ -1193,12 +1193,12 @@ def get_runtime_memory() -> RuntimeMemoryResponse:
             try:
                 size = int(item.get("size") or 0)
                 vram = int(item.get("size_vram") or 0)
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 size, vram = 0, 0
             models.append(
                 RuntimeMemoryModelInfo(name=str(name), size_bytes=size, size_vram_bytes=vram)
             )
-    except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPError, ValueError):
+    except httpx.TimeoutException, httpx.NetworkError, httpx.HTTPError, ValueError:
         reachable = False
 
     # Built-in llama.cpp engine: report the resident memory of its running

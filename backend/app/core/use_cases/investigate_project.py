@@ -152,7 +152,7 @@ class InvestigateProjectUseCase:
                     yield {"type": "step", "step": _step_to_dict(payload)}
                 elif kind == "final":
                     yield {"type": "final", **_result_to_dict(payload)}
-        except (InvestigateProjectWorkspaceNotFoundError, InvestigateProjectError):
+        except InvestigateProjectWorkspaceNotFoundError, InvestigateProjectError:
             yield {"type": "error", "error": "The investigation could not be completed."}
 
     def _run_events(self, request: InvestigateProjectInput):
@@ -391,7 +391,7 @@ class InvestigateProjectUseCase:
         )
         try:
             text = provider.generate(prompt, temperature=0.0)
-        except (RuntimeError, ValueError):
+        except RuntimeError, ValueError:
             return (
                 "I couldn't reach a confident answer within the step budget. "
                 "See the steps above for what was found."

@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: '3.12'
+          python-version: '3.14'
           cache: pip
           cache-dependency-path: backend/requirements.lock
       - name: Install backend dependencies
@@ -52,7 +52,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Install frontend dependencies
@@ -65,6 +65,13 @@ jobs:
           npm run typecheck
           npm run build
 
+      # The pure-helper suite was never gated here, so when its runner broke on a
+      # clean install nothing said so — 84 tests sat green-by-absence. Gate it.
+      - name: Frontend lib tests
+        run: |
+          cd frontend
+          npm run test:lib
+
   lint:
     name: Backend lint (advisory)
     runs-on: ubuntu-latest
@@ -75,7 +82,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: '3.12'
+          python-version: '3.14'
       - name: Install ruff
         run: python -m pip install ruff
       - name: Ruff lint

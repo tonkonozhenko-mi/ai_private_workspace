@@ -5,4 +5,4 @@
 # Bump deliberately: the tag decides which llama-server ships inside the app, and
 # with it the inference behaviour people actually see. After bumping, run a
 # release build and ask a question end-to-end before tagging.
-b9976
+b10133
