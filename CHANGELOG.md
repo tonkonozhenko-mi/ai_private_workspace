@@ -9,6 +9,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 
+- **84 tests had stopped running, and nothing said so.** The runner for the pure-helper suite reached into a file inside the TypeScript package that was never a published entry point; a newer TypeScript removed it, so the suite could not start at all. It went unnoticed because the build pipeline only ever checked types and built the app — it never ran these tests, so they were passing by not being asked. The runner no longer needs TypeScript at all, and the suite now runs on every change like everything else.
+
 - **The app was shipping older packages than the project claimed were safe.** Two files described the backend's dependencies and only one of them was ever installed: the lock file, which CI and every release build use, had drifted below the minimum versions recorded in `requirements.txt` for four packages — including the web framework and the server that runs it. Several of those minimums exist to clear a known vulnerability, so raising them and not rebuilding the lock meant the fix was written down but never delivered. The lock now matches, and a test compares the two files on every run and names any package that falls behind — the same thing had happened once before to `pytest`, was fixed by hand, and came back on four packages because nothing was watching.
 
 ### Changed
