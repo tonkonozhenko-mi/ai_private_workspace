@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 PRODUCT_NAME = "AI Private Workspace"
 # Keep in sync with frontend/src-tauri/tauri.conf.json on every release bump.
-APP_VERSION = "0.7.9"
+APP_VERSION = "0.7.8"
 # Keep the legacy hidden runtime directory for backward compatibility with
 # existing local installations. It is not a product-facing name.
 DEFAULT_APP_DATA_DIR = Path(".ai-workbench")
@@ -80,7 +80,7 @@ def llama_server_binary_candidates() -> list[Path]:
             candidates.append(base / res_rel)
             candidates.append(base / "Resources" / res_rel)
             candidates.append(base / build_rel)
-    except (OSError, ValueError):
+    except OSError, ValueError:
         pass
 
     # De-dupe while preserving order.

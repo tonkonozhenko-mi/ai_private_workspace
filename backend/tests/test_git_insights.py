@@ -19,7 +19,7 @@ def _has_git() -> bool:
     try:
         subprocess.run(["git", "--version"], capture_output=True, check=True)
         return True
-    except (FileNotFoundError, subprocess.CalledProcessError):
+    except FileNotFoundError, subprocess.CalledProcessError:
         return False
 
 

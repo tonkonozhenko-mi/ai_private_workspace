@@ -254,7 +254,7 @@ class LocalFileSystem:
                 size_bytes = stat_result.st_size
                 try:
                     modified_at: float | None = stat_result.st_mtime
-                except (OSError, AttributeError):
+                except OSError, AttributeError:
                     modified_at = None
 
                 candidates.append((full_path.relative_to(root), full_path, size_bytes, modified_at))

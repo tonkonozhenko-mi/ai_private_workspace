@@ -37,7 +37,7 @@ class SQLiteAppPreferencesRepository:
             return None
         try:
             parsed = json.loads(row["data"])
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return None
         return parsed if isinstance(parsed, dict) else None
 

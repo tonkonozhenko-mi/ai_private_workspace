@@ -48,7 +48,7 @@ class LlamaServerReranker:
             if response.status_code >= 400:
                 return identity
             payload = response.json()
-        except (httpx.HTTPError, ValueError):
+        except httpx.HTTPError, ValueError:
             return identity
 
         results = payload.get("results") if isinstance(payload, dict) else None
