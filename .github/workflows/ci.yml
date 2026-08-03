@@ -25,6 +25,14 @@ jobs:
           python-version: '3.14'
           cache: pip
           cache-dependency-path: backend/requirements.lock
+      # Cheapest possible gate, before anything is installed: does every file
+      # even parse? A commit once rewrote 52 exception handlers into Python 2
+      # form ('except A, B:') across 33 files — including settings.py and the
+      # llama runtime — and reached main. A module with a syntax error cannot be
+      # imported, so the backend simply could not start. Seconds to check.
+      - name: Backend syntax check
+        run: python -m compileall -q backend/app backend/tests
+
       - name: Install backend dependencies
         run: |
           cd backend
