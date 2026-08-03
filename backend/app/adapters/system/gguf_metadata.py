@@ -119,7 +119,7 @@ def read_gguf_architecture(path: str | Path) -> GgufArchitecture | None:
                             found.setdefault(suffix, value)
                 if len(found) == len(_WANTED_SUFFIXES):
                     break
-    except OSError, ValueError, struct.error:
+    except (OSError, ValueError, struct.error):
         return None
     if not found:
         return None

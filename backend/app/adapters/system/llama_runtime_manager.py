@@ -71,7 +71,7 @@ def _reap_orphan_llama_servers_unix(binary_path: str) -> None:
             text=True,
             timeout=3,
         )
-    except OSError, subprocess.SubprocessError:
+    except (OSError, subprocess.SubprocessError):
         return
     own_pid = os.getpid()
     pids = [int(line) for line in result.stdout.split() if line.isdigit() and int(line) != own_pid]
@@ -109,7 +109,7 @@ def _reap_orphan_llama_servers_windows(binary_path: str) -> None:
             text=True,
             timeout=8,
         )
-    except OSError, subprocess.SubprocessError:
+    except (OSError, subprocess.SubprocessError):
         return
 
 
@@ -135,7 +135,7 @@ def _reap_llama_server_on_port_unix(binary_path: str, port: int) -> None:
         found = subprocess.run(
             ["pgrep", "-f", binary_path], capture_output=True, text=True, timeout=3
         )
-    except OSError, subprocess.SubprocessError:
+    except (OSError, subprocess.SubprocessError):
         return
     own_pid = os.getpid()
     port_tokens = (f"--port {port}", f"--port={port}")
@@ -153,7 +153,7 @@ def _reap_llama_server_on_port_unix(binary_path: str, port: int) -> None:
                 text=True,
                 timeout=3,
             ).stdout
-        except OSError, subprocess.SubprocessError:
+        except (OSError, subprocess.SubprocessError):
             continue
         if any(token in cmd for token in port_tokens):
             victims.append(pid)
@@ -189,7 +189,7 @@ def _reap_llama_server_on_port_windows(binary_path: str, port: int) -> None:
             text=True,
             timeout=8,
         )
-    except OSError, subprocess.SubprocessError:
+    except (OSError, subprocess.SubprocessError):
         return
 
 
@@ -206,7 +206,7 @@ def _process_rss_bytes(pid: int) -> int:
             text=True,
             timeout=2,
         )
-    except OSError, subprocess.SubprocessError:
+    except (OSError, subprocess.SubprocessError):
         return 0
     raw = out.stdout.strip()
     if not raw.isdigit():
@@ -546,7 +546,7 @@ class LlamaRuntimeManager:
                     try:
                         self._llm = self._start_llm_server(binary, previous_model)
                         self._llm_running_model = previous_model
-                    except LlamaRuntimeError, LlamaServerStartError:
+                    except (LlamaRuntimeError, LlamaServerStartError):
                         self._llm = None  # previous also failed; engine honestly down
                 raise LlamaRuntimeError(f"Could not start {model.name}: {exc}") from exc
             self._llm_model = model
@@ -615,7 +615,7 @@ class LlamaRuntimeManager:
                     try:
                         self._embed = _start_embed(previous_model)
                         self._embed_running_model = previous_model
-                    except LlamaRuntimeError, LlamaServerStartError:
+                    except (LlamaRuntimeError, LlamaServerStartError):
                         self._embed = None
                 raise LlamaRuntimeError(f"Could not start {model.name}: {exc}") from exc
             self._embed_model = model

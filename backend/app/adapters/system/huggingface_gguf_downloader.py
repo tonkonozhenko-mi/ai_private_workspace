@@ -53,7 +53,7 @@ class HuggingFaceGgufDownloader:
                         downloaded += len(chunk)
                         if progress_callback is not None:
                             progress_callback(downloaded, total)
-        except GgufDownloadCancelledError, GgufDownloadError:
+        except (GgufDownloadCancelledError, GgufDownloadError):
             _safe_unlink(part_path)
             raise
         except httpx.HTTPError as exc:

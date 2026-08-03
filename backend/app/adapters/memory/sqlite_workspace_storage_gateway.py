@@ -124,7 +124,7 @@ class SQLiteWorkspaceStorageGateway:
             return None
         try:
             categories = json.loads(row["breakdown_json"])
-        except json.JSONDecodeError, TypeError:
+        except (json.JSONDecodeError, TypeError):
             categories = {}
         if not isinstance(categories, dict):
             categories = {}

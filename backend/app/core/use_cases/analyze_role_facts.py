@@ -182,5 +182,5 @@ def _as_datetime(modified_at):  # noqa: ANN001, ANN201 - a scan timestamp, or no
         return modified_at if modified_at.tzinfo else modified_at.replace(tzinfo=UTC)
     try:
         return datetime.fromtimestamp(float(modified_at), tz=UTC)
-    except TypeError, ValueError, OSError:
+    except (TypeError, ValueError, OSError):
         return None

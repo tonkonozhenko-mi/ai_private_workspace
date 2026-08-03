@@ -33,7 +33,7 @@ def _posix_total_ram_gb() -> float | None:
         if pages <= 0 or page_size <= 0:
             return None
         return (pages * page_size) / (1024.0**3)
-    except ValueError, OSError:
+    except (ValueError, OSError):
         return None
 
 

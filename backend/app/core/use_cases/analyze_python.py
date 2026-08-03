@@ -214,7 +214,7 @@ class AnalyzePythonUseCase:
     def _top_level_imports(content: str) -> set[str]:
         try:
             tree = ast.parse(content)
-        except SyntaxError, ValueError:
+        except (SyntaxError, ValueError):
             return set()
         tops: set[str] = set()
         for node in ast.walk(tree):

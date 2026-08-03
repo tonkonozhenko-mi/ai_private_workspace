@@ -537,7 +537,7 @@ class LocalGitHistory:
                 timeout=self.timeout_seconds,
                 shell=False,
             )
-        except subprocess.TimeoutExpired, FileNotFoundError, OSError:
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             return None
         if completed.returncode != 0:
             return None

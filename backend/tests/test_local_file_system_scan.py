@@ -45,7 +45,7 @@ def test_scan_does_not_descend_into_a_symlink_loop_in_a_skipped_dir():
         (root / "node_modules").mkdir()
         try:
             os.symlink(str(root / "node_modules"), str(root / "node_modules" / "loop"))
-        except OSError, NotImplementedError:
+        except (OSError, NotImplementedError):
             return  # platform without symlink support — skip
         result = LocalFileSystem().list_files(str(root))
         assert {f.path for f in result} == {"main.py"}

@@ -147,7 +147,7 @@ class OllamaLLMProvider:
             if response.status_code >= 400:
                 return {}
             payload = response.json()
-        except httpx.HTTPError, ValueError, AttributeError:
+        except (httpx.HTTPError, ValueError, AttributeError):
             return {}
         if not isinstance(payload, dict):
             return {}

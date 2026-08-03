@@ -21,7 +21,7 @@ def total_physical_ram_bytes() -> int:
     """Total installed RAM in bytes, or 0 if it cannot be determined."""
     try:
         return int(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES"))
-    except ValueError, OSError, AttributeError:
+    except (ValueError, OSError, AttributeError):
         # No sysconf (Windows): fall through to the kernel call below.
         return _windows_total_physical_ram_bytes()
 

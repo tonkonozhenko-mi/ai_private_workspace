@@ -351,7 +351,7 @@ def _split_python_ast(content: str) -> list[str]:
     real AST. Returns [] on a syntax error so the caller can fall back."""
     try:
         tree = ast.parse(content)
-    except SyntaxError, ValueError:
+    except (SyntaxError, ValueError):
         return []
 
     lines = content.split("\n")

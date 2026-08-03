@@ -126,7 +126,7 @@ class LlamaServerLLMProvider:
                         and candidate > 0
                     ):
                         n_ctx = candidate
-        except httpx.HTTPError, ValueError:
+        except (httpx.HTTPError, ValueError):
             pass
         self._context_window_cache = n_ctx
         return n_ctx
@@ -234,7 +234,7 @@ class LlamaServerLLMProvider:
                 tokens = response.json().get("tokens")
                 if isinstance(tokens, list):
                     return len(tokens)
-        except httpx.HTTPError, ValueError, KeyError, TypeError:
+        except (httpx.HTTPError, ValueError, KeyError, TypeError):
             pass
         # Script-aware estimate: a Cyrillic question costs ~2 chars/token, not 4.
         return max(1, estimate_tokens(text))
@@ -340,7 +340,7 @@ class LlamaServerLLMProvider:
                     self._capture_usage(chunk)
                     try:
                         delta = chunk["choices"][0]["delta"].get("content")
-                    except KeyError, IndexError, TypeError:
+                    except (KeyError, IndexError, TypeError):
                         continue
                     if isinstance(delta, str) and delta:
                         # Stop at the first control token: emit text before it,

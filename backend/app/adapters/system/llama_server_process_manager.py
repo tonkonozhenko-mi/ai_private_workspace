@@ -198,7 +198,7 @@ class LlamaServerProcessManager:
     def _log_tail(self, max_chars: int = 600) -> str:
         try:
             text = self._log_path.read_text(encoding="utf-8", errors="replace").strip()
-        except OSError, AttributeError:
+        except (OSError, AttributeError):
             return ""
         return text[-max_chars:] if text else ""
 

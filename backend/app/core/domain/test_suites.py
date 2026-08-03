@@ -178,7 +178,7 @@ def run_commands_from_project(files: dict[str, str], frameworks: list[str]) -> l
         elif name == "package.json":
             try:
                 scripts = (json.loads(content) or {}).get("scripts") or {}
-            except json.JSONDecodeError, AttributeError:
+            except (json.JSONDecodeError, AttributeError):
                 continue
             for script in scripts:
                 if "test" in script.lower():

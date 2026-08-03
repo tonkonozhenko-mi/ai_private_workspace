@@ -42,7 +42,7 @@ class SQLiteProjectGroupRepository:
     def _row_to_group(row: sqlite3.Row) -> ProjectGroup:
         try:
             members = tuple(json.loads(row["workspace_ids"]) or [])
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             members = ()
         return ProjectGroup(
             id=row["id"],

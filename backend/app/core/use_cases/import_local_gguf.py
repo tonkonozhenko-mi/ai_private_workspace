@@ -110,6 +110,6 @@ class ImportLocalGgufUseCase:
         try:
             destination.symlink_to(source)
             return True
-        except OSError, NotImplementedError:
+        except (OSError, NotImplementedError):
             shutil.copy2(source, destination)
             return False

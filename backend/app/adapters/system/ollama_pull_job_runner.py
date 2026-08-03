@@ -62,7 +62,7 @@ class OllamaPullJob:
 def _percent(completed, total) -> int | None:
     try:
         done, size = int(completed), int(total)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return None
     if size <= 0:
         return None

@@ -411,7 +411,7 @@ def _extract_json_object(text: str) -> object:
         stripped = fence_match.group(1).strip()
     try:
         return json.loads(stripped)
-    except ValueError, TypeError:
+    except (ValueError, TypeError):
         pass
     start = stripped.find("{")
     end = stripped.rfind("}")
@@ -419,6 +419,6 @@ def _extract_json_object(text: str) -> object:
         candidate = stripped[start : end + 1]
         try:
             return json.loads(candidate)
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             return None
     return None
