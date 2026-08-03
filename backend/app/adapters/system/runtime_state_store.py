@@ -23,7 +23,7 @@ class RuntimeStateStore:
     def get_active_backend(self) -> str | None:
         try:
             data = json.loads(self._path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        except OSError, ValueError:
             return None
         value = data.get("active_backend") if isinstance(data, dict) else None
         return value if value in _VALID_BACKENDS else None
@@ -38,7 +38,7 @@ class RuntimeStateStore:
         """Return the saved answer-model ref: {model_id} or {repo_id, filename}."""
         try:
             data = json.loads(self._path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        except OSError, ValueError:
             return None
         ref = data.get("llamacpp_llm") if isinstance(data, dict) else None
         return ref if isinstance(ref, dict) and ref else None
@@ -62,7 +62,7 @@ class RuntimeStateStore:
         """Return the saved search-model ref: {model_id} or {repo_id, filename}."""
         try:
             data = json.loads(self._path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        except OSError, ValueError:
             return None
         ref = data.get("llamacpp_embedding") if isinstance(data, dict) else None
         return ref if isinstance(ref, dict) and ref else None
@@ -86,7 +86,7 @@ class RuntimeStateStore:
         """Whether the optional "sharper search" reranker should run."""
         try:
             data = json.loads(self._path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        except OSError, ValueError:
             return False
         return bool(data.get("rerank_enabled")) if isinstance(data, dict) else False
 
@@ -108,7 +108,7 @@ class RuntimeStateStore:
         with self._lock:
             try:
                 loaded = json.loads(self._path.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
+            except OSError, ValueError:
                 return
             if not isinstance(loaded, dict):
                 return
@@ -128,7 +128,7 @@ class RuntimeStateStore:
                 loaded = json.loads(self._path.read_text(encoding="utf-8"))
                 if isinstance(loaded, dict):
                     data = loaded
-            except (OSError, ValueError):
+            except OSError, ValueError:
                 data = {}
             data[key] = value
             self._path.parent.mkdir(parents=True, exist_ok=True)

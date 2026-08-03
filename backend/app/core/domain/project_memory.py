@@ -118,7 +118,7 @@ def _tokens(text: str) -> set[str]:
 def _parse_iso(timestamp: str) -> datetime | None:
     try:
         parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-    except (ValueError, TypeError, AttributeError):
+    except ValueError, TypeError, AttributeError:
         return None
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 

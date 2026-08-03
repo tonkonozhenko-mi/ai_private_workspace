@@ -101,7 +101,7 @@ def parse_structured_answer(raw: str) -> StructuredAnswer | None:
         text = text.strip()
     try:
         data = json.loads(text)
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return None
     if not isinstance(data, dict) or "answer_md" not in data:
         return None

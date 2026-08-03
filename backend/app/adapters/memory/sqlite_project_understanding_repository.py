@@ -126,7 +126,7 @@ def _load_guide(guide_json: str | None) -> dict:
         return empty
     try:
         payload = json.loads(guide_json)
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return empty
     if not isinstance(payload, dict):
         return empty

@@ -159,7 +159,7 @@ def parse_structured_step(text: str, allowed_tools: set[str]) -> AgentDecision:
     raw = text or ""
     try:
         data = json.loads(raw)
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return AgentDecision(kind="invalid", error="Output was not valid JSON.", raw=raw)
     if not isinstance(data, dict):
         return AgentDecision(kind="invalid", error="Output was not a JSON object.", raw=raw)
