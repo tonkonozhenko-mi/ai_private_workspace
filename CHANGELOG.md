@@ -7,6 +7,16 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Fixed
+
+- **The app was shipping older packages than the project claimed were safe.** Two files described the backend's dependencies and only one of them was ever installed: the lock file, which CI and every release build use, had drifted below the minimum versions recorded in `requirements.txt` for four packages — including the web framework and the server that runs it. Several of those minimums exist to clear a known vulnerability, so raising them and not rebuilding the lock meant the fix was written down but never delivered. The lock now matches, and a test compares the two files on every run and names any package that falls behind — the same thing had happened once before to `pytest`, was fixed by hand, and came back on four packages because nothing was watching.
+
+### Changed
+
+- **One answer to "which Python".** The build workflows used 3.12, the container used 3.14, and the linter checked against 3.12 — three descriptions of a project that only ships one of them. Everything now says 3.14. The toolchain for the desktop app moves with it, and Node moves to the current long-term support release.
+
+- **The bundled llama.cpp engine is a month newer.** Not a security fix — the vulnerabilities that matter for reading model files a person downloads were already covered by the previous build. This is about being able to load newer model architectures at all.
+
 ## [0.7.8] - 2026-07-24
 
 ### Fixed
