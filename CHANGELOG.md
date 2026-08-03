@@ -7,6 +7,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.7.9] - 2026-08-03
+
 ### Fixed
 
 - **84 tests had stopped running, and nothing said so.** The runner for the pure-helper suite reached into a file inside the TypeScript package that was never a published entry point; a newer TypeScript removed it, so the suite could not start at all. It went unnoticed because the build pipeline only ever checked types and built the app — it never ran these tests, so they were passing by not being asked. The runner no longer needs TypeScript at all, and the suite now runs on every change like everything else.
@@ -1450,7 +1452,8 @@ model setup, safe model-download drafts, Agent/MCP planning UX, and the macOS +
 Tauri packaging foundation. See
 [docs/V01_RELEASE_NOTES.md](docs/V01_RELEASE_NOTES.md) for the full list.
 
-[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.8...HEAD
+[Unreleased]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.9...HEAD
+[0.7.9]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.8...v0.7.9
 [0.7.8]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.7...v0.7.8
 [0.7.7]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.6...v0.7.7
 [0.7.6]: https://github.com/tonkonozhenko-mi/ai_private_workspace/compare/v0.7.5...v0.7.6

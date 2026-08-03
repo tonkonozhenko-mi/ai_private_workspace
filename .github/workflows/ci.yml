@@ -25,6 +25,16 @@ jobs:
           python-version: '3.14'
           cache: pip
           cache-dependency-path: backend/requirements.lock
+      # Cheapest possible gate: does every file parse, on the Python we target?
+      # It runs after setup-python above, so it uses that interpreter and not
+      # whatever the runner shipped — which matters, because the source uses
+      # PEP 758 (`except A, B:` without parentheses, Python 3.14+). Compiling it
+      # with an older interpreter reports a SyntaxError in every such file and
+      # looks exactly like catastrophic corruption. It isn't; the version is
+      # simply wrong. If this step fails, check the Python version first.
+      - name: Backend syntax check
+        run: python -m compileall -q backend/app backend/tests
+
       - name: Install backend dependencies
         run: |
           cd backend
