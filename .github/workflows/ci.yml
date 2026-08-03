@@ -65,6 +65,13 @@ jobs:
           npm run typecheck
           npm run build
 
+      # The pure-helper suite was never gated here, so when its runner broke on a
+      # clean install nothing said so — 84 tests sat green-by-absence. Gate it.
+      - name: Frontend lib tests
+        run: |
+          cd frontend
+          npm run test:lib
+
   lint:
     name: Backend lint (advisory)
     runs-on: ubuntu-latest

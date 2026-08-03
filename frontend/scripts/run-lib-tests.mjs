@@ -3,14 +3,25 @@
 //
 //   node scripts/run-lib-tests.mjs
 //
-// It transpiles each test and every module in src/lib with the local TypeScript,
-// provides a tiny vitest-compatible `describe/it/expect` shim, runs the suites,
-// and exits non-zero on any failure (so CI can gate on it before a vitest runner
-// exists). When vitest is added, the same *.test.ts files run there unchanged.
+// It copies each test and every module in src/lib into a temp dir, provides a
+// tiny vitest-compatible `describe/it/expect` shim, runs the suites, and exits
+// non-zero on any failure (so CI can gate on it before a vitest runner exists).
+// When vitest is added, the same *.test.ts files run there unchanged.
 //
 // It used to name markdown.ts in three places, which meant the second pure module
 // worth testing needed the harness edited rather than a file added. It now finds
 // the tests instead of being told about them.
+//
+// TypeScript is deliberately NOT imported here. This used to reach into
+// `node_modules/typescript/lib/typescript.js` for `transpileModule` — an internal
+// file path, not a documented entry point. TypeScript 7 deleted it (the package
+// now exports only a version stub and an explicitly "unstable" API), so the whole
+// suite died the first time anyone ran a clean install. Node strips types itself
+// on `import` of a .ts file, which is a stable, documented capability of the
+// runtime we already require — so the files are copied across verbatim and Node
+// does the rest. Nothing in src/lib may use non-erasable syntax (enum, namespace,
+// parameter properties) or import a type without the `import type` keyword; both
+// are things Node cannot strip, and a test would fail loudly if they appeared.
 
 import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -19,49 +30,38 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const libDir = join(here, "..", "src", "lib");
-const ts = (await import(join(here, "..", "node_modules", "typescript", "lib", "typescript.js")))
-  .default;
-
-function transpile(tsSource) {
-  return ts.transpileModule(tsSource, {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
-  }).outputText;
-}
 
 const work = mkdtempSync(join(tmpdir(), "lib-tests-"));
 const files = readdirSync(libDir).filter((name) => name.endsWith(".ts"));
 const tests = files.filter((name) => name.endsWith(".test.ts"));
 
-// 1) Transpile every module in src/lib, so a test can import any of them (and so
-//    a module can import its neighbour). Type-only imports vanish in transpile,
-//    which is why importing ../api/types costs nothing here.
+// 1) Copy every module in src/lib, so a test can import any of them (and so a
+//    module can import its neighbour). `import type` lines are stripped by Node
+//    before it resolves anything, which is why importing ../api/types costs
+//    nothing here even though that path does not exist beside the copy.
 for (const name of files.filter((n) => !n.endsWith(".test.ts"))) {
-  writeFileSync(
-    join(work, name.replace(/\.ts$/, ".js")),
-    transpile(readFileSync(join(libDir, name), "utf8")),
-  );
+  writeFileSync(join(work, name), readFileSync(join(libDir, name), "utf8"));
 }
 
-// 2) Transpile each test, and point its imports at the shim + the transpiled
-//    modules beside it.
+// 2) Copy each test, and point its imports at the shim + the modules beside it.
 for (const name of tests) {
-  let testJs = transpile(readFileSync(join(libDir, name), "utf8"));
-  testJs = testJs
+  let testSource = readFileSync(join(libDir, name), "utf8");
+  testSource = testSource
     .replace(/from ["']vitest["']/g, `from ${JSON.stringify(join(work, "vitest-shim.js"))}`)
     .replace(/from ["']\.\/([\w-]+)["']/g, (_m, mod) =>
-      `from ${JSON.stringify(join(work, `${mod}.js`))}`,
+      `from ${JSON.stringify(join(work, `${mod}.ts`))}`,
     )
     // Dynamic imports too — a test that needs a module's top-level code to run
     // more than once (module state set up at import time) can only get that from
     // import(), and it deserves the same rewrite the static ones get. The query
     // string is kept: it is what makes the second import a second instance.
     .replace(/import\(\s*`\.\/([\w-]+)(\?[^`]*)`\s*\)/g, (_m, mod, query) =>
-      `import(${JSON.stringify(join(work, `${mod}.js`))} + \`${query}\`)`,
+      `import(${JSON.stringify(join(work, `${mod}.ts`))} + \`${query}\`)`,
     )
     .replace(/import\(\s*["']\.\/([\w-]+)(\?[^"']*)?["']\s*\)/g, (_m, mod, query) =>
-      `import(${JSON.stringify(join(work, `${mod}.js`) + (query ?? ""))})`,
+      `import(${JSON.stringify(join(work, `${mod}.ts`) + (query ?? ""))})`,
     );
-  writeFileSync(join(work, name.replace(/\.ts$/, ".js")), testJs);
+  writeFileSync(join(work, name), testSource);
 }
 
 // 3) Minimal vitest-compatible shim (only the matchers these corpora use).
@@ -149,7 +149,7 @@ writeFileSync(
 );
 
 for (const name of tests) {
-  await import(pathToFileURL(join(work, name.replace(/\.ts$/, ".js"))).href);
+  await import(pathToFileURL(join(work, name)).href);
 }
 
 for (const { label, fn } of queue) {
