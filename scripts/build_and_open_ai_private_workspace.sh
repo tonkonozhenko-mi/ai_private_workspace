@@ -30,7 +30,30 @@ stop_running_app_for_update() {
   return 1
 }
 
-run_step "Check backend source" bash -lc 'cd backend && python3 -m compileall -q app tests'
+# The backend targets Python 3.14 and uses PEP 758 (`except A, B:` without
+# parentheses). Compiling it with an older interpreter reports a SyntaxError in
+# every such file and reads exactly like a repo-wide break — it isn't, the
+# version is simply wrong. So resolve the interpreter the same way the real
+# packaging step does (scripts/build_pyinstaller_backend_runtime.sh): prefer
+# backend/.venv, which is where the 3.14 toolchain lives. `bash -lc` starts a
+# login shell with no venv active, which is how this step used to pick up the
+# system python3 and fail on healthy code.
+BACKEND_VENV_PYTHON="$ROOT_DIR/backend/.venv/bin/python"
+if [ -x "$BACKEND_VENV_PYTHON" ]; then
+  CHECK_PYTHON="$BACKEND_VENV_PYTHON"
+else
+  CHECK_PYTHON="${AI_PRIVATE_WORKSPACE_PACKAGING_PYTHON:-python3}"
+fi
+
+if ! "$CHECK_PYTHON" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 14) else 1)'; then
+  printf '❌ %s is %s; the backend needs Python 3.14 or newer.\n' \
+    "$CHECK_PYTHON" \
+    "$("$CHECK_PYTHON" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null || echo unknown)" >&2
+  printf '   Create backend/.venv on 3.14, or set AI_PRIVATE_WORKSPACE_PACKAGING_PYTHON.\n' >&2
+  exit 1
+fi
+
+run_step "Check backend source" "$CHECK_PYTHON" -m compileall -q backend/app backend/tests
 if [ -d "$ROOT_DIR/frontend/node_modules" ]; then
   run_step "Build frontend" bash -lc 'cd frontend && npm run typecheck && npm run build'
 else
