@@ -40,7 +40,9 @@ def _docx(paragraphs: list[str]) -> bytes:
     """A real .docx: the minimum OOXML the extractor reads."""
     w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
     body = "".join(f"<w:p><w:r><w:t>{text}</w:t></w:r></w:p>" for text in paragraphs)
-    document = f'<?xml version="1.0"?><w:document xmlns:w="{w}"><w:body>{body}</w:body></w:document>'
+    document = (
+        f'<?xml version="1.0"?><w:document xmlns:w="{w}"><w:body>{body}</w:body></w:document>'
+    )
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as archive:
         archive.writestr("[Content_Types].xml", "<Types/>")
