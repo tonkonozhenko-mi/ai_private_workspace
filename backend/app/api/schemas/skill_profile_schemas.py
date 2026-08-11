@@ -12,9 +12,7 @@ class SkillProfileItemRequest(BaseModel):
     id: str = Field(..., min_length=1, max_length=80)
     name: str = Field(..., min_length=1, max_length=80)
     enabled: bool = False
-    custom_instructions: str = Field(
-        ..., min_length=1, max_length=MAX_SKILL_INSTRUCTIONS_LENGTH
-    )
+    custom_instructions: str = Field(..., min_length=1, max_length=MAX_SKILL_INSTRUCTIONS_LENGTH)
 
 
 class WorkspaceSkillProfileRequest(BaseModel):

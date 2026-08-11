@@ -188,9 +188,7 @@ class IndexWorkspaceUseCase:
         skip that review.
         """
         if self.project_scan_repository.get_latest_scan(workspace_id) is None:
-            raise IndexWorkspaceScanRequiredError(
-                "Project scan required before indexing workspace"
-            )
+            raise IndexWorkspaceScanRequiredError("Project scan required before indexing workspace")
 
     def _current_scan(self, workspace_id: str, workspace, persist: bool) -> ProjectScanResult:
         """The project as it is on disk right now.
