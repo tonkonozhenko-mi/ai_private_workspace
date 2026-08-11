@@ -171,3 +171,88 @@ def test_the_scan_knows_a_documentation_folder_when_it_sees_one(tmp_path: Path):
     assert types["Design_files/diagram.png"] == "image"
     # The browser's own stylesheet is not documentation.
     assert types["Design_files/style.css"] == "unknown"
+
+
+def test_a_question_in_cyrillic_can_match_the_document_at_all():
+    """Live: a follow-up about an attached questionnaire — "and the third one?" —
+    was answered from the project index. The first two had worked.
+
+    Two character classes were the cause. `_question_terms` and `_score_chunk`
+    both matched `[A-Za-z0-9_]`, so a question in Ukrainian produced no terms and
+    a document in Ukrainian produced no tokens — every chunk scored zero, always,
+    and the excerpt fell back to the opening pages. Questions one and two live
+    there; question three does not. Nothing about attachments was broken; the
+    app could not read the question."""
+    from app.core.domain.attached_documents import (
+        AttachedDocument,
+        build_attached_documents_section,
+    )
+
+    filler = "Розділ без нічого цікавого.\n" * 3000
+    document = AttachedDocument(
+        name="questionnaire.docx",
+        content=filler + "Питання третє: ваш досвід роботи за кордоном.\n" + filler,
+    )
+
+    section = build_attached_documents_section("а третій вопрос про досвід?", [document])
+
+    assert "досвід роботи за кордоном" in section
+
+
+def test_an_attached_document_arrives_whole_when_it_fits():
+    """It is the subject of the conversation, not a supporting quotation. A
+    follow-up — "and the third one?" — carries nothing an excerpt-picker could
+    use, so the picker must not be what stands between the person and their own
+    file."""
+    from app.core.domain.attached_documents import (
+        AttachedDocument,
+        build_attached_documents_section,
+    )
+
+    filler = "Irrelevant paragraph about deployment.\n" * 400
+    document = AttachedDocument(
+        name="questionnaire.docx",
+        content=(
+            "Question 1: criminal record.\n"
+            + filler
+            + "Question 3: your work experience abroad.\n"
+            + filler
+        ),
+    )
+
+    # A question in Ukrainian about an English document: no word can overlap, so
+    # excerpting could never find question three. The whole file can.
+    section = build_attached_documents_section("а третє питання ?", [document])
+
+    assert "Question 3" in section
+    assert "full file" in section
+
+
+def test_a_document_too_large_to_send_whole_says_what_it_sent():
+    from app.core.domain.attached_documents import (
+        AttachedDocument,
+        build_attached_documents_section,
+    )
+
+    document = AttachedDocument(name="huge.docx", content="Nothing relevant here.\n" * 4000)
+
+    section = build_attached_documents_section("питання без спільних слів", [document])
+
+    # A spread rather than the opening pages, and it says so: reading the
+    # beginning is a guess about where the answer is, a spread is an admission
+    # that we do not know.
+    assert "sampled across the document" in section
+
+
+def test_the_whole_of_an_ordinary_document_still_arrives():
+    from app.core.domain.attached_documents import (
+        AttachedDocument,
+        build_attached_documents_section,
+    )
+
+    document = AttachedDocument(name="notes.txt", content="ЖУРАВЕЛЬ-77 is the codeword.")
+
+    section = build_attached_documents_section("що означає ЖУРАВЕЛЬ-77?", [document])
+
+    assert "ЖУРАВЕЛЬ-77 is the codeword." in section
+    assert "full file" in section

@@ -104,9 +104,14 @@ def _handbook_block(handbook_text: str, query: str, budget: ContextBudget) -> st
 
 
 # Words that signal the question is about recent change ("what changed today?",
-# "що змінилось", "что нового со вчера"). When any appears, the dated change
-# journal is added to the context so plain Ask can answer it. Kept multilingual
-# (en/uk/ru) because the product is used in those languages.
+# "що змінилось"). When any appears, the dated change journal is added to the
+# context so plain Ask can answer it.
+#
+# The list carries more Cyrillic spellings than Ukrainian alone needs. That is
+# not a second language being catered to — it is the same person, typing fast on
+# whatever keyboard is in front of them, and a question the app fails to
+# recognise is a feature that silently does not work. Recognising how someone
+# writes costs nothing and is not a statement about anything.
 _CHANGE_INTENT = (
     "chang",
     "what's new",

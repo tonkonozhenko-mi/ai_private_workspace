@@ -7,7 +7,7 @@ from app.core.domain.user_profile_extraction import (
 
 
 def test_prompt_forbids_secrets_and_project_facts():
-    prompt = build_extraction_prompt("I'm a DevOps engineer, answer in Russian.")
+    prompt = build_extraction_prompt("I'm a DevOps engineer, answer in Ukrainian.")
     low = prompt.lower()
     assert "secret" in low
     assert "project" in low  # excludes project facts
@@ -15,18 +15,18 @@ def test_prompt_forbids_secrets_and_project_facts():
 
 
 def test_parser_reads_category_and_text():
-    raw = "role|DevOps engineer\nstyle|Answer in Russian\npreference|Keep it concise"
+    raw = "role|DevOps engineer\nstyle|Answer in Ukrainian\npreference|Keep it concise"
     out = parse_candidates(raw)
     assert {(c.category, c.text) for c in out} == {
         ("role", "DevOps engineer"),
-        ("style", "Answer in Russian"),
+        ("style", "Answer in Ukrainian"),
         ("preference", "Keep it concise"),
     }
 
 
 def test_parser_drops_existing_and_duplicates():
-    raw = "role|DevOps engineer\nrole|DevOps engineer\nstyle|Answer in Russian"
-    out = parse_candidates(raw, existing_texts=["answer in russian"])
+    raw = "role|DevOps engineer\nrole|DevOps engineer\nstyle|Answer in Ukrainian"
+    out = parse_candidates(raw, existing_texts=["answer in ukrainian"])
     # The duplicate role collapses to one; the style already exists → dropped.
     assert [(c.category, c.text) for c in out] == [("role", "DevOps engineer")]
 

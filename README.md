@@ -328,7 +328,7 @@ Four mechanisms, none of which rely on asking the model nicely.
   much text at once. Room for the answer is set aside first, then your question
   and what it remembers about the project, and the rest is filled with the
   pieces of your files it found. Other alphabets are counted properly, too:
-  Ukrainian and Russian take about twice the room English does, and assuming
+  Ukrainian takes about twice the room English does, and assuming
   otherwise used to mean sending half of what it thought it was sending.
 
 <details>
