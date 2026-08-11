@@ -381,12 +381,6 @@ export function AskWorkspace({
       setAttachedFiles((current) => [...current, ...readable].slice(0, 6));
     }
   }
-  // The skill the project itself uses — named in the picker so "Project default"
-  // stops being a phrase you have to go and look up. Read from the enabled
-  // flags, which is what actually reaches the prompt.
-  const projectSkillName =
-    getEnabledSkillPresets(skillPreferences)[0]?.name ?? null;
-
   const showGeneralQuestionHint =
     question.trim().length > 0 && !isLikelyProjectQuestion(question);
 
@@ -1006,42 +1000,34 @@ export function AskWorkspace({
                     <option value="explain">Explain with sources</option>
                   </select>
                 </label>
-                {/* Which skill writes the answer, next to the question rather than
-                    behind Developer details. It used to live in the developer
-                    cluster, so with developer mode off — the default — there was
-                    nowhere in the app that said which skill was in use, and no
-                    way to try another one. Choosing here affects this question
-                    only; the wording of each skill is edited in Settings. */}
-                <label
-                  className="ask-mode"
-                  title="Which skill writes the answer. This question only — the project's own skill follows its role."
-                >
-                  <span>Skill</span>
-                  <select
-                    value={skillOverride}
-                    onChange={(event) => setSkillOverride(event.target.value)}
+                {/* Your own instruction for how this answer should be written.
+                    It used to be called "Skill" and list the six roles as well —
+                    which made it a second, weaker copy of the Role picker in the
+                    header, and the two contradicted each other: the project role
+                    said DevOps, this said Tester, and the answer came back as
+                    DevOps. They are not the same thing. The role decides which
+                    facts a person cares about and reaches Home and Intelligence
+                    too; this decides how the answer is written, and only here.
+                    So the roles live in the header and are not repeated here. */}
+                {customSkills.length > 0 ? (
+                  <label
+                    className="ask-mode"
+                    title="Your own instruction for how to write this answer. This question only. Created and edited in Settings."
                   >
-                    <option value="">
-                      {projectSkillName ? `Project default (${projectSkillName})` : "Project default"}
-                    </option>
-                    <optgroup label="Built-in">
-                      {SKILL_PRESETS.map((preset) => (
-                        <option key={preset.id} value={preset.id}>
-                          {preset.name}
+                    <span>Instruction</span>
+                    <select
+                      value={skillOverride}
+                      onChange={(event) => setSkillOverride(event.target.value)}
+                    >
+                      <option value="">None</option>
+                      {customSkills.map((skill) => (
+                        <option key={skill.id} value={skill.id}>
+                          {skill.name}
                         </option>
                       ))}
-                    </optgroup>
-                    {customSkills.length > 0 ? (
-                      <optgroup label="Your skills">
-                        {customSkills.map((skill) => (
-                          <option key={skill.id} value={skill.id}>
-                            {skill.name}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ) : null}
-                  </select>
-                </label>
+                    </select>
+                  </label>
+                ) : null}
                 {devMode ? (
                   <div className="ask-dev-cluster">
                     <label className="ask-switch" title="Only affects reasoning models (deepseek-r1, qwq…)">
