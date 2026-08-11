@@ -7,6 +7,16 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+## [0.7.10] - 2026-08-11
+
+### Fixed
+
+- **Files added after a project was set up were never read.** A plain `.txt` dropped into a project on Tuesday stayed invisible to every button: the update in Settings said the AI was already up to date, an orange line directly above it said one file had changed, a full rebuild after clearing the index still found only the original files, and Ask answered — honestly — that it had never seen it. It looked like the app could not read text files, since the Markdown files present on day one worked; it was the timing. Everything read a photograph of the project taken when it was last scanned, and a file added afterwards is not in the photograph. Every path that indexes now looks at the project as it is. The permanent "1 file changed" is gone too: the count and the button each did their own arithmetic and disagreed about the built-in handbook, which lives in the index by design and on disk never. They share one answer now.
+
+- **Four of the six roles could not be saved.** Turning on Tester, Business analyst, Manager or DBA in Settings and pressing Save appeared to work and changed nothing; reopening Settings showed DevOps again. The app offers six roles and the saved profile accepted five older names, of which two overlapped — so the four the server did not recognise were discarded without a word, and a role it never returns falls back to its default when Settings reads it back. There is one list of roles now, and guidance written under an older name is carried over rather than lost. A skill the server genuinely cannot place is refused with a message that names it.
+
+- **A model download that was interrupted started again from zero.** Every failure deleted the partly-downloaded file, so a network blip forty minutes into a multi-gigabyte download threw away forty minutes — and on a connection that drops regularly, that is a download that can never finish however many times you press the button. What was already fetched is now kept, and the next attempt continues from it. The reason a download stopped also appears under the model instead of the row quietly offering "Download" again as if nothing had happened; the button reads "Resume download", because it will. Cancelling still discards the partial file, and an incomplete model is still never published to the models folder.
+
 ## [0.7.9] - 2026-08-03
 
 ### Fixed
