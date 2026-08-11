@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 
 from app.core.domain.rag import RagQualityWarning, RagSource, WorkspaceQuestionAnswer
+from app.core.domain.skill_profile import MAX_ACTIVE_SKILL_INSTRUCTIONS
 
 
 class SkillContextItemRequest(BaseModel):
@@ -21,7 +22,9 @@ class AskWorkspaceQuestionRequest(BaseModel):
     limit: int = Field(default=5, ge=1, le=50)
     llm_provider: str | None = None
     llm_model: str | None = None
-    skill_context: list[SkillContextItemRequest] = Field(default_factory=list, max_length=5)
+    skill_context: list[SkillContextItemRequest] = Field(
+        default_factory=list, max_length=MAX_ACTIVE_SKILL_INSTRUCTIONS
+    )
     images: list[str] = Field(default_factory=list, max_length=4)
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
     think: bool | None = None
@@ -33,7 +36,9 @@ class AskWorkspaceQuestionWithSelectedLLMRequest(BaseModel):
     question: str = Field(..., min_length=1)
     conversation_id: str | None = Field(default=None, min_length=1)
     limit: int = Field(default=5, ge=1, le=50)
-    skill_context: list[SkillContextItemRequest] = Field(default_factory=list, max_length=5)
+    skill_context: list[SkillContextItemRequest] = Field(
+        default_factory=list, max_length=MAX_ACTIVE_SKILL_INSTRUCTIONS
+    )
     images: list[str] = Field(default_factory=list, max_length=4)
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
     think: bool | None = None

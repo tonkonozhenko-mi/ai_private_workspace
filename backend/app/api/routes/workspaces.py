@@ -253,6 +253,7 @@ from app.core.domain.report import (
 )
 from app.core.domain.skill_profile import (
     KNOWN_SKILL_IDS,
+    MAX_ACTIVE_SKILL_INSTRUCTIONS,
     canonical_skill_id,
     default_skill_profile,
     normalize_skill_profile,
@@ -1575,9 +1576,12 @@ def _saved_skill_profile_context(workspace_id: str):
     if profile is None:
         profile = default_skill_profile(workspace_id)
         source = "default"
+    # Room for every role, since every role can be switched on at once. The
+    # literal 5 here dated from when there were five, and would have quietly
+    # dropped one guidance from the prompt on a workspace that enabled them all.
     instructions = [
         SkillPromptInstruction(name=skill.name, instruction=skill.custom_instructions)
-        for skill in profile.enabled_skills[:5]
+        for skill in profile.enabled_skills[:MAX_ACTIVE_SKILL_INSTRUCTIONS]
     ]
     return instructions, source, profile.profile, profile.updated_at
 
@@ -1606,7 +1610,7 @@ def _to_skill_prompt_instructions(skill_context) -> list[SkillPromptInstruction]
             name=item.name,
             instruction=item.custom_instructions,
         )
-        for item in skill_context[:5]
+        for item in skill_context[:MAX_ACTIVE_SKILL_INSTRUCTIONS]
     ]
 
 

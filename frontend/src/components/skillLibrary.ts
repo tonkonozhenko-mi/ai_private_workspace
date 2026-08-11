@@ -249,6 +249,12 @@ export const DEFAULT_SKILL_PREFERENCES: SkillPreferences = SKILL_PRESETS.reduce(
   {} as SkillPreferences,
 );
 
+// Room for every role, because a person can switch on every role. Written as a
+// count rather than a number, since the number used to be typed in as 5 and did
+// not move when the sixth role arrived — which quietly dropped one role's
+// guidance on its way to the prompt, and rejected the whole save in Settings.
+export const MAX_ACTIVE_SKILLS = SKILL_PRESETS.length;
+
 export function normalizeSkillPreferences(value: unknown): SkillPreferences {
   const parsed = value && typeof value === "object" && !Array.isArray(value)
     ? (value as Partial<Record<SkillPresetId, Partial<SkillPreference>>>)

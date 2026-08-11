@@ -45,6 +45,12 @@ LEGACY_SKILL_IDS: dict[str, str] = {
 # something that quietly eats the end of your sentence after you press Save.
 MAX_SKILL_INSTRUCTIONS_LENGTH = 1200
 
+# How many skills' guidance may reach the prompt at once. Every role can be
+# switched on together, so the bound is the number of roles — a smaller number
+# would drop somebody's guidance without saying so, which is how a literal 5,
+# left over from when there were five roles, became a bug the day DBA arrived.
+MAX_ACTIVE_SKILL_INSTRUCTIONS = len(KNOWN_SKILL_IDS)
+
 
 @dataclass(frozen=True)
 class SkillProfileItem:

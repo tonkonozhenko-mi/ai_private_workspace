@@ -20,11 +20,13 @@ from pathlib import Path
 
 import pytest
 
+from app.api.schemas.skill_profile_schemas import WorkspaceSkillProfileRequest
 from app.core.domain.role_lens import CANONICAL_ROLES
 from app.core.domain.skill_profile import (
     DEFAULT_SKILL_INSTRUCTIONS,
     KNOWN_SKILL_IDS,
     LEGACY_SKILL_IDS,
+    MAX_ACTIVE_SKILL_INSTRUCTIONS,
     SkillProfileItem,
     canonical_skill_id,
     default_skill_profile,
@@ -49,6 +51,32 @@ def _item(skill_id: str, *, enabled: bool = True, instructions: str = "") -> Ski
 def test_the_saveable_skills_are_the_canonical_roles():
     # One list. This is the assertion the whole complaint reduces to.
     assert KNOWN_SKILL_IDS == CANONICAL_ROLES
+
+
+def test_the_request_accepts_every_role_at_once():
+    """Settings sends all the roles in one request, so any cap below their number
+    rejects the whole save before anything reads it.
+
+    This was the first half of "the skills aren't saving", and the more brutal
+    half: a literal ``max_length=5`` written when there were five roles. Adding
+    DBA made it six, and from that day every save from the Settings panel was
+    refused with a 422 — not four toggles lost, the entire request.
+    """
+    request = WorkspaceSkillProfileRequest(
+        profile="workspace",
+        skills=[
+            {"id": role, "name": role, "enabled": True, "custom_instructions": "Guidance."}
+            for role in CANONICAL_ROLES
+        ],
+    )
+
+    assert [item.id for item in request.skills] == list(CANONICAL_ROLES)
+
+
+def test_the_prompt_has_room_for_every_role_at_once():
+    # Nothing stops a person enabling all of them; a lower ceiling would drop
+    # one person's guidance silently, which is the same failure one layer down.
+    assert MAX_ACTIVE_SKILL_INSTRUCTIONS >= len(CANONICAL_ROLES)
 
 
 def test_every_canonical_role_has_default_guidance():

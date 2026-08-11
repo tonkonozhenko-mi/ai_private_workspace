@@ -91,7 +91,7 @@ import {
 import { formatModelLabel, rawModelTitle } from "../lib/modelLabel";
 import { formatSourceLabel } from "../lib/sourceLabel";
 import { StatusBadge } from "./StatusBadge";
-import { SKILL_PRESETS, getEnabledSkillPresets, getSkillPresetByAssistantMode, type CustomSkill, type SkillPreferences } from "./skillLibrary";
+import { MAX_ACTIVE_SKILLS, SKILL_PRESETS, getEnabledSkillPresets, getSkillPresetByAssistantMode, type CustomSkill, type SkillPreferences } from "./skillLibrary";
 
 type SourceSnippetLimit = 3 | 5 | 8 | 10;
 
@@ -2897,7 +2897,7 @@ function buildSkillContext(skillPreferences: SkillPreferences): SkillContextRequ
       };
     })
     .filter((skill) => skill.custom_instructions.length > 0)
-    .slice(0, 5);
+    .slice(0, MAX_ACTIVE_SKILLS);
 }
 
 
