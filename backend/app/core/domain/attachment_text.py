@@ -20,13 +20,9 @@ LEGACY_OFFICE_FORMATS: dict[str, tuple[str, str]] = {
     ".doc": ("Word 97–2003", "Word: File → Save As → .docx"),
     ".xls": ("Excel 97–2003", "Excel: File → Save As → .xlsx"),
     ".ppt": ("PowerPoint 97–2003", "PowerPoint: File → Save As → .pptx"),
-    ".rtf": ("Rich Text Format", "Word: File → Save As → .docx"),
     ".pages": ("Apple Pages", "Pages: File → Export To → Word"),
     ".numbers": ("Apple Numbers", "Numbers: File → Export To → Excel"),
     ".key": ("Apple Keynote", "Keynote: File → Export To → PowerPoint"),
-    ".odt": ("OpenDocument Text", "Save as .docx"),
-    ".ods": ("OpenDocument Spreadsheet", "Save as .xlsx"),
-    ".odp": ("OpenDocument Presentation", "Save as .pptx"),
 }
 
 

@@ -93,6 +93,78 @@ def test_a_docx_that_is_not_really_a_docx_says_so():
     assert body["skipped_reason"]
 
 
+def _odf(kind: str, body: str) -> bytes:
+    """A real OpenDocument: a ZIP whose content.xml holds the words."""
+    text_ns = "urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+    table_ns = "urn:oasis:names:tc:opendocument:xmlns:table:1.0"
+    draw_ns = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0"
+    xml = (
+        f'<?xml version="1.0"?><doc xmlns:text="{text_ns}" xmlns:table="{table_ns}" '
+        f'xmlns:draw="{draw_ns}">{body}</doc>'
+    )
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("mimetype", f"application/vnd.oasis.opendocument.{kind}")
+        archive.writestr("content.xml", xml)
+    return buffer.getvalue()
+
+
+def test_a_libreoffice_document_is_read_like_a_word_one():
+    """OpenDocument is the same ZIP-of-XML idea as .docx, so refusing it was a
+    gap in the list of namespaces, not a limit of the approach."""
+    content = _odf(
+        "text",
+        "<text:h text:outline-level=\"1\">Background questions</text:h>"
+        "<text:p>Question 1: your criminal record.</text:p>",
+    )
+
+    body = _post("questions.odt", content).json()
+
+    assert body["skipped_reason"] is None
+    assert "criminal record" in body["text"]
+
+
+def test_a_libreoffice_spreadsheet_keeps_its_header():
+    content = _odf(
+        "spreadsheet",
+        "<table:table table:name=\"Costs\">"
+        "<table:table-row><table:table-cell><text:p>service</text:p></table:table-cell>"
+        "<table:table-cell><text:p>monthly</text:p></table:table-cell></table:table-row>"
+        "<table:table-row><table:table-cell><text:p>rds</text:p></table:table-cell>"
+        "<table:table-cell><text:p>1200</text:p></table:table-cell></table:table-row>"
+        "</table:table>",
+    )
+
+    body = _post("costs.ods", content).json()
+
+    assert "monthly" in body["text"]
+    assert "rds" in body["text"]
+
+
+def test_an_rtf_arrives_without_its_font_table():
+    # RTF's words are already plain text under a layer of control words. Sending
+    # the layer along would spend the context window on a list of typefaces.
+    backslash = chr(92)
+    rtf = (
+        "{" + backslash + "rtf1" + backslash + "ansi"
+        "{" + backslash + "fonttbl{" + backslash + "f0 Times New Roman;}}"
+        "Question 2: contacts with the police." + backslash + "par }"
+    )
+
+    body = _post("notes.rtf", rtf.encode("latin-1")).json()
+
+    assert "contacts with the police" in body["text"]
+    assert "Times New Roman" not in body["text"]
+
+
+def test_a_format_we_still_cannot_read_says_which_one_it_is():
+    # The list shrank; what remains must keep explaining itself.
+    body = _post("deck.key", b"\x00binary keynote").json()
+
+    assert body["text"] == ""
+    assert "Keynote" in body["skipped_reason"]
+
+
 def test_a_plain_text_file_still_goes_straight_through():
     body = _post("notes.txt", "ЖУРАВЛЬ-77 is the codeword.".encode()).json()
 

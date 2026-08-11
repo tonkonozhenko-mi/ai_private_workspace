@@ -128,6 +128,10 @@ DEFAULT_INCLUDE_PATTERNS: tuple[str, ...] = (
     # at a repository root matched nothing at all unless it sat under src/.
     "*.json",
     "*.pptx",
+    "*.odt",
+    "*.ods",
+    "*.odp",
+    "*.rtf",
     "*.drawio",
     "*.hcl",
     "*.dockerfile",

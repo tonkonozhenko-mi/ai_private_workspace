@@ -368,6 +368,17 @@ class LocalFileSystem:
             return "presentation"
         if suffix == ".pdf":
             return "pdf_document"
+        # OpenDocument is the same ZIP-of-XML idea as OOXML, so it costs the app
+        # nothing but namespaces — and LibreOffice is what a lot of people have.
+        if suffix == ".odt":
+            return "opendocument_text"
+        if suffix == ".ods":
+            return "opendocument_sheet"
+        if suffix == ".odp":
+            return "opendocument_slides"
+        # RTF is markup over plain text, not a container.
+        if suffix == ".rtf":
+            return "rich_text"
         # A diagram is XML, and every box on it carries its label. ".drawio.xml" is
         # the same file under the name draw.io's desktop app gives it.
         if suffix == ".drawio" or name_lower.endswith(".drawio.xml"):

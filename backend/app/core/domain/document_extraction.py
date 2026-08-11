@@ -44,6 +44,16 @@ PRESENTATION = "presentation"
 # are detected and attributed to their page, and honestly not indexed.
 IMAGE = "image"
 
+# OpenDocument is the same idea as OOXML — a ZIP of XML — so it costs nothing but
+# the namespaces. LibreOffice is what a lot of people have, and a runbook saved
+# from it used to be as unreadable to this app as a photograph.
+OPENDOCUMENT_TEXT = "opendocument_text"
+OPENDOCUMENT_SHEET = "opendocument_sheet"
+OPENDOCUMENT_SLIDES = "opendocument_slides"
+# RTF is markup over plain text, not a container: the words are already there,
+# under a layer of control words that has to be peeled off.
+RICH_TEXT = "rich_text"
+
 EXTRACTABLE_DOCUMENT_TYPES: frozenset[str] = frozenset(
     {
         WORD_DOCUMENT,
@@ -54,6 +64,10 @@ EXTRACTABLE_DOCUMENT_TYPES: frozenset[str] = frozenset(
         NOTEBOOK,
         DIAGRAM,
         PRESENTATION,
+        OPENDOCUMENT_TEXT,
+        OPENDOCUMENT_SHEET,
+        OPENDOCUMENT_SLIDES,
+        RICH_TEXT,
     }
 )
 

@@ -721,13 +721,21 @@ export function AskWorkspace({
     if (options.clearComposer) {
       setQuestion("");
       setAttachedImages([]);
-      setAttachedFiles([]);
+      // Documents deliberately stay. A person who attaches a questionnaire and
+      // asks about its first question means to ask about its second one next;
+      // clearing here sent the follow-up with no document at all, so the answer
+      // came from the project index and looked like the model had forgotten.
+      // The chips below the composer show exactly what will be sent, and each
+      // has an × — what is on screen is what goes.
     }
     try {
-      const skillContext =
-        devMode && skillOverride
-          ? buildSkillContextForOverride(skillOverride, skillPreferences, customSkills)
-          : buildSkillContext(skillPreferences);
+      // The picker is no longer behind developer mode, so neither is the choice
+      // it makes. It used to read `devMode && skillOverride`, which meant that
+      // once the control moved out into the composer, picking a skill changed
+      // the label and nothing else — a control that lies about having worked.
+      const skillContext = skillOverride
+        ? buildSkillContextForOverride(skillOverride, skillPreferences, customSkills)
+        : buildSkillContext(skillPreferences);
       const askOptions = {
         signal: abortController.signal,
         conversationId: activeConversationId,
