@@ -76,7 +76,21 @@ def _context(
     )
 
 
-def test_rag_prompt_includes_skill_context_as_guidance_not_evidence() -> None:
+def test_an_instruction_arrives_word_for_word_and_is_still_not_evidence() -> None:
+    """Two promises about an instruction, and they pull in opposite directions.
+
+    It must reach the model intact — the person wrote those words on purpose, and
+    a prompt that paraphrases them is a control that half-works. And it must not
+    become a fact: "pay attention to Jenkins pipelines" is a request about
+    emphasis, not a claim that this project has any.
+
+    This test used to pin the heading string of the old block, which is why
+    rewording that block broke it while the behaviour it cared about was intact.
+    What it pins now is the pair of promises and the boundary between them: the
+    not-evidence sentence belongs to the instruction's own block, so it is
+    checked as sitting between the instruction and the evidence rather than
+    merely existing somewhere in the prompt.
+    """
     prompt = build_workspace_question_prompt(
         question="What should I review before deployment?",
         context_results=[
@@ -94,10 +108,16 @@ def test_rag_prompt_includes_skill_context_as_guidance_not_evidence() -> None:
         ],
     )
 
-    assert "Workspace skill context:" in prompt
     assert "- DevOps: Pay attention to Jenkins pipelines and deployment risks." in prompt
-    assert "not project evidence" in prompt
-    assert "Project claims must still come only from the provided context chunks" in prompt
+
+    instruction_at = prompt.index("- DevOps: Pay attention")
+    not_evidence_at = prompt.index("It is not evidence")
+    evidence_at = prompt.index("Context chunks:")
+
+    assert instruction_at < not_evidence_at < evidence_at
+    # The disclaimer names where claims may come from, so it cannot be read as
+    # a general remark about caution.
+    assert "come only from the context chunks" in prompt
 
 
 def test_the_prompt_states_what_was_never_indexed_when_something_was() -> None:
