@@ -33,7 +33,6 @@ from app.core.domain.skill_profile import (
     normalize_skill_profile,
 )
 
-
 _SKILL_LIBRARY = (
     Path(__file__).resolve().parents[2] / "frontend" / "src" / "components" / "skillLibrary.ts"
 )
