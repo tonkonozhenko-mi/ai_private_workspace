@@ -174,8 +174,8 @@ def test_the_scan_knows_a_documentation_folder_when_it_sees_one(tmp_path: Path):
 
 
 def test_a_question_in_cyrillic_can_match_the_document_at_all():
-    """Live: "а третє питання?" about an attached questionnaire was answered from
-    the project index. The first two questions had worked.
+    """Live: a follow-up about an attached questionnaire — "and the third one?" —
+    was answered from the project index. The first two had worked.
 
     Two character classes were the cause. `_question_terms` and `_score_chunk`
     both matched `[A-Za-z0-9_]`, so a question in Ukrainian produced no terms and
