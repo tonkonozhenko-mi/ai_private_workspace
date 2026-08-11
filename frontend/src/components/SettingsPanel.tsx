@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
-import { applyGuidanceEdits } from "../lib/skillGuidance";
 import { UpdateIndexSection } from "./UpdateIndexSection";
 import { UserProfileSettings } from "./UserProfileSettings";
 import type { WorkbenchPreferences } from "../App";
@@ -12,7 +11,6 @@ import {
   previewWorkspaceFileSelection,
   resetLlamaRuntimeSelection,
   updateWorkspaceIndexingRules,
-  updateWorkspaceSkillProfile,
 } from "../api/client";
 import type {
   DataFolder,
@@ -27,15 +25,7 @@ import {
 } from "./fileIndexingPreferences";
 import { StatusBadge } from "./StatusBadge";
 import { resetOnboarding } from "./StartHere";
-import {
-  SKILL_PRESETS,
-  normalizeSkillPreferences,
-  toSkillProfileRequest,
-  type SkillPresetId,
-  makeCustomSkillId,
-  type CustomSkill,
-  type SkillPreferences,
-} from "./skillLibrary";
+import { makeCustomSkillId, type CustomSkill } from "./skillLibrary";
 
 interface SettingsPanelProps {
   dashboard: WorkspaceDashboardData;
@@ -46,9 +36,6 @@ interface SettingsPanelProps {
   onStartTour?: () => void;
   onOpenModels: () => void;
   onIndexingRulesSaved?: () => void;
-  skillProfileSource?: string;
-  skillProfileUpdatedAt?: string | null;
-  onSkillProfileSaved?: () => void;
 }
 
 export function SettingsPanel({
@@ -60,9 +47,6 @@ export function SettingsPanel({
   onStartTour,
   onOpenModels,
   onIndexingRulesSaved,
-  skillProfileSource = "default",
-  skillProfileUpdatedAt = null,
-  onSkillProfileSaved,
 }: SettingsPanelProps) {
   const [fileRulesDraft, setFileRulesDraft] = useState(() => ({
     includePatterns: preferences.fileIndexingPreferences.includePatterns,
@@ -72,19 +56,14 @@ export function SettingsPanel({
   const [savingFileRules, setSavingFileRules] = useState(false);
   const [fileRulesPreview, setFileRulesPreview] = useState<FileSelectionPreview | null>(null);
   const [previewingFileRules, setPreviewingFileRules] = useState(false);
-  const [skillDrafts, setSkillDrafts] = useState<Record<SkillPresetId, string>>(() =>
-    buildSkillDrafts(preferences.skillPreferences),
-  );
-  const [skillMessage, setSkillMessage] = useState("Ask uses this workspace guidance when preparing answers.");
-  const [savingSkills, setSavingSkills] = useState(false);
-  // Skills editor: one selector drives which skill is shown/edited.
-  // Value is a preset id, a custom-skill id, or "__new__" to create one. Opens
-  // on the workspace's active skill, which is usually the one you want to edit
-  // — but that is where the resemblance to a switch ends, and the line above
-  // the picker now says so. See settings-skill-active in the markup.
+  // One selector drives which instruction is shown; "__new__" writes a new one.
+  // The six roles are not in this list. They used to be, and the app then taught
+  // two different models of itself: here a role was a "skill" you could rewrite,
+  // and in Ask the same six had already been removed because they were fighting
+  // with the project's role. A role decides which facts you see; an instruction
+  // decides how the answer is written. Only the second one is yours to write.
   const [selectedSkillKey, setSelectedSkillKey] = useState<string>(
-    SKILL_PRESETS.find((preset) => preferences.skillPreferences[preset.id]?.enabled)?.id ??
-      SKILL_PRESETS[0].id,
+    preferences.customSkills[0]?.id ?? "__new__",
   );
   const [newSkillName, setNewSkillName] = useState("");
   const [newSkillInstructions, setNewSkillInstructions] = useState("");
@@ -215,47 +194,23 @@ export function SettingsPanel({
     }
   }
 
-  async function saveSkillGuidance() {
-    // Each skill keeps whether it is on, and takes its text from the draft the
-    // person just edited. This used to spread the preferences and then set a
-    // key called `customInstructions` alongside them — but that is not the id
-    // of any skill, so normalizeSkillPreferences, which walks the skills by id,
-    // never looked at it. The edit was dropped on the floor: the request went
-    // to the server carrying the old text, the panel reported "Saved", and
-    // reopening it showed the original wording back. Nothing anywhere said no.
-    const nextSkillPreferences: SkillPreferences = normalizeSkillPreferences(
-      applyGuidanceEdits(
-        SKILL_PRESETS.map((preset) => preset.id),
-        preferences.skillPreferences,
-        skillDrafts,
-      ),
-    );
-    setSavingSkills(true);
-    setSkillMessage("Saving workspace guidance…");
-    try {
-      await updateWorkspaceSkillProfile(
-        dashboard.workspace_id,
-        toSkillProfileRequest(nextSkillPreferences),
-      );
-      updatePreference({ skillPreferences: nextSkillPreferences });
-      setSkillMessage("Saved. Ask will use this guidance for the workspace.");
-      onSkillProfileSaved?.();
-    } catch (error) {
-      setSkillMessage(errorMessage(error));
-    } finally {
-      setSavingSkills(false);
-    }
-  }
-
-  // What is actually in use right now, read from the enabled flags rather than
-  // from whatever the picker happens to be showing.
-  const activeSkillName =
-    SKILL_PRESETS.find((preset) => preferences.skillPreferences[preset.id]?.enabled)?.name ?? null;
-
-  const selectedPreset = SKILL_PRESETS.find((preset) => preset.id === selectedSkillKey);
-  const selectedCustom = preferences.customSkills.find(
-    (skill) => skill.id === selectedSkillKey,
+  // Derived, not synced. Preferences arrive from the backend after the first
+  // render, so an id chosen at mount can name nothing by the time they land —
+  // and a <select> whose value matches no option shows the wrong panel while
+  // looking fine. Falling back here beats a useEffect racing the fetch.
+  const selectedKey =
+    selectedSkillKey === "__new__" ||
+    preferences.customSkills.some((skill) => skill.id === selectedSkillKey)
+      ? selectedSkillKey
+      : (preferences.customSkills[0]?.id ?? "__new__");
+  const selectedCustom = preferences.customSkills.find((skill) => skill.id === selectedKey);
+  const defaultInstruction = preferences.customSkills.find(
+    (skill) => skill.id === preferences.defaultInstructionId,
   );
+
+  function setDefaultInstruction(id: string | null) {
+    onPreferencesChange({ ...preferences, defaultInstructionId: id });
+  }
 
   function addCustomSkill() {
     const name = newSkillName.trim();
@@ -287,11 +242,16 @@ export function SettingsPanel({
   }
 
   function removeCustomSkill(id: string) {
+    const remaining = preferences.customSkills.filter((skill) => skill.id !== id);
     onPreferencesChange({
       ...preferences,
-      customSkills: preferences.customSkills.filter((skill) => skill.id !== id),
+      customSkills: remaining,
+      // Deleting the default has to clear it too. A dangling id would leave
+      // Settings claiming an instruction is in force while answers used none.
+      defaultInstructionId:
+        preferences.defaultInstructionId === id ? null : preferences.defaultInstructionId,
     });
-    setSelectedSkillKey(SKILL_PRESETS[0].id);
+    setSelectedSkillKey(remaining[0]?.id ?? "__new__");
   }
 
   return (
@@ -439,18 +399,19 @@ export function SettingsPanel({
       <section className="panel settings-clean-card">
         <div className="panel-heading compact-heading">
           <div>
-            <p className="eyebrow">Skills</p>
+            <p className="eyebrow">Instructions</p>
             <h3>How answers are written</h3>
             <p className="panel-helper">
-              A skill is a short instruction that shapes the tone and focus of answers.
-              Edit a built-in one or add your own, then pick a skill per question in Ask
-              under “Style” (developer mode).
+              An instruction is a few sentences of your own about how an answer should
+              read — its focus, its tone, what it must always mention. Your role, set in
+              the header, decides which facts you are shown; an instruction decides how
+              they are written. Pick one per question in Ask, or make one the default here.
             </p>
           </div>
         </div>
 
         <details className="settings-skill-help">
-          <summary>What makes a good skill?</summary>
+          <summary>What makes a good instruction?</summary>
           <div className="settings-skill-help-body">
             <p className="settings-skill-help-label">Good</p>
             <ul>
@@ -467,83 +428,44 @@ export function SettingsPanel({
           </div>
         </details>
 
-        {/* Which skill is actually in use, stated separately from the picker
-            below. The picker chooses what to edit; it does not switch anything
-            on, and because it opens on the active skill it read as though it
-            did — pick Tester, save, come back, and DevOps is showing again,
-            which looks exactly like a setting that would not stick. */}
         <p className="settings-skill-active">
-          {activeSkillName ? (
+          {defaultInstruction ? (
             <>
-              Answers currently use <strong>{activeSkillName}</strong>. Which skill is active
-              follows this project's role — change it where you set the role, not here.
+              Answers use <strong>{defaultInstruction.name}</strong> unless a question
+              picks another one.
             </>
           ) : (
-            <>No skill is active for this project, so answers use no extra guidance.</>
+            <>
+              No default instruction, so answers are written the way your role frames
+              them. That is a fine place to stay.
+            </>
           )}
         </p>
 
-        <label className="settings-skill-select">
-          <span className="settings-skill-select-label">Skill to edit</span>
-          <select
-            value={selectedSkillKey}
-            onChange={(event) => setSelectedSkillKey(event.target.value)}
-          >
-            <optgroup label="Built-in">
-              {SKILL_PRESETS.map((preset) => (
-                <option key={preset.id} value={preset.id}>
-                  {preset.name}
+        {preferences.customSkills.length > 0 ? (
+          <label className="settings-skill-select">
+            <span className="settings-skill-select-label">Instruction to edit</span>
+            <select
+              value={selectedKey}
+              onChange={(event) => setSelectedSkillKey(event.target.value)}
+            >
+              {preferences.customSkills.map((skill) => (
+                <option key={skill.id} value={skill.id}>
+                  {skill.name}
                 </option>
               ))}
-            </optgroup>
-            {preferences.customSkills.length > 0 ? (
-              <optgroup label="Your skills">
-                {preferences.customSkills.map((skill) => (
-                  <option key={skill.id} value={skill.id}>
-                    {skill.name}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null}
-            <option value="__new__">+ Create a custom skill…</option>
-          </select>
-        </label>
+              <option value="__new__">+ Write a new instruction…</option>
+            </select>
+          </label>
+        ) : null}
 
-        {selectedPreset ? (
-          <div className="settings-skill-editor">
-            <small className="settings-skill-editor-note">{selectedPreset.purpose}</small>
-            <textarea
-              rows={4}
-              value={skillDrafts[selectedPreset.id] ?? ""}
-              placeholder={selectedPreset.defaultInstructions}
-              onChange={(event) =>
-                setSkillDrafts((current) => ({
-                  ...current,
-                  [selectedPreset.id]: event.target.value,
-                }))
-              }
-            />
-            <div className="settings-clean-actions">
-              <button
-                className="primary-button"
-                type="button"
-                disabled={savingSkills}
-                onClick={() => void saveSkillGuidance()}
-              >
-                {/* "Save skill" sounded like it saved a choice of skill. It
-                    saves the wording above it, and nothing else. */}
-                {savingSkills ? "Saving…" : "Save wording"}
-              </button>
-            </div>
-            <p className="settings-message">{skillMessage}</p>
-          </div>
-        ) : selectedCustom ? (
+        {selectedCustom ? (
           <div className="settings-skill-editor">
             <input
               className="custom-skill-name"
               value={selectedCustom.name}
               maxLength={80}
-              placeholder="Skill name"
+              placeholder="Instruction name"
               onChange={(event) =>
                 updateCustomSkill(selectedCustom.id, { name: event.target.value })
               }
@@ -557,13 +479,25 @@ export function SettingsPanel({
                 updateCustomSkill(selectedCustom.id, { instructions: event.target.value })
               }
             />
+            <label className="settings-skill-default">
+              <input
+                type="checkbox"
+                checked={preferences.defaultInstructionId === selectedCustom.id}
+                onChange={(event) =>
+                  setDefaultInstruction(event.target.checked ? selectedCustom.id : null)
+                }
+              />
+              {/* One default, not many. Several instructions at once is how the
+                  prompt filled up with competing advice in the first place. */}
+              <span>Use this one by default</span>
+            </label>
             <div className="settings-clean-actions">
               <button
                 className="secondary-action settings-danger-button"
                 type="button"
                 onClick={() => removeCustomSkill(selectedCustom.id)}
               >
-                Remove skill
+                Remove instruction
               </button>
               <span className="settings-skill-editor-note">Saved automatically.</span>
             </div>
@@ -574,7 +508,7 @@ export function SettingsPanel({
               className="custom-skill-name"
               value={newSkillName}
               maxLength={80}
-              placeholder="New skill name (e.g. Security reviewer)"
+              placeholder="Name (e.g. Security reviewer)"
               onChange={(event) => setNewSkillName(event.target.value)}
             />
             <textarea
@@ -591,7 +525,7 @@ export function SettingsPanel({
                 disabled={!newSkillName.trim() || !newSkillInstructions.trim()}
                 onClick={addCustomSkill}
               >
-                Create skill
+                Create instruction
               </button>
             </div>
           </div>
@@ -735,14 +669,6 @@ export function SettingsPanel({
       </section>
     </div>
   );
-}
-
-function buildSkillDrafts(preferences: SkillPreferences): Record<SkillPresetId, string> {
-  const drafts = {} as Record<SkillPresetId, string>;
-  for (const preset of SKILL_PRESETS) {
-    drafts[preset.id] = preferences[preset.id]?.customInstructions ?? preset.defaultInstructions;
-  }
-  return drafts;
 }
 
 function formatLabel(value: string): string {

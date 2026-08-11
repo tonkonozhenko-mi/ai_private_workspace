@@ -9,11 +9,14 @@ import {
 import {
   DEFAULT_CUSTOM_SKILLS,
   DEFAULT_SKILL_PREFERENCES,
+  SKILL_PRESETS,
+  makeCustomSkillId,
   normalizeCustomSkills,
   normalizeSkillPreferences,
   type CustomSkill,
   type SkillPreferences,
 } from "./components/skillLibrary";
+import { liveDefaultId, migrateEditedRoleGuidance } from "./lib/instructions";
 import {
   DEFAULT_FILE_INDEXING_PREFERENCES,
   normalizeFileIndexingPreferences,
@@ -44,6 +47,19 @@ export interface WorkbenchPreferences {
   answerCreativity: AnswerCreativityPreference;
   skillPreferences: SkillPreferences;
   customSkills: CustomSkill[];
+  /**
+   * The instruction used when a question does not name one, or null to write
+   * answers the way the role frames them. An id from `customSkills` — the six
+   * roles cannot appear here, because a role is not an instruction.
+   */
+  defaultInstructionId: string | null;
+  /**
+   * Role wordings already carried over to instructions. Kept so that deleting
+   * or rewriting a carried instruction sticks — otherwise the next launch would
+   * find the original text still sitting in the role's preferences and copy it
+   * out again, every time, with no way to refuse.
+   */
+  carriedRoleGuidance: string[];
   fileIndexingPreferences: FileIndexingPreferences;
 }
 
@@ -76,6 +92,8 @@ export const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   answerCreativity: "precise",
   skillPreferences: DEFAULT_SKILL_PREFERENCES,
   customSkills: DEFAULT_CUSTOM_SKILLS,
+  defaultInstructionId: null,
+  carriedRoleGuidance: [],
   fileIndexingPreferences: DEFAULT_FILE_INDEXING_PREFERENCES,
 };
 
@@ -145,6 +163,17 @@ function isDemoModePreference(value: unknown): value is DemoModePreference {
  * loader and the backend loader so both go through the same validation.
  */
 export function normalizePreferences(parsed: Partial<WorkbenchPreferences>): WorkbenchPreferences {
+  const skillPreferences = normalizeSkillPreferences(parsed.skillPreferences);
+  const carried = migrateEditedRoleGuidance(
+    SKILL_PRESETS,
+    skillPreferences,
+    normalizeCustomSkills(parsed.customSkills),
+    Array.isArray(parsed.carriedRoleGuidance)
+      ? parsed.carriedRoleGuidance.filter((item): item is string => typeof item === "string")
+      : [],
+    makeCustomSkillId,
+  );
+
   return {
     theme: isThemePreference(parsed.theme) ? parsed.theme : DEFAULT_PREFERENCES.theme,
     textSize: isTextSizePreference(parsed.textSize)
@@ -189,8 +218,18 @@ export function normalizePreferences(parsed: Partial<WorkbenchPreferences>): Wor
       parsed.answerCreativity === "creative"
         ? parsed.answerCreativity
         : DEFAULT_PREFERENCES.answerCreativity,
-    skillPreferences: normalizeSkillPreferences(parsed.skillPreferences),
-    customSkills: normalizeCustomSkills(parsed.customSkills),
+    skillPreferences,
+    // Settings no longer offers a box for rewriting how a role phrases an
+    // answer — a role decides which facts you see, and phrasing is what an
+    // instruction is for. Anyone who used that box wrote real sentences, so
+    // they come out as instructions of their own rather than disappearing with
+    // the control they were typed into.
+    customSkills: carried.instructions,
+    defaultInstructionId: liveDefaultId(
+      typeof parsed.defaultInstructionId === "string" ? parsed.defaultInstructionId : null,
+      carried.instructions,
+    ),
+    carriedRoleGuidance: carried.carriedSources,
     fileIndexingPreferences: normalizeFileIndexingPreferences(parsed.fileIndexingPreferences),
   };
 }

@@ -1483,8 +1483,8 @@ function App() {
                   workspaceId={detail.dashboard.workspace_id}
                   assistantMode={detail.dashboard.assistant_mode}
                   defaultSourceSnippets={preferences.defaultSourceSnippets}
-                  skillPreferences={preferences.skillPreferences}
                   customSkills={preferences.customSkills}
+                  defaultInstructionId={preferences.defaultInstructionId}
                   skillProfileSource={workspaceSkillProfile?.source ?? "default"}
                   skillProfileUpdatedAt={workspaceSkillProfile?.updated_at ?? null}
                   developerMode={preferences.developerMode}
@@ -1576,9 +1576,6 @@ function App() {
                   onStartTour={startTour}
                   onOpenModels={() => setActiveTab("models")}
                   onIndexingRulesSaved={() => refreshWorkspaceReadOnlyState(detail.dashboard.workspace_id)}
-                  skillProfileSource={workspaceSkillProfile?.source ?? "default"}
-                  skillProfileUpdatedAt={workspaceSkillProfile?.updated_at ?? null}
-                  onSkillProfileSaved={() => refreshWorkspaceReadOnlyState(detail.dashboard.workspace_id)}
                 />
               ) : null}
               </Suspense>

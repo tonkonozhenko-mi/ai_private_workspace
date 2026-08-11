@@ -1570,23 +1570,21 @@ def update_workspace_skill_profile(
     return to_workspace_skill_profile_response(saved, source="saved")
 
 
-def _saved_skill_profile_context(workspace_id: str):
-    profile = skill_profile_repository.get(workspace_id)
-    source = "saved"
-    if profile is None:
-        profile = default_skill_profile(workspace_id)
-        source = "default"
-    # Room for every role, since every role can be switched on at once. The
-    # literal 5 here dated from when there were five, and would have quietly
-    # dropped one guidance from the prompt on a workspace that enabled them all.
-    instructions = [
-        SkillPromptInstruction(name=skill.name, instruction=skill.custom_instructions)
-        for skill in profile.enabled_skills[:MAX_ACTIVE_SKILL_INSTRUCTIONS]
-    ]
-    return instructions, source, profile.profile, profile.updated_at
-
-
 def _skill_profile_context_from_request(workspace_id: str, skill_context):
+    """The instruction for this answer, and nothing when there is none.
+
+    This used to fall back to the workspace's saved profile whenever the request
+    carried no instruction. That profile is a mirror of the project's role — it
+    is written from the role every time the role changes — so the fallback put
+    the role into the prompt a second time, as an instruction, under a heading
+    saying the user chose it for this question, next to a sentence about which of
+    the two wins where they disagree. They were the same sentence.
+
+    It also meant "None" in the composer could not be obeyed: an empty list took
+    the same branch as no list at all, so the way out of an instruction led
+    straight back to one. Now the caller decides, and silence is a choice the
+    caller is allowed to make.
+    """
     if skill_context:
         return (
             _to_skill_prompt_instructions(skill_context),
@@ -1594,7 +1592,7 @@ def _skill_profile_context_from_request(workspace_id: str, skill_context):
             "temporary",
             None,
         )
-    return _saved_skill_profile_context(workspace_id)
+    return [], "none", "none", None
 
 
 def _to_attached_documents(attached_documents) -> list[AttachedDocument]:

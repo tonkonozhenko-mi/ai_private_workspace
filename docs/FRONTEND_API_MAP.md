@@ -814,7 +814,7 @@ The Skill Library is currently browser-local and uses no new backend endpoints. 
 
 ## Task 140 — Skill context in Ask requests
 
-`POST /workspaces/{workspace_id}/ask-selected` now accepts an optional `skill_context` array from the frontend. The frontend builds it from enabled browser-local skill presets in Settings.
+`POST /workspaces/{workspace_id}/ask-selected` accepts an optional `skill_context` array from the frontend. It carries at most one item: the instruction the person wrote themselves, either chosen for this question in the composer or set as their default in Settings. An empty array means no instruction, and the backend honours that rather than falling back to the saved profile — the saved profile mirrors the project's role, which already reaches the prompt as the role line.
 
 Example payload:
 
@@ -844,7 +844,7 @@ This is an explicit Ask-only payload. It does not save skills to the backend, ex
 
 ## Task 142 — Ask conversation UI
 
-The Ask tab now renders `/workspaces/{workspace_id}/ask-selected` responses as a local conversation thread. This is a frontend presentation change only. Each explicit Ask submit still sends the existing selected-model Ask request, including optional `skill_context` from browser-local skill preferences. The UI adds copy/edit/ask-again controls around the returned response but does not add new backend endpoints.
+The Ask tab now renders `/workspaces/{workspace_id}/ask-selected` responses as a local conversation thread. This is a frontend presentation change only. Each explicit Ask submit still sends the existing selected-model Ask request, including optional `skill_context` carrying the person's own instruction, if one applies. The UI adds copy/edit/ask-again controls around the returned response but does not add new backend endpoints.
 
 ## Task 143 — Centered Ask composer
 
