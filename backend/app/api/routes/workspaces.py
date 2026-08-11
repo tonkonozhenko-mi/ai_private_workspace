@@ -251,7 +251,12 @@ from app.core.domain.report import (
     markdown_to_plain_text,
     render_report_markdown,
 )
-from app.core.domain.skill_profile import default_skill_profile, normalize_skill_profile
+from app.core.domain.skill_profile import (
+    KNOWN_SKILL_IDS,
+    canonical_skill_id,
+    default_skill_profile,
+    normalize_skill_profile,
+)
 from app.core.domain.workspace import Workspace
 from app.core.use_cases.add_timeline_event import AddTimelineEventInput, AddTimelineEventUseCase
 from app.core.use_cases.analyze_github_actions import (
@@ -1523,6 +1528,18 @@ def update_workspace_skill_profile(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Workspace not found: {workspace_id}",
+        )
+    # A skill this server cannot place is refused out loud. It used to be
+    # dropped in silence, which is how four of the six roles could be switched
+    # on, saved, and found switched off again with nothing anywhere to say why.
+    unknown = [item.id for item in request.skills if canonical_skill_id(item.id) is None]
+    if unknown:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Unknown skill(s): {', '.join(sorted(unknown))}. "
+                f"Known skills: {', '.join(KNOWN_SKILL_IDS)}."
+            ),
         )
     profile = normalize_skill_profile(
         workspace_id=workspace_id,
