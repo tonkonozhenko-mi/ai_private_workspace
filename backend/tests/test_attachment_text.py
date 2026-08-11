@@ -165,6 +165,19 @@ def test_a_format_we_still_cannot_read_says_which_one_it_is():
     assert "Keynote" in body["skipped_reason"]
 
 
+def test_every_extractable_type_has_a_reader_and_no_reader_is_orphaned():
+    """The domain lists the types that go through an extractor; the extractor
+    lists the readers. Two lists, so they can disagree — a type in the first and
+    not the second is a file classified as readable and then skipped with "No
+    extractor for ...", which is the app calling itself a liar in a log line."""
+    from app.adapters.documents.local_document_extractor import LocalDocumentExtractor
+    from app.core.domain.document_extraction import EXTRACTABLE_DOCUMENT_TYPES
+
+    readers = set(LocalDocumentExtractor()._readers())
+
+    assert readers == set(EXTRACTABLE_DOCUMENT_TYPES)
+
+
 def test_a_plain_text_file_still_goes_straight_through():
     body = _post("notes.txt", "ЖУРАВЛЬ-77 is the codeword.".encode()).json()
 

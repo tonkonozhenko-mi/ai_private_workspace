@@ -160,31 +160,10 @@ class LocalDocumentExtractor:
                 mb = MAX_DOCUMENT_BYTES // (1024 * 1024)
                 return skipped(f"The document is larger than {mb} MB and was not indexed.")
 
-            if file_type == WORD_DOCUMENT:
-                return self._docx(path)
-            if file_type == EXCEL_WORKBOOK:
-                return self._xlsx(path)
-            if file_type == HTML_DOCUMENT:
-                return self._html(path)
-            if file_type == PDF_DOCUMENT:
-                return self._pdf(path)
-            if file_type == TABULAR_DATA:
-                return self._csv(path)
-            if file_type == NOTEBOOK:
-                return self._notebook(path)
-            if file_type == DIAGRAM:
-                return self._drawio(path)
-            if file_type == PRESENTATION:
-                return self._pptx(path)
-            if file_type == OPENDOCUMENT_TEXT:
-                return self._odt(path)
-            if file_type == OPENDOCUMENT_SHEET:
-                return self._ods(path)
-            if file_type == OPENDOCUMENT_SLIDES:
-                return self._odp(path)
-            if file_type == RICH_TEXT:
-                return self._rtf(path)
-            return skipped(f"No extractor for '{file_type}'.")
+            reader = self._readers().get(file_type)
+            if reader is None:
+                return skipped(f"No extractor for '{file_type}'.")
+            return reader(path)
         except zipfile.BadZipFile:
             # A .docx/.xlsx that isn't a valid OOXML container — often a renamed
             # legacy .doc/.xls. Say something the user can act on.
@@ -194,6 +173,29 @@ class LocalDocumentExtractor:
         except Exception as exc:  # noqa: BLE001 - one bad file must not fail the index
             logger.warning("document extraction failed path=%s: %s", relative_path, exc)
             return skipped("The document could not be read and was skipped.")
+
+    def _readers(self) -> dict[str, Callable[[Path], ExtractedDocument]]:
+        """Which reader handles which kind of file.
+
+        A table rather than a ladder of twelve ifs: the answer to "what can this
+        extractor read" is then one thing you can look at, and a test can compare
+        it against EXTRACTABLE_DOCUMENT_TYPES instead of trusting that both were
+        remembered. Adding a format is adding a line here.
+        """
+        return {
+            WORD_DOCUMENT: self._docx,
+            EXCEL_WORKBOOK: self._xlsx,
+            HTML_DOCUMENT: self._html,
+            PDF_DOCUMENT: self._pdf,
+            TABULAR_DATA: self._csv,
+            NOTEBOOK: self._notebook,
+            DIAGRAM: self._drawio,
+            PRESENTATION: self._pptx,
+            OPENDOCUMENT_TEXT: self._odt,
+            OPENDOCUMENT_SHEET: self._ods,
+            OPENDOCUMENT_SLIDES: self._odp,
+            RICH_TEXT: self._rtf,
+        }
 
     # ------------------------------------------------------------------ .docx
     def _docx(self, path: Path) -> ExtractedDocument:
