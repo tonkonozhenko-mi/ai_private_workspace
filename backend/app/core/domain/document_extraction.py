@@ -71,6 +71,57 @@ EXTRACTABLE_DOCUMENT_TYPES: frozenset[str] = frozenset(
     }
 )
 
+# The extension a file must have on disk for the extractor to read it, keyed by
+# the extension a person's file arrives with. Two things happen here, and the
+# second is the point:
+#
+#   1. It answers "what kind of document is this" from a name alone, with no
+#      filesystem involved.
+#   2. Its keys are the only strings ever used to build a path for an attachment.
+#      A filename from a browser is attacker-controlled — "../../.ssh/id_rsa" is
+#      a name like any other — and the safe move is not to sanitise it but to
+#      never let it near a path. What lands on disk is our own literal.
+#
+# A test pins every key against the scanner's classifier, so the two cannot drift.
+ATTACHMENT_DOCUMENT_TYPES: dict[str, str] = {
+    ".docx": WORD_DOCUMENT,
+    ".xlsx": EXCEL_WORKBOOK,
+    ".pptx": PRESENTATION,
+    ".pdf": PDF_DOCUMENT,
+    ".csv": TABULAR_DATA,
+    ".tsv": TABULAR_DATA,
+    ".ipynb": NOTEBOOK,
+    ".html": HTML_DOCUMENT,
+    ".htm": HTML_DOCUMENT,
+    ".drawio": DIAGRAM,
+    ".odt": OPENDOCUMENT_TEXT,
+    ".ods": OPENDOCUMENT_SHEET,
+    ".odp": OPENDOCUMENT_SLIDES,
+    ".rtf": RICH_TEXT,
+}
+
+# Anything else is read as text, under a name of our choosing.
+PLAIN_TEXT_ATTACHMENT_NAME = "attachment.txt"
+
+
+def attachment_document_type(filename: str) -> tuple[str, str] | None:
+    """The document type for this filename and the on-disk name to use, or None
+    if it is not a document type we extract.
+
+    Returns the *dict's own key*, never the caller's string, so the name written
+    to disk is a literal from this module.
+    """
+    name = (filename or "").strip().lower()
+    dot = name.rfind(".")
+    if dot <= 0:
+        return None
+    suffix = name[dot:]
+    for known, file_type in ATTACHMENT_DOCUMENT_TYPES.items():
+        if known == suffix:
+            return file_type, f"attachment{known}"
+    return None
+
+
 # Guard rails. A single monster file must not stall a scan or blow up memory; we
 # refuse it loudly (the reason reaches the index status) instead of hanging.
 MAX_DOCUMENT_BYTES = 20 * 1024 * 1024  # 20 MB

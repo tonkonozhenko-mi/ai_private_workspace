@@ -218,14 +218,51 @@ def test_undecodable_base64_is_a_clear_400():
     assert response.status_code == 400
 
 
-def test_a_filename_cannot_choose_where_the_file_lands(tmp_path):
-    """A filename arrives from the browser, where "../../.ssh/id_rsa" is a name
-    like any other. CodeQL flagged exactly this path (py/path-injection) once the
-    extractor gained a caller whose relative path is not from a directory walk."""
-    body = _post("../../escaped.txt", b"harmless").json()
+def test_a_filename_is_never_used_as_a_path(tmp_path):
+    """The filename arrives from a browser, where "../../.ssh/id_rsa" is a name
+    like any other. It is not sanitised — it is simply never used to build a
+    path. Its extension picks a row from a table, and the name written to disk
+    is that row's own literal, so there is no flow from what a person typed to
+    what gets opened. CodeQL's py/path-injection found the old arrangement, in
+    which basename() was the only thing standing between the two."""
+    content = _docx(["Question 1: your criminal record."])
 
-    assert body["filename"] == "escaped.txt"
-    assert not (tmp_path.parent / "escaped.txt").exists()
+    body = _post("../../escaped.docx", content).json()
+
+    # The document is still read — refusing it would punish the wrong thing.
+    assert "criminal record" in body["text"]
+    # The name is echoed back as a label, untouched, because that is all it is.
+    assert body["filename"] == "../../escaped.docx"
+    assert not (tmp_path.parent / "escaped.docx").exists()
+
+
+def test_the_names_that_can_reach_the_disk_are_all_our_own():
+    from app.core.domain.document_extraction import (
+        ATTACHMENT_DOCUMENT_TYPES,
+        attachment_document_type,
+    )
+
+    for hostile in ["../../etc/passwd.docx", "/etc/shadow.pdf", "a/../../b.ods"]:
+        resolved = attachment_document_type(hostile)
+        assert resolved is not None
+        _, disk_name = resolved
+        assert disk_name in {f"attachment{ext}" for ext in ATTACHMENT_DOCUMENT_TYPES}
+
+
+def test_the_attachment_table_agrees_with_the_scanner():
+    """Two places decide what a .docx is: the scanner's walk, and the table the
+    attachment path matches against. They are separate so that a filename can
+    stay off the filesystem — which means they can drift, and a .odt that the
+    index reads but an attachment refuses would be a puzzling thing to hit."""
+    from pathlib import Path as _Path
+
+    from app.adapters.filesystem.local_file_system import LocalFileSystem
+    from app.core.domain.document_extraction import ATTACHMENT_DOCUMENT_TYPES
+
+    walker = LocalFileSystem()
+    for extension, expected_type in ATTACHMENT_DOCUMENT_TYPES.items():
+        name = _Path(f"sample{extension}")
+        assert walker._detect_file_type(name, name, set()) == expected_type, extension
 
 
 def test_the_extractor_refuses_a_path_that_leaves_its_root(tmp_path):

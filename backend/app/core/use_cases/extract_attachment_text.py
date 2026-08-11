@@ -1,11 +1,16 @@
 """Turn a file attached to a question into text the model can actually read.
 
-The project index already knows how to do this. The point of this use case is
-that attaching a file now goes through the same extractor and — importantly —
-the same file-type classification, rather than a second opinion about what a
-``.docx`` is. The file is written to a temporary directory and classified by
-walking it, which is literally the code path a scan uses, so a format the index
-can read is a format an attachment can read, by construction.
+The project index has always known how to read Word, Excel, slides and PDF; the
+attachment path did not, and sent the browser's UTF-8 reading of a ZIP instead.
+This use case puts the two on the same extractor.
+
+One rule shapes the code more than anything else: **the filename never reaches
+the filesystem.** It arrives from a browser, where "../../.ssh/id_rsa" is a name
+like any other, and sanitising such a name is a thing you can get right and
+still be one refactor away from getting wrong. So the name is used for exactly
+one purpose — deciding what kind of document this is, by matching its extension
+against a table — and what lands on disk is a literal from that table. There is
+no path here built from anything a person typed.
 """
 
 import logging
@@ -15,9 +20,10 @@ from pathlib import Path
 
 from app.core.domain.attachment_text import legacy_format_refusal, looks_like_text
 from app.core.domain.document_extraction import (
-    EXTRACTABLE_DOCUMENT_TYPES,
-    IMAGE,
     MAX_DOCUMENT_BYTES,
+    PLAIN_TEXT,
+    PLAIN_TEXT_ATTACHMENT_NAME,
+    attachment_document_type,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,74 +50,51 @@ class ExtractAttachmentTextUseCase:
         self.document_extractor = document_extractor
 
     def execute(self, filename: str, content: bytes) -> AttachmentText:
-        safe_name = Path(filename or "attachment").name or "attachment"
+        # Kept only to say it back to the person; it is never used as a path.
+        label = (filename or "attachment").strip() or "attachment"
 
         if len(content) > MAX_DOCUMENT_BYTES:
             return self._skipped(
-                safe_name,
+                label,
                 f"The file is larger than {MAX_DOCUMENT_BYTES // (1024 * 1024)} MB "
                 "and was not read.",
             )
 
-        refusal = legacy_format_refusal(safe_name)
+        refusal = legacy_format_refusal(label)
         if refusal is not None:
-            # Named before anything is written to disk: these formats are not
-            # broken files, they are formats we do not read, and the person can
-            # act on that in ten seconds.
-            return self._skipped(safe_name, refusal)
+            # Named before anything is written: these are formats we do not read,
+            # not broken files, and the person can act on that in ten seconds.
+            return self._skipped(label, refusal)
+
+        document = attachment_document_type(label)
+        if document is None and not looks_like_text(content[:8192]):
+            # Not a document we extract, and its bytes are not words either.
+            # Noise reaching the model is worse than a refusal, because
+            # afterwards it looks like an answer.
+            return self._skipped(label, "This does not look like a text file, so it was not read.")
+
+        file_type, disk_name = document or (PLAIN_TEXT, PLAIN_TEXT_ATTACHMENT_NAME)
 
         with tempfile.TemporaryDirectory(prefix="attachment-") as work_dir:
-            path = Path(work_dir) / safe_name
-            path.write_bytes(content)
-            file_type = self._classify(work_dir, safe_name)
+            # Both halves are ours: a temporary directory this process just made,
+            # and a name from the table above.
+            Path(work_dir).joinpath(disk_name).write_bytes(content)
 
-            if file_type == IMAGE:
-                return self._skipped(
-                    safe_name,
-                    "Images are read by the vision model — attach it as an image instead.",
-                    file_type=file_type,
+            if file_type == PLAIN_TEXT:
+                return self._trimmed(
+                    label, file_type, self.file_system.read_text_file(work_dir, disk_name)
                 )
 
-            if file_type in EXTRACTABLE_DOCUMENT_TYPES:
-                document = self.document_extractor.extract(work_dir, safe_name, file_type)
-                if document.skipped_reason:
-                    return self._skipped(safe_name, document.skipped_reason, file_type=file_type)
-                if document.is_empty:
-                    return self._skipped(
-                        safe_name,
-                        "The document has no text to read — a scan or a set of images, perhaps.",
-                        file_type=file_type,
-                    )
-                return self._trimmed(safe_name, file_type, document.full_text())
-
-            # Everything else is read as text, which is what it is. The guard is
-            # for a binary format nobody has named: its bytes decoded as
-            # characters are noise, and noise that reaches the model looks like
-            # an answer afterwards.
-            if not looks_like_text(content[:8192]):
+            extracted = self.document_extractor.extract(work_dir, disk_name, file_type)
+            if extracted.skipped_reason:
+                return self._skipped(label, extracted.skipped_reason, file_type=file_type)
+            if extracted.is_empty:
                 return self._skipped(
-                    safe_name,
-                    "This does not look like a text file, so it was not read.",
+                    label,
+                    "The document has no text to read — a scan or a set of images, perhaps.",
                     file_type=file_type,
                 )
-            return self._trimmed(
-                safe_name, file_type, self.file_system.read_text_file(work_dir, safe_name)
-            )
-
-    def _classify(self, work_dir: str, safe_name: str) -> str:
-        """The scan's own answer to "what kind of file is this".
-
-        Asking the walker rather than re-deriving it from the extension is the
-        whole point: one classifier, so an attachment and an indexed file of the
-        same type are never treated differently.
-        """
-        try:
-            for file in self.file_system.list_files(work_dir, respect_gitignore=False):
-                if file.path == safe_name:
-                    return file.detected_type
-        except Exception as exc:  # noqa: BLE001 - classification must not fail the request
-            logger.warning("attachment classification failed name=%s: %s", safe_name, exc)
-        return "unknown"
+            return self._trimmed(label, file_type, extracted.full_text())
 
     @staticmethod
     def _skipped(filename: str, reason: str, file_type: str = "unknown") -> AttachmentText:
