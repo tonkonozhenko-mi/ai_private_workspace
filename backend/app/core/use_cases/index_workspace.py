@@ -177,6 +177,21 @@ class IndexWorkspaceUseCase:
         # uses the defaults, exactly as resolve_scan_rules documents.
         self.indexing_rules_repository = indexing_rules_repository
 
+    def _require_scanned(self, workspace_id: str) -> None:
+        """A workspace must have been scanned once before it can be indexed.
+
+        This is a sequencing contract, not a data dependency: scanning is where
+        the person sees what the app found and which rules apply, before any of
+        it is embedded. Indexing now takes its own fresh look at the project, so
+        it no longer *needs* the stored scan — but "scan first" is still the flow
+        the screens describe, and silently indexing an unscanned workspace would
+        skip that review.
+        """
+        if self.project_scan_repository.get_latest_scan(workspace_id) is None:
+            raise IndexWorkspaceScanRequiredError(
+                "Project scan required before indexing workspace"
+            )
+
     def _current_scan(self, workspace_id: str, workspace, persist: bool) -> ProjectScanResult:
         """The project as it is on disk right now.
 
@@ -217,6 +232,7 @@ class IndexWorkspaceUseCase:
         if workspace is None:
             raise IndexWorkspaceNotFoundError("Workspace not found")
 
+        self._require_scanned(request.workspace_id)
         latest_scan = self._current_scan(request.workspace_id, workspace, persist=True)
 
         try:
@@ -289,6 +305,7 @@ class IndexWorkspaceUseCase:
         workspace = self.workspace_repository.get(request.workspace_id)
         if workspace is None:
             raise IndexWorkspaceNotFoundError("Workspace not found")
+        self._require_scanned(request.workspace_id)
         latest_scan = self._current_scan(request.workspace_id, workspace, persist=False)
 
         manifest = (
@@ -328,6 +345,7 @@ class IndexWorkspaceUseCase:
         workspace = self.workspace_repository.get(request.workspace_id)
         if workspace is None:
             raise IndexWorkspaceNotFoundError("Workspace not found")
+        self._require_scanned(request.workspace_id)
         latest_scan = self._current_scan(request.workspace_id, workspace, persist=True)
 
         manifest = (

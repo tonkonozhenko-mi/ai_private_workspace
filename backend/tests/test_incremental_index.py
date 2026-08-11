@@ -9,7 +9,11 @@ from app.adapters.memory.in_memory_index_status_repository import (
     InMemoryIndexStatusRepository,
 )
 from app.adapters.vector_store.in_memory_vector_store import InMemoryVectorStore
-from app.core.domain.project_scan import ProjectFile, ProjectScanResult
+from app.core.domain.project_scan import (
+    ProjectFile,
+    ProjectFileList,
+    ProjectScanResult,
+)
 from app.core.use_cases.index_workspace import IndexWorkspaceInput, IndexWorkspaceUseCase
 
 
@@ -22,8 +26,12 @@ class _ScanRepo:
     def __init__(self, files):
         self._files = files
 
-    def set_files(self, files):
-        self._files = files
+    def save_latest_scan(self, workspace_id, scan_result):
+        # The indexing paths now rescan and save the fresh result as the new
+        # baseline. A fake that only answered get_latest_scan would blow up on
+        # that write, and a fake that swallowed it would hide whether the
+        # baseline actually moves.
+        self.saved = scan_result
 
     def get_latest_scan(self, wid):
         return ProjectScanResult(
@@ -38,11 +46,44 @@ class _ScanRepo:
 
 
 class _FS:
+    """A project directory, faked.
+
+    It grew a full FileSystemPort because indexing now looks at the project as
+    it is rather than at the stored scan — which is the whole point of the fix:
+    a file added after the scan used to be invisible to every button. So the
+    file list lives here, in the thing that represents the disk, and a test adds
+    or removes a file by adding or removing content. A fake that answered
+    read_text_file and nothing else could only ever describe the photograph.
+    """
+
     def __init__(self, contents):
-        self.contents = contents  # {path: text}
+        self.contents = contents  # {path: text} — this IS the project
 
     def read_text_file(self, root_path, relative_path):
         return self.contents.get(relative_path, "")
+
+    def path_exists(self, path):
+        return True
+
+    def is_directory(self, path):
+        return True
+
+    def list_files(self, root_path, respect_gitignore=True, progress=None):
+        files = [
+            ProjectFile(
+                path=path,
+                extension=".md",
+                size_bytes=len(text),
+                detected_type="markdown",
+            )
+            for path, text in sorted(self.contents.items())
+        ]
+        return ProjectFileList(
+            files=files,
+            total_files=len(files),
+            skipped_files=0,
+            total_size_bytes=sum(f.size_bytes for f in files),
+        )
 
 
 class _Embed:
@@ -116,8 +157,10 @@ def test_incremental_removes_deleted_file_chunks():
     uc = _use_case(scan, fs, vector, status, manifest)
     uc.execute(IndexWorkspaceInput(workspace_id="w1"))
 
-    # b.md disappears from the project.
-    scan.set_files([_file("a.md")])
+    # b.md disappears from the project — from the disk, which is now what the
+    # index looks at. Removing it only from the stored scan would no longer
+    # be a deletion; it would be a stale photograph, which is the bug.
+    del fs.contents["b.md"]
     result = uc.execute_changed(IndexWorkspaceInput(workspace_id="w1"))
     assert result.removed_files == 1
     assert _paths_in_store(vector, "w1") == ["a.md"]
@@ -174,7 +217,7 @@ def test_changed_preview_counts_without_embedding():
 
     # One changed, one new file, one removed.
     fs.contents["b.md"] = "beta totally different"
-    scan.set_files([_file("a.md"), _file("b.md"), _file("d.md")])
+    del fs.contents["c.md"]
     fs.contents["d.md"] = "delta new file"
     preview = uc.execute_changed_preview(IndexWorkspaceInput(workspace_id="w1"))
     assert preview.has_index is True
