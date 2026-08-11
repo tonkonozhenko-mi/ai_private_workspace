@@ -73,14 +73,39 @@ _STOPWORDS = {
 }
 
 # Per-document and overall character budgets keep the prompt bounded.
-INCLUDE_WHOLE_THRESHOLD = 4_000
-PER_DOCUMENT_BUDGET = 4_000
-TOTAL_BUDGET = 9_000
+#
+# These were a third of their present size, on the assumption that an attachment
+# is one more piece of evidence beside the project's own sources. That is not
+# what people do with it: they attach a questionnaire and then talk about the
+# questionnaire. At 4,000 characters a 120 KB document arrived as its first three
+# per cent — enough to answer about its first two questions and nothing after,
+# which is exactly how it failed live. A file someone chose to attach outranks
+# chunks a search picked out on its behalf, so it gets the larger share.
+# A document someone attached is the subject of the conversation, not a
+# supporting quotation, so it arrives whole whenever it fits — which, at the
+# 40,000 characters an attachment is capped at on the way in, it usually does.
+# Selecting excerpts from it is the fallback, not the plan: excerpting can only
+# guess which part the next question is about, and a follow-up like "and the
+# third one?" carries nothing to guess with.
+INCLUDE_WHOLE_THRESHOLD = 40_000
+# When a document is longer than that, these bound the excerpting instead.
+PER_DOCUMENT_BUDGET = 12_000
+TOTAL_BUDGET = 48_000
 CHUNK_TARGET_CHARS = 1_000
 
 
 def _question_terms(question: str) -> set[str]:
-    tokens = re.findall(r"[A-Za-z0-9_]+", question.lower())
+    """The words in the question worth matching a document against.
+
+    `\w` rather than `[A-Za-z0-9_]`: the old pattern matched Latin letters only,
+    so a question written in Russian, Ukrainian, Greek or Japanese produced no
+    terms at all. Not "few terms" — none. Every chunk then scored zero, the
+    selector fell through to its no-keyword-match branch, and the document
+    arrived as its first few thousand characters no matter what was asked. The
+    app has an answer-language directive and a Cyrillic-speaking author; this
+    was one regex away from working.
+    """
+    tokens = re.findall(r"\w+", question.lower())
     return {token for token in tokens if len(token) >= 3 and token not in _STOPWORDS}
 
 
@@ -111,7 +136,11 @@ def _score_chunk(text: str, terms: set[str]) -> int:
     if not terms:
         return 0
     lowered = text.lower()
-    found = re.findall(r"[A-Za-z0-9_]+", lowered)
+    # Unicode, for the same reason as _question_terms: the document is as likely
+    # to be in Cyrillic as the question. Both halves of a comparison have to
+    # speak the same alphabet, and one of them not doing so is invisible —
+    # nothing fails, the score is merely always zero.
+    found = re.findall(r"\w+", lowered)
     counts: dict[str, int] = {}
     for token in found:
         if token in terms:
@@ -120,6 +149,28 @@ def _score_chunk(text: str, terms: set[str]) -> int:
     frequency = sum(min(count, 3) for count in counts.values())
     distinct_bonus = 2 * len(counts)
     return frequency + distinct_bonus
+
+
+def _spread_sample(document: AttachedDocument, chunks: list[tuple[int, int, str]]) -> str:
+    """Evenly spaced windows covering the whole document, within budget.
+
+    Used when nothing in the question matches anything in the document. Reading
+    the beginning is a guess about where the answer lives; reading a spread is
+    an admission that we do not know.
+    """
+    if not chunks:
+        return ""
+    affordable = max(1, PER_DOCUMENT_BUDGET // max(1, len(chunks[0][2])))
+    if affordable >= len(chunks):
+        picked = chunks
+    else:
+        step = len(chunks) / affordable
+        picked = [chunks[min(len(chunks) - 1, int(index * step))] for index in range(affordable)]
+    pieces = [
+        f"--- {document.name} (lines {start}-{end}; sampled across the document) ---\n{text}"
+        for start, end, text in picked
+    ]
+    return "\n\n".join(pieces)
 
 
 def _select_document_excerpt(document: AttachedDocument, terms: set[str]) -> str:
@@ -136,9 +187,17 @@ def _select_document_excerpt(document: AttachedDocument, terms: set[str]) -> str
     ]
     relevant = [item for item in scored if item[4] > 0]
     if not relevant:
-        # Nothing matched the question — fall back to the head of the file.
-        head = content[:INCLUDE_WHOLE_THRESHOLD]
-        return f"--- {document.name} (first {len(head)} chars; no keyword match) ---\n{head}"
+        # Nothing matched. Taking the head of the file was the old answer, and it
+        # is the wrong one whenever the question and the document are in
+        # different languages — which is the normal case here: an English
+        # questionnaire, a question in Russian. No word can overlap, so the
+        # "match" never happens, and the person gets the opening pages whatever
+        # they asked. Question one is there; question three is not.
+        #
+        # A spread of windows across the whole file gives every part a chance,
+        # and the locator says plainly that this is a sample rather than the
+        # document.
+        return _spread_sample(document, chunks)
 
     # Highest scoring first, then restore reading order for the kept chunks.
     relevant.sort(key=lambda item: (-item[4], item[0]))
