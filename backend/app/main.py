@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.agent_workflows import router as agent_workflows_router
 from app.api.routes.answer_ratings import router as answer_ratings_router
 from app.api.routes.assistant_profiles import router as assistant_profiles_router
+from app.api.routes.attachments import router as attachments_router
 from app.api.routes.commands import router as commands_router
 from app.api.routes.health import router as health_router
 from app.api.routes.local_data_safety import router as local_data_safety_router
@@ -75,6 +76,7 @@ app.include_router(health_router)
 app.include_router(runtime_health_router)
 app.include_router(local_data_safety_router)
 app.include_router(assistant_profiles_router)
+app.include_router(attachments_router)
 app.include_router(agent_workflows_router)
 app.include_router(models_router)
 app.include_router(mcp_router)

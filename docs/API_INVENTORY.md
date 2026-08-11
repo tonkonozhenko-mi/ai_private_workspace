@@ -21,6 +21,7 @@ filesystem, provider, or command-runner activity outside SQLite repositories.
 | Endpoint | Purpose | Writes | Executes commands | Runtime | Main UI surface |
 | --- | --- | --- | --- | --- | --- |
 | `GET /assistant-profiles` | List deterministic assistant profiles. | No | No | No | Setup wizard |
+| `POST /attachments/text` | Extract readable text from one file attached to a question (Word, Excel, slides, PDF, CSV, notebooks, diagrams, plain text). Nothing is stored; a format that cannot be read comes back as a reason, not as noise. | No | No | Local document extraction only | Ask composer attachments |
 | `GET /workspaces/{workspace_id}/assistant-recommendation` | Recommend assistant capabilities from persisted workspace state. | No | No | No | Workspace setup |
 | `POST /onboarding/plan` | Build a deterministic setup plan. | No | No | No | Setup wizard |
 | `POST /onboarding/setup-commands` | Return setup command instructions without proposing them. | No | No | No | Setup wizard |

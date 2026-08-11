@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
+import { applyGuidanceEdits } from "../lib/skillGuidance";
 import { UpdateIndexSection } from "./UpdateIndexSection";
 import { UserProfileSettings } from "./UserProfileSettings";
 import type { WorkbenchPreferences } from "../App";
@@ -78,7 +79,9 @@ export function SettingsPanel({
   const [savingSkills, setSavingSkills] = useState(false);
   // Skills editor: one selector drives which skill is shown/edited.
   // Value is a preset id, a custom-skill id, or "__new__" to create one. Opens
-  // on the workspace's active skill (its role) so Settings matches Intelligence.
+  // on the workspace's active skill, which is usually the one you want to edit
+  // — but that is where the resemblance to a switch ends, and the line above
+  // the picker now says so. See settings-skill-active in the markup.
   const [selectedSkillKey, setSelectedSkillKey] = useState<string>(
     SKILL_PRESETS.find((preset) => preferences.skillPreferences[preset.id]?.enabled)?.id ??
       SKILL_PRESETS[0].id,
@@ -213,10 +216,20 @@ export function SettingsPanel({
   }
 
   async function saveSkillGuidance() {
-    const nextSkillPreferences: SkillPreferences = normalizeSkillPreferences({
-      ...preferences.skillPreferences,
-      customInstructions: skillDrafts,
-    });
+    // Each skill keeps whether it is on, and takes its text from the draft the
+    // person just edited. This used to spread the preferences and then set a
+    // key called `customInstructions` alongside them — but that is not the id
+    // of any skill, so normalizeSkillPreferences, which walks the skills by id,
+    // never looked at it. The edit was dropped on the floor: the request went
+    // to the server carrying the old text, the panel reported "Saved", and
+    // reopening it showed the original wording back. Nothing anywhere said no.
+    const nextSkillPreferences: SkillPreferences = normalizeSkillPreferences(
+      applyGuidanceEdits(
+        SKILL_PRESETS.map((preset) => preset.id),
+        preferences.skillPreferences,
+        skillDrafts,
+      ),
+    );
     setSavingSkills(true);
     setSkillMessage("Saving workspace guidance…");
     try {
@@ -233,6 +246,11 @@ export function SettingsPanel({
       setSavingSkills(false);
     }
   }
+
+  // What is actually in use right now, read from the enabled flags rather than
+  // from whatever the picker happens to be showing.
+  const activeSkillName =
+    SKILL_PRESETS.find((preset) => preferences.skillPreferences[preset.id]?.enabled)?.name ?? null;
 
   const selectedPreset = SKILL_PRESETS.find((preset) => preset.id === selectedSkillKey);
   const selectedCustom = preferences.customSkills.find(
@@ -449,8 +467,24 @@ export function SettingsPanel({
           </div>
         </details>
 
+        {/* Which skill is actually in use, stated separately from the picker
+            below. The picker chooses what to edit; it does not switch anything
+            on, and because it opens on the active skill it read as though it
+            did — pick Tester, save, come back, and DevOps is showing again,
+            which looks exactly like a setting that would not stick. */}
+        <p className="settings-skill-active">
+          {activeSkillName ? (
+            <>
+              Answers currently use <strong>{activeSkillName}</strong>. Which skill is active
+              follows this project's role — change it where you set the role, not here.
+            </>
+          ) : (
+            <>No skill is active for this project, so answers use no extra guidance.</>
+          )}
+        </p>
+
         <label className="settings-skill-select">
-          <span className="sr-only">Choose a skill</span>
+          <span className="settings-skill-select-label">Skill to edit</span>
           <select
             value={selectedSkillKey}
             onChange={(event) => setSelectedSkillKey(event.target.value)}
@@ -496,7 +530,9 @@ export function SettingsPanel({
                 disabled={savingSkills}
                 onClick={() => void saveSkillGuidance()}
               >
-                {savingSkills ? "Saving…" : "Save skill"}
+                {/* "Save skill" sounded like it saved a choice of skill. It
+                    saves the wording above it, and nothing else. */}
+                {savingSkills ? "Saving…" : "Save wording"}
               </button>
             </div>
             <p className="settings-message">{skillMessage}</p>

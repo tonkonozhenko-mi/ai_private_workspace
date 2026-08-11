@@ -30,6 +30,7 @@ from urllib.parse import unquote
 # same ElementTree API with those features turned off.
 from defusedxml.ElementTree import fromstring as parse_xml
 
+from app.adapters.documents.rtf_text import rtf_to_text
 from app.core.domain.document_extraction import (
     DIAGRAM,
     EXCEL_WORKBOOK,
@@ -38,8 +39,12 @@ from app.core.domain.document_extraction import (
     MAX_PDF_PAGES,
     MAX_SHEET_ROWS,
     NOTEBOOK,
+    OPENDOCUMENT_SHEET,
+    OPENDOCUMENT_SLIDES,
+    OPENDOCUMENT_TEXT,
     PDF_DOCUMENT,
     PRESENTATION,
+    RICH_TEXT,
     TABULAR_DATA,
     WORD_DOCUMENT,
     ExtractedDocument,
@@ -54,6 +59,11 @@ _S = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 # PowerPoint keeps its words in DrawingML text runs (<a:t>), whatever shape holds them.
 _A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
 _SLIDE_RE = re.compile(r"ppt/slides/slide(\d+)\.xml")
+# OpenDocument. Same shape as OOXML — a ZIP whose content.xml holds the words —
+# with its own namespaces and its own idea of what a paragraph is.
+_OT = "{urn:oasis:names:tc:opendocument:xmlns:text:1.0}"
+_OTBL = "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}"
+_ODRAW = "{urn:oasis:names:tc:opendocument:xmlns:drawing:1.0}"
 
 
 def _plain_text(value: str) -> str:
@@ -105,6 +115,25 @@ def _row_block_sections(
     return sections
 
 
+def _resolved_within(root_path: str, relative_path: str) -> Path | None:
+    """The file at ``relative_path`` under ``root_path``, or None if it is not
+    under it at all.
+
+    Resolving both sides first is what makes this true rather than approximate:
+    ``..`` segments, absolute paths and symlinks are all settled by resolve(),
+    and then one containment check answers the question. A caller that sanitises
+    the name beforehand is welcome to; this does not depend on it having done so.
+    """
+    try:
+        root = Path(root_path).resolve()
+        candidate = (root / relative_path).resolve()
+    except OSError, ValueError:
+        return None
+    if candidate != root and root not in candidate.parents:
+        return None
+    return candidate
+
+
 class LocalDocumentExtractor:
     """Adapter implementing DocumentTextExtractorPort. Never raises."""
 
@@ -114,7 +143,15 @@ class LocalDocumentExtractor:
         relative_path: str,
         file_type: str,
     ) -> ExtractedDocument:
-        path = Path(root_path) / relative_path
+        path = _resolved_within(root_path, relative_path)
+        if path is None:
+            # The relative path led outside the root. From a scan it never can —
+            # those paths come from walking the root. But this is also how a file
+            # attached to a question is read, and there the name comes from the
+            # browser, where "../../.ssh/id_rsa" is a name like any other. The
+            # boundary belongs here, at the point that opens the file, not in
+            # whichever caller happens to remember.
+            return skipped("The file could not be read.")
         try:
             if not path.is_file():
                 return skipped("The file could not be read.")
@@ -123,23 +160,10 @@ class LocalDocumentExtractor:
                 mb = MAX_DOCUMENT_BYTES // (1024 * 1024)
                 return skipped(f"The document is larger than {mb} MB and was not indexed.")
 
-            if file_type == WORD_DOCUMENT:
-                return self._docx(path)
-            if file_type == EXCEL_WORKBOOK:
-                return self._xlsx(path)
-            if file_type == HTML_DOCUMENT:
-                return self._html(path)
-            if file_type == PDF_DOCUMENT:
-                return self._pdf(path)
-            if file_type == TABULAR_DATA:
-                return self._csv(path)
-            if file_type == NOTEBOOK:
-                return self._notebook(path)
-            if file_type == DIAGRAM:
-                return self._drawio(path)
-            if file_type == PRESENTATION:
-                return self._pptx(path)
-            return skipped(f"No extractor for '{file_type}'.")
+            reader = self._readers().get(file_type)
+            if reader is None:
+                return skipped(f"No extractor for '{file_type}'.")
+            return reader(path)
         except zipfile.BadZipFile:
             # A .docx/.xlsx that isn't a valid OOXML container — often a renamed
             # legacy .doc/.xls. Say something the user can act on.
@@ -149,6 +173,29 @@ class LocalDocumentExtractor:
         except Exception as exc:  # noqa: BLE001 - one bad file must not fail the index
             logger.warning("document extraction failed path=%s: %s", relative_path, exc)
             return skipped("The document could not be read and was skipped.")
+
+    def _readers(self) -> dict[str, Callable[[Path], ExtractedDocument]]:
+        """Which reader handles which kind of file.
+
+        A table rather than a ladder of twelve ifs: the answer to "what can this
+        extractor read" is then one thing you can look at, and a test can compare
+        it against EXTRACTABLE_DOCUMENT_TYPES instead of trusting that both were
+        remembered. Adding a format is adding a line here.
+        """
+        return {
+            WORD_DOCUMENT: self._docx,
+            EXCEL_WORKBOOK: self._xlsx,
+            HTML_DOCUMENT: self._html,
+            PDF_DOCUMENT: self._pdf,
+            TABULAR_DATA: self._csv,
+            NOTEBOOK: self._notebook,
+            DIAGRAM: self._drawio,
+            PRESENTATION: self._pptx,
+            OPENDOCUMENT_TEXT: self._odt,
+            OPENDOCUMENT_SHEET: self._ods,
+            OPENDOCUMENT_SLIDES: self._odp,
+            RICH_TEXT: self._rtf,
+        }
 
     # ------------------------------------------------------------------ .docx
     def _docx(self, path: Path) -> ExtractedDocument:
@@ -250,6 +297,127 @@ class LocalDocumentExtractor:
         if truncated:
             logger.info("xlsx truncated at %d rows path=%s", MAX_SHEET_ROWS, path.name)
         return ExtractedDocument(sections=sections)
+
+    # ----------------------------------------------------- .odt/.ods/.odp (ODF)
+    @staticmethod
+    def _odf_content(path: Path):
+        """The XML holding an OpenDocument's words, or None if there is none."""
+        with zipfile.ZipFile(path) as archive:
+            if "content.xml" not in archive.namelist():
+                return None
+            return parse_xml(archive.read("content.xml"))
+
+    def _odt(self, path: Path) -> ExtractedDocument:
+        """LibreOffice Writer. Sectioned by heading like the .docx path, because
+        a locator naming the heading you are under is what lets a claim be
+        checked without reading the whole document."""
+        content = self._odf_content(path)
+        if content is None:
+            return skipped("The document has no readable body.")
+
+        sections: list[ExtractedSection] = []
+        heading_path: list[str] = []
+        buffer: list[str] = []
+
+        def flush() -> None:
+            text = "\n".join(line for line in buffer if line.strip())
+            if text.strip():
+                sections.append(ExtractedSection(_no_heading(heading_path), text))
+            buffer.clear()
+
+        for node in content.iter():
+            if node.tag == f"{_OT}h":
+                flush()
+                title = " ".join("".join(node.itertext()).split())
+                try:
+                    level = max(1, int(node.get(f"{_OT}outline-level") or "1"))
+                except ValueError:
+                    level = 1
+                if title:
+                    heading_path = heading_path[: level - 1] + [title]
+            elif node.tag == f"{_OT}p":
+                line = " ".join("".join(node.itertext()).split())
+                if line:
+                    buffer.append(line)
+        flush()
+
+        if not sections:
+            return skipped("The document has no readable text.")
+        return ExtractedDocument(sections=sections)
+
+    def _ods(self, path: Path) -> ExtractedDocument:
+        """LibreOffice Calc. Row blocks with the header repeated, exactly as
+        .xlsx and .csv do: a block of bare numbers means nothing without its
+        column names, and that does not change with the file extension."""
+        content = self._odf_content(path)
+        if content is None:
+            return skipped("The workbook has no readable sheets.")
+
+        sections: list[ExtractedSection] = []
+        truncated = False
+        for sheet in content.iter(f"{_OTBL}table"):
+            name = sheet.get(f"{_OTBL}name") or "Sheet"
+            table: list[list[str]] = []
+            for row in sheet.iter(f"{_OTBL}table-row"):
+                if len(table) >= MAX_SHEET_ROWS:
+                    truncated = True
+                    break
+                cells: list[str] = []
+                for cell in row.findall(f"{_OTBL}table-cell"):
+                    value = " ".join("".join(cell.itertext()).split())
+                    # ODF collapses runs of identical cells into a repeat count.
+                    # Expanding it keeps every column under its own header; the
+                    # count is capped because files pad to 1024 columns with it.
+                    try:
+                        repeat = int(cell.get(f"{_OTBL}number-columns-repeated") or "1")
+                    except ValueError:
+                        repeat = 1
+                    cells.extend([value] * max(1, min(repeat, 64)))
+                while cells and not cells[-1]:
+                    cells.pop()
+                if any(cells):
+                    table.append(cells)
+            if len(table) < 2:
+                continue
+            sections += _row_block_sections(
+                table, lambda a, b, name=name: f'sheet "{name}" rows {a}-{b}'
+            )
+
+        if not sections:
+            return skipped("The workbook contains no extractable rows.")
+        if truncated:
+            logger.info("ods truncated at %d rows path=%s", MAX_SHEET_ROWS, path.name)
+        return ExtractedDocument(sections=sections)
+
+    def _odp(self, path: Path) -> ExtractedDocument:
+        """LibreOffice Impress. One section per slide, like .pptx."""
+        content = self._odf_content(path)
+        if content is None:
+            return skipped("The presentation has no readable slides.")
+
+        sections: list[ExtractedSection] = []
+        for number, page in enumerate(content.iter(f"{_ODRAW}page"), start=1):
+            lines = [
+                " ".join("".join(node.itertext()).split())
+                for node in page.iter()
+                if node.tag in (f"{_OT}p", f"{_OT}h")
+            ]
+            text = "\n".join(line for line in lines if line)
+            if text.strip():
+                sections.append(ExtractedSection(f"slide {number}", text))
+
+        if not sections:
+            return skipped("The presentation has no readable text.")
+        return ExtractedDocument(sections=sections)
+
+    # ------------------------------------------------------------------- .rtf
+    def _rtf(self, path: Path) -> ExtractedDocument:
+        text = rtf_to_text(path.read_bytes().decode("latin-1", errors="ignore"))
+        if not text.strip():
+            return skipped("The document has no readable text.")
+        # RTF has no heading structure worth trusting, so the locator is the file
+        # itself rather than a position invented to look precise.
+        return ExtractedDocument(sections=[ExtractedSection("(whole document)", text)])
 
     # --------------------------------------------------------------- .csv/.tsv
     def _csv(self, path: Path) -> ExtractedDocument:

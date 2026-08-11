@@ -16,9 +16,13 @@ from app.core.domain.document_extraction import (
     EXTRACTABLE_DOCUMENT_TYPES,
     HTML_DOCUMENT,
     NOTEBOOK,
+    OPENDOCUMENT_SHEET,
+    OPENDOCUMENT_SLIDES,
+    OPENDOCUMENT_TEXT,
     PDF_DOCUMENT,
     PLAIN_TEXT,
     PRESENTATION,
+    RICH_TEXT,
     TABULAR_DATA,
     WORD_DOCUMENT,
 )
@@ -104,6 +108,10 @@ INDEXABLE_FILE_TYPES = {
     DIAGRAM,
     PRESENTATION,
     NOTEBOOK,
+    OPENDOCUMENT_TEXT,
+    OPENDOCUMENT_SHEET,
+    OPENDOCUMENT_SLIDES,
+    RICH_TEXT,
     # The rest of a real repository: every language that isn't Python, and the
     # config formats that aren't YAML or JSON. Without these a TypeScript project
     # indexed nothing at all.

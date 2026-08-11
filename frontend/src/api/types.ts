@@ -122,6 +122,15 @@ export interface GgufCatalogItem {
   custom: boolean;
 }
 
+export interface AttachmentText {
+  filename: string;
+  file_type: string;
+  text: string;
+  truncated: boolean;
+  /** Set instead of text when the file could not be read, phrased for the person who attached it. */
+  skipped_reason: string | null;
+}
+
 export interface GgufDownloadJob {
   id: string;
   model_id: string;

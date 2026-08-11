@@ -9,6 +9,7 @@ import type {
   CreatedWorkspace,
   WorkspaceFileWriteResult,
   GgufCatalogItem,
+  AttachmentText,
   GgufDownloadJob,
   LlamaRuntimeStatus,
   RecommendedBackend,
@@ -436,6 +437,20 @@ export function getGgufCatalog(
 ): Promise<GgufCatalogItem[]> {
   const query = modelType ? `?model_type=${modelType}` : "";
   return getJson<GgufCatalogItem[]>(`/models/gguf-catalog${query}`);
+}
+
+// Reading an attached file happens on the backend, because a Word document, a
+// spreadsheet or a PDF is a container the browser cannot open — it used to read
+// them as UTF-8 and send the mojibake, so the model answered from the filename.
+export function extractAttachmentText(body: {
+  filename: string;
+  content_base64: string;
+}): Promise<AttachmentText> {
+  return requestJson<AttachmentText>(`/attachments/text`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 export function startGgufDownload(body: {
