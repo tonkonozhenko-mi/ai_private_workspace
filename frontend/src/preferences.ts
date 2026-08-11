@@ -158,12 +158,25 @@ function isDemoModePreference(value: unknown): value is DemoModePreference {
 }
 
 /**
- * Validate an arbitrary (possibly partial / untrusted) preferences object and
- * fill any missing or invalid field with its default. Shared by the localStorage
- * loader and the backend loader so both go through the same validation.
+ * The three fields that describe a person's own instructions, decided together
+ * because they depend on each other: the migration can add one, and the default
+ * has to name one that survived.
+ *
+ * Its own function because the rest of normalizePreferences is a flat list of
+ * independent field-or-default choices, and this is the only part with an
+ * argument to follow. Inlined, it was the one place a reader had to slow down.
  */
-export function normalizePreferences(parsed: Partial<WorkbenchPreferences>): WorkbenchPreferences {
-  const skillPreferences = normalizeSkillPreferences(parsed.skillPreferences);
+function normalizeInstructionPreferences(
+  parsed: Partial<WorkbenchPreferences>,
+  skillPreferences: SkillPreferences,
+): Pick<
+  WorkbenchPreferences,
+  "customSkills" | "defaultInstructionId" | "carriedRoleGuidance"
+> {
+  // Settings no longer offers a box for rewriting how a role phrases an answer
+  // — a role decides which facts you see, and phrasing is what an instruction
+  // is for. Anyone who used that box wrote real sentences, so they come out as
+  // instructions of their own rather than disappearing with the control.
   const carried = migrateEditedRoleGuidance(
     SKILL_PRESETS,
     skillPreferences,
@@ -173,6 +186,24 @@ export function normalizePreferences(parsed: Partial<WorkbenchPreferences>): Wor
       : [],
     makeCustomSkillId,
   );
+
+  return {
+    customSkills: carried.instructions,
+    defaultInstructionId: liveDefaultId(
+      typeof parsed.defaultInstructionId === "string" ? parsed.defaultInstructionId : null,
+      carried.instructions,
+    ),
+    carriedRoleGuidance: carried.carriedSources,
+  };
+}
+
+/**
+ * Validate an arbitrary (possibly partial / untrusted) preferences object and
+ * fill any missing or invalid field with its default. Shared by the localStorage
+ * loader and the backend loader so both go through the same validation.
+ */
+export function normalizePreferences(parsed: Partial<WorkbenchPreferences>): WorkbenchPreferences {
+  const skillPreferences = normalizeSkillPreferences(parsed.skillPreferences);
 
   return {
     theme: isThemePreference(parsed.theme) ? parsed.theme : DEFAULT_PREFERENCES.theme,
@@ -219,17 +250,7 @@ export function normalizePreferences(parsed: Partial<WorkbenchPreferences>): Wor
         ? parsed.answerCreativity
         : DEFAULT_PREFERENCES.answerCreativity,
     skillPreferences,
-    // Settings no longer offers a box for rewriting how a role phrases an
-    // answer — a role decides which facts you see, and phrasing is what an
-    // instruction is for. Anyone who used that box wrote real sentences, so
-    // they come out as instructions of their own rather than disappearing with
-    // the control they were typed into.
-    customSkills: carried.instructions,
-    defaultInstructionId: liveDefaultId(
-      typeof parsed.defaultInstructionId === "string" ? parsed.defaultInstructionId : null,
-      carried.instructions,
-    ),
-    carriedRoleGuidance: carried.carriedSources,
+    ...normalizeInstructionPreferences(parsed, skillPreferences),
     fileIndexingPreferences: normalizeFileIndexingPreferences(parsed.fileIndexingPreferences),
   };
 }
