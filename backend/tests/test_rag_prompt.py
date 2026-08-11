@@ -130,3 +130,63 @@ def test_the_prompt_says_nothing_when_nothing_was_skipped() -> None:
 
     assert "were not indexed" not in prompt
     assert "invisible to you" not in prompt
+
+
+def test_a_chosen_instruction_outranks_the_role_and_is_read_before_the_evidence():
+    """Live: the project role was DevOps, the composer offered Tester / QA, and
+    the answer opened "As a DevOps/platform engineer" — quoting the role line
+    back. Nothing was miswired: the instruction arrived, and lost.
+
+    It lost because of where it sat and how it spoke. The role said "You are
+    reviewing this project as a DevOps engineer" near the top; the instruction sat
+    below every context chunk and hedged itself three times — "may shape", "not
+    project evidence", "guidance only". A model handed an identity and then a
+    suggestion does the obvious thing.
+
+    Two things are pinned here. The instruction is read before the evidence, not
+    after it. And the prompt says outright which one wins on emphasis — because
+    a control that reports having worked and hasn't is worse than no control."""
+    from app.core.domain.indexing import ContextSearchResult
+    from app.core.domain.rag_prompt import SkillPromptInstruction, build_workspace_question_prompt
+
+    prompt = build_workspace_question_prompt(
+        question="what should I look at first?",
+        context_results=[
+            ContextSearchResult(
+                chunk_id="c1",
+                source_path="infra/main.tf",
+                content='resource "aws_s3_bucket" "logs" {}',
+                score=0.7,
+                metadata={},
+            )
+        ],
+        assistant_mode="devops",
+        skill_instructions=[
+            SkillPromptInstruction(
+                name="Security reviewer",
+                instruction="Lead with secrets handling and what could leak.",
+            )
+        ],
+    )
+
+    role_at = prompt.index("DevOps/platform engineer")
+    instruction_at = prompt.index("Security reviewer")
+    evidence_at = prompt.index("Context chunks:")
+
+    assert role_at < instruction_at < evidence_at
+    assert "follow this" in prompt.lower()
+    # The one hedge worth keeping: an instruction is not a fact about the project.
+    # "Focus on secrets handling" must not become "the project handles secrets".
+    assert "not evidence" in prompt
+
+
+def test_without_an_instruction_the_prompt_says_nothing_about_one():
+    from app.core.domain.rag_prompt import build_workspace_question_prompt
+
+    prompt = build_workspace_question_prompt(
+        question="what should I look at first?",
+        context_results=[],
+        assistant_mode="devops",
+    )
+
+    assert "How to write this answer" not in prompt

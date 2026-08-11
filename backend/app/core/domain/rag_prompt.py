@@ -297,6 +297,9 @@ def build_workspace_question_prompt(
         "describe the project, do not cite source paths, and do not pretend the "
         "question was about the project.\n\n"
         f"{role_section}"
+        # Directly under the role, because it can overrule the role's emphasis and
+        # a rule that arrives after two thousand tokens of evidence does not.
+        f"{skill_section}"
         f"{mode_section}"
         f"{attached_section}"
         f"{(project_memory_section + chr(10) + chr(10)) if project_memory_section else ''}"
@@ -308,7 +311,6 @@ def build_workspace_question_prompt(
         f"{(unread_files_note + chr(10) + chr(10)) if unread_files_note else ''}"
         f"Context chunks:\n{context}\n\n"
         f"Available source paths: {source_paths}\n\n"
-        f"{skill_section}"
         "Answer requirements:\n"
         "- Start with a direct answer and keep it concise.\n"
         "When (and only when) you answer from the project files:\n"
@@ -605,19 +607,37 @@ def _normalize_skill_instructions(
 
 
 def _build_skill_section(skill_instructions: list[SkillPromptInstruction]) -> str:
+    """The instruction the person chose for how this answer should be written.
+
+    This block used to sit at the very bottom of the prompt, after every context
+    chunk, and hedge itself three times: the instructions "may" shape things,
+    they are "not project evidence", treat them as "guidance only". Above it, the
+    role line said plainly "You are reviewing this project as a DevOps engineer".
+    So picking a different instruction changed the label in the composer and
+    nothing else — the model read an identity near the top and a suggestion near
+    the bottom, and did the sensible thing.
+
+    Two changes. It now sits directly under the role, where a reader meets it
+    before the evidence rather than after. And it says which one wins: the role
+    decides what a person cares about, the instruction decides how to write, and
+    where they disagree about emphasis the instruction is the newer decision.
+
+    What does NOT change is the one hedge that was always right: an instruction
+    is not a fact about the project. Someone can write "focus on secrets
+    handling" and that must not become a claim that the project handles secrets.
+    """
     if not skill_instructions:
         return ""
 
-    lines = [
-        "Workspace skill context:",
-        "The following user-selected skill instructions may shape tone, focus, and review priorities, but they are not project evidence.",
-    ]
+    lines = ["How to write this answer — chosen by the user for this question:"]
     for instruction in skill_instructions:
         lines.append(f"- {instruction.name}: {instruction.instruction}")
     lines.extend(
         [
-            "Treat skill instructions as answer guidance only. Do not treat them as facts about the project.",
-            "Project claims must still come only from the provided context chunks and explicit source_path evidence.",
+            "Follow this. Where it and the role above disagree about what to "
+            "emphasise or how to phrase the answer, follow this.",
+            "It is not evidence: project claims still come only from the context "
+            "chunks below and their source_path.",
             "",
         ]
     )
