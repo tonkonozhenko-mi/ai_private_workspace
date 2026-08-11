@@ -174,12 +174,12 @@ def test_the_scan_knows_a_documentation_folder_when_it_sees_one(tmp_path: Path):
 
 
 def test_a_question_in_cyrillic_can_match_the_document_at_all():
-    """Live: "а третий вопрос?" about an attached questionnaire was answered from
+    """Live: "а третє питання?" about an attached questionnaire was answered from
     the project index. The first two questions had worked.
 
     Two character classes were the cause. `_question_terms` and `_score_chunk`
-    both matched `[A-Za-z0-9_]`, so a question in Russian produced no terms and
-    a document in Russian produced no tokens — every chunk scored zero, always,
+    both matched `[A-Za-z0-9_]`, so a question in Ukrainian produced no terms and
+    a document in Ukrainian produced no tokens — every chunk scored zero, always,
     and the excerpt fell back to the opening pages. Questions one and two live
     there; question three does not. Nothing about attachments was broken; the
     app could not read the question."""
@@ -220,9 +220,9 @@ def test_an_attached_document_arrives_whole_when_it_fits():
         ),
     )
 
-    # A question in Russian about an English document: no word can overlap, so
+    # A question in Ukrainian about an English document: no word can overlap, so
     # excerpting could never find question three. The whole file can.
-    section = build_attached_documents_section("а третий вопрос ?", [document])
+    section = build_attached_documents_section("а третє питання ?", [document])
 
     assert "Question 3" in section
     assert "full file" in section
@@ -236,7 +236,7 @@ def test_a_document_too_large_to_send_whole_says_what_it_sent():
 
     document = AttachedDocument(name="huge.docx", content="Nothing relevant here.\n" * 4000)
 
-    section = build_attached_documents_section("вопрос без общих слов", [document])
+    section = build_attached_documents_section("питання без спільних слів", [document])
 
     # A spread rather than the opening pages, and it says so: reading the
     # beginning is a guess about where the answer is, a spread is an admission
@@ -250,9 +250,9 @@ def test_the_whole_of_an_ordinary_document_still_arrives():
         build_attached_documents_section,
     )
 
-    document = AttachedDocument(name="notes.txt", content="ЖУРАВЛЬ-77 is the codeword.")
+    document = AttachedDocument(name="notes.txt", content="ЖУРАВЕЛЬ-77 is the codeword.")
 
-    section = build_attached_documents_section("что означает ЖУРАВЛЬ-77?", [document])
+    section = build_attached_documents_section("що означає ЖУРАВЕЛЬ-77?", [document])
 
-    assert "ЖУРАВЛЬ-77 is the codeword." in section
+    assert "ЖУРАВЕЛЬ-77 is the codeword." in section
     assert "full file" in section

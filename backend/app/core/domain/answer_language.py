@@ -1,22 +1,22 @@
 """Which language the answer is written in, decided in one place.
 
-Maks asked, in Russian, for onboarding documentation "and all of it must be in
-English". Mistral answered in Ukrainian. Three languages were pulling at once —
-the question's, the instruction's, and the corpus's (a Ukrainian wiki) — and the
-prompt said nothing at all about language, so the model picked whichever the
-retrieved text was written in.
+Maks asked, in Ukrainian, for onboarding documentation "and all of it must be
+in English". Mistral answered in Ukrainian anyway. Three languages were pulling
+at once — the question's, the instruction's, and the corpus's — and the prompt
+said nothing at all about language, so the model picked whichever the retrieved
+text was written in.
 
 That is not a model being wilful, it is us never having asked. There is a saved
 style preference, but it is a cross-project setting, not a reading of what the
 person just said. So the rule is stated, at the end of the prompt where a small
 model remembers it best, in the order a person would expect:
 
-1. What they asked for in this very question wins. "In English", "по-русски",
-   "answer in Ukrainian" — an explicit instruction is the strongest thing in the
+1. What they asked for in this very question wins. "In English", "українською",
+   "answer in Polish" — an explicit instruction is the strongest thing in the
    room, and it must beat a preference set weeks ago.
 2. Otherwise, their saved preference (About you), if they set one.
 3. Otherwise, the language they wrote the question in. Not the language of the
-   documents: a Ukrainian wiki answering a Russian question in Ukrainian is the
+   documents: an English wiki answering a Ukrainian question in English is the
    corpus talking over the person.
 
 Detection is deliberately small: an explicit request is a short, recognisable
@@ -31,19 +31,30 @@ import re
 # "in English", "на английском", "англійською", "reply in Ukrainian", …
 _LANGUAGE_NAMES: dict[str, tuple[str, ...]] = {
     "English": ("english", "англ", "англий", "англій", "інгліш"),
-    "Russian": ("russian", "русск", "росій", "по-русски"),
-    "Ukrainian": ("ukrainian", "украин", "українськ", "укр"),
-    "German": ("german", "deutsch", "немецк", "німецьк"),
-    "French": ("french", "français", "французск"),
-    "Spanish": ("spanish", "español", "испанск"),
-    "Polish": ("polish", "polski", "польск"),
+    "Ukrainian": ("ukrainian", "українськ", "укр", "украин"),
+    # Ukrainian spellings first, because that is the language this is written in.
+    # The extra Cyrillic forms are not a second language being served: they are
+    # the same hand typing quickly, and a language name the app fails to
+    # recognise is a request that silently does nothing.
+    "German": ("german", "deutsch", "німецьк", "немецк"),
+    "French": ("french", "français", "французьк", "французск"),
+    "Spanish": ("spanish", "español", "іспанськ", "испанск"),
+    "Polish": ("polish", "polski", "польськ", "польск"),
 }
 
 # A language named after a preposition: "in English", "на английском",
 # "англійською". This is the part that identifies WHICH language.
+# The separator after the preposition is required, not optional. It used to be
+# optional, and "польською" begins with "по" — so the preposition branch ate the
+# first two letters, handed "льською" to the matcher, and the instrumental
+# branch never got a look at the word. Asking for an answer in Polish did
+# nothing at all, silently.
 _NAMED = re.compile(
-    r"\b(?:in|на|по|у|в)[\s-]*(?P<name>[a-zA-Zа-яёіїєґА-ЯЁІЇЄҐ]{3,})"
-    r"|(?P<solo>[a-zA-Zа-яёіїєґА-ЯЁІЇЄҐ]{4,}(?:ською|ською\s+мовою|ском|ски))\b",
+    r"\b(?:in|на|по|у|в)[\s-]+(?P<name>[a-zA-Zа-яёіїєґА-ЯЁІЇЄҐ]{3,})"
+    # The instrumental case, which is how Ukrainian names a language without a
+    # preposition: "англійською", "німецькою", "французькою". Only "-ською" was
+    # listed, so the two thirds of them ending "-цькою" and "-зькою" were unknown.
+    r"|(?P<solo>[a-zA-Zа-яёіїєґА-ЯЁІЇЄҐ]{4,}(?:ькою|ською|ською\s+мовою|ском|ски))\b",
     re.IGNORECASE,
 )
 
@@ -52,10 +63,9 @@ _NAMED = re.compile(
 # outdated" names a language and asks for nothing; "write it in English" does.
 #
 # Matched loosely on purpose — stems, not whole words — because this is typed by
-# a person in a hurry on whatever keyboard they have. "всё должно біть на
-# английском" is a Ukrainian-layout slip for "быть" and asks exactly as clearly
-# as the correctly spelled version; a rule that a typo can switch off is not a
-# rule the person can rely on.
+# a person in a hurry on whatever keyboard they have. "все має біти англійською"
+# is a slip for "бути" and asks exactly as clearly as the correctly spelled
+# version; a rule that a typo can switch off is not a rule anyone can rely on.
 _WRITING_INTENT = re.compile(
     r"answer|reply|respond|writ|say it|put it|translat|must be|should be|all in|"
     r"everything in|"
@@ -87,10 +97,15 @@ def requested_language(question: str) -> str | None:
 def question_script_language(question: str) -> str | None:
     """The language the question itself is written in, as far as script tells us.
 
-    Script, not vocabulary: distinguishing Russian from Ukrainian by wording is a
-    research problem, but Ukrainian-only letters are a fact. Returns None when
-    the question is too short or mixed to say — and None means the prompt names
-    no language, which is better than naming the wrong one.
+    Cyrillic means Ukrainian here. Telling two Cyrillic languages apart by
+    vocabulary is a research problem, and getting it wrong is not neutral: this
+    app is written and used in Ukraine, and answering its author in the language
+    of the country invading his is not a default anyone chose — it was one
+    branch in a script check. Ukrainian-only letters settle it outright; without
+    them, Cyrillic still means Ukrainian.
+
+    Returns None when the question is too short or mixed to say, and None means
+    the prompt names no language, which is better than naming the wrong one.
     """
     text = question or ""
     if not text.strip():
@@ -100,7 +115,7 @@ def question_script_language(question: str) -> str | None:
     cyrillic = len(re.findall(r"[а-яёА-ЯЁ]", text))
     latin = len(re.findall(r"[a-zA-Z]", text))
     if cyrillic > latin and cyrillic >= 4:
-        return "Russian"
+        return "Ukrainian"
     if latin > cyrillic and latin >= 4:
         return "English"
     return None

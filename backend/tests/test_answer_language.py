@@ -1,7 +1,7 @@
 """The answer is written in the language the person asked for — and when they did
 not ask, in the one they wrote the question in.
 
-Live, 16.07: Maks asked in Russian for onboarding docs "and all of it must be in
+Live, 16.07: Maks asked in Ukrainian for onboarding docs "and all of it must be in
 English"; Mistral answered in Ukrainian, the language of the wiki it had read.
 The prompt had said nothing about language at all, so the corpus decided.
 """
@@ -16,32 +16,32 @@ ASKED = "составь онбординг документацию для но�
 
 
 def test_the_live_question_asks_for_english_typo_and_all():
-    """'біть' is a Ukrainian-layout slip for 'быть'. It asks just as clearly."""
+    """'біти' is a slip for 'бути'. It asks just as clearly."""
     assert requested_language(ASKED) == "English"
 
 
 def test_an_explicit_request_beats_a_saved_preference():
-    directive = answer_language_directive(ASKED, saved_preference="Answer in Russian.")
+    directive = answer_language_directive(ASKED, saved_preference="Answer in Ukrainian.")
 
     assert "English" in directive
-    assert "Russian" not in directive
+    assert "Ukrainian" not in directive
 
 
 def test_a_saved_preference_is_used_when_nothing_was_asked():
-    directive = answer_language_directive("где хранятся отчёты?", "Always answer in English.")
+    directive = answer_language_directive("де зберігаються звіти?", "Always answer in English.")
 
     assert directive == "Always answer in English."
 
 
 def test_with_neither_the_answer_follows_the_question():
-    assert "Russian" in answer_language_directive("где хранятся отчёты?")
+    assert "Ukrainian" in answer_language_directive("де зберігаються звіти?")
     assert "English" in answer_language_directive("where are reports stored?")
     assert "Ukrainian" in answer_language_directive("де зберігаються звіти?")
 
 
 def test_the_directive_names_the_documents_as_what_not_to_follow():
     """The whole failure: the wiki's language won over the person's."""
-    assert "source documents" in answer_language_directive("где хранятся отчёты?")
+    assert "source documents" in answer_language_directive("де зберігаються звіти?")
 
 
 def test_mentioning_a_language_is_not_asking_for_one():
@@ -52,12 +52,12 @@ def test_mentioning_a_language_is_not_asking_for_one():
 def test_requests_in_several_languages_are_understood():
     assert requested_language("answer in Ukrainian please") == "Ukrainian"
     assert requested_language("відповідай англійською") == "English"
-    assert requested_language("напиши ответ по-русски") == "Russian"
+    assert requested_language("напиши відповідь польською") == "Polish"
 
 
-def test_ukrainian_letters_settle_ukrainian_against_russian():
+def test_cyrillic_is_ukrainian_and_its_own_letters_confirm_it():
     assert question_script_language("де зберігаються звіти?") == "Ukrainian"
-    assert question_script_language("где хранятся отчёты?") == "Russian"
+    assert question_script_language("де зберігаються звіти?") == "Polish"
 
 
 def test_a_question_too_short_to_tell_names_no_language():
@@ -104,3 +104,19 @@ def test_a_short_answer_is_never_flagged_for_this():
     from app.core.domain.rag_answer_evaluator import cites_nothing_at_length
 
     assert cites_nothing_at_length("Yes — object storage, with lifecycle rules.", []) is False
+
+
+def test_ukrainian_names_a_language_the_way_ukrainian_does():
+    """Ukrainian names a language in the instrumental case, without a preposition:
+    "англійською", "німецькою", "французькою". Only the "-ською" ending was
+    listed, so two thirds of them were unknown — and "польською" was worse: it
+    begins with "по", the preposition branch swallowed those two letters, and the
+    word never reached the matcher. Asking for Polish did nothing, silently."""
+    assert requested_language("напиши відповідь польською") == "Polish"
+    assert requested_language("напиши відповідь німецькою") == "German"
+    assert requested_language("напиши відповідь французькою") == "French"
+    assert requested_language("напиши іспанською") == "Spanish"
+
+
+def test_naming_a_language_without_asking_for_it_changes_nothing():
+    assert requested_language("the English docs are outdated") is None

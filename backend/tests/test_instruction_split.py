@@ -41,7 +41,7 @@ Confidentiality Check
     * 3
 )
 
-ASK = "составь онбординг документацию для нового девопса в команде"
+ASK = "склади онбординг-документацію для нового девопса в команді"
 
 
 def test_the_search_uses_the_request_not_the_rulebook():
@@ -62,7 +62,7 @@ def test_the_rules_are_kept_not_discarded():
 
 
 def test_an_ordinary_question_is_untouched():
-    for question in ["где хранятся отчёты?", "where is the retention period set?"]:
+    for question in ["де зберігаються звіти?", "where is the retention period set?"]:
         rules, request = split_instructions_from_request(question)
         assert rules == ""
         assert request == question
@@ -72,11 +72,11 @@ def test_a_long_question_with_a_few_bullets_is_still_a_question():
     """Rules must dominate before anything is split off. A person writing a long,
     careful question deserves all of it searched."""
     question = (
-        "Опиши, как устроен процесс деплоя в этом проекте, и ответь на вопросы: "
-        "какие окружения существуют, как выкатывается каждое, что происходит при "
-        "откате, и где хранится состояние terraform. Меня интересует именно то, "
-        "что написано в документации проекта, а не общая практика. "
-    ) * 6 + "\n- окружения\n- откат\n"
+        "Опиши, як влаштований процес деплою в цьому проекті, і дай відповідь на питання: "
+        "які середовища існують, як викочується кожне, що відбувається при "
+        "відкаті, і де зберігається стан terraform. Мене цікавить саме те, "
+        "що написано в документації проекту, а не загальна практика. "
+    ) * 6 + "\n- середовища\n- відкат\n"
 
     rules, request = split_instructions_from_request(question)
 

@@ -1,5 +1,5 @@
-// Reported live: "сделал изменения в Tester и сохранил, но когда вернулся —
-// ничего не сохранилось." Reproduced by reading, not by luck.
+// Reported live: "зробив зміни в Tester і зберіг, але коли повернувся —
+// нічого не збереглося." Reproduced by reading, not by luck.
 //
 // The panel built what to save as `{...preferences, customInstructions: drafts}`
 // — the whole batch of drafts filed under one key. But preferences are keyed by

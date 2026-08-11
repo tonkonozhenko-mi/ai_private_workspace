@@ -179,10 +179,10 @@ def test_every_extractable_type_has_a_reader_and_no_reader_is_orphaned():
 
 
 def test_a_plain_text_file_still_goes_straight_through():
-    body = _post("notes.txt", "ЖУРАВЛЬ-77 is the codeword.".encode()).json()
+    body = _post("notes.txt", "ЖУРАВЕЛЬ-77 is the codeword.".encode()).json()
 
     assert body["skipped_reason"] is None
-    assert "ЖУРАВЛЬ-77" in body["text"]
+    assert "ЖУРАВЕЛЬ-77" in body["text"]
 
 
 def test_a_csv_keeps_its_header_row():

@@ -24,9 +24,9 @@ def _item(
 
 
 def test_format_context_is_framed_about_the_person():
-    block = format_user_profile_context([_item("Answer in Russian", cat="style")])
+    block = format_user_profile_context([_item("Answer in Ukrainian", cat="style")])
     assert "person" in block.lower()
-    assert "Answer in Russian" in block
+    assert "Answer in Ukrainian" in block
     assert "not a fact about the project" in block.lower()
 
 
@@ -38,10 +38,10 @@ def test_select_puts_pinned_first_then_query_overlap():
     items = [
         _item("likes concise answers", created_at="2026-01-01"),
         _item("works with terragrunt infra", created_at="2026-01-02"),
-        _item("prefers russian", pinned=True, created_at="2025-01-01"),
+        _item("prefers ukrainian", pinned=True, created_at="2025-01-01"),
     ]
     out = select_for_prompt(items, query="how is terragrunt configured?")
-    assert out[0].text == "prefers russian"  # pinned wins
+    assert out[0].text == "prefers ukrainian"  # pinned wins
     assert any("terragrunt" in i.text for i in out[:2])  # query overlap ranks up
 
 
@@ -68,8 +68,8 @@ def test_use_case_add_list_delete_pin():
 
 def test_use_case_dedups_and_validates():
     uc = ManageUserProfileUseCase(InMemoryUserProfileRepository())
-    first = uc.add(AddUserProfileFactInput(text="Prefers Russian"))
-    again = uc.add(AddUserProfileFactInput(text="  prefers russian  "))
+    first = uc.add(AddUserProfileFactInput(text="Prefers Ukrainian"))
+    again = uc.add(AddUserProfileFactInput(text="  prefers ukrainian  "))
     assert first.id == again.id  # de-duplicated, not a second entry
     assert len(uc.list()) == 1
 

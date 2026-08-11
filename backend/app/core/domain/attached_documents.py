@@ -98,7 +98,7 @@ def _question_terms(question: str) -> set[str]:
     """The words in the question worth matching a document against.
 
     `\w` rather than `[A-Za-z0-9_]`: the old pattern matched Latin letters only,
-    so a question written in Russian, Ukrainian, Greek or Japanese produced no
+    so a question written in Ukrainian, Greek or Japanese produced no
     terms at all. Not "few terms" — none. Every chunk then scored zero, the
     selector fell through to its no-keyword-match branch, and the document
     arrived as its first few thousand characters no matter what was asked. The
@@ -190,7 +190,7 @@ def _select_document_excerpt(document: AttachedDocument, terms: set[str]) -> str
         # Nothing matched. Taking the head of the file was the old answer, and it
         # is the wrong one whenever the question and the document are in
         # different languages — which is the normal case here: an English
-        # questionnaire, a question in Russian. No word can overlap, so the
+        # questionnaire, a question in Ukrainian. No word can overlap, so the
         # "match" never happens, and the person gets the opening pages whatever
         # they asked. Question one is there; question three is not.
         #

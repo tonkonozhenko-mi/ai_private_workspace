@@ -2,7 +2,7 @@
 
 Where Project Memory remembers a project, this remembers **you** — across every
 workspace. Small, stable facts and preferences ("I'm a DevOps engineer", "answer
-in Russian", "keep it concise", "we call production 'prd'") that shape how every
+in Ukrainian", "keep it concise", "we call production 'prd'") that shape how every
 answer is written, in Ask and the Investigator alike.
 
 It is deliberately simple and honest: the facts are plain text the user can see,

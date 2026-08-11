@@ -62,7 +62,7 @@ class _Reader:
         # The depth at which a skipped group began; everything deeper is machinery.
         self.skipping_from: int | None = None
         # Every \uN is followed by a plain-ASCII stand-in for readers that cannot
-        # do Unicode — "К?о?д?" is what you get by keeping both. \ucN says how
+        # do Unicode — "П?р?и?в?і?т?" is what you get by keeping both. \ucN says how
         # many characters the stand-in occupies; one, unless told otherwise.
         self.fallback_width = 1
         self.pending_fallback = 0
