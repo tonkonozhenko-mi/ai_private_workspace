@@ -65,6 +65,7 @@ import {
   startIndexWorkspaceJob,
   getWorkspaceJob,
   getStarterQuestions,
+  extractAttachmentText,
 } from "../api/client";
 import { AnswerFeedback } from "./AnswerFeedback";
 import { AnswerNudges } from "./AnswerNudges";
@@ -179,7 +180,22 @@ type AttachedTextFile = {
   sizeKb: number;
 };
 
-const ATTACHED_FILE_MAX_BYTES = 200 * 1024;
+// The whole file, not a slice: a .docx is a ZIP and half a ZIP is not a ZIP.
+// The backend caps the size and the extracted text; here we only refuse to read
+// something absurd into memory.
+const ATTACHED_FILE_MAX_BYTES = 20 * 1024 * 1024;
+
+/** The file's bytes as base64, which is how they travel to the extractor. */
+async function toBase64(file: File): Promise<string> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  // Chunked: spreading a multi-megabyte array into String.fromCharCode at once
+  // overflows the call stack.
+  for (let i = 0; i < bytes.length; i += 8192) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+  }
+  return btoa(binary);
+}
 
 export function AskWorkspace({
   workspaceId,
@@ -309,40 +325,68 @@ export function AskWorkspace({
     const images = all.filter((file) => file.type.startsWith("image/"));
     const textFiles = all
       .filter((file) => !file.type.startsWith("image/"))
+      .filter((file) => file.size <= ATTACHED_FILE_MAX_BYTES)
       .slice(0, 4);
+    const tooBig = all.filter(
+      (file) => !file.type.startsWith("image/") && file.size > ATTACHED_FILE_MAX_BYTES,
+    );
 
     if (images.length > 0) {
       await handleImageFiles(images);
     }
-    if (textFiles.length === 0) {
+    if (textFiles.length === 0 && tooBig.length === 0) {
       return;
     }
 
+    // Every file goes to the backend, which reads it with the same extractor the
+    // project index uses. This used to be `slice.text()` here in the browser —
+    // fine for a log, garbage for a Word document, a spreadsheet or a PDF, all
+    // of which are containers rather than text. The garbage was sent anyway, so
+    // the model had a filename and noise, and answered from the filename.
+    const refusals: string[] = tooBig.map(
+      (file) => `${file.name}: larger than 20 MB, so it was not read.`,
+    );
     const parsed = await Promise.all(
       textFiles.map(async (file): Promise<AttachedTextFile | null> => {
-        const truncated = file.size > ATTACHED_FILE_MAX_BYTES;
-        const slice = truncated ? file.slice(0, ATTACHED_FILE_MAX_BYTES) : file;
-        let content = "";
         try {
-          content = await slice.text();
-        } catch {
+          const extracted = await extractAttachmentText({
+            filename: file.name,
+            content_base64: await toBase64(file),
+          });
+          if (extracted.skipped_reason) {
+            // Said out loud, next to the composer. Attaching nothing quietly is
+            // how "it read my document" became untrue without anyone noticing.
+            refusals.push(`${file.name}: ${extracted.skipped_reason}`);
+            return null;
+          }
+          return {
+            id: `${Date.now()}-${file.name}-${Math.random().toString(36).slice(2, 8)}`,
+            name: file.name,
+            content: extracted.text,
+            truncated: extracted.truncated,
+            sizeKb: Math.max(1, Math.round(file.size / 1024)),
+          };
+        } catch (readError) {
+          refusals.push(
+            `${file.name}: ${readError instanceof Error ? readError.message : "could not be read."}`,
+          );
           return null;
         }
-        return {
-          id: `${Date.now()}-${file.name}-${Math.random().toString(36).slice(2, 8)}`,
-          name: file.name,
-          content,
-          truncated,
-          sizeKb: Math.max(1, Math.round(file.size / 1024)),
-        };
       }),
     );
 
+    setError(refusals.length > 0 ? refusals.join(" ") : null);
     const readable = parsed.filter((file): file is AttachedTextFile => file !== null);
     if (readable.length > 0) {
       setAttachedFiles((current) => [...current, ...readable].slice(0, 6));
     }
   }
+  // The skill the project itself uses — named in the picker so "Project default"
+  // stops being a phrase you have to go and look up. Read from the enabled
+  // flags, which is what actually reaches the prompt.
+  const projectSkillName =
+    getEnabledSkillPresets(skillPreferences)[0]?.name ?? null;
+
   const showGeneralQuestionHint =
     question.trim().length > 0 && !isLikelyProjectQuestion(question);
 
@@ -954,6 +998,42 @@ export function AskWorkspace({
                     <option value="explain">Explain with sources</option>
                   </select>
                 </label>
+                {/* Which skill writes the answer, next to the question rather than
+                    behind Developer details. It used to live in the developer
+                    cluster, so with developer mode off — the default — there was
+                    nowhere in the app that said which skill was in use, and no
+                    way to try another one. Choosing here affects this question
+                    only; the wording of each skill is edited in Settings. */}
+                <label
+                  className="ask-mode"
+                  title="Which skill writes the answer. This question only — the project's own skill follows its role."
+                >
+                  <span>Skill</span>
+                  <select
+                    value={skillOverride}
+                    onChange={(event) => setSkillOverride(event.target.value)}
+                  >
+                    <option value="">
+                      {projectSkillName ? `Project default (${projectSkillName})` : "Project default"}
+                    </option>
+                    <optgroup label="Built-in">
+                      {SKILL_PRESETS.map((preset) => (
+                        <option key={preset.id} value={preset.id}>
+                          {preset.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                    {customSkills.length > 0 ? (
+                      <optgroup label="Your skills">
+                        {customSkills.map((skill) => (
+                          <option key={skill.id} value={skill.id}>
+                            {skill.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ) : null}
+                  </select>
+                </label>
                 {devMode ? (
                   <div className="ask-dev-cluster">
                     <label className="ask-switch" title="Only affects reasoning models (deepseek-r1, qwq…)">
@@ -977,31 +1057,6 @@ export function AskWorkspace({
                         <span className="ask-switch-thumb" />
                       </span>
                       <span className="ask-switch-label">Streaming</span>
-                    </label>
-                    <label className="ask-snippets" title="Answer style for the next question. Overrides the project's saved skills (this question only).">
-                      <span>Style</span>
-                      <select
-                        value={skillOverride}
-                        onChange={(event) => setSkillOverride(event.target.value)}
-                      >
-                        <option value="">Project default</option>
-                        <optgroup label="Built-in">
-                          {SKILL_PRESETS.map((preset) => (
-                            <option key={preset.id} value={preset.id}>
-                              {preset.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                        {customSkills.length > 0 ? (
-                          <optgroup label="Your skills">
-                            {customSkills.map((skill) => (
-                              <option key={skill.id} value={skill.id}>
-                                {skill.name}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ) : null}
-                      </select>
                     </label>
                     <label className="ask-snippets" title="How many source snippets to retrieve as context.">
                       <span>Sources</span>
@@ -1081,8 +1136,17 @@ export function AskWorkspace({
                     <span className="ask-file-chip-name" title={file.name}>
                       {file.name}
                     </span>
-                    <span className="ask-file-chip-size">
-                      {file.truncated ? `${Math.round(ATTACHED_FILE_MAX_BYTES / 1024)}KB+` : `${file.sizeKb}KB`}
+                    <span
+                      className="ask-file-chip-size"
+                      title={
+                        file.truncated
+                          ? "Only the beginning of this file was read — it is longer than one question can carry."
+                          : undefined
+                      }
+                    >
+                      {/* The size is the file's; "part" says the text was cut,
+                          which is a different fact and used to be conflated. */}
+                      {file.sizeKb}KB{file.truncated ? " · part" : ""}
                     </span>
                     <button
                       type="button"
