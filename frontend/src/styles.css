@@ -2138,6 +2138,11 @@ a.getting-ready-cta:visited { color: var(--c-accent-ink); }
 .first-run-cta { margin-top: 38px; background: var(--c-accent); color: var(--c-accent-ink); font-size: 16px; font-weight: 500; padding: 15px 34px; border: none; border-radius: 14px; cursor: pointer; }
 .first-run-cta:hover { background: var(--c-accent-hover); }
 .first-run-foot { margin-top: 52px; padding-top: 22px; border-top: 1px solid var(--c-border); display: flex; align-items: center; gap: 9px; color: var(--c-text-3); font-size: 12.5px; }
+/* Which skill is actually in use — stated above the picker, which only chooses
+   what to edit. Without this line the picker read as a switch. */
+.settings-skill-active { font-size: 13px; color: var(--c-text-2); line-height: 1.55; margin: 0 0 12px; }
+.settings-skill-active strong { color: var(--c-text-1); font-weight: 600; }
+.settings-skill-select-label { display: block; font-size: 12px; color: var(--c-text-3); margin-bottom: 6px; }
 .settings-skill-select { display: block; margin-bottom: 12px; }
 .settings-skill-select select { width: 100%; }
 .settings-skill-editor { display: flex; flex-direction: column; gap: 10px; }
