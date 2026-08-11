@@ -39,10 +39,10 @@ from app.core.domain.document_extraction import (
     MAX_PDF_PAGES,
     MAX_SHEET_ROWS,
     NOTEBOOK,
-    PDF_DOCUMENT,
     OPENDOCUMENT_SHEET,
     OPENDOCUMENT_SLIDES,
     OPENDOCUMENT_TEXT,
+    PDF_DOCUMENT,
     PRESENTATION,
     RICH_TEXT,
     TABULAR_DATA,
@@ -127,7 +127,7 @@ def _resolved_within(root_path: str, relative_path: str) -> Path | None:
     try:
         root = Path(root_path).resolve()
         candidate = (root / relative_path).resolve()
-    except (OSError, ValueError):
+    except OSError, ValueError:
         return None
     if candidate != root and root not in candidate.parents:
         return None

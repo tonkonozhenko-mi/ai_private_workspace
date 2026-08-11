@@ -114,7 +114,7 @@ def test_a_libreoffice_document_is_read_like_a_word_one():
     gap in the list of namespaces, not a limit of the approach."""
     content = _odf(
         "text",
-        "<text:h text:outline-level=\"1\">Background questions</text:h>"
+        '<text:h text:outline-level="1">Background questions</text:h>'
         "<text:p>Question 1: your criminal record.</text:p>",
     )
 
@@ -127,7 +127,7 @@ def test_a_libreoffice_document_is_read_like_a_word_one():
 def test_a_libreoffice_spreadsheet_keeps_its_header():
     content = _odf(
         "spreadsheet",
-        "<table:table table:name=\"Costs\">"
+        '<table:table table:name="Costs">'
         "<table:table-row><table:table-cell><text:p>service</text:p></table:table-cell>"
         "<table:table-cell><text:p>monthly</text:p></table:table-cell></table:table-row>"
         "<table:table-row><table:table-cell><text:p>rds</text:p></table:table-cell>"
