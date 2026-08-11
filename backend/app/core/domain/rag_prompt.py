@@ -4,6 +4,7 @@ from app.core.domain.answer_language import answer_language_directive
 from app.core.domain.handbook_source import display_source_path, mask_handbook_token
 from app.core.domain.indexing import ContextSearchResult
 from app.core.domain.rag_answer_evaluator import CITATION_EXAMPLE_PATH
+from app.core.domain.skill_profile import MAX_ACTIVE_SKILL_INSTRUCTIONS
 from app.core.domain.supersession import resolve_successor_path, supersession_target
 
 
@@ -591,7 +592,11 @@ def _normalize_skill_instructions(
     skill_instructions: list[SkillPromptInstruction],
 ) -> list[SkillPromptInstruction]:
     normalized: list[SkillPromptInstruction] = []
-    for instruction in skill_instructions[:5]:
+    # The last of the places that hard-coded the number of roles as 5.
+    # A person can switch on every role; taking five of six would drop
+    # one of them from the prompt without a word, which is the same
+    # defect as the request cap, one layer further in.
+    for instruction in skill_instructions[:MAX_ACTIVE_SKILL_INSTRUCTIONS]:
         name = instruction.name.strip()[:80]
         text = " ".join(instruction.instruction.split())[:800]
         if name and text:

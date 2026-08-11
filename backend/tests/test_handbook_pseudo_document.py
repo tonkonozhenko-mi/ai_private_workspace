@@ -9,7 +9,11 @@ from app.adapters.memory.in_memory_index_status_repository import (
     InMemoryIndexStatusRepository,
 )
 from app.adapters.vector_store.in_memory_vector_store import InMemoryVectorStore
-from app.core.domain.project_scan import ProjectFile, ProjectScanResult
+from app.core.domain.project_scan import (
+    ProjectFile,
+    ProjectFileList,
+    ProjectScanResult,
+)
 from app.core.use_cases.index_workspace import (
     HANDBOOK_PSEUDO_PATH,
     IndexWorkspaceInput,
@@ -28,6 +32,13 @@ class _ScanRepo:
     def __init__(self, files):
         self._files = files
 
+    def save_latest_scan(self, workspace_id, scan_result):
+        # The indexing paths now rescan and save the fresh result as the new
+        # baseline. A fake that only answered get_latest_scan would blow up on
+        # that write, and a fake that swallowed it would hide whether the
+        # baseline actually moves.
+        self.saved = scan_result
+
     def get_latest_scan(self, wid):
         return ProjectScanResult(
             project_path="/p",
@@ -41,11 +52,44 @@ class _ScanRepo:
 
 
 class _FS:
+    """A project directory, faked.
+
+    It grew a full FileSystemPort because indexing now looks at the project as
+    it is rather than at the stored scan — which is the whole point of the fix:
+    a file added after the scan used to be invisible to every button. So the
+    file list lives here, in the thing that represents the disk, and a test adds
+    or removes a file by adding or removing content. A fake that answered
+    read_text_file and nothing else could only ever describe the photograph.
+    """
+
     def __init__(self, contents):
-        self.contents = contents
+        self.contents = contents  # {path: text} — this IS the project
 
     def read_text_file(self, root_path, relative_path):
         return self.contents.get(relative_path, "")
+
+    def path_exists(self, path):
+        return True
+
+    def is_directory(self, path):
+        return True
+
+    def list_files(self, root_path, respect_gitignore=True, progress=None):
+        files = [
+            ProjectFile(
+                path=path,
+                extension=".md",
+                size_bytes=len(text),
+                detected_type="markdown",
+            )
+            for path, text in sorted(self.contents.items())
+        ]
+        return ProjectFileList(
+            files=files,
+            total_files=len(files),
+            skipped_files=0,
+            total_size_bytes=sum(f.size_bytes for f in files),
+        )
 
 
 class _Embed:

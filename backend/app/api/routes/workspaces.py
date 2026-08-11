@@ -251,7 +251,13 @@ from app.core.domain.report import (
     markdown_to_plain_text,
     render_report_markdown,
 )
-from app.core.domain.skill_profile import default_skill_profile, normalize_skill_profile
+from app.core.domain.skill_profile import (
+    KNOWN_SKILL_IDS,
+    MAX_ACTIVE_SKILL_INSTRUCTIONS,
+    canonical_skill_id,
+    default_skill_profile,
+    normalize_skill_profile,
+)
 from app.core.domain.workspace import Workspace
 from app.core.use_cases.add_timeline_event import AddTimelineEventInput, AddTimelineEventUseCase
 from app.core.use_cases.analyze_github_actions import (
@@ -1158,6 +1164,7 @@ def start_index_workspace_job(workspace_id: str) -> WorkspaceJobResponse:
                 manifest_repository=index_manifest_repository,
                 handbook_provider=handbook_text_provider,
                 document_extractor=document_extractor,
+                indexing_rules_repository=indexing_rules_repository,
             ).execute(
                 IndexWorkspaceInput(
                     workspace_id=workspace_id,
@@ -1326,6 +1333,9 @@ def _index_use_case() -> IndexWorkspaceUseCase:
         manifest_repository=index_manifest_repository,
         handbook_provider=handbook_text_provider,
         document_extractor=document_extractor,
+        # The walk must use this workspace's own file rules, or the fresh scan
+        # it takes would describe a different project than the stored one.
+        indexing_rules_repository=indexing_rules_repository,
     )
 
 
@@ -1520,6 +1530,18 @@ def update_workspace_skill_profile(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Workspace not found: {workspace_id}",
         )
+    # A skill this server cannot place is refused out loud. It used to be
+    # dropped in silence, which is how four of the six roles could be switched
+    # on, saved, and found switched off again with nothing anywhere to say why.
+    unknown = [item.id for item in request.skills if canonical_skill_id(item.id) is None]
+    if unknown:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Unknown skill(s): {', '.join(sorted(unknown))}. "
+                f"Known skills: {', '.join(KNOWN_SKILL_IDS)}."
+            ),
+        )
     profile = normalize_skill_profile(
         workspace_id=workspace_id,
         profile=request.profile,
@@ -1554,9 +1576,12 @@ def _saved_skill_profile_context(workspace_id: str):
     if profile is None:
         profile = default_skill_profile(workspace_id)
         source = "default"
+    # Room for every role, since every role can be switched on at once. The
+    # literal 5 here dated from when there were five, and would have quietly
+    # dropped one guidance from the prompt on a workspace that enabled them all.
     instructions = [
         SkillPromptInstruction(name=skill.name, instruction=skill.custom_instructions)
-        for skill in profile.enabled_skills[:5]
+        for skill in profile.enabled_skills[:MAX_ACTIVE_SKILL_INSTRUCTIONS]
     ]
     return instructions, source, profile.profile, profile.updated_at
 
@@ -1585,7 +1610,7 @@ def _to_skill_prompt_instructions(skill_context) -> list[SkillPromptInstruction]
             name=item.name,
             instruction=item.custom_instructions,
         )
-        for item in skill_context[:5]
+        for item in skill_context[:MAX_ACTIVE_SKILL_INSTRUCTIONS]
     ]
 
 

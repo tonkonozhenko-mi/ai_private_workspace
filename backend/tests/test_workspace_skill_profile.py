@@ -3,13 +3,13 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
-def test_workspace_skill_profile_defaults_and_save() -> None:
+def test_workspace_skill_profile_defaults_and_save(tmp_path) -> None:
     client = TestClient(app)
     created = client.post(
         "/workspaces",
         json={
             "name": "Skill Profile Project",
-            "project_path": "/tmp/skill-profile-project",
+            "project_path": str(tmp_path),
             "assistant_mode": "devops",
             "privacy_mode": "local_only",
         },
@@ -55,6 +55,82 @@ def test_workspace_skill_profile_defaults_and_save() -> None:
     assert reloaded["enabled_skills_count"] == 1
 
 
+def test_every_offered_role_survives_a_save_round_trip(tmp_path) -> None:
+    """Through the real endpoint, one role at a time, the way a person does it.
+
+    The domain test pins the normalisation; this pins the whole path — request
+    schema, normalisation, storage, and the read-back Settings does on open.
+    Four of these six used to come back off.
+    """
+    client = TestClient(app)
+    created = client.post(
+        "/workspaces",
+        json={
+            "name": "Skill Profile Round Trip",
+            "project_path": str(tmp_path),
+            "assistant_mode": "devops",
+            "privacy_mode": "local_only",
+        },
+    ).json()
+    workspace_id = created["id"]
+    roles = ["developer", "devops", "tester", "business_analyst", "manager", "dba"]
+
+    for role in roles:
+        save = client.put(
+            f"/workspaces/{workspace_id}/skill-profile",
+            json={
+                "profile": "workspace",
+                "skills": [
+                    {
+                        "id": candidate,
+                        "name": candidate,
+                        "enabled": candidate == role,
+                        "custom_instructions": f"Guidance for {candidate}.",
+                    }
+                    for candidate in roles
+                ],
+            },
+        )
+        assert save.status_code == 200, role
+
+        reloaded = client.get(f"/workspaces/{workspace_id}/skill-profile").json()
+        enabled = [skill["id"] for skill in reloaded["skills"] if skill["enabled"]]
+        assert enabled == [role], f"{role} did not stay switched on"
+
+
+def test_a_skill_the_server_cannot_place_is_refused_out_loud(tmp_path) -> None:
+    # The old behaviour for an unrecognised id was to drop it and answer 200,
+    # which is how four roles could fail to save with nothing to show for it.
+    client = TestClient(app)
+    created = client.post(
+        "/workspaces",
+        json={
+            "name": "Skill Profile Unknown Id",
+            "project_path": str(tmp_path),
+            "assistant_mode": "devops",
+            "privacy_mode": "local_only",
+        },
+    ).json()
+
+    response = client.put(
+        f"/workspaces/{created['id']}/skill-profile",
+        json={
+            "profile": "workspace",
+            "skills": [
+                {
+                    "id": "astrologer",
+                    "name": "Astrologer",
+                    "enabled": True,
+                    "custom_instructions": "Read the stars.",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 400
+    assert "astrologer" in response.json()["detail"]
+
+
 def test_workspace_skill_profile_requires_existing_workspace() -> None:
     client = TestClient(app)
 
@@ -68,13 +144,13 @@ def test_workspace_skill_profile_requires_existing_workspace() -> None:
     )
 
 
-def test_workspace_skill_profile_save_adds_activity_event() -> None:
+def test_workspace_skill_profile_save_adds_activity_event(tmp_path) -> None:
     client = TestClient(app)
     created = client.post(
         "/workspaces",
         json={
             "name": "Skill Profile Activity Project",
-            "project_path": "/tmp/skill-profile-activity-project",
+            "project_path": str(tmp_path),
             "assistant_mode": "devops",
             "privacy_mode": "local_only",
         },

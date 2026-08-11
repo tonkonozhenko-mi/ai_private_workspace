@@ -1,18 +1,32 @@
 from pydantic import BaseModel, Field
 
-from app.core.domain.skill_profile import SkillProfileItem, WorkspaceSkillProfile
+from app.core.domain.skill_profile import (
+    KNOWN_SKILL_IDS,
+    MAX_SKILL_INSTRUCTIONS_LENGTH,
+    SkillProfileItem,
+    WorkspaceSkillProfile,
+)
 
 
 class SkillProfileItemRequest(BaseModel):
     id: str = Field(..., min_length=1, max_length=80)
     name: str = Field(..., min_length=1, max_length=80)
     enabled: bool = False
-    custom_instructions: str = Field(..., min_length=1, max_length=1200)
+    custom_instructions: str = Field(..., min_length=1, max_length=MAX_SKILL_INSTRUCTIONS_LENGTH)
 
 
 class WorkspaceSkillProfileRequest(BaseModel):
     profile: str = Field(default="workspace", min_length=1, max_length=80)
-    skills: list[SkillProfileItemRequest] = Field(default_factory=list, max_length=5)
+    # As many skills as there are roles — counted, not typed in. This was the
+    # literal 5 written when there were five roles, and the sixth (DBA) made
+    # every save from Settings a 422: the panel sends all of them at once, so
+    # the request was refused before anything looked at what was in it. That is
+    # the first half of "the skills aren't saving"; the second half was the
+    # server keeping a different set of names, in skill_profile.py. Two guards
+    # against the same drift, both now reading from the one list.
+    skills: list[SkillProfileItemRequest] = Field(
+        default_factory=list, max_length=len(KNOWN_SKILL_IDS)
+    )
 
 
 class SkillProfileItemResponse(BaseModel):

@@ -2118,6 +2118,9 @@ a.getting-ready-cta:visited { color: var(--c-accent-ink); }
 .gr-check-use:hover:not(:disabled) { border-color: var(--c-accent); color: var(--c-accent); }
 .gr-check-use:disabled { opacity: 0.5; cursor: default; }
 .gr-check-state--on { color: var(--c-accent); font-weight: 600; }
+/* A download that stopped, in its own words, under the model it belongs to. */
+.gr-check--error { border-color: var(--c-danger); background: var(--c-surface-1); }
+.gr-check-name--error { color: var(--c-danger); font-size: 12.5px; }
 
 /* Full-window setup takeover frame */
 .setup-takeover { min-height: 100%; display: flex; flex-direction: column; background: var(--c-bg); }

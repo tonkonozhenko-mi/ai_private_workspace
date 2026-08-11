@@ -711,6 +711,11 @@ export function LlamaCppModelsPanel({
     const job = jobs[model.id];
     const pct = job?.progress_percent ?? null;
     const downloading = job?.status === "running" || job?.status === "queued";
+    // A download that stopped said nothing at all: the row simply went back to
+    // offering "Download" as if the last twenty minutes had not happened, and
+    // the reason the server recorded was never rendered anywhere. On a long
+    // download over a shaky connection that reads as the app doing nothing.
+    const failure = job?.status === "failed" ? (job.error ?? "The download stopped.") : null;
     const installed = isInstalled(model);
     const active =
       kind === "llm"
@@ -793,12 +798,21 @@ export function LlamaCppModelsPanel({
             disabled={anyDownloading}
             onClick={() => void download(model.id)}
           >
-            Download
+            {failure ? "Resume download" : "Download"}
           </button>
         ) : (
           <span className="gr-check-state">Not yet</span>
         )}
       </li>
+      {failure ? (
+        // In the failure's own words, next to the model it happened to. The
+        // button above says Resume because the bytes already fetched are still
+        // on disk and the next attempt continues from them.
+        <li className="gr-check gr-check--error">
+          <span className="gr-check-icon" aria-hidden="true" />
+          <span className="gr-check-name gr-check-name--error">{failure}</span>
+        </li>
+      ) : null}
       {canExpand && expanded ? (
         <ModelDetails
           model={model}

@@ -31,7 +31,9 @@ from app.core.domain.indexing import (
     TextChunk,
     WorkspaceIndexResult,
     content_hash,
+    diff_against_manifest,
 )
+from app.core.domain.indexing_rules import DEFAULT_INCLUDE_PATTERNS
 from app.core.domain.project_scan import ProjectFile, ProjectScanResult
 from app.core.domain.relevance_calibration import (
     PROBE_QUERIES,
@@ -61,6 +63,8 @@ from app.core.use_cases.add_timeline_event import (
     AddTimelineEventInput,
     AddTimelineEventUseCase,
 )
+from app.core.use_cases.scan_project import ScanProjectInput, ScanProjectUseCase
+from app.core.use_cases.scan_workspace_project import resolve_scan_rules
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +154,7 @@ class IndexWorkspaceUseCase:
         manifest_repository: IndexManifestRepositoryPort | None = None,
         handbook_provider: Callable[[str], str | None] | None = None,
         document_extractor: DocumentTextExtractorPort | None = None,
+        indexing_rules_repository=None,
     ) -> None:
         self.workspace_repository = workspace_repository
         self.project_scan_repository = project_scan_repository
@@ -168,15 +173,65 @@ class IndexWorkspaceUseCase:
         # Optional: turns Word/Excel/PDF/HTML into locatable text sections. Without
         # it those files are simply not indexed — they cannot be read as UTF-8.
         self.document_extractor = document_extractor
+        # Which files this workspace is made of. Optional: without it the walk
+        # uses the defaults, exactly as resolve_scan_rules documents.
+        self.indexing_rules_repository = indexing_rules_repository
+
+    def _require_scanned(self, workspace_id: str) -> None:
+        """A workspace must have been scanned once before it can be indexed.
+
+        This is a sequencing contract, not a data dependency: scanning is where
+        the person sees what the app found and which rules apply, before any of
+        it is embedded. Indexing now takes its own fresh look at the project, so
+        it no longer *needs* the stored scan — but "scan first" is still the flow
+        the screens describe, and silently indexing an unscanned workspace would
+        skip that review.
+        """
+        if self.project_scan_repository.get_latest_scan(workspace_id) is None:
+            raise IndexWorkspaceScanRequiredError("Project scan required before indexing workspace")
+
+    def _current_scan(self, workspace_id: str, workspace, persist: bool) -> ProjectScanResult:
+        """The project as it is on disk right now.
+
+        Everything here used to read the stored scan, which is a photograph of
+        the project taken when it was last scanned. A file added afterwards is
+        not in that photograph, so it could not be indexed — not by the update
+        button, not by the hint, and not even by a full rebuild after clearing
+        the index, which is how a plain .txt added on Tuesday stayed invisible
+        while the .md files present on day one worked fine. The person's
+        conclusion, reasonably, was "it doesn't read text files".
+
+        Walks with the workspace's own rules, so both sides of any comparison
+        describe the same project (see resolve_scan_rules). ``persist`` saves the
+        result as the new baseline — true for the actions that index, false for
+        the read-only preview, which must not quietly move the baseline the
+        "what changed" check is measured against.
+        """
+        include_patterns, exclude_patterns = resolve_scan_rules(
+            self.indexing_rules_repository, workspace_id, None, None
+        )
+        scan_result = ScanProjectUseCase(file_system=self.file_system).execute(
+            ScanProjectInput(
+                project_path=workspace.project_path,
+                include_patterns=include_patterns,
+                exclude_patterns=exclude_patterns,
+                include_patterns_are_default=include_patterns == DEFAULT_INCLUDE_PATTERNS,
+            )
+        )
+        if persist:
+            self.project_scan_repository.save_latest_scan(
+                workspace_id=workspace_id,
+                scan_result=scan_result,
+            )
+        return scan_result
 
     def execute(self, request: IndexWorkspaceInput) -> WorkspaceIndexResult:
         workspace = self.workspace_repository.get(request.workspace_id)
         if workspace is None:
             raise IndexWorkspaceNotFoundError("Workspace not found")
 
-        latest_scan = self.project_scan_repository.get_latest_scan(request.workspace_id)
-        if latest_scan is None:
-            raise IndexWorkspaceScanRequiredError("Project scan required before indexing workspace")
+        self._require_scanned(request.workspace_id)
+        latest_scan = self._current_scan(request.workspace_id, workspace, persist=True)
 
         try:
             result = self._index_workspace(
@@ -236,41 +291,44 @@ class IndexWorkspaceUseCase:
 
     def execute_changed_preview(self, request: IndexWorkspaceInput) -> IndexChangePreview:
         """Count what an incremental re-index would touch — without embedding or
-        writing anything. Reads + hashes the indexable files and diffs against the
-        manifest, so the UI can show a 'N files changed' hint cheaply."""
+        writing anything.
+
+        Looks at the project as it is right now rather than at the stored scan.
+        The stored scan is a photograph taken when the workspace was set up; a
+        file added afterwards is not in it, so a hint that reads from it can only
+        ever describe the past. It walks the directory and persists nothing, which
+        is what lets it agree with the "what changed while you were away" check
+        that already walks the same directory.
+        """
         workspace = self.workspace_repository.get(request.workspace_id)
         if workspace is None:
             raise IndexWorkspaceNotFoundError("Workspace not found")
-        latest_scan = self.project_scan_repository.get_latest_scan(request.workspace_id)
-        if latest_scan is None:
-            raise IndexWorkspaceScanRequiredError("Project scan required before indexing workspace")
+        self._require_scanned(request.workspace_id)
+        latest_scan = self._current_scan(request.workspace_id, workspace, persist=False)
 
         manifest = (
             self.manifest_repository.get(request.workspace_id)
             if self.manifest_repository is not None
             else {}
         )
-        current = {f.path: f for f in latest_scan.files if f.detected_type in INDEXABLE_FILE_TYPES}
-        changed = new = 0
-        for path in current:
+        current_hashes: dict[str, str] = {}
+        for file in latest_scan.files:
+            if file.detected_type not in INDEXABLE_FILE_TYPES:
+                continue
             try:
-                content = self.file_system.read_text_file(workspace.project_path, path)
+                content = self.file_system.read_text_file(workspace.project_path, file.path)
             except Exception:  # noqa: BLE001 - a read failure shouldn't break the preview
                 content = ""
-            prior = manifest.get(path)
-            if prior is None:
-                new += 1
-            elif str(prior.get("hash")) != content_hash(content):
-                changed += 1
-        removed = len(set(manifest) - set(current))
-        unchanged = max(0, len(current) - changed - new)
+            current_hashes[file.path] = content_hash(content)
+
+        diff = diff_against_manifest(current_hashes=current_hashes, manifest=manifest)
         return IndexChangePreview(
             workspace_id=request.workspace_id,
             has_index=bool(manifest),
-            changed_files=changed,
-            new_files=new,
-            removed_files=removed,
-            unchanged_files=unchanged,
+            changed_files=len(diff.changed),
+            new_files=len(diff.new),
+            removed_files=len(diff.removed),
+            unchanged_files=len(diff.unchanged),
         )
 
     def execute_changed(self, request: IndexWorkspaceInput) -> IncrementalIndexResult:
@@ -285,9 +343,8 @@ class IndexWorkspaceUseCase:
         workspace = self.workspace_repository.get(request.workspace_id)
         if workspace is None:
             raise IndexWorkspaceNotFoundError("Workspace not found")
-        latest_scan = self.project_scan_repository.get_latest_scan(request.workspace_id)
-        if latest_scan is None:
-            raise IndexWorkspaceScanRequiredError("Project scan required before indexing workspace")
+        self._require_scanned(request.workspace_id)
+        latest_scan = self._current_scan(request.workspace_id, workspace, persist=True)
 
         manifest = (
             self.manifest_repository.get(request.workspace_id)
