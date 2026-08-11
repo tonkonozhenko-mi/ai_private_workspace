@@ -92,7 +92,8 @@ import {
 import { formatModelLabel, rawModelTitle } from "../lib/modelLabel";
 import { formatSourceLabel } from "../lib/sourceLabel";
 import { StatusBadge } from "./StatusBadge";
-import { MAX_ACTIVE_SKILLS, SKILL_PRESETS, getEnabledSkillPresets, getSkillPresetByAssistantMode, type CustomSkill, type SkillPreferences } from "./skillLibrary";
+import { getSkillPresetByAssistantMode, type CustomSkill } from "./skillLibrary";
+import { resolveInstruction } from "../lib/instructions";
 
 type SourceSnippetLimit = 3 | 5 | 8 | 10;
 
@@ -100,8 +101,9 @@ interface AskWorkspaceProps {
   workspaceId: string;
   assistantMode: string;
   defaultSourceSnippets: SourceSnippetLimit;
-  skillPreferences: SkillPreferences;
   customSkills: CustomSkill[];
+  /** The instruction used when a question does not name one. */
+  defaultInstructionId: string | null;
   skillProfileSource?: string;
   skillProfileUpdatedAt?: string | null;
   developerMode?: boolean;
@@ -201,8 +203,8 @@ export function AskWorkspace({
   workspaceId,
   assistantMode,
   defaultSourceSnippets,
-  skillPreferences,
   customSkills,
+  defaultInstructionId,
   skillProfileSource = "default",
   skillProfileUpdatedAt = null,
   developerMode = false,
@@ -232,9 +234,11 @@ export function AskWorkspace({
   // How hard the answer should lean on the project files. "safe" is the
   // everyday default; the stricter modes help weaker local models stay honest.
   const [answerMode, setAnswerMode] = useState<string>("safe");
-  // Per-question "answer style" override (dev mode): "" = workspace default.
-  // Value is a preset id or a custom-skill id.
-  const [skillOverride, setSkillOverride] = useState<string>("");
+  // Which of your instructions writes the next answer. null means "not chosen
+  // here", so the standing default applies; "" is an explicit None. They have
+  // to be different values — a default you cannot step out of is a trap, and
+  // "None" has to be able to mean none. The picker shows whichever is in force.
+  const [skillOverride, setSkillOverride] = useState<string | null>(null);
   const [limit, setLimit] = useState(defaultSourceSnippets);
   const [history, setHistory] = useState<AskHistoryItem[]>([]);
   const [conversations, setConversations] = useState<WorkspaceConversation[]>([]);
@@ -727,9 +731,23 @@ export function AskWorkspace({
       // it makes. It used to read `devMode && skillOverride`, which meant that
       // once the control moved out into the composer, picking a skill changed
       // the label and nothing else — a control that lies about having worked.
-      const skillContext = skillOverride
-        ? buildSkillContextForOverride(skillOverride, skillPreferences, customSkills)
-        : buildSkillContext(skillPreferences);
+      //
+      // And when nothing was chosen it used to send the active role's own
+      // guidance as an instruction. The prompt then carried the role twice: once
+      // as "You are reviewing this project as a DevOps engineer", once as an
+      // instruction claiming the user picked it for this question, with a line
+      // about which of the two wins where they disagree. They were the same
+      // sentence. Now an instruction is sent only when there is one.
+      const instruction = resolveInstruction(skillOverride, defaultInstructionId, customSkills);
+      const skillContext: SkillContextRequest[] = instruction
+        ? [
+            {
+              id: instruction.id,
+              name: instruction.name,
+              custom_instructions: instruction.instructions.slice(0, 1200),
+            },
+          ]
+        : [];
       const askOptions = {
         signal: abortController.signal,
         conversationId: activeConversationId,
@@ -1012,17 +1030,20 @@ export function AskWorkspace({
                 {customSkills.length > 0 ? (
                   <label
                     className="ask-mode"
-                    title="Your own instruction for how to write this answer. This question only. Created and edited in Settings."
+                    title="Your own instruction for how the answer should be written. Created and edited in Settings. Changing it here applies from the next question on, until you change it back."
                   >
                     <span>Instruction</span>
                     <select
-                      value={skillOverride}
+                      value={skillOverride ?? defaultInstructionId ?? ""}
                       onChange={(event) => setSkillOverride(event.target.value)}
                     >
+                      {/* Not "Default" — the picker already shows the default
+                          selected, so this option is the way out of it. */}
                       <option value="">None</option>
                       {customSkills.map((skill) => (
                         <option key={skill.id} value={skill.id}>
                           {skill.name}
+                          {skill.id === defaultInstructionId ? " · default" : ""}
                         </option>
                       ))}
                     </select>
@@ -2914,49 +2935,6 @@ function InlineMarkdown({ text }: { text: string }) {
 }
 
 
-
-
-function buildSkillContextForOverride(
-  overrideId: string,
-  skillPreferences: SkillPreferences,
-  customSkills: CustomSkill[],
-): SkillContextRequest[] {
-  const preset = SKILL_PRESETS.find((item) => item.id === overrideId);
-  if (preset) {
-    const custom = skillPreferences[preset.id]?.customInstructions.trim();
-    const instructions = (custom && custom.length > 0
-      ? custom
-      : preset.defaultInstructions
-    ).slice(0, 1200);
-    return [{ id: preset.id, name: preset.name, custom_instructions: instructions }];
-  }
-  const userSkill = customSkills.find((item) => item.id === overrideId);
-  if (userSkill) {
-    return [
-      {
-        id: userSkill.id,
-        name: userSkill.name,
-        custom_instructions: userSkill.instructions.slice(0, 1200),
-      },
-    ];
-  }
-  return [];
-}
-
-function buildSkillContext(skillPreferences: SkillPreferences): SkillContextRequest[] {
-  return getEnabledSkillPresets(skillPreferences)
-    .map((preset) => {
-      const customInstructions =
-        skillPreferences[preset.id]?.customInstructions.trim() ?? "";
-      return {
-        id: preset.id,
-        name: preset.name,
-        custom_instructions: customInstructions.slice(0, 1200),
-      };
-    })
-    .filter((skill) => skill.custom_instructions.length > 0)
-    .slice(0, MAX_ACTIVE_SKILLS);
-}
 
 
 function getAskFocus(mode: string) {

@@ -7,6 +7,14 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Changed
+
+- **A role and an instruction are two different things, and the app now says so once.** "Skill" meant both: the six built-in roles you pick from, and the sentences you write yourself about how an answer should read. Settings edited them in one list, which is why the composer in Ask — where the roles had already been removed for contradicting the project's role — looked wrong: it showed only your own instructions and nothing else. It was right; Settings was the screen still teaching the older idea. Your role, in the header, decides which facts you are shown, on Home and in Intelligence as well as in answers. An instruction decides only how the answer is written. Settings now edits instructions and nothing else: write them, edit them, delete them, and mark one as the default. Wording you had typed into a built-in role's box is carried over as an instruction of your own named after that role, rather than disappearing with the box.
+
+### Fixed
+
+- **"None" in the composer led straight back to an instruction.** Choosing no instruction sent an empty list, and an empty list took the same path as a question that mentioned instructions at all — falling back to the workspace's saved profile, which is written from the project's role every time the role changes. So the role reached the model twice: once as "You are reviewing this project as a DevOps engineer", and again below it as an instruction, introduced as something you had chosen for this question and followed by a sentence about which of the two wins where they disagree. Both were the role, disagreeing with itself. Silence in the request is now silence in the prompt, and answers with no instruction are written the way the role frames them — once.
+
 ## [0.7.10] - 2026-08-11
 
 ### Fixed

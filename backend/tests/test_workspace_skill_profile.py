@@ -186,7 +186,21 @@ def test_workspace_skill_profile_save_adds_activity_event(tmp_path) -> None:
     assert "DevOps" in event["metadata"]["enabled_skills"]
 
 
-def test_ask_response_includes_saved_skill_profile_audit(tmp_path) -> None:
+def test_a_question_that_names_no_instruction_gets_none(tmp_path) -> None:
+    """Silence in the request has to survive as silence in the prompt.
+
+    It used not to. An empty ``skill_context`` took the same branch as a request
+    with no field at all, and both fell back to the workspace's saved profile —
+    which is written from the project's role every time the role changes. The
+    role therefore reached the prompt twice: once as "You are reviewing this
+    project as a DevOps engineer", and once below it as an instruction, under a
+    heading saying the person chose it for this question, followed by a sentence
+    about which of the two wins where they disagree. Both were the role.
+
+    It also made the composer's "None" unreachable: the way out of an
+    instruction led back to the same one. So the fallback is gone, and this test
+    is what notices if it comes back.
+    """
     client = TestClient(app)
     readme = tmp_path / "README.md"
     readme.write_text("skillprofiltoken explains the project.", encoding="utf-8")
@@ -201,6 +215,7 @@ def test_ask_response_includes_saved_skill_profile_audit(tmp_path) -> None:
     ).json()
     workspace_id = created["id"]
 
+    # A saved profile exists and is deliberately not what the answer uses.
     assert (
         client.put(
             f"/workspaces/{workspace_id}/skill-profile",
@@ -212,13 +227,7 @@ def test_ask_response_includes_saved_skill_profile_audit(tmp_path) -> None:
                         "name": "Documentation",
                         "enabled": True,
                         "custom_instructions": "Focus on documentation quality.",
-                    },
-                    {
-                        "id": "devops",
-                        "name": "DevOps",
-                        "enabled": False,
-                        "custom_instructions": "Focus on infrastructure.",
-                    },
+                    }
                 ],
             },
         ).status_code
@@ -227,23 +236,66 @@ def test_ask_response_includes_saved_skill_profile_audit(tmp_path) -> None:
     assert client.post(f"/workspaces/{workspace_id}/scan").status_code == 200
     assert client.post(f"/workspaces/{workspace_id}/index").status_code == 200
 
+    # An empty list, which is what the composer's "None" sends — and the exact
+    # value that used to take the same branch as no field at all.
     response = client.post(
         f"/workspaces/{workspace_id}/ask",
-        json={"question": "Explain skillprofiltoken", "limit": 3},
+        json={"question": "Explain skillprofiltoken", "limit": 3, "skill_context": []},
     )
 
     assert response.status_code == 200
     skill_profile = response.json()["skill_profile"]
-    assert skill_profile["source"] == "saved"
-    assert skill_profile["profile"] == "workspace"
-    assert skill_profile["guidance_count"] == 1
-    assert skill_profile["active_skills"] == ["Documentation"]
+    assert skill_profile["source"] == "none"
+    assert skill_profile["profile"] == "none"
+    assert skill_profile["guidance_count"] == 0
+    assert skill_profile["active_skills"] == []
 
     question_event = next(
         event
         for event in client.get(f"/workspaces/{workspace_id}/timeline").json()
         if event["event_type"] == "workspace_question_asked"
     )
-    assert question_event["metadata"]["skill_profile_source"] == "saved"
-    assert question_event["metadata"]["guidance_count"] == "1"
-    assert question_event["metadata"]["applied_skills"] == "Documentation"
+    assert question_event["metadata"]["skill_profile_source"] == "none"
+    assert question_event["metadata"]["guidance_count"] == "0"
+
+
+def test_an_instruction_in_the_request_is_the_one_that_is_applied(tmp_path) -> None:
+    client = TestClient(app)
+    readme = tmp_path / "README.md"
+    readme.write_text("skillprofiltoken explains the project.", encoding="utf-8")
+    created = client.post(
+        "/workspaces",
+        json={
+            "name": "Skill Profile Request Project",
+            "project_path": str(tmp_path),
+            "assistant_mode": "devops",
+            "privacy_mode": "local_only",
+        },
+    ).json()
+    workspace_id = created["id"]
+    assert client.post(f"/workspaces/{workspace_id}/scan").status_code == 200
+    assert client.post(f"/workspaces/{workspace_id}/index").status_code == 200
+
+    response = client.post(
+        f"/workspaces/{workspace_id}/ask",
+        json={
+            "question": "Explain skillprofiltoken",
+            "limit": 3,
+            # An id of the person's own making: instructions are not roles, so
+            # nothing here is checked against the canonical six.
+            "skill_context": [
+                {
+                    "id": "custom-7f2",
+                    "name": "Security reviewer",
+                    "custom_instructions": "Lead with secrets handling.",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    skill_profile = response.json()["skill_profile"]
+    assert skill_profile["source"] == "request"
+    assert skill_profile["profile"] == "temporary"
+    assert skill_profile["guidance_count"] == 1
+    assert skill_profile["active_skills"] == ["Security reviewer"]
