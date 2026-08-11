@@ -36,7 +36,8 @@ def test_a_saved_preference_is_used_when_nothing_was_asked():
 def test_with_neither_the_answer_follows_the_question():
     assert "Ukrainian" in answer_language_directive("де зберігаються звіти?")
     assert "English" in answer_language_directive("where are reports stored?")
-    assert "Ukrainian" in answer_language_directive("де зберігаються звіти?")
+    # Cyrillic without і/ї/є/ґ is still the same language, not another one.
+    assert "Ukrainian" in answer_language_directive("як налаштована база даних?")
 
 
 def test_the_directive_names_the_documents_as_what_not_to_follow():
@@ -55,9 +56,12 @@ def test_requests_in_several_languages_are_understood():
     assert requested_language("напиши відповідь польською") == "Polish"
 
 
-def test_cyrillic_is_ukrainian_and_its_own_letters_confirm_it():
+def test_cyrillic_is_ukrainian_with_or_without_its_own_letters():
+    """The і/ї/є/ґ letters confirm Ukrainian; their absence does not deny it.
+    That second line used to return "Russian" — one arm of a script check,
+    chosen by nobody, which then told the model which language to answer in."""
     assert question_script_language("де зберігаються звіти?") == "Ukrainian"
-    assert question_script_language("де зберігаються звіти?") == "Polish"
+    assert question_script_language("як налаштована база даних?") == "Ukrainian"
 
 
 def test_a_question_too_short_to_tell_names_no_language():
