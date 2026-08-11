@@ -1158,6 +1158,7 @@ def start_index_workspace_job(workspace_id: str) -> WorkspaceJobResponse:
                 manifest_repository=index_manifest_repository,
                 handbook_provider=handbook_text_provider,
                 document_extractor=document_extractor,
+                indexing_rules_repository=indexing_rules_repository,
             ).execute(
                 IndexWorkspaceInput(
                     workspace_id=workspace_id,
@@ -1326,6 +1327,9 @@ def _index_use_case() -> IndexWorkspaceUseCase:
         manifest_repository=index_manifest_repository,
         handbook_provider=handbook_text_provider,
         document_extractor=document_extractor,
+        # The walk must use this workspace's own file rules, or the fresh scan
+        # it takes would describe a different project than the stored one.
+        indexing_rules_repository=indexing_rules_repository,
     )
 
 
