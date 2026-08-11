@@ -133,13 +133,32 @@ def test_undecodable_base64_is_a_clear_400():
     assert response.status_code == 400
 
 
-def test_nothing_is_written_outside_the_temporary_directory(tmp_path):
-    """A filename is attacker-controlled input. It must not be able to choose
-    where the file lands."""
+def test_a_filename_cannot_choose_where_the_file_lands(tmp_path):
+    """A filename arrives from the browser, where "../../.ssh/id_rsa" is a name
+    like any other. CodeQL flagged exactly this path (py/path-injection) once the
+    extractor gained a caller whose relative path is not from a directory walk."""
     body = _post("../../escaped.txt", b"harmless").json()
 
     assert body["filename"] == "escaped.txt"
     assert not (tmp_path.parent / "escaped.txt").exists()
+
+
+def test_the_extractor_refuses_a_path_that_leaves_its_root(tmp_path):
+    """The boundary lives at the point that opens the file, not in whichever
+    caller remembered to sanitise. Checked directly, because the endpoint's own
+    basename() would otherwise be the only thing standing between a name and the
+    filesystem — and one guard in one caller is how this class of bug survives."""
+    from app.adapters.documents.local_document_extractor import LocalDocumentExtractor
+
+    secret = tmp_path / "secret.csv"
+    secret.write_text("column\nvalue\n", encoding="utf-8")
+    root = tmp_path / "work"
+    root.mkdir()
+
+    escaped = LocalDocumentExtractor().extract(str(root), "../secret.csv", "tabular_data")
+
+    assert escaped.sections == []
+    assert escaped.skipped_reason
 
 
 if __name__ == "__main__":

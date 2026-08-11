@@ -105,6 +105,25 @@ def _row_block_sections(
     return sections
 
 
+def _resolved_within(root_path: str, relative_path: str) -> Path | None:
+    """The file at ``relative_path`` under ``root_path``, or None if it is not
+    under it at all.
+
+    Resolving both sides first is what makes this true rather than approximate:
+    ``..`` segments, absolute paths and symlinks are all settled by resolve(),
+    and then one containment check answers the question. A caller that sanitises
+    the name beforehand is welcome to; this does not depend on it having done so.
+    """
+    try:
+        root = Path(root_path).resolve()
+        candidate = (root / relative_path).resolve()
+    except (OSError, ValueError):
+        return None
+    if candidate != root and root not in candidate.parents:
+        return None
+    return candidate
+
+
 class LocalDocumentExtractor:
     """Adapter implementing DocumentTextExtractorPort. Never raises."""
 
@@ -114,7 +133,15 @@ class LocalDocumentExtractor:
         relative_path: str,
         file_type: str,
     ) -> ExtractedDocument:
-        path = Path(root_path) / relative_path
+        path = _resolved_within(root_path, relative_path)
+        if path is None:
+            # The relative path led outside the root. From a scan it never can —
+            # those paths come from walking the root. But this is also how a file
+            # attached to a question is read, and there the name comes from the
+            # browser, where "../../.ssh/id_rsa" is a name like any other. The
+            # boundary belongs here, at the point that opens the file, not in
+            # whichever caller happens to remember.
+            return skipped("The file could not be read.")
         try:
             if not path.is_file():
                 return skipped("The file could not be read.")
