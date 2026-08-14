@@ -8,6 +8,7 @@ import type {
 } from "../api/types";
 import {
   countPatterns,
+  type FileIndexingPreferences,
 } from "./fileIndexingPreferences";
 import { activateWorkspaceRuntime } from "../api/client";
 
@@ -19,6 +20,7 @@ import { StatusBadge } from "./StatusBadge";
 
 import {
   getEnabledSkillPresets,
+  type SkillPreferences,
 } from "./skillLibrary";
 
 interface WorkspaceDashboardProps {
