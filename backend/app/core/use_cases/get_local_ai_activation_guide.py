@@ -228,7 +228,8 @@ class GetLocalAIActivationGuideUseCase:
                 title="Reindex workspace context",
                 description="Build workspace vectors using the active selected embedding.",
                 command=(
-                    f"curl -X POST http://127.0.0.1:8000/workspaces/{workspace_id}/index"
+                    f'curl -X POST -H "Authorization: Bearer $API_AUTH_TOKEN" '
+                    f"http://127.0.0.1:8000/workspaces/{workspace_id}/index"
                     if selected_embedding is not None
                     else None
                 ),
@@ -298,7 +299,7 @@ class GetLocalAIActivationGuideUseCase:
             title="Ask using selected LLM",
             description="Ask a workspace question using the persisted selected LLM.",
             command=(
-                "curl -X POST "
+                'curl -X POST -H "Authorization: Bearer $API_AUTH_TOKEN" '
                 f"http://127.0.0.1:8000/workspaces/{workspace_id}/ask-selected "
                 "-H 'Content-Type: application/json' "
                 '-d \'{"question":"What should I review first?","limit":5}\''

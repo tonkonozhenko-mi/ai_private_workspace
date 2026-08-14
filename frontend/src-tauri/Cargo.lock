@@ -28,6 +28,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-updater",
  "time",
+ "uuid",
 ]
 
 [[package]]

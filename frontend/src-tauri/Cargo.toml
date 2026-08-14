@@ -16,6 +16,10 @@ tauri-build = { version = "2", features = [] }
 libc = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Already in the dependency graph via tauri, with the same feature — naming it
+# here adds no crate and no lockfile entry, it just makes the one use we have
+# of it explicit: a random token per launch for the local API.
+uuid = { version = "1", features = ["v4"] }
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-updater = "2"
 # Pin time below newer releases that currently conflict with cookie 0.18.x on latest Rust toolchains.
