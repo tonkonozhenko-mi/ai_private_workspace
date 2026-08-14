@@ -237,9 +237,7 @@ def test_leftovers_from_a_different_file_are_never_appended_to(tmp_path):
                 content=replaced[start:],
                 headers={"content-range": f"bytes {start}-{len(replaced) - 1}/{len(replaced)}"},
             )
-        return httpx.Response(
-            200, content=replaced, headers={"content-length": str(len(replaced))}
-        )
+        return httpx.Response(200, content=replaced, headers={"content-length": str(len(replaced))})
 
     HuggingFaceGgufDownloader(client=_server(serves_another_file)).download(
         url="https://example.invalid/model.gguf",

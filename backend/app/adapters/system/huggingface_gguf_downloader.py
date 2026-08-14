@@ -156,7 +156,7 @@ class HuggingFaceGgufDownloader:
             # want this model, so the partial file goes with it.
             _discard(part_path, total_path)
             raise
-        except (GgufDownloadError, _StartOver):
+        except GgufDownloadError, _StartOver:
             raise
         except httpx.HTTPError as exc:
             # Keep the .part. This is the whole point — the next attempt resumes
@@ -184,7 +184,7 @@ def _record_total(total_path: Path, total: int) -> None:
 def _recorded_total(total_path: Path) -> int | None:
     try:
         return int(total_path.read_text(encoding="utf-8").strip())
-    except (OSError, ValueError):
+    except OSError, ValueError:
         return None
 
 

@@ -112,7 +112,7 @@ def get_runtime_troubleshooting() -> RuntimeTroubleshootingResponse:
                 title="Check runtime health",
                 detail="Shows Ollama, Qdrant, and command-runner status from the backend point of view.",
                 copy_command=(
-                    "curl -H \"Authorization: Bearer $API_AUTH_TOKEN\" "
+                    'curl -H "Authorization: Bearer $API_AUTH_TOKEN" '
                     "http://127.0.0.1:8000/runtime/health"
                 ),
             ),
@@ -120,7 +120,7 @@ def get_runtime_troubleshooting() -> RuntimeTroubleshootingResponse:
                 title="Check local database safety",
                 detail="Shows active DB path and local data protection hints.",
                 copy_command=(
-                    "curl -H \"Authorization: Bearer $API_AUTH_TOKEN\" "
+                    'curl -H "Authorization: Bearer $API_AUTH_TOKEN" '
                     "http://127.0.0.1:8000/runtime/local-data"
                 ),
             ),
