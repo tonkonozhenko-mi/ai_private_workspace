@@ -10,6 +10,24 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 static BACKEND_CHILD: OnceLock<Mutex<Option<Child>>> = OnceLock::new();
+static API_AUTH_TOKEN: OnceLock<String> = OnceLock::new();
+
+/// The secret this launch shares with the backend it starts.
+///
+/// The backend listens on a fixed loopback port with CORS open to every
+/// localhost origin, so without this any page in any browser on this machine
+/// could read the person's indexed project. Generated once per launch, held
+/// only in memory, and handed to exactly two places: the backend process (as an
+/// environment variable) and this app's own webview (through the command
+/// below). A page in an ordinary browser has no route to either.
+fn api_auth_token() -> &'static str {
+    API_AUTH_TOKEN.get_or_init(|| uuid::Uuid::new_v4().simple().to_string())
+}
+
+#[tauri::command]
+fn get_api_auth_token() -> String {
+    api_auth_token().to_string()
+}
 
 #[derive(Serialize)]
 struct SupervisorStatus {
@@ -380,9 +398,16 @@ fn backend_http_endpoint_is_ready(path: &str) -> bool {
         Ok(mut stream) => {
             let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
             let _ = stream.set_write_timeout(Some(Duration::from_secs(2)));
+            // The token goes on this probe too. Everything except /health is
+            // behind it now, and workspace_overview_is_ready() checks
+            // /workspaces/overview — so without the header the shell would get
+            // a 401 from the backend it had just started, decide the start had
+            // failed, and kill it. That is not a degraded feature, it is an app
+            // that never opens.
             let request = format!(
-                "GET {} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
-                path
+                "GET {} HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer {}\r\nConnection: close\r\n\r\n",
+                path,
+                api_auth_token()
             );
             if stream.write_all(request.as_bytes()).is_err() {
                 return false;
@@ -758,6 +783,7 @@ fn start_app_owned_backend_runtime() -> Result<AppOwnedBackendProcessStatus, Str
     let mut command = Command::new(&executable);
     command
         .env("APP_ENV", "desktop")
+        .env("API_AUTH_TOKEN", api_auth_token())
         .env("HOST", "127.0.0.1")
         .env("PORT", "8000")
         .env("APP_DATA_DIR", app_data_dir())
@@ -1095,7 +1121,8 @@ pub fn run() {
             stop_app_owned_backend_runtime,
             choose_project_directory,
             choose_gguf_file,
-            open_external_url
+            open_external_url,
+            get_api_auth_token
         ])
         .build(tauri::generate_context!())
         .expect("error while building AI Private Workspace desktop shell");

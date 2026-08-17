@@ -132,9 +132,13 @@ def test_embedding_mismatch_requires_reindex_after_restart(tmp_path) -> None:
 
     assert steps["restart_backend"]["status"] == "needed"
     assert steps["reindex_workspace"]["status"] == "needed"
-    assert steps["reindex_workspace"]["command"] == (
-        f"curl -X POST http://127.0.0.1:8000/workspaces/{workspace['id']}/index"
-    )
+    # Pinned as two facts rather than one literal: which endpoint it calls, and
+    # that it carries the token. The whole string used to be asserted, so adding
+    # the Authorization header — without which this command now returns 401
+    # against the packaged app — broke the test while making the command correct.
+    command = steps["reindex_workspace"]["command"]
+    assert f"http://127.0.0.1:8000/workspaces/{workspace['id']}/index" in command
+    assert "Authorization: Bearer" in command
     assert steps["ask_with_selected_llm"]["status"] == "optional"
     assert "/ask-selected" in steps["ask_with_selected_llm"]["command"]
 

@@ -154,3 +154,24 @@ export async function ensureAppOwnedBackendRuntime(): Promise<DesktopBackendStar
 
   return invoke<DesktopBackendStartupResult>("start_app_owned_backend_runtime");
 }
+
+/**
+ * The token this launch of the desktop app shares with the backend it started.
+ *
+ * Null outside the desktop shell — a browser pointed at a hand-run backend has
+ * no bridge to ask, and that backend has no token either, so both sides agree.
+ */
+export async function desktopApiAuthToken(): Promise<string | null> {
+  const invoke = tauriInvoke();
+  if (!invoke) {
+    return null;
+  }
+  try {
+    const token = await invoke<string>("get_api_auth_token");
+    return typeof token === "string" && token ? token : null;
+  } catch {
+    // An older shell without the command. The backend it started has no token
+    // either, so unauthenticated requests are what it expects.
+    return null;
+  }
+}
