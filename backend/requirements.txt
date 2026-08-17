@@ -10,7 +10,7 @@ pydantic>=2.13.4,<3.0
 pytest>=9.1.1,<10.0
 PyYAML>=6.0,<7.0
 uvicorn[standard]>=0.52.1,<1.0
-pyinstaller>=6.0,<7.0
+pyinstaller>=6.22.0,<7.0
 python-dotenv>=1.0
 
 # Security floors for transitive dependencies. The locked build
