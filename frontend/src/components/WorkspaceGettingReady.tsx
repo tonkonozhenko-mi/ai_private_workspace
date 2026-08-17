@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { LlamaCppModelsPanel } from "./LlamaCppModelsPanel";
 
 import { deviceNoun } from "../lib/deviceName";
+import { openExternalUrl } from "../desktopRuntime";
 import {
   couldBeWaitingForFolderPermission,
   FOLDER_PERMISSION_HINT,
@@ -38,22 +39,6 @@ function asArray<T>(value: T[] | null | undefined): T[] {
 
 function roleLabel(item: LocalModelStatusItem): string {
   return item.model_type === "embedding" ? "search" : "answers";
-}
-
-// Tauri does not follow target="_blank" links, so route external URLs through
-// the Rust `open_external_url` command (exposed via withGlobalTauri). Falls back
-// to window.open when running in a plain browser (dev).
-function openExternalUrl(url: string): void {
-  const invoke = (
-    window as unknown as {
-      __TAURI__?: { core?: { invoke?: (cmd: string, args?: unknown) => Promise<unknown> } };
-    }
-  ).__TAURI__?.core?.invoke;
-  if (invoke) {
-    void invoke("open_external_url", { url });
-  } else {
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
 }
 
 /**
