@@ -42,7 +42,7 @@ jobs:
       # older one ("Loaded a configuration file for version 4.37.3, but running
       # version 4.37.1"). Keep them in lockstep.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3 # v3
+        uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v3
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
