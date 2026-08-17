@@ -175,3 +175,23 @@ export async function desktopApiAuthToken(): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * Open a link in the person's own browser, not in this window.
+ *
+ * Tauri's webview ignores `target="_blank"`, so an ordinary anchor either does
+ * nothing or — worse — navigates the app window away from the app. The Rust
+ * side has an `open_external_url` command that hands the URL to the operating
+ * system after checking it is http(s); this is the one route to it.
+ *
+ * Falls back to window.open in a plain browser, which is where `npm run dev`
+ * lives.
+ */
+export function openExternalUrl(url: string): void {
+  const invoke = tauriInvoke();
+  if (invoke) {
+    void invoke("open_external_url", { url });
+    return;
+  }
+  window.open(url, "_blank", "noopener,noreferrer");
+}

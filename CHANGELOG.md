@@ -7,6 +7,13 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Added
+
+- **The version in the sidebar is a link to the release notes.** It sat at the
+  bottom-left as plain text — the one place in the app that tells you which
+  build you are running, and the natural place to ask "what changed?" from. It
+  now opens the releases page in your own browser, not in the app window.
+
 ## [0.7.10] - 2026-08-12
 
 ### Changed

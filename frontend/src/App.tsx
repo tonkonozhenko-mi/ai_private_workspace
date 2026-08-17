@@ -49,7 +49,7 @@ import { ActivityTimeline } from "./components/ActivityTimeline";
 import { EmptyState } from "./components/EmptyState";
 import { ErrorState } from "./components/ErrorState";
 import { LoadingState } from "./components/LoadingState";
-import { ensureAppOwnedBackendRuntime, isRunningInsideTauri, tauriBridgeDiagnostic, registerDesktopCloseGuard, closeDesktopWindow } from "./desktopRuntime";
+import { ensureAppOwnedBackendRuntime, isRunningInsideTauri, tauriBridgeDiagnostic, registerDesktopCloseGuard, closeDesktopWindow, openExternalUrl } from "./desktopRuntime";
 import { WorkspaceDashboard } from "./components/WorkspaceDashboard";
 import { WorkspaceGettingReady } from "./components/WorkspaceGettingReady";
 import { WorkspaceList } from "./components/WorkspaceList";
@@ -141,6 +141,10 @@ import { workspaceTabs } from "./components/appTabs";
 export type { WorkspaceTab };
 
 const LAST_WORKSPACE_STORAGE_KEY = "ai-private-workspace.last-workspace-id.v1";
+
+// The release notes for whatever version is running. Kept next to nothing else
+// because it is the only outbound link in the shell.
+const RELEASES_URL = "https://github.com/tonkonozhenko-mi/ai_private_workspace/releases";
 
 // Preference types, defaults, persistence and the usePreferences hook moved to
 // ./preferences. Re-exported here so existing imports (e.g. SettingsPanel) keep
@@ -1315,7 +1319,20 @@ function App() {
             Private — your files stay on this computer
           </span>
           <span>Local backend ready</span>
-          <span className="sidebar-version">Version {__APP_VERSION__}</span>
+          {/* A real anchor, so it looks and behaves like a link (hover, copy
+              link address) — but Tauri's webview will not follow it, so the
+              click is handed to the system browser instead. */}
+          <a
+            className="sidebar-version"
+            href={RELEASES_URL}
+            onClick={(event) => {
+              event.preventDefault();
+              openExternalUrl(RELEASES_URL);
+            }}
+            title="What changed in this and earlier versions"
+          >
+            Version {__APP_VERSION__}
+          </a>
         </footer>
       </aside>
 
