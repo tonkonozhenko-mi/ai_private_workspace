@@ -1,3 +1,4 @@
+import { desktopApiAuthToken } from "../desktopRuntime";
 import type {
   LocalAIActivationGuide,
   ModelExperimentPlan,
@@ -109,6 +110,43 @@ export const DEFAULT_API_BASE_URL =
 
 let apiBaseUrl = DEFAULT_API_BASE_URL;
 
+// The backend refuses anything that does not carry the token its own shell gave
+// it, because otherwise any page open in any browser on this machine can read
+// the indexed project. Asked for once and remembered: the shell holds it in
+// memory for the life of the process, so it cannot change under us.
+//
+// Fetched lazily rather than pushed in at startup on purpose. A "call this
+// before your first request" contract is one that gets broken by whichever
+// component happens to mount first, and the failure — one unauthenticated
+// request at boot — is exactly the kind that shows up as an empty screen with
+// no clue why.
+let apiAuthToken: Promise<string | null> | null = null;
+
+async function authorizationHeader(): Promise<Record<string, string>> {
+  apiAuthToken ??= desktopApiAuthToken();
+  const token = await apiAuthToken;
+  if (!token) {
+    // Only a real token is worth remembering. Caching "there is none" would
+    // turn one bad moment — a bridge call that failed, a browser tab where the
+    // answer is legitimately null — into every request for the life of the
+    // page, and in the desktop app that reads as the whole UI going blank with
+    // no way back but a restart.
+    apiAuthToken = null;
+    return {};
+  }
+  return { Authorization: `Bearer ${token}` };
+}
+
+async function authorized(init: RequestInit = {}): Promise<RequestInit> {
+  return {
+    ...init,
+    headers: {
+      ...(init.headers as Record<string, string> | undefined),
+      ...(await authorizationHeader()),
+    },
+  };
+}
+
 export function getApiBaseUrl(): string {
   return apiBaseUrl;
 }
@@ -127,14 +165,14 @@ async function getJson<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 async function requestJson<T>(path: string, init: RequestInit): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, init);
+  const response = await fetch(`${apiBaseUrl}${path}`, await authorized(init));
   await assertOk(response);
 
   return (await response.json()) as T;
 }
 
 async function requestWithoutBody(path: string, init: RequestInit): Promise<void> {
-  const response = await fetch(`${apiBaseUrl}${path}`, init);
+  const response = await fetch(`${apiBaseUrl}${path}`, await authorized(init));
   await assertOk(response);
 }
 
@@ -780,7 +818,11 @@ export async function streamInvestigateProject(
     `${apiBaseUrl}/workspaces/${workspaceId}/intelligence/investigate/stream`,
     {
       method: "POST",
-      headers: { Accept: "text/event-stream", "Content-Type": "application/json" },
+      headers: {
+        Accept: "text/event-stream",
+        "Content-Type": "application/json",
+        ...(await authorizationHeader()),
+      },
       body: JSON.stringify({ question, role: role ?? null }),
       signal: options.signal,
     },
@@ -1787,6 +1829,7 @@ export async function askSelectedWorkspaceStream(
       headers: {
         Accept: "text/event-stream",
         "Content-Type": "application/json",
+        ...(await authorizationHeader()),
       },
       body: JSON.stringify({
         question,
@@ -2143,7 +2186,11 @@ export async function askProjectGroupStream(
 ): Promise<GroupAskResponse> {
   const response = await fetch(`${apiBaseUrl}/workspace-groups/${groupId}/ask/stream`, {
     method: "POST",
-    headers: { Accept: "text/event-stream", "Content-Type": "application/json" },
+    headers: {
+      Accept: "text/event-stream",
+      "Content-Type": "application/json",
+      ...(await authorizationHeader()),
+    },
     body: JSON.stringify({
       question,
       think: options.think ?? null,

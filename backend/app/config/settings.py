@@ -115,6 +115,11 @@ class Settings(BaseModel):
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
+    # A shared secret the desktop shell generates at launch and hands to both
+    # sides. Empty means the API is open, which is what a developer running
+    # `uvicorn` by hand and what the test suite both need. The packaged app
+    # always sets it — see the Tauri shell.
+    API_AUTH_TOKEN: str = ""
     APP_DATA_DIR: Path = DEFAULT_APP_DATA_DIR
     WORKSPACE_DB_PATH: Path = DEFAULT_APP_DATA_DIR / "workspaces.db"
     WORKSPACE_REPOSITORY: str = "sqlite"
@@ -308,6 +313,7 @@ def get_settings() -> Settings:
 
     settings = Settings(
         CORS_ALLOWED_ORIGINS=cors_allowed_origins,
+        API_AUTH_TOKEN=os.getenv("API_AUTH_TOKEN", "").strip(),
         APP_DATA_DIR=app_data_dir,
         WORKSPACE_DB_PATH=workspace_db_path,
         WORKSPACE_REPOSITORY=os.getenv("WORKSPACE_REPOSITORY", "sqlite"),

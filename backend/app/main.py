@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.local_api_token import LocalApiTokenMiddleware
 from app.api.routes.agent_workflows import router as agent_workflows_router
 from app.api.routes.answer_ratings import router as answer_ratings_router
 from app.api.routes.assistant_profiles import router as assistant_profiles_router
@@ -63,6 +64,18 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
 
+# Added before CORS on purpose. Starlette runs the last-added middleware
+# outermost, so this ordering puts CORS outside the token check — which is what
+# makes a 401 come back with CORS headers on it. The other way round, the app's
+# own webview would see an opaque network failure instead of the reason.
+app.add_middleware(LocalApiTokenMiddleware, token=settings.API_AUTH_TOKEN)
+
+# The origin list stays as it is, including "null" and every localhost port.
+# With the token required it no longer decides anything: an allowed origin
+# without the token gets a 401, and the only route it can still reach is
+# /health. Tightening it would mean guessing which origin each platform's
+# webview actually sends, and getting that wrong locks the person out of their
+# own app — a real risk in exchange for no additional protection.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_allowed_origins,
