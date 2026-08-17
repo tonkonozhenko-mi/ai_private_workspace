@@ -52,9 +52,9 @@ def test_it_runs_only_for_dependabot_and_only_on_this_repository(job: dict) -> N
     condition = " ".join(job["if"].split())
 
     assert "github.actor == 'dependabot[bot]'" in condition
-    assert (
-        "github.event.pull_request.head.repo.full_name == github.repository" in condition
-    ), "without this it would run on forks"
+    assert "github.event.pull_request.head.repo.full_name == github.repository" in condition, (
+        "without this it would run on forks"
+    )
 
 
 def test_it_wakes_only_for_dependency_manifests(workflow: dict) -> None:
