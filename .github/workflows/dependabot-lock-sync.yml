@@ -1,0 +1,97 @@
+# Dependabot raises a floor in requirements*.txt; this moves the matching pin in
+# requirements.lock and pushes it back onto the same pull request.
+#
+# Why it has to exist. The lock is what CI, the release workflow, the Windows
+# build and the desktop packaging install — requirements.txt is only a
+# declaration. Dependabot knows nothing about the lock, so on its own every
+# dependency PR raised the claim and shipped the old version. A guard test
+# (backend/tests/test_requirements_lock_matches_floors.py) makes that visible by
+# failing, which turned each routine bump into a manual chore: check out the
+# branch, run a script, commit, push. Three in a row is a habit, and a habit a
+# person performs by hand is one they will eventually perform wrong — the first
+# attempt at it used `pip freeze` in a working virtualenv and produced a lock
+# that dropped uvloop's Windows marker and added 22 packages nobody declared.
+#
+# About pull_request_target, which is the dangerous event and is used here on
+# purpose. Dependabot's own runs get a read-only token, so nothing else can push
+# a fix back onto its branch. The danger of pull_request_target is that it grants
+# a write token to a workflow that then executes code from the pull request. This
+# one does not:
+#
+#   * it runs only for dependabot[bot], and only for branches in this repository
+#     (never a fork);
+#   * it only triggers on changes to backend/requirements*.txt;
+#   * it restores the script it runs from the BASE commit, so the pull request
+#     cannot change what executes;
+#   * it installs nothing. The script is Python standard library and reads two
+#     text files. No pip, no npm, no setup hooks.
+#
+# The pull request's own CI then re-runs on the pushed commit, which is where the
+# change is actually verified — including `pip install` finding any transitive
+# conflict the moved pin introduced.
+
+name: Dependabot lock sync
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "backend/requirements.txt"
+      - "backend/requirements-qdrant.txt"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependabot-lock-sync-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Move the lock to the new floor
+    # Both halves matter: the actor check keeps this off human pull requests,
+    # and the repository check keeps it off forks, where head.ref would be a
+    # branch this workflow must never check out with a write token.
+    if: >-
+      github.actor == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          # Two commits are enough to diff, but the push needs a real branch.
+          fetch-depth: 0
+
+      - name: Take the sync script from the base branch, not the pull request
+        run: |
+          git fetch --no-tags origin ${{ github.event.pull_request.base.sha }}
+          git checkout ${{ github.event.pull_request.base.sha }} -- scripts/sync_requirements_lock.py
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+
+      - name: Move the pins whose floors moved
+        run: python scripts/sync_requirements_lock.py --write
+
+      - name: Push the lock back onto the pull request
+        run: |
+          # Restore the script to whatever the branch had, so the commit carries
+          # the lock and nothing else.
+          git checkout HEAD -- scripts/sync_requirements_lock.py
+          if git diff --quiet -- backend/requirements.lock; then
+            echo "The lock already meets every floor; nothing to push."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/requirements.lock
+          # Two -m flags rather than a heredoc: an indented heredoc terminator
+          # does not close in sh, and the body would carry the indentation.
+          git commit \
+            -m "chore(deps): move the lock to the floor this PR raises" \
+            -m "The lock is what CI and the release build install, so a raised floor without it changes the claim and not the shipped version. Moved by the direct-pin sync script; nothing re-resolved, nothing fetched."
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
