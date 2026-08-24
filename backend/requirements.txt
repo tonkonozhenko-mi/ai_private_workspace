@@ -5,16 +5,16 @@ pathspec>=1.1.1,<2.0
 # but through defusedxml, since a .docx can be hostile (entity-expansion bombs).
 # PDF is the one format that needs a real parser.
 defusedxml>=0.7.1,<1.0
-pypdf>=6.16.0,<7.0
+pypdf>=6.16.1,<7.0
 pydantic>=2.13.4,<3.0
 pytest>=9.1.1,<10.0
 PyYAML>=6.0,<7.0
-uvicorn[standard]>=0.52.3,<1.0
-pyinstaller>=6.22.2,<7.0
-python-dotenv>=1.0
+uvicorn[standard]>=0.52.4,<1.0
+pyinstaller>=6.22.0,<7.0
+python-dotenv>=1.2.3
 
 # Security floors for transitive dependencies. The locked build
 # (requirements.lock) already resolves safe versions; these also pin the loose
 # and Docker install paths so OSV resolves them safely too.
 idna>=3.18        # PYSEC-2026-215 / GHSA-65pc-fj4g-8rjx
-Pygments>=2.20.0  # PYSEC-2023-117, GHSA-5239-wwwm-4pmq
+Pygments>=2.21.0  # PYSEC-2023-117, GHSA-5239-wwwm-4pmq
