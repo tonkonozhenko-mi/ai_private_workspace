@@ -14,7 +14,7 @@ httpcore==1.0.9
 httptools==0.8.0
 httpx==0.28.1
 hyperframe==6.1.0
-idna==3.18
+idna==3.19
 iniconfig==2.3.0
 macholib==1.16.4
 numpy==2.4.6
@@ -28,7 +28,7 @@ pydantic_core==2.46.4
 Pygments==2.21.0
 pyinstaller-hooks-contrib==2026.6
 pypdf==6.16.2
-pyinstaller==6.22.0
+pyinstaller==6.22.2
 pytest==9.1.1
 python-dotenv==1.2.3
 PyYAML==6.0.3
