@@ -9,7 +9,7 @@ pypdf>=6.18.0,<7.0
 pydantic>=2.13.4,<3.0
 pytest>=9.1.1,<10.0
 PyYAML>=6.0,<7.0
-uvicorn[standard]>=0.52.4,<1.0
+uvicorn[standard]>=0.53.0,<1.0
 pyinstaller>=6.22.2,<7.0
 python-dotenv>=1.2.3
 
